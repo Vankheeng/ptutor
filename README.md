@@ -37,7 +37,7 @@ Xem chi tiết đầy đủ trong [`CONTRIBUTING.md`](./CONTRIBUTING.md) — bao
 - Sơ đồ nhánh `main` → `dev` → `feat/*`
 - Quy ước đặt tên nhánh (`feat/`, `fix/`, `hotfix/`...)
 - Chuẩn commit message (`feat`, `fix`, `docs`...)
-- Khi nào rebase, khi nào merge
+- Khi nào rebase và khi nào merge
 - Quy trình tạo Pull Request
 
 ## Cấu trúc file cấu hình
