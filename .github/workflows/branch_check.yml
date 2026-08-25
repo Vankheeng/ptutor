@@ -2,25 +2,39 @@ name: Branch Name Check
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   branch-name:
+    name: Validate branch name
     runs-on: ubuntu-latest
 
     steps:
       - name: Validate branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
         run: |
-          BRANCH="${{ github.head_ref }}"
+          echo "Source branch: $BRANCH"
+          echo "Target branch: $BASE"
 
+          # Allow dev -> main
+          if [[ "$BRANCH" == "dev" && "$BASE" == "main" ]]; then
+            echo "Allowed: dev -> main"
+            exit 0
+          fi
+
+          # Other branches must follow naming convention
           if [[ ! "$BRANCH" =~ ^(feat|fix|refactor|docs|test|chore)/.+$ ]]; then
             echo "Invalid branch name: $BRANCH"
+            echo ""
             echo "Allowed:"
-            echo "feat/*"
-            echo "fix/*"
-            echo "refactor/*"
-            echo "docs/*"
-            echo "test/*"
-            echo "chore/*"
+            echo "  feat/*"
+            echo "  fix/*"
+            echo "  refactor/*"
+            echo "  docs/*"
+            echo "  test/*"
+            echo "  chore/*"
             exit 1
           fi
 
