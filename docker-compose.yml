@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: ptutor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ptutor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ptutor_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  ptutor_postgres_data:

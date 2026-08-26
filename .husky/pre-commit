@@ -1,2 +1,14 @@
-npx lint-staged
-npm run test
+# Chỉ chạy lint/test frontend nếu có file thay đổi trong frontend/
+if git diff --cached --name-only | grep -q '^frontend/'; then
+  echo "🔍 Có thay đổi frontend — chạy lint-staged + test..."
+  cd frontend && npx lint-staged && npm run test || exit 1
+  cd ..
+fi
+
+# Chỉ chạy test backend nếu có file .java thay đổi trong backend/
+if git diff --cached --name-only | grep -q '^backend/.*\.java$'; then
+  echo "🔍 Có thay đổi backend — chạy test..."
+  cd backend
+  mvn test || exit 1
+  cd ..
+fi
