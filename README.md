@@ -49,6 +49,28 @@ npm install
 
 Lệnh trên tự chạy script `prepare` để kích hoạt Husky — không cần chạy thêm lệnh nào khác.
 
+### 2.1. Chuẩn bị file môi trường
+
+Trước khi khởi động PostgreSQL, tạo file `.env` local từ file mẫu:
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Linux/macOS:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Điền các giá trị còn trống trong `.env`, đặc biệt là `POSTGRES_USER` và `POSTGRES_PASSWORD`. Các giá trị `DB_URL`, `DB_USERNAME` và `DB_PASSWORD` phải trỏ tới cùng database mà Docker Compose sử dụng. File `.env` chỉ dùng local và được Git ignore, còn `.env.example` cần được giữ trong repository để thành viên mới có thể tạo cấu hình.
+
+Docker Compose tự động đọc `.env` ở thư mục gốc project. Spring Boot không tự đọc file `.env`; nếu dùng thông tin khác giá trị mặc định trong `application.yaml`, hãy khai báo các biến `DB_*` trong terminal trước khi chạy backend.
+
 ### 3. Khởi động PostgreSQL
 
 ```bash
@@ -60,6 +82,21 @@ Kiểm tra container đang chạy:
 ```bash
 docker ps
 ```
+
+Kiểm tra riêng service PostgreSQL và trạng thái sẵn sàng của database:
+
+```powershell
+docker compose ps
+docker compose exec postgres pg_isready -U postgres -d ptutor
+```
+
+Kiểm tra extension `vector`, cần thiết cho các cột embedding của `Student` và `Tutor`:
+
+```powershell
+docker compose exec postgres psql -U postgres -d ptutor -c "SELECT extname FROM pg_extension WHERE extname = 'vector';"
+```
+
+Kết quả phải có extension `vector`. Nếu bạn thay đổi `POSTGRES_USER` hoặc `POSTGRES_DB` trong `.env`, hãy thay `postgres` và `ptutor` trong các lệnh trên bằng giá trị tương ứng.
 
 Cấu hình database mặc định:
 
@@ -77,10 +114,29 @@ docker compose down
 
 > Không dùng `docker compose down -v` nếu muốn giữ lại dữ liệu database.
 
+Nếu cần kiểm tra migration trên database hoàn toàn sạch, chỉ thực hiện khi không cần giữ dữ liệu hiện tại:
+
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
+Lệnh `down -v` sẽ xóa Docker volume và toàn bộ dữ liệu PostgreSQL. Sau đó tiếp tục khởi động backend để Flyway tạo lại schema từ migration `V1`.
+
 ### 4. Khởi động Backend
 
 ```bash
 cd backend
+```
+
+Khi backend khởi động, Flyway sẽ tự động chạy migration `V1__create_initial_schema.sql` để tạo schema. Hibernate chỉ dùng `ddl-auto: validate`, vì vậy không tự tạo, sửa hoặc xóa bảng.
+
+Nếu các thông tin database trong `.env` khác giá trị mặc định của `application.yaml`, Spring Boot không tự đọc file `.env`. Khi đó cần khai báo các biến `DB_URL`, `DB_USERNAME` và `DB_PASSWORD` trong terminal trước khi chạy backend:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/ptutor"
+$env:DB_USERNAME = "your-postgres-user"
+$env:DB_PASSWORD = "your-postgres-password"
 ```
 
 Windows:
@@ -96,6 +152,39 @@ Linux/macOS:
 ```
 
 Backend mặc định chạy tại `http://localhost:8080`.
+
+Mở một terminal mới để chạy test backend sau khi PostgreSQL đã sẵn sàng:
+
+```powershell
+cd backend
+.\mvnw.cmd test
+```
+
+Kiểm tra lịch sử migration sau khi backend khởi động:
+
+```powershell
+docker compose exec postgres psql -U postgres -d ptutor -c "SELECT installed_rank, version, description, success FROM flyway_schema_history;"
+```
+
+Kiểm tra đủ 32 bảng nghiệp vụ, không tính bảng `flyway_schema_history`:
+
+```powershell
+docker compose exec postgres psql -U postgres -d ptutor -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> 'flyway_schema_history';"
+```
+
+Kết quả mong đợi là `32`. Có thể kiểm tra các cột audit dùng chung bằng lệnh:
+
+```powershell
+docker compose exec postgres psql -U postgres -d ptutor -c "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name IN ('created_at', 'updated_at', 'deleted_at') ORDER BY table_name, column_name;"
+```
+
+Linux/macOS:
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/ptutor
+export DB_USERNAME=your-postgres-user
+export DB_PASSWORD=your-postgres-password
+```
 
 ### 5. Khởi động Frontend
 

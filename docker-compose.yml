@@ -1,16 +1,17 @@
 services:
   postgres:
-    image: postgres:17
-    container_name: ptutor-postgres
-    restart: unless-stopped
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:pg17}
+    container_name: ${POSTGRES_CONTAINER_NAME:-ptutor-postgres}
+    restart: ${POSTGRES_RESTART:-unless-stopped}
     environment:
-      POSTGRES_DB: ptutor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-ptutor}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ptutor_postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_VOLUME_NAME:-ptutor_postgres_data}:/var/lib/postgresql/data
 
 volumes:
   ptutor_postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-ptutor_postgres_data}
