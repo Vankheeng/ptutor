@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ptutor}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -14,3 +14,16 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
     clean-disabled: true
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:ptutor-api}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:3600}
+      refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:2592000}
+    admin:
+      email: ${ADMIN_EMAIL:admin@ptutor.local}
+      password: ${ADMIN_PASSWORD}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}
