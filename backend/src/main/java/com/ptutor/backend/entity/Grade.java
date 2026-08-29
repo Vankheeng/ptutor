@@ -4,6 +4,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -14,6 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.CatalogStatus;
 
 @Entity
 @Table(name = "grades")
@@ -38,5 +42,6 @@ public class Grade extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private CatalogStatus status;
 }

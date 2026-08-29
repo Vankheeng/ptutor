@@ -4,6 +4,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -17,6 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.RecommendationAction;
 
 @Entity
 @Table(name = "recommendation_click_logs")
@@ -52,5 +56,6 @@ public class RecommendationClickLog extends BaseEntity {
 
     @Column(name = "action", nullable = false, length = 20)
     @NonFinal
-    private String action;
+    @Enumerated(EnumType.STRING)
+    private RecommendationAction action;
 }

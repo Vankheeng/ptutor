@@ -8,6 +8,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -21,6 +23,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.ContractStatus;
+import com.ptutor.backend.entity.enums.TeachingMode;
 
 @Entity
 @Table(name = "contracts")
@@ -57,7 +62,8 @@ public class Contract extends BaseEntity {
 
     @Column(name = "teaching_mode", columnDefinition = "varchar")
     @NonFinal
-    private String teachingMode;
+    @Enumerated(EnumType.STRING)
+    private TeachingMode teachingMode;
 
     @Column(name = "price", columnDefinition = "decimal")
     @NonFinal
@@ -81,7 +87,8 @@ public class Contract extends BaseEntity {
 
     @Column(name = "status", columnDefinition = "varchar")
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private ContractStatus status;
 
     @Column(name = "signed_at")
     @NonFinal

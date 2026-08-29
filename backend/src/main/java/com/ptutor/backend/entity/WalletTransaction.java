@@ -7,6 +7,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -20,6 +22,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.ReferenceType;
+import com.ptutor.backend.entity.enums.WalletTransactionStatus;
+import com.ptutor.backend.entity.enums.WalletTransactionType;
 
 @Entity
 @Table(name = "wallet_transactions")
@@ -41,7 +47,8 @@ public class WalletTransaction extends BaseEntity {
 
     @Column(name = "transaction_type", nullable = false, length = 50)
     @NonFinal
-    private String transactionType;
+    @Enumerated(EnumType.STRING)
+    private WalletTransactionType transactionType;
 
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     @NonFinal
@@ -53,7 +60,8 @@ public class WalletTransaction extends BaseEntity {
 
     @Column(name = "reference_type", length = 50)
     @NonFinal
-    private String referenceType;
+    @Enumerated(EnumType.STRING)
+    private ReferenceType referenceType;
 
     @Column(name = "reference_id")
     @NonFinal
@@ -65,5 +73,6 @@ public class WalletTransaction extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private WalletTransactionStatus status;
 }

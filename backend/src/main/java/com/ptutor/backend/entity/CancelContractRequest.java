@@ -6,6 +6,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -19,6 +21,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.CancelContractRequestStatus;
 
 @Entity
 @Table(name = "cancel_contract_requests")
@@ -49,5 +53,6 @@ public class CancelContractRequest extends BaseEntity {
 
     @Column(name = "status", columnDefinition = "varchar")
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private CancelContractRequestStatus status;
 }
