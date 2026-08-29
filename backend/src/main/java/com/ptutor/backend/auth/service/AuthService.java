@@ -21,10 +21,12 @@ import com.ptutor.backend.auth.repository.ProvinceRepository;
 import com.ptutor.backend.auth.repository.StudentRepository;
 import com.ptutor.backend.auth.repository.TutorRepository;
 import com.ptutor.backend.auth.repository.UserRepository;
+import com.ptutor.backend.common.security.CitizenIdCryptoService;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.UserStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,12 +43,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RoleResolver roleResolver;
     private final RefreshTokenService refreshTokenService;
+    private final CitizenIdCryptoService citizenIdCryptoService;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "Email is already registered");
+        }
+        String citizenId = request.citizenId().strip();
+        String citizenIdHash = citizenIdCryptoService.hash(citizenId);
+        if (userRepository.existsByCitizenIdHash(citizenIdHash)) {
+            throw new ApiException(HttpStatus.CONFLICT, "CITIZEN_ID_ALREADY_EXISTS", "Citizen ID is already registered");
         }
 
         RegistrationRole registrationRole;
@@ -69,12 +77,14 @@ public class AuthService {
 
         User user = userMapper.toUser(request);
         user.setEmail(email);
+        user.setEncryptedCitizenId(citizenIdCryptoService.encrypt(citizenId));
+        user.setCitizenIdHash(citizenIdHash);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setDistrict(district);
-        user.setStatus("ACTIVE");
+        user.setStatus(UserStatus.ACTIVE);
         User savedUser = userRepository.save(user);
 
-        UserRole role = registrationRole == RegistrationRole.STUDENT ? UserRole.STUDENT : UserRole.TUTOR;
+        UserRole role = registrationRole.toUserRole();
         if (role == UserRole.STUDENT) {
             studentRepository.save(Student.builder().user(savedUser).build());
         } else {
@@ -93,7 +103,7 @@ public class AuthService {
     public AuthTokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmailIgnoreCase(normalizeEmail(request.email()))
                 .orElseThrow(this::invalidCredentials);
-        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+        if (user.getStatus() != UserStatus.ACTIVE
                 || !passwordEncoder.matches(request.password(), user.getPassword())) {
             throw invalidCredentials();
         }

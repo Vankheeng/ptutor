@@ -121,7 +121,7 @@ docker compose down -v
 docker compose up -d
 ```
 
-Lệnh `down -v` sẽ xóa Docker volume và toàn bộ dữ liệu PostgreSQL. Sau đó tiếp tục khởi động backend để Flyway tạo lại schema từ migration `V1`.
+Lệnh `down -v` sẽ xóa Docker volume và toàn bộ dữ liệu PostgreSQL. Sau đó tiếp tục khởi động backend để Flyway tạo lại schema từ các migration `V1` đến `V6`.
 
 ### 4. Khởi động Backend
 
@@ -129,7 +129,44 @@ Lệnh `down -v` sẽ xóa Docker volume và toàn bộ dữ liệu PostgreSQL. 
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động chạy migration `V1__create_initial_schema.sql` để tạo schema. Hibernate chỉ dùng `ddl-auto: validate`, vì vậy không tự tạo, sửa hoặc xóa bảng.
+#### Lưu ý khi cập nhật schema (Nếu đã chạy code các phiên bản trước đó)
+
+Các migration mới sau `V2` bổ sung `citizen_id` và các ràng buộc Enum. Với database đã có dữ liệu người dùng, cần điền CCCD thật cho mọi bản ghi trong `users` trước khi migration bắt buộc `NOT NULL` được áp dụng:
+
+```sql
+UPDATE users
+SET citizen_id = '012345678901'
+WHERE email = 'your-existing-user@example.com';
+```
+
+Không dùng CCCD giả hoặc dùng trùng giữa nhiều tài khoản. Database mới không có dữ liệu người dùng sẽ chạy các migration này trực tiếp.
+
+Migration `V6` chuyển `citizen_id` sang ciphertext AES-GCM và thêm `citizen_id_hash` làm blind index để kiểm tra trùng. Với dữ liệu legacy, sau khi điền CCCD thật và khởi động backend, ứng dụng sẽ tự động mã hóa các giá trị plaintext còn lại. Không đọc hoặc ghi trực tiếp plaintext vào cột `citizen_id` sau khi `V6` đã chạy.
+
+#### Tạo tài khoản Admin thủ công
+
+Ứng dụng không còn tự động tạo tài khoản Admin khi khởi động. Nếu cần Admin để kiểm thử, hãy tạo thủ công một user với mật khẩu đã được BCrypt hash, sau đó tạo profile employee:
+
+```sql
+WITH admin_user AS (
+    INSERT INTO users (id, citizen_id, email, password, status)
+    VALUES (
+        gen_random_uuid(),
+        '012345678901',
+        'admin@ptutor.local',
+        '<BCrypt-hash-of-admin-password>',
+        'ACTIVE'
+    )
+    RETURNING id
+)
+INSERT INTO employees (id, user_id, role)
+SELECT gen_random_uuid(), id, 1
+FROM admin_user;
+```
+
+Thay `<BCrypt-hash-of-admin-password>` bằng BCrypt hash thực tế; không lưu mật khẩu dạng plain text.
+
+Khi backend khởi động, Flyway sẽ tự động chạy các migration `V1` đến `V6` để tạo và cập nhật schema. Hibernate chỉ dùng `ddl-auto: validate`, vì vậy không tự tạo, sửa hoặc xóa bảng.
 
 Nếu các thông tin database trong `.env` khác giá trị mặc định của `application.yaml`, Spring Boot không tự đọc file `.env`. Khi đó cần khai báo các biến `DB_URL`, `DB_USERNAME` và `DB_PASSWORD` trong terminal trước khi chạy backend:
 
@@ -206,27 +243,27 @@ Frontend mặc định chạy tại `http://localhost:5173`.
 
 Chạy trong thư mục `frontend/`:
 
-| Lệnh | Chức năng |
-|---|---|
-| `npm run dev` | Chạy frontend ở môi trường development |
-| `npm run lint` | Kiểm tra code bằng ESLint |
-| `npm run lint:fix` | Tự sửa lỗi ESLint có thể fix |
-| `npm run format` | Format code bằng Prettier |
-| `npm run format:check` | Kiểm tra format mà không sửa code |
-| `npm test` | Chạy unit test |
+| Lệnh                   | Chức năng                              |
+| ---------------------- | -------------------------------------- |
+| `npm run dev`          | Chạy frontend ở môi trường development |
+| `npm run lint`         | Kiểm tra code bằng ESLint              |
+| `npm run lint:fix`     | Tự sửa lỗi ESLint có thể fix           |
+| `npm run format`       | Format code bằng Prettier              |
+| `npm run format:check` | Kiểm tra format mà không sửa code      |
+| `npm test`             | Chạy unit test                         |
 
 ### Backend
 
 Chạy trong thư mục `backend/`:
 
-| Lệnh | Chức năng |
-|---|---|
-| `./mvnw spring-boot:run` | Chạy Spring Boot |
-| `./mvnw test` | Chạy unit test |
-| `./mvnw checkstyle:check` | Kiểm tra style code |
-| `./mvnw spotless:apply` | Tự động format code Java |
-| `./mvnw spotless:check` | Kiểm tra format mà không sửa |
-| `./mvnw clean package` | Build project |
+| Lệnh                      | Chức năng                    |
+| ------------------------- | ---------------------------- |
+| `./mvnw spring-boot:run`  | Chạy Spring Boot             |
+| `./mvnw test`             | Chạy unit test               |
+| `./mvnw checkstyle:check` | Kiểm tra style code          |
+| `./mvnw spotless:apply`   | Tự động format code Java     |
+| `./mvnw spotless:check`   | Kiểm tra format mà không sửa |
+| `./mvnw clean package`    | Build project                |
 
 ---
 
@@ -341,16 +378,16 @@ ptutor/
 
 ## Cấu trúc file cấu hình
 
-| File | Vai trò |
-|---|---|
-| `frontend/eslint.config.js` | Rule kiểm tra JavaScript/React |
-| `frontend/.prettierrc.json` | Rule format frontend |
-| `backend/pom.xml` (plugin Checkstyle + Spotless) | Rule kiểm tra & format backend |
-| `commitlint.config.js` | Rule kiểm tra commit message |
-| `package.json` (root) | Quản lý Husky + Commitlint |
-| `docker-compose.yml` | Cấu hình PostgreSQL development |
-| `.github/pull_request_template.md` | Checklist hiện khi tạo PR trên GitHub (không cần CI để hoạt động) |
-| `CONTRIBUTING.md` | Quy định Git workflow của project |
+| File                                             | Vai trò                                                           |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| `frontend/eslint.config.js`                      | Rule kiểm tra JavaScript/React                                    |
+| `frontend/.prettierrc.json`                      | Rule format frontend                                              |
+| `backend/pom.xml` (plugin Checkstyle + Spotless) | Rule kiểm tra & format backend                                    |
+| `commitlint.config.js`                           | Rule kiểm tra commit message                                      |
+| `package.json` (root)                            | Quản lý Husky + Commitlint                                        |
+| `docker-compose.yml`                             | Cấu hình PostgreSQL development                                   |
+| `.github/pull_request_template.md`               | Checklist hiện khi tạo PR trên GitHub (không cần CI để hoạt động) |
+| `CONTRIBUTING.md`                                | Quy định Git workflow của project                                 |
 
 ---
 

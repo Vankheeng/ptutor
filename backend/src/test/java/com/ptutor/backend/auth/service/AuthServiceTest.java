@@ -22,6 +22,7 @@ import com.ptutor.backend.auth.dto.LoginRequest;
 import com.ptutor.backend.auth.dto.RegisterRequest;
 import com.ptutor.backend.auth.dto.RegisterResponse;
 import com.ptutor.backend.auth.dto.UserRole;
+import com.ptutor.backend.auth.dto.RegistrationRole;
 import com.ptutor.backend.auth.exception.ApiException;
 import com.ptutor.backend.auth.mapper.UserMapper;
 import com.ptutor.backend.auth.repository.DistrictRepository;
@@ -29,9 +30,12 @@ import com.ptutor.backend.auth.repository.ProvinceRepository;
 import com.ptutor.backend.auth.repository.StudentRepository;
 import com.ptutor.backend.auth.repository.TutorRepository;
 import com.ptutor.backend.auth.repository.UserRepository;
+import com.ptutor.backend.common.security.CitizenIdCryptoService;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.Gender;
+import com.ptutor.backend.entity.enums.UserStatus;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -45,6 +49,7 @@ class AuthServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock RoleResolver roleResolver;
     @Mock RefreshTokenService refreshTokenService;
+    @Mock CitizenIdCryptoService citizenIdCryptoService;
 
     private AuthService authService;
     private UUID userId;
@@ -58,7 +63,7 @@ class AuthServiceTest {
         authService = new AuthService(
                 userRepository, studentRepository, tutorRepository,
                 provinceRepository, districtRepository, userMapper, passwordEncoder,
-                roleResolver, refreshTokenService);
+                roleResolver, refreshTokenService, citizenIdCryptoService);
         userId = UUID.randomUUID();
         provinceId = UUID.randomUUID();
         districtId = UUID.randomUUID();
@@ -76,9 +81,12 @@ class AuthServiceTest {
         savedUser.setId(userId);
 
         when(userRepository.existsByEmailIgnoreCase("student@example.com")).thenReturn(false);
+        when(citizenIdCryptoService.hash("012345678901")).thenReturn("hash");
+        when(userRepository.existsByCitizenIdHash("hash")).thenReturn(false);
         when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
         when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
         when(userMapper.toUser(request)).thenReturn(mappedUser);
+        when(citizenIdCryptoService.encrypt("012345678901")).thenReturn("encrypted-citizen-id");
         when(passwordEncoder.encode("Password123")).thenReturn("bcrypt-hash");
         when(userRepository.save(mappedUser)).thenReturn(savedUser);
 
@@ -88,6 +96,8 @@ class AuthServiceTest {
         assertThat(response.role()).isEqualTo(UserRole.STUDENT);
         verify(studentRepository).save(any());
         assertThat(mappedUser.getPassword()).isEqualTo("bcrypt-hash");
+        assertThat(mappedUser.getEncryptedCitizenId()).isEqualTo("encrypted-citizen-id");
+        assertThat(mappedUser.getCitizenIdHash()).isEqualTo("hash");
         assertThat(mappedUser.getDistrict()).isEqualTo(district);
     }
 
@@ -99,9 +109,12 @@ class AuthServiceTest {
         savedUser.setId(userId);
 
         when(userRepository.existsByEmailIgnoreCase("student@example.com")).thenReturn(false);
+        when(citizenIdCryptoService.hash("012345678901")).thenReturn("hash");
+        when(userRepository.existsByCitizenIdHash("hash")).thenReturn(false);
         when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
         when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
         when(userMapper.toUser(request)).thenReturn(mappedUser);
+        when(citizenIdCryptoService.encrypt("012345678901")).thenReturn("encrypted-citizen-id");
         when(passwordEncoder.encode("Password123")).thenReturn("bcrypt-hash");
         when(userRepository.save(mappedUser)).thenReturn(savedUser);
 
@@ -130,8 +143,21 @@ class AuthServiceTest {
     }
 
     @Test
+    void registerRejectsDuplicateCitizenId() {
+        when(userRepository.existsByEmailIgnoreCase("student@example.com")).thenReturn(false);
+        when(citizenIdCryptoService.hash("012345678901")).thenReturn("hash");
+        when(userRepository.existsByCitizenIdHash("hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.register(request("STUDENT")))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Citizen ID is already registered");
+    }
+
+    @Test
     void registerRejectsUnknownProvince() {
         when(userRepository.existsByEmailIgnoreCase("student@example.com")).thenReturn(false);
+        when(citizenIdCryptoService.hash("012345678901")).thenReturn("hash");
+        when(userRepository.existsByCitizenIdHash("hash")).thenReturn(false);
         when(provinceRepository.findById(provinceId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.register(request("STUDENT")))
@@ -148,6 +174,8 @@ class AuthServiceTest {
         anotherDistrict.setId(districtId);
 
         when(userRepository.existsByEmailIgnoreCase("student@example.com")).thenReturn(false);
+        when(citizenIdCryptoService.hash("012345678901")).thenReturn("hash");
+        when(userRepository.existsByCitizenIdHash("hash")).thenReturn(false);
         when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
         when(districtRepository.findById(districtId)).thenReturn(Optional.of(anotherDistrict));
 
@@ -161,7 +189,7 @@ class AuthServiceTest {
         User user = User.builder()
                 .email("student@example.com")
                 .password("bcrypt-hash")
-                .status("ACTIVE")
+                .status(UserStatus.ACTIVE)
                 .build();
         user.setId(userId);
         LoginRequest request = new LoginRequest(" STUDENT@EXAMPLE.COM ", "Password123");
@@ -188,6 +216,6 @@ class AuthServiceTest {
     private RegisterRequest request(String role) {
         return new RegisterRequest(
                 "student@example.com", "Password123", role, "Nguyen", "An", "0900000000",
-                "MALE", LocalDate.of(2005, 1, 1), provinceId, districtId);
+                Gender.MALE, LocalDate.of(2005, 1, 1), "012345678901", provinceId, districtId);
     }
 }

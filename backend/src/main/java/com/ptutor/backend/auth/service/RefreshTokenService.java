@@ -72,13 +72,14 @@ public class RefreshTokenService {
 
         LocalDateTime now = now();
         if (!storedToken.getExpiresAt().isAfter(now)) {
-            storedToken.setRevokedAt(now);
-            invalidTokenRepository.save(storedToken);
+            invalidTokenRepository.revokeIfNotRevoked(storedToken.getId(), now);
             throw invalidRefreshToken();
         }
 
-        storedToken.setRevokedAt(now);
-        invalidTokenRepository.save(storedToken);
+        if (invalidTokenRepository.revokeIfActive(storedToken.getId(), now) != 1) {
+            revokeAll(storedToken.getUser().getId());
+            throw invalidRefreshToken();
+        }
 
         User user = storedToken.getUser();
         UserRole role = roleResolver.resolve(user);
@@ -89,8 +90,7 @@ public class RefreshTokenService {
     public void logout(String rawRefreshToken) {
         invalidTokenRepository.findByToken(hash(rawRefreshToken)).ifPresent(token -> {
             if (token.getRevokedAt() == null) {
-                token.setRevokedAt(now());
-                invalidTokenRepository.save(token);
+                invalidTokenRepository.revokeIfNotRevoked(token.getId(), now());
             }
         });
     }

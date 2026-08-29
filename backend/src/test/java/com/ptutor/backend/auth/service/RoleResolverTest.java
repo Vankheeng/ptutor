@@ -20,6 +20,7 @@ import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.EmployeeRole;
 
 @ExtendWith(MockitoExtension.class)
 class RoleResolverTest {
@@ -57,11 +58,11 @@ class RoleResolverTest {
 
     @Test
     void resolvesEmployeeAndAdminRoles() {
-        Employee employee = Employee.builder().role(2).build();
+        Employee employee = Employee.builder().role(EmployeeRole.EMPLOYEE).build();
         when(employeeRepository.findByUser_Id(user.getId())).thenReturn(Optional.of(employee));
         assertThat(roleResolver.resolve(user)).isEqualTo(UserRole.EMPLOYEE);
 
-        employee.setRole(1);
+        employee.setRole(EmployeeRole.ADMIN);
         assertThat(roleResolver.resolve(user)).isEqualTo(UserRole.ADMIN);
     }
 }

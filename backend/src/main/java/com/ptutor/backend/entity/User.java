@@ -6,6 +6,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -19,6 +21,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.Gender;
+import com.ptutor.backend.entity.enums.UserStatus;
 
 @Entity
 @Table(name = "users")
@@ -42,6 +47,14 @@ public class User extends BaseEntity {
     @NonFinal
     private String email;
 
+    @Column(name = "citizen_id", nullable = false, length = 255)
+    @NonFinal
+    private String encryptedCitizenId;
+
+    @Column(name = "citizen_id_hash", length = 64)
+    @NonFinal
+    private String citizenIdHash;
+
     @Column(name = "password", nullable = false, length = 255)
     @NonFinal
     private String password;
@@ -62,9 +75,10 @@ public class User extends BaseEntity {
     @NonFinal
     private LocalDate dateOfBirth;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = 20)
     @NonFinal
-    private String gender;
+    private Gender gender;
 
     @Column(name = "detail_address", length = 255)
     @NonFinal
@@ -76,6 +90,7 @@ public class User extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 
 }

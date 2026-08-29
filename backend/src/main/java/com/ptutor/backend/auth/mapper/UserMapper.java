@@ -12,6 +12,8 @@ public interface UserMapper {
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "email", source = "email")
+    @Mapping(target = "encryptedCitizenId", ignore = true)
+    @Mapping(target = "citizenIdHash", ignore = true)
     @Mapping(target = "firstName", source = "firstName")
     @Mapping(target = "lastName", source = "lastName")
     @Mapping(target = "phone", source = "phone")

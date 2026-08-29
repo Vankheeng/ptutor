@@ -6,6 +6,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -19,6 +21,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.RequestStatus;
 
 @Entity
 @Table(name = "studying_requests")
@@ -83,7 +88,8 @@ public class StudyingRequest extends BaseEntity {
 
     @Column(name = "learning_mode", nullable = false, length = 30)
     @NonFinal
-    private String learningMode;
+    @Enumerated(EnumType.STRING)
+    private LearningMode learningMode;
 
     @Column(name = "preferred_schedule", length = 500)
     @NonFinal
@@ -91,5 +97,6 @@ public class StudyingRequest extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     @NonFinal
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private RequestStatus status;
 }

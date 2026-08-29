@@ -2,6 +2,7 @@ package com.ptutor.backend.config;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +12,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -28,6 +31,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.ptutor.backend.common.response.ApiResponseFactory;
+
+import tools.jackson.databind.ObjectMapper;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
@@ -83,11 +90,20 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationConverter jwtAuthenticationConverter,
-            CorsConfigurationSource corsConfigurationSource) throws Exception {
+            CorsConfigurationSource corsConfigurationSource,
+            ObjectMapper objectMapper,
+            ApiResponseFactory responseFactory) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) -> writeSecurityError(
+                                response, objectMapper, responseFactory, HttpStatus.UNAUTHORIZED,
+                                "UNAUTHORIZED", "Authentication is required", request.getRequestURI()))
+                        .accessDeniedHandler((request, response, exception) -> writeSecurityError(
+                                response, objectMapper, responseFactory, HttpStatus.FORBIDDEN,
+                                "FORBIDDEN", "You do not have permission to access this resource", request.getRequestURI())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(API_PUBLIC).permitAll()
                         .anyRequest().authenticated())
@@ -96,6 +112,19 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();
+    }
+
+    private void writeSecurityError(
+            jakarta.servlet.http.HttpServletResponse response,
+            ObjectMapper objectMapper,
+            ApiResponseFactory responseFactory,
+            HttpStatus status,
+            String code,
+            String message,
+            String path) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), responseFactory.error(code, message, java.util.Map.of(), path));
     }
 
     @Bean

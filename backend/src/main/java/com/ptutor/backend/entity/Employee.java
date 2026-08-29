@@ -4,6 +4,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -17,6 +18,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.converter.EmployeeRoleConverter;
+import com.ptutor.backend.entity.enums.EmployeeRole;
 
 @Entity
 @Table(name = "employees")
@@ -38,6 +42,7 @@ public class Employee extends BaseEntity {
 
     @Column(name = "role", nullable = false)
     @NonFinal
-    private Integer role;
+    @Convert(converter = EmployeeRoleConverter.class)
+    private EmployeeRole role;
 
 }

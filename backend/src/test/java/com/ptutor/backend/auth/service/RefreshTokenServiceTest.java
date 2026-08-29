@@ -55,19 +55,21 @@ class RefreshTokenServiceTest {
                 .user(user)
                 .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
                 .build();
+        stored.setId(UUID.randomUUID());
         when(invalidTokenRepository.findByToken(RefreshTokenService.hash(rawToken)))
                 .thenReturn(Optional.of(stored));
         when(roleResolver.resolve(user)).thenReturn(UserRole.STUDENT);
         when(jwtService.getAccessTokenTtlSeconds()).thenReturn(900L);
         when(jwtService.createAccessToken(user.getId(), user.getEmail(), UserRole.STUDENT)).thenReturn("access-token");
-        when(invalidTokenRepository.save(any(InvalidToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invalidTokenRepository.revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0)))
+                .thenReturn(1);
 
         AuthTokenResponse response = refreshTokenService.refresh(rawToken);
 
-        assertThat(stored.getRevokedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotEqualTo(rawToken);
-        verify(invalidTokenRepository, org.mockito.Mockito.times(2)).save(any(InvalidToken.class));
+        verify(invalidTokenRepository).revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0));
+        verify(invalidTokenRepository).save(any(InvalidToken.class));
     }
 
     @Test
@@ -102,5 +104,32 @@ class RefreshTokenServiceTest {
         refreshTokenService.logout("unknown-token");
 
         verify(invalidTokenRepository).findByToken(RefreshTokenService.hash("unknown-token"));
+    }
+
+    @Test
+    void concurrentRefreshFailureReturnsInvalidTokenAndRevokesActiveTokens() {
+        String rawToken = "concurrent-refresh-token";
+        InvalidToken stored = InvalidToken.builder()
+                .token(RefreshTokenService.hash(rawToken))
+                .user(user)
+                .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
+                .build();
+        stored.setId(UUID.randomUUID());
+        InvalidToken active = InvalidToken.builder()
+                .user(user)
+                .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
+                .build();
+        when(invalidTokenRepository.findByToken(RefreshTokenService.hash(rawToken)))
+                .thenReturn(Optional.of(stored));
+        when(invalidTokenRepository.revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0)))
+                .thenReturn(0);
+        when(invalidTokenRepository.findByUser_IdAndRevokedAtIsNull(user.getId()))
+                .thenReturn(List.of(active));
+
+        assertThatThrownBy(() -> refreshTokenService.refresh(rawToken))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("invalid");
+        verify(invalidTokenRepository).revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0));
+        verify(invalidTokenRepository).save(active);
     }
 }

@@ -4,6 +4,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -17,6 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.NotificationType;
 
 @Entity
 @Table(name = "notifications")
@@ -50,7 +54,8 @@ public class Notification extends BaseEntity {
 
     @Column(name = "type", nullable = false, length = 50)
     @NonFinal
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
 
     @Column(name = "is_read", nullable = false)
     @NonFinal

@@ -14,6 +14,8 @@ import com.ptutor.backend.auth.dto.RegisterRequest;
 import com.ptutor.backend.auth.dto.RegisterResponse;
 import com.ptutor.backend.auth.service.AuthService;
 import com.ptutor.backend.auth.service.RefreshTokenService;
+import com.ptutor.backend.common.response.ApiResponse;
+import com.ptutor.backend.common.response.ApiResponseFactory;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,25 +28,29 @@ public class AuthController {
 
     private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
+    private final ApiResponseFactory responseFactory;
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(201).body(authService.register(request));
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(201)
+                .body(responseFactory.success(authService.register(request), "/api/v1/auth/register"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthTokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(responseFactory.success(authService.login(request), "/api/v1/auth/login"));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(refreshTokenService.refresh(request.refreshToken()));
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                refreshTokenService.refresh(request.refreshToken()), "/api/v1/auth/refresh"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshTokenRequest request) {
         refreshTokenService.logout(request.refreshToken());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(responseFactory.success(
+                "LOGOUT_SUCCESS", "Logout completed successfully", null, "/api/v1/auth/logout"));
     }
 }

@@ -9,6 +9,7 @@ import com.ptutor.backend.auth.repository.EmployeeRepository;
 import com.ptutor.backend.auth.repository.StudentRepository;
 import com.ptutor.backend.auth.repository.TutorRepository;
 import com.ptutor.backend.entity.Employee;
+import com.ptutor.backend.entity.enums.EmployeeRole;
 import com.ptutor.backend.entity.User;
 
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class RoleResolver {
-
-    private static final int ADMIN_ROLE = 1;
-    private static final int EMPLOYEE_ROLE = 2;
 
     private final StudentRepository studentRepository;
     private final TutorRepository tutorRepository;
@@ -40,10 +38,10 @@ public class RoleResolver {
         if (tutor) {
             return UserRole.TUTOR;
         }
-        if (employee.getRole() == ADMIN_ROLE) {
+        if (employee.getRole() == EmployeeRole.ADMIN) {
             return UserRole.ADMIN;
         }
-        if (employee.getRole() == EMPLOYEE_ROLE) {
+        if (employee.getRole() == EmployeeRole.EMPLOYEE) {
             return UserRole.EMPLOYEE;
         }
         throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_EMPLOYEE_ROLE",
