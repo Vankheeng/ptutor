@@ -37,6 +37,8 @@ Dự án kết nối học viên và gia sư.
 ```bash
 git clone <repository-url>
 cd ptutor
+git fetch origin
+git switch --track -c dev origin/dev
 ```
 
 ### 2. Cài đặt Git Hooks
@@ -49,29 +51,33 @@ npm install
 
 Lệnh trên tự chạy script `prepare` để kích hoạt Husky — không cần chạy thêm lệnh nào khác.
 
-### 2.1. Chuẩn bị file môi trường
+### 3. Chuẩn bị các file cấu hình local
 
-Trước khi khởi động PostgreSQL, tạo file `.env` local từ file mẫu:
+Sau khi checkout hoặc pull code từ nhánh `dev`, tạo các file cấu hình local một lần. Các file này đã được Git ignore nên sẽ được giữ lại khi chuyển sang các nhánh khác.
 
 Windows PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+if (-not (Test-Path backend/src/main/resources/application.yml)) { Copy-Item backend/src/main/resources/application-prod.yaml backend/src/main/resources/application.yml }
 notepad .env
+notepad backend/src/main/resources/application.yml
 ```
 
 Linux/macOS:
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
+test -f backend/src/main/resources/application.yml || cp backend/src/main/resources/application-prod.yaml backend/src/main/resources/application.yml
 nano .env
+nano backend/src/main/resources/application.yml
 ```
 
-Điền các giá trị còn trống trong `.env`, đặc biệt là `POSTGRES_USER` và `POSTGRES_PASSWORD`. Các giá trị `DB_URL`, `DB_USERNAME` và `DB_PASSWORD` phải trỏ tới cùng database mà Docker Compose sử dụng. File `.env` chỉ dùng local và được Git ignore, còn `.env.example` cần được giữ trong repository để thành viên mới có thể tạo cấu hình.
+Điền các giá trị cấu hình tương ứng trong `.env` và `backend/src/main/resources/application.yml`. Không cần tạo lại hai file này khi chuyển sang các nhánh khác.
 
-Docker Compose tự động đọc `.env` ở thư mục gốc project. Spring Boot không tự đọc file `.env`; nếu dùng thông tin khác giá trị mặc định trong `application.yaml`, hãy khai báo các biến `DB_*` trong terminal trước khi chạy backend.
+Docker Compose tự động đọc `.env` ở thư mục gốc project. Spring Boot sử dụng cấu hình trong `backend/src/main/resources/application.yml`.
 
-### 3. Khởi động PostgreSQL
+### 4. Khởi động PostgreSQL
 
 ```bash
 docker compose up -d
@@ -106,75 +112,13 @@ Username: postgres
 Port: 5432
 ```
 
-Dừng PostgreSQL:
-
-```bash
-docker compose down
-```
-
-> Không dùng `docker compose down -v` nếu muốn giữ lại dữ liệu database.
-
-Nếu cần kiểm tra migration trên database hoàn toàn sạch, chỉ thực hiện khi không cần giữ dữ liệu hiện tại:
-
-```powershell
-docker compose down -v
-docker compose up -d
-```
-
-Lệnh `down -v` sẽ xóa Docker volume và toàn bộ dữ liệu PostgreSQL. Sau đó tiếp tục khởi động backend để Flyway tạo lại schema từ các migration `V1` đến `V6`.
-
-### 4. Khởi động Backend
+### 5. Khởi động Backend
 
 ```bash
 cd backend
 ```
 
-#### Lưu ý khi cập nhật schema (Nếu đã chạy code các phiên bản trước đó)
-
-Các migration mới sau `V2` bổ sung `citizen_id` và các ràng buộc Enum. Với database đã có dữ liệu người dùng, cần điền CCCD thật cho mọi bản ghi trong `users` trước khi migration bắt buộc `NOT NULL` được áp dụng:
-
-```sql
-UPDATE users
-SET citizen_id = '012345678901'
-WHERE email = 'your-existing-user@example.com';
-```
-
-Không dùng CCCD giả hoặc dùng trùng giữa nhiều tài khoản. Database mới không có dữ liệu người dùng sẽ chạy các migration này trực tiếp.
-
-Migration `V6` chuyển `citizen_id` sang ciphertext AES-GCM và thêm `citizen_id_hash` làm blind index để kiểm tra trùng. Với dữ liệu legacy, sau khi điền CCCD thật và khởi động backend, ứng dụng sẽ tự động mã hóa các giá trị plaintext còn lại. Không đọc hoặc ghi trực tiếp plaintext vào cột `citizen_id` sau khi `V6` đã chạy.
-
-#### Tạo tài khoản Admin thủ công
-
-Ứng dụng không còn tự động tạo tài khoản Admin khi khởi động. Nếu cần Admin để kiểm thử, hãy tạo thủ công một user với mật khẩu đã được BCrypt hash, sau đó tạo profile employee:
-
-```sql
-WITH admin_user AS (
-    INSERT INTO users (id, citizen_id, email, password, status)
-    VALUES (
-        gen_random_uuid(),
-        '012345678901',
-        'admin@ptutor.local',
-        '<BCrypt-hash-of-admin-password>',
-        'ACTIVE'
-    )
-    RETURNING id
-)
-INSERT INTO employees (id, user_id, role)
-SELECT gen_random_uuid(), id, 1
-FROM admin_user;
-```
-
-Thay `<BCrypt-hash-of-admin-password>` bằng BCrypt hash thực tế; không lưu mật khẩu dạng plain text.
-
-Khi backend khởi động, Flyway sẽ tự động chạy các migration `V1` đến `V6` để tạo và cập nhật schema. Hibernate chỉ dùng `ddl-auto: validate`, vì vậy không tự tạo, sửa hoặc xóa bảng.
-
-Nếu các thông tin database trong `.env` khác giá trị mặc định của `application.yaml`, Spring Boot không tự đọc file `.env`. Khi đó cần khai báo các biến `DB_URL`, `DB_USERNAME` và `DB_PASSWORD` trong terminal trước khi chạy backend:
-
-```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/ptutor"
-$env:DB_USERNAME = "your-postgres-user"
-$env:DB_PASSWORD = "your-postgres-password"
-```
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành và tài khoản Admin từ ba migration `V1`, `V2`, `V3`.
 
 Windows:
 
@@ -190,40 +134,7 @@ Linux/macOS:
 
 Backend mặc định chạy tại `http://localhost:8080`.
 
-Mở một terminal mới để chạy test backend sau khi PostgreSQL đã sẵn sàng:
-
-```powershell
-cd backend
-.\mvnw.cmd test
-```
-
-Kiểm tra lịch sử migration sau khi backend khởi động:
-
-```powershell
-docker compose exec postgres psql -U postgres -d ptutor -c "SELECT installed_rank, version, description, success FROM flyway_schema_history;"
-```
-
-Kiểm tra đủ 32 bảng nghiệp vụ, không tính bảng `flyway_schema_history`:
-
-```powershell
-docker compose exec postgres psql -U postgres -d ptutor -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> 'flyway_schema_history';"
-```
-
-Kết quả mong đợi là `32`. Có thể kiểm tra các cột audit dùng chung bằng lệnh:
-
-```powershell
-docker compose exec postgres psql -U postgres -d ptutor -c "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name IN ('created_at', 'updated_at', 'deleted_at') ORDER BY table_name, column_name;"
-```
-
-Linux/macOS:
-
-```bash
-export DB_URL=jdbc:postgresql://localhost:5432/ptutor
-export DB_USERNAME=your-postgres-user
-export DB_PASSWORD=your-postgres-password
-```
-
-### 5. Khởi động Frontend
+### 6. Khởi động Frontend
 
 Mở terminal mới:
 

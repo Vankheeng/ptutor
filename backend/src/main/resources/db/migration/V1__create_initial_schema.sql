@@ -40,6 +40,8 @@ CREATE TABLE grades (
 CREATE TABLE users (
     id uuid PRIMARY KEY,
     district_id uuid REFERENCES districts (id),
+    citizen_id varchar(255) NOT NULL,
+    citizen_id_hash varchar(64),
     email varchar(255) NOT NULL UNIQUE,
     password varchar(255) NOT NULL,
     first_name varchar(100),
@@ -415,7 +417,7 @@ CREATE TABLE recommendation_click_logs (
     clicked_student_id uuid REFERENCES students (id),
     clicked_tutor_id uuid REFERENCES tutors (id),
     rank integer NOT NULL,
-    action varchar(20) NOT NULL DEFAULT 'clicked',
+    action varchar(20) NOT NULL DEFAULT 'CLICKED',
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp,
@@ -434,6 +436,110 @@ CREATE TABLE favorite_tutors (
     deleted_at timestamp,
     CONSTRAINT uk_favorite_tutors_student_tutor UNIQUE (student_id, tutor_id)
 );
+
+ALTER TABLE users
+    ADD CONSTRAINT ck_users_citizen_id_hash_format
+        CHECK (citizen_id_hash IS NULL OR citizen_id_hash ~ '^[0-9a-f]{64}$');
+
+CREATE UNIQUE INDEX uk_users_citizen_id_hash
+    ON users (citizen_id_hash)
+    WHERE citizen_id_hash IS NOT NULL;
+
+ALTER TABLE users
+    ADD CONSTRAINT ck_users_gender
+        CHECK (gender IS NULL OR gender IN ('MALE', 'FEMALE', 'OTHER')),
+    ADD CONSTRAINT ck_users_status
+        CHECK (status IN ('ACTIVE', 'INACTIVE', 'BLOCKED'));
+
+ALTER TABLE employees
+    ADD CONSTRAINT ck_employees_role
+        CHECK (role IN (1, 2));
+
+ALTER TABLE subjects
+    ADD CONSTRAINT ck_subjects_status
+        CHECK (status IN ('ACTIVE', 'INACTIVE', 'BLOCKED'));
+
+ALTER TABLE grades
+    ADD CONSTRAINT ck_grades_status
+        CHECK (status IN ('ACTIVE', 'INACTIVE', 'BLOCKED'));
+
+ALTER TABLE certificates
+    ADD CONSTRAINT ck_certificates_status
+        CHECK (status IS NULL OR status IN ('PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'));
+
+ALTER TABLE studying_requests
+    ADD CONSTRAINT ck_studying_requests_learning_mode
+        CHECK (learning_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_studying_requests_status
+        CHECK (status IN ('DRAFT', 'OPEN', 'MATCHED', 'CLOSED', 'CANCELLED'));
+
+ALTER TABLE teaching_requests
+    ADD CONSTRAINT ck_teaching_requests_teaching_mode
+        CHECK (teaching_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_teaching_requests_status
+        CHECK (status IN ('DRAFT', 'OPEN', 'MATCHED', 'CLOSED', 'CANCELLED'));
+
+ALTER TABLE student_tutor_requests
+    ADD CONSTRAINT ck_student_tutor_requests_learning_mode
+        CHECK (learning_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_student_tutor_requests_status
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'));
+
+ALTER TABLE tutor_student_requests
+    ADD CONSTRAINT ck_tutor_student_requests_teaching_mode
+        CHECK (teaching_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_tutor_student_requests_status
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'));
+
+ALTER TABLE contracts
+    ADD CONSTRAINT ck_contracts_teaching_mode
+        CHECK (teaching_mode IS NULL OR teaching_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_contracts_status
+        CHECK (status IS NULL OR status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'));
+
+ALTER TABLE payments
+    ADD CONSTRAINT ck_payments_payment_method
+        CHECK (payment_method IS NULL OR payment_method = 'VNPAY'),
+    ADD CONSTRAINT ck_payments_payment_type
+        CHECK (payment_type IS NULL OR payment_type IN (
+            'TUITION_PAYMENT',
+            'STUDYING_REQUEST_FEE',
+            'TEACHING_REQUEST_FEE'
+        )),
+    ADD CONSTRAINT ck_payments_status
+        CHECK (status IS NULL OR status IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED', 'REFUNDED')),
+    ADD CONSTRAINT ck_payments_reference_type
+        CHECK (reference_type IS NULL OR reference_type IN ('CONTRACT', 'LESSON', 'PAYMENT', 'WALLET_TRANSACTION'));
+
+ALTER TABLE wallet_transactions
+    ADD CONSTRAINT ck_wallet_transactions_type
+        CHECK (transaction_type IN ('CREDIT', 'DEBIT')),
+    ADD CONSTRAINT ck_wallet_transactions_reference_type
+        CHECK (reference_type IS NULL OR reference_type IN ('CONTRACT', 'LESSON', 'PAYMENT', 'WALLET_TRANSACTION')),
+    ADD CONSTRAINT ck_wallet_transactions_status
+        CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'));
+
+ALTER TABLE lessons
+    ADD CONSTRAINT ck_lessons_teaching_mode
+        CHECK (teaching_mode IS NULL OR teaching_mode IN ('OFFLINE', 'ONLINE')),
+    ADD CONSTRAINT ck_lessons_status
+        CHECK (status IS NULL OR status IN ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'));
+
+ALTER TABLE cancel_contract_requests
+    ADD CONSTRAINT ck_cancel_contract_requests_status
+        CHECK (status IS NULL OR status IN ('PENDING', 'APPROVED', 'REJECTED'));
+
+ALTER TABLE complaints
+    ADD CONSTRAINT ck_complaints_status
+        CHECK (status IS NULL OR status IN ('PENDING', 'IN_REVIEW', 'RESOLVED', 'REJECTED'));
+
+ALTER TABLE notifications
+    ADD CONSTRAINT ck_notifications_type
+        CHECK (type IN ('SYSTEM', 'REQUEST', 'CONTRACT', 'PAYMENT', 'COMPLAINT'));
+
+ALTER TABLE recommendation_click_logs
+    ADD CONSTRAINT ck_recommendation_click_logs_action
+        CHECK (action IN ('CLICKED', 'VIEWED', 'CONTACTED'));
 
 CREATE INDEX idx_users_district_id ON users (district_id);
 CREATE INDEX idx_certificates_tutor_id ON certificates (tutor_id);
