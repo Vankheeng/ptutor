@@ -12,6 +12,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,6 +41,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
+import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
 
 @Configuration
 public class SecurityConfig {
@@ -92,7 +95,9 @@ public class SecurityConfig {
             JwtAuthenticationConverter jwtAuthenticationConverter,
             CorsConfigurationSource corsConfigurationSource,
             ObjectMapper objectMapper,
-            ApiResponseFactory responseFactory) throws Exception {
+            ApiResponseFactory responseFactory,
+            Environment environment) throws Exception {
+        boolean productionProfile = environment.acceptsProfiles(Profiles.of("prod"));
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -106,6 +111,8 @@ public class SecurityConfig {
                                 "FORBIDDEN", "You do not have permission to access this resource", request.getRequestURI())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(API_PUBLIC).permitAll()
+                        .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
+                                new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

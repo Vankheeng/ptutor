@@ -134,7 +134,17 @@ Linux/macOS:
 
 Backend mặc định chạy tại `http://localhost:8080`.
 
-### 6. Khởi động Frontend
+### 6. Mở Swagger API Documentation
+
+Sau khi backend khởi động thành công, mở Swagger UI tại:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+> **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
+
+### 7. Khởi động Frontend
 
 Mở terminal mới:
 

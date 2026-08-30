@@ -1,0 +1,402 @@
+openapi: 3.0.3
+info:
+  title: PTutor API
+  version: 1.0.0
+  description: API documentation for the PTutor tutoring platform.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Authentication
+    description: Registration and authentication operations
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a student or tutor account
+      description: Creates a user account and its student or tutor profile. Employee and admin registration is not allowed.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: student01@example.com
+              password: Password123
+              role: STUDENT
+              firstName: Nguyen
+              lastName: An
+              phone: '0900000000'
+              gender: MALE
+              dateOfBirth: '2005-01-01'
+              citizenId: '012345678901'
+              provinceId: 5f68e2cf-d21f-1c69-3fbd-1404b89f26ff
+              districtId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+      responses:
+        '201':
+          description: Account registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in
+      description: Authenticates a student, tutor, employee or admin using email and password.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: student01@example.com
+              password: Password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access and refresh tokens
+      description: Rotates a valid opaque refresh token. An access JWT is not required for this endpoint.
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refreshToken: paste-refresh-token-here
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out
+      description: Revokes the supplied refresh token. The operation is idempotent and does not require an access JWT.
+      operationId: logout
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refreshToken: paste-refresh-token-here
+      responses:
+        '200':
+          description: Logout completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+        - firstName
+        - lastName
+        - phone
+        - gender
+        - dateOfBirth
+        - citizenId
+        - provinceId
+        - districtId
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+        role:
+          type: string
+          enum:
+            - STUDENT
+            - TUTOR
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        gender:
+          type: string
+          enum:
+            - MALE
+            - FEMALE
+            - OTHER
+        dateOfBirth:
+          type: string
+          format: date
+        citizenId:
+          type: string
+          pattern: '^\d{12}$'
+          example: '012345678901'
+        provinceId:
+          type: string
+          format: uuid
+        districtId:
+          type: string
+          format: uuid
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          format: password
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+
+    RegisterResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - STUDENT
+            - TUTOR
+            - EMPLOYEE
+            - ADMIN
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        accessTokenExpiresIn:
+          type: integer
+          format: int64
+          example: 3600
+        refreshTokenExpiresIn:
+          type: integer
+          format: int64
+          example: 2592000
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - STUDENT
+            - TUTOR
+            - EMPLOYEE
+            - ADMIN
+
+    ApiResponseMetadata:
+      type: object
+      required:
+        - success
+        - code
+        - message
+        - errors
+        - timestamp
+        - path
+      properties:
+        success:
+          type: boolean
+        code:
+          type: string
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+    RegisterResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RegisterResponse'
+
+    AuthTokenResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuthTokenResponse'
+
+    LogoutResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: VALIDATION_ERROR
+            message: Request validation failed
+            data: null
+            errors:
+              email: Invalid email
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/auth/register
+
+    UnauthorizedError:
+      description: Authentication failed or token is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: INVALID_CREDENTIALS
+            message: Email or password is incorrect
+            data: null
+            errors: {}
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/auth/login
+
+    ConflictError:
+      description: Request conflicts with existing data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: EMAIL_ALREADY_EXISTS
+            message: Email is already registered
+            data: null
+            errors: {}
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/auth/register
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: INTERNAL_SERVER_ERROR
+            message: An unexpected error occurred
+            data: null
+            errors: {}
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/auth/login

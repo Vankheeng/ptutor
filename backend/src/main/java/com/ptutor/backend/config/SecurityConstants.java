@@ -18,4 +18,11 @@ public final class SecurityConstants {
             "/api/v1/auth/refresh",
             "/api/v1/auth/logout"
     };
+
+    public static final String[] API_DOCUMENTATION = {
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/webjars/swagger-ui/**",
+            "/openapi.yaml"
+    };
 }
