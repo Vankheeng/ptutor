@@ -144,6 +144,51 @@ http://localhost:8080/swagger-ui.html
 
 > **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
 
+### 6.1. API quản lý certificate của gia sư
+
+Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/certificates` | Tạo certificate mới ở trạng thái `PENDING` |
+| `GET` | `/api/v1/tutors/me/certificates` | Xem tất cả certificate của mình |
+| `GET` | `/api/v1/tutors/me/certificates?status=VERIFIED` | Lọc certificate của mình theo trạng thái |
+| `GET` | `/api/v1/tutors/me/certificates/{certificateId}` | Xem chi tiết một certificate |
+| `PUT` | `/api/v1/tutors/me/certificates/{certificateId}` | Cập nhật certificate và đưa về `PENDING` |
+| `DELETE` | `/api/v1/tutors/me/certificates/{certificateId}` | Xóa mềm certificate |
+
+Tutor tự xem hồ sơ cá nhân:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me` | Xem hồ sơ cá nhân, thông tin liên hệ và địa chỉ của mình |
+
+Student xem hồ sơ và certificate đã duyệt của tutor:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/{tutorId}` | Xem thông tin hồ sơ công khai của tutor |
+| `GET` | `/api/v1/tutors/{tutorId}/certificates` | Chỉ trả certificate có trạng thái `VERIFIED` |
+
+API `/api/v1/tutors/me` chỉ dành cho role `TUTOR` và trả thêm email, số điện thoại, ngày sinh, giới tính và địa chỉ của chính tutor. API hồ sơ/certificate theo `tutorId` chỉ dành cho role `STUDENT`; response hồ sơ công khai không trả email, số điện thoại, mật khẩu hoặc citizen ID.
+
+Request tạo/cập nhật:
+
+```json
+{
+  "name": "IELTS 8.0",
+  "issuingOrganization": "British Council",
+  "description": "English language certificate",
+  "issueDate": "2025-05-20",
+  "expiryDate": "2027-05-20",
+  "certificateUrl": "https://cdn.example.com/certificates/ielts.pdf"
+}
+```
+
+`name` là bắt buộc. Nếu truyền cả hai ngày, `expiryDate` không được trước `issueDate`. `certificateUrl` là đường dẫn tới file minh chứng; API hiện lưu đường dẫn, chưa trực tiếp upload file lên storage.
+
+Certificate mới luôn có trạng thái `PENDING`. Certificate `VERIFIED` không được phép chỉnh sửa; gia sư cần tạo certificate mới nếu thông tin đã xác minh thay đổi. Các response thành công đều sử dụng format `ApiResponse` chung của backend.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

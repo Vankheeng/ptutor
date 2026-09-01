@@ -15,6 +15,10 @@ tags:
     description: Operations for the authenticated student's own profile
   - name: Account
     description: Operations for the authenticated user's own account
+  - name: Tutor Profiles
+    description: Public tutor profile operations available to students
+  - name: Tutor Certificates
+    description: Certificate management for the authenticated tutor
 security:
   - bearerAuth: []
 paths:
@@ -338,12 +342,229 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/tutors/me:
+    get:
+      tags:
+        - Tutor Profiles
+      summary: Get my tutor profile
+      description: Returns the authenticated tutor's own profile, including personal contact and address information.
+      operationId: getMyTutorProfile
+      responses:
+        '200':
+          description: Tutor profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorSelfProfileResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/{tutorId}:
+    parameters:
+      - $ref: '#/components/parameters/TutorId'
+    get:
+      tags:
+        - Tutor Profiles
+      summary: Get a tutor profile
+      description: Returns the public profile of a tutor. This endpoint is available to authenticated students.
+      operationId: getTutorProfile
+      responses:
+        '200':
+          description: Tutor profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorProfileResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/me/certificates:
+    post:
+      tags:
+        - Tutor Certificates
+      summary: Upload a certificate record
+      description: Creates a certificate record for the authenticated tutor. New certificates are always created with PENDING status.
+      operationId: createMyCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequest'
+            example:
+              name: IELTS 8.0
+              issuingOrganization: British Council
+              description: English language certificate
+              issueDate: '2025-05-20'
+              expiryDate: '2027-05-20'
+              certificateUrl: https://cdn.example.com/certificates/ielts.pdf
+      responses:
+        '201':
+          description: Certificate created and queued for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    get:
+      tags:
+        - Tutor Certificates
+      summary: List my certificates
+      description: Returns all certificates when status is omitted, or certificates with the requested status.
+      operationId: listMyCertificates
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Optional certificate status filter.
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - VERIFIED
+              - REJECTED
+              - EXPIRED
+      responses:
+        '200':
+          description: Certificates belonging to the authenticated tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/{tutorId}/certificates:
+    parameters:
+      - $ref: '#/components/parameters/TutorId'
+    get:
+      tags:
+        - Tutor Certificates
+      summary: List a tutor's verified certificates
+      description: Returns only VERIFIED certificates and is available to authenticated students.
+      operationId: listTutorVerifiedCertificates
+      responses:
+        '200':
+          description: Verified certificates belonging to the requested tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/me/certificates/{certificateId}:
+    parameters:
+      - $ref: '#/components/parameters/CertificateId'
+    get:
+      tags:
+        - Tutor Certificates
+      summary: Get one of my certificates
+      operationId: getMyCertificate
+      responses:
+        '200':
+          description: Certificate details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags:
+        - Tutor Certificates
+      summary: Update one of my certificates
+      description: Updating a pending or rejected certificate sends it back to PENDING. Verified certificates cannot be edited.
+      operationId: updateMyCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequest'
+      responses:
+        '200':
+          description: Certificate updated and queued for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+    delete:
+      tags:
+        - Tutor Certificates
+      summary: Delete one of my certificates
+      operationId: deleteMyCertificate
+      responses:
+        '200':
+          description: Certificate deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificateDeleteResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    TutorId:
+      name: tutorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CertificateId:
+      name: certificateId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     RegisterRequest:
@@ -548,6 +769,154 @@ components:
           minLength: 8
           maxLength: 72
 
+    CertificateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        issuingOrganization:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 255
+        issueDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+          description: Must be on or after issueDate when both dates are provided.
+        certificateUrl:
+          type: string
+          maxLength: 500
+
+    TutorProfileResponse:
+      type: object
+      properties:
+        tutorId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        experienceYears:
+          type: integer
+          nullable: true
+        education:
+          type: string
+          nullable: true
+        teachingStyleTags:
+          type: string
+          nullable: true
+        teachingMethodology:
+          type: string
+          nullable: true
+        strengthSubjects:
+          type: string
+          nullable: true
+        targetStudentType:
+          type: string
+          nullable: true
+        averageRating:
+          type: number
+          format: double
+        totalReviews:
+          type: integer
+        completedContractsCount:
+          type: integer
+        totalStudentsTaught:
+          type: integer
+        acceptanceRate:
+          type: number
+          format: double
+          nullable: true
+        avgResponseTimeHours:
+          type: number
+          format: double
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TutorSelfProfileResponse:
+      allOf:
+        - $ref: '#/components/schemas/TutorProfileResponse'
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+              nullable: true
+            gender:
+              type: string
+              nullable: true
+              enum: [MALE, FEMALE, OTHER]
+            dateOfBirth:
+              type: string
+              format: date
+              nullable: true
+            address:
+              $ref: '#/components/schemas/AddressResponse'
+
+    CertificateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tutorId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        issuingOrganization:
+          type: string
+        description:
+          type: string
+        issueDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+        certificateUrl:
+          type: string
+        status:
+          type: string
+          readOnly: true
+          enum:
+            - PENDING
+            - VERIFIED
+            - REJECTED
+            - EXPIRED
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     RegisterResponse:
       type: object
       properties:
@@ -721,6 +1090,22 @@ components:
             data:
               $ref: '#/components/schemas/StudentProfileResponse'
 
+    TutorProfileResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TutorProfileResponse'
+
+    TutorSelfProfileResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TutorSelfProfileResponse'
+
     PasswordChangedResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -757,6 +1142,33 @@ components:
               example: null
 
     LogoutResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
+
+    CertificateResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CertificateResponse'
+
+    CertificateListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CertificateResponse'
+
+    CertificateDeleteResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
         - type: object
@@ -807,7 +1219,7 @@ components:
             path: /api/v1/auth/login
 
     ForbiddenError:
-      description: The authenticated user does not have the required role
+      description: The authenticated user does not have permission to access the requested resource
       content:
         application/json:
           schema:
@@ -822,7 +1234,7 @@ components:
             path: /api/v1/students/me
 
     NotFoundError:
-      description: The authenticated user or student profile was not found
+      description: The requested resource was not found
       content:
         application/json:
           schema:
