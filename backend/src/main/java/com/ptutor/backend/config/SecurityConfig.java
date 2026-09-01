@@ -121,7 +121,7 @@ public class SecurityConfig {
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
-                        .requestMatchers(TUTOR_PROFILE_READ_API).hasRole("STUDENT")
+                        .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

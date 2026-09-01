@@ -370,7 +370,7 @@ paths:
       tags:
         - Tutor Profiles
       summary: Get a tutor profile
-      description: Returns the public profile of a tutor. This endpoint is available to authenticated students.
+      description: Returns the public profile of a tutor. This endpoint is available to all authenticated users.
       operationId: getTutorProfile
       responses:
         '200':
