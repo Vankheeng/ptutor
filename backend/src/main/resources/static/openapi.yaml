@@ -9,6 +9,10 @@ servers:
 tags:
   - name: Authentication
     description: Registration and authentication operations
+  - name: Student Profile
+    description: Operations for the authenticated student's own profile
+  - name: Account
+    description: Operations for the authenticated user's own account
 security:
   - bearerAuth: []
 paths:
@@ -141,6 +145,104 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/students/me:
+    get:
+      tags:
+        - Student Profile
+      summary: Get the authenticated student's profile
+      description: Returns the profile associated with the user ID from the access JWT. Only students can call this endpoint.
+      operationId: getCurrentStudentProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentProfileResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - Student Profile
+      summary: Partially update the authenticated student's profile
+      description: Updates only non-null fields. Province and district IDs must be supplied together. Email and sensitive fields cannot be updated.
+      operationId: updateCurrentStudentProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStudentProfileRequest'
+            example:
+              firstName: Nguyen Van
+              phone: '0912345678'
+              provinceId: 5f68e2cf-d21f-1c69-3fbd-1404b89f26ff
+              districtId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+              detailAddress: 123 Example Street
+              introduction: I am preparing for university entrance exams.
+      responses:
+        '200':
+          description: Student profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentProfileResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/users/me/password:
+    put:
+      tags:
+        - Account
+      summary: Change the authenticated user's password
+      description: Changes the password for the user identified by the access JWT. Existing access and refresh tokens remain valid.
+      operationId: changeCurrentUserPassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              currentPassword: Password123
+              newPassword: NewPassword456
+              confirmNewPassword: NewPassword456
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordChangedResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -230,6 +332,74 @@ components:
           type: string
           minLength: 1
 
+    UpdateStudentProfileRequest:
+      type: object
+      description: At least one property must contain a non-null value.
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+        dateOfBirth:
+          type: string
+          format: date
+        avatarUrl:
+          type: string
+          maxLength: 500
+        detailAddress:
+          type: string
+          maxLength: 255
+        provinceId:
+          type: string
+          format: uuid
+        districtId:
+          type: string
+          format: uuid
+        introduction:
+          type: string
+        learningStyle:
+          type: string
+          maxLength: 50
+        personalityTags:
+          type: string
+          maxLength: 255
+        goalsDescription:
+          type: string
+        currentLevel:
+          type: string
+          maxLength: 50
+        weakPoints:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+        - confirmNewPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+        confirmNewPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+
     RegisterResponse:
       type: object
       properties:
@@ -279,6 +449,80 @@ components:
             - EMPLOYEE
             - ADMIN
 
+    AddressResponse:
+      type: object
+      properties:
+        detailAddress:
+          type: string
+          nullable: true
+        districtId:
+          type: string
+          format: uuid
+          nullable: true
+        districtName:
+          type: string
+          nullable: true
+        provinceId:
+          type: string
+          format: uuid
+          nullable: true
+        provinceName:
+          type: string
+          nullable: true
+
+    StudentProfileResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+          nullable: true
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        address:
+          $ref: '#/components/schemas/AddressResponse'
+        introduction:
+          type: string
+          nullable: true
+        learningStyle:
+          type: string
+          nullable: true
+        personalityTags:
+          type: string
+          nullable: true
+        goalsDescription:
+          type: string
+          nullable: true
+        currentLevel:
+          type: string
+          nullable: true
+        weakPoints:
+          type: string
+          nullable: true
+
     ApiResponseMetadata:
       type: object
       required:
@@ -320,6 +564,23 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuthTokenResponse'
+
+    StudentProfileResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentProfileResponse'
+
+    PasswordChangedResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
 
     LogoutResponseEnvelope:
       allOf:
@@ -370,6 +631,36 @@ components:
             errors: {}
             timestamp: '2026-08-30T10:00:00Z'
             path: /api/v1/auth/login
+
+    ForbiddenError:
+      description: The authenticated user does not have the required role
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: FORBIDDEN
+            message: You do not have permission to access this resource
+            data: null
+            errors: {}
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/students/me
+
+    NotFoundError:
+      description: The authenticated user or student profile was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            code: STUDENT_PROFILE_NOT_FOUND
+            message: Student profile not found
+            data: null
+            errors: {}
+            timestamp: '2026-08-30T10:00:00Z'
+            path: /api/v1/students/me
 
     ConflictError:
       description: Request conflicts with existing data
