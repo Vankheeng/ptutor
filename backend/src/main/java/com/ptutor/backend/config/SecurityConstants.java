@@ -33,4 +33,18 @@ public final class SecurityConstants {
             "/api/v1/students/me",
             "/api/v1/students/me/**"
     };
+
+    public static final String[] TUTOR_SELF_SERVICE_API = {
+            "/api/v1/tutors/me",
+            "/api/v1/tutors/me/**"
+    };
+
+    public static final String[] TUTOR_CERTIFICATE_READ_API = {
+            "/api/v1/tutors/*/certificates"
+    };
+
+    public static final String[] TUTOR_PROFILE_READ_API = {
+            "/api/v1/tutors/*"
+    };
+
 }

@@ -43,6 +43,10 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
 import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
 import static com.ptutor.backend.config.SecurityConstants.STUDENT_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.TUTOR_CERTIFICATE_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API;
+
 
 @Configuration
 public class SecurityConfig {
@@ -115,6 +119,9 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
+                        .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
+                        .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
+                        .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

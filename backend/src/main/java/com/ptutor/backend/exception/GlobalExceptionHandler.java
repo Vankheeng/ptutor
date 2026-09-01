@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -51,6 +52,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMethodValidation(
             HandlerMethodValidationException exception, HttpServletRequest request) {
         return badRequest("VALIDATION_ERROR", "Request validation failed", Map.of(), request);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception, HttpServletRequest request) {
+        String parameter = exception.getName() == null ? "parameter" : exception.getName();
+        return badRequest("INVALID_REQUEST", "Request parameter is invalid",
+                Map.of(parameter, "Invalid value"), request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
