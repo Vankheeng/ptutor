@@ -34,7 +34,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.ptutor.backend.common.response.ApiResponseFactory;
+import com.ptutor.backend.response.ApiResponseFactory;
 
 import tools.jackson.databind.ObjectMapper;
 
