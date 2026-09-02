@@ -21,6 +21,8 @@ tags:
     description: Certificate management for the authenticated tutor
   - name: Subjects
     description: Active subject catalog used by teaching requests
+  - name: Grades
+    description: Active grade catalog used by teaching requests
 security:
   - bearerAuth: []
 paths:
@@ -402,6 +404,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SubjectListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/grades:
+    get:
+      tags:
+        - Grades
+      summary: Get all active grades
+      description: Returns active grades ordered from grade 1 to grade 12 for teaching-request forms.
+      operationId: listActiveGrades
+      responses:
+        '200':
+          description: Active grades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeListResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -957,6 +976,28 @@ components:
           type: string
           format: date-time
 
+    GradeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Lớp 1
+        level:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     RegisterResponse:
       type: object
       properties:
@@ -1217,6 +1258,16 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/SubjectResponse'
+
+    GradeListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/GradeResponse'
 
     CertificateDeleteResponseEnvelope:
       allOf:

@@ -47,4 +47,9 @@ public final class SecurityConstants {
             "/api/v1/tutors/*"
     };
 
+    public static final String[] GRADE_READ_API = {
+            "/api/v1/grades",
+            "/api/v1/grades/**"
+    };
+
 }

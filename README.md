@@ -175,7 +175,38 @@ Ví dụ response:
 }
 ```
 
-### 6.2. API quản lý certificate của gia sư
+### 6.2. API danh mục lớp học
+
+API yêu cầu access token và trả về các lớp đang hoạt động, sắp xếp từ lớp 1 đến lớp 12. Sử dụng `id` trong response làm `gradeId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/grades` | Lấy danh sách grade `ACTIVE`, sắp xếp theo `level` |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "4e5f8a08-41fb-4f14-85f7-01c9cfb5a2b0",
+      "name": "Lớp 1",
+      "level": 1,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/grades"
+}
+```
+
+### 6.3. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
