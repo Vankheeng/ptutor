@@ -2,9 +2,11 @@ package com.ptutor.backend.tutor.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,17 +17,25 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.Gender;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.tutor.dto.TutorProfileResponse;
 import com.ptutor.backend.tutor.dto.TutorSelfProfileResponse;
+import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
 
 @ExtendWith(MockitoExtension.class)
 class TutorProfileServiceTest {
 
     @Mock TutorRepository tutorRepository;
+    @Mock ProvinceRepository provinceRepository;
+    @Mock DistrictRepository districtRepository;
 
     private TutorProfileService tutorProfileService;
     private UUID tutorId;
@@ -33,7 +43,7 @@ class TutorProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        tutorProfileService = new TutorProfileService(tutorRepository);
+        tutorProfileService = new TutorProfileService(tutorRepository, provinceRepository, districtRepository);
         tutorId = UUID.randomUUID();
         userId = UUID.randomUUID();
     }
@@ -92,6 +102,134 @@ class TutorProfileServiceTest {
                     ApiException exception = (ApiException) error;
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                     assertThat(exception.getCode()).isEqualTo("TUTOR_PROFILE_NOT_FOUND");
+                });
+    }
+
+    @Test
+    void updateMineChangesPersonalAndProfessionalFields() {
+        Tutor tutor = tutor();
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+
+        TutorSelfProfileResponse response = tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                "Tran", null, "0911111111", Gender.FEMALE, LocalDate.of(1995, 5, 20), null,
+                "456 New Street", null, null, "Updated introduction", 8, "Master of English",
+                "Patient", "Communicative learning", "English, IELTS", "University students"));
+
+        assertThat(response.firstName()).isEqualTo("Tran");
+        assertThat(response.lastName()).isEqualTo("An");
+        assertThat(response.phone()).isEqualTo("0911111111");
+        assertThat(response.gender()).isEqualTo(Gender.FEMALE);
+        assertThat(response.introduction()).isEqualTo("Updated introduction");
+        assertThat(response.experienceYears()).isEqualTo(8);
+        assertThat(response.education()).isEqualTo("Master of English");
+        assertThat(response.address().detailAddress()).isEqualTo("456 New Street");
+        assertThat(response.averageRating()).isEqualByComparingTo("4.80");
+        verify(tutorRepository).findByUser_Id(userId);
+    }
+
+    @Test
+    void updateMineChangesAddressWhenProvinceAndDistrictMatch() {
+        Tutor tutor = tutor();
+        UUID provinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        Province province = Province.builder().name("Hà Nội").build();
+        province.setId(provinceId);
+        District district = District.builder().name("Ba Đình").province(province).build();
+        district.setId(districtId);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+        when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
+        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
+
+        tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, provinceId, districtId,
+                null, null, null, null, null, null, null));
+
+        assertThat(tutor.getUser().getDistrict()).isSameAs(district);
+    }
+
+    @Test
+    void updateMineRejectsEmptyRequest() {
+        assertThatThrownBy(() -> tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("EMPTY_UPDATE_REQUEST");
+                });
+    }
+
+    @Test
+    void updateMineRejectsIncompleteAddress() {
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
+
+        assertThatThrownBy(() -> tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, UUID.randomUUID(), null,
+                null, null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("ADDRESS_IDS_REQUIRED_TOGETHER");
+                });
+    }
+
+    @Test
+    void updateMineRejectsUnknownProvince() {
+        Tutor tutor = tutor();
+        UUID provinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+        when(provinceRepository.findById(provinceId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, provinceId, districtId,
+                null, null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("INVALID_PROVINCE");
+                });
+    }
+
+    @Test
+    void updateMineRejectsUnknownDistrict() {
+        Tutor tutor = tutor();
+        UUID provinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        Province province = Province.builder().name("Hà Nội").build();
+        province.setId(provinceId);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+        when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
+        when(districtRepository.findById(districtId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, provinceId, districtId,
+                null, null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("INVALID_DISTRICT");
+                });
+    }
+
+    @Test
+    void updateMineRejectsDistrictFromAnotherProvince() {
+        Tutor tutor = tutor();
+        UUID provinceId = UUID.randomUUID();
+        UUID otherProvinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        Province province = Province.builder().name("Hà Nội").build();
+        province.setId(provinceId);
+        Province otherProvince = Province.builder().name("Hồ Chí Minh").build();
+        otherProvince.setId(otherProvinceId);
+        District district = District.builder().name("District").province(otherProvince).build();
+        district.setId(districtId);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+        when(provinceRepository.findById(provinceId)).thenReturn(Optional.of(province));
+        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
+
+        assertThatThrownBy(() -> tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                null, null, null, null, null, null, null, provinceId, districtId,
+                null, null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("DISTRICT_PROVINCE_MISMATCH");
                 });
     }
 

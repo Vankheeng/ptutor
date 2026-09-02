@@ -6,7 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +16,10 @@ import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.tutor.dto.TutorProfileResponse;
 import com.ptutor.backend.tutor.dto.TutorSelfProfileResponse;
+import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
 import com.ptutor.backend.tutor.service.TutorProfileService;
+
+import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +36,14 @@ public class TutorProfileController {
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(responseFactory.success(
                 tutorProfileService.findMine(userId(jwt)), "/api/v1/tutors/me"));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<TutorSelfProfileResponse>> updateMine(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateTutorProfileRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                tutorProfileService.updateMine(userId(jwt), request), "/api/v1/tutors/me"));
     }
 
     @GetMapping("/{tutorId}")

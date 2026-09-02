@@ -370,6 +370,48 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+    patch:
+      tags:
+        - Tutor Profiles
+      summary: Partially update my tutor profile
+      description: Updates the authenticated tutor's personal, address and professional profile fields. Null fields are left unchanged. Email, password, citizen ID, account status, ratings and statistics cannot be updated.
+      operationId: updateMyTutorProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTutorProfileRequest'
+            example:
+              firstName: Nguyen Van
+              phone: '0912345678'
+              provinceId: 5f68e2cf-d21f-1c69-3fbd-1404b89f26ff
+              districtId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+              detailAddress: 123 Example Street
+              introduction: Experienced English tutor
+              experienceYears: 5
+              education: Bachelor of English
+              teachingStyleTags: Patient, practical
+              teachingMethodology: Communicative learning
+              strengthSubjects: English, IELTS
+              targetStudentType: High school students
+      responses:
+        '200':
+          description: Tutor profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorSelfProfileResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /api/v1/tutors/{tutorId}:
     parameters:
@@ -1057,6 +1099,55 @@ components:
           maxLength: 50
         weakPoints:
           type: string
+
+    UpdateTutorProfileRequest:
+      type: object
+      description: All fields are optional. Null fields are left unchanged. Province and district IDs must be supplied together.
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+        dateOfBirth:
+          type: string
+          format: date
+        avatarUrl:
+          type: string
+          maxLength: 500
+        detailAddress:
+          type: string
+          maxLength: 255
+        provinceId:
+          type: string
+          format: uuid
+        districtId:
+          type: string
+          format: uuid
+        introduction:
+          type: string
+        experienceYears:
+          type: integer
+          minimum: 0
+        education:
+          type: string
+        teachingStyleTags:
+          type: string
+          maxLength: 255
+        teachingMethodology:
+          type: string
+        strengthSubjects:
+          type: string
+        targetStudentType:
+          type: string
+          maxLength: 255
 
     ChangePasswordRequest:
       type: object

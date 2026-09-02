@@ -3,6 +3,7 @@ package com.ptutor.backend.tutor.controller;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
@@ -19,9 +20,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.MediaType;
 
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.tutor.service.TutorProfileService;
+import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
 
 @ExtendWith(MockitoExtension.class)
 class TutorProfileControllerTest {
@@ -68,5 +71,32 @@ class TutorProfileControllerTest {
         }
 
         verify(tutorProfileService).findMine(userId);
+    }
+
+    @Test
+    void updateMyTutorProfileUsesAuthenticatedUserId() throws Exception {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "none")
+                .subject("7f8fc2a0-5a20-490b-9b23-f072f0f0294c")
+                .build();
+        UUID userId = UUID.fromString(jwt.getSubject());
+        when(tutorProfileService.updateMine(
+                org.mockito.ArgumentMatchers.eq(userId),
+                org.mockito.ArgumentMatchers.any(UpdateTutorProfileRequest.class)))
+                .thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+
+        try {
+            mockMvc.perform(patch("/api/v1/tutors/me")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"firstName\":\"Updated Tutor\"}"))
+                    .andExpect(status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        verify(tutorProfileService).updateMine(
+                org.mockito.ArgumentMatchers.eq(userId),
+                org.mockito.ArgumentMatchers.any(UpdateTutorProfileRequest.class));
     }
 }
