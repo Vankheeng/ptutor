@@ -19,6 +19,12 @@ tags:
     description: Public tutor profile operations available to students
   - name: Tutor Certificates
     description: Certificate management for the authenticated tutor
+  - name: Subjects
+    description: Active subject catalog used by teaching requests
+  - name: Grades
+    description: Active grade catalog used by teaching requests
+  - name: Districts
+    description: District catalog used by profile and teaching-request forms
 security:
   - bearerAuth: []
 paths:
@@ -385,6 +391,71 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/subjects:
+    get:
+      tags:
+        - Subjects
+      summary: Get all active subjects
+      description: Returns the active subjects available when creating or updating a teaching request.
+      operationId: listActiveSubjects
+      responses:
+        '200':
+          description: Active subjects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/grades:
+    get:
+      tags:
+        - Grades
+      summary: Get all active grades
+      description: Returns active grades ordered from grade 1 to grade 12 for teaching-request forms.
+      operationId: listActiveGrades
+      responses:
+        '200':
+          description: Active grades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/districts:
+    get:
+      tags:
+        - Districts
+      summary: Get districts
+      description: Returns all districts ordered by province and district name. Use provinceId to filter districts belonging to one province.
+      operationId: listDistricts
+      parameters:
+        - name: provinceId
+          in: query
+          required: false
+          description: Optional province identifier used to filter the result.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Districts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictListResponseEnvelope'
+        '400':
+          description: The provinceId is invalid or does not identify an existing province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/v1/tutors/me/certificates:
     post:
@@ -917,6 +988,71 @@ components:
           type: string
           format: date-time
 
+    SubjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GradeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Lớp 1
+        level:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DistrictResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Ba Đình
+        provinceId:
+          type: string
+          format: uuid
+        provinceName:
+          type: string
+          example: Hà Nội
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     RegisterResponse:
       type: object
       properties:
@@ -1167,6 +1303,36 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/CertificateResponse'
+
+    SubjectListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubjectResponse'
+
+    GradeListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/GradeResponse'
+
+    DistrictListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/DistrictResponse'
 
     CertificateDeleteResponseEnvelope:
       allOf:

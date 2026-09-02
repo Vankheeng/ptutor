@@ -118,7 +118,7 @@ Port: 5432
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành và tài khoản Admin từ ba migration `V1`, `V2`, `V3`.
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và schema teaching request/certificate từ các migration `V1` đến `V4`.
 
 Windows:
 
@@ -144,7 +144,101 @@ http://localhost:8080/swagger-ui.html
 
 > **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
 
-### 6.1. API quản lý certificate của gia sư
+### 6.1. API danh mục môn học
+
+API yêu cầu access token và trả về các môn học đang hoạt động. Dữ liệu môn học mặc định được tạo tự động khi backend khởi động.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/subjects` | Lấy danh sách môn học `ACTIVE`, sắp xếp theo tên |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "1f8f8a2a-29e4-4f65-a5d5-2a2c9fdc6c3c",
+      "name": "Toán",
+      "description": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/subjects"
+}
+```
+
+### 6.2. API danh mục lớp học
+
+API yêu cầu access token và trả về các lớp đang hoạt động, sắp xếp từ lớp 1 đến lớp 12. Sử dụng `id` trong response làm `gradeId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/grades` | Lấy danh sách grade `ACTIVE`, sắp xếp theo `level` |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "4e5f8a08-41fb-4f14-85f7-01c9cfb5a2b0",
+      "name": "Lớp 1",
+      "level": 1,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/grades"
+}
+```
+
+### 6.3. API danh mục quận huyện
+
+API yêu cầu access token và trả về danh sách district đã có trong hệ thống. Có thể truyền `provinceId` để chỉ lấy các district thuộc một tỉnh/thành phố. Sử dụng `id` trong response làm `districtId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/districts` | Lấy tất cả district, sắp xếp theo tỉnh và tên district |
+| `GET` | `/api/v1/districts?provinceId={provinceId}` | Lấy district thuộc một tỉnh/thành phố |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "5c2f2f3e-1e2f-4f3b-8a5b-1d3a8e0d6f10",
+      "name": "Ba Đình",
+      "provinceId": "11111111-1111-1111-1111-111111111111",
+      "provinceName": "Hà Nội",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/districts"
+}
+```
+
+### 6.4. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
