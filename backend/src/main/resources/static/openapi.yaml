@@ -21,6 +21,8 @@ tags:
     description: Certificate management for the authenticated tutor
   - name: Teaching Requests
     description: Tutor teaching-request management and authenticated request browsing
+  - name: Tutor Proposals
+    description: Tutor proposals sent to students' studying requests
   - name: Subjects
     description: Active subject catalog used by teaching requests
   - name: Grades
@@ -664,6 +666,127 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /api/v1/tutors/me/tutor-student-requests:
+    post:
+      tags:
+        - Tutor Proposals
+      summary: Send a tutor proposal
+      description: Sends a PENDING proposal to an OPEN studying request. The proposal grade must match the studying request grade.
+      operationId: createTutorStudentRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorStudentRequestRequest'
+            example:
+              studyingRequestId: 11111111-1111-1111-1111-111111111111
+              gradeId: 22222222-2222-2222-2222-222222222222
+              proposedPrice: 150000
+              teachingMode: ONLINE
+              preferredSchedule: Weekday evenings
+              message: I can help the student prepare for exams.
+      responses:
+        '201':
+          description: Tutor proposal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+    get:
+      tags:
+        - Tutor Proposals
+      summary: List my tutor proposals
+      description: Returns proposals sent by the authenticated tutor. An optional status filter can be supplied.
+      operationId: listMyTutorStudentRequests
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
+      responses:
+        '200':
+          description: Tutor proposals belonging to the authenticated tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/me/tutor-student-requests/{proposalId}:
+    parameters:
+      - name: proposalId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Tutor Proposals
+      summary: Get one of my tutor proposals
+      operationId: getMyTutorStudentRequest
+      responses:
+        '200':
+          description: Tutor proposal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/me/tutor-student-requests/{proposalId}/cancel:
+    parameters:
+      - name: proposalId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - Tutor Proposals
+      summary: Cancel one of my tutor proposals
+      description: Changes a PENDING tutor proposal to CANCELLED.
+      operationId: cancelMyTutorStudentRequest
+      responses:
+        '200':
+          description: Tutor proposal cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/v1/teaching-requests/{requestId}:
     parameters:
       - $ref: '#/components/parameters/TeachingRequestId'
@@ -1300,6 +1423,81 @@ components:
           type: string
           format: time
 
+    TutorStudentRequestRequest:
+      type: object
+      required:
+        - studyingRequestId
+        - gradeId
+        - proposedPrice
+        - teachingMode
+      properties:
+        studyingRequestId:
+          type: string
+          format: uuid
+        gradeId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+          minimum: 0
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        message:
+          type: string
+          nullable: true
+
+    TutorStudentRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tutorId:
+          type: string
+          format: uuid
+        studyingRequestId:
+          type: string
+          format: uuid
+        studyingRequestTitle:
+          type: string
+        subjectId:
+          type: string
+          format: uuid
+        subjectName:
+          type: string
+        gradeId:
+          type: string
+          format: uuid
+        gradeName:
+          type: string
+        proposedPrice:
+          type: number
+          format: double
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     TeachingRequestReferenceResponse:
       type: object
       properties:
@@ -1772,6 +1970,24 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/TeachingRequestResponse'
+
+    TutorStudentRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TutorStudentRequestResponse'
+
+    TutorStudentRequestListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TutorStudentRequestResponse'
 
     TutorSelfProfileResponseEnvelope:
       allOf:

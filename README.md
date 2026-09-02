@@ -258,7 +258,20 @@ Gia sư có thể cập nhật request ở `DRAFT`, `OPEN` hoặc `PENDING_REVIE
 | `PATCH` | `/api/v1/tutors/me/teaching-requests/{requestId}/status` | Chuyển `OPEN` ↔ `CLOSED` |
 | `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/cancel` | Hủy request |
 
-### 6.5. API quản lý certificate của gia sư
+### 6.5. API gửi đề nghị nhận dạy
+
+Các API dành cho tutor khi muốn nhận dạy một `StudyingRequest` của học viên. Chỉ studying request đang ở trạng thái `OPEN` mới nhận được đề nghị. Đề nghị mới tạo ở trạng thái `PENDING` và chỉ tutor sở hữu đề nghị mới được xem hoặc hủy.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/tutor-student-requests` | Gửi đề nghị nhận dạy |
+| `GET` | `/api/v1/tutors/me/tutor-student-requests` | Xem các đề nghị đã gửi |
+| `GET` | `/api/v1/tutors/me/tutor-student-requests/{proposalId}` | Xem chi tiết một đề nghị |
+| `POST` | `/api/v1/tutors/me/tutor-student-requests/{proposalId}/cancel` | Hủy đề nghị `PENDING` |
+
+Request tạo đề nghị gồm `studyingRequestId`, `gradeId`, `proposedPrice`, `teachingMode`, `preferredSchedule` và `message`. `gradeId` phải trùng với grade của studying request. Có thể lọc danh sách bằng `?status=PENDING`.
+
+### 6.6. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
