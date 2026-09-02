@@ -19,6 +19,8 @@ tags:
     description: Public tutor profile operations available to students
   - name: Tutor Certificates
     description: Certificate management for the authenticated tutor
+  - name: Subjects
+    description: Active subject catalog used by teaching requests
 security:
   - bearerAuth: []
 paths:
@@ -385,6 +387,23 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/subjects:
+    get:
+      tags:
+        - Subjects
+      summary: Get all active subjects
+      description: Returns the active subjects available when creating or updating a teaching request.
+      operationId: listActiveSubjects
+      responses:
+        '200':
+          description: Active subjects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/v1/tutors/me/certificates:
     post:
@@ -917,6 +936,27 @@ components:
           type: string
           format: date-time
 
+    SubjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     RegisterResponse:
       type: object
       properties:
@@ -1167,6 +1207,16 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/CertificateResponse'
+
+    SubjectListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubjectResponse'
 
     CertificateDeleteResponseEnvelope:
       allOf:

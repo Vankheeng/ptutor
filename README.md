@@ -118,7 +118,7 @@ Port: 5432
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành và tài khoản Admin từ ba migration `V1`, `V2`, `V3`.
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và schema teaching request/certificate từ các migration `V1` đến `V4`.
 
 Windows:
 
@@ -144,7 +144,38 @@ http://localhost:8080/swagger-ui.html
 
 > **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
 
-### 6.1. API quản lý certificate của gia sư
+### 6.1. API danh mục môn học
+
+API yêu cầu access token và trả về các môn học đang hoạt động. Dữ liệu môn học mặc định được tạo tự động khi backend khởi động.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/subjects` | Lấy danh sách môn học `ACTIVE`, sắp xếp theo tên |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "1f8f8a2a-29e4-4f65-a5d5-2a2c9fdc6c3c",
+      "name": "Toán",
+      "description": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/subjects"
+}
+```
+
+### 6.2. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
