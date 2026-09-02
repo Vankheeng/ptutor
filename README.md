@@ -238,7 +238,27 @@ Ví dụ response:
 }
 ```
 
-### 6.4. API quản lý certificate của gia sư
+### 6.4. API đăng yêu cầu tìm học viên
+
+Các API này dành cho tài khoản `TUTOR` và sử dụng tutor từ access token. Request mới tạo luôn ở trạng thái `DRAFT` vì gia sư chưa hoàn tất thanh toán, nên chưa hiển thị cho student hoặc tutor khác.
+
+Sau khi payment flow xác nhận thanh toán thành công, service nội bộ sẽ kích hoạt request:
+
+- Subject có sẵn: `DRAFT` → `OPEN`.
+- Subject tự nhập: `DRAFT` → `PENDING_REVIEW` để admin/employee duyệt.
+
+Gia sư có thể cập nhật request ở `DRAFT`, `OPEN` hoặc `PENDING_REVIEW`. Request `DRAFT` vẫn giữ `DRAFT` sau khi cập nhật. Gia sư có thể hủy request ở `DRAFT`, `OPEN`, `CLOSED` hoặc `PENDING_REVIEW`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/teaching-requests` | Tạo request ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/tutors/me/teaching-requests` | Xem các request của mình |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{requestId}` | Xem chi tiết request |
+| `PUT` | `/api/v1/tutors/me/teaching-requests/{requestId}` | Cập nhật request |
+| `PATCH` | `/api/v1/tutors/me/teaching-requests/{requestId}/status` | Chuyển `OPEN` ↔ `CLOSED` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/cancel` | Hủy request |
+
+### 6.5. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 

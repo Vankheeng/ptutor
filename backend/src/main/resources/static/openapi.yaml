@@ -16,9 +16,11 @@ tags:
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
-    description: Public tutor profile operations available to students
+    description: Public tutor profile operations available to authenticated users
   - name: Tutor Certificates
     description: Certificate management for the authenticated tutor
+  - name: Teaching Requests
+    description: Tutor teaching-request management and authenticated request browsing
   - name: Subjects
     description: Active subject catalog used by teaching requests
   - name: Grades
@@ -392,6 +394,183 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/tutors/me/teaching-requests:
+    post:
+      tags:
+        - Teaching Requests
+      summary: Create a teaching request
+      description: Creates a DRAFT request until payment is confirmed. After payment, an existing subject is activated as OPEN and a custom subject is sent to PENDING_REVIEW.
+      operationId: createMyTeachingRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeachingRequestRequest'
+            example:
+              subjectId: 1f8f8a2a-29e4-4f65-a5d5-2a2c9fdc6c3c
+              gradeIds:
+                - 4e5f8a08-41fb-4f14-85f7-01c9cfb5a2b0
+              title: Math tutor for secondary students
+              note: Looking for students in the evening
+              quantity: 3
+              districtIds:
+                - 20b7f1d4-9a6d-4c4d-98cb-4c8c30a752f2
+              detailAddress: District 1
+              expectedPrice: 150000
+              teachingMode: OFFLINE
+              preferredSchedule: Weekday evenings
+              description: I am available for one-to-one or small-group tutoring.
+              availabilities:
+                - dayOfWeek: 2
+                  startTime: '18:00:00'
+                  endTime: '20:00:00'
+      responses:
+        '201':
+          description: Teaching request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    get:
+      tags:
+        - Teaching Requests
+      summary: List my teaching requests
+      description: Returns all teaching requests created by the authenticated tutor. An optional status filter can be supplied.
+      operationId: listMyTeachingRequests
+      parameters:
+        - $ref: '#/components/parameters/TeachingRequestStatus'
+      responses:
+        '200':
+          description: Teaching requests belonging to the authenticated tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/me/teaching-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    get:
+      tags:
+        - Teaching Requests
+      summary: Get one of my teaching requests
+      operationId: getMyTeachingRequest
+      responses:
+        '200':
+          description: Teaching request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags:
+        - Teaching Requests
+      summary: Update one of my teaching requests
+      description: Updates a DRAFT, OPEN or PENDING_REVIEW request. A DRAFT remains hidden and stays DRAFT until payment. For an already activated request, changing from an existing subject to a custom subject sends it back to PENDING_REVIEW.
+      operationId: updateMyTeachingRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeachingRequestRequest'
+      responses:
+        '200':
+          description: Teaching request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/tutors/me/teaching-requests/{requestId}/status:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    patch:
+      tags:
+        - Teaching Requests
+      summary: Update teaching request status
+      description: Tutors can only switch an existing OPEN request to CLOSED or a CLOSED request back to OPEN.
+      operationId: updateMyTeachingRequestStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeachingRequestStatusRequest'
+            example:
+              status: CLOSED
+      responses:
+        '200':
+          description: Teaching request status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/tutors/me/teaching-requests/{requestId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    post:
+      tags:
+        - Teaching Requests
+      summary: Cancel one of my teaching requests
+      description: Cancels a DRAFT, OPEN, CLOSED or PENDING_REVIEW request by changing its status to CANCELLED.
+      operationId: cancelMyTeachingRequest
+      responses:
+        '200':
+          description: Teaching request cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/v1/subjects:
     get:
       tags:
@@ -425,6 +604,44 @@ paths:
                 $ref: '#/components/schemas/GradeListResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/teaching-requests:
+    get:
+      tags:
+        - Teaching Requests
+      summary: Browse teaching requests
+      description: Students and tutors see only OPEN requests. Employees and admins see all requests and statuses.
+      operationId: listVisibleTeachingRequests
+      responses:
+        '200':
+          description: Visible teaching requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/teaching-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    get:
+      tags:
+        - Teaching Requests
+      summary: Get a visible teaching request
+      description: Students and tutors can view OPEN requests. Employees and admins can view requests in every status.
+      operationId: getVisibleTeachingRequest
+      responses:
+        '200':
+          description: Teaching request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeachingRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /api/v1/districts:
     get:
@@ -622,6 +839,28 @@ components:
       bearerFormat: JWT
 
   parameters:
+    TeachingRequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TeachingRequestStatus:
+      name: status
+      in: query
+      required: false
+      description: Optional teaching-request status filter.
+      schema:
+        type: string
+        enum:
+          - DRAFT
+          - PENDING_REVIEW
+          - OPEN
+          - MATCHED
+          - CLOSED
+          - CANCELLED
+          - REJECTED
     TutorId:
       name: tutorId
       in: path
@@ -865,6 +1104,194 @@ components:
           type: string
           maxLength: 500
 
+    TeachingRequestAvailabilityRequest:
+      type: object
+      required:
+        - dayOfWeek
+        - startTime
+        - endTime
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+
+    TeachingRequestRequest:
+      type: object
+      description: Provide exactly one of subjectId or customSubjectName.
+      required:
+        - gradeIds
+        - title
+        - quantity
+        - expectedPrice
+        - teachingMode
+      properties:
+        subjectId:
+          type: string
+          format: uuid
+          nullable: true
+        customSubjectName:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: A subject not yet available in the catalog. Requests using this field require review.
+        gradeIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        title:
+          type: string
+          maxLength: 255
+        note:
+          type: string
+          maxLength: 255
+          nullable: true
+        quantity:
+          type: integer
+          minimum: 1
+        districtIds:
+          type: array
+          nullable: true
+          items:
+            type: string
+            format: uuid
+        detailAddress:
+          type: string
+          maxLength: 255
+          nullable: true
+        expectedPrice:
+          type: number
+          format: double
+          minimum: 0
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        description:
+          type: string
+          maxLength: 10000
+          nullable: true
+        availabilities:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/TeachingRequestAvailabilityRequest'
+
+    TeachingRequestStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+
+    TeachingRequestAvailabilityResponse:
+      type: object
+      properties:
+        dayOfWeek:
+          type: integer
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+
+    TeachingRequestReferenceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    TeachingRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tutorId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+          nullable: true
+        subjectName:
+          type: string
+          nullable: true
+        customSubjectName:
+          type: string
+          nullable: true
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeachingRequestReferenceResponse'
+        districts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeachingRequestReferenceResponse'
+        title:
+          type: string
+        note:
+          type: string
+          nullable: true
+        quantity:
+          type: integer
+        detailAddress:
+          type: string
+          nullable: true
+        expectedPrice:
+          type: number
+          format: double
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        availabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeachingRequestAvailabilityResponse'
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
+        reviewedBy:
+          type: string
+          format: uuid
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectionReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     TutorProfileResponse:
       type: object
       properties:
@@ -1001,7 +1428,10 @@ components:
           nullable: true
         status:
           type: string
-          enum: [ACTIVE, INACTIVE, BLOCKED]
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
         createdAt:
           type: string
           format: date-time
@@ -1233,6 +1663,24 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TutorProfileResponse'
+
+    TeachingRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TeachingRequestResponse'
+
+    TeachingRequestListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TeachingRequestResponse'
 
     TutorSelfProfileResponseEnvelope:
       allOf:

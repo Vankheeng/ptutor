@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +27,10 @@ import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 @Entity
-@Table(name = "teaching_requests")
+@Table(name = "teaching_requests", indexes = {
+        @Index(name = "idx_teaching_requests_status", columnList = "status"),
+        @Index(name = "idx_teaching_requests_custom_subject_name", columnList = "custom_subject_name")
+})
 @SQLDelete(sql = "UPDATE teaching_requests SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Getter
@@ -47,6 +51,10 @@ public class TeachingRequest extends BaseEntity {
     @JoinColumn(name = "subject_id")
     @NonFinal
     private Subject subject;
+
+    @Column(name = "custom_subject_name", length = 100)
+    @NonFinal
+    private String customSubjectName;
 
     @Column(name = "title", length = 255)
     @NonFinal
@@ -85,4 +93,17 @@ public class TeachingRequest extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    @NonFinal
+    private Employee reviewedBy;
+
+    @Column(name = "reviewed_at")
+    @NonFinal
+    private java.time.LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    @NonFinal
+    private String rejectionReason;
 }

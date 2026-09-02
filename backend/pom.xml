@@ -89,6 +89,12 @@
             <version>${mapstruct.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
         <!-- Một starter test duy nhất, bao gồm JUnit, Mockito, AssertJ, Spring Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

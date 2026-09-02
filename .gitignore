@@ -31,3 +31,5 @@ package-lock.json
 
 .env
 .env.prod
+
+.idea
