@@ -23,6 +23,8 @@ tags:
     description: Active subject catalog used by teaching requests
   - name: Grades
     description: Active grade catalog used by teaching requests
+  - name: Districts
+    description: District catalog used by profile and teaching-request forms
 security:
   - bearerAuth: []
 paths:
@@ -421,6 +423,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GradeListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/districts:
+    get:
+      tags:
+        - Districts
+      summary: Get districts
+      description: Returns all districts ordered by province and district name. Use provinceId to filter districts belonging to one province.
+      operationId: listDistricts
+      parameters:
+        - name: provinceId
+          in: query
+          required: false
+          description: Optional province identifier used to filter the result.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Districts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictListResponseEnvelope'
+        '400':
+          description: The provinceId is invalid or does not identify an existing province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -998,6 +1031,28 @@ components:
           type: string
           format: date-time
 
+    DistrictResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Ba Đình
+        provinceId:
+          type: string
+          format: uuid
+        provinceName:
+          type: string
+          example: Hà Nội
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     RegisterResponse:
       type: object
       properties:
@@ -1268,6 +1323,16 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/GradeResponse'
+
+    DistrictListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/DistrictResponse'
 
     CertificateDeleteResponseEnvelope:
       allOf:

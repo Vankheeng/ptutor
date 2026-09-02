@@ -206,7 +206,39 @@ Ví dụ response:
 }
 ```
 
-### 6.3. API quản lý certificate của gia sư
+### 6.3. API danh mục quận huyện
+
+API yêu cầu access token và trả về danh sách district đã có trong hệ thống. Có thể truyền `provinceId` để chỉ lấy các district thuộc một tỉnh/thành phố. Sử dụng `id` trong response làm `districtId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/districts` | Lấy tất cả district, sắp xếp theo tỉnh và tên district |
+| `GET` | `/api/v1/districts?provinceId={provinceId}` | Lấy district thuộc một tỉnh/thành phố |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "5c2f2f3e-1e2f-4f3b-8a5b-1d3a8e0d6f10",
+      "name": "Ba Đình",
+      "provinceId": "11111111-1111-1111-1111-111111111111",
+      "provinceName": "Hà Nội",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/districts"
+}
+```
+
+### 6.4. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
