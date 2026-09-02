@@ -48,6 +48,8 @@ import static com.ptutor.backend.config.SecurityConstants.STUDENT_SELF_SERVICE_A
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_CERTIFICATE_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.SUBJECT_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_API;
 
 
 @Configuration
@@ -126,6 +128,8 @@ public class SecurityConfig {
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()
                         .requestMatchers(DISTRICT_READ_API).authenticated()
+                        .requestMatchers(SUBJECT_READ_API).authenticated()
+                        .requestMatchers(TEACHING_REQUEST_READ_API).authenticated()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

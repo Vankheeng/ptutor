@@ -1,6 +1,7 @@
 package com.ptutor.backend.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -70,5 +71,18 @@ public class Certificate extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private CertificateStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    @NonFinal
+    private Employee reviewedBy;
+
+    @Column(name = "reviewed_at")
+    @NonFinal
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    @NonFinal
+    private String rejectionReason;
 
 }

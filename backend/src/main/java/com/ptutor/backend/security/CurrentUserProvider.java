@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.dto.enums.UserRole;
 
 @Component
 public class CurrentUserProvider {
@@ -23,6 +24,21 @@ public class CurrentUserProvider {
         String subject = jwtAuthentication.getToken().getSubject();
         try {
             return UUID.fromString(subject);
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw invalidAuthenticatedUser();
+        }
+    }
+
+    public UserRole getCurrentUserRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)
+                || !authentication.isAuthenticated()) {
+            throw invalidAuthenticatedUser();
+        }
+
+        String role = jwtAuthentication.getToken().getClaimAsString("role");
+        try {
+            return UserRole.valueOf(role);
         } catch (IllegalArgumentException | NullPointerException exception) {
             throw invalidAuthenticatedUser();
         }
