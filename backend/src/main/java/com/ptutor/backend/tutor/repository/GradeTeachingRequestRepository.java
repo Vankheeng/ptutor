@@ -10,4 +10,6 @@ import com.ptutor.backend.entity.GradeTeachingRequest;
 public interface GradeTeachingRequestRepository extends JpaRepository<GradeTeachingRequest, UUID> {
 
     List<GradeTeachingRequest> findAllByTeachingRequest_Id(UUID requestId);
+
+    boolean existsByTeachingRequest_IdAndGrade_Id(UUID teachingRequestId, UUID gradeId);
 }

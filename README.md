@@ -258,7 +258,42 @@ Gia sư có thể cập nhật request ở `DRAFT`, `OPEN` hoặc `PENDING_REVIE
 | `PATCH` | `/api/v1/tutors/me/teaching-requests/{requestId}/status` | Chuyển `OPEN` ↔ `CLOSED` |
 | `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/cancel` | Hủy request |
 
-### 6.5. API quản lý certificate của gia sư
+### 6.5. API gửi và duyệt yêu cầu đăng ký học
+
+Học viên chỉ có thể gửi yêu cầu tới teaching request đang `OPEN` và yêu cầu mới luôn ở trạng thái `PENDING`. Gia sư chỉ xem được yêu cầu thuộc teaching request của mình. Gia sư có thể chuyển `PENDING` sang `ACCEPTED` hoặc `REJECTED`; khi chấp nhận, teaching request chuyển sang `MATCHED` để chuẩn bị cho bước ký contract. Học viên có thể hủy yêu cầu ở trạng thái `PENDING` hoặc `ACCEPTED`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/tutor-requests` | Học viên gửi yêu cầu đăng ký học |
+| `GET` | `/api/v1/students/me/tutor-requests` | Học viên xem các yêu cầu đã gửi; có thể lọc `status` |
+| `GET` | `/api/v1/students/me/tutor-requests/{requestId}` | Học viên xem chi tiết/trạng thái yêu cầu |
+| `POST` | `/api/v1/students/me/tutor-requests/{requestId}/cancel` | Học viên hủy yêu cầu |
+| `GET` | `/api/v1/tutors/me/student-tutor-requests` | Gia sư xem yêu cầu đăng ký nhận được; có thể lọc `status` |
+| `GET` | `/api/v1/tutors/me/student-tutor-requests/{requestId}` | Gia sư xem chi tiết yêu cầu |
+| `PATCH` | `/api/v1/tutors/me/student-tutor-requests/{requestId}/status` | Gia sư chấp nhận hoặc từ chối (`ACCEPTED`/`REJECTED`) |
+
+Body khi học viên gửi yêu cầu:
+
+```json
+{
+  "teachingRequestId": "<teaching-request-id>",
+  "gradeId": "<grade-id>",
+  "proposedPrice": 150000,
+  "learningMode": "ONLINE",
+  "preferredSchedule": "Tối thứ 3, 5",
+  "message": "Em muốn học để củng cố kiến thức."
+}
+```
+
+Body khi gia sư duyệt:
+
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+### 6.6. API quản lý certificate của gia sư
 
 Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
 
