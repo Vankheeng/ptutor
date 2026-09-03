@@ -306,6 +306,39 @@ Request tạo/cập nhật:
 
 Certificate mới luôn có trạng thái `PENDING`. Certificate `VERIFIED` không được phép chỉnh sửa; gia sư cần tạo certificate mới nếu thông tin đã xác minh thay đổi. Các response thành công đều sử dụng format `ApiResponse` chung của backend.
 
+### 6.6. API khiếu nại
+
+Học viên và gia sư có thể gửi khiếu nại gắn với hợp đồng của mình, xem trạng thái xử lý và thêm/xóa minh chứng bằng URL. Hiện backend lưu URL minh chứng, chưa trực tiếp upload file lên storage.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/complaints` | Tạo khiếu nại ở trạng thái `PENDING` |
+| `GET` | `/api/v1/complaints` | Xem các khiếu nại của mình |
+| `GET` | `/api/v1/complaints/{complaintId}` | Xem chi tiết khiếu nại của mình |
+| `POST` | `/api/v1/complaints/{complaintId}/evidences` | Thêm minh chứng |
+| `DELETE` | `/api/v1/complaints/{complaintId}/evidences/{evidenceId}` | Xóa minh chứng |
+| `GET` | `/api/v1/admin/complaints?status={status}` | Nhân viên/Admin xem danh sách khiếu nại |
+| `GET` | `/api/v1/admin/complaints/{complaintId}` | Nhân viên/Admin xem chi tiết |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/status` | Cập nhật `IN_REVIEW`, `RESOLVED` hoặc `REJECTED` |
+
+Ví dụ tạo khiếu nại:
+
+```json
+{
+  "contractId": "11111111-1111-1111-1111-111111111111",
+  "title": "Thiếu buổi học",
+  "content": "Hợp đồng ghi nhận 8 buổi nhưng mới hoàn thành 6 buổi.",
+  "evidences": [
+    {
+      "fileUrl": "https://cdn.example.com/evidence/lesson-history.png",
+      "fileType": "image/png"
+    }
+  ]
+}
+```
+
+Nhân viên/Admin xử lý bằng body `{ "status": "RESOLVED", "resolution": "Đã hoàn tiền 2 buổi học." }`. Trạng thái `IN_REVIEW` được dùng khi đang xác minh hoặc yêu cầu người gửi bổ sung bằng chứng. `RESOLVED` và `REJECTED` bắt buộc có `resolution`; khi đã ở trạng thái kết thúc thì khiếu nại và minh chứng không thể xử lý lại.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

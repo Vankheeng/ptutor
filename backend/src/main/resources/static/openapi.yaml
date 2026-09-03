@@ -27,9 +27,210 @@ tags:
     description: Active grade catalog used by teaching requests
   - name: Districts
     description: District catalog used by profile and teaching-request forms
+  - name: Complaints
+    description: Complaint submission, evidence management and complaint processing
 security:
   - bearerAuth: []
 paths:
+  /api/v1/complaints:
+    post:
+      tags: [Complaints]
+      summary: Submit a complaint
+      description: A student or tutor submits a complaint for one of their contracts. Evidence URLs may be included in the same request.
+      operationId: createComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComplaintRequest'
+      responses:
+        '201':
+          description: Complaint submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    get:
+      tags: [Complaints]
+      summary: List my complaints
+      operationId: listMyComplaints
+      responses:
+        '200':
+          description: Complaints submitted by the authenticated student or tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/complaints/{complaintId}:
+    get:
+      tags: [Complaints]
+      summary: Get one of my complaints
+      operationId: getMyComplaint
+      parameters:
+        - $ref: '#/components/parameters/ComplaintId'
+      responses:
+        '200':
+          description: Complaint details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/complaints/{complaintId}/evidences:
+    post:
+      tags: [Complaints]
+      summary: Add evidence to my complaint
+      operationId: addComplaintEvidence
+      parameters:
+        - $ref: '#/components/parameters/ComplaintId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintEvidenceRequest'
+      responses:
+        '201':
+          description: Evidence added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintEvidenceResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/complaints/{complaintId}/evidences/{evidenceId}:
+    delete:
+      tags: [Complaints]
+      summary: Delete evidence from my complaint
+      operationId: deleteComplaintEvidence
+      parameters:
+        - $ref: '#/components/parameters/ComplaintId'
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evidence deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintDeleteResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/admin/complaints:
+    get:
+      tags: [Complaints]
+      summary: List complaints for processing
+      operationId: listComplaintsForManagement
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, IN_REVIEW, RESOLVED, REJECTED]
+      responses:
+        '200':
+          description: Complaints ordered from newest to oldest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/complaints/{complaintId}:
+    get:
+      tags: [Complaints]
+      summary: Get a complaint for processing
+      operationId: getComplaintForManagement
+      parameters:
+        - $ref: '#/components/parameters/ComplaintId'
+      responses:
+        '200':
+          description: Complaint details including evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/admin/complaints/{complaintId}/status:
+    patch:
+      tags: [Complaints]
+      summary: Process a complaint
+      description: IN_REVIEW represents requesting more evidence or continuing investigation. RESOLVED and REJECTED require a resolution message.
+      operationId: processComplaint
+      parameters:
+        - $ref: '#/components/parameters/ComplaintId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintResolutionRequest'
+      responses:
+        '200':
+          description: Complaint status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/v1/auth/register:
     post:
       tags:
@@ -917,6 +1118,13 @@ components:
       schema:
         type: string
         format: uuid
+    ComplaintId:
+      name: complaintId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     RegisterRequest:
@@ -1194,6 +1402,106 @@ components:
         certificateUrl:
           type: string
           maxLength: 500
+
+    ComplaintEvidenceRequest:
+      type: object
+      required: [fileUrl, fileType]
+      properties:
+        fileUrl:
+          type: string
+          maxLength: 500
+        fileType:
+          type: string
+          maxLength: 100
+
+    CreateComplaintRequest:
+      type: object
+      required: [contractId, title, content]
+      properties:
+        contractId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+        content:
+          type: string
+          maxLength: 10000
+        evidences:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/ComplaintEvidenceRequest'
+
+    ComplaintResolutionRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [IN_REVIEW, RESOLVED, REJECTED]
+        resolution:
+          type: string
+          maxLength: 10000
+          description: Required for RESOLVED and REJECTED.
+
+    ComplaintEvidenceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fileUrl:
+          type: string
+        fileType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ComplaintResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        contractId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, IN_REVIEW, RESOLVED, REJECTED]
+        resolution:
+          type: string
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        evidences:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplaintEvidenceResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     TeachingRequestAvailabilityRequest:
       type: object
@@ -1842,6 +2150,41 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/CertificateResponse'
+
+    ComplaintResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ComplaintResponse'
+
+    ComplaintListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ComplaintResponse'
+
+    ComplaintEvidenceResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ComplaintEvidenceResponse'
+
+    ComplaintDeleteResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              nullable: true
+              example: null
 
     SubjectListResponseEnvelope:
       allOf:

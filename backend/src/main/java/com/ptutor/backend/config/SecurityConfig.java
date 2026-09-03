@@ -50,6 +50,8 @@ import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.SUBJECT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_MANAGEMENT_API;
 
 
 @Configuration
@@ -130,6 +132,8 @@ public class SecurityConfig {
                         .requestMatchers(DISTRICT_READ_API).authenticated()
                         .requestMatchers(SUBJECT_READ_API).authenticated()
                         .requestMatchers(TEACHING_REQUEST_READ_API).authenticated()
+                        .requestMatchers(COMPLAINT_MANAGEMENT_API).hasAnyRole("EMPLOYEE", "ADMIN")
+                        .requestMatchers(COMPLAINT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

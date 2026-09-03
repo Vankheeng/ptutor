@@ -67,4 +67,14 @@ public final class SecurityConstants {
             "/api/v1/districts/**"
     };
 
+    public static final String[] COMPLAINT_SELF_SERVICE_API = {
+            "/api/v1/complaints",
+            "/api/v1/complaints/**"
+    };
+
+    public static final String[] COMPLAINT_MANAGEMENT_API = {
+            "/api/v1/admin/complaints",
+            "/api/v1/admin/complaints/**"
+    };
+
 }
