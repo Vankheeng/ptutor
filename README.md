@@ -276,6 +276,9 @@ Tutor tự xem hồ sơ cá nhân:
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
 | `GET` | `/api/v1/tutors/me` | Xem hồ sơ cá nhân, thông tin liên hệ và địa chỉ của mình |
+| `PATCH` | `/api/v1/tutors/me` | Cập nhật từng phần thông tin cá nhân, địa chỉ và hồ sơ nghề nghiệp |
+
+Các field truyền với giá trị `null` sẽ được giữ nguyên. Email, password, citizen ID, trạng thái tài khoản, rating và các thống kê của tutor không thể cập nhật. `provinceId` và `districtId` phải được truyền cùng nhau; district phải thuộc province đã chọn.
 
 Student xem hồ sơ và certificate đã duyệt của tutor:
 
