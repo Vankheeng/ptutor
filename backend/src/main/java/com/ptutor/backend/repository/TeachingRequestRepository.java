@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.repository;
+package com.ptutor.backend.repository;
 
 import java.util.List;
 import java.util.Optional;

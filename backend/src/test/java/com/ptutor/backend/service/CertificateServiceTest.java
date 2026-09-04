@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.service;
+package com.ptutor.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,9 +26,9 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.TutorRepository;
-import com.ptutor.backend.tutor.dto.CertificateRequest;
-import com.ptutor.backend.tutor.dto.CertificateResponse;
-import com.ptutor.backend.tutor.repository.CertificateRepository;
+import com.ptutor.backend.dto.request.CertificateRequest;
+import com.ptutor.backend.dto.response.CertificateResponse;
+import com.ptutor.backend.repository.CertificateRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CertificateServiceTest {

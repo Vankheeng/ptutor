@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.service;
+package com.ptutor.backend.service;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,15 +25,9 @@ import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
-import com.ptutor.backend.tutor.dto.TeachingRequestAvailabilityRequest;
-import com.ptutor.backend.tutor.dto.TeachingRequestAvailabilityResponse;
-import com.ptutor.backend.tutor.dto.TeachingRequestReferenceResponse;
-import com.ptutor.backend.tutor.dto.TeachingRequestRequest;
-import com.ptutor.backend.tutor.dto.TeachingRequestResponse;
-import com.ptutor.backend.tutor.repository.GradeTeachingRequestRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestAvailabilityRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestDistrictRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestRepository;
+import com.ptutor.backend.dto.request.TeachingRequestRequest;
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.repository.TeachingRequestRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,9 +36,6 @@ import lombok.RequiredArgsConstructor;
 public class TeachingRequestService {
 
     private final TeachingRequestRepository teachingRequestRepository;
-    private final TeachingRequestAvailabilityRepository availabilityRepository;
-    private final TeachingRequestDistrictRepository districtAssociationRepository;
-    private final GradeTeachingRequestRepository gradeAssociationRepository;
     private final TutorRepository tutorRepository;
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
@@ -196,28 +187,17 @@ public class TeachingRequestService {
         List<Grade> grades = resolveGrades(source.gradeIds());
         List<District> districts = resolveDistricts(source.districtIds());
 
-        List<GradeTeachingRequest> oldGrades = gradeAssociationRepository.findAllByTeachingRequest_Id(request.getId());
-        if (!oldGrades.isEmpty()) {
-            gradeAssociationRepository.deleteAll(oldGrades);
-        }
-        List<TeachingRequestDistrict> oldDistricts = districtAssociationRepository.findAllByTeachingRequest_Id(request.getId());
-        if (!oldDistricts.isEmpty()) {
-            districtAssociationRepository.deleteAll(oldDistricts);
-        }
-        List<TeachingRequestAvailability> oldAvailabilities = availabilityRepository
-                .findAllByTeachingRequest_IdOrderByDayOfWeekAscStartTimeAsc(request.getId());
-        if (!oldAvailabilities.isEmpty()) {
-            availabilityRepository.deleteAll(oldAvailabilities);
-        }
-
-        gradeAssociationRepository.saveAll(grades.stream()
+        request.getGradeAssociations().clear();
+        request.getGradeAssociations().addAll(grades.stream()
                 .map(grade -> GradeTeachingRequest.builder().grade(grade).teachingRequest(request).build())
                 .toList());
-        districtAssociationRepository.saveAll(districts.stream()
+        request.getDistrictAssociations().clear();
+        request.getDistrictAssociations().addAll(districts.stream()
                 .map(district -> TeachingRequestDistrict.builder().district(district).teachingRequest(request).build())
                 .toList());
+        request.getAvailabilities().clear();
         if (source.availabilities() != null && !source.availabilities().isEmpty()) {
-            availabilityRepository.saveAll(source.availabilities().stream()
+            request.getAvailabilities().addAll(source.availabilities().stream()
                     .map(availability -> TeachingRequestAvailability.builder()
                             .teachingRequest(request)
                             .dayOfWeek(availability.dayOfWeek())
@@ -270,19 +250,16 @@ public class TeachingRequestService {
     }
 
     private TeachingRequestResponse toResponse(TeachingRequest request) {
-        List<TeachingRequestReferenceResponse> grades = gradeAssociationRepository
-                .findAllByTeachingRequest_Id(request.getId()).stream()
-                .map(association -> new TeachingRequestReferenceResponse(
+        List<TeachingRequestResponse.Reference> grades = request.getGradeAssociations().stream()
+                .map(association -> new TeachingRequestResponse.Reference(
                         association.getGrade().getId(), association.getGrade().getName()))
                 .toList();
-        List<TeachingRequestReferenceResponse> districts = districtAssociationRepository
-                .findAllByTeachingRequest_Id(request.getId()).stream()
-                .map(association -> new TeachingRequestReferenceResponse(
+        List<TeachingRequestResponse.Reference> districts = request.getDistrictAssociations().stream()
+                .map(association -> new TeachingRequestResponse.Reference(
                         association.getDistrict().getId(), association.getDistrict().getName()))
                 .toList();
-        List<TeachingRequestAvailabilityResponse> availabilities = availabilityRepository
-                .findAllByTeachingRequest_IdOrderByDayOfWeekAscStartTimeAsc(request.getId()).stream()
-                .map(availability -> new TeachingRequestAvailabilityResponse(
+        List<TeachingRequestResponse.Availability> availabilities = request.getAvailabilities().stream()
+                .map(availability -> new TeachingRequestResponse.Availability(
                         availability.getDayOfWeek(), availability.getStartTime(), availability.getEndTime()))
                 .toList();
         return TeachingRequestResponse.from(request, grades, districts, availabilities);

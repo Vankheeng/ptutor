@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.entity.enums.CertificateStatus;
-import com.ptutor.backend.tutor.dto.CertificateRequest;
-import com.ptutor.backend.tutor.dto.CertificateResponse;
-import com.ptutor.backend.tutor.service.CertificateService;
+import com.ptutor.backend.dto.request.CertificateRequest;
+import com.ptutor.backend.dto.response.CertificateResponse;
+import com.ptutor.backend.service.CertificateService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

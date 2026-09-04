@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.service;
+package com.ptutor.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,20 +34,14 @@ import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
-import com.ptutor.backend.tutor.dto.TeachingRequestRequest;
-import com.ptutor.backend.tutor.dto.TeachingRequestResponse;
-import com.ptutor.backend.tutor.repository.GradeTeachingRequestRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestAvailabilityRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestDistrictRepository;
-import com.ptutor.backend.tutor.repository.TeachingRequestRepository;
+import com.ptutor.backend.dto.request.TeachingRequestRequest;
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.repository.TeachingRequestRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
-    @Mock TeachingRequestAvailabilityRepository availabilityRepository;
-    @Mock TeachingRequestDistrictRepository districtAssociationRepository;
-    @Mock GradeTeachingRequestRepository gradeAssociationRepository;
     @Mock TutorRepository tutorRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
@@ -63,9 +57,6 @@ class TeachingRequestServiceTest {
     void setUp() {
         service = new TeachingRequestService(
                 teachingRequestRepository,
-                availabilityRepository,
-                districtAssociationRepository,
-                gradeAssociationRepository,
                 tutorRepository,
                 subjectRepository,
                 gradeRepository,
@@ -76,10 +67,6 @@ class TeachingRequestServiceTest {
         gradeId = UUID.randomUUID();
         lenient().when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         lenient().when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
-        lenient().when(gradeAssociationRepository.findAllByTeachingRequest_Id(any())).thenReturn(List.of());
-        lenient().when(districtAssociationRepository.findAllByTeachingRequest_Id(any())).thenReturn(List.of());
-        lenient().when(availabilityRepository.findAllByTeachingRequest_IdOrderByDayOfWeekAscStartTimeAsc(any()))
-                .thenReturn(List.of());
     }
 
     @Test

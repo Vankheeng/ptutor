@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,10 +21,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
-import com.ptutor.backend.tutor.service.TeachingRequestService;
+import com.ptutor.backend.service.TeachingRequestService;
 
 @ExtendWith(MockitoExtension.class)
-class TutorTeachingRequestControllerTest {
+class TeachingRequestControllerTest {
 
     @Mock TeachingRequestService teachingRequestService;
     @Mock CurrentUserProvider currentUserProvider;
@@ -34,7 +34,7 @@ class TutorTeachingRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        TutorTeachingRequestController controller = new TutorTeachingRequestController(
+        TeachingRequestController controller = new TeachingRequestController(
                 teachingRequestService,
                 new ApiResponseFactory(Clock.systemUTC()),
                 currentUserProvider);

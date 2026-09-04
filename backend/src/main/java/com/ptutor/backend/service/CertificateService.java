@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.service;
+package com.ptutor.backend.service;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,9 +12,9 @@ import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
-import com.ptutor.backend.tutor.dto.CertificateRequest;
-import com.ptutor.backend.tutor.dto.CertificateResponse;
-import com.ptutor.backend.tutor.repository.CertificateRepository;
+import com.ptutor.backend.dto.request.CertificateRequest;
+import com.ptutor.backend.dto.response.CertificateResponse;
+import com.ptutor.backend.repository.CertificateRepository;
 
 import lombok.RequiredArgsConstructor;
 

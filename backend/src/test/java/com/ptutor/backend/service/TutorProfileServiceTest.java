@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.service;
+package com.ptutor.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,9 +26,9 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.TutorRepository;
-import com.ptutor.backend.tutor.dto.TutorProfileResponse;
-import com.ptutor.backend.tutor.dto.TutorSelfProfileResponse;
-import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
+import com.ptutor.backend.dto.request.UpdateTutorProfileRequest;
+import com.ptutor.backend.dto.response.TutorProfileResponse;
+import com.ptutor.backend.dto.response.TutorSelfProfileResponse;
 
 @ExtendWith(MockitoExtension.class)
 class TutorProfileServiceTest {

@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.dto;
+package com.ptutor.backend.dto.response;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

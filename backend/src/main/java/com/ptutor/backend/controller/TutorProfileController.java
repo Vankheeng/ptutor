@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import java.util.UUID;
 
@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
-import com.ptutor.backend.tutor.dto.TutorProfileResponse;
-import com.ptutor.backend.tutor.dto.TutorSelfProfileResponse;
-import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
-import com.ptutor.backend.tutor.service.TutorProfileService;
+import com.ptutor.backend.dto.request.UpdateTutorProfileRequest;
+import com.ptutor.backend.dto.response.TutorProfileResponse;
+import com.ptutor.backend.dto.response.TutorSelfProfileResponse;
+import com.ptutor.backend.service.TutorProfileService;
 
 import jakarta.validation.Valid;
 

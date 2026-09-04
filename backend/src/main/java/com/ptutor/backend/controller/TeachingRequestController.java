@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,10 +19,10 @@ import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
-import com.ptutor.backend.tutor.dto.TeachingRequestRequest;
-import com.ptutor.backend.tutor.dto.TeachingRequestResponse;
-import com.ptutor.backend.tutor.dto.TeachingRequestStatusRequest;
-import com.ptutor.backend.tutor.service.TeachingRequestService;
+import com.ptutor.backend.dto.request.TeachingRequestRequest;
+import com.ptutor.backend.dto.request.TeachingRequestStatusRequest;
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.service.TeachingRequestService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/tutors/me/teaching-requests")
 @RequiredArgsConstructor
 @Validated
-public class TutorTeachingRequestController {
+public class TeachingRequestController {
 
     private final TeachingRequestService teachingRequestService;
     private final ApiResponseFactory responseFactory;

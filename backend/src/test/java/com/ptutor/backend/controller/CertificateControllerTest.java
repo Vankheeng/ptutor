@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.response.ApiResponseFactory;
-import com.ptutor.backend.tutor.service.CertificateService;
+import com.ptutor.backend.service.CertificateService;
 
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;

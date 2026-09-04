@@ -1,7 +1,8 @@
-package com.ptutor.backend.tutor.dto;
+package com.ptutor.backend.dto.response;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,8 +16,8 @@ public record TeachingRequestResponse(
         UUID subjectId,
         String subjectName,
         String customSubjectName,
-        List<TeachingRequestReferenceResponse> grades,
-        List<TeachingRequestReferenceResponse> districts,
+        List<Reference> grades,
+        List<Reference> districts,
         String title,
         String note,
         Integer quantity,
@@ -25,7 +26,7 @@ public record TeachingRequestResponse(
         TeachingMode teachingMode,
         String preferredSchedule,
         String description,
-        List<TeachingRequestAvailabilityResponse> availabilities,
+        List<Availability> availabilities,
         RequestStatus status,
         UUID reviewedBy,
         LocalDateTime reviewedAt,
@@ -35,9 +36,9 @@ public record TeachingRequestResponse(
 
     public static TeachingRequestResponse from(
             TeachingRequest request,
-            List<TeachingRequestReferenceResponse> grades,
-            List<TeachingRequestReferenceResponse> districts,
-            List<TeachingRequestAvailabilityResponse> availabilities) {
+            List<Reference> grades,
+            List<Reference> districts,
+            List<Availability> availabilities) {
         return new TeachingRequestResponse(
                 request.getId(),
                 request.getTutor().getId(),
@@ -61,5 +62,11 @@ public record TeachingRequestResponse(
                 request.getRejectionReason(),
                 request.getCreatedAt(),
                 request.getUpdatedAt());
+    }
+
+    public record Reference(UUID id, String name) {
+    }
+
+    public record Availability(Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
     }
 }

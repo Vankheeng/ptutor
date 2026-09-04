@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.dto;
+package com.ptutor.backend.dto.response;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

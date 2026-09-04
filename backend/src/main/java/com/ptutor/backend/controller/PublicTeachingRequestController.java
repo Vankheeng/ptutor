@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,15 +12,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
-import com.ptutor.backend.tutor.dto.TeachingRequestResponse;
-import com.ptutor.backend.tutor.service.TeachingRequestService;
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.service.TeachingRequestService;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/teaching-requests")
 @RequiredArgsConstructor
-public class TeachingRequestQueryController {
+public class PublicTeachingRequestController {
 
     private final TeachingRequestService teachingRequestService;
     private final ApiResponseFactory responseFactory;

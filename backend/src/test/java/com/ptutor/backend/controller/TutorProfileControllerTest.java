@@ -1,4 +1,4 @@
-package com.ptutor.backend.tutor.controller;
+package com.ptutor.backend.controller;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,8 +23,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.http.MediaType;
 
 import com.ptutor.backend.response.ApiResponseFactory;
-import com.ptutor.backend.tutor.service.TutorProfileService;
-import com.ptutor.backend.tutor.dto.UpdateTutorProfileRequest;
+import com.ptutor.backend.dto.request.UpdateTutorProfileRequest;
+import com.ptutor.backend.service.TutorProfileService;
 
 @ExtendWith(MockitoExtension.class)
 class TutorProfileControllerTest {
