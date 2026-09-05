@@ -118,7 +118,7 @@ Port: 5432
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và schema teaching request/certificate từ các migration `V1` đến `V4`.
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến `V6`.
 
 Windows:
 
@@ -395,6 +395,62 @@ Ví dụ cập nhật status:
 ```
 
 `requestId` được lấy từ trường `id` trong response khi tạo request hoặc trong danh sách request. Khi gọi API cập nhật, xem chi tiết, cập nhật status hoặc hủy, phải truyền UUID cụ thể trong URL; không sử dụng URL collection không có `requestId`.
+
+### 6.9. API gia sư duyệt đề nghị học từ học viên (Student Tutor Request)
+
+Các API này dành cho role `TUTOR`. Gia sư chỉ xem và xử lý các đề nghị gửi đến teaching request do chính mình sở hữu.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests` | Lấy các đề nghị học của một teaching request; có thể lọc `status` |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}` | Xem chi tiết một đề nghị học |
+| `PATCH` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}/status` | Chấp nhận hoặc từ chối đề nghị |
+
+Chỉ đề nghị `PENDING` được chuyển sang `ACCEPTED` hoặc `REJECTED`:
+
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+Mỗi đề nghị được chấp nhận sẽ được tính vào `quantity` của teaching request. Teaching request chỉ chuyển sang `MATCHED` khi số đề nghị `ACCEPTED` đạt đủ `quantity`; trước đó request vẫn có thể tiếp tục nhận học viên. API danh sách hiện hỗ trợ lọc trạng thái, chưa phân trang.
+
+### 6.10. API gia sư gửi đề nghị dạy (Tutor Student Request)
+
+Các API này dành cho role `TUTOR`. Gia sư gửi đề nghị dạy đến studying request đang `OPEN` của học viên. Hệ thống tạo đề nghị ở `PENDING` và không cho tạo trùng một đề nghị `PENDING` trên cùng studying request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/studying-requests/{studyingRequestId}/tutor-student-requests` | Gửi đề nghị dạy, gồm `gradeId`, `proposedPrice`, `teachingMode`, lịch và lời nhắn |
+| `GET` | `/api/v1/tutors/me/tutor-student-requests` | Lấy các đề nghị dạy của tôi; hỗ trợ `status`, `page`, `size` |
+| `POST` | `/api/v1/tutors/me/tutor-student-requests/{requestId}/cancel` | Hủy đề nghị dạy đang chờ |
+
+Chỉ đề nghị `PENDING` mới được hủy và khi hủy sẽ chuyển sang `CANCELLED`. Ví dụ tạo đề nghị:
+
+```json
+{
+  "gradeId": "3878ce4c-8136-4468-a47a-0bd7b803e719",
+  "proposedPrice": 150000,
+  "teachingMode": "ONLINE",
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "message": "Tôi có kinh nghiệm dạy môn này."
+}
+```
+
+### 6.11. API khiếu nại (Complaint)
+
+API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại. Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING`, có thể kèm evidence URL |
+| `GET` | `/api/v1/users/me/complaints` | Lấy khiếu nại của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/users/me/complaints/{complaintId}` | Xem trạng thái, resolution và evidence |
+| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật title, content và evidence của khiếu nại `PENDING` |
+| `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
+
+Các trạng thái gồm `PENDING`, `IN_REVIEW`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`.
 
 ### 7. Khởi động Frontend
 

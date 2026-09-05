@@ -17,6 +17,8 @@ tags:
     description: Student requests for finding a tutor
   - name: Tutor Student Requests
     description: Tutor proposals to teach a student's studying request
+  - name: Complaints
+    description: Complaints from student or tutor contract participants
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
@@ -769,6 +771,110 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /api/v1/users/me/complaints:
+    post:
+      tags: [Complaints]
+      summary: Submit a complaint
+      description: The authenticated student or tutor submits a PENDING complaint for one of their contracts, with optional evidence URLs.
+      operationId: createMyComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintCreateRequest'
+      responses:
+        '201':
+          description: Complaint created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    get:
+      tags: [Complaints]
+      summary: List my complaints
+      operationId: listMyComplaints
+      parameters:
+        - $ref: '#/components/parameters/ComplaintStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated complaints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintPageResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/complaints/{complaintId}:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    get:
+      tags: [Complaints]
+      summary: Get my complaint status and resolution
+      operationId: getMyComplaint
+      responses:
+        '200':
+          description: Complaint detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    put:
+      tags: [Complaints]
+      summary: Update my pending complaint
+      description: Updates title and content only while the complaint is PENDING. Omit evidences to retain them; send an empty array to remove all evidence.
+      operationId: updateMyComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintUpdateRequest'
+      responses:
+        '200':
+          description: Complaint updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/complaints/{complaintId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    post:
+      tags: [Complaints]
+      summary: Cancel my pending complaint
+      description: Cancels a complaint only when it belongs to the authenticated user and is still PENDING.
+      operationId: cancelMyComplaint
+      responses:
+        '200':
+          description: Complaint cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/tutors/me/teaching-requests:
     post:
       tags:
@@ -1349,6 +1455,18 @@ components:
       schema:
         type: string
         enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
+    ComplaintId:
+      name: complaintId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ComplaintStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELLED]
     TeachingRequestStatus:
       name: status
       in: query
@@ -1825,6 +1943,38 @@ components:
           maxLength: 10000
           nullable: true
 
+    ComplaintCreateRequest:
+      type: object
+      required: [contractId, title, content]
+      properties:
+        contractId: { type: string, format: uuid }
+        title: { type: string, maxLength: 255 }
+        content: { type: string, maxLength: 10000 }
+        evidences:
+          type: array
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
+    ComplaintUpdateRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title: { type: string, maxLength: 255 }
+        content: { type: string, maxLength: 10000 }
+        evidences:
+          type: array
+          description: Omit to retain existing evidence; send an empty array to remove all evidence.
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
     StudyingRequestStatusRequest:
       type: object
       required:
@@ -2014,6 +2164,43 @@ components:
           type: boolean
         last:
           type: boolean
+
+    ComplaintResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        status:
+          type: string
+          enum: [PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELLED]
+        resolution: { type: string, nullable: true }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+        evidences:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              fileUrl: { type: string }
+              fileType: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ComplaintPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/ComplaintResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
 
     StudyingRequestAvailabilityResponse:
       type: object
@@ -2694,6 +2881,20 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TutorStudentRequestPageResponse'
+
+    ComplaintResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ComplaintResponse' }
+
+    ComplaintPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ComplaintPageResponse' }
 
     TeachingRequestListResponseEnvelope:
       allOf:
