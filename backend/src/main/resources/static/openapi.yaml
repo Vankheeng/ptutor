@@ -13,6 +13,8 @@ tags:
     description: Email OTP operations for resetting a forgotten password
   - name: Student Profile
     description: Operations for the authenticated student's own profile
+  - name: Studying Requests
+    description: Student requests for finding a tutor
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
@@ -435,6 +437,229 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/students/me/studying-requests:
+    get:
+      tags:
+        - Studying Requests
+      summary: List my studying requests
+      description: Returns only studying requests owned by the authenticated student. Results are sorted by creation time descending and support optional status filtering.
+      operationId: listMyStudyingRequests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudyingRequestStatus'
+        - name: page
+          in: query
+          required: false
+          description: Zero-based page number.
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated studying requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestPageResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags:
+        - Studying Requests
+      summary: Create a studying request
+      description: Creates a studying request for the authenticated student. New requests start in DRAFT and are activated after a future successful payment.
+      operationId: createMyStudyingRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudyingRequestRequest'
+            example:
+              subjectId: 5f68e2cf-d21f-1c69-3fbd-1404b89f26ff
+              gradeId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+              title: Need an English tutor for grade 10
+              description: I need help preparing for the semester exam.
+              note: Prefer a patient tutor.
+              districtId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+              detailAddress: 123 Example Street
+              minPrice: 100000
+              maxPrice: 200000
+              learningGoals: Improve grammar and reading comprehension
+              learningMode: ONLINE
+              preferredSchedule: Weekday evenings
+              availabilities:
+                - dayOfWeek: 2
+                  startTime: '18:00:00'
+                  endTime: '20:00:00'
+      responses:
+        '201':
+          description: Studying request created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/students/me/studying-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/StudyingRequestId'
+    get:
+      tags:
+        - Studying Requests
+      summary: Get my studying request
+      description: Returns a studying request only when it belongs to the authenticated student identified by the JWT.
+      operationId: getMyStudyingRequest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Studying request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - Studying Requests
+      summary: Partially update my studying request
+      description: Updates only supplied business fields of a DRAFT or OPEN studying request owned by the authenticated student. Null or omitted fields are kept unchanged.
+      operationId: updateMyStudyingRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudyingRequestUpdateRequest'
+            example:
+              title: Need an English tutor for grade 10 - updated
+              maxPrice: 250000
+              preferredSchedule: Weekend mornings
+      responses:
+        '200':
+          description: Studying request updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/studying-requests/{requestId}/status:
+    parameters:
+      - $ref: '#/components/parameters/StudyingRequestId'
+    patch:
+      tags:
+        - Studying Requests
+      summary: Update my studying request status
+      description: Changes only between OPEN and CLOSED for an owned studying request. DRAFT is activated by the payment flow, while MATCHED and CANCELLED cannot be changed through this endpoint.
+      operationId: updateMyStudyingRequestStatus
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudyingRequestStatusRequest'
+            example:
+              status: CLOSED
+      responses:
+        '200':
+          description: Studying request status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/studying-requests/{requestId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/StudyingRequestId'
+    post:
+      tags:
+        - Studying Requests
+      summary: Cancel my studying request
+      description: Cancels a DRAFT, OPEN, MATCHED or CLOSED request. Pending and accepted tutor offers for the request are also cancelled.
+      operationId: cancelMyStudyingRequest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Studying request cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyingRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/v1/tutors/me/teaching-requests:
     post:
@@ -974,6 +1199,26 @@ components:
       schema:
         type: string
         format: uuid
+    StudyingRequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    StudyingRequestStatus:
+      name: status
+      in: query
+      required: false
+      description: Optional studying-request status filter.
+      schema:
+        type: string
+        enum:
+          - DRAFT
+          - OPEN
+          - MATCHED
+          - CLOSED
+          - CANCELLED
     TeachingRequestStatus:
       name: status
       in: query
@@ -1302,6 +1547,259 @@ components:
         certificateUrl:
           type: string
           maxLength: 500
+
+    StudyingRequestRequest:
+      type: object
+      description: Creates a student request to find a tutor. The request starts in DRAFT until payment activates it.
+      required:
+        - subjectId
+        - gradeId
+        - title
+        - learningMode
+      properties:
+        subjectId:
+          type: string
+          format: uuid
+        gradeId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 255
+          nullable: true
+        note:
+          type: string
+          maxLength: 255
+          nullable: true
+        districtId:
+          type: string
+          format: uuid
+          nullable: true
+        detailAddress:
+          type: string
+          maxLength: 255
+          nullable: true
+        minPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        maxPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        learningGoals:
+          type: string
+          maxLength: 10000
+          nullable: true
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        availabilities:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/StudyingRequestAvailabilityRequest'
+
+    StudyingRequestUpdateRequest:
+      type: object
+      description: Partially updates a DRAFT or OPEN studying request. Omitted or null fields remain unchanged. If availabilities is supplied, it replaces the complete availability list.
+      properties:
+        subjectId:
+          type: string
+          format: uuid
+          nullable: true
+        gradeId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+          nullable: true
+        description:
+          type: string
+          maxLength: 255
+          nullable: true
+        note:
+          type: string
+          maxLength: 255
+          nullable: true
+        districtId:
+          type: string
+          format: uuid
+          nullable: true
+        detailAddress:
+          type: string
+          maxLength: 255
+          nullable: true
+        minPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        maxPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        learningGoals:
+          type: string
+          maxLength: 10000
+          nullable: true
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+          nullable: true
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        availabilities:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/StudyingRequestAvailabilityRequest'
+
+    StudyingRequestStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+
+    StudyingRequestAvailabilityRequest:
+      type: object
+      required:
+        - dayOfWeek
+        - startTime
+        - endTime
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 1
+          maximum: 7
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+          description: Must be after startTime.
+
+    StudyingRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        subjectName:
+          type: string
+        gradeId:
+          type: string
+          format: uuid
+        gradeName:
+          type: string
+        districtId:
+          type: string
+          format: uuid
+          nullable: true
+        districtName:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        detailAddress:
+          type: string
+          nullable: true
+        minPrice:
+          type: number
+          format: double
+          nullable: true
+        maxPrice:
+          type: number
+          format: double
+          nullable: true
+        learningGoals:
+          type: string
+          nullable: true
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          nullable: true
+        availabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudyingRequestAvailabilityResponse'
+        status:
+          type: string
+          enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StudyingRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudyingRequestResponse'
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    StudyingRequestAvailabilityResponse:
+      type: object
+      properties:
+        dayOfWeek:
+          type: integer
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
 
     TeachingRequestAvailabilityRequest:
       type: object
@@ -1938,6 +2436,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TeachingRequestResponse'
+
+    StudyingRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudyingRequestResponse'
+
+    StudyingRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudyingRequestPageResponse'
 
     TeachingRequestListResponseEnvelope:
       allOf:

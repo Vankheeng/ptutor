@@ -1,10 +1,13 @@
 package com.ptutor.backend.entity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,6 +15,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -99,4 +104,10 @@ public class StudyingRequest extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
+
+    @OneToMany(mappedBy = "studyingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayOfWeek ASC, startTime ASC")
+    @Builder.Default
+    @NonFinal
+    private List<StudyingRequestAvailability> availabilities = new ArrayList<>();
 }
