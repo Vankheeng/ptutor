@@ -27,6 +27,7 @@ import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
@@ -34,16 +35,19 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.dto.request.TeachingRequestRequest;
 import com.ptutor.backend.dto.response.TeachingRequestResponse;
 import com.ptutor.backend.repository.TeachingRequestRepository;
+import com.ptutor.backend.repository.TeachingRequestStudentRequestCount;
 
 @ExtendWith(MockitoExtension.class)
 class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
+    @Mock StudentTutorRequestRepository studentTutorRequestRepository;
     @Mock TutorRepository tutorRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
@@ -59,17 +63,20 @@ class TeachingRequestServiceTest {
     void setUp() {
         service = new TeachingRequestService(
                 teachingRequestRepository,
+                studentTutorRequestRepository,
+                Mappers.getMapper(TeachingRequestMapper.class),
                 tutorRepository,
                 subjectRepository,
                 gradeRepository,
-                districtRepository,
-                Mappers.getMapper(TeachingRequestMapper.class));
+                districtRepository);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         subjectId = UUID.randomUUID();
         gradeId = UUID.randomUUID();
         lenient().when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         lenient().when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        lenient().when(studentTutorRequestRepository.countByTeachingRequestIds(any(), any()))
+                .thenReturn(List.of());
     }
 
     @Test
@@ -105,6 +112,37 @@ class TeachingRequestServiceTest {
         assertThat(response.subjectId()).isNull();
         assertThat(response.customSubjectName()).isEqualTo("Advanced Robotics");
         verify(subjectRepository, never()).findById(any());
+    }
+
+    @Test
+    void findMineIncludesStudentRequestCounts() {
+        TeachingRequest request = existingRequest(RequestStatus.OPEN);
+        TeachingRequestStudentRequestCount count = new TeachingRequestStudentRequestCount() {
+            @Override
+            public UUID getTeachingRequestId() {
+                return request.getId();
+            }
+
+            @Override
+            public long getStudentRequestCount() {
+                return 3;
+            }
+
+            @Override
+            public long getPendingStudentRequestCount() {
+                return 2;
+            }
+        };
+        when(teachingRequestRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutorId))
+                .thenReturn(List.of(request));
+        when(studentTutorRequestRepository.countByTeachingRequestIds(
+                List.of(request.getId()), ApplicationStatus.PENDING))
+                .thenReturn(List.of(count));
+
+        TeachingRequestResponse response = service.findMine(userId, null).getFirst();
+
+        assertThat(response.studentRequestCount()).isEqualTo(3);
+        assertThat(response.pendingStudentRequestCount()).isEqualTo(2);
     }
 
     @Test

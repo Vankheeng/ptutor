@@ -26,6 +26,8 @@ public record TeachingRequestResponse(
         String preferredSchedule,
         String description,
         List<Availability> availabilities,
+        long studentRequestCount,
+        long pendingStudentRequestCount,
         RequestStatus status,
         UUID reviewedBy,
         LocalDateTime reviewedAt,

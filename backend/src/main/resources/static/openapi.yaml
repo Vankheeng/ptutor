@@ -613,6 +613,92 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorTeachingRequestId'
+    get:
+      tags:
+        - Student Tutor Requests
+      summary: List student applications for my teaching request
+      description: Returns applications sent to one teaching request owned by the authenticated tutor. Optionally filter by application status.
+      operationId: listStudentTutorRequestsForMyTeachingRequest
+      parameters:
+        - $ref: '#/components/parameters/StudentTutorRequestStatus'
+      responses:
+        '200':
+          description: Student applications for the teaching request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorTeachingRequestId'
+      - $ref: '#/components/parameters/StudentTutorRequestId'
+    get:
+      tags:
+        - Student Tutor Requests
+      summary: Get one student application for my teaching request
+      operationId: getStudentTutorRequestForMyTeachingRequest
+      responses:
+        '200':
+          description: Student application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}/status:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorTeachingRequestId'
+      - $ref: '#/components/parameters/StudentTutorRequestId'
+    patch:
+      tags:
+        - Student Tutor Requests
+      summary: Accept or reject a student application
+      description: Only PENDING applications can be changed. Use ACCEPTED to move the teaching request to MATCHED and continue to contract signing, or REJECTED to decline it.
+      operationId: updateStudentTutorRequestStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTutorRequestStatusRequest'
+            example:
+              status: ACCEPTED
+      responses:
+        '200':
+          description: Student application status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/v1/subjects:
     get:
       tags:
@@ -903,6 +989,28 @@ components:
           - CLOSED
           - CANCELLED
           - REJECTED
+    StudentTutorTeachingRequestId:
+      name: teachingRequestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    StudentTutorRequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    StudentTutorRequestStatus:
+      name: status
+      in: query
+      required: false
+      description: Optional student-application status filter.
+      schema:
+        type: string
+        enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
     TutorId:
       name: tutorId
       in: path
@@ -1288,6 +1396,66 @@ components:
           type: string
           enum: [OPEN, CLOSED]
 
+    StudentTutorRequestStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED]
+          description: Only ACCEPTED or REJECTED can be submitted by a tutor.
+
+    StudentTutorRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        studentFirstName:
+          type: string
+        studentLastName:
+          type: string
+        studentEmail:
+          type: string
+          format: email
+        gradeId:
+          type: string
+          format: uuid
+        gradeName:
+          type: string
+        teachingRequestId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
+        nextStep:
+          type: string
+          nullable: true
+          description: CONTRACT_SIGNING when the application is accepted.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     TeachingRequestAvailabilityResponse:
       type: object
       properties:
@@ -1362,6 +1530,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TeachingRequestAvailabilityResponse'
+        studentRequestCount:
+          type: integer
+          format: int64
+          description: Total number of student applications for this teaching request.
+        pendingStudentRequestCount:
+          type: integer
+          format: int64
+          description: Number of pending student applications for this teaching request.
         status:
           type: string
           enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
@@ -1772,6 +1948,24 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/TeachingRequestResponse'
+
+    StudentTutorRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentTutorRequestResponse'
+
+    StudentTutorRequestListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/StudentTutorRequestResponse'
 
     TutorSelfProfileResponseEnvelope:
       allOf:
