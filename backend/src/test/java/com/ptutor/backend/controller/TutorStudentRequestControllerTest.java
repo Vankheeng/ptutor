@@ -48,10 +48,13 @@ class TutorStudentRequestControllerTest {
     @Test
     void createUsesCurrentTutorAndStudyingRequestFromRoute() throws Exception {
         UUID studyingRequestId = UUID.randomUUID();
-        when(tutorStudentRequestService.create(eq(userId), eq(studyingRequestId), any(TutorStudentRequestCreateRequest.class)))
+        when(tutorStudentRequestService.create(
+                eq(userId), eq(studyingRequestId), any(TutorStudentRequestCreateRequest.class)))
                 .thenReturn(null);
 
-        mockMvc.perform(post("/api/v1/tutors/me/studying-requests/{studyingRequestId}/tutor-student-requests", studyingRequestId)
+        mockMvc.perform(post(
+                        "/api/v1/tutors/me/studying-requests/{studyingRequestId}/tutor-student-requests",
+                        studyingRequestId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"gradeId\":\"11111111-1111-1111-1111-111111111111\","
                                 + "\"proposedPrice\":150000,\"teachingMode\":\"ONLINE\"}"))
@@ -63,7 +66,8 @@ class TutorStudentRequestControllerTest {
 
     @Test
     void listUsesCurrentTutorStatusAndPagination() throws Exception {
-        when(tutorStudentRequestService.findMine(eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class)))
+        when(tutorStudentRequestService.findMine(
+                eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class)))
                 .thenReturn(null);
 
         mockMvc.perform(get("/api/v1/tutors/me/tutor-student-requests")
@@ -72,7 +76,8 @@ class TutorStudentRequestControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk());
 
-        verify(tutorStudentRequestService).findMine(eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class));
+        verify(tutorStudentRequestService).findMine(
+                eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class));
     }
 
     @Test

@@ -10,6 +10,9 @@ import com.ptutor.backend.entity.enums.TeachingMode;
 public record TutorStudentRequestResponse(
         UUID id,
         UUID tutorId,
+        String tutorFirstName,
+        String tutorLastName,
+        String tutorEmail,
         UUID studyingRequestId,
         String studyingRequestTitle,
         UUID subjectId,
@@ -21,6 +24,7 @@ public record TutorStudentRequestResponse(
         String preferredSchedule,
         String message,
         ApplicationStatus status,
+        String nextStep,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

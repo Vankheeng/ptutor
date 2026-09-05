@@ -18,17 +18,31 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 
 public interface TutorStudentRequestRepository extends JpaRepository<TutorStudentRequest, UUID> {
 
-    @EntityGraph(attributePaths = {"grade", "studyingRequest", "studyingRequest.subject"})
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
     Page<TutorStudentRequest> findAllByTutor_IdOrderByCreatedAtDesc(UUID tutorId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"grade", "studyingRequest", "studyingRequest.subject"})
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
     Page<TutorStudentRequest> findAllByTutor_IdAndStatusOrderByCreatedAtDesc(
             UUID tutorId, ApplicationStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
     Optional<TutorStudentRequest> findByIdAndTutor_Id(UUID id, UUID tutorId);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
+    Page<TutorStudentRequest> findAllByStudyingRequest_IdOrderByCreatedAtDesc(
+            UUID studyingRequestId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
+    Page<TutorStudentRequest> findAllByStudyingRequest_IdAndStatusOrderByCreatedAtDesc(
+            UUID studyingRequestId, ApplicationStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
+    Optional<TutorStudentRequest> findByIdAndStudyingRequest_Id(UUID id, UUID studyingRequestId);
 
     boolean existsByTutor_IdAndStudyingRequest_IdAndStatus(
             UUID tutorId, UUID studyingRequestId, ApplicationStatus status);
+
+    long countByStudyingRequest_IdAndStatus(UUID studyingRequestId, ApplicationStatus status);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

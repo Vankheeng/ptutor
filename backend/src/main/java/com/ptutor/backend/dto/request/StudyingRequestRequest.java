@@ -14,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record StudyingRequestRequest(
@@ -22,6 +23,10 @@ public record StudyingRequestRequest(
 
         @NotNull(message = "Grade ID is required")
         UUID gradeId,
+
+        @NotNull(message = "Quantity is required")
+        @Positive(message = "Quantity must be greater than zero")
+        Integer quantity,
 
         @NotBlank(message = "Title is required")
         @Size(max = 255, message = "Title must not exceed 255 characters")
