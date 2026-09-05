@@ -13,9 +13,12 @@ public record TutorStudentRequestResponse(
         String tutorFirstName,
         String tutorLastName,
         String tutorEmail,
+        UUID studyingRequestId,
+        String studyingRequestTitle,
+        UUID subjectId,
+        String subjectName,
         UUID gradeId,
         String gradeName,
-        UUID studyingRequestId,
         BigDecimal proposedPrice,
         TeachingMode teachingMode,
         String preferredSchedule,
@@ -24,5 +27,4 @@ public record TutorStudentRequestResponse(
         String nextStep,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
-
 }

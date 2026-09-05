@@ -16,7 +16,7 @@ tags:
   - name: Studying Requests
     description: Student requests for finding a tutor
   - name: Tutor Student Requests
-    description: Tutor offers received by the authenticated student
+    description: Tutor teaching proposals and student responses for studying requests
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
@@ -502,7 +502,6 @@ paths:
             example:
               subjectId: 5f68e2cf-d21f-1c69-3fbd-1404b89f26ff
               gradeId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
-              quantity: 1
               title: Need an English tutor for grade 10
               description: I need help preparing for the semester exam.
               note: Prefer a patient tutor.
@@ -664,6 +663,112 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/tutors/me/studying-requests/{studyingRequestId}/tutor-student-requests:
+    parameters:
+      - $ref: '#/components/parameters/TutorStudentStudyingRequestId'
+    post:
+      tags:
+        - Tutor Student Requests
+      summary: Send a teaching proposal to a studying request
+      description: An authenticated tutor sends a PENDING proposal to teach an OPEN studying request. A tutor may have only one pending proposal for the same studying request.
+      operationId: createTutorStudentRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorStudentRequestCreateRequest'
+            example:
+              gradeId: 2f2dd357-1839-4330-2f8a-16c4b36cfd3a
+              proposedPrice: 150000
+              teachingMode: ONLINE
+              preferredSchedule: Weekday evenings
+              message: I can help with exam preparation and build a weekly study plan.
+      responses:
+        '201':
+          description: Teaching proposal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/tutors/me/tutor-student-requests:
+    get:
+      tags:
+        - Tutor Student Requests
+      summary: List my teaching proposals
+      description: Returns proposals sent by the authenticated tutor, ordered by creation time descending. Optionally filter by status.
+      operationId: listMyTutorStudentRequests
+      parameters:
+        - $ref: '#/components/parameters/TutorStudentRequestStatus'
+        - name: page
+          in: query
+          required: false
+          description: Zero-based page number.
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Number of records per page.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated tutor teaching proposals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestPageResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/me/tutor-student-requests/{requestId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TutorStudentRequestId'
+    post:
+      tags:
+        - Tutor Student Requests
+      summary: Cancel my pending teaching proposal
+      description: Cancels a proposal only when it belongs to the authenticated tutor and is still PENDING.
+      operationId: cancelMyTutorStudentRequest
+      responses:
+        '200':
+          description: Teaching proposal cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests:
     parameters:
       - $ref: '#/components/parameters/TutorStudentStudyingRequestId'
@@ -717,7 +822,7 @@ paths:
   /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}:
     parameters:
       - $ref: '#/components/parameters/TutorStudentStudyingRequestId'
-      - $ref: '#/components/parameters/TutorStudentRequestId'
+      - $ref: '#/components/parameters/TutorStudentOfferRequestId'
     get:
       tags:
         - Tutor Student Requests
@@ -745,7 +850,7 @@ paths:
   /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/accept:
     parameters:
       - $ref: '#/components/parameters/TutorStudentStudyingRequestId'
-      - $ref: '#/components/parameters/TutorStudentRequestId'
+      - $ref: '#/components/parameters/TutorStudentOfferRequestId'
     patch:
       tags:
         - Tutor Student Requests
@@ -775,7 +880,7 @@ paths:
   /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/reject:
     parameters:
       - $ref: '#/components/parameters/TutorStudentStudyingRequestId'
-      - $ref: '#/components/parameters/TutorStudentRequestId'
+      - $ref: '#/components/parameters/TutorStudentOfferRequestId'
     patch:
       tags:
         - Tutor Student Requests
@@ -1368,9 +1473,17 @@ components:
         type: string
         format: uuid
     TutorStudentRequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TutorStudentOfferRequestId:
       name: tutorRequestId
       in: path
       required: true
+      description: Tutor offer ID in the student's studying request.
       schema:
         type: string
         format: uuid
@@ -1378,7 +1491,7 @@ components:
       name: status
       in: query
       required: false
-      description: Optional tutor-request status filter.
+      description: Optional tutor teaching-proposal status filter.
       schema:
         type: string
         enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
@@ -1717,7 +1830,6 @@ components:
       required:
         - subjectId
         - gradeId
-        - quantity
         - title
         - learningMode
       properties:
@@ -1727,9 +1839,6 @@ components:
         gradeId:
           type: string
           format: uuid
-        quantity:
-          type: integer
-          minimum: 1
         title:
           type: string
           maxLength: 255
@@ -1788,10 +1897,6 @@ components:
           type: string
           format: uuid
           nullable: true
-        quantity:
-          type: integer
-          minimum: 1
-          nullable: true
         title:
           type: string
           maxLength: 255
@@ -1840,6 +1945,32 @@ components:
           items:
             $ref: '#/components/schemas/StudyingRequestAvailabilityRequest'
 
+    TutorStudentRequestCreateRequest:
+      type: object
+      required:
+        - gradeId
+        - proposedPrice
+        - teachingMode
+      properties:
+        gradeId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+          minimum: 0
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        message:
+          type: string
+          maxLength: 10000
+          nullable: true
+
     StudyingRequestStatusRequest:
       type: object
       required:
@@ -1887,9 +2018,6 @@ components:
           format: uuid
         gradeName:
           type: string
-        quantity:
-          type: integer
-          minimum: 1
         districtId:
           type: string
           format: uuid
@@ -1979,14 +2107,21 @@ components:
         tutorEmail:
           type: string
           format: email
+        studyingRequestId:
+          type: string
+          format: uuid
+        studyingRequestTitle:
+          type: string
+        subjectId:
+          type: string
+          format: uuid
+        subjectName:
+          type: string
         gradeId:
           type: string
           format: uuid
         gradeName:
           type: string
-        studyingRequestId:
-          type: string
-          format: uuid
         proposedPrice:
           type: number
           format: double
@@ -2894,7 +3029,6 @@ components:
             errors: {}
             timestamp: '2026-08-30T10:00:00Z'
             path: /api/v1/auth/login
-
     ForbiddenError:
       description: The authenticated user does not have permission to access the requested resource
       content:
