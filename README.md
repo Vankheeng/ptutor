@@ -525,7 +525,7 @@ API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`.
 
-### 6.14. API buổi học của hợp đồng (Lesson)
+### 6.13. API buổi học của hợp đồng (Lesson)
 
 Các API này dành cho role `TUTOR`. Gia sư chỉ quản lý buổi học thuộc contract của chính mình. Tạo hoặc sửa lịch chỉ thực hiện được khi contract `ACTIVE`; ngày học phải nằm trong thời hạn contract và `startTime` phải trước `endTime`.
 
