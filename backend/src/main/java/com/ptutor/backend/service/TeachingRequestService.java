@@ -21,6 +21,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -40,6 +41,7 @@ public class TeachingRequestService {
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
+    private final TeachingRequestMapper teachingRequestMapper;
 
     @Transactional
     public TeachingRequestResponse create(UUID userId, TeachingRequestRequest request) {
@@ -251,18 +253,15 @@ public class TeachingRequestService {
 
     private TeachingRequestResponse toResponse(TeachingRequest request) {
         List<TeachingRequestResponse.Reference> grades = request.getGradeAssociations().stream()
-                .map(association -> new TeachingRequestResponse.Reference(
-                        association.getGrade().getId(), association.getGrade().getName()))
+                .map(teachingRequestMapper::toReference)
                 .toList();
         List<TeachingRequestResponse.Reference> districts = request.getDistrictAssociations().stream()
-                .map(association -> new TeachingRequestResponse.Reference(
-                        association.getDistrict().getId(), association.getDistrict().getName()))
+                .map(teachingRequestMapper::toReference)
                 .toList();
         List<TeachingRequestResponse.Availability> availabilities = request.getAvailabilities().stream()
-                .map(availability -> new TeachingRequestResponse.Availability(
-                        availability.getDayOfWeek(), availability.getStartTime(), availability.getEndTime()))
+                .map(teachingRequestMapper::toAvailability)
                 .toList();
-        return TeachingRequestResponse.from(request, grades, districts, availabilities);
+        return teachingRequestMapper.toResponse(request, grades, districts, availabilities);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

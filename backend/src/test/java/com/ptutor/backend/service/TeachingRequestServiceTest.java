@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
 
 import static org.mockito.Mockito.lenient;
@@ -30,6 +31,7 @@ import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -60,7 +62,8 @@ class TeachingRequestServiceTest {
                 tutorRepository,
                 subjectRepository,
                 gradeRepository,
-                districtRepository);
+                districtRepository,
+                Mappers.getMapper(TeachingRequestMapper.class));
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         subjectId = UUID.randomUUID();
