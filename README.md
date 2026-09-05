@@ -306,6 +306,96 @@ Request tạo/cập nhật:
 
 Certificate mới luôn có trạng thái `PENDING`. Certificate `VERIFIED` không được phép chỉnh sửa; gia sư cần tạo certificate mới nếu thông tin đã xác minh thay đổi. Các response thành công đều sử dụng format `ApiResponse` chung của backend.
 
+### 6.6. API xác thực tài khoản
+
+Các API đăng ký, đăng nhập và password reset là API public. API `refresh` và `logout` không yêu cầu access token JWT, nhưng refresh token trong request body vẫn được kiểm tra tại service. Các response thành công sử dụng format `ApiResponse` chung của backend.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | Đăng ký tài khoản `STUDENT` hoặc `TUTOR` |
+| `POST` | `/api/v1/auth/login` | Đăng nhập cho `STUDENT`, `TUTOR`, `EMPLOYEE` hoặc `ADMIN` |
+| `POST` | `/api/v1/auth/refresh` | Cấp access token và refresh token mới từ refresh token hợp lệ |
+| `POST` | `/api/v1/auth/logout` | Vô hiệu hóa refresh token hiện tại |
+| `POST` | `/api/v1/auth/password-reset/otp` | Gửi OTP 6 chữ số đến email đã đăng ký |
+| `POST` | `/api/v1/auth/password-reset/verify` | Kiểm tra OTP còn hiệu lực |
+| `POST` | `/api/v1/auth/password-reset/reset` | Xác thực OTP và đặt lại mật khẩu |
+
+Register không cho phép tự tạo tài khoản `EMPLOYEE` hoặc `ADMIN`. OTP password reset có hiệu lực trong 5 phút và chỉ được sử dụng một lần khi reset mật khẩu.
+
+### 6.7. API hồ sơ Student và tài khoản
+
+Các API dưới đây yêu cầu access token JWT. API hồ sơ chỉ dành cho role `STUDENT`; API đổi mật khẩu dùng chung cho `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`. Hệ thống lấy người dùng hiện tại từ JWT, client không truyền `userId`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/students/me` | Xem hồ sơ và địa chỉ của Student đang đăng nhập |
+| `PATCH` | `/api/v1/students/me` | Cập nhật một phần thông tin hồ sơ Student |
+| `PUT` | `/api/v1/users/me/password` | Đổi mật khẩu của tài khoản đang đăng nhập |
+
+Response hồ sơ không chứa password, CCCD hoặc thông tin nhạy cảm không cần thiết. Khi cập nhật hồ sơ, các field không gửi lên sẽ được giữ nguyên. Đổi mật khẩu yêu cầu mật khẩu hiện tại, mật khẩu mới và xác nhận mật khẩu mới.
+
+### 6.8. API Studying Request của Student
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Mỗi request chỉ được truy cập hoặc chỉnh sửa bởi Student sở hữu request đó.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/studying-requests` | Tạo studying request ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/students/me/studying-requests` | Lấy danh sách studying request của mình |
+| `GET` | `/api/v1/students/me/studying-requests/{requestId}` | Xem chi tiết một studying request |
+| `PATCH` | `/api/v1/students/me/studying-requests/{requestId}` | Cập nhật một phần thông tin studying request |
+| `PATCH` | `/api/v1/students/me/studying-requests/{requestId}/status` | Cập nhật status theo luồng `OPEN` ↔ `CLOSED` |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/cancel` | Hủy studying request |
+
+API danh sách hỗ trợ các query parameter `page`, `size` và `status`:
+
+```text
+GET /api/v1/students/me/studying-requests?page=0&size=20&status=OPEN
+```
+
+`page` bắt đầu từ `0`, `size` tối đa là `100`. Request chỉ được cập nhật thông tin khi đang ở trạng thái `DRAFT` hoặc `OPEN`. API cập nhật status chỉ cho phép chuyển giữa `OPEN` và `CLOSED`; việc chuyển từ `DRAFT` sang `OPEN` được thực hiện qua payment flow sau này.
+
+Khi gọi các API cần xác thực, thêm header:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+Ví dụ tạo studying request:
+
+```json
+{
+  "subjectId": "5f68e2cf-d21f-1c69-3fbd-1404b89f26ff",
+  "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "title": "Cần gia sư Toán lớp 10",
+  "description": "Cần hỗ trợ ôn thi học kỳ.",
+  "districtId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "minPrice": 100000,
+  "maxPrice": 200000,
+  "learningMode": "ONLINE",
+  "preferredSchedule": "Buổi tối các ngày trong tuần"
+}
+```
+
+Ví dụ cập nhật thông tin:
+
+```json
+{
+  "title": "Cần gia sư Toán lớp 10 - cập nhật",
+  "maxPrice": 250000
+}
+```
+
+Ví dụ cập nhật status:
+
+```json
+{
+  "status": "CLOSED"
+}
+```
+
+`requestId` được lấy từ trường `id` trong response khi tạo request hoặc trong danh sách request. Khi gọi API cập nhật, xem chi tiết, cập nhật status hoặc hủy, phải truyền UUID cụ thể trong URL; không sử dụng URL collection không có `requestId`.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:
