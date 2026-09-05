@@ -118,7 +118,7 @@ Port: 5432
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến `V6`.
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến `V8`.
 
 Windows:
 
@@ -524,6 +524,50 @@ API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`.
+
+### 6.13. API buổi học của hợp đồng (Lesson)
+
+Các API này dành cho role `TUTOR`. Gia sư chỉ quản lý buổi học thuộc contract của chính mình. Tạo hoặc sửa lịch chỉ thực hiện được khi contract `ACTIVE`; ngày học phải nằm trong thời hạn contract và `startTime` phải trước `endTime`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/contracts/{contractId}/lessons` | Tạo buổi học mới cho contract |
+| `GET` | `/api/v1/tutors/me/contracts/{contractId}/lessons` | Lấy danh sách buổi học của contract; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/tutors/me/lessons/{lessonId}` | Xem chi tiết một buổi học |
+| `PUT` | `/api/v1/tutors/me/lessons/{lessonId}` | Cập nhật tiêu đề, lịch và ghi chú của buổi `SCHEDULED` |
+| `PATCH` | `/api/v1/tutors/me/lessons/{lessonId}/status` | Cập nhật trạng thái buổi học |
+| `POST` | `/api/v1/students/me/lessons/{lessonId}/confirm` | Học viên xác nhận buổi học `PENDING_CONFIRMATION` |
+
+Ví dụ tạo buổi học:
+
+```json
+{
+  "title": "Buổi 1: Ôn tập đại số",
+  "date": "2026-09-12",
+  "startTime": "18:00:00",
+  "endTime": "20:00:00",
+  "note": "Chuẩn bị bài tập chương 1"
+}
+```
+
+Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; nếu buổi học đã kết thúc thì gán `PENDING_CONFIRMATION`. API danh sách sắp xếp theo `date`, rồi `startTime`.
+
+#### Ma trận chuyển trạng thái Lesson
+
+| Chủ thể | Chuyển trạng thái đã implement | Điều kiện |
+| --- | --- | --- |
+| System khi tạo lesson | `→ SCHEDULED` | `date + endTime` lớn hơn thời điểm tạo. |
+| System khi tạo lesson | `→ PENDING_CONFIRMATION` | `date + endTime` đã qua tại thời điểm tạo. |
+| Tutor | `SCHEDULED → PENDING_CONFIRMATION` | Tutor sở hữu contract; buổi học đã kết thúc (`date + endTime ≤ now`). |
+| Tutor | `SCHEDULED → CANCELLED` | Tutor sở hữu contract. |
+| Tutor | `PENDING_CONFIRMATION → CANCELLED` | Tutor sở hữu contract. |
+| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract và contract không có complaint `PENDING` hoặc `IN_REVIEW`. |
+| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Buổi học đã kết thúc ít nhất 3 ngày, student chưa xác nhận (vẫn `PENDING_CONFIRMATION`) và contract không có complaint `PENDING` hoặc `IN_REVIEW`. |
+| Admin | Chưa có | Chưa có API/service để admin đổi `LessonStatus`. |
+
+`CONFIRMED`, `COMPLETED` và `CANCELLED` là trạng thái kết thúc trong luồng Lesson hiện tại, không có transition đi tiếp. Job tự động chạy theo chu kỳ cấu hình (`app.lesson.auto-completion-interval-ms`, mặc định 1 giờ); mốc chờ xác nhận cấu hình bằng `app.lesson.auto-completion-grace-days`, mặc định 3 ngày.
+
+Complaint đang xử lý sẽ giữ lesson ở `PENDING_CONFIRMATION`; admin xử lý complaint và quyết toán ở luồng Complaint/Payment riêng, không đổi trực tiếp trạng thái Lesson.
 
 ### 7. Khởi động Frontend
 

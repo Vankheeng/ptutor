@@ -19,6 +19,8 @@ tags:
     description: Tutor teaching proposals and student responses for studying requests
   - name: Complaints
     description: Complaints from student or tutor contract participants
+  - name: Lessons
+    description: Lesson scheduling, confirmation and automatic completion for contracts
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
@@ -1140,6 +1142,146 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/students/me/lessons/{lessonId}/confirm:
+    parameters:
+      - $ref: '#/components/parameters/LessonId'
+    post:
+      tags: [Lessons]
+      summary: Confirm a pending lesson as student
+      description: Changes a PENDING_CONFIRMATION lesson owned by the authenticated student to CONFIRMED when its contract has no PENDING or IN_REVIEW complaint.
+      operationId: confirmMyLessonAsStudent
+      responses:
+        '200':
+          description: Lesson confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/contracts/{contractId}/lessons:
+    parameters:
+      - $ref: '#/components/parameters/LessonContractId'
+    post:
+      tags: [Lessons]
+      summary: Schedule a lesson for my active contract
+      description: Creates a lesson for the contract in the path. The server sets SCHEDULED when the lesson has not ended; otherwise it sets PENDING_CONFIRMATION. date, startTime and endTime are required.
+      operationId: createMyContractLesson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+      responses:
+        '201':
+          description: Lesson scheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+    get:
+      tags: [Lessons]
+      summary: List lessons for my contract
+      description: Returns paginated lessons of a contract owned by the authenticated tutor, ordered by date and start time.
+      operationId: listMyContractLessons
+      parameters:
+        - $ref: '#/components/parameters/LessonStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated contract lessons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonPageResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/tutors/me/lessons/{lessonId}:
+    parameters:
+      - $ref: '#/components/parameters/LessonId'
+    get:
+      tags: [Lessons]
+      summary: Get one lesson of my contract
+      operationId: getMyContractLesson
+      responses:
+        '200':
+          description: Lesson detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    put:
+      tags: [Lessons]
+      summary: Update my scheduled lesson
+      description: Updates title, schedule and note only while the lesson is SCHEDULED. date, startTime and endTime are required.
+      operationId: updateMyContractLesson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+      responses:
+        '200':
+          description: Lesson updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/lessons/{lessonId}/status:
+    parameters:
+      - $ref: '#/components/parameters/LessonId'
+    patch:
+      tags: [Lessons]
+      summary: Update my lesson status
+      description: A tutor can change SCHEDULED to PENDING_CONFIRMATION after the lesson ends, or cancel a SCHEDULED/PENDING_CONFIRMATION lesson. status is required.
+      operationId: updateMyContractLessonStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRequest'
+            example:
+              status: PENDING_CONFIRMATION
+      responses:
+        '200':
+          description: Lesson status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/tutors/me/teaching-requests:
     post:
       tags:
@@ -1740,6 +1882,23 @@ components:
       schema:
         type: string
         enum: [PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELLED]
+    LessonContractId:
+      name: contractId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    LessonId:
+      name: lessonId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    LessonStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
     TeachingRequestStatus:
       name: status
       in: query
@@ -2284,6 +2443,20 @@ components:
               fileUrl: { type: string, maxLength: 2048 }
               fileType: { type: string, maxLength: 100 }
 
+    LessonRequest:
+      type: object
+      description: Shared lesson payload. Required fields depend on the operation.
+      properties:
+        title: { type: string, maxLength: 255, nullable: true }
+        date: { type: string, format: date, description: Required when creating or updating. }
+        startTime: { type: string, format: time, description: Required when creating or updating. }
+        endTime: { type: string, format: time, description: Required when creating or updating. }
+        note: { type: string, maxLength: 10000, nullable: true }
+        status:
+          type: string
+          enum: [PENDING_CONFIRMATION, CANCELLED]
+          description: Required only when changing status. Ignored when creating or updating a lesson. Tutor may mark an ended lesson as PENDING_CONFIRMATION or cancel it.
+
     StudyingRequestStatusRequest:
       type: object
       required:
@@ -2515,6 +2688,36 @@ components:
         content:
           type: array
           items: { $ref: '#/components/schemas/ComplaintResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    LessonResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        title: { type: string, nullable: true }
+        date: { type: string, format: date }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+        teachingMode: { type: string, enum: [ONLINE, OFFLINE] }
+        status:
+          type: string
+          enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LessonPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/LessonResponse' }
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }
@@ -3303,6 +3506,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/ComplaintPageResponse' }
+
+    LessonResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/LessonResponse' }
+
+    LessonPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/LessonPageResponse' }
 
     TeachingRequestListResponseEnvelope:
       allOf:
