@@ -5,6 +5,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +15,28 @@ import com.ptutor.backend.entity.StudentTutorRequest;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 
 public interface StudentTutorRequestRepository extends JpaRepository<StudentTutorRequest, UUID> {
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
+            "teachingRequest.tutor", "teachingRequest.tutor.user"
+    })
+    Page<StudentTutorRequest> findAllByStudent_IdOrderByCreatedAtDesc(UUID studentId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
+            "teachingRequest.tutor", "teachingRequest.tutor.user"
+    })
+    Page<StudentTutorRequest> findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+            UUID studentId, ApplicationStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
+            "teachingRequest.tutor", "teachingRequest.tutor.user"
+    })
+    Optional<StudentTutorRequest> findByIdAndStudent_Id(UUID id, UUID studentId);
+
+    boolean existsByStudent_IdAndTeachingRequest_IdAndStatus(
+            UUID studentId, UUID teachingRequestId, ApplicationStatus status);
 
     List<StudentTutorRequest> findAllByTeachingRequest_IdOrderByCreatedAtDesc(UUID teachingRequestId);
 

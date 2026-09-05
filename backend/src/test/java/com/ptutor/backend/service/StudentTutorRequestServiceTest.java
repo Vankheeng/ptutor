@@ -30,8 +30,11 @@ import com.ptutor.backend.entity.enums.TeachingMode;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudentTutorRequestMapper;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
+import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.TeachingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.GradeTeachingRequestRepository;
 
 @ExtendWith(MockitoExtension.class)
 class StudentTutorRequestServiceTest {
@@ -39,6 +42,9 @@ class StudentTutorRequestServiceTest {
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
     @Mock TeachingRequestRepository teachingRequestRepository;
     @Mock TutorRepository tutorRepository;
+    @Mock StudentRepository studentRepository;
+    @Mock GradeRepository gradeRepository;
+    @Mock GradeTeachingRequestRepository gradeTeachingRequestRepository;
 
     private StudentTutorRequestService service;
     private UUID userId;
@@ -52,7 +58,10 @@ class StudentTutorRequestServiceTest {
                 studentTutorRequestRepository,
                 teachingRequestRepository,
                 tutorRepository,
-                Mappers.getMapper(StudentTutorRequestMapper.class));
+                Mappers.getMapper(StudentTutorRequestMapper.class),
+                studentRepository,
+                gradeRepository,
+                gradeTeachingRequestRepository);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         teachingRequestId = UUID.randomUUID();
