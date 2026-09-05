@@ -72,8 +72,14 @@ public class StudentTutorRequestService {
                 throw invalidTransition("Only OPEN teaching requests can accept student applications");
             }
             request.setStatus(ApplicationStatus.ACCEPTED);
-            teachingRequest.setStatus(RequestStatus.MATCHED);
-            teachingRequestRepository.saveAndFlush(teachingRequest);
+            StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
+            long acceptedCount = studentTutorRequestRepository
+                    .countByTeachingRequest_IdAndStatus(teachingRequestId, ApplicationStatus.ACCEPTED);
+            if (acceptedCount >= teachingRequest.getQuantity()) {
+                teachingRequest.setStatus(RequestStatus.MATCHED);
+                teachingRequestRepository.saveAndFlush(teachingRequest);
+            }
+            return studentTutorRequestMapper.toResponse(savedRequest);
         } else {
             request.setStatus(ApplicationStatus.REJECTED);
         }

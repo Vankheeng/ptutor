@@ -61,7 +61,7 @@ class StudentTutorRequestServiceTest {
     }
 
     @Test
-    void acceptsPendingApplicationAndMovesTeachingRequestToMatched() {
+    void acceptsPendingApplicationAndMovesTeachingRequestToMatchedWhenCapacityIsFilled() {
         TeachingRequest teachingRequest = teachingRequest(RequestStatus.OPEN);
         StudentTutorRequest application = application(teachingRequest, ApplicationStatus.PENDING);
         when(teachingRequestRepository.findByIdAndTutor_Id(teachingRequestId, tutorId))
@@ -69,6 +69,8 @@ class StudentTutorRequestServiceTest {
         when(studentTutorRequestRepository
                 .findByIdAndTeachingRequest_Id(applicationId, teachingRequestId))
                 .thenReturn(Optional.of(application));
+        when(studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                teachingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(1L);
         when(teachingRequestRepository.saveAndFlush(teachingRequest)).thenReturn(teachingRequest);
         when(studentTutorRequestRepository.saveAndFlush(application)).thenReturn(application);
 
@@ -80,6 +82,29 @@ class StudentTutorRequestServiceTest {
         assertThat(response.nextStep()).isEqualTo("CONTRACT_SIGNING");
         verify(teachingRequestRepository).saveAndFlush(teachingRequest);
         verify(studentTutorRequestRepository).saveAndFlush(application);
+    }
+
+    @Test
+    void acceptsPendingApplicationAndKeepsTeachingRequestOpenWhenCapacityRemains() {
+        TeachingRequest teachingRequest = teachingRequest(RequestStatus.OPEN);
+        teachingRequest.setQuantity(2);
+        StudentTutorRequest application = application(teachingRequest, ApplicationStatus.PENDING);
+        when(teachingRequestRepository.findByIdAndTutor_Id(teachingRequestId, tutorId))
+                .thenReturn(Optional.of(teachingRequest));
+        when(studentTutorRequestRepository
+                .findByIdAndTeachingRequest_Id(applicationId, teachingRequestId))
+                .thenReturn(Optional.of(application));
+        when(studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                teachingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(1L);
+        when(studentTutorRequestRepository.saveAndFlush(application)).thenReturn(application);
+
+        var response = service.updateStatus(
+                userId, teachingRequestId, applicationId, ApplicationStatus.ACCEPTED);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
+        assertThat(teachingRequest.getStatus()).isEqualTo(RequestStatus.OPEN);
+        assertThat(response.nextStep()).isEqualTo("CONTRACT_SIGNING");
+        verify(teachingRequestRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -129,6 +154,7 @@ class StudentTutorRequestServiceTest {
         TeachingRequest request = TeachingRequest.builder()
                 .tutor(tutor())
                 .title("Find students")
+                .quantity(1)
                 .teachingMode(TeachingMode.ONLINE)
                 .status(status)
                 .build();

@@ -20,6 +20,8 @@ public interface StudentTutorRequestRepository extends JpaRepository<StudentTuto
 
     Optional<StudentTutorRequest> findByIdAndTeachingRequest_Id(UUID id, UUID teachingRequestId);
 
+    long countByTeachingRequest_IdAndStatus(UUID teachingRequestId, ApplicationStatus status);
+
     @Query("""
             select application.teachingRequest.id as teachingRequestId,
                    count(application.id) as studentRequestCount,
