@@ -2,7 +2,9 @@ package com.ptutor.backend.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,17 +20,21 @@ import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.TeachingRequestAvailability;
 import com.ptutor.backend.entity.TeachingRequestDistrict;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.dto.request.TeachingRequestRequest;
 import com.ptutor.backend.dto.response.TeachingRequestResponse;
 import com.ptutor.backend.repository.TeachingRequestRepository;
+import com.ptutor.backend.repository.TeachingRequestStudentRequestCount;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,11 +43,12 @@ import lombok.RequiredArgsConstructor;
 public class TeachingRequestService {
 
     private final TeachingRequestRepository teachingRequestRepository;
+    private final StudentTutorRequestRepository studentTutorRequestRepository;
+    private final TeachingRequestMapper teachingRequestMapper;
     private final TutorRepository tutorRepository;
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
-    private final TeachingRequestMapper teachingRequestMapper;
 
     @Transactional
     public TeachingRequestResponse create(UUID userId, TeachingRequestRequest request) {
@@ -75,7 +82,7 @@ public class TeachingRequestService {
         List<TeachingRequest> requests = status == null
                 ? teachingRequestRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
                 : teachingRequestRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
-        return requests.stream().map(this::toResponse).toList();
+        return toResponses(requests);
     }
 
     @Transactional(readOnly = true)
@@ -172,7 +179,7 @@ public class TeachingRequestService {
         List<TeachingRequest> requests = isStaff(role)
                 ? teachingRequestRepository.findAllByOrderByCreatedAtDesc()
                 : teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN);
-        return requests.stream().map(this::toResponse).toList();
+        return toResponses(requests);
     }
 
     @Transactional(readOnly = true)
@@ -252,6 +259,31 @@ public class TeachingRequestService {
     }
 
     private TeachingRequestResponse toResponse(TeachingRequest request) {
+        return toResponses(List.of(request)).getFirst();
+    }
+
+    private List<TeachingRequestResponse> toResponses(List<TeachingRequest> requests) {
+        if (requests.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, TeachingRequestStudentRequestCount> countsByTeachingRequestId = studentTutorRequestRepository
+                .countByTeachingRequestIds(
+                        requests.stream().map(TeachingRequest::getId).toList(),
+                        ApplicationStatus.PENDING)
+                .stream()
+                .collect(Collectors.toMap(
+                        TeachingRequestStudentRequestCount::getTeachingRequestId,
+                        count -> count));
+
+        return requests.stream()
+                .map(request -> toResponse(request, countsByTeachingRequestId.get(request.getId())))
+                .toList();
+    }
+
+    private TeachingRequestResponse toResponse(
+            TeachingRequest request,
+            TeachingRequestStudentRequestCount studentRequestCount) {
         List<TeachingRequestResponse.Reference> grades = request.getGradeAssociations().stream()
                 .map(teachingRequestMapper::toReference)
                 .toList();
@@ -261,7 +293,10 @@ public class TeachingRequestService {
         List<TeachingRequestResponse.Availability> availabilities = request.getAvailabilities().stream()
                 .map(teachingRequestMapper::toAvailability)
                 .toList();
-        return teachingRequestMapper.toResponse(request, grades, districts, availabilities);
+        long totalCount = studentRequestCount == null ? 0 : studentRequestCount.getStudentRequestCount();
+        long pendingCount = studentRequestCount == null ? 0 : studentRequestCount.getPendingStudentRequestCount();
+        return teachingRequestMapper.toResponse(
+                request, grades, districts, availabilities, totalCount, pendingCount);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

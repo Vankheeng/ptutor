@@ -22,7 +22,9 @@ public interface TeachingRequestMapper {
             TeachingRequest request,
             List<TeachingRequestResponse.Reference> grades,
             List<TeachingRequestResponse.Reference> districts,
-            List<TeachingRequestResponse.Availability> availabilities);
+            List<TeachingRequestResponse.Availability> availabilities,
+            long studentRequestCount,
+            long pendingStudentRequestCount);
 
     @Mapping(target = "id", source = "grade.id")
     @Mapping(target = "name", source = "grade.name")
