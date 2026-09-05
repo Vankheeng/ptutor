@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 
 import com.ptutor.backend.dto.response.GradeResponse;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.mapper.GradeMapper;
 import com.ptutor.backend.repository.GradeRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,7 +38,8 @@ class GradeServiceTest {
         when(gradeRepository.findAllByStatusOrderByLevelAsc(CatalogStatus.ACTIVE))
                 .thenReturn(List.of(gradeOne, gradeTwelve));
 
-        List<GradeResponse> result = new GradeService(gradeRepository).findActiveGrades();
+        List<GradeResponse> result = new GradeService(
+                gradeRepository, Mappers.getMapper(GradeMapper.class)).findActiveGrades();
 
         assertThat(result).extracting(GradeResponse::level).containsExactly(1, 12);
         assertThat(result).extracting(GradeResponse::name).containsExactly("Lớp 1", "Lớp 12");

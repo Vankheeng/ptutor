@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.response.DistrictResponse;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.DistrictMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
 
@@ -20,12 +21,13 @@ public class DistrictService {
 
     private final DistrictRepository districtRepository;
     private final ProvinceRepository provinceRepository;
+    private final DistrictMapper districtMapper;
 
     @Transactional(readOnly = true)
     public List<DistrictResponse> findDistricts(UUID provinceId) {
         if (provinceId == null) {
             return districtRepository.findAllOrdered().stream()
-                    .map(DistrictResponse::from)
+                    .map(districtMapper::toResponse)
                     .toList();
         }
 
@@ -34,7 +36,7 @@ public class DistrictService {
                         HttpStatus.BAD_REQUEST, "INVALID_PROVINCE", "Province not found"));
 
         return districtRepository.findAllByProvinceIdOrdered(provinceId).stream()
-                .map(DistrictResponse::from)
+                .map(districtMapper::toResponse)
                 .toList();
     }
 }

@@ -1,11 +1,14 @@
 package com.ptutor.backend.entity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
@@ -13,6 +16,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -106,4 +111,22 @@ public class TeachingRequest extends BaseEntity {
     @Column(name = "rejection_reason", length = 500)
     @NonFinal
     private String rejectionReason;
+
+    @OneToMany(mappedBy = "teachingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    @NonFinal
+    private List<GradeTeachingRequest> gradeAssociations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "teachingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    @NonFinal
+    private List<TeachingRequestDistrict> districtAssociations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "teachingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayOfWeek ASC, startTime ASC")
+    @Builder.Default
+    @NonFinal
+    private List<TeachingRequestAvailability> availabilities = new ArrayList<>();
 }

@@ -13,11 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 
 import com.ptutor.backend.dto.response.DistrictResponse;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.DistrictMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
 
@@ -36,7 +38,8 @@ class DistrictServiceTest {
                 .build();
         when(districtRepository.findAllOrdered()).thenReturn(List.of(district));
 
-        List<DistrictResponse> result = new DistrictService(districtRepository, provinceRepository)
+        List<DistrictResponse> result = new DistrictService(
+                districtRepository, provinceRepository, Mappers.getMapper(DistrictMapper.class))
                 .findDistricts(null);
 
         assertThat(result).hasSize(1);
@@ -58,7 +61,8 @@ class DistrictServiceTest {
         when(provinceRepository.findById(provinceId)).thenReturn(java.util.Optional.of(province));
         when(districtRepository.findAllByProvinceIdOrdered(provinceId)).thenReturn(List.of(district));
 
-        List<DistrictResponse> result = new DistrictService(districtRepository, provinceRepository)
+        List<DistrictResponse> result = new DistrictService(
+                districtRepository, provinceRepository, Mappers.getMapper(DistrictMapper.class))
                 .findDistricts(provinceId);
 
         assertThat(result).extracting(DistrictResponse::provinceId).containsExactly(provinceId);
@@ -71,7 +75,8 @@ class DistrictServiceTest {
         UUID provinceId = UUID.randomUUID();
         when(provinceRepository.findById(provinceId)).thenReturn(java.util.Optional.empty());
 
-        assertThatThrownBy(() -> new DistrictService(districtRepository, provinceRepository)
+        assertThatThrownBy(() -> new DistrictService(
+                districtRepository, provinceRepository, Mappers.getMapper(DistrictMapper.class))
                 .findDistricts(provinceId))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus().value()).isEqualTo(400);

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.response.GradeResponse;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.mapper.GradeMapper;
 import com.ptutor.backend.repository.GradeRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,13 @@ import lombok.RequiredArgsConstructor;
 public class GradeService {
 
     private final GradeRepository gradeRepository;
+    private final GradeMapper gradeMapper;
 
     @Transactional(readOnly = true)
     public List<GradeResponse> findActiveGrades() {
         return gradeRepository.findAllByStatusOrderByLevelAsc(CatalogStatus.ACTIVE)
                 .stream()
-                .map(GradeResponse::from)
+                .map(gradeMapper::toResponse)
                 .toList();
     }
 }
