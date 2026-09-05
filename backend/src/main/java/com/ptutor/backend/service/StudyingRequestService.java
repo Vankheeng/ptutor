@@ -80,6 +80,7 @@ public class StudyingRequestService {
                 .student(student)
                 .subject(subject)
                 .grade(grade)
+                .quantity(request.quantity())
                 .district(district)
                 .title(normalize(request.title()))
                 .description(normalize(request.description()))
@@ -150,12 +151,32 @@ public class StudyingRequestService {
         BigDecimal effectiveMaxPrice = request.maxPrice() == null
                 ? studyingRequest.getMaxPrice()
                 : request.maxPrice();
+        Integer effectiveQuantity = request.quantity() == null
+                ? studyingRequest.getQuantity()
+                : request.quantity();
         validatePriceRange(effectiveMinPrice, effectiveMaxPrice);
+        validateQuantity(effectiveQuantity);
+
+        long acceptedCount = 0;
+        if (request.quantity() != null) {
+            acceptedCount = tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                    requestId, ApplicationStatus.ACCEPTED);
+            if (acceptedCount > effectiveQuantity) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "INVALID_STUDYING_REQUEST_QUANTITY",
+                        "Quantity cannot be lower than the number of accepted tutor requests");
+            }
+        }
 
         studyingRequestMapper.updateEntity(request, studyingRequest);
         studyingRequest.setSubject(subject);
         studyingRequest.setGrade(grade);
         studyingRequest.setDistrict(district);
+        if (request.quantity() != null && acceptedCount == effectiveQuantity
+                && acceptedCount > 0 && studyingRequest.getStatus() == RequestStatus.OPEN) {
+            studyingRequest.setStatus(RequestStatus.MATCHED);
+        }
 
         if (request.availabilities() != null) {
             replaceAvailabilities(studyingRequest, toUpdateAvailabilityValues(request.availabilities()));
@@ -271,11 +292,15 @@ public class StudyingRequestService {
         if (request == null
                 || request.subjectId() == null
                 || request.gradeId() == null
+                || request.quantity() == null
                 || request.learningMode() == null
                 || request.title() == null
                 || request.title().isBlank()) {
-            throw badRequest("INVALID_STUDYING_REQUEST", "Subject, grade, title and learning mode are required");
+            throw badRequest(
+                    "INVALID_STUDYING_REQUEST",
+                    "Subject, grade, quantity, title and learning mode are required");
         }
+        validateQuantity(request.quantity());
         if (request.minPrice() != null && request.minPrice().compareTo(BigDecimal.ZERO) < 0
                 || request.maxPrice() != null && request.maxPrice().compareTo(BigDecimal.ZERO) < 0
                 || request.minPrice() != null && request.maxPrice() != null
@@ -317,6 +342,12 @@ public class StudyingRequestService {
                 || maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0
                 || minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw badRequest("INVALID_PRICE_RANGE", "Prices must be non-negative and minimum must not exceed maximum");
+        }
+    }
+
+    private void validateQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw badRequest("INVALID_STUDYING_REQUEST_QUANTITY", "Quantity must be greater than zero");
         }
     }
 

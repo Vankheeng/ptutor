@@ -184,7 +184,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidPriceRange() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, "Find a tutor", null, null, districtId, null,
+                subjectId, gradeId, 1, "Find a tutor", null, null, districtId, null,
                 java.math.BigDecimal.valueOf(200), java.math.BigDecimal.valueOf(100),
                 null, LearningMode.ONLINE, null, null);
 
@@ -196,7 +196,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidAvailability() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, "Find a tutor", null, null, null, null,
+                subjectId, gradeId, 1, "Find a tutor", null, null, null, null,
                 null, null, null, LearningMode.ONLINE, null,
                 List.of(new StudyingRequestRequest.Availability(8, LocalTime.of(19, 0), LocalTime.of(18, 0))));
 
@@ -274,7 +274,7 @@ class StudyingRequestServiceTest {
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, "Updated title", null, null, null, null,
+                null, null, null, "Updated title", null, null, null, null,
                 null, null, null, null, null, null);
 
         StudyingRequestResponse response = service.update(userId, request.getId(), update);
@@ -289,7 +289,7 @@ class StudyingRequestServiceTest {
     @Test
     void updateRejectsEmptyPatch() {
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, UUID.randomUUID(), update))
@@ -308,7 +308,7 @@ class StudyingRequestServiceTest {
                 .thenReturn(Optional.of(request));
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, "Updated title", null, null, null, null,
+                null, null, null, "Updated title", null, null, null, null,
                 null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, request.getId(), update))
@@ -404,7 +404,7 @@ class StudyingRequestServiceTest {
 
     private StudyingRequestRequest request() {
         return new StudyingRequestRequest(
-                subjectId, gradeId, "  Find an English tutor  ", "Description", "Note", districtId,
+                subjectId, gradeId, 1, "  Find an English tutor  ", "Description", "Note", districtId,
                 "Address", java.math.BigDecimal.valueOf(100), java.math.BigDecimal.valueOf(200),
                 "Improve speaking", LearningMode.ONLINE, "Evenings",
                 List.of(new StudyingRequestRequest.Availability(2, LocalTime.of(18, 0), LocalTime.of(20, 0))));
@@ -415,6 +415,7 @@ class StudyingRequestServiceTest {
                 .student(student)
                 .subject(subject)
                 .grade(grade)
+                .quantity(1)
                 .district(district)
                 .title("Find an English tutor")
                 .learningMode(LearningMode.ONLINE)

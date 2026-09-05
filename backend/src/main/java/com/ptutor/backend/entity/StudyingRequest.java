@@ -63,6 +63,10 @@ public class StudyingRequest extends BaseEntity {
     @NonFinal
     private Grade grade;
 
+    @Column(name = "quantity", nullable = false)
+    @NonFinal
+    private Integer quantity;
+
     @Column(name = "title", length = 255)
     @NonFinal
     private String title;

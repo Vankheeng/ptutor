@@ -367,6 +367,7 @@ Ví dụ tạo studying request:
 {
   "subjectId": "5f68e2cf-d21f-1c69-3fbd-1404b89f26ff",
   "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "quantity": 1,
   "title": "Cần gia sư Toán lớp 10",
   "description": "Cần hỗ trợ ôn thi học kỳ.",
   "districtId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
@@ -395,6 +396,33 @@ Ví dụ cập nhật status:
 ```
 
 `requestId` được lấy từ trường `id` trong response khi tạo request hoặc trong danh sách request. Khi gọi API cập nhật, xem chi tiết, cập nhật status hoặc hủy, phải truyền UUID cụ thể trong URL; không sử dụng URL collection không có `requestId`.
+
+### 6.9. API Tutor Student Request của Student
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Student chỉ có thể xem hoặc xử lý các đề nghị Tutor được gửi tới `studying_request` thuộc về chính mình.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests` | Lấy danh sách đề nghị Tutor, hỗ trợ phân trang và lọc status |
+| `GET` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}` | Xem chi tiết một đề nghị Tutor |
+| `PATCH` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/accept` | Chấp nhận đề nghị đang `PENDING` |
+| `PATCH` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/reject` | Từ chối đề nghị đang `PENDING` |
+
+API danh sách hỗ trợ các query parameter:
+
+```text
+GET /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests?page=0&size=20&status=PENDING
+```
+
+Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi số Tutor được chấp nhận đạt `quantity` của studying request, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên.
+
+Khi gọi API, thêm header:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+`studyingRequestId` lấy từ trường `id` của Studying Request. `tutorRequestId` lấy từ trường `id` trong response của API danh sách hoặc API chi tiết. Nếu đề nghị đã được xử lý hoặc studying request không thuộc Student hiện tại, API sẽ trả lỗi phù hợp.
 
 ### 7. Khởi động Frontend
 
