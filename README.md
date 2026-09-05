@@ -423,7 +423,53 @@ Authorization: Bearer <access-token>
 ```
 
 `studyingRequestId` lấy từ trường `id` của Studying Request. `tutorRequestId` lấy từ trường `id` trong response của API danh sách hoặc API chi tiết. Nếu đề nghị đã được xử lý hoặc studying request không thuộc Student hiện tại, API sẽ trả lỗi phù hợp.
-### 6.10. API gia sư duyệt đề nghị học từ học viên (Student Tutor Request)
+### 6.10. API Student gửi đề nghị đăng ký học (Student Tutor Request)
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Student chỉ có thể tạo, xem danh sách và hủy các request do chính mình tạo.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/teaching-requests/{teachingRequestId}/student-tutor-requests` | Gửi đề nghị đăng ký học tới một teaching request đang `OPEN` |
+| `GET` | `/api/v1/students/me/student-tutor-requests` | Xem danh sách đề nghị đã gửi; hỗ trợ `page`, `size`, `status` |
+| `PATCH` | `/api/v1/students/me/student-tutor-requests/{requestId}/status` | Hủy đề nghị đang `PENDING` bằng status `CANCELLED` |
+
+Ví dụ tạo đề nghị:
+
+```json
+{
+  "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "proposedPrice": 150000,
+  "learningMode": "ONLINE",
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "message": "Tôi muốn đăng ký học."
+}
+```
+
+API danh sách có thể gọi như sau:
+
+```text
+GET /api/v1/students/me/student-tutor-requests?page=0&size=20&status=PENDING
+```
+
+Request mới có status `PENDING`. Chỉ request `PENDING` bị xem là trùng; request đã `REJECTED` hoặc `CANCELLED` được phép đăng ký lại. Khi hủy, dùng UUID cụ thể lấy từ trường `id` của response:
+
+```http
+PATCH /api/v1/students/me/student-tutor-requests/{requestId}/status
+```
+
+```json
+{
+  "status": "CANCELLED"
+}
+```
+
+Header xác thực:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+### 6.10.1. API gia sư duyệt đề nghị học từ học viên (Student Tutor Request)
 
 Các API này dành cho role `TUTOR`. Gia sư chỉ xem và xử lý các đề nghị gửi đến teaching request do chính mình sở hữu.
 
