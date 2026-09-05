@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.entity.District;
@@ -23,6 +24,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.Gender;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TutorProfileMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -43,7 +45,9 @@ class TutorProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        tutorProfileService = new TutorProfileService(tutorRepository, provinceRepository, districtRepository);
+        tutorProfileService = new TutorProfileService(
+                tutorRepository, provinceRepository, districtRepository,
+                Mappers.getMapper(TutorProfileMapper.class));
         tutorId = UUID.randomUUID();
         userId = UUID.randomUUID();
     }

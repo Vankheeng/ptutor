@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.CertificateMapper;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Tutor;
@@ -24,6 +25,7 @@ public class CertificateService {
 
     private final CertificateRepository certificateRepository;
     private final TutorRepository tutorRepository;
+    private final CertificateMapper certificateMapper;
 
     @Transactional
     public CertificateResponse create(UUID userId, CertificateRequest request) {
@@ -38,7 +40,7 @@ public class CertificateService {
                 .certificateUrl(normalize(request.certificateUrl()))
                 .status(CertificateStatus.PENDING)
                 .build();
-        return CertificateResponse.from(certificateRepository.saveAndFlush(certificate));
+        return certificateMapper.toResponse(certificateRepository.saveAndFlush(certificate));
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +50,7 @@ public class CertificateService {
                 ? certificateRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
                 : certificateRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
         return certificates.stream()
-                .map(CertificateResponse::from)
+                .map(certificateMapper::toResponse)
                 .toList();
     }
 
@@ -57,7 +59,7 @@ public class CertificateService {
         findTutorById(tutorId);
         return certificateRepository
                 .findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutorId, CertificateStatus.VERIFIED).stream()
-                .map(CertificateResponse::from)
+                .map(certificateMapper::toResponse)
                 .toList();
     }
 
@@ -66,7 +68,7 @@ public class CertificateService {
         Tutor tutor = findTutorByUserId(userId);
         Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
                 .orElseThrow(() -> certificateNotFound(certificateId));
-        return CertificateResponse.from(certificate);
+        return certificateMapper.toResponse(certificate);
     }
 
     @Transactional
@@ -86,7 +88,7 @@ public class CertificateService {
         certificate.setExpiryDate(request.expiryDate());
         certificate.setCertificateUrl(normalize(request.certificateUrl()));
         certificate.setStatus(CertificateStatus.PENDING);
-        return CertificateResponse.from(certificateRepository.saveAndFlush(certificate));
+        return certificateMapper.toResponse(certificateRepository.saveAndFlush(certificate));
     }
 
     @Transactional

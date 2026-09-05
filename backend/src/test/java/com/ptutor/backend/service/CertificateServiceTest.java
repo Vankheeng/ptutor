@@ -19,12 +19,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.CertificateMapper;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.dto.request.CertificateRequest;
 import com.ptutor.backend.dto.response.CertificateResponse;
@@ -42,7 +44,8 @@ class CertificateServiceTest {
 
     @BeforeEach
     void setUp() {
-        certificateService = new CertificateService(certificateRepository, tutorRepository);
+        certificateService = new CertificateService(
+                certificateRepository, tutorRepository, Mappers.getMapper(CertificateMapper.class));
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
     }

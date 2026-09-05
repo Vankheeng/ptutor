@@ -10,6 +10,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TutorProfileMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -26,6 +27,7 @@ public class TutorProfileService {
     private final TutorRepository tutorRepository;
     private final ProvinceRepository provinceRepository;
     private final DistrictRepository districtRepository;
+    private final TutorProfileMapper tutorProfileMapper;
 
     @Transactional(readOnly = true)
     public TutorProfileResponse findById(UUID tutorId) {
@@ -34,7 +36,7 @@ public class TutorProfileService {
                         HttpStatus.NOT_FOUND,
                         "TUTOR_NOT_FOUND",
                         "Tutor not found: " + tutorId));
-        return TutorProfileResponse.from(tutor);
+        return tutorProfileMapper.toResponse(tutor);
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +46,7 @@ public class TutorProfileService {
                         HttpStatus.NOT_FOUND,
                         "TUTOR_PROFILE_NOT_FOUND",
                         "Tutor profile not found"));
-        return TutorSelfProfileResponse.from(tutor);
+        return tutorProfileMapper.toSelfResponse(tutor);
     }
 
     @Transactional
@@ -81,7 +83,7 @@ public class TutorProfileService {
         setIfProvided(request.strengthSubjects(), tutor::setStrengthSubjects);
         setIfProvided(request.targetStudentType(), tutor::setTargetStudentType);
 
-        return TutorSelfProfileResponse.from(tutor);
+        return tutorProfileMapper.toSelfResponse(tutor);
     }
 
     private Tutor findMineEntity(UUID userId) {

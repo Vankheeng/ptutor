@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 
 import com.ptutor.backend.dto.response.SubjectResponse;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.mapper.SubjectMapper;
 import com.ptutor.backend.repository.SubjectRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,7 +32,8 @@ class SubjectServiceTest {
         when(subjectRepository.findAllByStatusOrderByNameAsc(CatalogStatus.ACTIVE))
                 .thenReturn(List.of(subject));
 
-        List<SubjectResponse> result = new SubjectService(subjectRepository).findActiveSubjects();
+        List<SubjectResponse> result = new SubjectService(
+                subjectRepository, Mappers.getMapper(SubjectMapper.class)).findActiveSubjects();
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().name()).isEqualTo("Toán");
