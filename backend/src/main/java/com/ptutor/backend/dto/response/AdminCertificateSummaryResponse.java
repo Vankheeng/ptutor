@@ -6,18 +6,15 @@ import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.CertificateStatus;
 
-public record CertificateResponse(
+public record AdminCertificateSummaryResponse(
         UUID id,
         UUID tutorId,
+        String tutorName,
+        String tutorEmail,
         String name,
         String issuingOrganization,
-        String description,
         LocalDate issueDate,
         LocalDate expiryDate,
-        String certificateUrl,
         CertificateStatus status,
-        String rejectionReason,
-        LocalDateTime reviewedAt,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime createdAt) {
 }
