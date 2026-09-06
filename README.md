@@ -525,6 +525,57 @@ API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`.
 
+### 6.13. API hợp đồng (Contract)
+
+Các API hợp đồng chỉ dành cho `STUDENT` và `TUTOR` đã đăng nhập. Hệ thống luôn xác định người dùng từ JWT; chỉ hai bên tham gia mới có thể xem chi tiết, ký, từ chối hoặc gia hạn hợp đồng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/contracts` | Student tạo hợp đồng từ Tutor Student Request đã `ACCEPTED` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{studentRequestId}/contracts` | Tutor tạo hợp đồng từ Student Tutor Request đã `ACCEPTED` |
+| `GET` | `/api/v1/users/me/contracts` | Lấy danh sách hợp đồng của tôi, hỗ trợ `page`, `size`, `status` |
+| `GET` | `/api/v1/users/me/contracts/{contractId}` | Xem chi tiết hợp đồng mà tôi là một bên tham gia |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}` | Creator cập nhật điều khoản của hợp đồng `PENDING` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/sign` | Bên còn lại ký hợp đồng, chuyển sang `ACTIVE` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/reject` | Bên còn lại từ chối hợp đồng `PENDING` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/cancel` | Creator hủy hợp đồng `PENDING` trước khi bên còn lại ký |
+| `POST` | `/api/v1/users/me/contracts/{contractId}/renewals` | Student hoặc Tutor đề xuất gia hạn từ hợp đồng `ACTIVE` |
+
+Khi tạo hợp đồng, request gốc phải ở `OPEN` hoặc `MATCHED` và đề nghị tương ứng phải ở `ACCEPTED`. Contract mới bắt đầu với status `PENDING`; chỉ bên không phải creator được ký. Hai bên có thể dùng `reject` hoặc `cancel` theo đúng quyền nêu trên. Một nguồn đề nghị chỉ có một Contract chưa `CANCELLED`; sau khi Contract bị hủy/từ chối, có thể tạo lại từ cùng đề nghị.
+
+Trạng thái Contract gồm `PENDING`, `ACTIVE`, `COMPLETED`, `CANCELLED`. Lúc `00:00` ngày `endDate`, Contract `ACTIVE` tự chuyển thành `COMPLETED`, còn Contract chưa ký (`PENDING`) tự chuyển thành `CANCELLED`.
+
+Ví dụ body tạo/gia hạn Contract:
+
+```json
+{
+  "price": 200000,
+  "paymentPeriod": "MONTHLY",
+  "totalLessons": 16,
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "startDate": "2026-10-01",
+  "endDate": "2026-12-01"
+}
+```
+
+Tutor có thể gửi thêm `gradeId` khi tạo Contract từ Teaching Request để chọn một grade thuộc request đó. Khi gia hạn, chỉ thay đổi `price`, `preferredSchedule`, `paymentPeriod`, `totalLessons`, `startDate` và `endDate`; subject, grade, teaching mode và hai bên tham gia được giữ nguyên.
+
+Khi gọi `PATCH /api/v1/users/me/contracts/{contractId}`, Contract phải còn `PENDING` và người gọi phải là creator của Contract. Các field được phép cập nhật tùy theo nguồn tạo Contract:
+
+| Nguồn tạo Contract | Field được phép cập nhật |
+| --- | --- |
+| Student tạo từ Tutor Student Request | `price`, `preferredSchedule` |
+| Tutor tạo từ Student Tutor Request | `price`, `preferredSchedule`, `gradeId` (grade phải thuộc Teaching Request nguồn) |
+| Contract gia hạn | `price`, `preferredSchedule`, `paymentPeriod`, `totalLessons`, `startDate`, `endDate` |
+
+Các field không gửi hoặc có giá trị `null` sẽ được giữ nguyên. Không thể cập nhật bên tham gia, subject, teaching mode, status, request nguồn, người tạo/ký hoặc audit fields. Bên không phải creator và Contract không còn `PENDING` không có quyền cập nhật.
+
+Header xác thực:
+
+```text
+Authorization: Bearer <access-token>
+```
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

@@ -19,6 +19,8 @@ tags:
     description: Tutor teaching proposals and student responses for studying requests
   - name: Complaints
     description: Complaints from student or tutor contract participants
+  - name: Contracts
+    description: Contract creation, signing, renewal and lifecycle operations for student and tutor participants
   - name: Account
     description: Operations for the authenticated user's own account
   - name: Tutor Profiles
@@ -1663,6 +1665,250 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/contracts:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: tutorRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Contracts]
+      summary: Create a contract from an accepted tutor proposal
+      description: Only the owner of an OPEN or MATCHED studying request can create a PENDING contract from its ACCEPTED tutor proposal.
+      operationId: createStudentContractFromTutorProposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractTermsRequest'
+            example:
+              price: 200000
+              paymentPeriod: MONTHLY
+              totalLessons: 16
+              preferredSchedule: Monday and Wednesday evening
+              startDate: '2026-10-01'
+              endDate: '2026-12-01'
+      responses:
+        '201':
+          description: Contract created and awaiting tutor signature
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{studentRequestId}/contracts:
+    parameters:
+      - name: teachingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: studentRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Contracts]
+      summary: Create a contract from an accepted student application
+      description: Only the owner of an OPEN or MATCHED teaching request can create a PENDING contract from its ACCEPTED student application.
+      operationId: createTutorContractFromStudentApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorContractCreateRequest'
+            example:
+              gradeId: 11111111-1111-1111-1111-111111111111
+              price: 200000
+              paymentPeriod: MONTHLY
+              totalLessons: 16
+              preferredSchedule: Monday and Wednesday evening
+              startDate: '2026-10-01'
+              endDate: '2026-12-01'
+      responses:
+        '201':
+          description: Contract created and awaiting student signature
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/contracts:
+    get:
+      tags: [Contracts]
+      summary: List my contracts
+      description: Returns only contracts in which the authenticated student or tutor is a participant.
+      operationId: listMyContracts
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated contracts ordered by creation time descending
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/contracts/{contractId}:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Contracts]
+      summary: Get my contract details
+      operationId: getMyContract
+      responses:
+        '200':
+          description: Contract details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    patch:
+      tags: [Contracts]
+      summary: Partially update a pending contract I created
+      description: The service limits editable fields according to the creation flow. A renewal creator can edit its renewal terms while PENDING.
+      operationId: updateMyContract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContractUpdateRequest' }
+      responses:
+        '200':
+          description: Contract updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/contracts/{contractId}/sign:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Contracts]
+      summary: Sign a pending contract
+      description: Only the counterparty, not the creator, can sign. A successful signature changes PENDING to ACTIVE.
+      operationId: signMyContract
+      responses:
+        '200':
+          description: Contract signed and activated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/contracts/{contractId}/reject:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Contracts]
+      summary: Reject a pending contract
+      description: Only the counterparty can reject a PENDING contract. The contract becomes CANCELLED.
+      operationId: rejectMyContract
+      responses:
+        '200':
+          description: Contract rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/contracts/{contractId}/cancel:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Contracts]
+      summary: Cancel a pending contract I created
+      description: Only the creator can cancel before the counterparty signs. The contract becomes CANCELLED.
+      operationId: cancelMyContract
+      responses:
+        '200':
+          description: Contract cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/users/me/contracts/{contractId}/renewals:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Contracts]
+      summary: Propose renewal for an active contract
+      description: Either participant may create one PENDING renewal from an ACTIVE contract. The counterparty must sign it before it becomes active.
+      operationId: renewMyContract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContractTermsRequest' }
+      responses:
+        '201':
+          description: Renewal contract proposed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2252,6 +2498,77 @@ components:
           maxLength: 10000
           nullable: true
 
+    ContractTermsRequest:
+      type: object
+      required: [price, paymentPeriod, totalLessons, preferredSchedule, startDate, endDate]
+      properties:
+        price:
+          type: number
+          format: double
+          minimum: 0
+        paymentPeriod:
+          type: string
+          maxLength: 100
+        totalLessons:
+          type: integer
+          minimum: 1
+        preferredSchedule:
+          type: string
+          maxLength: 500
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          description: Must be after startDate.
+
+    TutorContractCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ContractTermsRequest'
+        - type: object
+          properties:
+            gradeId:
+              type: string
+              format: uuid
+              nullable: true
+              description: Optional replacement grade, which must belong to the teaching request.
+
+    ContractUpdateRequest:
+      type: object
+      description: Partial update. The creator and contract origin determine which supplied fields are allowed.
+      properties:
+        price:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        paymentPeriod:
+          type: string
+          maxLength: 100
+          nullable: true
+        totalLessons:
+          type: integer
+          minimum: 1
+          nullable: true
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        gradeId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Available only to the tutor who created a Contract from a teaching request.
+
     ComplaintCreateRequest:
       type: object
       required: [contractId, title, content]
@@ -2515,6 +2832,56 @@ components:
         content:
           type: array
           items: { $ref: '#/components/schemas/ComplaintResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    ContractResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        studentFirstName: { type: string }
+        studentLastName: { type: string }
+        studentEmail: { type: string, format: email }
+        tutorId: { type: string, format: uuid }
+        tutorFirstName: { type: string }
+        tutorLastName: { type: string }
+        tutorEmail: { type: string, format: email }
+        subjectId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        teachingMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        price: { type: number, format: double }
+        paymentPeriod: { type: string }
+        totalLessons: { type: integer }
+        preferredSchedule: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, COMPLETED, CANCELLED]
+        createdByUserId: { type: string, format: uuid }
+        signedByUserId: { type: string, format: uuid, nullable: true }
+        tutorStudentRequestId: { type: string, format: uuid, nullable: true }
+        studentTutorRequestId: { type: string, format: uuid, nullable: true }
+        renewedFromContractId: { type: string, format: uuid, nullable: true }
+        signedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ContractPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/ContractResponse' }
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }
@@ -3456,6 +3823,20 @@ components:
             data:
               nullable: true
               example: null
+
+    ContractResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ContractResponse' }
+
+    ContractPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ContractPageResponse' }
 
     ErrorResponse:
       allOf:

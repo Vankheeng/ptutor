@@ -41,51 +41,51 @@ import com.ptutor.backend.entity.enums.TeachingMode;
 public class Contract extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
+    @JoinColumn(name = "student_id", nullable = false)
     @NonFinal
     private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tutor_id")
+    @JoinColumn(name = "tutor_id", nullable = false)
     @NonFinal
     private Tutor tutor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id")
+    @JoinColumn(name = "subject_id", nullable = false)
     @NonFinal
     private Subject subject;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grade_id")
+    @JoinColumn(name = "grade_id", nullable = false)
     @NonFinal
     private Grade grade;
 
-    @Column(name = "teaching_mode", columnDefinition = "varchar")
+    @Column(name = "teaching_mode", nullable = false, length = 30)
     @NonFinal
     @Enumerated(EnumType.STRING)
     private TeachingMode teachingMode;
 
-    @Column(name = "price", columnDefinition = "decimal")
+    @Column(name = "price", nullable = false, precision = 15, scale = 2)
     @NonFinal
     private BigDecimal price;
 
-    @Column(name = "payment_period", columnDefinition = "varchar")
+    @Column(name = "payment_period", nullable = false, length = 100)
     @NonFinal
     private String paymentPeriod;
 
-    @Column(name = "total_lession")
+    @Column(name = "total_lession", nullable = false)
     @NonFinal
     private Integer totalLession;
 
-    @Column(name = "start_date")
+    @Column(name = "start_date", nullable = false)
     @NonFinal
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "end_date", nullable = false)
     @NonFinal
     private LocalDate endDate;
 
-    @Column(name = "status", columnDefinition = "varchar")
+    @Column(name = "status", nullable = false, length = 30)
     @NonFinal
     @Enumerated(EnumType.STRING)
     private ContractStatus status;
@@ -93,4 +93,33 @@ public class Contract extends BaseEntity {
     @Column(name = "signed_at")
     @NonFinal
     private LocalDateTime signedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
+    @NonFinal
+    private User createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "signed_by_user_id")
+    @NonFinal
+    private User signedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tutor_student_request_id")
+    @NonFinal
+    private TutorStudentRequest tutorStudentRequest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_tutor_request_id")
+    @NonFinal
+    private StudentTutorRequest studentTutorRequest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "renewed_from_contract_id")
+    @NonFinal
+    private Contract renewedFromContract;
+
+    @Column(name = "preferred_schedule", nullable = false, length = 500)
+    @NonFinal
+    private String preferredSchedule;
 }
