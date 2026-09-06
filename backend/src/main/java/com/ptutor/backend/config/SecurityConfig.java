@@ -42,6 +42,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
 import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_CERTIFICATE_API;
 import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.GRADE_READ_API;
@@ -123,6 +124,7 @@ public class SecurityConfig {
                         .requestMatchers(API_PUBLIC).permitAll()
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
+                        .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")

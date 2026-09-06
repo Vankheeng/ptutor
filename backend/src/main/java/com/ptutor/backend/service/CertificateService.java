@@ -88,6 +88,9 @@ public class CertificateService {
         certificate.setExpiryDate(request.expiryDate());
         certificate.setCertificateUrl(normalize(request.certificateUrl()));
         certificate.setStatus(CertificateStatus.PENDING);
+        certificate.setReviewedBy(null);
+        certificate.setReviewedAt(null);
+        certificate.setRejectionReason(null);
         return certificateMapper.toResponse(certificateRepository.saveAndFlush(certificate));
     }
 

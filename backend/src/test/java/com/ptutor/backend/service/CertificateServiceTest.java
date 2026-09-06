@@ -133,6 +133,9 @@ class CertificateServiceTest {
     void updateResetsCertificateToPending() {
         when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         Certificate rejected = certificate(CertificateStatus.REJECTED);
+        rejected.setRejectionReason("Old reason");
+        rejected.setReviewedAt(LocalDateTime.now());
+        rejected.setReviewedBy(com.ptutor.backend.entity.Employee.builder().build());
         UUID certificateId = rejected.getId();
         when(certificateRepository.findByIdAndTutor_Id(certificateId, tutorId))
                 .thenReturn(Optional.of(rejected));
@@ -143,6 +146,9 @@ class CertificateServiceTest {
         assertThat(rejected.getStatus()).isEqualTo(CertificateStatus.PENDING);
         assertThat(rejected.getName()).isEqualTo("IELTS 8.0");
         assertThat(response.status()).isEqualTo(CertificateStatus.PENDING);
+        assertThat(rejected.getRejectionReason()).isNull();
+        assertThat(rejected.getReviewedAt()).isNull();
+        assertThat(rejected.getReviewedBy()).isNull();
         verify(certificateRepository).saveAndFlush(rejected);
     }
 

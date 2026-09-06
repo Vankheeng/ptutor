@@ -29,6 +29,8 @@ tags:
     description: Public tutor profile operations available to authenticated users
   - name: Tutor Certificates
     description: Certificate management for the authenticated tutor
+  - name: Admin Certificate Review
+    description: Manual certificate review operations for employees and administrators
   - name: Teaching Requests
     description: Tutor teaching-request management and authenticated request browsing
   - name: Subjects
@@ -1807,6 +1809,72 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/admin/certificates:
+    get:
+      tags: [Admin Certificate Review]
+      summary: List certificates for manual review
+      parameters:
+        - { name: status, in: query, schema: { type: string, default: PENDING, enum: [PENDING, VERIFIED, REJECTED, EXPIRED] } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Certificate review queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCertificatePageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/certificates/{certificateId}:
+    parameters:
+      - $ref: '#/components/parameters/CertificateId'
+    get:
+      tags: [Admin Certificate Review]
+      summary: Get certificate review details
+      responses:
+        '200':
+          description: Certificate review details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCertificateDetailResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/certificates/{certificateId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/CertificateId'
+    patch:
+      tags: [Admin Certificate Review]
+      summary: Approve a pending certificate
+      responses:
+        '200':
+          description: Certificate approved and tutor notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCertificateDetailResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/certificates/{certificateId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/CertificateId'
+    patch:
+      tags: [Admin Certificate Review]
+      summary: Reject a pending certificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CertificateRejectionRequest' }
+      responses:
+        '200':
+          description: Certificate rejected and tutor notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCertificateDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/contracts:
     parameters:
       - name: studyingRequestId
@@ -3564,12 +3632,74 @@ components:
             - VERIFIED
             - REJECTED
             - EXPIRED
+        rejectionReason:
+          type: string
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    CertificateRejectionRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason: { type: string, minLength: 1, maxLength: 500 }
+
+    CertificateReviewerResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    AdminCertificateSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        tutorName: { type: string }
+        tutorEmail: { type: string, format: email }
+        name: { type: string }
+        issuingOrganization: { type: string, nullable: true }
+        issueDate: { type: string, format: date, nullable: true }
+        expiryDate: { type: string, format: date, nullable: true }
+        status: { type: string, enum: [PENDING, VERIFIED, REJECTED, EXPIRED] }
+        createdAt: { type: string, format: date-time }
+
+    AdminCertificateDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/AdminCertificateSummaryResponse'
+        - type: object
+          properties:
+            tutorAvatarUrl: { type: string, nullable: true }
+            description: { type: string, nullable: true }
+            certificateUrl: { type: string, nullable: true }
+            rejectionReason: { type: string, nullable: true }
+            reviewedBy:
+              allOf:
+                - $ref: '#/components/schemas/CertificateReviewerResponse'
+              nullable: true
+            reviewedAt: { type: string, format: date-time, nullable: true }
+            updatedAt: { type: string, format: date-time }
+
+    AdminCertificatePageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminCertificateSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
 
     SubjectResponse:
       type: object
@@ -3991,6 +4121,20 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CertificateResponse'
+
+    AdminCertificateDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminCertificateDetailResponse' }
+
+    AdminCertificatePageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminCertificatePageResponse' }
 
     CertificateListResponseEnvelope:
       allOf:

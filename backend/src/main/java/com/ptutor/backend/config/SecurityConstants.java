@@ -29,6 +29,11 @@ public final class SecurityConstants {
             "/openapi.yaml"
     };
 
+    public static final String[] ADMIN_CERTIFICATE_API = {
+            "/api/v1/admin/certificates",
+            "/api/v1/admin/certificates/**"
+    };
+
     public static final String[] STUDENT_SELF_SERVICE_API = {
             "/api/v1/students/me",
             "/api/v1/students/me/**"

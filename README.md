@@ -619,6 +619,19 @@ Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; 
 
 Complaint đang xử lý sẽ giữ lesson ở `PENDING_CONFIRMATION`; admin xử lý complaint và quyết toán ở luồng Complaint/Payment riêng, không đổi trực tiếp trạng thái Lesson.
 
+### 6.15. API Admin/Employee duyệt certificate của gia sư
+
+Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. Người duyệt xem thông tin certificate, file minh chứng và thông tin cơ bản của gia sư trước khi phê duyệt hoặc từ chối thủ công.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/certificates` | Danh sách certificate, mặc định lọc `PENDING` và cũ nhất trước |
+| `GET` | `/api/v1/admin/certificates/{certificateId}` | Xem certificate, file minh chứng và thông tin gia sư |
+| `PATCH` | `/api/v1/admin/certificates/{certificateId}/approve` | Phê duyệt certificate `PENDING` |
+| `PATCH` | `/api/v1/admin/certificates/{certificateId}/reject` | Từ chối certificate `PENDING`, bắt buộc có lý do |
+
+API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:
