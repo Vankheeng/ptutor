@@ -1,5 +1,6 @@
 package com.ptutor.backend.repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,4 +19,6 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
             UUID userId, ComplaintStatus status, Pageable pageable);
 
     Optional<Complaint> findByIdAndUser_Id(UUID id, UUID userId);
+
+    boolean existsByContract_IdAndStatusIn(UUID contractId, Collection<ComplaintStatus> statuses);
 }
