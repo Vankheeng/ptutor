@@ -9,7 +9,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
 
   flyway:
@@ -28,13 +28,17 @@ spring:
       mail.smtp.starttls.enable: true
 
 app:
+  contract:
+    lifecycle:
+      expiration-cron: ${CONTRACT_EXPIRATION_CRON:0 0 0 * * *}
+      time-zone: ${CONTRACT_TIME_ZONE:Asia/Ho_Chi_Minh}
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME:xxxxx@xxxx.xxxx}}
   security:
     jwt:
       secret: ${JWT_SECRET:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
       issuer: ${JWT_ISSUER:ptutor-api}
-      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:3600}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:36000}
       refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:2592000}
     citizen-id-encryption-key: ${CITIZEN_ID_ENCRYPTION_KEY:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
     cors:
