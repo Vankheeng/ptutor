@@ -21,11 +21,13 @@ import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.repository.UserRepository;
+import com.ptutor.backend.repository.WalletRepository;
 import com.ptutor.backend.security.CitizenIdCryptoService;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.Wallet;
 import com.ptutor.backend.entity.enums.UserStatus;
 
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class AuthService {
     private final RoleResolver roleResolver;
     private final RefreshTokenService refreshTokenService;
     private final CitizenIdCryptoService citizenIdCryptoService;
+    private final WalletRepository walletRepository;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -96,6 +99,11 @@ public class AuthService {
                     .totalStudentsTaught(0)
                     .build());
         }
+        walletRepository.save(Wallet.builder()
+                .user(savedUser)
+                .balance(BigDecimal.ZERO)
+                .pendingBalance(BigDecimal.ZERO)
+                .build());
         return new RegisterResponse(savedUser.getId(), savedUser.getEmail(), role);
     }
 

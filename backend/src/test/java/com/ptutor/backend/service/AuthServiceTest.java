@@ -30,6 +30,7 @@ import com.ptutor.backend.repository.ProvinceRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.repository.UserRepository;
+import com.ptutor.backend.repository.WalletRepository;
 import com.ptutor.backend.security.CitizenIdCryptoService;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Province;
@@ -50,6 +51,7 @@ class AuthServiceTest {
     @Mock RoleResolver roleResolver;
     @Mock RefreshTokenService refreshTokenService;
     @Mock CitizenIdCryptoService citizenIdCryptoService;
+    @Mock WalletRepository walletRepository;
 
     private AuthService authService;
     private UUID userId;
@@ -63,7 +65,7 @@ class AuthServiceTest {
         authService = new AuthService(
                 userRepository, studentRepository, tutorRepository,
                 provinceRepository, districtRepository, userMapper, passwordEncoder,
-                roleResolver, refreshTokenService, citizenIdCryptoService);
+                roleResolver, refreshTokenService, citizenIdCryptoService, walletRepository);
         userId = UUID.randomUUID();
         provinceId = UUID.randomUUID();
         districtId = UUID.randomUUID();
@@ -95,6 +97,7 @@ class AuthServiceTest {
         assertThat(response.userId()).isEqualTo(userId);
         assertThat(response.role()).isEqualTo(UserRole.STUDENT);
         verify(studentRepository).save(any());
+        verify(walletRepository).save(any());
         assertThat(mappedUser.getPassword()).isEqualTo("bcrypt-hash");
         assertThat(mappedUser.getEncryptedCitizenId()).isEqualTo("encrypted-citizen-id");
         assertThat(mappedUser.getCitizenIdHash()).isEqualTo("hash");
@@ -120,6 +123,7 @@ class AuthServiceTest {
 
         assertThat(authService.register(request).role()).isEqualTo(UserRole.TUTOR);
         verify(tutorRepository).save(any());
+        verify(walletRepository).save(any());
     }
 
     @Test

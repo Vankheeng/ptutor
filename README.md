@@ -118,7 +118,7 @@ Port: 5432
 cd backend
 ```
 
-Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến `V8`.
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến migration mới nhất.
 
 Windows:
 
@@ -143,6 +143,76 @@ http://localhost:8080/swagger-ui.html
 ```
 
 > **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
+
+### API ví và tài khoản ngân hàng
+
+Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDENT` hoặc `TUTOR`. Danh tính luôn lấy từ access token JWT; client không truyền `userId` hay `walletId`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/users/me/wallet` | Xem số dư ví hiện tại |
+| `GET` | `/api/v1/users/me/bank-account` | Xem tài khoản ngân hàng nhận tiền đã cấu hình |
+| `PUT` | `/api/v1/users/me/bank-account` | Tạo mới hoặc cập nhật tài khoản ngân hàng nhận tiền |
+
+Ví được tạo tự động khi một Student hoặc Tutor đăng ký, với `balance = 0` và `pendingBalance = 0`.
+
+- `balance`: số tiền khả dụng trong ví.
+- `pendingBalance`: số tiền đang chờ xử lý; hiện chưa có luồng rút tiền công khai ở giai đoạn này.
+
+Ví dụ response `GET /api/v1/users/me/wallet`:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": {
+    "walletId": "6d163c03-a24f-46f7-bd18-08afc2f9a7f5",
+    "userId": "e958f901-c4ec-4ff7-a29b-4c0180597765",
+    "balance": 150000.00,
+    "pendingBalance": 50000.00,
+    "currency": "VND",
+    "updatedAt": "2026-09-10T18:37:07.137286"
+  },
+  "errors": {},
+  "timestamp": "2026-09-10T11:37:07.211387Z",
+  "path": "/api/v1/users/me/wallet"
+}
+```
+
+Khi chưa cấu hình tài khoản ngân hàng, `GET /api/v1/users/me/bank-account` trả `200 SUCCESS` với `data: null`; đây là trạng thái bình thường. Dùng `PUT` để tạo mới hoặc thay thế thông tin hiện có:
+
+```json
+{
+  "bankCode": "MB",
+  "bankName": "MB Bank",
+  "accountNumber": "0123456789",
+  "accountHolderName": "Nguyen Van A"
+}
+```
+
+Số tài khoản được mã hóa khi lưu trong database. API chỉ trả bốn số cuối qua `maskedAccountNumber`; `bankCode`, `bankName` và `accountHolderName` được trả nguyên văn cho chính chủ tài khoản.
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": {
+    "bankAccountId": "6d163c03-a24f-46f7-bd18-08afc2f9a7f5",
+    "userId": "e958f901-c4ec-4ff7-a29b-4c0180597765",
+    "bankCode": "MB",
+    "bankName": "MB Bank",
+    "maskedAccountNumber": "****6789",
+    "accountHolderName": "Nguyen Van A",
+    "createdAt": "2026-09-10T18:25:53.988407",
+    "updatedAt": "2026-09-10T18:37:07.137286"
+  },
+  "errors": {},
+  "timestamp": "2026-09-10T11:37:07.211387Z",
+  "path": "/api/v1/users/me/bank-account"
+}
+```
 
 ### 6.1. API danh mục môn học
 
