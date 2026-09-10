@@ -270,6 +270,8 @@ Các trạng thái yêu cầu rút gồm:
 - `REJECTED`: bị từ chối.
 - `CANCELLED`: người dùng tự hủy khi còn `PENDING`; số tiền được chuyển từ `pendingBalance` về `balance`.
 
+Khi có luồng xử lý nội bộ, response đã có các field audit: `reviewedByUserId`, `reviewedAt`, `rejectionReason`, `completedAt` và `transferReference`. Các field này ban đầu là `null`; API Student/Tutor hiện tại không được phép tự ghi chúng.
+
 Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và tự hủy yêu cầu. Không có API admin để chuyển trạng thái hoặc thực hiện chuyển tiền.
 
 | Code | Khi xảy ra |

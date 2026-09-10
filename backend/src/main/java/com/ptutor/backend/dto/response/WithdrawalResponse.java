@@ -16,6 +16,11 @@ public record WithdrawalResponse(
         String accountHolderName,
         String note,
         WithdrawalRequestStatus status,
+        UUID reviewedByUserId,
+        LocalDateTime reviewedAt,
+        String rejectionReason,
+        LocalDateTime completedAt,
+        String transferReference,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

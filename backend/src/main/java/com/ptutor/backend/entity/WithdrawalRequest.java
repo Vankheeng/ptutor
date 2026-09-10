@@ -1,6 +1,7 @@
 package com.ptutor.backend.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import com.ptutor.backend.entity.enums.WithdrawalRequestStatus;
 import jakarta.persistence.Column;
@@ -73,4 +74,25 @@ public class WithdrawalRequest extends BaseEntity {
     @Column(nullable = false, length = 30)
     @NonFinal
     private WithdrawalRequestStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_user_id")
+    @NonFinal
+    private User reviewedByUser;
+
+    @Column(name = "reviewed_at")
+    @NonFinal
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    @NonFinal
+    private String rejectionReason;
+
+    @Column(name = "completed_at")
+    @NonFinal
+    private LocalDateTime completedAt;
+
+    @Column(name = "transfer_reference", length = 100)
+    @NonFinal
+    private String transferReference;
 }

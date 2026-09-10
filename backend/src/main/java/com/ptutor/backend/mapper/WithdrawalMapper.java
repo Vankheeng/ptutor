@@ -12,6 +12,7 @@ public interface WithdrawalMapper {
 
     @Mapping(target = "withdrawalId", source = "id")
     @Mapping(target = "walletId", source = "wallet.id")
+    @Mapping(target = "reviewedByUserId", source = "reviewedByUser.id")
     @Mapping(target = "maskedAccountNumber", source = "accountNumberLastFour", qualifiedByName = "mask")
     WithdrawalResponse toResponse(WithdrawalRequest value);
 

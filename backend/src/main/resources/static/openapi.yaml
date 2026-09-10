@@ -3011,6 +3011,27 @@ components:
           nullable: true
         status:
           $ref: '#/components/schemas/WithdrawalRequestStatus'
+        reviewedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+          description: User who approved, rejected, or completed the withdrawal.
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectionReason:
+          type: string
+          maxLength: 500
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        transferReference:
+          type: string
+          maxLength: 100
+          nullable: true
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
