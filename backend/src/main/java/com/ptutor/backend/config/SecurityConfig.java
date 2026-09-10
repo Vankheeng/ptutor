@@ -52,6 +52,7 @@ import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.SUBJECT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.WALLET_SELF_SERVICE_API;
 
 
 @Configuration
@@ -128,6 +129,7 @@ public class SecurityConfig {
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(WALLET_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()

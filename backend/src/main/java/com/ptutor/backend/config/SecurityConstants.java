@@ -49,6 +49,12 @@ public final class SecurityConstants {
             "/api/v1/users/me/contracts/**"
     };
 
+    public static final String[] WALLET_SELF_SERVICE_API = {
+            "/api/v1/users/me/wallet",
+            "/api/v1/users/me/wallet/**",
+            "/api/v1/users/me/bank-account"
+    };
+
     public static final String[] TUTOR_CERTIFICATE_READ_API = {
             "/api/v1/tutors/*/certificates"
     };

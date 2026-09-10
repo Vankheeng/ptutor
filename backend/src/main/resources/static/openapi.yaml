@@ -25,6 +25,8 @@ tags:
     description: Lesson scheduling, confirmation and automatic completion for contracts
   - name: Account
     description: Operations for the authenticated user's own account
+  - name: Wallet
+    description: Self-service wallet balance and bank account operations for students and tutors
   - name: Tutor Profiles
     description: Public tutor profile operations available to authenticated users
   - name: Tutor Certificates
@@ -361,6 +363,57 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/users/me/wallet:
+    get:
+      tags: [Wallet]
+      summary: Get my wallet balance
+      description: Returns the available and pending VND balances for the authenticated student or tutor.
+      operationId: getCurrentWalletBalance
+      responses:
+        '200':
+          description: Wallet balance retrieved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletBalanceResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/users/me/bank-account:
+    get:
+      tags: [Wallet]
+      summary: Get my bank account
+      description: Returns the authenticated user's receiving account with its number masked. If no account has been configured, returns 200 with data set to null.
+      operationId: getCurrentBankAccount
+      responses:
+        '200':
+          description: Bank account retrieved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    put:
+      tags: [Wallet]
+      summary: Create or update my bank account
+      description: Creates the user's receiving account on first use or replaces it. The account number is encrypted at rest.
+      operationId: updateCurrentBankAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateBankAccountRequest' }
+      responses:
+        '200':
+          description: Bank account saved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
   /api/v1/tutors/me:
     get:
@@ -2447,6 +2500,15 @@ components:
         weakPoints:
           type: string
 
+    UpdateBankAccountRequest:
+      type: object
+      required: [bankCode, bankName, accountNumber, accountHolderName]
+      properties:
+        bankCode: { type: string, maxLength: 20, pattern: '^[A-Za-z0-9_-]+$' }
+        bankName: { type: string, maxLength: 100 }
+        accountNumber: { type: string, pattern: '^\\d{6,34}$' }
+        accountHolderName: { type: string, maxLength: 150 }
+
     UpdateTutorProfileRequest:
       type: object
       description: All fields are optional. Null fields are left unchanged. Province and district IDs must be supplied together.
@@ -3786,6 +3848,28 @@ components:
             - EMPLOYEE
             - ADMIN
 
+    WalletBalanceResponse:
+      type: object
+      properties:
+        walletId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        balance: { type: number, format: decimal, example: 150000.00 }
+        pendingBalance: { type: number, format: decimal, example: 50000.00 }
+        currency: { type: string, enum: [VND] }
+        updatedAt: { type: string, format: date-time }
+
+    BankAccountResponse:
+      type: object
+      properties:
+        bankAccountId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        bankCode: { type: string }
+        bankName: { type: string }
+        maskedAccountNumber: { type: string, example: '****7890' }
+        accountHolderName: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
     AuthTokenResponse:
       type: object
       properties:
@@ -4198,6 +4282,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/ContractPageResponse' }
+
+    WalletBalanceResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletBalanceResponse' }
+
+    BankAccountResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/BankAccountResponse' }
 
     ErrorResponse:
       allOf:
