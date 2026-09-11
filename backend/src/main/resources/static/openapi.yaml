@@ -49,7 +49,7 @@ paths:
       tags:
         - Authentication
       summary: Register a student or tutor account
-      description: Creates a user account and its student or tutor profile. Employee and admin registration is not allowed.
+      description: Creates a user account, its student or tutor profile, and a zero-balance wallet. Employee and admin registration is not allowed.
       operationId: register
       security: []
       requestBody:
@@ -2172,6 +2172,82 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/users/me/wallet/withdrawals:
+    post:
+      tags: [Wallets]
+      summary: Request a wallet withdrawal
+      description: Moves the requested amount from available balance to pending balance and snapshots the configured destination bank account. Reusing an Idempotency-Key returns the original request without reserving funds again.
+      operationId: createMyWithdrawal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateWithdrawalRequest' }
+            example:
+              amount: 500000.00
+              note: Withdraw tutoring earnings
+      responses:
+        '201':
+          description: Withdrawal requested or an identical idempotent request returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    get:
+      tags: [Wallets]
+      summary: List my withdrawal requests
+      description: Returns only withdrawal requests owned by the authenticated student or tutor, ordered by creation time descending.
+      operationId: listMyWithdrawals
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated withdrawal requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel:
+    patch:
+      tags: [Wallets]
+      summary: Cancel my pending withdrawal
+      description: Cancels an owned PENDING withdrawal and returns its reserved amount from pending balance to available balance.
+      operationId: cancelMyWithdrawal
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Withdrawal cancelled and funds returned to the wallet
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2317,6 +2393,16 @@ components:
       schema:
         type: string
         format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated key used to safely retry the same withdrawal request.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+      example: withdrawal-2026-09-07-001
 
   schemas:
     RegisterRequest:
@@ -2499,15 +2585,6 @@ components:
           maxLength: 50
         weakPoints:
           type: string
-
-    UpdateBankAccountRequest:
-      type: object
-      required: [bankCode, bankName, accountNumber, accountHolderName]
-      properties:
-        bankCode: { type: string, maxLength: 20, pattern: '^[A-Za-z0-9_-]+$' }
-        bankName: { type: string, maxLength: 100 }
-        accountNumber: { type: string, pattern: '^\\d{6,34}$' }
-        accountHolderName: { type: string, maxLength: 150 }
 
     UpdateTutorProfileRequest:
       type: object
@@ -2857,6 +2934,120 @@ components:
           format: uuid
           nullable: true
           description: Available only to the tutor who created a Contract from a teaching request.
+
+    WithdrawalRequestStatus:
+      type: string
+      enum: [PENDING, PROCESSING, CANCELLED, REJECTED, COMPLETED]
+
+    UpdateBankAccountRequest:
+      type: object
+      required: [bankCode, bankName, accountNumber, accountHolderName]
+      properties:
+        bankCode:
+          type: string
+          minLength: 1
+          maxLength: 20
+          pattern: '^[A-Za-z0-9_-]+$'
+        bankName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        accountNumber:
+          type: string
+          pattern: '^[0-9]{6,34}$'
+          description: Plain account number accepted only as input and encrypted before storage.
+        accountHolderName:
+          type: string
+          minLength: 1
+          maxLength: 150
+
+    CreateWithdrawalRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 9999999999999.99
+          multipleOf: 0.01
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    WithdrawalResponse:
+      type: object
+      required:
+        - withdrawalId
+        - walletId
+        - amount
+        - bankCode
+        - bankName
+        - maskedAccountNumber
+        - accountHolderName
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        withdrawalId: { type: string, format: uuid }
+        walletId: { type: string, format: uuid }
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 9999999999999.99
+          multipleOf: 0.01
+        bankCode: { type: string, maxLength: 20 }
+        bankName: { type: string, maxLength: 100 }
+        maskedAccountNumber:
+          type: string
+          pattern: '^\*{4}[0-9]{4}$'
+          example: '****6789'
+        accountHolderName: { type: string, maxLength: 150 }
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+        status:
+          $ref: '#/components/schemas/WithdrawalRequestStatus'
+        reviewedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+          description: User who approved, rejected, or completed the withdrawal.
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectionReason:
+          type: string
+          maxLength: 500
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        transferReference:
+          type: string
+          maxLength: 100
+          nullable: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    WithdrawalPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/WithdrawalResponse' }
+        page: { type: integer, format: int32 }
+        size: { type: integer, format: int32 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer, format: int32 }
+        first: { type: boolean }
+        last: { type: boolean }
 
     ComplaintCreateRequest:
       type: object

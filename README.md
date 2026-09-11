@@ -153,11 +153,14 @@ Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDEN
 | `GET` | `/api/v1/users/me/wallet` | Xem số dư ví hiện tại |
 | `GET` | `/api/v1/users/me/bank-account` | Xem tài khoản ngân hàng nhận tiền đã cấu hình |
 | `PUT` | `/api/v1/users/me/bank-account` | Tạo mới hoặc cập nhật tài khoản ngân hàng nhận tiền |
+| `POST` | `/api/v1/users/me/wallet/withdrawals` | Tạo yêu cầu rút tiền về tài khoản ngân hàng đã cấu hình |
+| `GET` | `/api/v1/users/me/wallet/withdrawals` | Xem lịch sử yêu cầu rút tiền của chính mình |
+| `PATCH` | `/api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel` | Tự hủy yêu cầu rút đang `PENDING` và hoàn tiền về ví |
 
 Ví được tạo tự động khi một Student hoặc Tutor đăng ký, với `balance = 0` và `pendingBalance = 0`.
 
 - `balance`: số tiền khả dụng trong ví.
-- `pendingBalance`: số tiền đang chờ xử lý; hiện chưa có luồng rút tiền công khai ở giai đoạn này.
+- `pendingBalance`: số tiền đã được giữ cho các yêu cầu rút chưa hoàn tất.
 
 Ví dụ response `GET /api/v1/users/me/wallet`:
 
@@ -213,6 +216,71 @@ Số tài khoản được mã hóa khi lưu trong database. API chỉ trả b�
   "path": "/api/v1/users/me/bank-account"
 }
 ```
+
+#### Rút tiền
+
+Luồng rút tiền áp dụng cho `STUDENT` và `TUTOR` đã đăng nhập. Client không gửi `userId`, `walletId` hoặc thông tin tài khoản nhận tiền trong body; hệ thống luôn lấy các thông tin này từ JWT và Bank Account của chính người dùng.
+
+1. Cấu hình tài khoản nhận tiền bằng `PUT /api/v1/users/me/bank-account`.
+2. Xem số dư khả dụng bằng `GET /api/v1/users/me/wallet`.
+3. Tạo yêu cầu bằng `POST /api/v1/users/me/wallet/withdrawals`.
+4. Dùng `GET /api/v1/users/me/wallet/withdrawals?page=0&size=20` để xem lịch sử của chính mình.
+5. Nếu chưa được xử lý, hủy bằng `PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel`.
+
+##### Tạo yêu cầu rút
+
+Trước khi tạo yêu cầu, tài khoản ngân hàng phải tồn tại và `balance` phải lớn hơn hoặc bằng `amount`. Header `Idempotency-Key` là bắt buộc:
+
+```text
+Idempotency-Key: withdrawal-2026-09-10-001
+```
+
+```json
+{
+  "amount": 500000.00,
+  "note": "Rút tiền dạy học"
+}
+```
+
+`Idempotency-Key` phải là một chuỗi khác nhau cho mỗi ý định rút tiền. Nếu gửi lại POST với cùng user và cùng key, hệ thống trả lại chính request đã tạo trước đó (cùng `withdrawalId`) và không trừ tiền lần nữa — kể cả khi body mới có `amount` hoặc `note` khác. Chỉ dùng lại key khi retry đúng request cũ; hãy tạo key mới để tạo một yêu cầu mới.
+
+Khi tạo thành công:
+
+- `balance` giảm đúng bằng `amount`.
+- `pendingBalance` tăng đúng bằng `amount`.
+- Yêu cầu mới có status `PENDING`.
+- Hệ thống snapshot thông tin tài khoản nhận tiền: mã/tên ngân hàng, chủ tài khoản, số tài khoản mã hóa và bốn số cuối. Việc cập nhật Bank Account sau đó không làm thay đổi nơi nhận tiền của yêu cầu đã tạo.
+
+Ví dụ: trước khi rút, `balance = 1,000,000` và `pendingBalance = 0`. Tạo yêu cầu rút `500,000` thành công sẽ cho kết quả `balance = 500,000`, `pendingBalance = 500,000`.
+
+##### Hủy yêu cầu rút
+
+Chỉ chủ sở hữu của request mới được hủy, và chỉ hủy được khi status là `PENDING`. API cancel không cần request body. Khi hủy thành công, hệ thống đổi status thành `CANCELLED`, giảm `pendingBalance` và cộng lại cùng số tiền vào `balance`.
+
+```http
+PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel
+Authorization: Bearer <access-token>
+```
+
+Các trạng thái yêu cầu rút gồm:
+
+- `PENDING`: chờ được xử lý.
+- `PROCESSING`: đang được xử lý/chuyển tiền.
+- `COMPLETED`: đã chuyển tiền thành công.
+- `REJECTED`: bị từ chối.
+- `CANCELLED`: người dùng tự hủy khi còn `PENDING`; số tiền được chuyển từ `pendingBalance` về `balance`.
+
+Khi có luồng xử lý nội bộ, response đã có các field audit: `reviewedByUserId`, `reviewedAt`, `rejectionReason`, `completedAt` và `transferReference`. Các field này ban đầu là `null`; API Student/Tutor hiện tại không được phép tự ghi chúng.
+
+Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và tự hủy yêu cầu. Không có API admin để chuyển trạng thái hoặc thực hiện chuyển tiền.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `INVALID_IDEMPOTENCY_KEY` (`400`) | POST không có `Idempotency-Key`, key rỗng hoặc dài quá 100 ký tự. |
+| `BANK_ACCOUNT_REQUIRED` (`409`) | User trong JWT chưa cấu hình Bank Account. |
+| `INSUFFICIENT_WALLET_BALANCE` (`409`) | `balance` nhỏ hơn số tiền muốn rút. |
+| `WITHDRAWAL_NOT_FOUND` (`404`) | Request không tồn tại hoặc không thuộc user hiện tại. |
+| `WITHDRAWAL_NOT_CANCELLABLE` (`409`) | Request không còn `PENDING`. |
 
 ### 6.1. API danh mục môn học
 
