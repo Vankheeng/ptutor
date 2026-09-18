@@ -16,6 +16,7 @@ import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.WithdrawalResponse;
 import com.ptutor.backend.entity.BankAccount;
 import com.ptutor.backend.entity.Wallet;
+import com.ptutor.backend.entity.WalletTransaction;
 import com.ptutor.backend.entity.WithdrawalRequest;
 import com.ptutor.backend.entity.enums.UserStatus;
 import com.ptutor.backend.entity.enums.WithdrawalRequestStatus;
@@ -36,6 +37,7 @@ public class WithdrawalService {
     private final BankAccountRepository bankAccountRepository;
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final WithdrawalMapper withdrawalMapper;
+    private final WalletService walletService;
     private final CurrentUserProvider currentUserProvider;
 
     @Transactional
@@ -58,16 +60,6 @@ public class WithdrawalService {
                         "BANK_ACCOUNT_REQUIRED",
                         "A bank account must be configured before requesting a withdrawal"));
 
-        if (wallet.getBalance().compareTo(amount) < 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "INSUFFICIENT_WALLET_BALANCE",
-                    "Wallet balance is insufficient");
-        }
-
-        wallet.setBalance(wallet.getBalance().subtract(amount));
-        wallet.setPendingBalance(wallet.getPendingBalance().add(amount));
-
         WithdrawalRequest saved = withdrawalRequestRepository.saveAndFlush(WithdrawalRequest.builder()
                 .wallet(wallet)
                 .amount(amount)
@@ -81,7 +73,15 @@ public class WithdrawalService {
                 .status(WithdrawalRequestStatus.PENDING)
                 .build());
 
-        return withdrawalMapper.toResponse(saved);
+        WalletTransaction transaction = walletService.reserveForWithdrawal(
+                wallet,
+                saved.getId(),
+                amount,
+                key,
+                "Withdrawal request");
+        saved.setWalletTransaction(transaction);
+
+        return withdrawalMapper.toResponse(withdrawalRequestRepository.saveAndFlush(saved));
     }
 
     @Transactional(readOnly = true)
@@ -111,15 +111,12 @@ public class WithdrawalService {
                     "Only a pending withdrawal request can be cancelled");
         }
 
-        if (wallet.getPendingBalance().compareTo(withdrawalRequest.getAmount()) < 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "INVALID_PENDING_WALLET_BALANCE",
-                    "Wallet pending balance is inconsistent with the withdrawal request");
+        if (withdrawalRequest.getWalletTransaction() != null) {
+            walletService.reverseWithdrawal(wallet, withdrawalRequest.getWalletTransaction(), withdrawalId);
+        } else {
+            reverseLegacyWithdrawal(wallet, withdrawalRequest.getAmount());
         }
 
-        wallet.setPendingBalance(wallet.getPendingBalance().subtract(withdrawalRequest.getAmount()));
-        wallet.setBalance(wallet.getBalance().add(withdrawalRequest.getAmount()));
         withdrawalRequest.setStatus(WithdrawalRequestStatus.CANCELLED);
 
         return withdrawalMapper.toResponse(withdrawalRequestRepository.saveAndFlush(withdrawalRequest));
@@ -158,5 +155,16 @@ public class WithdrawalService {
 
     private String normalizeNote(String value) {
         return value == null || value.isBlank() ? null : value.strip();
+    }
+
+    private void reverseLegacyWithdrawal(Wallet wallet, BigDecimal amount) {
+        if (wallet.getPendingBalance().compareTo(amount) < 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "INVALID_PENDING_WALLET_BALANCE",
+                    "Wallet pending balance is inconsistent with the withdrawal request");
+        }
+        wallet.setPendingBalance(wallet.getPendingBalance().subtract(amount));
+        wallet.setBalance(wallet.getBalance().add(amount));
     }
 }

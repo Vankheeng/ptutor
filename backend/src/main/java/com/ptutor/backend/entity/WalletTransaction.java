@@ -24,6 +24,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 
 import com.ptutor.backend.entity.enums.ReferenceType;
+import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.entity.enums.WalletTransactionStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionType;
 
@@ -50,6 +51,11 @@ public class WalletTransaction extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private WalletTransactionType transactionType;
 
+    @Column(name = "purpose", nullable = false, length = 50)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    private WalletTransactionPurpose purpose;
+
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     @NonFinal
     private BigDecimal amount;
@@ -57,6 +63,10 @@ public class WalletTransaction extends BaseEntity {
     @Column(name = "balance_after", nullable = false, precision = 15, scale = 2)
     @NonFinal
     private BigDecimal balanceAfter;
+
+    @Column(name = "pending_balance_after", nullable = false, precision = 15, scale = 2)
+    @NonFinal
+    private BigDecimal pendingBalanceAfter;
 
     @Column(name = "reference_type", length = 50)
     @NonFinal
@@ -70,6 +80,10 @@ public class WalletTransaction extends BaseEntity {
     @Column(name = "description", length = 500)
     @NonFinal
     private String description;
+
+    @Column(name = "idempotency_key", nullable = false, length = 100)
+    @NonFinal
+    private String idempotencyKey;
 
     @Column(name = "status", nullable = false, length = 30)
     @NonFinal

@@ -380,6 +380,71 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
 
+  /api/v1/users/me/wallet/transactions:
+    get:
+      tags: [Wallet]
+      summary: List my wallet transactions
+      description: Returns transactions owned by the authenticated student or tutor, newest first.
+      operationId: getMyWalletTransactions
+      parameters:
+        - name: transactionType
+          in: query
+          required: false
+          schema: { type: string, enum: [CREDIT, DEBIT] }
+        - name: purpose
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/WalletTransactionPurpose' }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [PENDING, COMPLETED, FAILED, CANCELLED] }
+        - name: createdFrom
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: createdTo
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated wallet transactions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletTransactionPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/wallet/transactions/{transactionId}:
+    get:
+      tags: [Wallet]
+      summary: Get my wallet transaction detail
+      operationId: getMyWalletTransaction
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Wallet transaction detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletTransactionResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/users/me/bank-account:
     get:
       tags: [Wallet]
@@ -2939,6 +3004,63 @@ components:
       type: string
       enum: [PENDING, PROCESSING, CANCELLED, REJECTED, COMPLETED]
 
+    WalletTransactionPurpose:
+      type: string
+      enum:
+        - TOP_UP
+        - TUTOR_EARNING
+        - CONTRACT_REFUND
+        - WITHDRAWAL_REVERSAL
+        - TUITION_PAYMENT
+        - STUDYING_REQUEST_FEE
+        - TEACHING_REQUEST_FEE
+        - WITHDRAWAL
+
+    WalletTransactionResponse:
+      type: object
+      required:
+        - transactionId
+        - walletId
+        - transactionType
+        - purpose
+        - amount
+        - balanceAfter
+        - pendingBalanceAfter
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        transactionId: { type: string, format: uuid }
+        walletId: { type: string, format: uuid }
+        transactionType: { type: string, enum: [CREDIT, DEBIT] }
+        purpose: { $ref: '#/components/schemas/WalletTransactionPurpose' }
+        amount: { type: number, format: double, minimum: 0.01 }
+        balanceAfter: { type: number, format: double, minimum: 0 }
+        pendingBalanceAfter: { type: number, format: double, minimum: 0 }
+        referenceType:
+          type: string
+          enum: [CONTRACT, LESSON, PAYMENT, WALLET_TRANSACTION, WITHDRAWAL_REQUEST]
+          nullable: true
+        referenceId: { type: string, format: uuid, nullable: true }
+        description: { type: string, maxLength: 500, nullable: true }
+        status: { type: string, enum: [PENDING, COMPLETED, FAILED, CANCELLED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    WalletTransactionPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/WalletTransactionResponse' }
+        page: { type: integer, format: int32 }
+        size: { type: integer, format: int32 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer, format: int32 }
+        first: { type: boolean }
+        last: { type: boolean }
+
     UpdateBankAccountRequest:
       type: object
       required: [bankCode, bankName, accountNumber, accountHolderName]
@@ -4487,6 +4609,34 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/BankAccountResponse' }
+
+    WalletTransactionResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletTransactionResponse' }
+
+    WalletTransactionPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletTransactionPageResponse' }
+
+    WithdrawalResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WithdrawalResponse' }
+
+    WithdrawalPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WithdrawalPageResponse' }
 
     ErrorResponse:
       allOf:
