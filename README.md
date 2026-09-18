@@ -151,6 +151,8 @@ Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDEN
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
 | `GET` | `/api/v1/users/me/wallet` | Xem số dư ví hiện tại |
+| `GET` | `/api/v1/users/me/wallet/transactions` | Xem lịch sử giao dịch ví, có phân trang và lọc |
+| `GET` | `/api/v1/users/me/wallet/transactions/{transactionId}` | Xem chi tiết giao dịch ví của chính mình |
 | `GET` | `/api/v1/users/me/bank-account` | Xem tài khoản ngân hàng nhận tiền đã cấu hình |
 | `PUT` | `/api/v1/users/me/bank-account` | Tạo mới hoặc cập nhật tài khoản ngân hàng nhận tiền |
 | `POST` | `/api/v1/users/me/wallet/withdrawals` | Tạo yêu cầu rút tiền về tài khoản ngân hàng đã cấu hình |
@@ -273,6 +275,14 @@ Các trạng thái yêu cầu rút gồm:
 Khi có luồng xử lý nội bộ, response đã có các field audit: `reviewedByUserId`, `reviewedAt`, `rejectionReason`, `completedAt` và `transferReference`. Các field này ban đầu là `null`; API Student/Tutor hiện tại không được phép tự ghi chúng.
 
 Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và tự hủy yêu cầu. Không có API admin để chuyển trạng thái hoặc thực hiện chuyển tiền.
+
+#### Lịch sử giao dịch ví
+
+`GET /api/v1/users/me/wallet/transactions` trả lịch sử của chính user JWT, sắp xếp mới nhất trước. Hỗ trợ các query parameter tùy chọn: `transactionType` (`CREDIT`/`DEBIT`), `purpose`, `status`, `createdFrom`, `createdTo`, `page` và `size`.
+
+Mỗi record có `amount`, `balanceAfter`, `pendingBalanceAfter`, nguồn nghiệp vụ (`referenceType`, `referenceId`) và trạng thái. Một lần rút tiền chỉ có một transaction `DEBIT + WITHDRAWAL + PENDING`; khi hủy, transaction đó chuyển `CANCELLED` và hệ thống ghi thêm `CREDIT + WITHDRAWAL_REVERSAL + COMPLETED`.
+
+Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn tiền) chỉ thực hiện thông qua `WalletService` nội bộ với idempotency key. Không có API public cho user tự cộng tiền vào ví.
 
 | Code | Khi xảy ra |
 | --- | --- |
