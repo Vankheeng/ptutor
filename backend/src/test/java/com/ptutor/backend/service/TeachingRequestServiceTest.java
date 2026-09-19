@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
 import static org.mockito.Mockito.lenient;
@@ -265,7 +266,7 @@ class TeachingRequestServiceTest {
         TeachingRequest open = existingRequest(RequestStatus.OPEN);
         TeachingRequest draft = existingRequest(RequestStatus.DRAFT);
         TeachingRequest pending = existingRequest(RequestStatus.PENDING_REVIEW);
-        when(teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN))
+        when(teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, Pageable.unpaged()))
                 .thenReturn(List.of(open));
         when(teachingRequestRepository.findAllByOrderByCreatedAtDesc())
                 .thenReturn(List.of(open, draft, pending));
@@ -273,7 +274,7 @@ class TeachingRequestServiceTest {
         assertThat(service.findVisible(UserRole.STUDENT)).hasSize(1)
                 .extracting(TeachingRequestResponse::status).containsExactly(RequestStatus.OPEN);
         assertThat(service.findVisible(UserRole.EMPLOYEE)).hasSize(3);
-        verify(teachingRequestRepository).findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN);
+        verify(teachingRequestRepository).findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, Pageable.unpaged());
         verify(teachingRequestRepository).findAllByOrderByCreatedAtDesc();
     }
 

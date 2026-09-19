@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,8 +26,12 @@ public class SubjectController {
     private final ApiResponseFactory responseFactory;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SubjectResponse>>> findAll() {
+    public ResponseEntity<ApiResponse<List<SubjectResponse>>> findAll(
+            @RequestParam(defaultValue = "name") String sort) {
         return ResponseEntity.ok(responseFactory.success(
-                subjectService.findActiveSubjects(), SUBJECTS_PATH));
+                "popular".equalsIgnoreCase(sort)
+                        ? subjectService.findActiveSubjectsByPopularity()
+                        : subjectService.findActiveSubjects(),
+                SUBJECTS_PATH));
     }
 }

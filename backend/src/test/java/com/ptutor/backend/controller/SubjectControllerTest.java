@@ -43,4 +43,14 @@ class SubjectControllerTest {
 
         verify(subjectService).findActiveSubjects();
     }
+
+    @Test
+    void getsPopularSubjects() throws Exception {
+        when(subjectService.findActiveSubjectsByPopularity()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/subjects").param("sort", "popular"))
+                .andExpect(status().isOk());
+
+        verify(subjectService).findActiveSubjectsByPopularity();
+    }
 }

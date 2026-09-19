@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class TeachingRequestService {
+
+    public static final int DEFAULT_PUBLIC_LIMIT = 20;
+    public static final int MAX_PUBLIC_LIMIT = 50;
 
     private final TeachingRequestRepository teachingRequestRepository;
     private final StudentTutorRequestRepository studentTutorRequestRepository;
@@ -176,10 +181,19 @@ public class TeachingRequestService {
 
     @Transactional(readOnly = true)
     public List<TeachingRequestResponse> findVisible(UserRole role) {
-        List<TeachingRequest> requests = isStaff(role)
-                ? teachingRequestRepository.findAllByOrderByCreatedAtDesc()
-                : teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN);
-        return toResponses(requests);
+        if (isStaff(role)) {
+            return toResponses(teachingRequestRepository.findAllByOrderByCreatedAtDesc());
+        }
+        return findOpenRequests(Pageable.unpaged());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findPublicVisible(int requestedLimit, UUID subjectId, UUID gradeId) {
+        return toResponses(teachingRequestRepository.findPublicByFilters(
+                RequestStatus.OPEN,
+                subjectId,
+                gradeId,
+                PageRequest.of(0, normalizePublicLimit(requestedLimit))));
     }
 
     @Transactional(readOnly = true)
@@ -190,6 +204,10 @@ public class TeachingRequestService {
             throw requestNotFound(requestId);
         }
         return toResponse(teachingRequest);
+    }
+
+    private List<TeachingRequestResponse> findOpenRequests(Pageable pageable) {
+        return toResponses(teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, pageable));
     }
 
     private void replaceAssociations(TeachingRequest request, TeachingRequestRequest source) {
@@ -307,6 +325,13 @@ public class TeachingRequestService {
 
     private boolean isStaff(UserRole role) {
         return role == UserRole.ADMIN || role == UserRole.EMPLOYEE;
+    }
+
+    private int normalizePublicLimit(int requestedLimit) {
+        if (requestedLimit < 1) {
+            return DEFAULT_PUBLIC_LIMIT;
+        }
+        return Math.min(requestedLimit, MAX_PUBLIC_LIMIT);
     }
 
     private void clearReviewMetadata(TeachingRequest request) {

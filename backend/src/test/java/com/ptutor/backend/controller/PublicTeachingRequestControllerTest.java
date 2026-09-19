@@ -17,48 +17,56 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.response.ApiResponseFactory;
-import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.TeachingRequestService;
 
 @ExtendWith(MockitoExtension.class)
 class PublicTeachingRequestControllerTest {
 
     @Mock TeachingRequestService teachingRequestService;
-    @Mock CurrentUserProvider currentUserProvider;
-
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         PublicTeachingRequestController controller = new PublicTeachingRequestController(
                 teachingRequestService,
-                new ApiResponseFactory(Clock.systemUTC()),
-                currentUserProvider);
+                new ApiResponseFactory(Clock.systemUTC()));
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
-    void listVisibleRequestsPassesCurrentRoleToService() throws Exception {
-        when(currentUserProvider.getCurrentUserRole()).thenReturn(UserRole.ADMIN);
-        when(teachingRequestService.findVisible(UserRole.ADMIN)).thenReturn(List.of());
+    void listVisibleRequestsUsesDefaultPublicLimit() throws Exception {
+        when(teachingRequestService.findPublicVisible(20, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/teaching-requests"))
                 .andExpect(status().isOk());
 
-        verify(teachingRequestService).findVisible(UserRole.ADMIN);
+        verify(teachingRequestService).findPublicVisible(20, null, null);
+    }
+
+    @Test
+    void listVisibleRequestsPassesSubjectAndGradeFilters() throws Exception {
+        UUID subjectId = UUID.randomUUID();
+        UUID gradeId = UUID.randomUUID();
+        when(teachingRequestService.findPublicVisible(3, subjectId, gradeId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/teaching-requests")
+                        .param("limit", "3")
+                        .param("subjectId", subjectId.toString())
+                        .param("gradeId", gradeId.toString()))
+                .andExpect(status().isOk());
+
+        verify(teachingRequestService).findPublicVisible(3, subjectId, gradeId);
     }
 
     @Test
     void getVisibleRequestUsesRequestId() throws Exception {
         UUID requestId = UUID.randomUUID();
-        when(currentUserProvider.getCurrentUserRole()).thenReturn(UserRole.STUDENT);
-        when(teachingRequestService.findVisibleById(requestId, UserRole.STUDENT)).thenReturn(null);
+        when(teachingRequestService.findVisibleById(requestId, null)).thenReturn(null);
 
         mockMvc.perform(get("/api/v1/teaching-requests/{requestId}", requestId))
                 .andExpect(status().isOk());
 
-        verify(teachingRequestService).findVisibleById(requestId, UserRole.STUDENT);
+        verify(teachingRequestService).findVisibleById(requestId, null);
     }
 }
