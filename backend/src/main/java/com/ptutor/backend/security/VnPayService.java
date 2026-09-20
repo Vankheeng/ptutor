@@ -8,6 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.TreeMap;
@@ -56,13 +57,13 @@ public class VnPayService {
     }
 
     public LocalDateTime expiresAt() {
-        return LocalDateTime.now(clock).plusMinutes(expiryMinutes);
+        return nowUtc().plusMinutes(expiryMinutes);
     }
 
     public String createPaymentUrl(Payment payment, String clientIp, VnPayPaymentRequest request) {
         ensureConfigured();
-        LocalDateTime createdAt = LocalDateTime.now(clock);
-        LocalDateTime expiresAt = payment.getExpiresAt();
+        LocalDateTime createdAt = toVnPayDateTime(nowUtc());
+        LocalDateTime expiresAt = toVnPayDateTime(payment.getExpiresAt());
         Map<String, String> params = new TreeMap<>();
         params.put("vnp_Version", "2.1.0");
         params.put("vnp_Command", "pay");
@@ -76,8 +77,8 @@ public class VnPayService {
         params.put("vnp_Locale", request != null && "en".equals(request.locale()) ? "en" : "vn");
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_IpAddr", normalizeIp(clientIp));
-        params.put("vnp_CreateDate", createdAt.atZone(zoneId).format(VNP_DATE_TIME));
-        params.put("vnp_ExpireDate", expiresAt.atZone(zoneId).format(VNP_DATE_TIME));
+        params.put("vnp_CreateDate", createdAt.format(VNP_DATE_TIME));
+        params.put("vnp_ExpireDate", expiresAt.format(VNP_DATE_TIME));
         if (request != null && request.bankCode() != null && !request.bankCode().isBlank()) {
             params.put("vnp_BankCode", request.bankCode().strip());
         }
@@ -85,6 +86,17 @@ public class VnPayService {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(paymentUrl);
         params.forEach(builder::queryParam);
         return builder.queryParam("vnp_SecureHash", signature).build().encode().toUriString();
+    }
+
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+    }
+
+    /** Payment expiry timestamps are stored as UTC LocalDateTime values. */
+    private LocalDateTime toVnPayDateTime(LocalDateTime utcDateTime) {
+        return utcDateTime.atZone(ZoneOffset.UTC)
+                .withZoneSameInstant(zoneId)
+                .toLocalDateTime();
     }
 
     public boolean isValidSignature(Map<String, String> source) {
