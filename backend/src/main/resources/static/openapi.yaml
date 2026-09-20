@@ -41,6 +41,12 @@ tags:
     description: Active subject catalog used by teaching requests
   - name: Grades
     description: Active grade catalog used by teaching requests
+  - name: Reviews
+    description: Review operations for the Ptutor platform
+  - name: Admin Subjects
+    description: Subject operations for employees and administrators
+  - name: Admin Grades
+    description: Grade operations for employees and administrators
   - name: Districts
     description: District catalog used by profile and teaching-request forms
 security:
@@ -1673,9 +1679,16 @@ paths:
     get:
       tags:
         - Subjects
-      summary: Get all active subjects
-      description: Returns the active subjects available when creating or updating a teaching request.
+      summary: Get active subjects for the home page
+      description: No authentication required. Returns active subjects; use popular sorting for the home page.
       operationId: listActiveSubjects
+      security: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          description: Sort by name (default) or popularity.
+          schema: { type: string, enum: [name, popular], default: name }
       responses:
         '200':
           description: Active subjects
@@ -1683,16 +1696,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SubjectListResponseEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
   /api/v1/grades:
     get:
       tags:
         - Grades
-      summary: Get all active grades
-      description: Returns active grades ordered from grade 1 to grade 12 for teaching-request forms.
+      summary: Get active grades for the home page
+      description: No authentication required. Returns active grades ordered from grade 1 to grade 12.
       operationId: listActiveGrades
+      security: []
       responses:
         '200':
           description: Active grades
@@ -1700,16 +1711,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GradeListResponseEnvelope'
+  /api/v1/admin/subjects:
+    get:
+      tags:
+        - Admin Subjects
+      summary: Get all subjects
+      description: Requires ADMIN or EMPLOYEE. Returns active and inactive subjects ordered by name.
+      operationId: listAllSubjectsForAdmin
+      responses:
+        '200':
+          description: All subjects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectListResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/grades:
+    get:
+      tags:
+        - Admin Grades
+      summary: Get all grades
+      description: Requires ADMIN or EMPLOYEE. Returns active and inactive grades ordered by level.
+      operationId: listAllGradesForAdmin
+      responses:
+        '200':
+          description: All grades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /api/v1/teaching-requests:
     get:
       tags:
         - Teaching Requests
-      summary: Browse teaching requests
-      description: Students and tutors see only OPEN requests. Employees and admins see all requests and statuses.
-      operationId: listVisibleTeachingRequests
+      summary: Browse public teaching requests
+      description: No authentication required. Returns only OPEN requests, newest first.
+      operationId: listPublicTeachingRequests
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: subjectId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: gradeId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
       responses:
         '200':
           description: Visible teaching requests
@@ -1717,8 +1777,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TeachingRequestListResponseEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Browse featured reviews
+      description: No authentication required. Returns the latest 5-star reviews with anonymized student names.
+      operationId: listPublicReviews
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 50, default: 3 }
+      responses:
+        '200':
+          description: Featured reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicReviewListResponseEnvelope'
 
   /api/v1/teaching-requests/{requestId}:
     parameters:
@@ -1726,8 +1805,8 @@ paths:
     get:
       tags:
         - Teaching Requests
-      summary: Get a visible teaching request
-      description: Students and tutors can view OPEN requests. Employees and admins can view requests in every status.
+      summary: Get a teaching request by identifier
+      description: Requires authentication. ADMIN and EMPLOYEE can view every status; the owning tutor can view their request; other users can view only OPEN requests. Unauthorized visibility returns 404.
       operationId: getVisibleTeachingRequest
       responses:
         '200':
@@ -3549,6 +3628,27 @@ components:
           type: string
           format: date-time
 
+    PublicReviewResponse:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: Anonymized student display name, for example Mai P.
+        tutorName:
+          type: string
+        tutorAvatarUrl:
+          type: string
+          nullable: true
+        rating:
+          type: integer
+          example: 5
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
     TutorStudentRequestPageResponse:
       type: object
       properties:
@@ -3973,6 +4073,11 @@ components:
         tutorId:
           type: string
           format: uuid
+        tutorName:
+          type: string
+        tutorAvatarUrl:
+          type: string
+          nullable: true
         subjectId:
           type: string
           format: uuid
@@ -4593,6 +4698,16 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/TeachingRequestResponse'
+
+    PublicReviewListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicReviewResponse'
 
     StudentTutorRequestResponseEnvelope:
       allOf:

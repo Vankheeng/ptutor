@@ -15,6 +15,8 @@ import com.ptutor.backend.entity.TeachingRequestDistrict;
 public interface TeachingRequestMapper {
 
     @Mapping(target = "tutorId", source = "request.tutor.id")
+    @Mapping(target = "tutorName", expression = "java(tutorName(request))")
+    @Mapping(target = "tutorAvatarUrl", source = "request.tutor.user.avatarUrl")
     @Mapping(target = "subjectId", source = "request.subject.id")
     @Mapping(target = "subjectName", source = "request.subject.name")
     @Mapping(target = "reviewedBy", source = "request.reviewedBy.id")
@@ -25,6 +27,19 @@ public interface TeachingRequestMapper {
             List<TeachingRequestResponse.Availability> availabilities,
             long studentRequestCount,
             long pendingStudentRequestCount);
+
+    default String tutorName(TeachingRequest request) {
+        if (request.getTutor() == null || request.getTutor().getUser() == null) {
+            return "";
+        }
+        String firstName = request.getTutor().getUser().getFirstName();
+        String lastName = request.getTutor().getUser().getLastName();
+        String first = firstName == null ? "" : firstName.strip();
+        String last = lastName == null ? "" : lastName.strip();
+        return String.join(" ", java.util.stream.Stream.of(first, last)
+                .filter(value -> !value.isBlank())
+                .toList());
+    }
 
     @Mapping(target = "id", source = "grade.id")
     @Mapping(target = "name", source = "grade.name")

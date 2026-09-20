@@ -12,6 +12,8 @@ import com.ptutor.backend.entity.enums.TeachingMode;
 public record TeachingRequestResponse(
         UUID id,
         UUID tutorId,
+        String tutorName,
+        String tutorAvatarUrl,
         UUID subjectId,
         String subjectName,
         String customSubjectName,

@@ -17,6 +17,10 @@ public final class SecurityConstants {
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/auth/logout",
+            "/api/v1/subjects",
+            "/api/v1/grades",
+            "/api/v1/teaching-requests",
+            "/api/v1/reviews",
             "/api/v1/auth/password-reset/otp",
             "/api/v1/auth/password-reset/verify",
             "/api/v1/auth/password-reset/reset"
@@ -43,6 +47,14 @@ public final class SecurityConstants {
     public static final String[] ADMIN_CERTIFICATE_API = {
             "/api/v1/admin/certificates",
             "/api/v1/admin/certificates/**"
+    };
+
+    public static final String[] ADMIN_SUBJECT_API = {
+            "/api/v1/admin/subjects"
+    };
+
+    public static final String[] ADMIN_GRADE_API = {
+            "/api/v1/admin/grades"
     };
 
     public static final String[] STUDENT_SELF_SERVICE_API = {

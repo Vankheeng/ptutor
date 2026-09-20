@@ -4,17 +4,23 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import unusedImports from 'eslint-plugin-unused-imports';
 import prettierConfig from 'eslint-config-prettier';
+import tseslint from 'typescript-eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
   globalIgnores(['dist', 'node_modules', 'coverage']),
 
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx}'],
     plugins: {
       'unused-imports': unusedImports
     },
-    extends: [js.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite
+    ],
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } }

@@ -26,4 +26,20 @@ public class SubjectService {
                 .map(subjectMapper::toResponse)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<SubjectResponse> findActiveSubjectsByPopularity() {
+        return subjectRepository.findAllByStatusOrderByOpenRequestCountDesc(CatalogStatus.ACTIVE.name())
+                .stream()
+                .map(subjectMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SubjectResponse> findAllSubjects() {
+        return subjectRepository.findAllByOrderByNameAsc()
+                .stream()
+                .map(subjectMapper::toResponse)
+                .toList();
+    }
 }

@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,11 +26,13 @@ public class PublicTeachingRequestController {
     private final TeachingRequestService teachingRequestService;
     private final ApiResponseFactory responseFactory;
     private final CurrentUserProvider currentUserProvider;
-
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TeachingRequestResponse>>> findVisible() {
+    public ResponseEntity<ApiResponse<List<TeachingRequestResponse>>> findVisible(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) UUID subjectId,
+            @RequestParam(required = false) UUID gradeId) {
         return ResponseEntity.ok(responseFactory.success(
-                teachingRequestService.findVisible(currentUserProvider.getCurrentUserRole()),
+                teachingRequestService.findPublicVisible(limit, subjectId, gradeId),
                 "/api/v1/teaching-requests"));
     }
 
@@ -37,7 +40,10 @@ public class PublicTeachingRequestController {
     public ResponseEntity<ApiResponse<TeachingRequestResponse>> findVisibleById(
             @PathVariable UUID requestId) {
         return ResponseEntity.ok(responseFactory.success(
-                teachingRequestService.findVisibleById(requestId, currentUserProvider.getCurrentUserRole()),
+                teachingRequestService.findVisibleById(
+                        requestId,
+                        currentUserProvider.getCurrentUserId(),
+                        currentUserProvider.getCurrentUserRole()),
                 "/api/v1/teaching-requests/" + requestId));
     }
 }

@@ -40,4 +40,35 @@ class SubjectServiceTest {
         assertThat(result.getFirst().status()).isEqualTo(CatalogStatus.ACTIVE);
         verify(subjectRepository).findAllByStatusOrderByNameAsc(CatalogStatus.ACTIVE);
     }
+
+    @Test
+    void returnsActiveSubjectsOrderedByOpenRequestCount() {
+        Subject subject = Subject.builder()
+                .name("Toán")
+                .status(CatalogStatus.ACTIVE)
+                .build();
+        when(subjectRepository.findAllByStatusOrderByOpenRequestCountDesc(CatalogStatus.ACTIVE.name()))
+                .thenReturn(List.of(subject));
+
+        List<SubjectResponse> result = new SubjectService(
+                subjectRepository, Mappers.getMapper(SubjectMapper.class)).findActiveSubjectsByPopularity();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().name()).isEqualTo("Toán");
+        verify(subjectRepository).findAllByStatusOrderByOpenRequestCountDesc(CatalogStatus.ACTIVE.name());
+    }
+
+    @Test
+    void returnsAllSubjectsForCatalogAdministration() {
+        Subject active = Subject.builder().name("Mathematics").status(CatalogStatus.ACTIVE).build();
+        Subject inactive = Subject.builder().name("Legacy Subject").status(CatalogStatus.INACTIVE).build();
+        when(subjectRepository.findAllByOrderByNameAsc()).thenReturn(List.of(inactive, active));
+
+        List<SubjectResponse> result = new SubjectService(
+                subjectRepository, Mappers.getMapper(SubjectMapper.class)).findAllSubjects();
+
+        assertThat(result).extracting(SubjectResponse::status)
+                .containsExactly(CatalogStatus.INACTIVE, CatalogStatus.ACTIVE);
+        verify(subjectRepository).findAllByOrderByNameAsc();
+    }
 }
