@@ -10,7 +10,7 @@ BEGIN
         FROM contracts
         WHERE payment_period NOT IN ('PER_LESSON', 'WEEKLY', 'MONTHLY', 'PACKAGE')
     ) THEN
-        RAISE EXCEPTION 'contracts.payment_period contains unsupported legacy values; normalize them before V12';
+        RAISE EXCEPTION 'contracts.payment_period contains unsupported legacy values; normalize them before V14';
     END IF;
 END $$;
 
@@ -47,7 +47,8 @@ ALTER TABLE payments
     DROP CONSTRAINT ck_payments_reference_type,
     ADD CONSTRAINT ck_payments_reference_type
         CHECK (reference_type IS NULL OR reference_type IN (
-            'CONTRACT', 'LESSON', 'PAYMENT', 'WALLET_TRANSACTION', 'STUDYING_REQUEST', 'TEACHING_REQUEST'
+            'CONTRACT', 'LESSON', 'PAYMENT', 'WALLET_TRANSACTION', 'STUDYING_REQUEST', 'TEACHING_REQUEST',
+            'WITHDRAWAL_REQUEST'
         ));
 
 CREATE UNIQUE INDEX uq_payments_transaction_code
