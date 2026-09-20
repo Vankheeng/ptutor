@@ -45,4 +45,18 @@ class GradeServiceTest {
         assertThat(result).extracting(GradeResponse::name).containsExactly("Lớp 1", "Lớp 12");
         verify(gradeRepository).findAllByStatusOrderByLevelAsc(CatalogStatus.ACTIVE);
     }
+
+    @Test
+    void returnsAllGradesForCatalogAdministration() {
+        Grade active = Grade.builder().name("Grade 1").level(1).status(CatalogStatus.ACTIVE).build();
+        Grade inactive = Grade.builder().name("Legacy Grade").level(13).status(CatalogStatus.INACTIVE).build();
+        when(gradeRepository.findAllByOrderByLevelAsc()).thenReturn(List.of(active, inactive));
+
+        List<GradeResponse> result = new GradeService(
+                gradeRepository, Mappers.getMapper(GradeMapper.class)).findAllGrades();
+
+        assertThat(result).extracting(GradeResponse::status)
+                .containsExactly(CatalogStatus.ACTIVE, CatalogStatus.INACTIVE);
+        verify(gradeRepository).findAllByOrderByLevelAsc();
+    }
 }

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,22 +15,16 @@ import com.ptutor.backend.service.SubjectService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/subjects")
+@RequestMapping("/api/v1/admin/subjects")
 @RequiredArgsConstructor
-public class SubjectController {
-
-    private static final String SUBJECTS_PATH = "/api/v1/subjects";
+public class AdminSubjectController {
 
     private final SubjectService subjectService;
     private final ApiResponseFactory responseFactory;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SubjectResponse>>> findAll(
-            @RequestParam(defaultValue = "name") String sort) {
+    public ResponseEntity<ApiResponse<List<SubjectResponse>>> findAll() {
         return ResponseEntity.ok(responseFactory.success(
-                "popular".equalsIgnoreCase(sort)
-                        ? subjectService.findActiveSubjectsByPopularity()
-                        : subjectService.findActiveSubjects(),
-                SUBJECTS_PATH));
+                subjectService.findAllSubjects(), "/api/v1/admin/subjects"));
     }
 }

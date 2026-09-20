@@ -16,12 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.ptutor.backend.dto.response.SubjectResponse;
-import com.ptutor.backend.service.SubjectService;
 import com.ptutor.backend.response.ApiResponseFactory;
+import com.ptutor.backend.service.SubjectService;
 
 @ExtendWith(MockitoExtension.class)
-class SubjectControllerTest {
+class AdminSubjectControllerTest {
 
     @Mock SubjectService subjectService;
 
@@ -29,28 +28,17 @@ class SubjectControllerTest {
 
     @BeforeEach
     void setUp() {
-        SubjectController controller = new SubjectController(
-                subjectService, new ApiResponseFactory(Clock.systemUTC()));
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new AdminSubjectController(
+                subjectService, new ApiResponseFactory(Clock.systemUTC()))).build();
     }
 
     @Test
-    void getsAllActiveSubjects() throws Exception {
-        when(subjectService.findActiveSubjects()).thenReturn(List.of());
+    void getsAllSubjectsForAdministration() throws Exception {
+        when(subjectService.findAllSubjects()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/subjects"))
+        mockMvc.perform(get("/api/v1/admin/subjects"))
                 .andExpect(status().isOk());
 
-        verify(subjectService).findActiveSubjects();
-    }
-
-    @Test
-    void getsPopularSubjects() throws Exception {
-        when(subjectService.findActiveSubjectsByPopularity()).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/v1/subjects").param("sort", "popular"))
-                .andExpect(status().isOk());
-
-        verify(subjectService).findActiveSubjectsByPopularity();
+        verify(subjectService).findAllSubjects();
     }
 }

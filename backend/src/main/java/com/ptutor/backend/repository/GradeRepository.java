@@ -14,4 +14,6 @@ public interface GradeRepository extends JpaRepository<Grade, UUID> {
     Optional<Grade> findByNameIgnoreCase(String name);
 
     List<Grade> findAllByStatusOrderByLevelAsc(CatalogStatus status);
+
+    List<Grade> findAllByOrderByLevelAsc();
 }
