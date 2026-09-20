@@ -784,6 +784,15 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 
 API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
+### 6.16. Đánh giá (Review)
+
+API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nhất được trả về; tên học viên được ẩn danh.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/reviews?limit=3` | Lấy tối đa 50 đánh giá 5 sao mới nhất. |
+
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:
