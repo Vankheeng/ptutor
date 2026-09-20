@@ -70,6 +70,23 @@ public class Payment extends BaseEntity {
     @NonFinal
     private String transactionCode;
 
+    @Column(name = "provider_transaction_no", length = 100)
+    @NonFinal
+    private String providerTransactionNo;
+
+    @Column(name = "provider_response_code", length = 20)
+    @NonFinal
+    private String providerResponseCode;
+
+    @Column(name = "expires_at")
+    @NonFinal
+    private LocalDateTime expiresAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_installment_id")
+    @NonFinal
+    private ContractPaymentInstallment paymentInstallment;
+
     @Column(name = "reference_type", length = 50)
     @NonFinal
     @Enumerated(EnumType.STRING)

@@ -4,5 +4,7 @@ public enum ReferenceType {
     CONTRACT,
     LESSON,
     PAYMENT,
-    WALLET_TRANSACTION
+    WALLET_TRANSACTION,
+    STUDYING_REQUEST,
+    TEACHING_REQUEST
 }

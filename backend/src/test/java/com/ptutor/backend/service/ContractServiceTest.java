@@ -42,6 +42,7 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
 import com.ptutor.backend.exception.ApiException;
@@ -66,6 +67,7 @@ class ContractServiceTest {
     @Mock GradeTeachingRequestRepository gradeTeachingRequestRepository;
     @Mock ContractMapper contractMapper;
     @Mock ContractTimeProvider contractTimeProvider;
+    @Mock ContractPaymentInstallmentService installmentService;
 
     private ContractService service;
     private UUID studentUserId;
@@ -90,7 +92,8 @@ class ContractServiceTest {
                 gradeRepository,
                 gradeTeachingRequestRepository,
                 contractMapper,
-                contractTimeProvider);
+                contractTimeProvider,
+                installmentService);
 
         studentUserId = UUID.randomUUID();
         tutorUserId = UUID.randomUUID();
@@ -244,7 +247,7 @@ class ContractServiceTest {
                 teachingRequestId,
                 studentRequestId,
                 new TutorContractCreateRequest(
-                        overrideGradeId, BigDecimal.valueOf(250_000), "MONTHLY", 20,
+                        overrideGradeId, BigDecimal.valueOf(250_000), PaymentPeriod.MONTHLY, 20,
                         "Monday evening", LocalDate.of(2026, 9, 2), LocalDate.of(2026, 11, 2)));
 
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
@@ -460,7 +463,7 @@ class ContractServiceTest {
         when(contractRepository.saveAndFlush(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.renew(tutorUserId, active.getId(), new ContractTermsRequest(
-                BigDecimal.valueOf(220_000), "MONTHLY", 16, "Weekend mornings",
+                BigDecimal.valueOf(220_000), PaymentPeriod.MONTHLY, 16, "Weekend mornings",
                 LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 1)));
 
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
@@ -483,7 +486,7 @@ class ContractServiceTest {
                 .thenReturn(true);
 
         assertThatThrownBy(() -> service.renew(tutorUserId, active.getId(), new ContractTermsRequest(
-                BigDecimal.valueOf(220_000), "MONTHLY", 16, "Weekend mornings",
+                BigDecimal.valueOf(220_000), PaymentPeriod.MONTHLY, 16, "Weekend mornings",
                 LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 1))))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("DUPLICATE_CONTRACT_RENEWAL"));
@@ -501,7 +504,7 @@ class ContractServiceTest {
                 .thenReturn(false);
 
         assertThatThrownBy(() -> service.renew(tutorUserId, active.getId(), new ContractTermsRequest(
-                BigDecimal.valueOf(220_000), "MONTHLY", 16, "Weekend mornings",
+                BigDecimal.valueOf(220_000), PaymentPeriod.MONTHLY, 16, "Weekend mornings",
                 LocalDate.of(2026, 9, 30), LocalDate.of(2026, 12, 1))))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo("INVALID_CONTRACT_DATE_RANGE"));
@@ -510,13 +513,13 @@ class ContractServiceTest {
 
     private ContractTermsRequest terms() {
         return new ContractTermsRequest(
-                BigDecimal.valueOf(200_000), "MONTHLY", 16, "Monday and Wednesday evening",
+                BigDecimal.valueOf(200_000), PaymentPeriod.MONTHLY, 16, "Monday and Wednesday evening",
                 LocalDate.of(2026, 9, 2), LocalDate.of(2026, 11, 2));
     }
 
     private TutorContractCreateRequest tutorTerms(UUID gradeId) {
         return new TutorContractCreateRequest(
-                gradeId, BigDecimal.valueOf(200_000), "MONTHLY", 16,
+                gradeId, BigDecimal.valueOf(200_000), PaymentPeriod.MONTHLY, 16,
                 "Monday and Wednesday evening", LocalDate.of(2026, 9, 2), LocalDate.of(2026, 11, 2));
     }
 
@@ -527,7 +530,7 @@ class ContractServiceTest {
                 .status(ApplicationStatus.ACCEPTED).build();
         Contract contract = Contract.builder()
                 .student(student).tutor(tutor).subject(subject).grade(grade).teachingMode(TeachingMode.ONLINE)
-                .price(BigDecimal.valueOf(200_000)).paymentPeriod("MONTHLY").totalLession(16)
+                .price(BigDecimal.valueOf(200_000)).paymentPeriod(PaymentPeriod.MONTHLY).totalLession(16)
                 .preferredSchedule("Monday evening").startDate(LocalDate.of(2026, 9, 2))
                 .endDate(LocalDate.of(2026, 11, 2)).status(status).createdBy(student.getUser())
                 .tutorStudentRequest(origin).build();

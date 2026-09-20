@@ -770,6 +770,32 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 
 API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
+### 6.16. API Payment VNPay
+
+Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VNPay. Browser return URL chỉ chuyển người dùng về frontend để kiểm tra lại trạng thái Payment.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Studying Request `DRAFT` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Teaching Request `DRAFT` |
+| `GET` | `/api/v1/students/me/contracts/{contractId}/payment-installments` | Xem các kỳ học phí của Contract `ACTIVE` |
+| `POST` | `/api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay` | Tạo URL VNPay thanh toán một kỳ học phí |
+| `GET` | `/api/v1/users/me/payments/{paymentId}` | Kiểm tra trạng thái Payment của chính mình |
+| `GET` | `/api/v1/users/me/transactions` | Xem lịch sử Payment, Wallet Transaction và Withdrawal của chính mình |
+
+API tạo Payment có thể nhận body tùy chọn:
+
+```json
+{
+  "bankCode": "NCB",
+  "locale": "vn"
+}
+```
+
+Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client không gửi amount. Với Contract, `paymentPeriod` chỉ nhận `PER_LESSON`, `WEEKLY`, `MONTHLY` hoặc `PACKAGE`; `price` là giá mỗi kỳ, riêng `PACKAGE` là tổng giá của gói.
+
+Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -33,6 +34,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.TeachingMode;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
@@ -50,6 +52,7 @@ class LessonServiceTest {
     @Mock TutorRepository tutorRepository;
     @Mock StudentRepository studentRepository;
     @Mock ComplaintRepository complaintRepository;
+    @Mock ContractPaymentInstallmentService installmentService;
 
     private LessonService service;
     private UUID userId;
@@ -70,7 +73,9 @@ class LessonServiceTest {
                 studentRepository,
                 complaintRepository,
                 testMapper(),
-                Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
+                installmentService);
+        lenient().when(installmentService.canCreateLesson(any(Contract.class))).thenReturn(true);
     }
 
     @Test

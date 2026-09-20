@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
 
 public record ContractResponse(
         UUID id,
@@ -24,7 +25,7 @@ public record ContractResponse(
         String gradeName,
         TeachingMode teachingMode,
         BigDecimal price,
-        String paymentPeriod,
+        PaymentPeriod paymentPeriod,
         Integer totalLessons,
         String preferredSchedule,
         LocalDate startDate,

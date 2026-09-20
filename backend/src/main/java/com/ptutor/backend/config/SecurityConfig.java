@@ -53,6 +53,8 @@ import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API
 import static com.ptutor.backend.config.SecurityConstants.SUBJECT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.WALLET_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.PAYMENT_CALLBACK_API;
+import static com.ptutor.backend.config.SecurityConstants.PAYMENT_SELF_SERVICE_API;
 
 
 @Configuration
@@ -123,6 +125,7 @@ public class SecurityConfig {
                                 "FORBIDDEN", "You do not have permission to access this resource", request.getRequestURI())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(API_PUBLIC).permitAll()
+                        .requestMatchers(PAYMENT_CALLBACK_API).permitAll()
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
@@ -130,6 +133,7 @@ public class SecurityConfig {
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(WALLET_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()
