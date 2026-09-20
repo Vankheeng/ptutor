@@ -1,0 +1,38 @@
+.site-shell { background: linear-gradient(180deg, #fbfaff 0%, #f8f5ff 34%, #fff9f2 100%); }
+.site-header { position: sticky; top: 0; }
+
+.back-to-top { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: grid; width: 46px; height: 46px; place-items: center; border: 0; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6d36df); box-shadow: 0 12px 25px rgb(85 45 170 / 30%); color: #fff; cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(12px) scale(.9); transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease; }
+.back-to-top.is-visible { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+.back-to-top:hover { box-shadow: 0 16px 30px rgb(85 45 170 / 40%); transform: translateY(-3px); }
+.back-to-top span { font-size: 23px; font-weight: 500; line-height: 1; }
+
+.subject-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 30px; }
+.subject-pagination button { min-width: 88px; border: 1px solid #ded4f1; border-radius: 9px; background: #fff; padding: 9px 13px; color: #6736d6; font-size: 12px; font-weight: 700; cursor: pointer; }
+.subject-pagination button:hover:not(:disabled) { border-color: #8256df; background: #f5f0ff; }
+.subject-pagination button:disabled { cursor: not-allowed; opacity: .45; }
+.subject-pagination span { color: #80778c; font-size: 11px; }
+
+.subjects-section,.tutor-section,.features-section,.testimonials-section,.cta-section { position: relative; isolation: isolate; overflow: hidden; }
+.subjects-section { background: linear-gradient(135deg, #fff 0%, #f7f1ff 58%, #edf5ff 100%); }
+.subjects-section::before,.subjects-section::after,.tutor-section::before,.features-section::after,.testimonials-section::before { position: absolute; z-index: -1; border-radius: 50%; content: ''; filter: blur(1px); animation: ambient-drift 11s ease-in-out infinite alternate; }
+.subjects-section::before { width: 290px; height: 290px; top: -155px; right: -50px; background: rgb(150 104 255 / 18%); }
+.subjects-section::after { width: 180px; height: 180px; bottom: -95px; left: 8%; background: rgb(82 180 255 / 12%); animation-delay: -4s; }
+.tutor-section { background: linear-gradient(120deg, #f3edff 0%, #f8f8ff 52%, #f1f8ff 100%); }
+.tutor-section::before { width: 360px; height: 360px; top: -220px; left: 42%; background: rgb(129 89 234 / 15%); animation-delay: -2s; }
+.features-section { background: linear-gradient(145deg, #fffaf4 0%, #fefbff 54%, #f1ecff 100%); }
+.features-section::after { width: 240px; height: 240px; right: -110px; bottom: 8%; background: rgb(102 163 255 / 12%); animation-delay: -6s; }
+.testimonials-section { background: linear-gradient(125deg, #f7f1ff 0%, #f4f8ff 100%); }
+.testimonials-section::before { width: 320px; height: 320px; left: -180px; top: 20%; background: rgb(224 147 198 / 14%); animation-delay: -3s; }
+.cta-section { background: linear-gradient(180deg, #fffaf7 0%, #f7f1ff 100%); }
+.subjects-section .container,.tutor-section .container,.features-section .container,.testimonials-section .container,.cta-section .container { position: relative; z-index: 1; }
+
+.scroll-reveal { opacity: 0; transform: translateY(30px) scale(.985); transition: opacity .65s ease var(--reveal-delay, 0ms), transform .65s cubic-bezier(.2, .8, .2, 1) var(--reveal-delay, 0ms); }
+.scroll-reveal.is-visible { opacity: 1; transform: translateY(0) scale(1); }
+.hero-copy.scroll-reveal { transform: translateX(-30px); }.hero-visual.scroll-reveal { transform: translateX(30px) scale(.96); }.hero-copy.scroll-reveal.is-visible,.hero-visual.scroll-reveal.is-visible { transform: translateX(0) scale(1); }
+.subject-card.scroll-reveal,.teaching-request-card.scroll-reveal,.testimonial-card.scroll-reveal { transform: translateY(24px); }.subject-card.scroll-reveal.is-visible,.teaching-request-card.scroll-reveal.is-visible,.testimonial-card.scroll-reveal.is-visible { transform: translateY(0); }
+.teaching-request-card.scroll-reveal.is-visible:hover { transform: translateY(-4px); }
+
+@keyframes ambient-drift { from { transform: translate3d(-8px, -5px, 0) scale(1); } to { transform: translate3d(15px, 12px, 0) scale(1.08); } }
+
+@media (max-width: 600px) { .back-to-top { right: 16px; bottom: 16px; width: 42px; height: 42px; } }
+@media (prefers-reduced-motion: reduce) { .scroll-reveal { opacity: 1; transform: none; transition: none; }.subjects-section::before,.subjects-section::after,.tutor-section::before,.features-section::after,.testimonials-section::before { animation: none; }.back-to-top { transition: none; } }
