@@ -28,6 +28,7 @@ import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
@@ -278,6 +279,52 @@ class TeachingRequestServiceTest {
         verify(teachingRequestRepository).findAllByOrderByCreatedAtDesc();
     }
 
+    @Test
+    void staffCanViewARequestInAnyStatus() {
+        TeachingRequest request = existingRequest(RequestStatus.DRAFT);
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+
+        TeachingRequestResponse response = service.findVisibleById(
+                request.getId(), UUID.randomUUID(), UserRole.ADMIN);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.DRAFT);
+    }
+
+    @Test
+    void tutorOwnerCanViewTheirRequestInAnyStatus() {
+        TeachingRequest request = existingRequest(RequestStatus.PENDING_REVIEW);
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+
+        TeachingRequestResponse response = service.findVisibleById(
+                request.getId(), userId, UserRole.TUTOR);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
+    }
+
+    @Test
+    void nonOwnerCanViewAnOpenRequest() {
+        TeachingRequest request = existingRequest(RequestStatus.OPEN);
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+
+        TeachingRequestResponse response = service.findVisibleById(
+                request.getId(), UUID.randomUUID(), UserRole.STUDENT);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+    }
+
+    @Test
+    void nonOwnerCannotViewARequestThatIsNotOpen() {
+        TeachingRequest request = existingRequest(RequestStatus.DRAFT);
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+
+        assertThatThrownBy(() -> service.findVisibleById(
+                request.getId(), UUID.randomUUID(), UserRole.STUDENT))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("TEACHING_REQUEST_NOT_FOUND");
+                });
+    }
+
     private TeachingRequestRequest requestWithSubject() {
         return new TeachingRequestRequest(
                 subjectId, null, List.of(gradeId), "Find math students", null, 2, List.of(), null,
@@ -304,7 +351,9 @@ class TeachingRequestServiceTest {
     }
 
     private Tutor tutor() {
-        Tutor tutor = Tutor.builder().build();
+        User user = User.builder().build();
+        user.setId(userId);
+        Tutor tutor = Tutor.builder().user(user).build();
         tutor.setId(tutorId);
         return tutor;
     }

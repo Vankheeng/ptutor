@@ -26,4 +26,12 @@ public class GradeService {
                 .map(gradeMapper::toResponse)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<GradeResponse> findAllGrades() {
+        return gradeRepository.findAllByOrderByLevelAsc()
+                .stream()
+                .map(gradeMapper::toResponse)
+                .toList();
+    }
 }

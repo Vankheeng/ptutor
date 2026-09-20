@@ -197,10 +197,11 @@ public class TeachingRequestService {
     }
 
     @Transactional(readOnly = true)
-    public TeachingRequestResponse findVisibleById(UUID requestId, UserRole role) {
+    public TeachingRequestResponse findVisibleById(UUID requestId, UUID userId, UserRole role) {
         TeachingRequest teachingRequest = teachingRequestRepository.findById(requestId)
                 .orElseThrow(() -> requestNotFound(requestId));
-        if (!isStaff(role) && teachingRequest.getStatus() != RequestStatus.OPEN) {
+        if (!isStaff(role) && !isTutorOwner(teachingRequest, userId, role)
+                && teachingRequest.getStatus() != RequestStatus.OPEN) {
             throw requestNotFound(requestId);
         }
         return toResponse(teachingRequest);
@@ -325,6 +326,14 @@ public class TeachingRequestService {
 
     private boolean isStaff(UserRole role) {
         return role == UserRole.ADMIN || role == UserRole.EMPLOYEE;
+    }
+
+    private boolean isTutorOwner(TeachingRequest teachingRequest, UUID userId, UserRole role) {
+        return role == UserRole.TUTOR
+                && userId != null
+                && teachingRequest.getTutor() != null
+                && teachingRequest.getTutor().getUser() != null
+                && userId.equals(teachingRequest.getTutor().getUser().getId());
     }
 
     private int normalizePublicLimit(int requestedLimit) {

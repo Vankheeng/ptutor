@@ -18,19 +18,23 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.ptutor.backend.response.ApiResponseFactory;
+import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.TeachingRequestService;
+import com.ptutor.backend.dto.enums.UserRole;
 
 @ExtendWith(MockitoExtension.class)
 class PublicTeachingRequestControllerTest {
 
     @Mock TeachingRequestService teachingRequestService;
+    @Mock CurrentUserProvider currentUserProvider;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         PublicTeachingRequestController controller = new PublicTeachingRequestController(
                 teachingRequestService,
-                new ApiResponseFactory(Clock.systemUTC()));
+                new ApiResponseFactory(Clock.systemUTC()),
+                currentUserProvider);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -62,11 +66,14 @@ class PublicTeachingRequestControllerTest {
     @Test
     void getVisibleRequestUsesRequestId() throws Exception {
         UUID requestId = UUID.randomUUID();
-        when(teachingRequestService.findVisibleById(requestId, null)).thenReturn(null);
+        UUID userId = UUID.randomUUID();
+        when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
+        when(currentUserProvider.getCurrentUserRole()).thenReturn(UserRole.STUDENT);
+        when(teachingRequestService.findVisibleById(requestId, userId, UserRole.STUDENT)).thenReturn(null);
 
         mockMvc.perform(get("/api/v1/teaching-requests/{requestId}", requestId))
                 .andExpect(status().isOk());
 
-        verify(teachingRequestService).findVisibleById(requestId, null);
+        verify(teachingRequestService).findVisibleById(requestId, userId, UserRole.STUDENT);
     }
 }

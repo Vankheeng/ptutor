@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
+import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.dto.response.TeachingRequestResponse;
 import com.ptutor.backend.service.TeachingRequestService;
 
@@ -24,6 +25,7 @@ public class PublicTeachingRequestController {
 
     private final TeachingRequestService teachingRequestService;
     private final ApiResponseFactory responseFactory;
+    private final CurrentUserProvider currentUserProvider;
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeachingRequestResponse>>> findVisible(
             @RequestParam(defaultValue = "20") int limit,
@@ -38,7 +40,10 @@ public class PublicTeachingRequestController {
     public ResponseEntity<ApiResponse<TeachingRequestResponse>> findVisibleById(
             @PathVariable UUID requestId) {
         return ResponseEntity.ok(responseFactory.success(
-                teachingRequestService.findVisibleById(requestId, null),
+                teachingRequestService.findVisibleById(
+                        requestId,
+                        currentUserProvider.getCurrentUserId(),
+                        currentUserProvider.getCurrentUserRole()),
                 "/api/v1/teaching-requests/" + requestId));
     }
 }

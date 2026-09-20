@@ -17,6 +17,8 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
 
     List<Subject> findAllByStatusOrderByNameAsc(CatalogStatus status);
 
+    List<Subject> findAllByOrderByNameAsc();
+
     @Query(value = """
             SELECT s.*
             FROM subjects s
