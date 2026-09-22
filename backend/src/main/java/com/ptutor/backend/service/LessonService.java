@@ -47,12 +47,17 @@ public class LessonService {
     private final ComplaintRepository complaintRepository;
     private final LessonMapper lessonMapper;
     private final Clock clock;
+    private final ContractPaymentInstallmentService installmentService;
 
     @Transactional
     public LessonResponse create(UUID userId, UUID contractId, LessonRequest source) {
         Tutor tutor = findTutorByUserId(userId);
         Contract contract = findOwnedContract(contractId, tutor.getId());
         validateActiveContract(contract);
+        if (!installmentService.canCreateLesson(contract)) {
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_LESSON_LIMIT_REACHED",
+                    "The contract already has its maximum number of lessons");
+        }
         validateSchedule(contract, source);
 
         Lesson lesson = Lesson.builder()
@@ -65,7 +70,9 @@ public class LessonService {
                 .note(normalize(source.note()))
                 .status(initialStatus(source.date(), source.endTime()))
                 .build();
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        Lesson saved = lessonRepository.saveAndFlush(lesson);
+        installmentService.assignNextInstallment(contract, saved);
+        return lessonMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)

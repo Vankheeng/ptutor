@@ -1,6 +1,7 @@
 package com.ptutor.backend.repository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -16,4 +17,6 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
     Optional<WithdrawalRequest> findByIdAndWallet_Id(UUID withdrawalId, UUID walletId);
 
     Page<WithdrawalRequest> findAllByWallet_User_Id(UUID userId, Pageable pageable);
+
+    List<WithdrawalRequest> findAllByWallet_User_IdOrderByCreatedAtDesc(UUID userId);
 }

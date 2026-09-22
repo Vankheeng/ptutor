@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.ptutor.backend.entity.enums.PaymentPeriod;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -16,8 +18,7 @@ public record ContractUpdateRequest(
         @DecimalMin(value = "0.0", inclusive = true, message = "Price must not be negative")
         BigDecimal price,
 
-        @Size(max = 100, message = "Payment period must not exceed 100 characters")
-        String paymentPeriod,
+        PaymentPeriod paymentPeriod,
 
         @Positive(message = "Total lessons must be greater than zero")
         Integer totalLessons,

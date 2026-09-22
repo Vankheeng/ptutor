@@ -31,6 +31,7 @@ import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.ContractMapper;
 import com.ptutor.backend.repository.ContractRepository;
@@ -56,6 +57,7 @@ public class ContractService {
     private final GradeTeachingRequestRepository gradeTeachingRequestRepository;
     private final ContractMapper contractMapper;
     private final ContractTimeProvider contractTimeProvider;
+    private final ContractPaymentInstallmentService installmentService;
 
     @Transactional
     public ContractResponse createFromTutorStudentRequest(
@@ -169,7 +171,9 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public ContractResponse findMineById(UUID userId, UUID contractId) {
-        return contractMapper.toResponse(findContractForParticipant(contractId, userId));
+        Contract activated = findContractForParticipant(contractId, userId);
+        installmentService.ensureForActiveContract(activated);
+        return contractMapper.toResponse(activated);
     }
 
     @Transactional
@@ -331,7 +335,7 @@ public class ContractService {
         }
         applyPriceAndSchedule(contract, source);
         if (source.paymentPeriod() != null) {
-            contract.setPaymentPeriod(requireText(source.paymentPeriod(), "Payment period is required"));
+            contract.setPaymentPeriod(source.paymentPeriod());
         }
         if (source.totalLessons() != null) {
             validateTotalLessons(source.totalLessons());
@@ -390,7 +394,7 @@ public class ContractService {
         }
         validatePrice(source.price());
         validateTotalLessons(source.totalLessons());
-        String paymentPeriod = requireText(source.paymentPeriod(), "Payment period is required");
+        PaymentPeriod paymentPeriod = requirePresent(source.paymentPeriod(), "INVALID_CONTRACT_TERMS", "Payment period is required");
         String preferredSchedule = requireText(source.preferredSchedule(), "Preferred schedule is required");
         validateDateRange(source.startDate(), source.endDate());
         return new ContractTerms(
@@ -543,7 +547,7 @@ public class ContractService {
 
     private record ContractTerms(
             BigDecimal price,
-            String paymentPeriod,
+            PaymentPeriod paymentPeriod,
             Integer totalLessons,
             String preferredSchedule,
             LocalDate startDate,

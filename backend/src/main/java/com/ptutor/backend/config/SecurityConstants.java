@@ -26,6 +26,17 @@ public final class SecurityConstants {
             "/api/v1/auth/password-reset/reset"
     };
 
+    public static final String[] PAYMENT_CALLBACK_API = {
+            "/api/v1/payments/vnpay/ipn",
+            "/api/v1/payments/vnpay/return"
+    };
+
+    public static final String[] PAYMENT_SELF_SERVICE_API = {
+            "/api/v1/users/me/payments",
+            "/api/v1/users/me/payments/**",
+            "/api/v1/users/me/transactions"
+    };
+
     public static final String[] API_DOCUMENTATION = {
             "/swagger-ui.html",
             "/swagger-ui/**",

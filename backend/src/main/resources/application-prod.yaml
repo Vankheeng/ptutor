@@ -32,6 +32,19 @@ app:
     lifecycle:
       expiration-cron: ${CONTRACT_EXPIRATION_CRON:0 0 0 * * *}
       time-zone: ${CONTRACT_TIME_ZONE:Asia/Ho_Chi_Minh}
+  payment:
+    fees:
+      studying-request: ${PAYMENT_STUDYING_REQUEST_FEE}
+      teaching-request: ${PAYMENT_TEACHING_REQUEST_FEE}
+    vnpay:
+      tmn-code: ${VNPAY_TMN_CODE}
+      hash-secret: ${VNPAY_HASH_SECRET}
+      payment-url: ${VNPAY_PAYMENT_URL}
+      return-url: ${VNPAY_RETURN_URL}
+      frontend-return-url: ${VNPAY_FRONTEND_RETURN_URL}
+      ipn-url: ${VNPAY_IPN_URL}
+      expiry-minutes: ${VNPAY_EXPIRY_MINUTES:15}
+      time-zone: ${VNPAY_TIME_ZONE:Asia/Ho_Chi_Minh}
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME:xxxxx@xxxx.xxxx}}
   security:

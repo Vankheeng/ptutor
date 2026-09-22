@@ -25,6 +25,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 
 import com.ptutor.backend.entity.enums.ContractStatus;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 @Entity
@@ -69,9 +70,10 @@ public class Contract extends BaseEntity {
     @NonFinal
     private BigDecimal price;
 
-    @Column(name = "payment_period", nullable = false, length = 100)
+    @Column(name = "payment_period", nullable = false, length = 30)
     @NonFinal
-    private String paymentPeriod;
+    @Enumerated(EnumType.STRING)
+    private PaymentPeriod paymentPeriod;
 
     @Column(name = "total_lession", nullable = false)
     @NonFinal
