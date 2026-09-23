@@ -21,6 +21,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 
 import com.ptutor.backend.entity.enums.NotificationType;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
 
 @Entity
 @Table(name = "notifications")
@@ -56,6 +58,20 @@ public class Notification extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private NotificationType type;
+
+    @Column(name = "event_type", length = 80)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    private NotificationEventType eventType;
+
+    @Column(name = "reference_type", length = 50)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    private NotificationReferenceType referenceType;
+
+    @Column(name = "deduplication_key", length = 255)
+    @NonFinal
+    private String deduplicationKey;
 
     @Column(name = "is_read", nullable = false)
     @NonFinal

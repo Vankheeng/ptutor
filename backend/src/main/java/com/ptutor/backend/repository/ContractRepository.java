@@ -3,6 +3,7 @@ package com.ptutor.backend.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -81,6 +82,8 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     boolean existsByStudentTutorRequest_IdAndStatusNot(UUID studentTutorRequestId, ContractStatus excludedStatus);
 
     boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
+
+    List<Contract> findAllByStatus(ContractStatus status);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

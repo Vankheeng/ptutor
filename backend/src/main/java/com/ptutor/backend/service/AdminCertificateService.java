@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,20 +20,47 @@ import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CertificateRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
-@RequiredArgsConstructor
 public class AdminCertificateService {
 
     private final CertificateRepository certificateRepository;
     private final EmployeeRepository employeeRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
+
+    @Autowired
+    public AdminCertificateService(
+            CertificateRepository certificateRepository,
+            EmployeeRepository employeeRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock) {
+        this.certificateRepository = certificateRepository;
+        this.employeeRepository = employeeRepository;
+        this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
+    }
+
+    /** Compatibility constructor for focused unit tests from before domain events. */
+    public AdminCertificateService(
+            CertificateRepository certificateRepository,
+            EmployeeRepository employeeRepository,
+            NotificationService notificationService,
+            Clock clock) {
+        this(certificateRepository, employeeRepository, notificationService, null, clock);
+    }
 
     @Transactional(readOnly = true)
     public PageResponse<AdminCertificateSummaryResponse> findAll(
@@ -66,8 +94,7 @@ public class AdminCertificateService {
         certificate.setReviewedBy(reviewer);
         certificate.setReviewedAt(LocalDateTime.now(clock));
         Certificate saved = certificateRepository.saveAndFlush(certificate);
-        notificationService.createCertificateReviewNotification(
-                saved.getTutor().getUser(), saved.getId().toString(), saved.getName(), true, null);
+        publishCertificateNotification(saved, true, null);
         return toDetailResponse(saved);
     }
 
@@ -87,8 +114,7 @@ public class AdminCertificateService {
         certificate.setReviewedBy(reviewer);
         certificate.setReviewedAt(LocalDateTime.now(clock));
         Certificate saved = certificateRepository.saveAndFlush(certificate);
-        notificationService.createCertificateReviewNotification(
-                saved.getTutor().getUser(), saved.getId().toString(), saved.getName(), false, normalizedReason);
+        publishCertificateNotification(saved, false, normalizedReason);
         return toDetailResponse(saved);
     }
 
@@ -140,5 +166,22 @@ public class AdminCertificateService {
     private ApiException certificateNotFound(UUID certificateId) {
         return new ApiException(HttpStatus.NOT_FOUND, "CERTIFICATE_NOT_FOUND",
                 "Certificate not found: " + certificateId);
+    }
+
+    private void publishCertificateNotification(Certificate certificate, boolean approved, String reason) {
+        if (eventPublisher == null) {
+            notificationService.createCertificateReviewNotification(
+                    certificate.getTutor().getUser(), certificate.getId().toString(), certificate.getName(),
+                    approved, reason);
+            return;
+        }
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                certificate.getTutor().getUser().getId(),
+                approved ? NotificationEventType.CERTIFICATE_APPROVED : NotificationEventType.CERTIFICATE_REJECTED,
+                NotificationReferenceType.CERTIFICATE,
+                certificate.getId(),
+                java.util.Map.of(
+                        "name", certificate.getName() == null ? "" : certificate.getName(),
+                        "reason", reason == null ? "" : reason)));
     }
 }

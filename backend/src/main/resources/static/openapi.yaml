@@ -29,6 +29,8 @@ tags:
     description: Self-service wallet balance and bank account operations for students and tutors
   - name: Payments
     description: VNPay payment initiation, payment status and financial transaction history
+  - name: Notifications
+    description: In-app notifications for the authenticated user
   - name: Tutor Profiles
     description: Public tutor profile operations available to authenticated users
   - name: Tutor Certificates
@@ -2537,6 +2539,78 @@ paths:
       responses:
         '302': { description: Redirects to the configured frontend payment-result page }
 
+  /api/v1/users/me/notifications:
+    get:
+      tags: [Notifications]
+      summary: List my notifications
+      description: Returns only notifications owned by the authenticated user, newest first.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [READ, UNREAD]
+      responses:
+        '200':
+          description: Paginated notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPageResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/users/me/notifications/{notificationId}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark one notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/users/me/notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all my notifications as read
+      responses:
+        '200':
+          description: Number of notifications changed to read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationReadAllResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/users/me/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Count my unread notifications
+      responses:
+        '200':
+          description: Unread notification count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4937,6 +5011,95 @@ components:
             data:
               nullable: true
               example: null
+
+    NotificationResponse:
+      type: object
+      required: [id, title, type, eventType, referenceType, isRead, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string, nullable: true }
+        type:
+          type: string
+          enum: [SYSTEM, REQUEST, CONTRACT, PAYMENT, COMPLAINT]
+        eventType:
+          type: string
+          enum:
+            - PAYMENT_SUCCEEDED
+            - PAYMENT_INSTALLMENT_DUE
+            - TUTOR_REQUEST_RECEIVED
+            - TUTOR_REQUEST_ACCEPTED
+            - TUTOR_REQUEST_REJECTED
+            - STUDENT_REQUEST_RECEIVED
+            - STUDENT_REQUEST_ACCEPTED
+            - STUDENT_REQUEST_REJECTED
+            - CONTRACT_SIGNATURE_REQUIRED
+            - CONTRACT_SIGNED
+            - CONTRACT_REJECTED
+            - CONTRACT_CANCELLED
+            - CONTRACT_RENEWAL_PROPOSED
+            - CERTIFICATE_APPROVED
+            - CERTIFICATE_REJECTED
+        referenceType:
+          type: string
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT]
+        referenceId: { type: string, nullable: true }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    NotificationPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    UnreadCountResponse:
+      type: object
+      required: [unreadCount]
+      properties:
+        unreadCount: { type: integer, format: int64 }
+
+    NotificationReadAllResponse:
+      type: object
+      required: [markedReadCount]
+      properties:
+        markedReadCount: { type: integer, format: int64 }
+
+    NotificationResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationResponse' }
+
+    NotificationPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationPageResponse' }
+
+    UnreadCountResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/UnreadCountResponse' }
+
+    NotificationReadAllResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationReadAllResponse' }
 
   responses:
     ValidationError:

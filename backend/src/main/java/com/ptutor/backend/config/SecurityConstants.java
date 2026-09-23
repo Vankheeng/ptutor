@@ -37,6 +37,11 @@ public final class SecurityConstants {
             "/api/v1/users/me/transactions"
     };
 
+    public static final String[] NOTIFICATION_SELF_SERVICE_API = {
+            "/api/v1/users/me/notifications",
+            "/api/v1/users/me/notifications/**"
+    };
+
     public static final String[] API_DOCUMENTATION = {
             "/swagger-ui.html",
             "/swagger-ui/**",

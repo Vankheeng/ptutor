@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,9 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudentTutorRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
@@ -30,10 +35,7 @@ import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.TeachingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class StudentTutorRequestService {
 
     private final StudentTutorRequestRepository studentTutorRequestRepository;
@@ -43,6 +45,39 @@ public class StudentTutorRequestService {
     private final StudentRepository studentRepository;
     private final GradeRepository gradeRepository;
     private final GradeTeachingRequestRepository gradeTeachingRequestRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this.studentTutorRequestRepository = studentTutorRequestRepository;
+        this.teachingRequestRepository = teachingRequestRepository;
+        this.tutorRepository = tutorRepository;
+        this.studentTutorRequestMapper = studentTutorRequestMapper;
+        this.studentRepository = studentRepository;
+        this.gradeRepository = gradeRepository;
+        this.gradeTeachingRequestRepository = gradeTeachingRequestRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository) {
+        this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { });
+    }
 
     @Transactional(readOnly = true)
     public List<StudentTutorRequestResponse> findMine(
@@ -93,12 +128,23 @@ public class StudentTutorRequestService {
                 teachingRequest.setStatus(RequestStatus.MATCHED);
                 teachingRequestRepository.saveAndFlush(teachingRequest);
             }
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    request.getStudent().getUser().getId(),
+                    NotificationEventType.STUDENT_REQUEST_ACCEPTED,
+                    NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                    savedRequest.getId(), java.util.Map.of()));
             return studentTutorRequestMapper.toResponse(savedRequest);
         } else {
             request.setStatus(ApplicationStatus.REJECTED);
         }
 
-        return studentTutorRequestMapper.toResponse(studentTutorRequestRepository.saveAndFlush(request));
+        StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                savedRequest.getStudent().getUser().getId(),
+                NotificationEventType.STUDENT_REQUEST_REJECTED,
+                NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                savedRequest.getId(), java.util.Map.of()));
+        return studentTutorRequestMapper.toResponse(savedRequest);
     }
 
     @Transactional
@@ -152,8 +198,15 @@ public class StudentTutorRequestService {
                 .status(ApplicationStatus.PENDING)
                 .build();
 
-        return studentTutorRequestMapper.toMineResponse(
-                studentTutorRequestRepository.saveAndFlush(request));
+        StudentTutorRequest saved = studentTutorRequestRepository.saveAndFlush(request);
+        if (teachingRequest.getTutor() != null && teachingRequest.getTutor().getUser() != null) {
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    teachingRequest.getTutor().getUser().getId(),
+                    NotificationEventType.STUDENT_REQUEST_RECEIVED,
+                    NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                    saved.getId(), java.util.Map.of()));
+        }
+        return studentTutorRequestMapper.toMineResponse(saved);
     }
 
     @Transactional(readOnly = true)
