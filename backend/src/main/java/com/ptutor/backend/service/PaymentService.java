@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,9 @@ import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.ContractPaymentInstallmentRepository;
 import com.ptutor.backend.repository.ContractRepository;
@@ -72,6 +76,7 @@ public class PaymentService {
     private final ContractPaymentInstallmentService installmentService;
     private final VnPayService vnPayService;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @org.springframework.beans.factory.annotation.Value("${app.payment.fees.studying-request}")
     private BigDecimal studyingRequestFee;
@@ -204,6 +209,12 @@ public class PaymentService {
             return VnPayIpnResult.success("02", "Order already confirmed");
         }
         activatePaidPayment(payment);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                payment.getUser().getId(),
+                NotificationEventType.PAYMENT_SUCCEEDED,
+                paymentNotificationReferenceType(payment),
+                paymentNotificationReferenceId(payment),
+                java.util.Map.of("paymentType", payment.getPaymentType().name())));
         return VnPayIpnResult.success("00", "Confirm Success");
     }
 
@@ -279,6 +290,21 @@ public class PaymentService {
             installment.setStatus(PaymentInstallmentStatus.PAID);
             installmentRepository.save(installment);
         }
+    }
+
+    private NotificationReferenceType paymentNotificationReferenceType(Payment payment) {
+        if (payment.getPaymentType() == PaymentType.TUITION_PAYMENT) {
+            return NotificationReferenceType.INSTALLMENT;
+        }
+        return payment.getReferenceType() == ReferenceType.STUDYING_REQUEST
+                ? NotificationReferenceType.STUDYING_REQUEST
+                : NotificationReferenceType.TEACHING_REQUEST;
+    }
+
+    private UUID paymentNotificationReferenceId(Payment payment) {
+        return payment.getPaymentType() == PaymentType.TUITION_PAYMENT
+                ? payment.getPaymentInstallment().getId()
+                : payment.getReferenceId();
     }
 
     private Contract findStudentContract(UUID userId, UUID contractId) {

@@ -28,6 +28,9 @@ spring:
       mail.smtp.starttls.enable: true
 
 app:
+  notification:
+    payment-reminder-cron: ${NOTIFICATION_PAYMENT_REMINDER_CRON:0 0 9 * * *}
+    time-zone: ${NOTIFICATION_TIME_ZONE:Asia/Ho_Chi_Minh}
   contract:
     lifecycle:
       expiration-cron: ${CONTRACT_EXPIRATION_CRON:0 0 0 * * *}

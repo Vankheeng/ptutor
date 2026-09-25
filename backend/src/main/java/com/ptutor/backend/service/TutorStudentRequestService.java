@@ -5,6 +5,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,9 @@ import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
@@ -27,10 +32,7 @@ import com.ptutor.backend.repository.StudyingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.repository.TutorStudentRequestRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class TutorStudentRequestService {
 
     private final TutorStudentRequestRepository tutorStudentRequestRepository;
@@ -39,6 +41,36 @@ public class TutorStudentRequestService {
     private final GradeRepository gradeRepository;
     private final StudentRepository studentRepository;
     private final TutorStudentRequestMapper tutorStudentRequestMapper;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this.tutorStudentRequestRepository = tutorStudentRequestRepository;
+        this.studyingRequestRepository = studyingRequestRepository;
+        this.tutorRepository = tutorRepository;
+        this.gradeRepository = gradeRepository;
+        this.studentRepository = studentRepository;
+        this.tutorStudentRequestMapper = tutorStudentRequestMapper;
+        this.eventPublisher = eventPublisher;
+    }
+
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                studentRepository, tutorStudentRequestMapper, event -> { });
+    }
 
     @Transactional
     public TutorStudentRequestResponse create(
@@ -66,7 +98,13 @@ public class TutorStudentRequestService {
                 .message(normalize(source.message()))
                 .status(ApplicationStatus.PENDING)
                 .build();
-        return tutorStudentRequestMapper.toResponse(tutorStudentRequestRepository.saveAndFlush(request));
+        TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(request);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                studyingRequest.getStudent().getUser().getId(),
+                NotificationEventType.TUTOR_REQUEST_RECEIVED,
+                NotificationReferenceType.TUTOR_STUDENT_REQUEST,
+                saved.getId(), java.util.Map.of()));
+        return tutorStudentRequestMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -159,6 +197,11 @@ public class TutorStudentRequestService {
             studyingRequest.setStatus(RequestStatus.MATCHED);
             studyingRequestRepository.saveAndFlush(studyingRequest);
         }
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                tutorRequest.getTutor().getUser().getId(),
+                NotificationEventType.TUTOR_REQUEST_ACCEPTED,
+                NotificationReferenceType.TUTOR_STUDENT_REQUEST,
+                savedRequest.getId(), java.util.Map.of()));
         return tutorStudentRequestMapper.toResponse(savedRequest);
     }
 
@@ -171,8 +214,13 @@ public class TutorStudentRequestService {
         TutorStudentRequest tutorRequest = findRequest(tutorRequestId, studyingRequestId);
         ensurePending(tutorRequest);
         tutorRequest.setStatus(ApplicationStatus.REJECTED);
-        return tutorStudentRequestMapper.toResponse(
-                tutorStudentRequestRepository.saveAndFlush(tutorRequest));
+        TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                saved.getTutor().getUser().getId(),
+                NotificationEventType.TUTOR_REQUEST_REJECTED,
+                NotificationReferenceType.TUTOR_STUDENT_REQUEST,
+                saved.getId(), java.util.Map.of()));
+        return tutorStudentRequestMapper.toResponse(saved);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

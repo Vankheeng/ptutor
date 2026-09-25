@@ -819,6 +819,19 @@ Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client
 Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
 
 
+### 6.18. API Notifications in-app
+
+Các API notification yêu cầu `Authorization: Bearer <access-token>` và chỉ trả về notification của user đang đăng nhập. Hỗ trợ các role `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/users/me/notifications?page=0&size=20&status=READ` | Lấy danh sách notification của chính user; `status` nhận `READ` hoặc `UNREAD`, sắp xếp mới nhất trước. |
+| `PATCH` | `/api/v1/users/me/notifications/{notificationId}/read` | Đánh dấu một notification của chính user là đã đọc; gọi lại vẫn an toàn. |
+| `PATCH` | `/api/v1/users/me/notifications/read-all` | Đánh dấu toàn bộ notification chưa đọc của chính user là đã đọc. |
+| `GET` | `/api/v1/users/me/notifications/unread-count` | Lấy số lượng notification chưa đọc. |
+
+Notification có `type` theo nhóm `SYSTEM`, `REQUEST`, `CONTRACT`, `PAYMENT`, `COMPLAINT`, cùng `eventType`, `referenceType` và `referenceId` để frontend điều hướng tới dữ liệu liên quan. Các event Payment chỉ được tạo sau khi VNPay IPN xác nhận thanh toán thành công; reminder học phí được chống trùng theo installment.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

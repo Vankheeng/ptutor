@@ -57,6 +57,7 @@ import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_
 import static com.ptutor.backend.config.SecurityConstants.WALLET_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.PAYMENT_CALLBACK_API;
 import static com.ptutor.backend.config.SecurityConstants.PAYMENT_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.NOTIFICATION_SELF_SERVICE_API;
 
 
 @Configuration
@@ -138,6 +139,8 @@ public class SecurityConfig {
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(WALLET_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(NOTIFICATION_SELF_SERVICE_API)
+                        .hasAnyRole("STUDENT", "TUTOR", "EMPLOYEE", "ADMIN")
                         .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()

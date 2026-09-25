@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,9 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
 import com.ptutor.backend.entity.enums.PaymentPeriod;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.ContractMapper;
 import com.ptutor.backend.repository.ContractRepository;
@@ -42,10 +47,7 @@ import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.repository.TutorStudentRequestRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class ContractService {
 
     private final ContractRepository contractRepository;
@@ -58,6 +60,49 @@ public class ContractService {
     private final ContractMapper contractMapper;
     private final ContractTimeProvider contractTimeProvider;
     private final ContractPaymentInstallmentService installmentService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    public ContractService(
+            ContractRepository contractRepository,
+            StudentRepository studentRepository,
+            TutorRepository tutorRepository,
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ContractMapper contractMapper,
+            ContractTimeProvider contractTimeProvider,
+            ContractPaymentInstallmentService installmentService,
+            ApplicationEventPublisher eventPublisher) {
+        this.contractRepository = contractRepository;
+        this.studentRepository = studentRepository;
+        this.tutorRepository = tutorRepository;
+        this.tutorStudentRequestRepository = tutorStudentRequestRepository;
+        this.studentTutorRequestRepository = studentTutorRequestRepository;
+        this.gradeRepository = gradeRepository;
+        this.gradeTeachingRequestRepository = gradeTeachingRequestRepository;
+        this.contractMapper = contractMapper;
+        this.contractTimeProvider = contractTimeProvider;
+        this.installmentService = installmentService;
+        this.eventPublisher = eventPublisher;
+    }
+
+    public ContractService(
+            ContractRepository contractRepository,
+            StudentRepository studentRepository,
+            TutorRepository tutorRepository,
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ContractMapper contractMapper,
+            ContractTimeProvider contractTimeProvider,
+            ContractPaymentInstallmentService installmentService) {
+        this(contractRepository, studentRepository, tutorRepository, tutorStudentRequestRepository,
+                studentTutorRequestRepository, gradeRepository, gradeTeachingRequestRepository, contractMapper,
+                contractTimeProvider, installmentService, event -> { });
+    }
 
     @Transactional
     public ContractResponse createFromTutorStudentRequest(
@@ -218,7 +263,13 @@ public class ContractService {
         if (updated != 1) {
             throw invalidTransition("Contract can no longer be signed");
         }
-        return contractMapper.toResponse(findContractForParticipant(contractId, userId));
+        Contract signed = findContractForParticipant(contractId, userId);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                signed.getCreatedBy().getId(),
+                NotificationEventType.CONTRACT_SIGNED,
+                NotificationReferenceType.CONTRACT,
+                signed.getId(), java.util.Map.of()));
+        return contractMapper.toResponse(signed);
     }
 
     @Transactional
@@ -236,7 +287,13 @@ public class ContractService {
         if (updated != 1) {
             throw invalidTransition("Contract can no longer be rejected");
         }
-        return contractMapper.toResponse(findContractForParticipant(contractId, userId));
+        Contract rejected = findContractForParticipant(contractId, userId);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                rejected.getCreatedBy().getId(),
+                NotificationEventType.CONTRACT_REJECTED,
+                NotificationReferenceType.CONTRACT,
+                rejected.getId(), java.util.Map.of()));
+        return contractMapper.toResponse(rejected);
     }
 
     @Transactional
@@ -257,7 +314,13 @@ public class ContractService {
         if (updated != 1) {
             throw invalidTransition("Contract can no longer be cancelled");
         }
-        return contractMapper.toResponse(findContractForParticipant(contractId, userId));
+        Contract cancelled = findContractForParticipant(contractId, userId);
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                otherParticipantUser(cancelled, userId).getId(),
+                NotificationEventType.CONTRACT_CANCELLED,
+                NotificationReferenceType.CONTRACT,
+                cancelled.getId(), java.util.Map.of()));
+        return contractMapper.toResponse(cancelled);
     }
 
     @Transactional
@@ -298,7 +361,15 @@ public class ContractService {
 
     private ContractResponse saveNewContract(Contract contract) {
         try {
-            return contractMapper.toResponse(contractRepository.saveAndFlush(contract));
+            Contract saved = contractRepository.saveAndFlush(contract);
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    otherParticipantUser(saved, saved.getCreatedBy().getId()).getId(),
+                    saved.getRenewedFromContract() == null
+                            ? NotificationEventType.CONTRACT_SIGNATURE_REQUIRED
+                            : NotificationEventType.CONTRACT_RENEWAL_PROPOSED,
+                    NotificationReferenceType.CONTRACT,
+                    saved.getId(), java.util.Map.of()));
+            return contractMapper.toResponse(saved);
         } catch (DataIntegrityViolationException exception) {
             throw duplicateContract();
         }
@@ -475,6 +546,16 @@ public class ContractService {
         }
         if (contract.getTutor().getUser().getId().equals(userId)) {
             return contract.getTutor().getUser();
+        }
+        throw contractNotFound(contract.getId());
+    }
+
+    private User otherParticipantUser(Contract contract, UUID userId) {
+        if (contract.getStudent().getUser().getId().equals(userId)) {
+            return contract.getTutor().getUser();
+        }
+        if (contract.getTutor().getUser().getId().equals(userId)) {
+            return contract.getStudent().getUser();
         }
         throw contractNotFound(contract.getId());
     }
