@@ -1,5 +1,6 @@
 package com.ptutor.backend.service;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -130,5 +131,35 @@ public class NotificationService {
         User user = new User();
         user.setId(userId);
         return user;
+    }
+
+    @Transactional
+    public void createTeachingRequestReviewNotification(
+            User recipient,
+            String teachingRequestId,
+            String requestTitle,
+            boolean approved,
+            String rejectionReason,
+            BigDecimal refundedAmount) {
+        NotificationEventType eventType = approved
+                ? NotificationEventType.TEACHING_REQUEST_APPROVED
+                : NotificationEventType.TEACHING_REQUEST_REJECTED;
+        NotificationContent template = templateFactory.create(new NotificationDomainEvent(
+                recipient.getId(), eventType, NotificationReferenceType.TEACHING_REQUEST, teachingRequestId,
+                java.util.Map.of(
+                        "name", requestTitle == null ? "" : requestTitle,
+                        "reason", rejectionReason == null ? "" : rejectionReason,
+                        "amount", refundedAmount == null ? "" : refundedAmount.toPlainString()),
+                null));
+        notificationRepository.save(Notification.builder()
+                .user(recipient)
+                .title(template.title())
+                .content(template.content())
+                .referenceId(teachingRequestId)
+                .type(template.type())
+                .eventType(eventType)
+                .referenceType(NotificationReferenceType.TEACHING_REQUEST)
+                .isRead(false)
+                .build());
     }
 }

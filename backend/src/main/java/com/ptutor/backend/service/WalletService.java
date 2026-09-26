@@ -250,7 +250,7 @@ public class WalletService {
 
     private boolean isCreditPurpose(WalletTransactionPurpose purpose) {
         return switch (purpose) {
-            case TOP_UP, TUTOR_EARNING, CONTRACT_REFUND, WITHDRAWAL_REVERSAL -> true;
+            case TOP_UP, TUTOR_EARNING, CONTRACT_REFUND, TEACHING_REQUEST_REFUND, WITHDRAWAL_REVERSAL -> true;
             default -> false;
         };
     }

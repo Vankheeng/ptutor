@@ -784,7 +784,28 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 
 API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
-### 6.16. Đánh giá (Review)
+### 6.16. API Admin/Employee duyệt yêu cầu dạy
+
+Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Danh sách mặc định trả về các yêu cầu
+`PENDING_REVIEW`; có thể lọc thêm `OPEN` và `REJECTED`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/teaching-requests` | Danh sách yêu cầu theo `status`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/teaching-requests/{teachingRequestId}` | Xem chi tiết yêu cầu và kết quả duyệt |
+| `PATCH` | `/api/v1/admin/teaching-requests/{teachingRequestId}/approve` | Duyệt nội dung; tạo môn mới hoặc liên kết môn có sẵn nếu tutor đề xuất môn ngoài danh mục, rồi chuyển sang `OPEN` |
+| `PATCH` | `/api/v1/admin/teaching-requests/{teachingRequestId}/reject` | Chuyển sang `REJECTED` và hoàn phí đăng vào số dư ví gia sư |
+
+Chỉ yêu cầu `PENDING_REVIEW` mới được approve hoặc reject. Khi reject, hệ thống hoàn đúng
+`Payment.amount` vào `wallet.balance`, tạo ledger `TEACHING_REQUEST_REFUND`, chuyển payment từ
+`PAID` sang `REFUNDED`, rồi lưu người duyệt, thời gian và lý do từ chối trong cùng transaction.
+
+Yêu cầu sau thanh toán chuyển vào `PENDING_REVIEW` khi trường `note` có nội dung **hoặc** tutor
+đề xuất môn chưa có trong hệ thống. Nếu là môn tự nhập, admin gửi `subjectResolution.action` bằng
+`CREATE` cùng tên/mô tả đã chỉnh sửa để tạo môn `ACTIVE`, hoặc `USE_EXISTING` cùng `subjectId` để
+liên kết một môn `ACTIVE` có sẵn. Việc xử lý môn và mở yêu cầu chạy trong cùng một transaction.
+
+### 6.17. Đánh giá (Review)
 
 API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nhất được trả về; tên học viên được ẩn danh.
 
@@ -792,7 +813,7 @@ API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nh
 | --- | --- | --- |
 | `GET` | `/api/v1/reviews?limit=3` | Lấy tối đa 50 đánh giá 5 sao mới nhất. |
 
-### 6.17. API Payment VNPay
+### 6.18. API Payment VNPay
 
 Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VNPay. Browser return URL chỉ chuyển người dùng về frontend để kiểm tra lại trạng thái Payment.
 
@@ -819,7 +840,7 @@ Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client
 Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
 
 
-### 6.18. API Notifications in-app
+### 6.19. API Notifications in-app
 
 Các API notification yêu cầu `Authorization: Bearer <access-token>` và chỉ trả về notification của user đang đăng nhập. Hỗ trợ các role `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`.
 
