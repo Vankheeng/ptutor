@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.ptutor.backend.dto.request.ComplaintCreateRequest;
+import com.ptutor.backend.dto.request.ComplaintEvidenceSubmissionRequest;
 import com.ptutor.backend.dto.request.ComplaintUpdateRequest;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -43,7 +45,7 @@ class ComplaintControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(new ComplaintController(
                 complaintService, new ApiResponseFactory(Clock.systemUTC()), currentUserProvider)).build();
         userId = UUID.randomUUID();
-        when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
     }
 
     @Test
@@ -92,5 +94,29 @@ class ComplaintControllerTest {
                 .andExpect(status().isOk());
 
         verify(complaintService).update(eq(userId), eq(complaintId), any(ComplaintUpdateRequest.class));
+    }
+
+    @Test
+    void submitEvidenceUsesCurrentUser() throws Exception {
+        UUID complaintId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/users/me/complaints/{complaintId}/evidences", complaintId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"evidences":[{"fileUrl":"https://cdn.example.com/new.png",
+                                "fileType":"image/png"}]}
+                                """))
+                .andExpect(status().isOk());
+
+        verify(complaintService).submitEvidence(
+                eq(userId), eq(complaintId), any(ComplaintEvidenceSubmissionRequest.class));
+    }
+
+    @Test
+    void submitEvidenceRequiresAtLeastOneFile() throws Exception {
+        mockMvc.perform(post("/api/v1/users/me/complaints/{complaintId}/evidences", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"evidences\":[]}"))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -59,6 +59,11 @@ public final class SecurityConstants {
             "/api/v1/admin/teaching-requests/**"
     };
 
+    public static final String[] ADMIN_COMPLAINT_API = {
+            "/api/v1/admin/complaints",
+            "/api/v1/admin/complaints/**"
+    };
+
     public static final String[] ADMIN_SUBJECT_API = {
             "/api/v1/admin/subjects"
     };
@@ -80,6 +85,11 @@ public final class SecurityConstants {
     public static final String[] CONTRACT_SELF_SERVICE_API = {
             "/api/v1/users/me/contracts",
             "/api/v1/users/me/contracts/**"
+    };
+
+    public static final String[] COMPLAINT_SELF_SERVICE_API = {
+            "/api/v1/users/me/complaints",
+            "/api/v1/users/me/complaints/**"
     };
 
     public static final String[] WALLET_SELF_SERVICE_API = {

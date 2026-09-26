@@ -8,5 +8,6 @@ public enum NotificationReferenceType {
     TUTOR_STUDENT_REQUEST,
     STUDENT_TUTOR_REQUEST,
     CERTIFICATE,
-    INSTALLMENT
+    INSTALLMENT,
+    COMPLAINT
 }

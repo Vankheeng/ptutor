@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.dto.request.ComplaintCreateRequest;
+import com.ptutor.backend.dto.request.ComplaintEvidenceSubmissionRequest;
 import com.ptutor.backend.dto.request.ComplaintUpdateRequest;
 import com.ptutor.backend.dto.response.ComplaintResponse;
 import com.ptutor.backend.entity.Complaint;
@@ -117,7 +118,7 @@ class ComplaintServiceTest {
     void cancelsPendingComplaintOwnedByCurrentUser() {
         UUID complaintId = UUID.randomUUID();
         Complaint complaint = complaint(complaintId, ComplaintStatus.PENDING);
-        when(complaintRepository.findByIdAndUser_Id(complaintId, userId)).thenReturn(Optional.of(complaint));
+        when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
         when(complaintRepository.saveAndFlush(complaint)).thenReturn(complaint);
         when(evidenceRepository.findAllByComplaint_IdInOrderByCreatedAtAsc(List.of(complaintId))).thenReturn(List.of());
 
@@ -133,7 +134,7 @@ class ComplaintServiceTest {
         Complaint complaint = complaint(complaintId, ComplaintStatus.PENDING);
         Evidence oldEvidence = Evidence.builder().complaint(complaint)
                 .fileUrl("https://cdn.example.com/old.png").fileType("image/png").build();
-        when(complaintRepository.findByIdAndUser_Id(complaintId, userId)).thenReturn(Optional.of(complaint));
+        when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
         when(complaintRepository.saveAndFlush(complaint)).thenReturn(complaint);
         when(evidenceRepository.findAllByComplaint_IdInOrderByCreatedAtAsc(List.of(complaintId)))
                 .thenReturn(List.of(oldEvidence));
@@ -151,7 +152,7 @@ class ComplaintServiceTest {
     @Test
     void cannotUpdateComplaintAlreadyInReview() {
         UUID complaintId = UUID.randomUUID();
-        when(complaintRepository.findByIdAndUser_Id(complaintId, userId))
+        when(complaintRepository.findByIdForUpdate(complaintId))
                 .thenReturn(Optional.of(complaint(complaintId, ComplaintStatus.IN_REVIEW)));
 
         assertThatThrownBy(() -> service.update(userId, complaintId, updateRequest()))
@@ -164,13 +165,52 @@ class ComplaintServiceTest {
     @Test
     void cannotCancelComplaintAlreadyInReview() {
         UUID complaintId = UUID.randomUUID();
-        when(complaintRepository.findByIdAndUser_Id(complaintId, userId))
+        when(complaintRepository.findByIdForUpdate(complaintId))
                 .thenReturn(Optional.of(complaint(complaintId, ComplaintStatus.IN_REVIEW)));
 
         assertThatThrownBy(() -> service.cancel(userId, complaintId))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(exception.getCode()).isEqualTo("INVALID_COMPLAINT_STATUS_TRANSITION");
+                });
+    }
+
+    @Test
+    void submitsAdditionalEvidenceAndReturnsComplaintToReview() {
+        UUID complaintId = UUID.randomUUID();
+        Complaint complaint = complaint(complaintId, ComplaintStatus.AWAITING_EVIDENCE);
+        Evidence evidence = Evidence.builder().complaint(complaint)
+                .fileUrl("https://cdn.example.com/additional.png").fileType("image/png").build();
+        when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
+        when(evidenceRepository.saveAll(any())).thenReturn(List.of(evidence));
+        when(complaintRepository.saveAndFlush(complaint)).thenReturn(complaint);
+        when(evidenceRepository.findAllByComplaint_IdInOrderByCreatedAtAsc(List.of(complaintId)))
+                .thenReturn(List.of(evidence));
+
+        ComplaintEvidenceSubmissionRequest request = new ComplaintEvidenceSubmissionRequest(List.of(
+                new ComplaintCreateRequest.Evidence(
+                        "https://cdn.example.com/additional.png", "image/png")));
+        ComplaintResponse response = service.submitEvidence(userId, complaintId, request);
+
+        assertThat(response.status()).isEqualTo(ComplaintStatus.IN_REVIEW);
+        assertThat(response.resolution()).isNull();
+        assertThat(response.evidences()).hasSize(1);
+    }
+
+    @Test
+    void rejectsAdditionalEvidenceFromAnotherUser() {
+        UUID complaintId = UUID.randomUUID();
+        Complaint complaint = complaint(complaintId, ComplaintStatus.AWAITING_EVIDENCE);
+        when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
+
+        ComplaintEvidenceSubmissionRequest request = new ComplaintEvidenceSubmissionRequest(List.of(
+                new ComplaintCreateRequest.Evidence(
+                        "https://cdn.example.com/additional.png", "image/png")));
+
+        assertThatThrownBy(() -> service.submitEvidence(UUID.randomUUID(), complaintId, request))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("COMPLAINT_NOT_FOUND");
                 });
     }
 

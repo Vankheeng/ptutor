@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.ComplaintCreateRequest;
+import com.ptutor.backend.dto.request.ComplaintEvidenceSubmissionRequest;
 import com.ptutor.backend.dto.request.ComplaintUpdateRequest;
 import com.ptutor.backend.dto.response.ComplaintResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -82,5 +83,15 @@ public class ComplaintController {
         return ResponseEntity.ok(responseFactory.success(
                 complaintService.cancel(currentUserProvider.getCurrentUserId(), complaintId),
                 BASE_PATH + "/" + complaintId + "/cancel"));
+    }
+
+    @PostMapping("/{complaintId}/evidences")
+    public ResponseEntity<ApiResponse<ComplaintResponse>> submitEvidence(
+            @PathVariable UUID complaintId,
+            @Valid @RequestBody ComplaintEvidenceSubmissionRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                complaintService.submitEvidence(
+                        currentUserProvider.getCurrentUserId(), complaintId, request),
+                BASE_PATH + "/" + complaintId + "/evidences"));
     }
 }

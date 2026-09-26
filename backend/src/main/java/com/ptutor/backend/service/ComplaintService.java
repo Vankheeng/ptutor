@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.ComplaintCreateRequest;
+import com.ptutor.backend.dto.request.ComplaintEvidenceSubmissionRequest;
 import com.ptutor.backend.dto.request.ComplaintUpdateRequest;
 import com.ptutor.backend.dto.response.ComplaintResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -77,8 +78,7 @@ public class ComplaintService {
 
     @Transactional
     public ComplaintResponse update(UUID userId, UUID complaintId, ComplaintUpdateRequest source) {
-        Complaint complaint = complaintRepository.findByIdAndUser_Id(complaintId, userId)
-                .orElseThrow(() -> complaintNotFound(complaintId));
+        Complaint complaint = findMineForUpdate(userId, complaintId);
         ensurePending(complaint, "updated");
 
         complaint.setTitle(normalize(source.title()));
@@ -96,13 +96,29 @@ public class ComplaintService {
 
     @Transactional
     public ComplaintResponse cancel(UUID userId, UUID complaintId) {
-        Complaint complaint = complaintRepository.findByIdAndUser_Id(complaintId, userId)
-                .orElseThrow(() -> complaintNotFound(complaintId));
+        Complaint complaint = findMineForUpdate(userId, complaintId);
         ensurePending(complaint, "cancelled");
 
         complaint.setStatus(ComplaintStatus.CANCELLED);
         Complaint saved = complaintRepository.saveAndFlush(complaint);
         return toResponse(saved, evidenceRepository.findAllByComplaint_IdInOrderByCreatedAtAsc(List.of(complaintId)));
+    }
+
+    @Transactional
+    public ComplaintResponse submitEvidence(
+            UUID userId, UUID complaintId, ComplaintEvidenceSubmissionRequest source) {
+        Complaint complaint = findMineForUpdate(userId, complaintId);
+        if (complaint.getStatus() != ComplaintStatus.AWAITING_EVIDENCE) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_COMPLAINT_STATUS_TRANSITION",
+                    "Evidence can only be submitted for an AWAITING_EVIDENCE complaint");
+        }
+
+        saveEvidences(complaint, source.evidences());
+        complaint.setStatus(ComplaintStatus.IN_REVIEW);
+        complaint.setResolution(null);
+        Complaint saved = complaintRepository.saveAndFlush(complaint);
+        return toResponse(saved,
+                evidenceRepository.findAllByComplaint_IdInOrderByCreatedAtAsc(List.of(complaintId)));
     }
 
     private List<Evidence> saveEvidences(Complaint complaint, List<ComplaintCreateRequest.Evidence> source) {
@@ -144,6 +160,15 @@ public class ComplaintService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND",
                         "Authenticated user not found"));
+    }
+
+    private Complaint findMineForUpdate(UUID userId, UUID complaintId) {
+        Complaint complaint = complaintRepository.findByIdForUpdate(complaintId)
+                .orElseThrow(() -> complaintNotFound(complaintId));
+        if (!userId.equals(complaint.getUser().getId())) {
+            throw complaintNotFound(complaintId);
+        }
+        return complaint;
     }
 
     private void ensurePending(Complaint complaint, String action) {

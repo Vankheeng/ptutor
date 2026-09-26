@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
 public class LessonService {
 
     private static final List<ComplaintStatus> BLOCKING_COMPLAINT_STATUSES =
-            List.of(ComplaintStatus.PENDING, ComplaintStatus.IN_REVIEW);
+            List.of(ComplaintStatus.PENDING, ComplaintStatus.IN_REVIEW, ComplaintStatus.AWAITING_EVIDENCE);
 
     private final LessonRepository lessonRepository;
     private final ContractRepository contractRepository;

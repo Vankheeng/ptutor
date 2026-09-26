@@ -36,6 +36,19 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 
+    @EntityGraph(attributePaths = { "paymentInstallment" })
+    @Query("""
+            select payment
+            from Payment payment
+            left join payment.paymentInstallment installment
+            where installment.contract.id = :contractId
+               or (payment.referenceType = :referenceType and payment.referenceId = :contractId)
+            order by payment.createdAt desc
+            """)
+    List<Payment> findAllForContract(
+            @Param("contractId") UUID contractId,
+            @Param("referenceType") ReferenceType referenceType);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select payment from Payment payment

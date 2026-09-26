@@ -20,6 +20,8 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
     Page<Lesson> findAllByContract_IdAndStatus(UUID contractId, LessonStatus status, Pageable pageable);
 
+    List<Lesson> findAllByContract_IdOrderByDateAscStartTimeAsc(UUID contractId);
+
     @Query("""
             select lesson
             from Lesson lesson
