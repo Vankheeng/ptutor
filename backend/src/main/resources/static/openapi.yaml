@@ -51,6 +51,8 @@ tags:
     description: Subject operations for employees and administrators
   - name: Admin Grades
     description: Grade operations for employees and administrators
+  - name: Admin User Accounts
+    description: Student and tutor account suspension operations for employees and administrators
   - name: Districts
     description: District catalog used by profile and teaching-request forms
 security:
@@ -124,6 +126,11 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '423':
+          description: Credentials are valid but the account is suspended or inactive
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -2872,6 +2879,98 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/admin/users:
+    get:
+      tags: [Admin User Accounts]
+      summary: List student and tutor accounts
+      operationId: listManagedUsers
+      parameters:
+        - name: role
+          in: query
+          schema: { type: string, enum: [STUDENT, TUTOR] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Managed user page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserAccountPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/users/{userId}:
+    get:
+      tags: [Admin User Accounts]
+      summary: Get a student or tutor account
+      operationId: getManagedUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Managed user details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserAccountResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/suspend:
+    patch:
+      tags: [Admin User Accounts]
+      summary: Suspend a student or tutor account
+      operationId: suspendUserAccount
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SuspendAccountRequest' }
+      responses:
+        '200':
+          description: Account suspended and active refresh tokens revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserAccountResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/users/{userId}/reactivate:
+    patch:
+      tags: [Admin User Accounts]
+      summary: Reactivate a suspended student or tutor account
+      operationId: reactivateUserAccount
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReactivateAccountRequest' }
+      responses:
+        '200':
+          description: Account reactivated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserAccountResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3039,6 +3138,68 @@ components:
       example: withdrawal-2026-09-07-001
 
   schemas:
+    SuspendAccountRequest:
+      type: object
+      required: [type, reason]
+      properties:
+        type:
+          type: string
+          enum: [TEMPORARY, PERMANENT]
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 1000
+        suspendedUntil:
+          type: string
+          format: date-time
+          nullable: true
+          description: Required for TEMPORARY and forbidden for PERMANENT. The value is interpreted as an instant.
+
+    ReactivateAccountRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 1000
+
+    AdminUserAccountResponse:
+      type: object
+      required: [userId, email, role, status, suspensionCount]
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        role: { type: string, enum: [STUDENT, TUTOR] }
+        status: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        suspensionType: { type: string, enum: [TEMPORARY, PERMANENT], nullable: true }
+        suspensionReason: { type: string, nullable: true }
+        suspendedAt: { type: string, format: date-time, nullable: true }
+        suspendedUntil: { type: string, format: date-time, nullable: true }
+        suspendedByUserId: { type: string, format: uuid, nullable: true }
+        reactivatedAt: { type: string, format: date-time, nullable: true }
+        reactivatedByUserId: { type: string, format: uuid, nullable: true }
+        reactivationReason: { type: string, nullable: true }
+        suspensionCount: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminUserAccountPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminUserAccountResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
     RegisterRequest:
       type: object
       required:
@@ -5235,6 +5396,20 @@ components:
           properties:
             data: { $ref: '#/components/schemas/AdminComplaintPageResponse' }
 
+    AdminUserAccountResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminUserAccountResponse' }
+
+    AdminUserAccountPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminUserAccountPageResponse' }
+
     LessonResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -5540,9 +5715,16 @@ components:
             - CONTRACT_RENEWAL_PROPOSED
             - CERTIFICATE_APPROVED
             - CERTIFICATE_REJECTED
+            - TEACHING_REQUEST_APPROVED
+            - TEACHING_REQUEST_REJECTED
+            - COMPLAINT_EVIDENCE_REQUESTED
+            - COMPLAINT_RESOLVED
+            - COMPLAINT_REJECTED
+            - ACCOUNT_SUSPENDED
+            - ACCOUNT_REACTIVATED
         referenceType:
           type: string
-          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT]
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }

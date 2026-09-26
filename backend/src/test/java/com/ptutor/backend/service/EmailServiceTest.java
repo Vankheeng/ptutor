@@ -55,4 +55,19 @@ class EmailServiceTest {
                     assertThat(exception.getCode()).isEqualTo("EMAIL_DELIVERY_FAILED");
                 });
     }
+
+    @Test
+    void sendTemporarySuspensionIncludesReasonAndEndTime() {
+        emailService.sendAccountSuspended(
+                "student@example.com",
+                "Repeated platform abuse",
+                "TEMPORARY",
+                "2026-10-01T00:00:00Z");
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertThat(captor.getValue().getSubject()).contains("suspended");
+        assertThat(captor.getValue().getText())
+                .contains("Repeated platform abuse", "2026-10-01T00:00:00Z");
+    }
 }

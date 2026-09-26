@@ -21,6 +21,7 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.InvalidTokenRepository;
 import com.ptutor.backend.entity.InvalidToken;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.UserStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +33,7 @@ public class RefreshTokenService {
     private final JwtService jwtService;
     private final RoleResolver roleResolver;
     private final Clock clock;
+    private final UserAccessService userAccessService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.security.jwt.refresh-token-ttl:2592000}")
@@ -66,7 +68,7 @@ public class RefreshTokenService {
                 .orElseThrow(this::invalidRefreshToken);
 
         if (storedToken.getRevokedAt() != null) {
-            revokeAll(storedToken.getUser().getId());
+            revokeAllForUser(storedToken.getUser().getId());
             throw invalidRefreshToken();
         }
 
@@ -77,11 +79,15 @@ public class RefreshTokenService {
         }
 
         if (invalidTokenRepository.revokeIfActive(storedToken.getId(), now) != 1) {
-            revokeAll(storedToken.getUser().getId());
+            revokeAllForUser(storedToken.getUser().getId());
             throw invalidRefreshToken();
         }
 
-        User user = storedToken.getUser();
+        User user = userAccessService.refreshAccessState(storedToken.getUser().getId());
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            revokeAllForUser(user.getId());
+            throw invalidRefreshToken();
+        }
         UserRole role = roleResolver.resolve(user);
         return issue(user, role);
     }
@@ -95,12 +101,9 @@ public class RefreshTokenService {
         });
     }
 
-    private void revokeAll(java.util.UUID userId) {
-        LocalDateTime now = now();
-        invalidTokenRepository.findByUser_IdAndRevokedAtIsNull(userId).forEach(token -> {
-            token.setRevokedAt(now);
-            invalidTokenRepository.save(token);
-        });
+    @Transactional
+    public void revokeAllForUser(java.util.UUID userId) {
+        invalidTokenRepository.revokeAllByUserId(userId, now());
     }
 
     private String generateToken() {

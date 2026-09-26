@@ -60,6 +60,16 @@ class NotificationTemplateFactory {
                     "Complaint accepted", "Your complaint has been accepted. Resolution: " + reason);
             case COMPLAINT_REJECTED -> content(NotificationType.COMPLAINT,
                     "Complaint rejected", "Your complaint has been rejected. Reason: " + reason);
+            case ACCOUNT_SUSPENDED -> {
+                String until = data.getOrDefault("until", "");
+                String duration = "TEMPORARY".equals(data.get("type"))
+                        ? " until " + until
+                        : " permanently";
+                yield content(NotificationType.SYSTEM, "Account suspended",
+                        "Your account has been suspended" + duration + ". Reason: " + reason);
+            }
+            case ACCOUNT_REACTIVATED -> content(NotificationType.SYSTEM,
+                    "Account reactivated", "Your account has been reactivated.");
         };
     }
 

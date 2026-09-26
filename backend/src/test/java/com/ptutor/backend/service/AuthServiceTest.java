@@ -52,6 +52,7 @@ class AuthServiceTest {
     @Mock RefreshTokenService refreshTokenService;
     @Mock CitizenIdCryptoService citizenIdCryptoService;
     @Mock WalletRepository walletRepository;
+    @Mock UserAccessService userAccessService;
 
     private AuthService authService;
     private UUID userId;
@@ -65,7 +66,7 @@ class AuthServiceTest {
         authService = new AuthService(
                 userRepository, studentRepository, tutorRepository,
                 provinceRepository, districtRepository, userMapper, passwordEncoder,
-                roleResolver, refreshTokenService, citizenIdCryptoService, walletRepository);
+                roleResolver, refreshTokenService, citizenIdCryptoService, walletRepository, userAccessService);
         userId = UUID.randomUUID();
         provinceId = UUID.randomUUID();
         districtId = UUID.randomUUID();
@@ -202,6 +203,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmailIgnoreCase("student@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Password123", "bcrypt-hash")).thenReturn(true);
+        when(userAccessService.refreshAccessState(userId)).thenReturn(user);
         when(roleResolver.resolve(user)).thenReturn(UserRole.STUDENT);
         when(refreshTokenService.issue(user, UserRole.STUDENT)).thenReturn(tokenResponse);
 
@@ -215,6 +217,26 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(new LoginRequest("student@example.com", "bad")))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("incorrect");
+    }
+
+    @Test
+    void loginReportsTemporarySuspensionAfterPasswordIsVerified() {
+        User user = User.builder()
+                .email("student@example.com")
+                .password("bcrypt-hash")
+                .status(UserStatus.BLOCKED)
+                .suspensionType(com.ptutor.backend.entity.enums.SuspensionType.TEMPORARY)
+                .suspensionReason("Repeated platform abuse")
+                .suspendedUntil(java.time.LocalDateTime.of(2026, 10, 1, 0, 0))
+                .build();
+        user.setId(userId);
+        when(userRepository.findByEmailIgnoreCase("student@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Password123", "bcrypt-hash")).thenReturn(true);
+        when(userAccessService.refreshAccessState(userId)).thenReturn(user);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("student@example.com", "Password123")))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("suspended until");
     }
 
     private RegisterRequest request(String role) {

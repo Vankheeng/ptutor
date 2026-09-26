@@ -30,6 +30,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -47,6 +49,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
 import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
@@ -62,6 +65,8 @@ import static com.ptutor.backend.config.SecurityConstants.PAYMENT_CALLBACK_API;
 import static com.ptutor.backend.config.SecurityConstants.PAYMENT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.NOTIFICATION_SELF_SERVICE_API;
 
+import com.ptutor.backend.security.AccountStatusFilter;
+
 
 @Configuration
 public class SecurityConfig {
@@ -74,6 +79,14 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public FilterRegistrationBean<AccountStatusFilter> accountStatusFilterRegistration(
+            AccountStatusFilter accountStatusFilter) {
+        FilterRegistrationBean<AccountStatusFilter> registration = new FilterRegistrationBean<>(accountStatusFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
@@ -116,6 +129,7 @@ public class SecurityConfig {
             CorsConfigurationSource corsConfigurationSource,
             ObjectMapper objectMapper,
             ApiResponseFactory responseFactory,
+            AccountStatusFilter accountStatusFilter,
             Environment environment) throws Exception {
         boolean productionProfile = environment.acceptsProfiles(Profiles.of("prod"));
         http
@@ -139,6 +153,7 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_TEACHING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_SUBJECT_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_GRADE_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_USER_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
@@ -156,6 +171,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                .addFilterAfter(accountStatusFilter, BearerTokenAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();

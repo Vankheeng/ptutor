@@ -39,4 +39,27 @@ public class EmailService {
                     "Unable to send password reset email");
         }
     }
+
+    public void sendAccountSuspended(
+            String recipientEmail, String reason, String type, String suspendedUntil) {
+        String duration = "TEMPORARY".equals(type)
+                ? " until " + suspendedUntil
+                : " permanently";
+        send(recipientEmail, "PTutor account suspended",
+                "Your PTutor account has been suspended" + duration + ".\nReason: " + reason);
+    }
+
+    public void sendAccountReactivated(String recipientEmail) {
+        send(recipientEmail, "PTutor account reactivated",
+                "Your PTutor account has been reactivated. You can sign in again.");
+    }
+
+    private void send(String recipientEmail, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(recipientEmail);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
+    }
 }

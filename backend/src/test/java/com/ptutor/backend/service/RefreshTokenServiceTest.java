@@ -10,7 +10,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,6 +33,7 @@ class RefreshTokenServiceTest {
     @Mock InvalidTokenRepository invalidTokenRepository;
     @Mock JwtService jwtService;
     @Mock RoleResolver roleResolver;
+    @Mock UserAccessService userAccessService;
 
     private RefreshTokenService refreshTokenService;
     private final Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
@@ -41,10 +41,12 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        refreshTokenService = new RefreshTokenService(invalidTokenRepository, jwtService, roleResolver, clock);
+        refreshTokenService = new RefreshTokenService(
+                invalidTokenRepository, jwtService, roleResolver, clock, userAccessService);
         ReflectionTestUtils.setField(refreshTokenService, "refreshTokenTtlSeconds", 3600L);
         user = User.builder().email("student@example.com").build();
         user.setId(UUID.randomUUID());
+        user.setStatus(com.ptutor.backend.entity.enums.UserStatus.ACTIVE);
     }
 
     @Test
@@ -63,6 +65,7 @@ class RefreshTokenServiceTest {
         when(jwtService.createAccessToken(user.getId(), user.getEmail(), UserRole.STUDENT)).thenReturn("access-token");
         when(invalidTokenRepository.revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0)))
                 .thenReturn(1);
+        when(userAccessService.refreshAccessState(user.getId())).thenReturn(user);
 
         AuthTokenResponse response = refreshTokenService.refresh(rawToken);
 
@@ -81,20 +84,14 @@ class RefreshTokenServiceTest {
                 .revokedAt(LocalDateTime.of(2025, 12, 31, 23, 0))
                 .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
                 .build();
-        InvalidToken active = InvalidToken.builder()
-                .user(user)
-                .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
-                .build();
         when(invalidTokenRepository.findByToken(RefreshTokenService.hash(rawToken)))
                 .thenReturn(Optional.of(revoked));
-        when(invalidTokenRepository.findByUser_IdAndRevokedAtIsNull(user.getId()))
-                .thenReturn(List.of(active));
 
         assertThatThrownBy(() -> refreshTokenService.refresh(rawToken))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("invalid");
-        assertThat(active.getRevokedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
-        verify(invalidTokenRepository).save(active);
+        verify(invalidTokenRepository).revokeAllByUserId(
+                user.getId(), LocalDateTime.of(2026, 1, 1, 0, 0));
     }
 
     @Test
@@ -115,21 +112,16 @@ class RefreshTokenServiceTest {
                 .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
                 .build();
         stored.setId(UUID.randomUUID());
-        InvalidToken active = InvalidToken.builder()
-                .user(user)
-                .expiresAt(LocalDateTime.of(2026, 1, 1, 1, 0))
-                .build();
         when(invalidTokenRepository.findByToken(RefreshTokenService.hash(rawToken)))
                 .thenReturn(Optional.of(stored));
         when(invalidTokenRepository.revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0)))
                 .thenReturn(0);
-        when(invalidTokenRepository.findByUser_IdAndRevokedAtIsNull(user.getId()))
-                .thenReturn(List.of(active));
 
         assertThatThrownBy(() -> refreshTokenService.refresh(rawToken))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("invalid");
         verify(invalidTokenRepository).revokeIfActive(stored.getId(), LocalDateTime.of(2026, 1, 1, 0, 0));
-        verify(invalidTokenRepository).save(active);
+        verify(invalidTokenRepository).revokeAllByUserId(
+                user.getId(), LocalDateTime.of(2026, 1, 1, 0, 0));
     }
 }
