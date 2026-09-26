@@ -2789,7 +2789,11 @@ paths:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
-        '200': { description: Paginated financial transaction history }
+        '200':
+          description: Paginated financial transaction history
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinancialTransactionPageResponseEnvelope' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
@@ -2973,6 +2977,198 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/admin/users/{userId}/student-profile:
+    get:
+      tags: [Admin User Accounts]
+      summary: Get a student's personal and learning profile
+      operationId: getManagedStudentProfile
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Student profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudentProfileResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/learning-history:
+    get:
+      tags: [Admin User Accounts]
+      summary: List a student's lessons and learning statistics
+      operationId: listManagedStudentLearningHistory
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: lessonStatus
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
+        - name: contractStatus
+          in: query
+          schema: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Student learning history
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudentLearningHistoryResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/learning-history/{lessonId}:
+    get:
+      tags: [Admin User Accounts]
+      summary: Get one lesson belonging to a student
+      operationId: getManagedStudentLesson
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: lessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Student lesson
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudentLessonResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/contracts:
+    get:
+      tags: [Admin User Accounts]
+      summary: List contracts belonging to a student
+      operationId: listManagedStudentContracts
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Student contract page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/contracts/{contractId}:
+    get:
+      tags: [Admin User Accounts]
+      summary: Get one contract belonging to a student
+      operationId: getManagedStudentContract
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: contractId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Student contract
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/transactions:
+    get:
+      tags: [Admin User Accounts]
+      summary: List a student's financial transactions
+      operationId: listManagedStudentTransactions
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: source
+          in: query
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Student transaction page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinancialTransactionPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/transactions/{source}/{transactionId}:
+    get:
+      tags: [Admin User Accounts]
+      summary: Get one financial transaction belonging to a student
+      operationId: getManagedStudentTransaction
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: source
+          in: path
+          required: true
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: transactionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Student transaction
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinancialTransactionResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/users/{userId}/complaints:
+    get:
+      tags: [Admin User Accounts]
+      summary: List complaint summaries related to a student
+      description: USER_SUPPORT receives summaries only; complaint evidence remains in the complaint workflow.
+      operationId: listManagedStudentComplaints
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: relation
+          in: query
+          schema: { type: string, enum: [SUBMITTED, RECEIVED, ALL], default: ALL }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Related complaint summary page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudentComplaintPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/admin/employees:
     get:
       tags: [Admin Employees]
@@ -3118,6 +3314,13 @@ components:
       bearerFormat: JWT
 
   parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     TeachingRequestId:
       name: requestId
       in: path
@@ -3433,6 +3636,122 @@ components:
         content:
           type: array
           items: { $ref: '#/components/schemas/AdminUserAccountResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminStudentLessonResponse:
+      type: object
+      required: [lessonId, contractId, contractStatus, subjectId, gradeId, tutorUserId, date, status]
+      properties:
+        lessonId: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        contractStatus: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        subjectId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        tutorUserId: { type: string, format: uuid }
+        tutorName: { type: string }
+        tutorEmail: { type: string, format: email }
+        title: { type: string, nullable: true }
+        date: { type: string, format: date }
+        startTime: { type: string, format: time, nullable: true }
+        endTime: { type: string, format: time, nullable: true }
+        teachingMode: { type: string, enum: [ONLINE, OFFLINE], nullable: true }
+        status:
+          type: string
+          enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminStudentLessonPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminStudentLessonResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminStudentLessonSummary:
+      type: object
+      required: [total, scheduled, pendingConfirmation, confirmed, completed, cancelled]
+      properties:
+        total: { type: integer, format: int64 }
+        scheduled: { type: integer, format: int64 }
+        pendingConfirmation: { type: integer, format: int64 }
+        confirmed: { type: integer, format: int64 }
+        completed: { type: integer, format: int64 }
+        cancelled: { type: integer, format: int64 }
+
+    AdminStudentLearningHistoryResponse:
+      type: object
+      required: [summary, lessons]
+      properties:
+        summary: { $ref: '#/components/schemas/AdminStudentLessonSummary' }
+        lessons: { $ref: '#/components/schemas/AdminStudentLessonPageResponse' }
+
+    AdminStudentComplaintResponse:
+      type: object
+      required: [complaintId, relation, complainantUserId, contractId, title, status, createdAt, updatedAt]
+      properties:
+        complaintId: { type: string, format: uuid }
+        relation: { type: string, enum: [SUBMITTED, RECEIVED] }
+        complainantUserId: { type: string, format: uuid }
+        complainantName: { type: string }
+        complainantEmail: { type: string, format: email }
+        contractId: { type: string, format: uuid }
+        title: { type: string }
+        status:
+          type: string
+          enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
+        assignedEmployeeId: { type: string, format: uuid, nullable: true }
+        assignedEmployeeName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminStudentComplaintPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminStudentComplaintResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    FinancialTransactionResponse:
+      type: object
+      required: [id, source, type, method, status, amount, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        source: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        type: { type: string }
+        method: { type: string }
+        status: { type: string }
+        amount: { type: number }
+        referenceId: { type: string, format: uuid, nullable: true }
+        description: { type: string, nullable: true }
+        occurredAt: { type: string, format: date-time }
+
+    FinancialTransactionPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/FinancialTransactionResponse' }
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }
@@ -5649,6 +5968,41 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminUserAccountPageResponse' }
+
+    AdminStudentLessonResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudentLessonResponse' }
+
+    AdminStudentLearningHistoryResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudentLearningHistoryResponse' }
+
+    AdminStudentComplaintPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudentComplaintPageResponse' }
+
+    FinancialTransactionResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/FinancialTransactionResponse' }
+
+    FinancialTransactionPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/FinancialTransactionPageResponse' }
 
     AdminEmployeeDetailResponseEnvelope:
       allOf:

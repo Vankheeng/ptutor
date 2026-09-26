@@ -62,6 +62,35 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
             @Param("contractId") UUID contractId,
             @Param("userId") UUID userId);
 
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.student.user.id = :userId
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllForStudentUser(
+            @Param("userId") UUID userId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and contract.student.user.id = :userId
+            """)
+    Optional<Contract> findDetailedByIdAndStudentUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {
             "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
