@@ -50,6 +50,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_EMPLOYEE_API;
 import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
@@ -66,6 +67,7 @@ import static com.ptutor.backend.config.SecurityConstants.PAYMENT_SELF_SERVICE_A
 import static com.ptutor.backend.config.SecurityConstants.NOTIFICATION_SELF_SERVICE_API;
 
 import com.ptutor.backend.security.AccountStatusFilter;
+import com.ptutor.backend.security.EmployeeFunctionAuthorizationFilter;
 
 
 @Configuration
@@ -85,6 +87,15 @@ public class SecurityConfig {
     public FilterRegistrationBean<AccountStatusFilter> accountStatusFilterRegistration(
             AccountStatusFilter accountStatusFilter) {
         FilterRegistrationBean<AccountStatusFilter> registration = new FilterRegistrationBean<>(accountStatusFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<EmployeeFunctionAuthorizationFilter> employeeFunctionAuthorizationFilterRegistration(
+            EmployeeFunctionAuthorizationFilter employeeFunctionAuthorizationFilter) {
+        FilterRegistrationBean<EmployeeFunctionAuthorizationFilter> registration =
+                new FilterRegistrationBean<>(employeeFunctionAuthorizationFilter);
         registration.setEnabled(false);
         return registration;
     }
@@ -130,6 +141,7 @@ public class SecurityConfig {
             ObjectMapper objectMapper,
             ApiResponseFactory responseFactory,
             AccountStatusFilter accountStatusFilter,
+            EmployeeFunctionAuthorizationFilter employeeFunctionAuthorizationFilter,
             Environment environment) throws Exception {
         boolean productionProfile = environment.acceptsProfiles(Profiles.of("prod"));
         http
@@ -148,6 +160,7 @@ public class SecurityConfig {
                         .requestMatchers(PAYMENT_CALLBACK_API).permitAll()
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
+                        .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TEACHING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
@@ -172,6 +185,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .addFilterAfter(accountStatusFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(employeeFunctionAuthorizationFilter, AccountStatusFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();

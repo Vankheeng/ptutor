@@ -27,6 +27,7 @@ import com.ptutor.backend.entity.Payment;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
+import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.ReferenceType;
@@ -123,6 +124,11 @@ public class AdminComplaintService {
         if (targetEmployee.getUser() == null || targetEmployee.getUser().getStatus() != UserStatus.ACTIVE) {
             throw new ApiException(HttpStatus.CONFLICT, "EMPLOYEE_NOT_ACTIVE",
                     "The target employee account must be active");
+        }
+        if (targetEmployee.getRole() != EmployeeRole.ADMIN
+                && targetEmployee.getJobFunction() != EmployeeJobFunction.COMPLAINT_HANDLER) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_EMPLOYEE_FUNCTION",
+                    "The target employee must be assigned to complaint handling");
         }
         if (complaint.getEmployee().getId().equals(targetEmployee.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "COMPLAINT_ALREADY_ASSIGNED_TO_EMPLOYEE",

@@ -77,6 +77,11 @@ public final class SecurityConstants {
             "/api/v1/admin/users/**"
     };
 
+    public static final String[] ADMIN_EMPLOYEE_API = {
+            "/api/v1/admin/employees",
+            "/api/v1/admin/employees/**"
+    };
+
     public static final String[] STUDENT_SELF_SERVICE_API = {
             "/api/v1/students/me",
             "/api/v1/students/me/**"

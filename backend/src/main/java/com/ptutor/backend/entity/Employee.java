@@ -6,6 +6,8 @@ import org.hibernate.annotations.SQLRestriction;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
@@ -20,6 +22,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 
 import com.ptutor.backend.entity.converter.EmployeeRoleConverter;
+import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.EmployeeRole;
 
 @Entity
@@ -44,5 +47,10 @@ public class Employee extends BaseEntity {
     @NonFinal
     @Convert(converter = EmployeeRoleConverter.class)
     private EmployeeRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "job_function", length = 50)
+    @NonFinal
+    private EmployeeJobFunction jobFunction;
 
 }
