@@ -26,6 +26,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByCitizenIdHash(String citizenIdHash);
 
+    Optional<User> findByCitizenIdHash(String citizenIdHash);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select user from User user where user.id = :userId")
     Optional<User> findByIdForUpdate(@Param("userId") UUID userId);

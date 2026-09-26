@@ -35,6 +35,7 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
+import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.TeachingMode;
@@ -152,7 +153,11 @@ class AdminComplaintServiceTest {
         Complaint complaint = complaint(ComplaintStatus.AWAITING_EVIDENCE, reviewer);
         complaint.setResolution("Provide a payment receipt");
         User targetUser = user(UUID.randomUUID(), "Employee", "Two", "employee2@ptutor.com");
-        Employee targetEmployee = Employee.builder().user(targetUser).role(EmployeeRole.EMPLOYEE).build();
+        Employee targetEmployee = Employee.builder()
+                .user(targetUser)
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.COMPLAINT_HANDLER)
+                .build();
         targetEmployee.setId(UUID.randomUUID());
         when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
         when(employeeRepository.findByUser_Id(reviewerUserId)).thenReturn(Optional.of(reviewer));

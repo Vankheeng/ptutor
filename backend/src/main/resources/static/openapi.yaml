@@ -53,6 +53,8 @@ tags:
     description: Grade operations for employees and administrators
   - name: Admin User Accounts
     description: Student and tutor account suspension operations for employees and administrators
+  - name: Admin Employees
+    description: Administrator-only employee account and job-function management
   - name: Districts
     description: District catalog used by profile and teaching-request forms
 security:
@@ -2971,6 +2973,143 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/admin/employees:
+    get:
+      tags: [Admin Employees]
+      summary: List employee accounts
+      description: Administrator-only paginated employee search. Administrator profiles are excluded.
+      operationId: listEmployees
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        - name: jobFunction
+          in: query
+          schema: { $ref: '#/components/schemas/EmployeeJobFunction' }
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Employee page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeePageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      tags: [Admin Employees]
+      summary: Create an active employee account
+      operationId: createEmployee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEmployeeRequest' }
+      responses:
+        '201':
+          description: Employee created and ready to sign in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeeDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/employees/{employeeId}:
+    parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Admin Employees]
+      summary: Get employee details
+      operationId: getEmployee
+      responses:
+        '200':
+          description: Employee details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeeDetailResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    put:
+      tags: [Admin Employees]
+      summary: Replace employee personal information and job function
+      operationId: updateEmployee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateEmployeeRequest' }
+      responses:
+        '200':
+          description: Employee updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeeDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/employees/{employeeId}/deactivate:
+    patch:
+      tags: [Admin Employees]
+      summary: Revoke employee access
+      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints must be reassigned first.
+      operationId: deactivateEmployee
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeAccessRequest' }
+      responses:
+        '200':
+          description: Employee access revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeeDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/employees/{employeeId}/reactivate:
+    patch:
+      tags: [Admin Employees]
+      summary: Restore employee access
+      operationId: reactivateEmployee
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeAccessRequest' }
+      responses:
+        '200':
+          description: Employee access restored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminEmployeeDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3138,6 +3277,107 @@ components:
       example: withdrawal-2026-09-07-001
 
   schemas:
+    EmployeeJobFunction:
+      type: string
+      enum: [GENERAL_OPERATIONS, COMPLAINT_HANDLER, ACCOUNTANT, CONTENT_REVIEWER, USER_SUPPORT]
+
+    CreateEmployeeRequest:
+      type: object
+      required: [email, initialPassword, firstName, lastName, phone, dateOfBirth, gender, citizenId, provinceId, districtId, jobFunction]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        initialPassword: { type: string, format: password, minLength: 8, maxLength: 72 }
+        firstName: { type: string, maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        phone: { type: string, maxLength: 20 }
+        dateOfBirth: { type: string, format: date }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER] }
+        citizenId: { type: string, pattern: '^\\d{12}$' }
+        provinceId: { type: string, format: uuid }
+        districtId: { type: string, format: uuid }
+        detailAddress: { type: string, maxLength: 255, nullable: true }
+        jobFunction: { $ref: '#/components/schemas/EmployeeJobFunction' }
+
+    UpdateEmployeeRequest:
+      type: object
+      required: [email, firstName, lastName, phone, dateOfBirth, gender, provinceId, districtId, jobFunction]
+      properties:
+        email: { type: string, format: email, maxLength: 255 }
+        firstName: { type: string, maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        phone: { type: string, maxLength: 20 }
+        dateOfBirth: { type: string, format: date }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER] }
+        citizenId:
+          type: string
+          pattern: '^\\d{12}$'
+          nullable: true
+          description: Omit to preserve the current citizen ID.
+        provinceId: { type: string, format: uuid }
+        districtId: { type: string, format: uuid }
+        detailAddress: { type: string, maxLength: 255, nullable: true }
+        jobFunction: { $ref: '#/components/schemas/EmployeeJobFunction' }
+
+    EmployeeAccessRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 10, maxLength: 1000 }
+
+    AdminEmployeeSummaryResponse:
+      type: object
+      required: [employeeId, userId, email, jobFunction, status, createdAt, updatedAt]
+      properties:
+        employeeId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+        jobFunction: { $ref: '#/components/schemas/EmployeeJobFunction' }
+        status: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminEmployeeDetailResponse:
+      type: object
+      required: [employeeId, userId, email, systemRole, jobFunction, status, address, createdAt, updatedAt]
+      properties:
+        employeeId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string }
+        dateOfBirth: { type: string, format: date }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER] }
+        maskedCitizenId: { type: string, example: '********8901' }
+        address: { $ref: '#/components/schemas/AddressResponse' }
+        systemRole: { type: string, enum: [EMPLOYEE] }
+        jobFunction: { $ref: '#/components/schemas/EmployeeJobFunction' }
+        status: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        accessRevocationReason: { type: string, nullable: true }
+        accessRevokedAt: { type: string, format: date-time, nullable: true }
+        accessRevokedByUserId: { type: string, format: uuid, nullable: true }
+        reactivationReason: { type: string, nullable: true }
+        reactivatedAt: { type: string, format: date-time, nullable: true }
+        reactivatedByUserId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminEmployeePageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminEmployeeSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
     SuspendAccountRequest:
       type: object
       required: [type, reason]
@@ -5409,6 +5649,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminUserAccountPageResponse' }
+
+    AdminEmployeeDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminEmployeeDetailResponse' }
+
+    AdminEmployeePageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminEmployeePageResponse' }
 
     LessonResponseEnvelope:
       allOf:

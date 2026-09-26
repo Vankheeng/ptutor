@@ -28,6 +28,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     boolean existsByContract_IdAndStatusIn(UUID contractId, Collection<ComplaintStatus> statuses);
 
+    boolean existsByEmployee_IdAndStatusIn(UUID employeeId, Collection<ComplaintStatus> statuses);
+
     @EntityGraph(attributePaths = {
             "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
             "contract.tutor.user", "employee", "employee.user"

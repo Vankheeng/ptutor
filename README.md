@@ -895,6 +895,25 @@ Request vô hiệu hoá tạm thời:
 
 Hệ thống giữ thông tin lần vô hiệu hoá gần nhất sau khi mở lại, tạo notification `ACCOUNT_SUSPENDED`/`ACCOUNT_REACTIVATED` và gửi email sau khi transaction thành công. Không tự động huỷ hợp đồng, lesson, payment, complaint hoặc thay đổi số dư ví.
 
+### 6.22. API Admin quản lý nhân viên
+
+Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không được xem, tạo, sửa hoặc thay đổi trạng thái của nhân viên khác. Mỗi nhân viên có đúng một chức năng công việc chính: `GENERAL_OPERATIONS`, `COMPLAINT_HANDLER`, `ACCOUNTANT`, `CONTENT_REVIEWER` hoặc `USER_SUPPORT`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/employees` | Danh sách nhân viên; hỗ trợ `status`, `jobFunction`, `keyword`, `page`, `size` |
+| `POST` | `/api/v1/admin/employees` | Tạo tài khoản nhân viên ở trạng thái `ACTIVE` với mật khẩu ban đầu |
+| `GET` | `/api/v1/admin/employees/{employeeId}` | Xem chi tiết nhân viên; CCCD chỉ trả dạng che |
+| `PUT` | `/api/v1/admin/employees/{employeeId}` | Cập nhật thông tin cá nhân và chức năng công việc |
+| `PATCH` | `/api/v1/admin/employees/{employeeId}/deactivate` | Chuyển tài khoản sang `INACTIVE` và thu hồi refresh token |
+| `PATCH` | `/api/v1/admin/employees/{employeeId}/reactivate` | Cấp lại quyền truy cập cho nhân viên `INACTIVE` |
+
+Khi tạo nhân viên, backend chuẩn hóa email, kiểm tra email/CCCD không trùng, mã hóa CCCD, hash mật khẩu bằng BCrypt và không tạo ví. Tài khoản hoạt động ngay sau khi tạo; Admin tự bàn giao email và mật khẩu ban đầu cho nhân viên. API không bao giờ trả lại mật khẩu, CCCD đầy đủ, ciphertext hoặc hash CCCD.
+
+`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `COMPLAINT_HANDLER` xử lý khiếu nại, `CONTENT_REVIEWER` duyệt chứng chỉ/yêu cầu dạy và danh mục, `USER_SUPPORT` quản lý tài khoản Student/Tutor; `ACCOUNTANT` được dành cho API kế toán. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn.
+
+Không thể vô hiệu hóa hoặc chuyển nhân viên khỏi `COMPLAINT_HANDLER` khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

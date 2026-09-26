@@ -65,15 +65,17 @@ VALUES (
 )
 ON CONFLICT (user_id) DO NOTHING;
 
-INSERT INTO employees (id, user_id, role)
+INSERT INTO employees (id, user_id, role, job_function)
 VALUES (
     '20000000-0000-0000-0000-000000000003',
     '10000000-0000-0000-0000-000000000003',
-    2
+    2,
+    'USER_SUPPORT'
 )
 ON CONFLICT (id) DO UPDATE SET
     user_id = EXCLUDED.user_id,
     role = EXCLUDED.role,
+    job_function = EXCLUDED.job_function,
     updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO wallets (id, user_id, balance, pending_balance)
