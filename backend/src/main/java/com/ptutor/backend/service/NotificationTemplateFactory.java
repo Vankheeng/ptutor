@@ -54,6 +54,12 @@ class NotificationTemplateFactory {
                             + "\" was rejected. Reason: " + reason
                             + ". The posting fee of " + data.getOrDefault("amount", "")
                             + " has been refunded to your wallet balance.");
+            case COMPLAINT_EVIDENCE_REQUESTED -> content(NotificationType.COMPLAINT,
+                    "Additional evidence required", "Additional evidence is required for your complaint. " + reason);
+            case COMPLAINT_RESOLVED -> content(NotificationType.COMPLAINT,
+                    "Complaint accepted", "Your complaint has been accepted. Resolution: " + reason);
+            case COMPLAINT_REJECTED -> content(NotificationType.COMPLAINT,
+                    "Complaint rejected", "Your complaint has been rejected. Reason: " + reason);
         };
     }
 

@@ -526,8 +526,9 @@ API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong
 | `GET` | `/api/v1/users/me/complaints/{complaintId}` | Xem trạng thái, resolution và evidence |
 | `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật title, content và evidence của khiếu nại `PENDING` |
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
+| `POST` | `/api/v1/users/me/complaints/{complaintId}/evidences` | Bổ sung evidence khi complaint đang `AWAITING_EVIDENCE`; hệ thống đưa complaint về `IN_REVIEW` |
 
-Các trạng thái gồm `PENDING`, `IN_REVIEW`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`.
+Các trạng thái gồm `PENDING`, `IN_REVIEW`, `AWAITING_EVIDENCE`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`. Evidence bổ sung được append và không thay thế evidence đã có.
 
 ### 6.12. API hợp đồng (Contract)
 
@@ -615,8 +616,8 @@ Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; 
 | Tutor | `SCHEDULED → PENDING_CONFIRMATION` | Tutor sở hữu contract; buổi học đã kết thúc (`date + endTime ≤ now`). |
 | Tutor | `SCHEDULED → CANCELLED` | Tutor sở hữu contract. |
 | Tutor | `PENDING_CONFIRMATION → CANCELLED` | Tutor sở hữu contract. |
-| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract và contract không có complaint `PENDING` hoặc `IN_REVIEW`. |
-| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Buổi học đã kết thúc ít nhất 3 ngày, student chưa xác nhận (vẫn `PENDING_CONFIRMATION`) và contract không có complaint `PENDING` hoặc `IN_REVIEW`. |
+| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract và contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`. |
+| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Buổi học đã kết thúc ít nhất 3 ngày, student chưa xác nhận (vẫn `PENDING_CONFIRMATION`) và contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`. |
 | Admin | Chưa có | Chưa có API/service để admin đổi `LessonStatus`. |
 
 `CONFIRMED`, `COMPLETED` và `CANCELLED` là trạng thái kết thúc trong luồng Lesson hiện tại, không có transition đi tiếp. Job tự động chạy theo chu kỳ cấu hình (`app.lesson.auto-completion-interval-ms`, mặc định 1 giờ); mốc chờ xác nhận cấu hình bằng `app.lesson.auto-completion-grace-days`, mặc định 3 ngày.
@@ -852,6 +853,22 @@ Các API notification yêu cầu `Authorization: Bearer <access-token>` và ch�
 | `GET` | `/api/v1/users/me/notifications/unread-count` | Lấy số lượng notification chưa đọc. |
 
 Notification có `type` theo nhóm `SYSTEM`, `REQUEST`, `CONTRACT`, `PAYMENT`, `COMPLAINT`, cùng `eventType`, `referenceType` và `referenceId` để frontend điều hướng tới dữ liệu liên quan. Các event Payment chỉ được tạo sau khi VNPay IPN xác nhận thanh toán thành công; reminder học phí được chống trùng theo installment.
+
+### 6.20. API Admin/Employee xử lý khiếu nại
+
+Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được tiếp nhận bằng tài khoản nhân viên hiện tại; sau khi tiếp nhận, chỉ nhân viên được gán mới có thể yêu cầu evidence hoặc đưa ra quyết định.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại và chuyển `PENDING → IN_REVIEW` |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/request-evidence` | Lưu yêu cầu vào `resolution`, chuyển `IN_REVIEW → AWAITING_EVIDENCE` và thông báo người gửi |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reassign` | Admin chuyển complaint đang mở sang một nhân viên khác mà không đổi trạng thái |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận, chuyển `IN_REVIEW → RESOLVED` và thông báo người gửi |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo người gửi |
+
+Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý chưa tự động hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học.
 
 ### 7. Khởi động Frontend
 
