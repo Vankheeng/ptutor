@@ -870,6 +870,31 @@ Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được
 
 Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý chưa tự động hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học.
 
+### 6.21. API Admin/Employee vô hiệu hoá tài khoản
+
+Các API này chỉ dành cho `ADMIN` hoặc `EMPLOYEE` và chỉ quản lý tài khoản `STUDENT`/`TUTOR`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/users` | Danh sách tài khoản; hỗ trợ `role`, `status`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}` | Xem trạng thái và thông tin vô hiệu hoá gần nhất |
+| `PATCH` | `/api/v1/admin/users/{userId}/suspend` | Vô hiệu hoá tạm thời hoặc vĩnh viễn |
+| `PATCH` | `/api/v1/admin/users/{userId}/reactivate` | Mở lại tài khoản thủ công, bắt buộc có lý do |
+
+Request vô hiệu hoá tạm thời:
+
+```json
+{
+  "type": "TEMPORARY",
+  "reason": "Tài khoản nhiều lần vi phạm quy định cộng đồng.",
+  "suspendedUntil": "2026-10-26T10:00:00Z"
+}
+```
+
+`suspendedUntil` bắt buộc với `TEMPORARY` và không được truyền với `PERMANENT`. Lý do phải có từ 10 đến 1000 ký tự. Khi vô hiệu hoá, hệ thống chuyển user sang `BLOCKED`, tăng `suspensionCount`, thu hồi toàn bộ refresh token và chặn cả access token hiện tại từ request kế tiếp. Tài khoản tạm thời tự chuyển lại `ACTIVE` khi hết hạn qua scheduler hoặc khi được kiểm tra trạng thái ở lần truy cập tiếp theo.
+
+Hệ thống giữ thông tin lần vô hiệu hoá gần nhất sau khi mở lại, tạo notification `ACCOUNT_SUSPENDED`/`ACCOUNT_REACTIVATED` và gửi email sau khi transaction thành công. Không tự động huỷ hợp đồng, lesson, payment, complaint hoặc thay đổi số dư ví.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

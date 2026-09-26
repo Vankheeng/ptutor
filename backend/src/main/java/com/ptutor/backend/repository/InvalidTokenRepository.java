@@ -39,4 +39,14 @@ public interface InvalidTokenRepository extends JpaRepository<InvalidToken, UUID
     int revokeIfNotRevoked(@Param("id") java.util.UUID id, @Param("now") LocalDateTime now);
 
     List<InvalidToken> findByUser_IdAndRevokedAtIsNull(UUID userId);
+
+    @Modifying
+    @Query("""
+            update InvalidToken token
+            set token.revokedAt = :now, token.updatedAt = :now
+            where token.user.id = :userId
+              and token.revokedAt is null
+              and token.deletedAt is null
+            """)
+    int revokeAllByUserId(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
 }

@@ -1,6 +1,7 @@
 package com.ptutor.backend.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -24,6 +25,7 @@ import lombok.experimental.NonFinal;
 
 import com.ptutor.backend.entity.enums.Gender;
 import com.ptutor.backend.entity.enums.UserStatus;
+import com.ptutor.backend.entity.enums.SuspensionType;
 
 @Entity
 @Table(name = "users")
@@ -92,5 +94,45 @@ public class User extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private UserStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "suspension_type", length = 20)
+    @NonFinal
+    private SuspensionType suspensionType;
+
+    @Column(name = "suspension_reason", columnDefinition = "text")
+    @NonFinal
+    private String suspensionReason;
+
+    @Column(name = "suspended_at")
+    @NonFinal
+    private LocalDateTime suspendedAt;
+
+    @Column(name = "suspended_until")
+    @NonFinal
+    private LocalDateTime suspendedUntil;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "suspended_by_user_id")
+    @NonFinal
+    private User suspendedByUser;
+
+    @Column(name = "reactivated_at")
+    @NonFinal
+    private LocalDateTime reactivatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reactivated_by_user_id")
+    @NonFinal
+    private User reactivatedByUser;
+
+    @Column(name = "reactivation_reason", columnDefinition = "text")
+    @NonFinal
+    private String reactivationReason;
+
+    @Builder.Default
+    @Column(name = "suspension_count", nullable = false)
+    @NonFinal
+    private Integer suspensionCount = 0;
 
 }

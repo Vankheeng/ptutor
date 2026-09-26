@@ -47,6 +47,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final CitizenIdCryptoService citizenIdCryptoService;
     private final WalletRepository walletRepository;
+    private final UserAccessService userAccessService;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -111,9 +112,13 @@ public class AuthService {
     public AuthTokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmailIgnoreCase(normalizeEmail(request.email()))
                 .orElseThrow(this::invalidCredentials);
-        if (user.getStatus() != UserStatus.ACTIVE
-                || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw invalidCredentials();
+        }
+
+        user = userAccessService.refreshAccessState(user.getId());
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw accountUnavailable(user);
         }
 
         UserRole role = roleResolver.resolve(user);
@@ -126,5 +131,19 @@ public class AuthService {
 
     private ApiException invalidCredentials() {
         return new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Email or password is incorrect");
+    }
+
+    private ApiException accountUnavailable(User user) {
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            String code = user.getSuspensionType() == com.ptutor.backend.entity.enums.SuspensionType.TEMPORARY
+                    ? "ACCOUNT_TEMPORARILY_SUSPENDED"
+                    : "ACCOUNT_PERMANENTLY_SUSPENDED";
+            String message = user.getSuspensionType() == com.ptutor.backend.entity.enums.SuspensionType.TEMPORARY
+                    ? "Account is suspended until " + user.getSuspendedUntil() + " UTC. Reason: "
+                            + user.getSuspensionReason()
+                    : "Account is permanently suspended. Reason: " + user.getSuspensionReason();
+            return new ApiException(HttpStatus.LOCKED, code, message);
+        }
+        return new ApiException(HttpStatus.LOCKED, "ACCOUNT_INACTIVE", "Account is inactive");
     }
 }
