@@ -161,7 +161,7 @@ class TeachingRequestServiceTest {
     }
 
     @Test
-    void activatePaidCustomSubjectAsPendingReview() {
+    void activatePaidCustomSubjectWithoutNoteAsPendingReview() {
         TeachingRequest request = existingRequest(RequestStatus.DRAFT);
         request.setCustomSubjectName("Advanced Robotics");
         when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
@@ -171,6 +171,19 @@ class TeachingRequestServiceTest {
 
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
         verify(teachingRequestRepository).findById(request.getId());
+    }
+
+    @Test
+    void activatePaidRequestWithNoteAsPendingReview() {
+        TeachingRequest request = existingRequest(RequestStatus.DRAFT);
+        request.setSubject(subject());
+        request.setNote("Please review this note");
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        TeachingRequestResponse response = service.activateAfterPayment(request.getId());
+
+        assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
     }
 
     @Test
@@ -198,6 +211,23 @@ class TeachingRequestServiceTest {
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
         assertThat(request.getCustomSubjectName()).isEqualTo("Advanced Robotics");
         assertThat(request.getSubject()).isNull();
+    }
+
+    @Test
+    void updateOpenCatalogSubjectWithNoteReturnsToReview() {
+        TeachingRequest request = existingRequest(RequestStatus.OPEN);
+        when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
+                .thenReturn(Optional.of(request));
+        when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject()));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+        TeachingRequestRequest update = new TeachingRequestRequest(
+                subjectId, null, List.of(gradeId), "Find math students", "Please review", 2,
+                List.of(), null, new BigDecimal("150000"), TeachingMode.ONLINE,
+                null, "Math tutoring", List.of());
+
+        TeachingRequestResponse response = service.update(userId, request.getId(), update);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
     }
 
     @Test

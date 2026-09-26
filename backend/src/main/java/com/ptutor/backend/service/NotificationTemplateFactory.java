@@ -47,6 +47,13 @@ class NotificationTemplateFactory {
                     "Certificate approved", "Your certificate \"" + name + "\" has been approved.");
             case CERTIFICATE_REJECTED -> content(NotificationType.SYSTEM,
                     "Certificate rejected", "Your certificate \"" + name + "\" was rejected. Reason: " + reason);
+            case TEACHING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
+                    "Teaching request approved", "Your teaching request \"" + name + "\" has been approved.");
+            case TEACHING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
+                    "Teaching request rejected", "Your teaching request \"" + name
+                            + "\" was rejected. Reason: " + reason
+                            + ". The posting fee of " + data.getOrDefault("amount", "")
+                            + " has been refunded to your wallet balance.");
         };
     }
 

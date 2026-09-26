@@ -37,6 +37,8 @@ tags:
     description: Certificate management for the authenticated tutor
   - name: Admin Certificate Review
     description: Manual certificate review operations for employees and administrators
+  - name: Admin Teaching Request Review
+    description: Teaching request review operations for employees and administrators
   - name: Teaching Requests
     description: Tutor teaching-request management and authenticated request browsing
   - name: Subjects
@@ -2073,6 +2075,81 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AdminCertificateDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/teaching-requests:
+    get:
+      tags: [Admin Teaching Request Review]
+      summary: List teaching requests for administration
+      description: Lists PENDING_REVIEW, OPEN or REJECTED teaching requests. Defaults to the pending review queue.
+      parameters:
+        - { name: status, in: query, schema: { type: string, default: PENDING_REVIEW, enum: [PENDING_REVIEW, OPEN, REJECTED] } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Teaching requests retrieved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeachingRequestPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/teaching-requests/{teachingRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    get:
+      tags: [Admin Teaching Request Review]
+      summary: Get teaching request review details
+      responses:
+        '200':
+          description: Teaching request details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/teaching-requests/{teachingRequestId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    patch:
+      tags: [Admin Teaching Request Review]
+      summary: Approve a pending teaching request
+      description: For a custom subject, create a corrected catalog subject or link an existing active subject in the same transaction that opens the teaching request. The body may be omitted for a request reviewed only because it has a note.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeachingRequestApprovalRequest' }
+      responses:
+        '200':
+          description: Teaching request opened and tutor notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/teaching-requests/{teachingRequestId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/TeachingRequestId'
+    patch:
+      tags: [Admin Teaching Request Review]
+      summary: Reject a pending teaching request and refund its posting fee to the tutor wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeachingRequestRejectionRequest' }
+      responses:
+        '200':
+          description: Teaching request rejected, posting fee refunded, and tutor notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponseEnvelope' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
@@ -4361,6 +4438,98 @@ components:
       properties:
         rejectionReason: { type: string, minLength: 1, maxLength: 500 }
 
+    TeachingRequestRejectionRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason: { type: string, minLength: 1, maxLength: 500 }
+
+    TeachingRequestApprovalRequest:
+      type: object
+      properties:
+        subjectResolution:
+          $ref: '#/components/schemas/TeachingRequestSubjectResolution'
+
+    TeachingRequestSubjectResolution:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [CREATE, USE_EXISTING]
+        subjectId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Required when action is USE_EXISTING.
+        name:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Required when action is CREATE; the admin may correct the tutor's proposed name.
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Optional catalog description when action is CREATE.
+
+    AdminTeachingRequestSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        tutorName: { type: string }
+        tutorEmail: { type: string, format: email }
+        subjectName: { type: string, nullable: true }
+        title: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        expectedPrice: { type: number }
+        teachingMode: { type: string, enum: [ONLINE, OFFLINE] }
+        status: { type: string, enum: [PENDING_REVIEW, OPEN, REJECTED] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+
+    AdminTeachingRequestDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/AdminTeachingRequestSummaryResponse'
+        - type: object
+          properties:
+            tutorAvatarUrl: { type: string, nullable: true }
+            subjectId: { type: string, format: uuid, nullable: true }
+            customSubjectName: { type: string, nullable: true }
+            grades:
+              type: array
+              items: { $ref: '#/components/schemas/TeachingRequestReferenceResponse' }
+            districts:
+              type: array
+              items: { $ref: '#/components/schemas/TeachingRequestReferenceResponse' }
+            quantity: { type: integer }
+            detailAddress: { type: string, nullable: true }
+            preferredSchedule: { type: string, nullable: true }
+            description: { type: string, nullable: true }
+            availabilities:
+              type: array
+              items: { $ref: '#/components/schemas/TeachingRequestAvailabilityResponse' }
+            reviewer:
+              allOf:
+                - $ref: '#/components/schemas/CertificateReviewerResponse'
+              nullable: true
+            rejectionReason: { type: string, nullable: true }
+            updatedAt: { type: string, format: date-time }
+
+    AdminTeachingRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTeachingRequestSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
     CertificateReviewerResponse:
       type: object
       properties:
@@ -4890,6 +5059,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminCertificatePageResponse' }
+
+    AdminTeachingRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponse' }
+
+    AdminTeachingRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTeachingRequestPageResponse' }
 
     CertificateListResponseEnvelope:
       allOf:

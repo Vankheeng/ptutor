@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,8 @@ import com.ptutor.backend.entity.Payment;
 import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
+
+import jakarta.persistence.LockModeType;
 
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
@@ -32,6 +35,25 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             UUID userId, UUID paymentInstallmentId, PaymentStatus status);
 
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select payment from Payment payment
+            join fetch payment.user
+            where payment.user.id = :userId
+              and payment.paymentType = :paymentType
+              and payment.referenceType = :referenceType
+              and payment.referenceId = :referenceId
+              and payment.status = :status
+            order by payment.createdAt desc
+            """)
+    List<Payment> findForRefund(
+            @Param("userId") UUID userId,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("referenceId") UUID referenceId,
+            @Param("status") PaymentStatus status,
+            org.springframework.data.domain.Pageable pageable);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

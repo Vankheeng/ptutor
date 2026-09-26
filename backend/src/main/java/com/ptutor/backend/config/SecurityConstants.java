@@ -54,6 +54,11 @@ public final class SecurityConstants {
             "/api/v1/admin/certificates/**"
     };
 
+    public static final String[] ADMIN_TEACHING_REQUEST_API = {
+            "/api/v1/admin/teaching-requests",
+            "/api/v1/admin/teaching-requests/**"
+    };
+
     public static final String[] ADMIN_SUBJECT_API = {
             "/api/v1/admin/subjects"
     };

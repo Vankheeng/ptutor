@@ -27,7 +27,6 @@ import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
-import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -121,7 +120,7 @@ public class TeachingRequestService {
         teachingRequest.setDescription(normalize(request.description()));
         teachingRequest.setStatus(draft
                 ? RequestStatus.DRAFT
-                : subject == null ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
+                : requiresReview(teachingRequest) ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
@@ -172,7 +171,7 @@ public class TeachingRequestService {
             throw invalidTransition("Only DRAFT requests can be activated after payment");
         }
 
-        teachingRequest.setStatus(teachingRequest.getSubject() == null
+        teachingRequest.setStatus(requiresReview(teachingRequest)
                 ? RequestStatus.PENDING_REVIEW
                 : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
@@ -253,6 +252,10 @@ public class TeachingRequestService {
             throw badRequest("INVALID_SUBJECT", "Subject is not active");
         }
         return subject;
+    }
+
+    private boolean requiresReview(TeachingRequest request) {
+        return request.getNote() != null || request.getSubject() == null;
     }
 
     private List<Grade> resolveGrades(List<UUID> ids) {
