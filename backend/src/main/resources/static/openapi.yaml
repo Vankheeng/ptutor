@@ -61,6 +61,8 @@ tags:
     description: Tutor profile verification for content-review employees and administrators
   - name: Admin Employees
     description: Administrator-only employee account and job-function management
+  - name: Admin Statistics
+    description: Administrator-only operational and financial reports
   - name: Districts
     description: District catalog used by profile and teaching-request forms
 security:
@@ -3720,6 +3722,67 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/admin/statistics/{report}:
+    get:
+      tags:
+        - Admin Statistics
+      summary: Get an administrator statistics report
+      description: >-
+        Returns metrics, categorical breakdowns and time series for the selected report. Metrics include the
+        immediately preceding period with the same number of days. This endpoint is restricted to ADMIN.
+        It uses only current PTutor tables and does not reconstruct status history.
+      operationId: getAdminStatisticsReport
+      parameters:
+        - name: report
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - overview
+              - students
+              - tutors
+              - studying-requests
+              - teaching-requests
+              - matching
+              - contracts
+              - lessons
+              - finance
+              - payments
+              - installments
+              - wallets
+              - withdrawals
+              - employees
+        - name: fromDate
+          in: query
+          required: false
+          description: Inclusive local start date. Defaults to 29 days before toDate.
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          required: false
+          description: Inclusive local end date. Defaults to today in the requested timezone.
+          schema: { type: string, format: date }
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string, default: Asia/Ho_Chi_Minh }
+        - name: granularity
+          in: query
+          required: false
+          description: Automatically selected from the date range when omitted.
+          schema: { type: string, enum: [DAY, WEEK, MONTH] }
+      responses:
+        '200':
+          description: Statistics report generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatisticsReportResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -6454,6 +6517,57 @@ components:
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         paymentUrl: { type: string, format: uri }
         expiresAt: { type: string, format: date-time }
+    StatisticsRangeResponse:
+      type: object
+      properties:
+        fromDate: { type: string, format: date }
+        toDate: { type: string, format: date }
+        timezone: { type: string }
+        granularity: { type: string, enum: [DAY, WEEK, MONTH] }
+        previousFromDate: { type: string, format: date }
+        previousToDate: { type: string, format: date }
+    StatisticsMetricResponse:
+      type: object
+      properties:
+        value: { type: number }
+        previousValue: { type: number }
+        changePercent: { type: number, nullable: true }
+    StatisticsBucketResponse:
+      type: object
+      properties:
+        key: { type: string }
+        value: { type: number }
+    StatisticsSeriesPointResponse:
+      type: object
+      properties:
+        period: { type: string, format: date }
+        value: { type: number }
+    StatisticsReportResponse:
+      type: object
+      properties:
+        report: { type: string }
+        range: { $ref: '#/components/schemas/StatisticsRangeResponse' }
+        metrics:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/StatisticsMetricResponse' }
+        breakdowns:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/StatisticsBucketResponse' }
+        series:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/StatisticsSeriesPointResponse' }
+        generatedAt: { type: string, format: date-time }
+    StatisticsReportResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/StatisticsReportResponse' }
+
     ApiResponseMetadata:
       type: object
       required:

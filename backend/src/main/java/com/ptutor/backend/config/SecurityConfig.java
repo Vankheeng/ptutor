@@ -54,6 +54,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_PROFILE_REVIEW_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_EMPLOYEE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_NOTIFICATION_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_STATISTICS_API;
 import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
@@ -164,6 +165,7 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
+                        .requestMatchers(ADMIN_STATISTICS_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
