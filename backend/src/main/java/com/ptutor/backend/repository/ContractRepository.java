@@ -91,6 +91,38 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
             @Param("contractId") UUID contractId,
             @Param("userId") UUID userId);
 
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.tutor.user.id = :userId
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllForTutorUser(
+            @Param("userId") UUID userId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and contract.tutor.user.id = :userId
+            """)
+    Optional<Contract> findDetailedByIdAndTutorUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    @Query("select contract.tutor.user.id from Contract contract where contract.id = :contractId")
+    Optional<UUID> findTutorUserIdByContractId(@Param("contractId") UUID contractId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {
             "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",

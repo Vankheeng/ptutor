@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +22,20 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
     List<Certificate> findAllByTutor_IdOrderByCreatedAtDesc(UUID tutorId);
 
     List<Certificate> findAllByTutor_IdAndStatusOrderByCreatedAtDesc(UUID tutorId, CertificateStatus status);
+
+    @EntityGraph(attributePaths = { "tutor", "reviewedBy", "reviewedBy.user" })
+    @Query("""
+            select certificate
+            from Certificate certificate
+            where certificate.tutor.user.id = :userId
+              and (:status is null or certificate.status = :status)
+            """)
+    Page<Certificate> findAllForTutorUser(
+            @Param("userId") UUID userId,
+            @Param("status") CertificateStatus status,
+            Pageable pageable);
+
+    long countByTutor_IdAndStatus(UUID tutorId, CertificateStatus status);
 
     Optional<Certificate> findByIdAndTutor_Id(UUID id, UUID tutorId);
 

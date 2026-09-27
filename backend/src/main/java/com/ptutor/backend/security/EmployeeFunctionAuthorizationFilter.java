@@ -85,11 +85,12 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/api/v1/admin/certificates")
                 || path.startsWith("/api/v1/admin/teaching-requests")
+                || path.startsWith("/api/v1/admin/tutor-profiles")
                 || path.startsWith("/api/v1/admin/subjects")
                 || path.startsWith("/api/v1/admin/grades")) {
             return EmployeeJobFunction.CONTENT_REVIEWER;
         }
-        if (path.startsWith("/api/v1/admin/users")) {
+        if (path.startsWith("/api/v1/admin/users") || path.startsWith("/api/v1/admin/tutors")) {
             return EmployeeJobFunction.USER_SUPPORT;
         }
         return null;

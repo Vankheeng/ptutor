@@ -922,7 +922,38 @@ Các API danh sách dùng phân trang zero-based: `page` mặc định là `0`, 
 
 API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contractId` hoặc `transactionId` hợp lệ nhưng không thuộc học viên trong URL vẫn bị từ chối, tránh truy xuất chéo dữ liệu giữa các học viên. Việc xem hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại là chỉ đọc; thao tác thay đổi trạng thái tài khoản tiếp tục sử dụng hai API `suspend` và `reactivate` ở trên.
 
-### 6.22. API Admin quản lý nhân viên
+### 6.22. API Admin/Employee quản lý gia sư
+
+Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT`. Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/tutors` | Danh sách gia sư; hỗ trợ `keyword`, `accountStatus`, `profileStatus`, `minRecommendationScore`, `maxRecommendationScore`, `sortBy`, `sortDirection`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}` | Hồ sơ quản trị, trạng thái tài khoản, trạng thái duyệt và các chỉ số hoạt động |
+| `GET` | `/api/v1/admin/tutors/{userId}/certificates` | Danh sách chứng chỉ; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/contracts` | Danh sách hợp đồng; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/contracts/{contractId}` | Chi tiết hợp đồng thuộc gia sư |
+| `GET` | `/api/v1/admin/tutors/{userId}/reviews` | Danh sách đánh giá; hỗ trợ `rating` từ 1 đến 5 |
+| `GET` | `/api/v1/admin/tutors/{userId}/teaching-history` | Lịch sử buổi dạy; hỗ trợ `lessonStatus`, `contractStatus`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/teaching-history/{lessonId}` | Chi tiết buổi dạy thuộc gia sư |
+| `GET` | `/api/v1/admin/tutors/{userId}/score-details` | Điểm đề xuất hiện tại, thành phần điểm, phiên bản công thức và thời gian tính |
+
+`keyword` tìm không phân biệt hoa thường theo tên, email hoặc số điện thoại. Điểm lọc nằm trong khoảng `0` đến `100` và điểm tối thiểu không được lớn hơn điểm tối đa. `sortBy` chỉ nhận `createdAt`, `recommendationScore` hoặc `averageRating`; `sortDirection` nhận `ASC` hoặc `DESC`. Các danh sách dùng page zero-based, `size=20` mặc định và tối đa `100`.
+
+Điểm đề xuất không có API ghi và không thể chỉnh thủ công. `TutorRecommendationScoreService` tính điểm từ rating có điều chỉnh theo số lượng review, hợp đồng hoàn thành, tỉ lệ chấp nhận, thời gian phản hồi, số học viên, trạng thái xác minh/chứng chỉ và số lần bị khoá. Điểm được giới hạn trong `[0,100]`, lưu cùng `score_breakdown`, `score_updated_at` và `score_formula_version`. Hệ thống tính lại sau các event tài khoản/chứng chỉ/hợp đồng có liên quan và chạy đối soát hằng ngày lúc `02:30 UTC`; cron có thể cấu hình bằng `app.tutor-recommendation.recalculation-cron`.
+
+Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CONTENT_REVIEWER`:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/approve` | Chuyển hồ sơ `PENDING → VERIFIED` |
+| `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/reject` | Chuyển hồ sơ `PENDING → REJECTED`; lý do bắt buộc từ 10 đến 500 ký tự |
+
+Việc cập nhật các trường nghề nghiệp của Tutor đưa hồ sơ về `PENDING` và xoá metadata lần duyệt trước. Quy trình duyệt khóa bản ghi Tutor trong transaction để tránh hai người xử lý đồng thời. Chỉ tài khoản `ACTIVE` có hồ sơ `VERIFIED` mới đủ điều kiện tham gia đề xuất; trạng thái không đủ điều kiện không làm điểm bị ép về `0`.
+
+Khoá/mở khoá tiếp tục dùng `PATCH /api/v1/admin/users/{userId}/suspend` và `PATCH /api/v1/admin/users/{userId}/reactivate`. Không tạo API khoá riêng cho gia sư và không tự động huỷ hợp đồng, lesson, payment hoặc thay đổi ví. Các API chi tiết hợp đồng và buổi dạy luôn kiểm tra quan hệ sở hữu để ngăn truy xuất chéo.
+
+### 6.23. API Admin quản lý nhân viên
 
 Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không được xem, tạo, sửa hoặc thay đổi trạng thái của nhân viên khác. Mỗi nhân viên có đúng một chức năng công việc chính: `GENERAL_OPERATIONS`, `COMPLAINT_HANDLER`, `ACCOUNTANT`, `CONTENT_REVIEWER` hoặc `USER_SUPPORT`.
 

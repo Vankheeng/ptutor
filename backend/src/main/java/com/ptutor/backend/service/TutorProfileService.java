@@ -17,6 +17,7 @@ import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.dto.request.UpdateTutorProfileRequest;
 import com.ptutor.backend.dto.response.TutorProfileResponse;
 import com.ptutor.backend.dto.response.TutorSelfProfileResponse;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -82,6 +83,13 @@ public class TutorProfileService {
         setIfProvided(request.teachingMethodology(), tutor::setTeachingMethodology);
         setIfProvided(request.strengthSubjects(), tutor::setStrengthSubjects);
         setIfProvided(request.targetStudentType(), tutor::setTargetStudentType);
+
+        if (request.hasReviewableProfileUpdate()) {
+            tutor.setProfileStatus(TutorProfileStatus.PENDING);
+            tutor.setProfileReviewedBy(null);
+            tutor.setProfileReviewedAt(null);
+            tutor.setProfileRejectionReason(null);
+        }
 
         return tutorProfileMapper.toSelfResponse(tutor);
     }

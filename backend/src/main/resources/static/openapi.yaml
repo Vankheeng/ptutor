@@ -53,6 +53,10 @@ tags:
     description: Grade operations for employees and administrators
   - name: Admin User Accounts
     description: Student and tutor account suspension operations for employees and administrators
+  - name: Admin Tutor Management
+    description: Tutor profile and teaching-activity lookup for user-support employees and administrators
+  - name: Admin Tutor Profile Review
+    description: Tutor profile verification for content-review employees and administrators
   - name: Admin Employees
     description: Administrator-only employee account and job-function management
   - name: Districts
@@ -2885,6 +2889,261 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/admin/tutors:
+    get:
+      tags: [Admin Tutor Management]
+      summary: List managed tutors
+      description: The recommendation score is calculated by the system and cannot be edited through an API.
+      operationId: listManagedTutors
+      parameters:
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - name: accountStatus
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        - name: profileStatus
+          in: query
+          schema: { type: string, enum: [PENDING, VERIFIED, REJECTED] }
+        - name: minRecommendationScore
+          in: query
+          schema: { type: number, minimum: 0, maximum: 100 }
+        - name: maxRecommendationScore
+          in: query
+          schema: { type: number, minimum: 0, maximum: 100 }
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, recommendationScore, averageRating]
+            default: createdAt
+        - name: sortDirection
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: DESC }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Tutor page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/tutors/{userId}:
+    get:
+      tags: [Admin Tutor Management]
+      summary: Get a managed tutor profile
+      operationId: getManagedTutor
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Tutor management details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/certificates:
+    get:
+      tags: [Admin Tutor Management]
+      summary: List a managed tutor's certificates
+      operationId: listManagedTutorCertificates
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING, VERIFIED, REJECTED, EXPIRED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Certificate page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CertificatePageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/contracts:
+    get:
+      tags: [Admin Tutor Management]
+      summary: List a managed tutor's contracts
+      operationId: listManagedTutorContracts
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Contract page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/contracts/{contractId}:
+    get:
+      tags: [Admin Tutor Management]
+      summary: Get a contract owned by a managed tutor
+      operationId: getManagedTutorContract
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: contractId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Contract details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContractResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/reviews:
+    get:
+      tags: [Admin Tutor Management]
+      summary: List reviews received by a managed tutor
+      operationId: listManagedTutorReviews
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: rating
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 5 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Review page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorReviewPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/teaching-history:
+    get:
+      tags: [Admin Tutor Management]
+      summary: List a managed tutor's teaching history
+      operationId: listManagedTutorTeachingHistory
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: lessonStatus
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
+        - name: contractStatus
+          in: query
+          schema: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Teaching-history summary and lesson page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorTeachingHistoryResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/teaching-history/{lessonId}:
+    get:
+      tags: [Admin Tutor Management]
+      summary: Get a lesson owned by a managed tutor
+      operationId: getManagedTutorLesson
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: lessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Lesson details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorLessonResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutors/{userId}/score-details:
+    get:
+      tags: [Admin Tutor Management]
+      summary: Get a managed tutor's system-calculated recommendation score
+      operationId: getManagedTutorScore
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Score, formula version, calculation time and component breakdown
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutorRecommendationScoreResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/tutor-profiles/{userId}/approve:
+    patch:
+      tags: [Admin Tutor Profile Review]
+      summary: Verify a pending tutor profile
+      operationId: approveTutorProfile
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Profile verified and score recalculated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/tutor-profiles/{userId}/reject:
+    patch:
+      tags: [Admin Tutor Profile Review]
+      summary: Reject a pending tutor profile
+      operationId: rejectTutorProfile
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TutorProfileRejectionRequest' }
+      responses:
+        '200':
+          description: Profile rejected and score recalculated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTutorDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/admin/users:
     get:
       tags: [Admin User Accounts]
@@ -3642,6 +3901,217 @@ components:
         totalPages: { type: integer }
         first: { type: boolean }
         last: { type: boolean }
+
+    TutorProfileRejectionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+
+    AdminTutorSummaryResponse:
+      type: object
+      required:
+        - userId
+        - tutorId
+        - email
+        - accountStatus
+        - profileStatus
+        - recommendationScore
+        - suspensionCount
+      properties:
+        userId: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        accountStatus: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        profileStatus: { type: string, enum: [PENDING, VERIFIED, REJECTED] }
+        averageRating: { type: number, nullable: true }
+        totalReviews: { type: integer, nullable: true }
+        recommendationScore: { type: number, minimum: 0, maximum: 100 }
+        suspensionCount: { type: integer, minimum: 0 }
+        scoreUpdatedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    AdminTutorPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTutorSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    ScoreBreakdown:
+      type: object
+      nullable: true
+      additionalProperties:
+        type: number
+
+    AdminTutorDetailResponse:
+      type: object
+      required:
+        - userId
+        - tutorId
+        - email
+        - accountStatus
+        - profileStatus
+        - recommendationScore
+        - scoreFormulaVersion
+        - suspensionCount
+      properties:
+        userId: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER], nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        address: { $ref: '#/components/schemas/AddressResponse' }
+        introduction: { type: string, nullable: true }
+        experienceYears: { type: integer, nullable: true }
+        education: { type: string, nullable: true }
+        teachingStyleTags: { type: string, nullable: true }
+        teachingMethodology: { type: string, nullable: true }
+        strengthSubjects: { type: string, nullable: true }
+        targetStudentType: { type: string, nullable: true }
+        averageRating: { type: number, nullable: true }
+        totalReviews: { type: integer, nullable: true }
+        completedContractsCount: { type: integer, nullable: true }
+        totalStudentsTaught: { type: integer, nullable: true }
+        acceptanceRate: { type: number, nullable: true }
+        avgResponseTimeHours: { type: number, nullable: true }
+        accountStatus: { type: string, enum: [ACTIVE, INACTIVE, BLOCKED] }
+        profileStatus: { type: string, enum: [PENDING, VERIFIED, REJECTED] }
+        profileReviewedByEmployeeId: { type: string, format: uuid, nullable: true }
+        profileReviewedByName: { type: string, nullable: true }
+        profileReviewedAt: { type: string, format: date-time, nullable: true }
+        profileRejectionReason: { type: string, nullable: true }
+        recommendationScore: { type: number, minimum: 0, maximum: 100 }
+        scoreFormulaVersion: { type: string }
+        scoreUpdatedAt: { type: string, format: date-time, nullable: true }
+        scoreBreakdown: { $ref: '#/components/schemas/ScoreBreakdown' }
+        suspensionType: { type: string, enum: [TEMPORARY, PERMANENT], nullable: true }
+        suspensionReason: { type: string, nullable: true }
+        suspendedAt: { type: string, format: date-time, nullable: true }
+        suspendedUntil: { type: string, format: date-time, nullable: true }
+        suspensionCount: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminTutorReviewResponse:
+      type: object
+      required: [reviewId, rating, createdAt, updatedAt]
+      properties:
+        reviewId: { type: string, format: uuid }
+        studentUserId: { type: string, format: uuid, nullable: true }
+        studentName: { type: string, nullable: true }
+        studentEmail: { type: string, format: email, nullable: true }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminTutorReviewPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTutorReviewResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminTutorLessonResponse:
+      type: object
+      required: [lessonId, contractId, contractStatus, subjectId, gradeId, studentUserId, date, status]
+      properties:
+        lessonId: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        contractStatus: { type: string, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED] }
+        subjectId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        studentUserId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        title: { type: string, nullable: true }
+        date: { type: string, format: date }
+        startTime: { type: string, format: time, nullable: true }
+        endTime: { type: string, format: time, nullable: true }
+        teachingMode: { type: string, enum: [ONLINE, OFFLINE], nullable: true }
+        meetingLink: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        materialsUrl: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminTutorLessonPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTutorLessonResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminTutorTeachingHistoryResponse:
+      type: object
+      required: [summary, lessons]
+      properties:
+        summary: { $ref: '#/components/schemas/AdminStudentLessonSummary' }
+        lessons: { $ref: '#/components/schemas/AdminTutorLessonPageResponse' }
+
+    CertificatePageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/CertificateResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    TutorRecommendationScoreResponse:
+      type: object
+      required: [userId, tutorId, recommendationScore, formulaVersion]
+      properties:
+        userId: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        recommendationScore: { type: number, minimum: 0, maximum: 100 }
+        formulaVersion: { type: string }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        breakdown: { $ref: '#/components/schemas/ScoreBreakdown' }
 
     AdminStudentLessonResponse:
       type: object
@@ -5968,6 +6438,55 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminUserAccountPageResponse' }
+
+    AdminTutorPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTutorPageResponse' }
+
+    AdminTutorDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTutorDetailResponse' }
+
+    AdminTutorReviewPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTutorReviewPageResponse' }
+
+    AdminTutorLessonResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTutorLessonResponse' }
+
+    AdminTutorTeachingHistoryResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTutorTeachingHistoryResponse' }
+
+    CertificatePageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CertificatePageResponse' }
+
+    TutorRecommendationScoreResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/TutorRecommendationScoreResponse' }
 
     AdminStudentLessonResponseEnvelope:
       allOf:
