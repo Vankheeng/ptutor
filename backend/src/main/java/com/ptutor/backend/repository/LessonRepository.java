@@ -28,6 +28,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
     long countByContract_Student_User_IdAndStatus(UUID userId, LessonStatus status);
 
+    long countByContract_Tutor_User_Id(UUID userId);
+
+    long countByContract_Tutor_User_IdAndStatus(UUID userId, LessonStatus status);
+
     @EntityGraph(attributePaths = {
             "contract", "contract.student", "contract.student.user", "contract.tutor", "contract.tutor.user",
             "contract.subject", "contract.grade"
@@ -63,6 +67,44 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
               and lesson.contract.student.user.id = :userId
             """)
     java.util.Optional<Lesson> findDetailedByIdAndStudentUserId(
+            @Param("lessonId") UUID lessonId,
+            @Param("userId") UUID userId);
+
+    @EntityGraph(attributePaths = {
+            "contract", "contract.student", "contract.student.user", "contract.tutor", "contract.tutor.user",
+            "contract.subject", "contract.grade"
+    })
+    @Query(value = """
+            select lesson
+            from Lesson lesson
+            where lesson.contract.tutor.user.id = :userId
+              and (:lessonStatus is null or lesson.status = :lessonStatus)
+              and (:contractStatus is null or lesson.contract.status = :contractStatus)
+            """,
+            countQuery = """
+                    select count(lesson)
+                    from Lesson lesson
+                    where lesson.contract.tutor.user.id = :userId
+                      and (:lessonStatus is null or lesson.status = :lessonStatus)
+                      and (:contractStatus is null or lesson.contract.status = :contractStatus)
+                    """)
+    Page<Lesson> findAllForTutorUser(
+            @Param("userId") UUID userId,
+            @Param("lessonStatus") LessonStatus lessonStatus,
+            @Param("contractStatus") ContractStatus contractStatus,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "contract", "contract.student", "contract.student.user", "contract.tutor", "contract.tutor.user",
+            "contract.subject", "contract.grade"
+    })
+    @Query("""
+            select lesson
+            from Lesson lesson
+            where lesson.id = :lessonId
+              and lesson.contract.tutor.user.id = :userId
+            """)
+    java.util.Optional<Lesson> findDetailedByIdAndTutorUserId(
             @Param("lessonId") UUID lessonId,
             @Param("userId") UUID userId);
 

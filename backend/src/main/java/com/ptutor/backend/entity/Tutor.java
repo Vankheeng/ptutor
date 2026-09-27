@@ -8,10 +8,15 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
+import tools.jackson.databind.JsonNode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -22,6 +27,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 @Entity
 @Table(name = "tutors")
@@ -109,5 +116,43 @@ public class Tutor extends BaseEntity {
     @Column(name = "avg_response_time_hours", precision = 6, scale = 2)
     @NonFinal
     private BigDecimal avgResponseTimeHours;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "profile_status", nullable = false, length = 30)
+    @NonFinal
+    private TutorProfileStatus profileStatus = TutorProfileStatus.PENDING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_reviewed_by")
+    @NonFinal
+    private Employee profileReviewedBy;
+
+    @Column(name = "profile_reviewed_at")
+    @NonFinal
+    private LocalDateTime profileReviewedAt;
+
+    @Column(name = "profile_rejection_reason", length = 500)
+    @NonFinal
+    private String profileRejectionReason;
+
+    @Builder.Default
+    @Column(name = "recommendation_score", nullable = false, precision = 5, scale = 2)
+    @NonFinal
+    private BigDecimal recommendationScore = new BigDecimal("50.00");
+
+    @Column(name = "score_updated_at")
+    @NonFinal
+    private LocalDateTime scoreUpdatedAt;
+
+    @Builder.Default
+    @Column(name = "score_formula_version", nullable = false, length = 30)
+    @NonFinal
+    private String scoreFormulaVersion = "v1";
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "score_breakdown", columnDefinition = "jsonb")
+    @NonFinal
+    private JsonNode scoreBreakdown;
 
 }

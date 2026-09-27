@@ -29,6 +29,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.Wallet;
 import com.ptutor.backend.entity.enums.UserStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -98,6 +99,9 @@ public class AuthService {
                     .totalReviews(0)
                     .completedContractsCount(0)
                     .totalStudentsTaught(0)
+                    .profileStatus(TutorProfileStatus.PENDING)
+                    .recommendationScore(new BigDecimal("50.00"))
+                    .scoreFormulaVersion("v1")
                     .build());
         }
         walletRepository.save(Wallet.builder()

@@ -19,10 +19,12 @@ import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.Gender;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorProfileMapper;
 import com.ptutor.backend.repository.DistrictRepository;
@@ -112,6 +114,9 @@ class TutorProfileServiceTest {
     @Test
     void updateMineChangesPersonalAndProfessionalFields() {
         Tutor tutor = tutor();
+        tutor.setProfileStatus(TutorProfileStatus.VERIFIED);
+        tutor.setProfileReviewedBy(Employee.builder().build());
+        tutor.setProfileReviewedAt(java.time.LocalDateTime.now());
         when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
 
         TutorSelfProfileResponse response = tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
@@ -128,6 +133,9 @@ class TutorProfileServiceTest {
         assertThat(response.education()).isEqualTo("Master of English");
         assertThat(response.address().detailAddress()).isEqualTo("456 New Street");
         assertThat(response.averageRating()).isEqualByComparingTo("4.80");
+        assertThat(tutor.getProfileStatus()).isEqualTo(TutorProfileStatus.PENDING);
+        assertThat(tutor.getProfileReviewedBy()).isNull();
+        assertThat(tutor.getProfileReviewedAt()).isNull();
         verify(tutorRepository).findByUser_Id(userId);
     }
 

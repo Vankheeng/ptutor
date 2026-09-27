@@ -46,4 +46,14 @@ public record UpdateTutorProfileRequest(
                 || strengthSubjects != null
                 || targetStudentType != null;
     }
+
+    public boolean hasReviewableProfileUpdate() {
+        return introduction != null
+                || experienceYears != null
+                || education != null
+                || teachingStyleTags != null
+                || teachingMethodology != null
+                || strengthSubjects != null
+                || targetStudentType != null;
+    }
 }
