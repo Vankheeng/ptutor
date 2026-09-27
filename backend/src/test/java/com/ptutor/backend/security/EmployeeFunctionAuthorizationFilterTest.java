@@ -111,6 +111,22 @@ class EmployeeFunctionAuthorizationFilterTest {
     }
 
     @Test
+    void allowsGeneralOperationsToManageNotifications() throws Exception {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.GENERAL_OPERATIONS)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/admin/notifications");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
     void blocksEmployeeWithDifferentFunction() throws Exception {
         UUID userId = authenticate("EMPLOYEE");
         Employee employee = Employee.builder()

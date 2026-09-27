@@ -69,4 +69,26 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             """)
     List<User> findExpiredTemporarySuspensionsForUpdate(@Param("now") LocalDateTime now);
 
+    @Query("""
+            select distinct user.id from User user
+            where user.status = com.ptutor.backend.entity.enums.UserStatus.ACTIVE
+              and exists (select student.id from Student student where student.user = user)
+            """)
+    List<UUID> findActiveStudentUserIds();
+
+    @Query("""
+            select distinct user.id from User user
+            where user.status = com.ptutor.backend.entity.enums.UserStatus.ACTIVE
+              and exists (select tutor.id from Tutor tutor where tutor.user = user)
+            """)
+    List<UUID> findActiveTutorUserIds();
+
+    @Query("""
+            select distinct user.id from User user
+            where user.status = com.ptutor.backend.entity.enums.UserStatus.ACTIVE
+              and (exists (select student.id from Student student where student.user = user)
+                   or exists (select tutor.id from Tutor tutor where tutor.user = user))
+            """)
+    List<UUID> findActiveStudentOrTutorUserIds();
+
 }
