@@ -64,6 +64,36 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     @EntityGraph(attributePaths = {
             "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
+            "contract.tutor.user", "employee", "employee.user"
+    })
+    @Query(value = """
+            select complaint
+            from Complaint complaint
+            where (:status is null or complaint.status = :status)
+              and (complaint.contract.student.user.id = :userId
+                   or complaint.contract.tutor.user.id = :userId)
+              and (:relation = 'ALL'
+                   or (:relation = 'SUBMITTED' and complaint.user.id = :userId)
+                   or (:relation = 'RECEIVED' and complaint.user.id <> :userId))
+            """,
+            countQuery = """
+                    select count(complaint)
+                    from Complaint complaint
+                    where (:status is null or complaint.status = :status)
+                      and (complaint.contract.student.user.id = :userId
+                           or complaint.contract.tutor.user.id = :userId)
+                      and (:relation = 'ALL'
+                           or (:relation = 'SUBMITTED' and complaint.user.id = :userId)
+                           or (:relation = 'RECEIVED' and complaint.user.id <> :userId))
+                    """)
+    Page<Complaint> findAllForParticipant(
+            @Param("userId") UUID userId,
+            @Param("status") ComplaintStatus status,
+            @Param("relation") String relation,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
             "contract.tutor.user", "contract.subject", "contract.grade", "employee", "employee.user"
     })
     @Query("select complaint from Complaint complaint where complaint.id = :id")

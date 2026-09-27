@@ -870,9 +870,9 @@ Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được
 
 Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý chưa tự động hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học.
 
-### 6.21. API Admin/Employee vô hiệu hoá tài khoản
+### 6.21. API Admin/Employee quản lý học viên
 
-Các API này chỉ dành cho `ADMIN` hoặc `EMPLOYEE` và chỉ quản lý tài khoản `STUDENT`/`TUTOR`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT`. Danh sách tài khoản và thao tác vô hiệu hoá hỗ trợ tài khoản `STUDENT`/`TUTOR`; các API hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại bên dưới chỉ áp dụng cho `STUDENT`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -880,6 +880,8 @@ Các API này chỉ dành cho `ADMIN` hoặc `EMPLOYEE` và chỉ quản lý tà
 | `GET` | `/api/v1/admin/users/{userId}` | Xem trạng thái và thông tin vô hiệu hoá gần nhất |
 | `PATCH` | `/api/v1/admin/users/{userId}/suspend` | Vô hiệu hoá tạm thời hoặc vĩnh viễn |
 | `PATCH` | `/api/v1/admin/users/{userId}/reactivate` | Mở lại tài khoản thủ công, bắt buộc có lý do |
+
+Để lấy đúng danh sách học viên cho màn hình quản lý, gọi `GET /api/v1/admin/users?role=STUDENT`; có thể kết hợp `status`, `keyword`, `page` và `size`. Sau khi chọn một học viên, dùng `userId` trong kết quả để gọi các API chi tiết bên dưới.
 
 Request vô hiệu hoá tạm thời:
 
@@ -894,6 +896,31 @@ Request vô hiệu hoá tạm thời:
 `suspendedUntil` bắt buộc với `TEMPORARY` và không được truyền với `PERMANENT`. Lý do phải có từ 10 đến 1000 ký tự. Khi vô hiệu hoá, hệ thống chuyển user sang `BLOCKED`, tăng `suspensionCount`, thu hồi toàn bộ refresh token và chặn cả access token hiện tại từ request kế tiếp. Tài khoản tạm thời tự chuyển lại `ACTIVE` khi hết hạn qua scheduler hoặc khi được kiểm tra trạng thái ở lần truy cập tiếp theo.
 
 Hệ thống giữ thông tin lần vô hiệu hoá gần nhất sau khi mở lại, tạo notification `ACCOUNT_SUSPENDED`/`ACCOUNT_REACTIVATED` và gửi email sau khi transaction thành công. Không tự động huỷ hợp đồng, lesson, payment, complaint hoặc thay đổi số dư ví.
+
+#### Tra cứu hồ sơ và hoạt động của học viên
+
+Nhóm API dưới đây phục vụ màn hình quản lý học viên. Chỉ `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT` được truy cập. `userId` luôn là ID trong bảng `users`, không phải ID của bản ghi `students`. Nếu tài khoản không tồn tại, đã bị xoá mềm hoặc không có đúng một hồ sơ `STUDENT`, API trả lỗi phù hợp và không trả dữ liệu của vai trò khác.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/users/{userId}/student-profile` | Xem hồ sơ học viên cùng thông tin cá nhân, địa chỉ, phong cách học, mục tiêu, trình độ hiện tại và điểm cần cải thiện |
+| `GET` | `/api/v1/admin/users/{userId}/learning-history` | Xem lịch sử các buổi học; hỗ trợ `lessonStatus`, `contractStatus`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/learning-history/{lessonId}` | Xem chi tiết một buổi học thuộc học viên, bao gồm hợp đồng, gia sư, môn học, lớp, thời gian, hình thức và tài liệu |
+| `GET` | `/api/v1/admin/users/{userId}/contracts` | Xem danh sách hợp đồng của học viên; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/contracts/{contractId}` | Xem chi tiết một hợp đồng thuộc học viên |
+| `GET` | `/api/v1/admin/users/{userId}/transactions` | Xem hợp nhất Payment, Wallet Transaction và Withdrawal của học viên; hỗ trợ `source`, `status`, `type`, `method`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/transactions/{source}/{transactionId}` | Xem chi tiết một giao dịch thuộc học viên theo đúng nguồn dữ liệu |
+| `GET` | `/api/v1/admin/users/{userId}/complaints` | Xem khiếu nại do học viên gửi hoặc khiếu nại mà học viên là bên bị phản ánh; hỗ trợ `relation`, `status`, `page`, `size` |
+
+Các API danh sách dùng phân trang zero-based: `page` mặc định là `0`, `size` mặc định là `20` và tối đa `100`. Kết quả được sắp xếp mới nhất trước. Các bộ lọc tùy chọn nhận các giá trị sau:
+
+- `lessonStatus`: `SCHEDULED`, `PENDING_CONFIRMATION`, `CONFIRMED`, `COMPLETED`, `CANCELLED`.
+- `contractStatus`: `PENDING`, `ACTIVE`, `COMPLETED`, `CANCELLED`.
+- `source`: `PAYMENT`, `WALLET_TRANSACTION`, `WITHDRAWAL`.
+- `relation`: `SUBMITTED`, `RECEIVED`, `ALL`; mặc định là `ALL`.
+- `status`, `type`, `method` của giao dịch được đối chiếu không phân biệt chữ hoa/chữ thường với dữ liệu của từng nguồn.
+
+API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contractId` hoặc `transactionId` hợp lệ nhưng không thuộc học viên trong URL vẫn bị từ chối, tránh truy xuất chéo dữ liệu giữa các học viên. Việc xem hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại là chỉ đọc; thao tác thay đổi trạng thái tài khoản tiếp tục sử dụng hai API `suspend` và `reactivate` ở trên.
 
 ### 6.22. API Admin quản lý nhân viên
 
