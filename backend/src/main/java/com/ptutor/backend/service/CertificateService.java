@@ -3,6 +3,7 @@ package com.ptutor.backend.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,9 +14,13 @@ import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.dto.request.CertificateRequest;
 import com.ptutor.backend.dto.response.CertificateResponse;
 import com.ptutor.backend.repository.CertificateRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +31,8 @@ public class CertificateService {
     private final CertificateRepository certificateRepository;
     private final TutorRepository tutorRepository;
     private final CertificateMapper certificateMapper;
+    private final EmployeeRepository employeeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CertificateResponse create(UUID userId, CertificateRequest request) {
@@ -40,7 +47,9 @@ public class CertificateService {
                 .certificateUrl(normalize(request.certificateUrl()))
                 .status(CertificateStatus.PENDING)
                 .build();
-        return certificateMapper.toResponse(certificateRepository.saveAndFlush(certificate));
+        Certificate saved = certificateRepository.saveAndFlush(certificate);
+        publishReviewRequired(saved);
+        return certificateMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -76,11 +85,6 @@ public class CertificateService {
         Tutor tutor = findTutorByUserId(userId);
         Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
                 .orElseThrow(() -> certificateNotFound(certificateId));
-        if (certificate.getStatus() == CertificateStatus.VERIFIED) {
-            throw new ApiException(HttpStatus.CONFLICT, "VERIFIED_CERTIFICATE_IMMUTABLE",
-                    "A verified certificate cannot be edited; create a new certificate instead");
-        }
-
         certificate.setName(request.name().strip());
         certificate.setIssuingOrganization(normalize(request.issuingOrganization()));
         certificate.setDescription(normalize(request.description()));
@@ -91,7 +95,9 @@ public class CertificateService {
         certificate.setReviewedBy(null);
         certificate.setReviewedAt(null);
         certificate.setRejectionReason(null);
-        return certificateMapper.toResponse(certificateRepository.saveAndFlush(certificate));
+        Certificate saved = certificateRepository.saveAndFlush(certificate);
+        publishReviewRequired(saved);
+        return certificateMapper.toResponse(saved);
     }
 
     @Transactional
@@ -117,6 +123,17 @@ public class CertificateService {
     private ApiException certificateNotFound(UUID certificateId) {
         return new ApiException(HttpStatus.NOT_FOUND, "CERTIFICATE_NOT_FOUND",
                 "Certificate not found: " + certificateId);
+    }
+
+    private void publishReviewRequired(Certificate certificate) {
+        java.util.Map<String, String> data = java.util.Map.of("name", certificate.getName());
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.CERTIFICATE_REVIEW_REQUIRED,
+                        NotificationReferenceType.CERTIFICATE,
+                        certificate.getId(),
+                        data)));
     }
 
     private String normalize(String value) {

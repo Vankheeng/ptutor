@@ -15,6 +15,7 @@ class NotificationTemplateFactory {
         Map<String, String> data = event.data();
         String name = data.getOrDefault("name", "");
         String reason = data.getOrDefault("reason", "");
+        String amount = data.getOrDefault("amount", "");
 
         return switch (event.eventType()) {
             case PAYMENT_SUCCEEDED -> content(NotificationType.PAYMENT,
@@ -43,6 +44,9 @@ class NotificationTemplateFactory {
                     "Contract cancelled", "A pending contract was cancelled by its creator.");
             case CONTRACT_RENEWAL_PROPOSED -> content(NotificationType.CONTRACT,
                     "Contract renewal proposed", "A contract renewal is waiting for your signature.");
+            case CERTIFICATE_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,
+                    "Certificate review required",
+                    "A certificate \"" + name + "\" is waiting for approval.");
             case CERTIFICATE_APPROVED -> content(NotificationType.SYSTEM,
                     "Certificate approved", "Your certificate \"" + name + "\" has been approved.");
             case CERTIFICATE_REJECTED -> content(NotificationType.SYSTEM,
@@ -70,6 +74,17 @@ class NotificationTemplateFactory {
             }
             case ACCOUNT_REACTIVATED -> content(NotificationType.SYSTEM,
                     "Account reactivated", "Your account has been reactivated.");
+            case TEACHING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.REQUEST,
+                    "Teaching request review required",
+                    "A teaching request \"" + name + "\" is waiting for approval.");
+            case LESSON_MARKED_TAUGHT -> content(NotificationType.CONTRACT,
+                    "Lesson awaiting confirmation",
+                    "Your tutor marked lesson \"" + name + "\" as taught. Please confirm it.");
+            case LESSON_CANCELLED -> content(NotificationType.CONTRACT,
+                    "Lesson cancelled", "Your tutor cancelled lesson \"" + name + "\".");
+            case WITHDRAWAL_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
+                    "Withdrawal review required",
+                    "A withdrawal request of " + amount + " VND is waiting for approval.");
         };
     }
 

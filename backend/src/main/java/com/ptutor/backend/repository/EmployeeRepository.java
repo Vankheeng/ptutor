@@ -1,5 +1,6 @@
 package com.ptutor.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,4 +49,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @EntityGraph(attributePaths = { "user", "user.district", "user.district.province" })
     @Query("select employee from Employee employee where employee.id = :employeeId")
     Optional<Employee> findByIdForUpdate(@Param("employeeId") UUID employeeId);
+    @Query("select employee.user.id from Employee employee where employee.user is not null")
+    List<UUID> findAllUserIds();
 }

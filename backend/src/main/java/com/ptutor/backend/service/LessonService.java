@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,9 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
 import com.ptutor.backend.repository.ComplaintRepository;
@@ -48,6 +52,7 @@ public class LessonService {
     private final LessonMapper lessonMapper;
     private final Clock clock;
     private final ContractPaymentInstallmentService installmentService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public LessonResponse create(UUID userId, UUID contractId, LessonRequest source) {
@@ -72,6 +77,9 @@ public class LessonService {
                 .build();
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.assignNextInstallment(contract, saved);
+        if (saved.getStatus() == LessonStatus.PENDING_CONFIRMATION) {
+            publishStudentNotification(saved, NotificationEventType.LESSON_MARKED_TAUGHT);
+        }
         return lessonMapper.toResponse(saved);
     }
 
@@ -133,7 +141,12 @@ public class LessonService {
         }
 
         lesson.setStatus(targetStatus);
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        Lesson saved = lessonRepository.saveAndFlush(lesson);
+        publishStudentNotification(saved,
+                targetStatus == LessonStatus.CANCELLED
+                        ? NotificationEventType.LESSON_CANCELLED
+                        : NotificationEventType.LESSON_MARKED_TAUGHT);
+        return lessonMapper.toResponse(saved);
     }
 
     @Transactional
@@ -270,6 +283,20 @@ public class LessonService {
 
     private ApiException invalidStatusTransition(String message) {
         return new ApiException(HttpStatus.CONFLICT, "INVALID_LESSON_STATUS_TRANSITION", message);
+    }
+
+    private void publishStudentNotification(Lesson lesson, NotificationEventType eventType) {
+        Contract contract = lesson.getContract();
+        if (contract == null || contract.getStudent() == null || contract.getStudent().getUser() == null) {
+            return;
+        }
+        String name = lesson.getTitle() == null ? "Lesson" : lesson.getTitle();
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                contract.getStudent().getUser().getId(),
+                eventType,
+                NotificationReferenceType.LESSON,
+                lesson.getId(),
+                java.util.Map.of("name", name)));
     }
 
     private String normalize(String value) {

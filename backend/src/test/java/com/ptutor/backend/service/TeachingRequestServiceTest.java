@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
@@ -33,9 +35,12 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -54,6 +59,8 @@ class TeachingRequestServiceTest {
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock EmployeeRepository employeeRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private TeachingRequestService service;
     private UUID userId;
@@ -70,7 +77,9 @@ class TeachingRequestServiceTest {
                 tutorRepository,
                 subjectRepository,
                 gradeRepository,
-                districtRepository);
+                districtRepository,
+                employeeRepository,
+                eventPublisher);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         subjectId = UUID.randomUUID();
@@ -164,13 +173,33 @@ class TeachingRequestServiceTest {
     void activatePaidCustomSubjectWithoutNoteAsPendingReview() {
         TeachingRequest request = existingRequest(RequestStatus.DRAFT);
         request.setCustomSubjectName("Advanced Robotics");
+        UUID employeeUserId = UUID.randomUUID();
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+        when(employeeRepository.findAllUserIds()).thenReturn(List.of(employeeUserId));
+
+        TeachingRequestResponse response = service.activateAfterPayment(request.getId());
+
+        assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
+        verify(teachingRequestRepository).findById(request.getId());
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(employeeUserId);
+        assertThat(captor.getValue().eventType())
+                .isEqualTo(NotificationEventType.TEACHING_REQUEST_REVIEW_REQUIRED);
+    }
+
+    @Test
+    void activatePaidCatalogSubjectWithNoteAsPendingReview() {
+        TeachingRequest request = existingRequest(RequestStatus.DRAFT);
+        request.setSubject(subject());
+        request.setNote("Please review this note");
         when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
         when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         TeachingRequestResponse response = service.activateAfterPayment(request.getId());
 
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
-        verify(teachingRequestRepository).findById(request.getId());
     }
 
     @Test
