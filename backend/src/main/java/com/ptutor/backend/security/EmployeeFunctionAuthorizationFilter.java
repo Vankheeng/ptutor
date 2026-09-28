@@ -80,6 +80,9 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
     }
 
     private EmployeeJobFunction requiredFunction(String path) {
+        if (path.startsWith("/api/v1/admin/notifications")) {
+            return EmployeeJobFunction.GENERAL_OPERATIONS;
+        }
         if (path.startsWith("/api/v1/admin/complaints")) {
             return EmployeeJobFunction.COMPLAINT_HANDLER;
         }

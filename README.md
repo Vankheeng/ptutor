@@ -854,6 +854,27 @@ Các API notification yêu cầu `Authorization: Bearer <access-token>` và ch�
 
 Notification có `type` theo nhóm `SYSTEM`, `REQUEST`, `CONTRACT`, `PAYMENT`, `COMPLAINT`, cùng `eventType`, `referenceType` và `referenceId` để frontend điều hướng tới dữ liệu liên quan. Các event Payment chỉ được tạo sau khi VNPay IPN xác nhận thanh toán thành công; reminder học phí được chống trùng theo installment.
 
+### 6.19.1. API Admin/Employee quản lý thông báo
+
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=GENERAL_OPERATIONS`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/admin/notifications` | Tạo thông báo ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/admin/notifications` | Danh sách; hỗ trợ `status`, `audience`, `category`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/notifications/{notificationId}` | Xem nội dung, trạng thái và thống kê đọc |
+| `PUT` | `/api/v1/admin/notifications/{notificationId}` | Cập nhật thông báo theo quy tắc trạng thái |
+| `DELETE` | `/api/v1/admin/notifications/{notificationId}` | Hủy thông báo chưa gửi hoặc thu hồi thông báo đã gửi |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/send` | Gửi ngay thông báo `DRAFT` hoặc `FAILED` |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/schedule` | Lên lịch gửi, tối thiểu 5 phút trong tương lai |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/cancel-schedule` | Hủy lịch và đưa thông báo về `DRAFT` |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/retry` | Gửi lại thông báo `FAILED` |
+| `GET` | `/api/v1/admin/notifications/{notificationId}/statistics` | Lấy số người nhận, đã đọc và chưa đọc |
+
+`audience` nhận `ALL`, `STUDENT` hoặc `TUTOR`; `ALL` gồm Student và Tutor đang `ACTIVE`, không gồm tài khoản quản trị. Tài khoản `INACTIVE`, `BLOCKED` hoặc đã xóa mềm không được nhận. `category` nhận `MAINTENANCE`, `PROMOTION`, `SERVICE_UPDATE` hoặc `GENERAL`.
+
+Trạng thái chiến dịch gồm `DRAFT`, `SCHEDULED`, `PROCESSING`, `SENT`, `FAILED`, `CANCELLED`, `RETRACTED`. Không thể sửa hoặc xóa trong lúc `PROCESSING`. Thông báo `SENT` chỉ cho sửa tiêu đề, nội dung và category; audience không đổi. Khi thu hồi, các delivery được xóa mềm và biến mất khỏi hộp thư người dùng. Scheduler khóa chiến dịch trước khi phân phối và unique index theo chiến dịch/người nhận ngăn gửi trùng.
+
 ### 6.20. API Admin/Employee xử lý khiếu nại
 
 Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được tiếp nhận bằng tài khoản nhân viên hiện tại; sau khi tiếp nhận, chỉ nhân viên được gán mới có thể yêu cầu evidence hoặc đưa ra quyết định.

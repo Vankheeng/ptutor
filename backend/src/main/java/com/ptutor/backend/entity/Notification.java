@@ -23,6 +23,11 @@ import lombok.experimental.NonFinal;
 import com.ptutor.backend.entity.enums.NotificationType;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.NotificationAudience;
+import com.ptutor.backend.entity.enums.NotificationCampaignStatus;
+import com.ptutor.backend.entity.enums.NotificationCategory;
+import com.ptutor.backend.entity.enums.NotificationRecordType;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
@@ -37,10 +42,31 @@ import com.ptutor.backend.entity.enums.NotificationReferenceType;
 @NonFinal
 public class Notification extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     @NonFinal
     private User user;
+
+    @Builder.Default
+    @Column(name = "record_type", nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @NonFinal
+    private NotificationRecordType recordType = NotificationRecordType.SYSTEM_EVENT;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_notification_id")
+    @NonFinal
+    private Notification parentNotification;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    @NonFinal
+    private User createdByUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by_user_id")
+    @NonFinal
+    private User updatedByUser;
 
     @Column(name = "title", nullable = false, length = 255)
     @NonFinal
@@ -76,4 +102,40 @@ public class Notification extends BaseEntity {
     @Column(name = "is_read", nullable = false)
     @NonFinal
     private Boolean isRead;
+
+    @Column(name = "category", length = 30)
+    @Enumerated(EnumType.STRING)
+    @NonFinal
+    private NotificationCategory category;
+
+    @Column(name = "audience", length = 20)
+    @Enumerated(EnumType.STRING)
+    @NonFinal
+    private NotificationAudience audience;
+
+    @Column(name = "campaign_status", length = 30)
+    @Enumerated(EnumType.STRING)
+    @NonFinal
+    private NotificationCampaignStatus campaignStatus;
+
+    @Column(name = "scheduled_at")
+    @NonFinal
+    private LocalDateTime scheduledAt;
+
+    @Column(name = "processing_started_at")
+    @NonFinal
+    private LocalDateTime processingStartedAt;
+
+    @Column(name = "sent_at")
+    @NonFinal
+    private LocalDateTime sentAt;
+
+    @Builder.Default
+    @Column(name = "recipient_count", nullable = false)
+    @NonFinal
+    private Integer recipientCount = 0;
+
+    @Column(name = "failure_reason", columnDefinition = "text")
+    @NonFinal
+    private String failureReason;
 }

@@ -31,6 +31,8 @@ tags:
     description: VNPay payment initiation, payment status and financial transaction history
   - name: Notifications
     description: In-app notifications for the authenticated user
+  - name: Admin Notification Management
+    description: Broadcast notification management for administrators and general-operations employees
   - name: Tutor Profiles
     description: Public tutor profile operations available to authenticated users
   - name: Tutor Certificates
@@ -2888,6 +2890,159 @@ paths:
                 $ref: '#/components/schemas/UnreadCountResponseEnvelope'
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/admin/notifications:
+    get:
+      tags: [Admin Notification Management]
+      summary: List managed broadcast notifications
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [DRAFT, SCHEDULED, PROCESSING, SENT, FAILED, CANCELLED, RETRACTED] } }
+        - { name: audience, in: query, schema: { type: string, enum: [ALL, STUDENT, TUTOR] } }
+        - { name: category, in: query, schema: { type: string, enum: [MAINTENANCE, PROMOTION, SERVICE_UPDATE, GENERAL] } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paginated broadcast notifications
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+    post:
+      tags: [Admin Notification Management]
+      summary: Create a broadcast notification draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationCampaignWriteRequest' }
+      responses:
+        '201':
+          description: Notification draft created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/notifications/{notificationId}:
+    parameters:
+      - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Admin Notification Management]
+      summary: Get a broadcast notification
+      responses:
+        '200':
+          description: Broadcast notification details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    put:
+      tags: [Admin Notification Management]
+      summary: Update a broadcast notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationCampaignWriteRequest' }
+      responses:
+        '200':
+          description: Broadcast notification updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+    delete:
+      tags: [Admin Notification Management]
+      summary: Cancel or retract a broadcast notification
+      responses:
+        '200':
+          description: Notification cancelled or retracted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/notifications/{notificationId}/send:
+    post:
+      tags: [Admin Notification Management]
+      summary: Send a draft notification immediately
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Notification distributed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/notifications/{notificationId}/schedule:
+    post:
+      tags: [Admin Notification Management]
+      summary: Schedule a notification
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScheduleNotificationCampaignRequest' }
+      responses:
+        '200':
+          description: Notification scheduled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/notifications/{notificationId}/cancel-schedule:
+    post:
+      tags: [Admin Notification Management]
+      summary: Cancel a notification schedule and return it to draft
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Schedule cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/notifications/{notificationId}/retry:
+    post:
+      tags: [Admin Notification Management]
+      summary: Retry a failed notification
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Notification distributed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/notifications/{notificationId}/statistics:
+    get:
+      tags: [Admin Notification Management]
+      summary: Get read statistics for a broadcast notification
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Notification read statistics
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationCampaignStatisticsResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
   /api/v1/admin/tutors:
     get:
@@ -6814,9 +6969,90 @@ components:
               nullable: true
               example: null
 
+    NotificationCampaignWriteRequest:
+      type: object
+      required: [title, content, category, audience]
+      properties:
+        title: { type: string, minLength: 5, maxLength: 255 }
+        content: { type: string, minLength: 10, maxLength: 5000 }
+        category: { type: string, enum: [MAINTENANCE, PROMOTION, SERVICE_UPDATE, GENERAL] }
+        audience: { type: string, enum: [ALL, STUDENT, TUTOR] }
+
+    ScheduleNotificationCampaignRequest:
+      type: object
+      required: [scheduledAt]
+      properties:
+        scheduledAt: { type: string, format: date-time }
+
+    NotificationCampaignResponse:
+      type: object
+      required: [id, title, content, category, audience, status, recipientCount, readCount, unreadCount, createdByUserId, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        category: { type: string, enum: [MAINTENANCE, PROMOTION, SERVICE_UPDATE, GENERAL] }
+        audience: { type: string, enum: [ALL, STUDENT, TUTOR] }
+        status: { type: string, enum: [DRAFT, SCHEDULED, PROCESSING, SENT, FAILED, CANCELLED, RETRACTED] }
+        scheduledAt: { type: string, format: date-time, nullable: true }
+        processingStartedAt: { type: string, format: date-time, nullable: true }
+        sentAt: { type: string, format: date-time, nullable: true }
+        recipientCount: { type: integer }
+        readCount: { type: integer, format: int64 }
+        unreadCount: { type: integer, format: int64 }
+        failureReason: { type: string, nullable: true }
+        createdByUserId: { type: string, format: uuid }
+        updatedByUserId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    NotificationCampaignStatisticsResponse:
+      type: object
+      required: [notificationId, recipientCount, readCount, unreadCount]
+      properties:
+        notificationId: { type: string, format: uuid }
+        recipientCount: { type: integer }
+        readCount: { type: integer, format: int64 }
+        unreadCount: { type: integer, format: int64 }
+
+    NotificationCampaignPageResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, first, last]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationCampaignResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    NotificationCampaignResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationCampaignResponse' }
+
+    NotificationCampaignPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationCampaignPageResponse' }
+
+    NotificationCampaignStatisticsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/NotificationCampaignStatisticsResponse' }
+
     NotificationResponse:
       type: object
-      required: [id, title, type, eventType, referenceType, isRead, createdAt]
+      required: [id, title, type, isRead, createdAt]
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
@@ -6826,6 +7062,7 @@ components:
           enum: [SYSTEM, REQUEST, CONTRACT, PAYMENT, COMPLAINT]
         eventType:
           type: string
+          nullable: true
           enum:
             - PAYMENT_SUCCEEDED
             - PAYMENT_INSTALLMENT_DUE
@@ -6851,6 +7088,7 @@ components:
             - ACCOUNT_REACTIVATED
         referenceType:
           type: string
+          nullable: true
           enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
