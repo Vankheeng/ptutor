@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.VnPayPaymentRequest;
+import com.ptutor.backend.dto.command.WalletTransactionCommand;
 import com.ptutor.backend.dto.enums.FinancialTransactionSource;
 import com.ptutor.backend.dto.response.ContractPaymentInstallmentResponse;
 import com.ptutor.backend.dto.response.PaymentInitiationResponse;
@@ -41,6 +42,7 @@ import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.event.NotificationDomainEvent;
@@ -71,6 +73,7 @@ public class PaymentService {
     private final TutorRepository tutorRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WithdrawalRequestRepository withdrawalRequestRepository;
+    private final WalletService walletService;
     private final StudyingRequestService studyingRequestService;
     private final TeachingRequestService teachingRequestService;
     private final ContractPaymentInstallmentService installmentService;
@@ -99,6 +102,36 @@ public class PaymentService {
     }
 
     @Transactional
+    public PaymentResponse payStudyingRequestWithWallet(UUID userId, UUID requestId) {
+        Student student = studentRepository.findByUser_Id(userId)
+                .orElseThrow(() -> forbidden("STUDENT_PROFILE_REQUIRED", "Only a student can pay this fee"));
+        StudyingRequest studyingRequest = studyingRequestRepository.findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> notFound("STUDYING_REQUEST_NOT_FOUND", "Studying request not found"));
+
+        Payment existingPaid = findPayment(
+                userId, PaymentType.STUDYING_REQUEST_FEE, ReferenceType.STUDYING_REQUEST,
+                requestId, null, PaymentStatus.PAID);
+        if (existingPaid != null) {
+            return toPaymentResponse(existingPaid);
+        }
+        if (studyingRequest.getStatus() != RequestStatus.DRAFT) {
+            throw conflict("INVALID_STUDYING_REQUEST_PAYMENT_STATUS",
+                    "Only DRAFT studying requests can be paid");
+        }
+
+        return completeWalletPayment(
+                userId,
+                PaymentType.STUDYING_REQUEST_FEE,
+                ReferenceType.STUDYING_REQUEST,
+                requestId,
+                requirePositiveFee(studyingRequestFee, "studying request"),
+                null,
+                WalletTransactionPurpose.STUDYING_REQUEST_FEE,
+                "Studying request publication fee",
+                "payment:studying-request:" + requestId);
+    }
+
+    @Transactional
     public PaymentInitiationResponse createTeachingRequestPayment(
             UUID userId, UUID requestId, VnPayPaymentRequest request, String clientIp) {
         Tutor tutor = tutorRepository.findByUser_Id(userId)
@@ -110,6 +143,36 @@ public class PaymentService {
         }
         return initiate(userId, PaymentType.TEACHING_REQUEST_FEE, ReferenceType.TEACHING_REQUEST,
                 teachingRequest.getId(), requirePositiveFee(teachingRequestFee, "teaching request"), null, request, clientIp);
+    }
+
+    @Transactional
+    public PaymentResponse payTeachingRequestWithWallet(UUID userId, UUID requestId) {
+        Tutor tutor = tutorRepository.findByUser_Id(userId)
+                .orElseThrow(() -> forbidden("TUTOR_PROFILE_REQUIRED", "Only a tutor can pay this fee"));
+        TeachingRequest teachingRequest = teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> notFound("TEACHING_REQUEST_NOT_FOUND", "Teaching request not found"));
+
+        Payment existingPaid = findPayment(
+                userId, PaymentType.TEACHING_REQUEST_FEE, ReferenceType.TEACHING_REQUEST,
+                requestId, null, PaymentStatus.PAID);
+        if (existingPaid != null) {
+            return toPaymentResponse(existingPaid);
+        }
+        if (teachingRequest.getStatus() != RequestStatus.DRAFT) {
+            throw conflict("INVALID_TEACHING_REQUEST_PAYMENT_STATUS",
+                    "Only DRAFT teaching requests can be paid");
+        }
+
+        return completeWalletPayment(
+                userId,
+                PaymentType.TEACHING_REQUEST_FEE,
+                ReferenceType.TEACHING_REQUEST,
+                requestId,
+                requirePositiveFee(teachingRequestFee, "teaching request"),
+                null,
+                WalletTransactionPurpose.TEACHING_REQUEST_FEE,
+                "Teaching request publication fee",
+                "payment:teaching-request:" + requestId);
     }
 
     @Transactional
@@ -140,6 +203,42 @@ public class PaymentService {
         }
         return initiate(userId, PaymentType.TUITION_PAYMENT, ReferenceType.CONTRACT, contractId,
                 installment.getAmount(), installment, request, clientIp);
+    }
+
+    @Transactional
+    public PaymentResponse payTuitionWithWallet(UUID userId, UUID contractId, UUID installmentId) {
+        Contract contract = findStudentContract(userId, contractId);
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw conflict("CONTRACT_NOT_ACTIVE", "Payments are available only for ACTIVE contracts");
+        }
+        installmentService.ensureForActiveContract(contract);
+        ContractPaymentInstallment installment = installmentRepository.findForStudent(installmentId, contractId, userId)
+                .orElseThrow(() -> notFound("PAYMENT_INSTALLMENT_NOT_FOUND", "Payment installment not found"));
+
+        Payment existingPaid = findPayment(
+                userId, PaymentType.TUITION_PAYMENT, ReferenceType.CONTRACT,
+                contractId, installment, PaymentStatus.PAID);
+        if (existingPaid != null) {
+            return toPaymentResponse(existingPaid);
+        }
+        if (installment.getStatus() != PaymentInstallmentStatus.PENDING) {
+            throw conflict("PAYMENT_INSTALLMENT_NOT_PAYABLE", "Only pending installments can be paid");
+        }
+        if (installment.getPaymentPeriod() == com.ptutor.backend.entity.enums.PaymentPeriod.PER_LESSON
+                && installment.getLesson() == null) {
+            throw conflict("PAYMENT_INSTALLMENT_NOT_READY", "This lesson installment is not scheduled yet");
+        }
+
+        return completeWalletPayment(
+                userId,
+                PaymentType.TUITION_PAYMENT,
+                ReferenceType.CONTRACT,
+                contractId,
+                installment.getAmount(),
+                installment,
+                WalletTransactionPurpose.TUITION_PAYMENT,
+                "Contract tuition installment payment",
+                "payment:installment:" + installmentId);
     }
 
     @Transactional(readOnly = true)
@@ -209,12 +308,7 @@ public class PaymentService {
             return VnPayIpnResult.success("02", "Order already confirmed");
         }
         activatePaidPayment(payment);
-        eventPublisher.publishEvent(NotificationDomainEvent.of(
-                payment.getUser().getId(),
-                NotificationEventType.PAYMENT_SUCCEEDED,
-                paymentNotificationReferenceType(payment),
-                paymentNotificationReferenceId(payment),
-                java.util.Map.of("paymentType", payment.getPaymentType().name())));
+        publishPaymentSucceeded(payment);
         return VnPayIpnResult.success("00", "Confirm Success");
     }
 
@@ -290,6 +384,85 @@ public class PaymentService {
             installment.setStatus(PaymentInstallmentStatus.PAID);
             installmentRepository.save(installment);
         }
+    }
+
+    private PaymentResponse completeWalletPayment(
+            UUID userId,
+            PaymentType paymentType,
+            ReferenceType referenceType,
+            UUID referenceId,
+            BigDecimal amount,
+            ContractPaymentInstallment installment,
+            WalletTransactionPurpose purpose,
+            String description,
+            String idempotencyKey) {
+        walletService.debit(new WalletTransactionCommand(
+                userId, amount, purpose, referenceType, referenceId, description, idempotencyKey));
+
+        // A concurrent retry waits on the wallet lock. Recheck after the debit call
+        // so that it can reuse the payment committed by the first request.
+        Payment existingPaid = findPayment(
+                userId, paymentType, referenceType, referenceId, installment, PaymentStatus.PAID);
+        if (existingPaid != null) {
+            return toPaymentResponse(existingPaid);
+        }
+
+        Payment pendingVnPay = findPayment(
+                userId, paymentType, referenceType, referenceId, installment, PaymentStatus.PENDING);
+        if (pendingVnPay != null) {
+            pendingVnPay.setStatus(PaymentStatus.CANCELLED);
+            pendingVnPay.setProviderResponseCode("PAID_BY_WALLET");
+            paymentRepository.saveAndFlush(pendingVnPay);
+        }
+
+        User paymentUser = new User();
+        paymentUser.setId(userId);
+        Payment payment = Payment.builder()
+                .user(paymentUser)
+                .amount(amount)
+                .paymentMethod(PaymentMethod.WALLET)
+                .paymentType(paymentType)
+                .status(PaymentStatus.PAID)
+                .transactionCode("PW" + UUID.randomUUID().toString().replace("-", "").toUpperCase())
+                .providerResponseCode("WALLET")
+                .referenceType(referenceType)
+                .referenceId(referenceId)
+                .paymentInstallment(installment)
+                .note(paymentType.name())
+                .paidAt(LocalDateTime.now(clock))
+                .build();
+        Payment saved = paymentRepository.saveAndFlush(payment);
+
+        activatePaidPayment(saved);
+        publishPaymentSucceeded(saved);
+        return toPaymentResponse(saved);
+    }
+
+    private Payment findPayment(
+            UUID userId,
+            PaymentType paymentType,
+            ReferenceType referenceType,
+            UUID referenceId,
+            ContractPaymentInstallment installment,
+            PaymentStatus status) {
+        return installment == null
+                ? paymentRepository
+                        .findFirstByUser_IdAndPaymentTypeAndReferenceTypeAndReferenceIdAndStatusOrderByCreatedAtDesc(
+                                userId, paymentType, referenceType, referenceId, status)
+                        .orElse(null)
+                : paymentRepository
+                        .findFirstByUser_IdAndPaymentInstallment_IdAndStatusOrderByCreatedAtDesc(
+                                userId, installment.getId(), status)
+                        .orElse(null);
+    }
+
+    private void publishPaymentSucceeded(Payment payment) {
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                payment.getUser().getId(),
+                NotificationEventType.PAYMENT_SUCCEEDED,
+                paymentNotificationReferenceType(payment),
+                paymentNotificationReferenceId(payment),
+                java.util.Map.of("paymentType", payment.getPaymentType().name())));
     }
 
     private NotificationReferenceType paymentNotificationReferenceType(Payment payment) {

@@ -56,6 +56,16 @@ public class PaymentController {
                         request, clientIp(servletRequest)), path));
     }
 
+    @PostMapping("/students/me/studying-requests/{requestId}/payments/wallet")
+    public ResponseEntity<ApiResponse<PaymentResponse>> payStudyingRequestWithWallet(
+            @PathVariable UUID requestId) {
+        String path = "/api/v1/students/me/studying-requests/" + requestId + "/payments/wallet";
+        return ResponseEntity.status(201).body(responseFactory.success(
+                paymentService.payStudyingRequestWithWallet(
+                        currentUserProvider.getCurrentUserId(), requestId),
+                path));
+    }
+
     @PostMapping("/tutors/me/teaching-requests/{requestId}/payments/vnpay")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> payTeachingRequest(
             @PathVariable UUID requestId,
@@ -65,6 +75,16 @@ public class PaymentController {
         return ResponseEntity.status(201).body(responseFactory.success(
                 paymentService.createTeachingRequestPayment(currentUserProvider.getCurrentUserId(), requestId,
                         request, clientIp(servletRequest)), path));
+    }
+
+    @PostMapping("/tutors/me/teaching-requests/{requestId}/payments/wallet")
+    public ResponseEntity<ApiResponse<PaymentResponse>> payTeachingRequestWithWallet(
+            @PathVariable UUID requestId) {
+        String path = "/api/v1/tutors/me/teaching-requests/" + requestId + "/payments/wallet";
+        return ResponseEntity.status(201).body(responseFactory.success(
+                paymentService.payTeachingRequestWithWallet(
+                        currentUserProvider.getCurrentUserId(), requestId),
+                path));
     }
 
     @GetMapping("/students/me/contracts/{contractId}/payment-installments")
@@ -86,6 +106,18 @@ public class PaymentController {
         return ResponseEntity.status(201).body(responseFactory.success(
                 paymentService.createTuitionPayment(currentUserProvider.getCurrentUserId(), contractId, installmentId,
                         request, clientIp(servletRequest)), path));
+    }
+
+    @PostMapping("/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/wallet")
+    public ResponseEntity<ApiResponse<PaymentResponse>> payTuitionWithWallet(
+            @PathVariable UUID contractId,
+            @PathVariable UUID installmentId) {
+        String path = "/api/v1/students/me/contracts/" + contractId + "/payment-installments/"
+                + installmentId + "/payments/wallet";
+        return ResponseEntity.status(201).body(responseFactory.success(
+                paymentService.payTuitionWithWallet(
+                        currentUserProvider.getCurrentUserId(), contractId, installmentId),
+                path));
     }
 
     @GetMapping("/users/me/payments/{paymentId}")
