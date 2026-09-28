@@ -20,10 +20,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.dto.request.LessonRequest;
 import com.ptutor.backend.dto.response.LessonResponse;
@@ -36,6 +38,8 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
 import com.ptutor.backend.repository.ContractRepository;
@@ -53,6 +57,7 @@ class LessonServiceTest {
     @Mock StudentRepository studentRepository;
     @Mock ComplaintRepository complaintRepository;
     @Mock ContractPaymentInstallmentService installmentService;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private LessonService service;
     private UUID userId;
@@ -74,7 +79,8 @@ class LessonServiceTest {
                 complaintRepository,
                 testMapper(),
                 Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
-                installmentService);
+                installmentService,
+                eventPublisher);
         lenient().when(installmentService.canCreateLesson(any(Contract.class))).thenReturn(true);
     }
 
@@ -114,6 +120,9 @@ class LessonServiceTest {
                 null));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_MARKED_TAUGHT);
     }
 
     @Test
@@ -174,6 +183,24 @@ class LessonServiceTest {
                 new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+    }
+
+    @Test
+    void cancellingLessonNotifiesStudent() {
+        stubTutor();
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.SCHEDULED);
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(lessonRepository.saveAndFlush(lesson)).thenReturn(lesson);
+
+        LessonResponse response = service.updateStatus(
+                userId, lessonId,
+                new LessonRequest(null, null, null, null, null, LessonStatus.CANCELLED));
+
+        assertThat(response.status()).isEqualTo(LessonStatus.CANCELLED);
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_CANCELLED);
     }
 
     @Test

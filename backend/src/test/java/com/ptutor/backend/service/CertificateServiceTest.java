@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -20,23 +19,29 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.CertificateMapper;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.dto.request.CertificateRequest;
 import com.ptutor.backend.dto.response.CertificateResponse;
 import com.ptutor.backend.repository.CertificateRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CertificateServiceTest {
 
     @Mock CertificateRepository certificateRepository;
     @Mock TutorRepository tutorRepository;
+    @Mock EmployeeRepository employeeRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private CertificateService certificateService;
     private UUID userId;
@@ -45,7 +50,8 @@ class CertificateServiceTest {
     @BeforeEach
     void setUp() {
         certificateService = new CertificateService(
-                certificateRepository, tutorRepository, Mappers.getMapper(CertificateMapper.class));
+                certificateRepository, tutorRepository, Mappers.getMapper(CertificateMapper.class),
+                employeeRepository, eventPublisher);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
     }
@@ -67,6 +73,26 @@ class CertificateServiceTest {
         assertThat(saved.getStatus()).isEqualTo(CertificateStatus.PENDING);
         assertThat(response.tutorId()).isEqualTo(tutorId);
         assertThat(response.status()).isEqualTo(CertificateStatus.PENDING);
+    }
+
+    @Test
+    void createNotifiesEmployeesThatCertificateNeedsReview() {
+        UUID employeeUserId = UUID.randomUUID();
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
+        when(employeeRepository.findAllUserIds()).thenReturn(List.of(employeeUserId));
+        when(certificateRepository.saveAndFlush(any(Certificate.class)))
+                .thenAnswer(invocation -> {
+                    Certificate certificate = invocation.getArgument(0);
+                    certificate.setId(UUID.randomUUID());
+                    return certificate;
+                });
+
+        certificateService.create(userId, request());
+
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(employeeUserId);
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.CERTIFICATE_REVIEW_REQUIRED);
     }
 
     @Test
@@ -153,21 +179,22 @@ class CertificateServiceTest {
     }
 
     @Test
-    void updateRejectsVerifiedCertificate() {
+    void updateVerifiedCertificateReturnsItToPendingReview() {
         when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         Certificate verified = certificate(CertificateStatus.VERIFIED);
         UUID certificateId = verified.getId();
         when(certificateRepository.findByIdAndTutor_Id(certificateId, tutorId))
                 .thenReturn(Optional.of(verified));
 
-        assertThatThrownBy(() -> certificateService.update(userId, certificateId, request()))
-                .isInstanceOf(ApiException.class)
-                .satisfies(error -> {
-                    ApiException exception = (ApiException) error;
-                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(exception.getCode()).isEqualTo("VERIFIED_CERTIFICATE_IMMUTABLE");
-                });
-        verify(certificateRepository, never()).saveAndFlush(any(Certificate.class));
+        when(certificateRepository.saveAndFlush(verified)).thenReturn(verified);
+
+        CertificateResponse response = certificateService.update(userId, certificateId, request());
+
+        assertThat(response.status()).isEqualTo(CertificateStatus.PENDING);
+        assertThat(verified.getReviewedAt()).isNull();
+        assertThat(verified.getReviewedBy()).isNull();
+        assertThat(verified.getRejectionReason()).isNull();
+        verify(certificateRepository).saveAndFlush(verified);
     }
 
     @Test

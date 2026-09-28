@@ -18,10 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.entity.Grade;
@@ -35,6 +37,8 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
@@ -51,6 +55,7 @@ class TutorStudentRequestServiceTest {
     @Mock TutorRepository tutorRepository;
     @Mock GradeRepository gradeRepository;
     @Mock StudentRepository studentRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private TutorStudentRequestService service;
     private UUID tutorUserId;
@@ -69,7 +74,8 @@ class TutorStudentRequestServiceTest {
                 tutorRepository,
                 gradeRepository,
                 studentRepository,
-                Mappers.getMapper(TutorStudentRequestMapper.class));
+                Mappers.getMapper(TutorStudentRequestMapper.class),
+                eventPublisher);
 
         tutorUserId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
@@ -105,6 +111,10 @@ class TutorStudentRequestServiceTest {
         assertThat(response.gradeId()).isEqualTo(gradeId);
         assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(response.preferredSchedule()).isEqualTo("Weekday evenings");
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(studentUserId);
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.TUTOR_REQUEST_RECEIVED);
     }
 
     @Test

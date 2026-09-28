@@ -10,5 +10,7 @@ public enum NotificationReferenceType {
     CERTIFICATE,
     INSTALLMENT,
     COMPLAINT,
-    USER
+    USER,
+    LESSON,
+    WITHDRAWAL_REQUEST
 }

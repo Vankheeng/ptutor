@@ -14,9 +14,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -27,6 +29,8 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudentTutorRequestMapper;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
@@ -45,6 +49,7 @@ class StudentTutorRequestServiceTest {
     @Mock StudentRepository studentRepository;
     @Mock GradeRepository gradeRepository;
     @Mock GradeTeachingRequestRepository gradeTeachingRequestRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private StudentTutorRequestService service;
     private UUID userId;
@@ -61,7 +66,8 @@ class StudentTutorRequestServiceTest {
                 Mappers.getMapper(StudentTutorRequestMapper.class),
                 studentRepository,
                 gradeRepository,
-                gradeTeachingRequestRepository);
+                gradeTeachingRequestRepository,
+                eventPublisher);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         teachingRequestId = UUID.randomUUID();
@@ -91,6 +97,9 @@ class StudentTutorRequestServiceTest {
         assertThat(response.nextStep()).isEqualTo("CONTRACT_SIGNING");
         verify(teachingRequestRepository).saveAndFlush(teachingRequest);
         verify(studentTutorRequestRepository).saveAndFlush(application);
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.STUDENT_REQUEST_ACCEPTED);
     }
 
     @Test
@@ -132,6 +141,9 @@ class StudentTutorRequestServiceTest {
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
         assertThat(teachingRequest.getStatus()).isEqualTo(RequestStatus.OPEN);
         verify(teachingRequestRepository, never()).saveAndFlush(any());
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.STUDENT_REQUEST_REJECTED);
     }
 
     @Test
@@ -173,6 +185,7 @@ class StudentTutorRequestServiceTest {
 
     private StudentTutorRequest application(TeachingRequest teachingRequest, ApplicationStatus status) {
         User user = User.builder().email("student@example.com").build();
+        user.setId(UUID.randomUUID());
         Student student = Student.builder().user(user).build();
         student.setId(UUID.randomUUID());
         Grade grade = Grade.builder().name("Grade 9").build();

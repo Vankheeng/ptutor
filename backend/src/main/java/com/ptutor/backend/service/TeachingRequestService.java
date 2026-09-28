@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.entity.District;
-import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.GradeTeachingRequest;
 import com.ptutor.backend.entity.Subject;
@@ -24,10 +24,14 @@ import com.ptutor.backend.entity.TeachingRequestDistrict;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -53,6 +57,8 @@ public class TeachingRequestService {
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
+    private final EmployeeRepository employeeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TeachingRequestResponse create(UUID userId, TeachingRequestRequest request) {
@@ -125,6 +131,9 @@ public class TeachingRequestService {
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
         replaceAssociations(saved, request);
+        if (!draft && saved.getStatus() == RequestStatus.PENDING_REVIEW) {
+            publishReviewRequired(saved);
+        }
         return toResponse(saved);
     }
 
@@ -175,7 +184,11 @@ public class TeachingRequestService {
                 ? RequestStatus.PENDING_REVIEW
                 : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
-        return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
+            publishReviewRequired(saved);
+        }
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -347,9 +360,22 @@ public class TeachingRequestService {
     }
 
     private void clearReviewMetadata(TeachingRequest request) {
-        request.setReviewedBy((Employee) null);
+        request.setReviewedBy(null);
         request.setReviewedAt(null);
         request.setRejectionReason(null);
+    }
+
+
+    private void publishReviewRequired(TeachingRequest request) {
+        String name = request.getTitle() == null ? "Teaching request" : request.getTitle();
+        Map<String, String> data = Map.of("name", name);
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.TEACHING_REQUEST_REVIEW_REQUIRED,
+                        NotificationReferenceType.TEACHING_REQUEST,
+                        request.getId(),
+                        data)));
     }
 
     private String normalize(String value) {

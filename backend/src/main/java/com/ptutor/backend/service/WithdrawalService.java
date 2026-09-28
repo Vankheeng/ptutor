@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -19,10 +20,14 @@ import com.ptutor.backend.entity.Wallet;
 import com.ptutor.backend.entity.WalletTransaction;
 import com.ptutor.backend.entity.WithdrawalRequest;
 import com.ptutor.backend.entity.enums.UserStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.WithdrawalRequestStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.WithdrawalMapper;
 import com.ptutor.backend.repository.BankAccountRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.WalletRepository;
 import com.ptutor.backend.repository.WithdrawalRequestRepository;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -39,6 +44,8 @@ public class WithdrawalService {
     private final WithdrawalMapper withdrawalMapper;
     private final WalletService walletService;
     private final CurrentUserProvider currentUserProvider;
+    private final EmployeeRepository employeeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public WithdrawalResponse create(CreateWithdrawalRequest request, String rawKey) {
@@ -81,7 +88,9 @@ public class WithdrawalService {
                 "Withdrawal request");
         saved.setWalletTransaction(transaction);
 
-        return withdrawalMapper.toResponse(withdrawalRequestRepository.saveAndFlush(saved));
+        WithdrawalRequest completed = withdrawalRequestRepository.saveAndFlush(saved);
+        publishReviewRequired(completed);
+        return withdrawalMapper.toResponse(completed);
     }
 
     @Transactional(readOnly = true)
@@ -166,5 +175,17 @@ public class WithdrawalService {
         }
         wallet.setPendingBalance(wallet.getPendingBalance().subtract(amount));
         wallet.setBalance(wallet.getBalance().add(amount));
+    }
+
+    private void publishReviewRequired(WithdrawalRequest request) {
+        java.util.Map<String, String> data = java.util.Map.of(
+                "amount", request.getAmount().stripTrailingZeros().toPlainString());
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.WITHDRAWAL_REVIEW_REQUIRED,
+                        NotificationReferenceType.WITHDRAWAL_REQUEST,
+                        request.getId(),
+                        data)));
     }
 }

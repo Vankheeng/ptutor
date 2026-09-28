@@ -854,6 +854,36 @@ Các API notification yêu cầu `Authorization: Bearer <access-token>` và ch�
 
 Notification có `type` theo nhóm `SYSTEM`, `REQUEST`, `CONTRACT`, `PAYMENT`, `COMPLAINT`, cùng `eventType`, `referenceType` và `referenceId` để frontend điều hướng tới dữ liệu liên quan. Các event Payment chỉ được tạo sau khi VNPay IPN xác nhận thanh toán thành công; reminder học phí được chống trùng theo installment.
 
+Các workflow hiện tạo notification tự động:
+
+| Workflow | Event | Người nhận | Reference |
+| --- | --- | --- | --- |
+| Tutor tạo hoặc cập nhật certificate cần duyệt | `CERTIFICATE_REVIEW_REQUIRED` | Admin/Employee | `CERTIFICATE` |
+| Admin/Employee duyệt hoặc từ chối certificate | `CERTIFICATE_APPROVED`, `CERTIFICATE_REJECTED` | Tutor sở hữu certificate | `CERTIFICATE` |
+| Teaching Request có custom subject hoặc note cần duyệt | `TEACHING_REQUEST_REVIEW_REQUIRED` | Admin/Employee | `TEACHING_REQUEST` |
+| Admin/Employee duyệt hoặc từ chối Teaching Request | `TEACHING_REQUEST_APPROVED`, `TEACHING_REQUEST_REJECTED` | Tutor sở hữu request | `TEACHING_REQUEST` |
+| Tutor gửi đề nghị dạy vào Studying Request | `TUTOR_REQUEST_RECEIVED` | Student sở hữu request | `TUTOR_STUDENT_REQUEST` |
+| Student chấp nhận hoặc từ chối đề nghị của Tutor | `TUTOR_REQUEST_ACCEPTED`, `TUTOR_REQUEST_REJECTED` | Tutor gửi đề nghị | `TUTOR_STUDENT_REQUEST` |
+| Student đăng ký vào Teaching Request | `STUDENT_REQUEST_RECEIVED` | Tutor sở hữu request | `STUDENT_TUTOR_REQUEST` |
+| Tutor chấp nhận hoặc từ chối đăng ký của Student | `STUDENT_REQUEST_ACCEPTED`, `STUDENT_REQUEST_REJECTED` | Student đăng ký | `STUDENT_TUTOR_REQUEST` |
+| Tạo, ký, từ chối, hủy hoặc đề xuất gia hạn Contract | `CONTRACT_SIGNATURE_REQUIRED`, `CONTRACT_SIGNED`, `CONTRACT_REJECTED`, `CONTRACT_CANCELLED`, `CONTRACT_RENEWAL_PROPOSED` | Bên còn lại của Contract | `CONTRACT` |
+| Tutor đánh dấu đã dạy hoặc hủy Lesson | `LESSON_MARKED_TAUGHT`, `LESSON_CANCELLED` | Student của Contract | `LESSON` |
+| Thanh toán thành công hoặc sắp đến hạn học phí | `PAYMENT_SUCCEEDED`, `PAYMENT_INSTALLMENT_DUE` | Người thanh toán/Student | Đối tượng thanh toán hoặc `INSTALLMENT` |
+| Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REVIEW_REQUIRED` | Admin/Employee | `WITHDRAWAL_REQUEST` |
+| Xử lý Complaint | `COMPLAINT_EVIDENCE_REQUESTED`, `COMPLAINT_RESOLVED`, `COMPLAINT_REJECTED` | Người gửi Complaint | `COMPLAINT` |
+| Khóa hoặc mở lại tài khoản | `ACCOUNT_SUSPENDED`, `ACCOUNT_REACTIVATED` | Tài khoản bị tác động | `USER` |
+
+Notification nghiệp vụ được tạo với `isRead=false`. Với các workflow phát `NotificationDomainEvent`, listener chỉ lưu notification sau khi transaction nghiệp vụ commit thành công; vì vậy không tạo thông báo cho thao tác đã rollback. `referenceId` là ID của record liên quan, frontend nên kết hợp `referenceType` và `referenceId` để mở đúng màn hình chi tiết.
+
+Kiểm tra nhanh sau khi thực hiện một workflow:
+
+```http
+GET /api/v1/users/me/notifications?status=UNREAD&page=0&size=100
+Authorization: Bearer <access-token-của-người-nhận>
+```
+
+Đối chiếu notification trả về với hành động vừa thực hiện: đúng `eventType`, đúng người nhận, đúng `referenceType` và đúng `referenceId`. Nếu API nghiệp vụ thành công nhưng không thấy notification, kiểm tra backend log với thông báo `Unable to persist notification`.
+
 ### 6.19.1. API Admin/Employee quản lý thông báo
 
 Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=GENERAL_OPERATIONS`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.

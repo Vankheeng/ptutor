@@ -6454,6 +6454,22 @@ components:
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         paymentUrl: { type: string, format: uri }
         expiresAt: { type: string, format: date-time }
+    PaymentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        paymentType: { type: string, enum: [TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
+        paymentMethod: { type: string, enum: [VNPAY, WALLET] }
+        status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
+        amount: { type: number, format: double }
+        referenceType: { type: string, nullable: true }
+        referenceId: { type: string, format: uuid, nullable: true }
+        paymentInstallmentId: { type: string, format: uuid, nullable: true }
+        transactionCode: { type: string }
+        providerTransactionNo: { type: string, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
     ApiResponseMetadata:
       type: object
       required:
@@ -6925,6 +6941,13 @@ components:
           properties:
             data: { $ref: '#/components/schemas/PaymentInitiationResponse' }
 
+    PaymentResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/PaymentResponse' }
+
     BankAccountResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -7077,6 +7100,7 @@ components:
             - CONTRACT_REJECTED
             - CONTRACT_CANCELLED
             - CONTRACT_RENEWAL_PROPOSED
+            - CERTIFICATE_REVIEW_REQUIRED
             - CERTIFICATE_APPROVED
             - CERTIFICATE_REJECTED
             - TEACHING_REQUEST_APPROVED
@@ -7086,10 +7110,13 @@ components:
             - COMPLAINT_REJECTED
             - ACCOUNT_SUSPENDED
             - ACCOUNT_REACTIVATED
+            - TEACHING_REQUEST_REVIEW_REQUIRED
+            - LESSON_MARKED_TAUGHT
+            - LESSON_CANCELLED
+            - WITHDRAWAL_REVIEW_REQUIRED
         referenceType:
           type: string
-          nullable: true
-          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER]
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WITHDRAWAL_REQUEST]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }
