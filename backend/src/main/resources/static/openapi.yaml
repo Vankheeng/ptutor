@@ -2693,6 +2693,22 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/students/me/studying-requests/{requestId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my studying request fee with wallet balance
+      operationId: payStudyingRequestWithWallet
+      parameters:
+        - $ref: '#/components/parameters/StudyingRequestId'
+      responses:
+        '201':
+          description: Studying request fee paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay:
     post:
       tags: [Payments]
@@ -2710,6 +2726,25 @@ paths:
             schema: { $ref: '#/components/schemas/VnPayPaymentRequest' }
       responses:
         '201': { description: VNPay payment URL created }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/teaching-requests/{requestId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my teaching request fee with wallet balance
+      operationId: payTeachingRequestWithWallet
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Teaching request fee paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -2753,6 +2788,29 @@ paths:
             schema: { $ref: '#/components/schemas/VnPayPaymentRequest' }
       responses:
         '201': { description: VNPay payment URL created }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my contract installment with wallet balance
+      operationId: payTuitionWithWallet
+      parameters:
+        - name: contractId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: installmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Contract installment paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }

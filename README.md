@@ -814,16 +814,19 @@ API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nh
 | --- | --- | --- |
 | `GET` | `/api/v1/reviews?limit=3` | Lấy tối đa 50 đánh giá 5 sao mới nhất. |
 
-### 6.18. API Payment VNPay
+### 6.18. API Payment VNPay và Wallet
 
 Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VNPay. Browser return URL chỉ chuyển người dùng về frontend để kiểm tra lại trạng thái Payment.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
 | `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Studying Request `DRAFT` |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/wallet` | Thanh toán phí đăng Studying Request `DRAFT` bằng số dư ví |
 | `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Teaching Request `DRAFT` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/wallet` | Thanh toán phí đăng Teaching Request `DRAFT` bằng số dư ví |
 | `GET` | `/api/v1/students/me/contracts/{contractId}/payment-installments` | Xem các kỳ học phí của Contract `ACTIVE` |
 | `POST` | `/api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay` | Tạo URL VNPay thanh toán một kỳ học phí |
+| `POST` | `/api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/wallet` | Thanh toán một kỳ học phí bằng số dư ví |
 | `GET` | `/api/v1/users/me/payments/{paymentId}` | Kiểm tra trạng thái Payment của chính mình |
 | `GET` | `/api/v1/users/me/transactions` | Xem lịch sử Payment, Wallet Transaction và Withdrawal của chính mình |
 
@@ -837,6 +840,8 @@ API tạo Payment có thể nhận body tùy chọn:
 ```
 
 Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client không gửi amount. Với Contract, `paymentPeriod` chỉ nhận `PER_LESSON`, `WEEKLY`, `MONTHLY` hoặc `PACKAGE`; `price` là giá mỗi kỳ, riêng `PACKAGE` là tổng giá của gói.
+
+Các endpoint `/payments/wallet` không nhận request body và hoàn tất thanh toán ngay khi ví đủ số dư. Mỗi khoản thanh toán có idempotency key riêng để retry không bị trừ tiền lần thứ hai. Nếu cùng khoản đang có Payment VNPay `PENDING`, Payment đó được chuyển thành `CANCELLED` sau khi ví thanh toán thành công.
 
 Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
 
