@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.VnPayPaymentRequest;
+import com.ptutor.backend.dto.request.WalletTopUpRequest;
 import com.ptutor.backend.dto.command.WalletTransactionCommand;
 import com.ptutor.backend.dto.enums.FinancialTransactionSource;
 import com.ptutor.backend.dto.response.ContractPaymentInstallmentResponse;
@@ -64,6 +65,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private static final BigDecimal MIN_WALLET_TOP_UP = new BigDecimal("10000");
+    private static final BigDecimal MAX_WALLET_TOP_UP = new BigDecimal("100000000");
+
     private final PaymentRepository paymentRepository;
     private final StudyingRequestRepository studyingRequestRepository;
     private final TeachingRequestRepository teachingRequestRepository;
@@ -86,6 +90,30 @@ public class PaymentService {
 
     @org.springframework.beans.factory.annotation.Value("${app.payment.fees.teaching-request}")
     private BigDecimal teachingRequestFee;
+
+    @Transactional
+    public PaymentInitiationResponse createWalletTopUp(
+            UUID userId, WalletTopUpRequest request, String clientIp) {
+        BigDecimal amount = requireValidTopUpAmount(request.amount());
+        User paymentUser = new User();
+        paymentUser.setId(userId);
+        Payment payment = Payment.builder()
+                .user(paymentUser)
+                .amount(amount)
+                .paymentMethod(PaymentMethod.VNPAY)
+                .paymentType(PaymentType.WALLET_TOP_UP)
+                .status(PaymentStatus.PENDING)
+                .transactionCode("PT" + UUID.randomUUID().toString().replace("-", "").toUpperCase())
+                .referenceType(ReferenceType.PAYMENT)
+                .note(PaymentType.WALLET_TOP_UP.name())
+                .expiresAt(vnPayService.expiresAt())
+                .build();
+        Payment saved = paymentRepository.saveAndFlush(payment);
+        saved.setReferenceId(saved.getId());
+        saved = paymentRepository.saveAndFlush(saved);
+        VnPayPaymentRequest vnPayRequest = new VnPayPaymentRequest(request.bankCode(), request.locale());
+        return toInitiationResponse(saved, vnPayService.createPaymentUrl(saved, clientIp, vnPayRequest));
+    }
 
     @Transactional
     public PaymentInitiationResponse createStudyingRequestPayment(
@@ -372,7 +400,16 @@ public class PaymentService {
     }
 
     private void activatePaidPayment(Payment payment) {
-        if (payment.getPaymentType() == PaymentType.STUDYING_REQUEST_FEE) {
+        if (payment.getPaymentType() == PaymentType.WALLET_TOP_UP) {
+            walletService.credit(new WalletTransactionCommand(
+                    payment.getUser().getId(),
+                    payment.getAmount(),
+                    WalletTransactionPurpose.TOP_UP,
+                    ReferenceType.PAYMENT,
+                    payment.getId(),
+                    "Wallet top-up via VNPay",
+                    "payment:top-up:" + payment.getId()));
+        } else if (payment.getPaymentType() == PaymentType.STUDYING_REQUEST_FEE) {
             studyingRequestService.activateAfterPayment(payment.getReferenceId());
         } else if (payment.getPaymentType() == PaymentType.TEACHING_REQUEST_FEE) {
             teachingRequestService.activateAfterPayment(payment.getReferenceId());
@@ -466,6 +503,9 @@ public class PaymentService {
     }
 
     private NotificationReferenceType paymentNotificationReferenceType(Payment payment) {
+        if (payment.getPaymentType() == PaymentType.WALLET_TOP_UP) {
+            return NotificationReferenceType.PAYMENT;
+        }
         if (payment.getPaymentType() == PaymentType.TUITION_PAYMENT) {
             return NotificationReferenceType.INSTALLMENT;
         }
@@ -475,6 +515,9 @@ public class PaymentService {
     }
 
     private UUID paymentNotificationReferenceId(Payment payment) {
+        if (payment.getPaymentType() == PaymentType.WALLET_TOP_UP) {
+            return payment.getId();
+        }
         return payment.getPaymentType() == PaymentType.TUITION_PAYMENT
                 ? payment.getPaymentInstallment().getId()
                 : payment.getReferenceId();
@@ -506,6 +549,23 @@ public class PaymentService {
             throw new IllegalStateException("Configured " + label + " fee must be greater than zero");
         }
         return value;
+    }
+
+    private BigDecimal requireValidTopUpAmount(BigDecimal value) {
+        BigDecimal amount;
+        try {
+            if (value == null) {
+                throw new ArithmeticException();
+            }
+            amount = value.setScale(0, java.math.RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException exception) {
+            throw badRequest("INVALID_WALLET_TOP_UP_AMOUNT", "Top-up amount must be a whole VND amount");
+        }
+        if (amount.compareTo(MIN_WALLET_TOP_UP) < 0 || amount.compareTo(MAX_WALLET_TOP_UP) > 0) {
+            throw badRequest("INVALID_WALLET_TOP_UP_AMOUNT",
+                    "Top-up amount must be between 10000 and 100000000 VND");
+        }
+        return amount;
     }
 
     private BigDecimal requireWholeVnd(BigDecimal value) {

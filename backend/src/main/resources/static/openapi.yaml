@@ -2672,6 +2672,33 @@ paths:
         '409': { $ref: '#/components/responses/ConflictError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/users/me/wallet/top-ups/vnpay:
+    post:
+      tags: [Payments, Wallets]
+      summary: Create a VNPay wallet top-up
+      description: >-
+        Creates a pending WALLET_TOP_UP payment and returns a VNPay checkout URL.
+        The wallet balance is credited only after a valid successful VNPay IPN is received.
+        Reprocessing the same successful payment does not credit the wallet twice.
+      operationId: createWalletTopUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletTopUpRequest' }
+      responses:
+        '201':
+          description: VNPay top-up URL created; wallet balance is not credited yet
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentInitiationResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/students/me/studying-requests/{requestId}/payments/vnpay:
     post:
       tags: [Payments]
@@ -6503,11 +6530,24 @@ components:
       properties:
         bankCode: { type: string, maxLength: 20, nullable: true }
         locale: { type: string, enum: [vn, en], nullable: true }
+    WalletTopUpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          minimum: 10000
+          maximum: 100000000
+          multipleOf: 1
+          example: 250000
+          description: Whole VND amount to add to the authenticated user's wallet after successful VNPay IPN confirmation.
+        bankCode: { type: string, maxLength: 20, pattern: '^[A-Za-z0-9]*$', nullable: true, example: NCB }
+        locale: { type: string, enum: [vn, en], nullable: true, example: vn }
     PaymentInitiationResponse:
       type: object
       properties:
         paymentId: { type: string, format: uuid }
-        paymentType: { type: string, enum: [TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
+        paymentType: { type: string, enum: [WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
         amount: { type: number, format: double }
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         paymentUrl: { type: string, format: uri }
@@ -6516,7 +6556,7 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        paymentType: { type: string, enum: [TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
+        paymentType: { type: string, enum: [WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
         paymentMethod: { type: string, enum: [VNPAY, WALLET] }
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         amount: { type: number, format: double }

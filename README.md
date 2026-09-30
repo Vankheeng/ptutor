@@ -762,7 +762,7 @@ Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và 
 
 Mỗi record có `amount`, `balanceAfter`, `pendingBalanceAfter`, nguồn nghiệp vụ (`referenceType`, `referenceId`) và trạng thái. Một lần rút tiền chỉ có một transaction `DEBIT + WITHDRAWAL + PENDING`; khi hủy, transaction đó chuyển `CANCELLED` và hệ thống ghi thêm `CREDIT + WITHDRAWAL_REVERSAL + COMPLETED`.
 
-Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn tiền) chỉ thực hiện thông qua `WalletService` nội bộ với idempotency key. Không có API public cho user tự cộng tiền vào ví.
+Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn tiền) luôn đi qua `WalletService` với idempotency key. Student/Tutor có thể tạo yêu cầu nạp ví qua VNPay; hệ thống không cung cấp API cộng số dư trực tiếp. Số dư chỉ được cộng sau khi backend xác minh IPN thành công từ VNPay.
 
 | Code | Khi xảy ra |
 | --- | --- |
@@ -820,6 +820,7 @@ Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VN
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
+| `POST` | `/api/v1/users/me/wallet/top-ups/vnpay` | Tạo URL VNPay để Student/Tutor nạp tiền vào ví |
 | `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Studying Request `DRAFT` |
 | `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/wallet` | Thanh toán phí đăng Studying Request `DRAFT` bằng số dư ví |
 | `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Teaching Request `DRAFT` |
@@ -830,7 +831,7 @@ Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VN
 | `GET` | `/api/v1/users/me/payments/{paymentId}` | Kiểm tra trạng thái Payment của chính mình |
 | `GET` | `/api/v1/users/me/transactions` | Xem lịch sử Payment, Wallet Transaction và Withdrawal của chính mình |
 
-API tạo Payment có thể nhận body tùy chọn:
+API tạo Payment cho phí đăng request hoặc học phí có thể nhận body tùy chọn:
 
 ```json
 {
@@ -840,6 +841,26 @@ API tạo Payment có thể nhận body tùy chọn:
 ```
 
 Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client không gửi amount. Với Contract, `paymentPeriod` chỉ nhận `PER_LESSON`, `WEEKLY`, `MONTHLY` hoặc `PACKAGE`; `price` là giá mỗi kỳ, riêng `PACKAGE` là tổng giá của gói.
+
+API nạp ví yêu cầu client gửi số tiền muốn nạp:
+
+```http
+POST /api/v1/users/me/wallet/top-ups/vnpay
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 250000,
+  "bankCode": "NCB",
+  "locale": "vn"
+}
+```
+
+`amount` là số VND nguyên, tối thiểu `10,000` và tối đa `100,000,000`; `bankCode` và `locale` (`vn` hoặc `en`) là tùy chọn. API trả HTTP `201` cùng `paymentId`, `paymentType = WALLET_TOP_UP`, `status = PENDING`, `paymentUrl` và `expiresAt`. Client chuyển người dùng đến `paymentUrl`, sau đó dùng `GET /api/v1/users/me/payments/{paymentId}` để kiểm tra trạng thái.
+
+Nạp ví không cộng tiền khi tạo URL hoặc khi browser quay về return URL. Chỉ IPN VNPay có chữ ký hợp lệ, đúng merchant, đúng số tiền và có mã thành công mới chuyển Payment sang `PAID`, đồng thời tạo Wallet Transaction `CREDIT + TOP_UP + COMPLETED`. Payment và idempotency key theo `paymentId` bảo đảm cùng một IPN không cộng số dư lần thứ hai.
 
 Các endpoint `/payments/wallet` không nhận request body và hoàn tất thanh toán ngay khi ví đủ số dư. Mỗi khoản thanh toán có idempotency key riêng để retry không bị trừ tiền lần thứ hai. Nếu cùng khoản đang có Payment VNPay `PENDING`, Payment đó được chuyển thành `CANCELLED` sau khi ví thanh toán thành công.
 
