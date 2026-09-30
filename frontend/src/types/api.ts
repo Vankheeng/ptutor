@@ -8,6 +8,24 @@ export interface ApiResponse<T> {
   path: string;
 }
 
+export type UserRole = 'STUDENT' | 'TUTOR' | 'EMPLOYEE' | 'ADMIN';
+
+export interface Province {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface District {
+  id: string;
+  name: string;
+  provinceId: string;
+  provinceName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Subject {
   id: string;
   name: string;
