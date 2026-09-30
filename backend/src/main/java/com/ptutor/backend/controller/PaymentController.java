@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.VnPayPaymentRequest;
+import com.ptutor.backend.dto.request.WalletTopUpRequest;
 import com.ptutor.backend.dto.enums.FinancialTransactionSource;
 import com.ptutor.backend.dto.response.ContractPaymentInstallmentResponse;
 import com.ptutor.backend.dto.response.PaymentInitiationResponse;
@@ -44,6 +45,17 @@ public class PaymentController {
     private final CurrentUserProvider currentUserProvider;
     private final ApiResponseFactory responseFactory;
     private final VnPayService vnPayService;
+
+    @PostMapping("/users/me/wallet/top-ups/vnpay")
+    public ResponseEntity<ApiResponse<PaymentInitiationResponse>> createWalletTopUp(
+            @Valid @RequestBody WalletTopUpRequest request,
+            HttpServletRequest servletRequest) {
+        String path = "/api/v1/users/me/wallet/top-ups/vnpay";
+        return ResponseEntity.status(201).body(responseFactory.success(
+                paymentService.createWalletTopUp(
+                        currentUserProvider.getCurrentUserId(), request, clientIp(servletRequest)),
+                path));
+    }
 
     @PostMapping("/students/me/studying-requests/{requestId}/payments/vnpay")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> payStudyingRequest(
