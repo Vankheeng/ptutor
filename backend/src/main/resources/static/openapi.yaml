@@ -63,6 +63,8 @@ tags:
     description: Administrator-only employee account and job-function management
   - name: Districts
     description: District catalog used by profile and teaching-request forms
+  - name: Provinces
+    description: Province catalog used by registration and profile forms
 security:
   - bearerAuth: []
 paths:
@@ -2023,6 +2025,22 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/provinces:
+    get:
+      tags:
+        - Provinces
+      summary: Get provinces
+      description: Returns all provinces ordered by name. This endpoint is public so guests can complete registration.
+      operationId: listProvinces
+      security: []
+      responses:
+        '200':
+          description: Provinces retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvinceListResponseEnvelope'
+
   /api/v1/districts:
     get:
       tags:
@@ -2030,6 +2048,7 @@ paths:
       summary: Get districts
       description: Returns all districts ordered by province and district name. Use provinceId to filter districts belonging to one province.
       operationId: listDistricts
+      security: []
       parameters:
         - name: provinceId
           in: query
@@ -7001,6 +7020,24 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/DistrictResponse'
+
+    ProvinceListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProvinceResponse'
+
+    ProvinceResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     CertificateDeleteResponseEnvelope:
       allOf:

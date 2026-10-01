@@ -23,7 +23,10 @@ public final class SecurityConstants {
             "/api/v1/reviews",
             "/api/v1/auth/password-reset/otp",
             "/api/v1/auth/password-reset/verify",
-            "/api/v1/auth/password-reset/reset"
+            "/api/v1/auth/password-reset/reset",
+            "/api/v1/provinces",
+            "/api/v1/districts",
+            "/api/v1/districts/**"
     };
 
     public static final String[] PAYMENT_CALLBACK_API = {

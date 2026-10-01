@@ -1,7 +1,19 @@
 import type { ReactNode } from 'react';
 
 export type IconName =
-  'search' | 'location' | 'arrow' | 'check' | 'shield' | 'match' | 'contract' | 'support' | 'menu' | 'close' | 'book';
+  | 'search'
+  | 'location'
+  | 'arrow'
+  | 'check'
+  | 'shield'
+  | 'match'
+  | 'contract'
+  | 'support'
+  | 'menu'
+  | 'close'
+  | 'book'
+  | 'eye'
+  | 'eyeOff';
 
 interface IconProps {
   name: IconName;
@@ -66,6 +78,18 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v17H7.5A3.5 3.5 0 0 0 4 22Z" />
       <path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H12v17h4.5A3.5 3.5 0 0 1 20 22Z" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z" />
+      <circle cx="12" cy="12" r="2.2" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="m3 3 18 18" />
+      <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.1 0 9.5 6 9.5 6a17.5 17.5 0 0 1-3.1 3.4M6.2 6.8C3.9 8.3 2.5 12 2.5 12s3.4 6 9.5 6c1.4 0 2.6-.3 3.7-.8" />
     </>
   )
 };

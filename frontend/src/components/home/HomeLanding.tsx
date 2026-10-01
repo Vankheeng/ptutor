@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './HomeLanding.css';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon } from '../ui/Icon';
@@ -10,10 +11,16 @@ import { ReviewCard } from './ReviewCard';
 import { SubjectCard } from './SubjectCard';
 import { TeachingPostCard } from './TeachingPostCard';
 import { HOME_FEATURES } from './homeContent';
+import { useAuth } from '../../auth/useAuth';
+import { Toast } from '../ui/Toast';
 
 export function HomeLanding() {
   useHomeReveal();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
   const { isVisible: isBackToTopVisible, scrollToTop } = useScrollToTop();
   const {
     subjects,
@@ -28,13 +35,19 @@ export function HomeLanding() {
     handleSearch
   } = useHomeLanding();
 
+  const loginMessage =
+    location.state && typeof location.state === 'object' && 'message' in location.state
+      ? String(location.state.message)
+      : '';
+
   return (
     <div className="site-shell">
+      {loginMessage && <LoginSuccessToast key={location.key} message={loginMessage} />}
       <header className="site-header">
         <div className="container nav-wrap">
-          <a className="brand" href="#top" aria-label="Ptutor - Trang chủ">
+          <Link className="brand" to="/#top" aria-label="Ptutor - Trang chủ">
             <img src={logo} alt="Ptutor" />
-          </a>
+          </Link>
           <button
             className="menu-button"
             type="button"
@@ -46,12 +59,53 @@ export function HomeLanding() {
           </button>
           <HomeNavigation isOpen={menuOpen} />
           <div className="nav-actions">
-            <a className="login-link" href="#login">
-              Đăng nhập
-            </a>
-            <a className="button button-small" href="#register">
-              Đăng ký miễn phí
-            </a>
+            {!isAuthenticated ? (
+              <>
+                <Link className="login-link" to="/login">
+                  Đăng nhập
+                </Link>
+                <Link className="button button-small" to="/register">
+                  Đăng ký miễn phí
+                </Link>
+              </>
+            ) : (
+              <div className={accountOpen ? 'account-menu is-open' : 'account-menu'}>
+                <button
+                  className="account-trigger"
+                  type="button"
+                  onClick={() => setAccountOpen((open) => !open)}
+                  aria-expanded={accountOpen}
+                >
+                  <span className="account-avatar">
+                    {user?.profile?.avatarUrl ? (
+                      <img src={user.profile.avatarUrl} alt="Ảnh đại diện" />
+                    ) : (
+                      getInitials(user?.profile?.firstName, user?.profile?.lastName, user?.email)
+                    )}
+                  </span>
+                  <span className="account-email">{user?.email}</span>
+                  <span className="account-chevron" aria-hidden="true" />
+                </button>
+                <div className="account-dropdown">
+                  <strong>
+                    {user?.profile?.firstName || user?.profile?.lastName
+                      ? `${user.profile.firstName ?? ''} ${user.profile.lastName ?? ''}`.trim()
+                      : user?.email}
+                  </strong>
+                  <small>{user?.role}</small>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void logout();
+                      setAccountOpen(false);
+                      navigate('/');
+                    }}
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -281,6 +335,27 @@ export function HomeLanding() {
       </button>
     </div>
   );
+}
+
+function getInitials(firstName?: string | null, lastName?: string | null, email?: string) {
+  const name = `${firstName ?? ''} ${lastName ?? ''}`.trim();
+  if (name)
+    return name
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  return (email?.[0] ?? 'U').toUpperCase();
+}
+
+function LoginSuccessToast({ message }: { message: string }) {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setVisible(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, []);
+  return visible ? <Toast message={message} /> : null;
 }
 
 function HeroVisual() {
