@@ -68,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       storeTokens(tokens);
       setUser(userFromTokens(tokens));
       const profile = await hydrateProfile(tokens);
-      setUser(userFromTokens(tokens, profile));
+      const authenticatedUser = userFromTokens(tokens, profile);
+      setUser(authenticatedUser);
+      return authenticatedUser;
     },
     [hydrateProfile, userFromTokens]
   );

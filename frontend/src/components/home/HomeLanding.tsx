@@ -21,6 +21,7 @@ export function HomeLanding() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const homeHref = user?.role === 'TUTOR' ? '/public#top' : '/#top';
   const { isVisible: isBackToTopVisible, scrollToTop } = useScrollToTop();
   const {
     subjects,
@@ -45,7 +46,7 @@ export function HomeLanding() {
       {loginMessage && <LoginSuccessToast key={location.key} message={loginMessage} />}
       <header className="site-header">
         <div className="container nav-wrap">
-          <Link className="brand" to="/#top" aria-label="Ptutor - Trang chủ">
+          <Link className="brand" to={homeHref} aria-label="Ptutor - Trang chủ">
             <img src={logo} alt="Ptutor" />
           </Link>
           <button
