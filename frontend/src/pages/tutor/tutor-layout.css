@@ -1,0 +1,57 @@
+.tutor-sidebar {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 14px 12px;
+}
+
+.tutor-brand {
+  height: 42px;
+  margin: 0 0 15px 8px;
+}
+
+.tutor-brand img {
+  width: 104px;
+  height: 32px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.tutor-identity {
+  margin-bottom: 17px;
+}
+
+.tutor-nav-group {
+  gap: 3px;
+}
+
+.tutor-nav-group + .tutor-nav-group {
+  margin-top: 6px;
+}
+
+.tutor-nav-label {
+  padding-bottom: 6px;
+}
+
+.tutor-nav-link {
+  height: 36px;
+  font-size: 11px;
+}
+
+.tutor-sidebar-bottom {
+  padding-top: 8px;
+}
+
+.tutor-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tutor-sidebar::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: #ddd9e8;
+}
+
+@media (max-width: 1100px) {
+  .tutor-shell {
+    grid-template-columns: 226px minmax(0, 1fr);
+  }
+}

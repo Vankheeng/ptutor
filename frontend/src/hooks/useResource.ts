@@ -3,7 +3,7 @@ import type { AsyncState } from '../types/async';
 
 type ResourceLoader<T> = (signal: AbortSignal) => Promise<T>;
 
-export function useResource<T>(load: ResourceLoader<T>): AsyncState<T> {
+export function useResource<T>(load: ResourceLoader<T>, refreshKey?: unknown): AsyncState<T> {
   const [state, setState] = useState<AsyncState<T>>({ data: null, error: null, isLoading: true });
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export function useResource<T>(load: ResourceLoader<T>): AsyncState<T> {
       });
 
     return () => controller.abort();
-  }, [load]);
+  }, [load, refreshKey]);
 
   return state;
 }

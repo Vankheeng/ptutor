@@ -29,7 +29,15 @@ export async function get<T>(path: string, options: HttpRequestOptions = {}): Pr
 }
 
 export async function post<T>(path: string, body?: unknown, options: HttpRequestOptions = {}): Promise<T> {
-  return request<T>(path, { ...options, method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+  return request<T>(path, {
+    ...options,
+    method: 'POST',
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body)
+  });
+}
+
+export async function del<T>(path: string, options: HttpRequestOptions = {}): Promise<T> {
+  return request<T>(path, { ...options, method: 'DELETE' });
 }
 
 export async function put<T>(path: string, body?: unknown, options: HttpRequestOptions = {}): Promise<T> {
@@ -45,7 +53,9 @@ export async function request<T>(path: string, options: HttpRequestOptions = {},
   const storedTokens = getStoredTokens();
   const headers = new Headers(fetchOptions.headers);
   headers.set('Accept', 'application/json');
-  if (fetchOptions.body !== undefined) headers.set('Content-Type', 'application/json');
+  if (fetchOptions.body !== undefined && !(fetchOptions.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
   if (storedTokens?.accessToken) headers.set('Authorization', `Bearer ${storedTokens.accessToken}`);
 
   const response = await fetch(`${apiBaseUrl}${path}`, { ...fetchOptions, headers });
