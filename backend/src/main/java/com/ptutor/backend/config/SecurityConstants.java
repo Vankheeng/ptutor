@@ -109,6 +109,12 @@ public final class SecurityConstants {
             "/api/v1/tutors/me/**"
     };
 
+    // Shared studying request reads are available to tutors and employees.
+    public static final String[] STUDYING_REQUEST_READ_API = {
+            "/api/v1/studying-requests",
+            "/api/v1/studying-requests/*"
+    };
+
     public static final String[] CONTRACT_SELF_SERVICE_API = {
             "/api/v1/users/me/contracts",
             "/api/v1/users/me/contracts/**"

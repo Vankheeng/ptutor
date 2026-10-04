@@ -14,8 +14,43 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 import com.ptutor.backend.entity.StudyingRequest;
+import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.RequestStatus;
 
 public interface StudyingRequestRepository extends JpaRepository<StudyingRequest, UUID> {
+
+    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities"})
+    @Query(value = """
+            select distinct request from StudyingRequest request
+            where (:status is null or request.status = :status)
+              and (:subjectId is null or request.subject.id = :subjectId)
+              and (:gradeId is null or request.grade.id = :gradeId)
+              and (:districtId is null or request.district.id = :districtId)
+              and (:learningMode is null or request.learningMode = :learningMode)
+            """,
+            countQuery = """
+            select count(request) from StudyingRequest request
+            where (:status is null or request.status = :status)
+              and (:subjectId is null or request.subject.id = :subjectId)
+              and (:gradeId is null or request.grade.id = :gradeId)
+              and (:districtId is null or request.district.id = :districtId)
+              and (:learningMode is null or request.learningMode = :learningMode)
+            """)
+    Page<StudyingRequest> searchRequests(
+            @Param("status") RequestStatus status,
+            @Param("subjectId") UUID subjectId,
+            @Param("gradeId") UUID gradeId,
+            @Param("districtId") UUID districtId,
+            @Param("learningMode") LearningMode learningMode,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities"})
+    @Query("""
+            select request from StudyingRequest request
+            where request.id = :id and (:status is null or request.status = :status)
+            """)
+    Optional<StudyingRequest> findSearchableById(
+            @Param("id") UUID id, @Param("status") RequestStatus status);
 
     @EntityGraph(attributePaths = {"student", "subject", "grade", "district"})
     Page<StudyingRequest> findAllByStudent_IdOrderByCreatedAtDesc(UUID studentId, Pageable pageable);

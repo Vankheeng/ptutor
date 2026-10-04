@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.response.ApiResponse;
@@ -23,18 +27,41 @@ import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.dto.request.CertificateRequest;
 import com.ptutor.backend.dto.response.CertificateResponse;
 import com.ptutor.backend.service.CertificateService;
+import com.ptutor.backend.service.CertificateFileStorageService;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/tutors")
-@RequiredArgsConstructor
 @Validated
 public class CertificateController {
 
     private final CertificateService certificateService;
     private final ApiResponseFactory responseFactory;
+    private final CertificateFileStorageService certificateFileStorageService;
+
+    @Autowired
+    public CertificateController(
+            CertificateService certificateService,
+            ApiResponseFactory responseFactory,
+            CertificateFileStorageService certificateFileStorageService) {
+        this.certificateService = certificateService;
+        this.responseFactory = responseFactory;
+        this.certificateFileStorageService = certificateFileStorageService;
+    }
+
+    public CertificateController(CertificateService certificateService, ApiResponseFactory responseFactory) {
+        this(certificateService, responseFactory, null);
+    }
+
+    public record CertificateUploadResponse(String certificateUrl) { }
+
+    @PostMapping(path = "/me/certificates/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> upload(@RequestPart("file") MultipartFile file) {
+        String reference = certificateFileStorageService.upload(file);
+        return ResponseEntity.status(201).body(responseFactory.success(
+                new CertificateUploadResponse(reference), "/api/v1/tutors/me/certificates/upload"));
+    }
 
     @PostMapping("/me/certificates")
     public ResponseEntity<ApiResponse<CertificateResponse>> create(
