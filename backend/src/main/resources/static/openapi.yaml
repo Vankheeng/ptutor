@@ -595,6 +595,81 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/studying-requests:
+    get:
+      tags: [Studying Requests]
+      summary: Search studying requests
+      description: Tutors and employees can filter requests by status, subject, grade, district, and learning mode. Tutor results are always restricted to OPEN requests. Private student contact details and street addresses are omitted.
+      operationId: searchStudyingRequests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED] }
+          description: Applied for employees; tutors always receive OPEN requests.
+        - name: subjectId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: gradeId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: districtId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: learningMode
+          in: query
+          schema: { type: string, enum: [ONLINE, OFFLINE] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Filtered studying requests with pagination metadata
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StudyingRequestSearchPage'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/studying-requests/{studyingRequestId}:
+    get:
+      tags: [Studying Requests]
+      summary: Get a studying request
+      description: Tutors can retrieve OPEN requests only. Employees can retrieve requests in any status. Private student contact details and street addresses are omitted.
+      operationId: getStudyingRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studyingRequestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Studying request details without private contact or street address
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StudyingRequestSearchResponse' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/students/me/studying-requests:
     get:
       tags:
@@ -2137,6 +2212,44 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/me/certificates/upload:
+    post:
+      tags: [Tutor Certificates]
+      summary: Upload a certificate file to configured object storage
+      operationId: uploadMyCertificateFile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File uploaded; use certificateUrl when creating or updating the certificate record
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          certificateUrl: { type: string }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '503':
+          description: Object storage is not configured
 
   /api/v1/tutors/{tutorId}/certificates:
     parameters:
@@ -5295,6 +5408,49 @@ components:
           type: string
           format: time
           description: Must be after startTime.
+
+    StudyingRequestSearchPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/StudyingRequestSearchResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    StudyingRequestSearchResponse:
+      type: object
+      required: [id, subjectId, subjectName, gradeId, gradeName, quantity, learningMode, status, availabilities, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        subjectId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        districtId: { type: string, format: uuid, nullable: true }
+        districtName: { type: string, nullable: true }
+        quantity: { type: integer }
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        preferredSchedule: { type: string, nullable: true }
+        status: { type: string, enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED] }
+        availabilities:
+          type: array
+          items:
+            type: object
+            properties:
+              dayOfWeek: { type: integer }
+              startTime: { type: string, format: time }
+              endTime: { type: string, format: time }
+        createdAt: { type: string, format: date-time }
 
     StudyingRequestResponse:
       type: object

@@ -21,6 +21,7 @@ import com.ptutor.backend.dto.request.StudyingRequestRequest;
 import com.ptutor.backend.dto.request.StudyingRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.StudyingRequestResponse;
+import com.ptutor.backend.dto.response.StudyingRequestSearchResponse;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -66,6 +67,34 @@ public class StudyingRequestService {
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
     private final Clock clock;
+
+    @Transactional(readOnly = true)
+    public PageResponse<StudyingRequestSearchResponse> search(
+            RequestStatus requestedStatus, UUID subjectId, UUID gradeId, UUID districtId,
+            com.ptutor.backend.entity.enums.LearningMode learningMode, boolean tutor, Pageable pageable) {
+        RequestStatus effectiveStatus = tutor ? RequestStatus.OPEN : requestedStatus;
+        Page<StudyingRequest> requests = studyingRequestRepository.searchRequests(
+                effectiveStatus, subjectId, gradeId, districtId, learningMode, pageable);
+        List<StudyingRequestSearchResponse> content = requests.getContent().stream()
+                .map(this::toSearchResponse)
+                .toList();
+        return PageResponse.from(requests, content);
+    }
+
+    @Transactional(readOnly = true)
+    public StudyingRequestSearchResponse findSearchableById(UUID requestId, boolean tutor) {
+        RequestStatus status = tutor ? RequestStatus.OPEN : null;
+        StudyingRequest request = studyingRequestRepository.findSearchableById(requestId, status)
+                .orElseThrow(() -> requestNotFound(requestId));
+        return toSearchResponse(request);
+    }
+
+    private StudyingRequestSearchResponse toSearchResponse(StudyingRequest request) {
+        List<StudyingRequestSearchResponse.Availability> availabilities = request.getAvailabilities().stream()
+                .map(studyingRequestMapper::toSearchAvailability)
+                .toList();
+        return studyingRequestMapper.toSearchResponse(request, availabilities);
+    }
 
     @Transactional
     public StudyingRequestResponse create(UUID userId, StudyingRequestRequest request) {

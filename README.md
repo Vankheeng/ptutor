@@ -284,6 +284,7 @@ Các API quản lý certificate của chính mình dành cho tài khoản có ro
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/certificates/upload` | Upload PDF/JPEG/PNG (tối đa 10 MB) vào object storage đã cấu hình |
 | `POST` | `/api/v1/tutors/me/certificates` | Tạo certificate mới ở trạng thái `PENDING` |
 | `GET` | `/api/v1/tutors/me/certificates` | Xem tất cả certificate của mình |
 | `GET` | `/api/v1/tutors/me/certificates?status=VERIFIED` | Lọc certificate của mình theo trạng thái |
@@ -322,7 +323,9 @@ Request tạo/cập nhật:
 }
 ```
 
-`name` là bắt buộc. Nếu truyền cả hai ngày, `expiryDate` không được trước `issueDate`. `certificateUrl` là đường dẫn tới file minh chứng; API hiện lưu đường dẫn, chưa trực tiếp upload file lên storage.
+`name` là bắt buộc. Nếu truyền cả hai ngày, `expiryDate` không được trước `issueDate`. Upload file trước bằng `POST /api/v1/tutors/me/certificates/upload` với multipart field `file`, sau đó truyền `certificateUrl` nhận được khi tạo certificate. API cũng tiếp tục chấp nhận URL HTTPS hiện có.
+
+Certificate file storage hỗ trợ S3-compatible storage, gồm Supabase Storage. Với Supabase, bật S3 access trong Storage settings, tạo bucket **private**, rồi đặt `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY` và `S3_SECRET_KEY` trong file `.env` ở root backend. Dùng generated S3 access key pair, không dùng anon/service-role key. `S3_PUBLIC_ENDPOINT` thường giống `S3_ENDPOINT`; `S3_PRESIGN_DURATION` mặc định là `PT15M`. Không đưa các credential này vào frontend hoặc commit vào repository. Xem [Supabase S3 compatibility](https://supabase.com/docs/guides/storage/s3/compatibility) và [S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication).
 
 Certificate mới luôn có trạng thái `PENDING`. Certificate `VERIFIED` không được phép chỉnh sửa; gia sư cần tạo certificate mới nếu thông tin đã xác minh thay đổi. Các response thành công đều sử dụng format `ApiResponse` chung của backend.
 
@@ -493,7 +496,18 @@ Chỉ đề nghị `PENDING` được chuyển sang `ACCEPTED` hoặc `REJECTED`
 
 Mỗi đề nghị được chấp nhận sẽ được tính vào `quantity` của teaching request. Teaching request chỉ chuyển sang `MATCHED` khi số đề nghị `ACCEPTED` đạt đủ `quantity`; trước đó request vẫn có thể tiếp tục nhận học viên. API danh sách hiện hỗ trợ lọc trạng thái, chưa phân trang.
 
-### 6.10. API gia sư gửi đề nghị dạy (Tutor Student Request)
+### 6.10. Tìm kiếm studying request (Tutor và Employee)
+
+API dùng chung cho role `TUTOR` và `EMPLOYEE`; response không trả student ID, địa chỉ chi tiết hoặc thông tin liên hệ riêng tư. Tutor luôn chỉ nhận request `OPEN`, kể cả khi gửi status khác. Employee có thể lọc theo status.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/studying-requests` | Tìm request; hỗ trợ `status`, `subjectId`, `gradeId`, `districtId`, `learningMode`, `page`, `size` |
+| `GET` | `/api/v1/studying-requests/{studyingRequestId}` | Lấy chi tiết request có thể xem theo role |
+
+Kết quả danh sách có `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`; mặc định sắp xếp mới nhất trước, `size` tối đa 50.
+
+### 6.11. API gia sư gửi đề nghị dạy (Tutor Student Request)
 
 Các API này dành cho role `TUTOR`. Gia sư gửi đề nghị dạy đến studying request đang `OPEN` của học viên. Hệ thống tạo đề nghị ở `PENDING` và không cho tạo trùng một đề nghị `PENDING` trên cùng studying request.
 
@@ -515,7 +529,7 @@ Chỉ đề nghị `PENDING` mới được hủy và khi hủy sẽ chuyển sa
 }
 ```
 
-### 6.11. API khiếu nại (Complaint)
+### 6.12. API khiếu nại (Complaint)
 
 API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại. Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
 
@@ -530,7 +544,7 @@ API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `AWAITING_EVIDENCE`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`. Evidence bổ sung được append và không thay thế evidence đã có.
 
-### 6.12. API hợp đồng (Contract)
+### 6.13. API hợp đồng (Contract)
 
 Các API hợp đồng chỉ dành cho `STUDENT` và `TUTOR` đã đăng nhập. Hệ thống luôn xác định người dùng từ JWT; chỉ hai bên tham gia mới có thể xem chi tiết, ký, từ chối hoặc gia hạn hợp đồng.
 
@@ -580,7 +594,7 @@ Header xác thực:
 ```text
 Authorization: Bearer <access-token>
 ```
-### 6.13. API buổi học của hợp đồng (Lesson)
+### 6.14. API buổi học của hợp đồng (Lesson)
 
 Các API này dành cho role `TUTOR`. Gia sư chỉ quản lý buổi học thuộc contract của chính mình. Tạo hoặc sửa lịch chỉ thực hiện được khi contract `ACTIVE`; ngày học phải nằm trong thời hạn contract và `startTime` phải trước `endTime`.
 
@@ -624,7 +638,7 @@ Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; 
 
 Complaint đang xử lý sẽ giữ lesson ở `PENDING_CONFIRMATION`; admin xử lý complaint và quyết toán ở luồng Complaint/Payment riêng, không đổi trực tiếp trạng thái Lesson.
 
-### 6.14. API ví và tài khoản ngân hàng
+### 6.15. API ví và tài khoản ngân hàng
 
 Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDENT` hoặc `TUTOR`. Danh tính luôn lấy từ access token JWT; client không truyền `userId` hay `walletId`.
 
@@ -772,7 +786,7 @@ Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn t
 | `WITHDRAWAL_NOT_FOUND` (`404`) | Request không tồn tại hoặc không thuộc user hiện tại. |
 | `WITHDRAWAL_NOT_CANCELLABLE` (`409`) | Request không còn `PENDING`. |
 
-### 6.15. API Admin/Employee duyệt certificate của gia sư
+### 6.16. API Admin/Employee duyệt certificate của gia sư
 
 Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. Người duyệt xem thông tin certificate, file minh chứng và thông tin cơ bản của gia sư trước khi phê duyệt hoặc từ chối thủ công.
 
@@ -785,7 +799,7 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 
 API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
-### 6.16. API Admin/Employee duyệt yêu cầu dạy
+### 6.17. API Admin/Employee duyệt yêu cầu dạy
 
 Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Danh sách mặc định trả về các yêu cầu
 `PENDING_REVIEW`; có thể lọc thêm `OPEN` và `REJECTED`.
@@ -806,7 +820,7 @@ Yêu cầu sau thanh toán chuyển vào `PENDING_REVIEW` khi trường `note` c
 `CREATE` cùng tên/mô tả đã chỉnh sửa để tạo môn `ACTIVE`, hoặc `USE_EXISTING` cùng `subjectId` để
 liên kết một môn `ACTIVE` có sẵn. Việc xử lý môn và mở yêu cầu chạy trong cùng một transaction.
 
-### 6.17. Đánh giá (Review)
+### 6.18. Đánh giá (Review)
 
 API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nhất được trả về; tên học viên được ẩn danh.
 
@@ -814,7 +828,7 @@ API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nh
 | --- | --- | --- |
 | `GET` | `/api/v1/reviews?limit=3` | Lấy tối đa 50 đánh giá 5 sao mới nhất. |
 
-### 6.18. API Payment VNPay và Wallet
+### 6.19. API Payment VNPay và Wallet
 
 Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VNPay. Browser return URL chỉ chuyển người dùng về frontend để kiểm tra lại trạng thái Payment.
 
@@ -867,7 +881,7 @@ Các endpoint `/payments/wallet` không nhận request body và hoàn tất than
 Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
 
 
-### 6.19. API Notifications in-app
+### 6.20. API Notifications in-app
 
 Các API notification yêu cầu `Authorization: Bearer <access-token>` và chỉ trả về notification của user đang đăng nhập. Hỗ trợ các role `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`.
 
@@ -910,7 +924,7 @@ Authorization: Bearer <access-token-của-người-nhận>
 
 Đối chiếu notification trả về với hành động vừa thực hiện: đúng `eventType`, đúng người nhận, đúng `referenceType` và đúng `referenceId`. Nếu API nghiệp vụ thành công nhưng không thấy notification, kiểm tra backend log với thông báo `Unable to persist notification`.
 
-### 6.19.1. API Admin/Employee quản lý thông báo
+### 6.20.1. API Admin/Employee quản lý thông báo
 
 Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=GENERAL_OPERATIONS`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.
 
@@ -931,7 +945,7 @@ Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=GENERAL_OPERA
 
 Trạng thái chiến dịch gồm `DRAFT`, `SCHEDULED`, `PROCESSING`, `SENT`, `FAILED`, `CANCELLED`, `RETRACTED`. Không thể sửa hoặc xóa trong lúc `PROCESSING`. Thông báo `SENT` chỉ cho sửa tiêu đề, nội dung và category; audience không đổi. Khi thu hồi, các delivery được xóa mềm và biến mất khỏi hộp thư người dùng. Scheduler khóa chiến dịch trước khi phân phối và unique index theo chiến dịch/người nhận ngăn gửi trùng.
 
-### 6.20. API Admin/Employee xử lý khiếu nại
+### 6.20.2. API Admin/Employee xử lý khiếu nại
 
 Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được tiếp nhận bằng tài khoản nhân viên hiện tại; sau khi tiếp nhận, chỉ nhân viên được gán mới có thể yêu cầu evidence hoặc đưa ra quyết định.
 

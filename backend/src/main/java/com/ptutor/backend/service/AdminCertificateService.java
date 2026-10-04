@@ -38,6 +38,22 @@ public class AdminCertificateService {
     private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
+    private final CertificateFileStorageService certificateFileStorageService;
+
+    public AdminCertificateService(
+            CertificateRepository certificateRepository,
+            EmployeeRepository employeeRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock,
+            CertificateFileStorageService certificateFileStorageService) {
+        this.certificateRepository = certificateRepository;
+        this.employeeRepository = employeeRepository;
+        this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
+        this.certificateFileStorageService = certificateFileStorageService;
+    }
 
     @Autowired
     public AdminCertificateService(
@@ -46,11 +62,7 @@ public class AdminCertificateService {
             NotificationService notificationService,
             ApplicationEventPublisher eventPublisher,
             Clock clock) {
-        this.certificateRepository = certificateRepository;
-        this.employeeRepository = employeeRepository;
-        this.notificationService = notificationService;
-        this.eventPublisher = eventPublisher;
-        this.clock = clock;
+        this(certificateRepository, employeeRepository, notificationService, eventPublisher, clock, null);
     }
 
     /** Compatibility constructor for focused unit tests from before domain events. */
@@ -59,7 +71,7 @@ public class AdminCertificateService {
             EmployeeRepository employeeRepository,
             NotificationService notificationService,
             Clock clock) {
-        this(certificateRepository, employeeRepository, notificationService, null, clock);
+        this(certificateRepository, employeeRepository, notificationService, null, clock, null);
     }
 
     @Transactional(readOnly = true)
@@ -153,7 +165,9 @@ public class AdminCertificateService {
                 certificate.getId(), certificate.getTutor().getId(), fullName(tutorUser), tutorUser.getEmail(),
                 tutorUser.getAvatarUrl(), certificate.getName(), certificate.getIssuingOrganization(),
                 certificate.getDescription(), certificate.getIssueDate(), certificate.getExpiryDate(),
-                certificate.getCertificateUrl(), certificate.getStatus(), certificate.getRejectionReason(), reviewer,
+                certificateFileStorageService == null ? certificate.getCertificateUrl()
+                        : certificateFileStorageService.accessUrl(certificate.getCertificateUrl()),
+                certificate.getStatus(), certificate.getRejectionReason(), reviewer,
                 certificate.getReviewedAt(), certificate.getCreatedAt(), certificate.getUpdatedAt());
     }
 

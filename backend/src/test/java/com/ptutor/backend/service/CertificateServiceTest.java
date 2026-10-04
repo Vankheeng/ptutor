@@ -179,22 +179,18 @@ class CertificateServiceTest {
     }
 
     @Test
-    void updateVerifiedCertificateReturnsItToPendingReview() {
+    void verifiedCertificateCannotBeUpdated() {
         when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         Certificate verified = certificate(CertificateStatus.VERIFIED);
         UUID certificateId = verified.getId();
         when(certificateRepository.findByIdAndTutor_Id(certificateId, tutorId))
                 .thenReturn(Optional.of(verified));
 
-        when(certificateRepository.saveAndFlush(verified)).thenReturn(verified);
-
-        CertificateResponse response = certificateService.update(userId, certificateId, request());
-
-        assertThat(response.status()).isEqualTo(CertificateStatus.PENDING);
-        assertThat(verified.getReviewedAt()).isNull();
-        assertThat(verified.getReviewedBy()).isNull();
-        assertThat(verified.getRejectionReason()).isNull();
-        verify(certificateRepository).saveAndFlush(verified);
+        assertThatThrownBy(() -> certificateService.update(userId, certificateId, request()))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("A verified certificate cannot be edited");
+        assertThat(verified.getStatus()).isEqualTo(CertificateStatus.VERIFIED);
+        verify(certificateRepository, org.mockito.Mockito.never()).saveAndFlush(verified);
     }
 
     @Test

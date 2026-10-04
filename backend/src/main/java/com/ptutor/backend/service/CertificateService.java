@@ -22,10 +22,9 @@ import com.ptutor.backend.dto.response.CertificateResponse;
 import com.ptutor.backend.repository.CertificateRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
-@RequiredArgsConstructor
 public class CertificateService {
 
     private final CertificateRepository certificateRepository;
@@ -33,6 +32,32 @@ public class CertificateService {
     private final CertificateMapper certificateMapper;
     private final EmployeeRepository employeeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final CertificateFileStorageService fileStorageService;
+
+    @Autowired
+    public CertificateService(
+            CertificateRepository certificateRepository,
+            TutorRepository tutorRepository,
+            CertificateMapper certificateMapper,
+            EmployeeRepository employeeRepository,
+            ApplicationEventPublisher eventPublisher,
+            CertificateFileStorageService fileStorageService) {
+        this.certificateRepository = certificateRepository;
+        this.tutorRepository = tutorRepository;
+        this.certificateMapper = certificateMapper;
+        this.employeeRepository = employeeRepository;
+        this.eventPublisher = eventPublisher;
+        this.fileStorageService = fileStorageService;
+    }
+
+    public CertificateService(
+            CertificateRepository certificateRepository,
+            TutorRepository tutorRepository,
+            CertificateMapper certificateMapper,
+            EmployeeRepository employeeRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this(certificateRepository, tutorRepository, certificateMapper, employeeRepository, eventPublisher, null);
+    }
 
     @Transactional
     public CertificateResponse create(UUID userId, CertificateRequest request) {
@@ -49,7 +74,7 @@ public class CertificateService {
                 .build();
         Certificate saved = certificateRepository.saveAndFlush(certificate);
         publishReviewRequired(saved);
-        return certificateMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +84,7 @@ public class CertificateService {
                 ? certificateRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
                 : certificateRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
         return certificates.stream()
-                .map(certificateMapper::toResponse)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -68,7 +93,7 @@ public class CertificateService {
         findTutorById(tutorId);
         return certificateRepository
                 .findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutorId, CertificateStatus.VERIFIED).stream()
-                .map(certificateMapper::toResponse)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -77,7 +102,7 @@ public class CertificateService {
         Tutor tutor = findTutorByUserId(userId);
         Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
                 .orElseThrow(() -> certificateNotFound(certificateId));
-        return certificateMapper.toResponse(certificate);
+        return toResponse(certificate);
     }
 
     @Transactional
@@ -85,19 +110,25 @@ public class CertificateService {
         Tutor tutor = findTutorByUserId(userId);
         Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
                 .orElseThrow(() -> certificateNotFound(certificateId));
+        if (certificate.getStatus() == CertificateStatus.VERIFIED) {
+            throw new ApiException(HttpStatus.CONFLICT, "VERIFIED_CERTIFICATE_IMMUTABLE",
+                    "A verified certificate cannot be edited");
+        }
         certificate.setName(request.name().strip());
         certificate.setIssuingOrganization(normalize(request.issuingOrganization()));
         certificate.setDescription(normalize(request.description()));
         certificate.setIssueDate(request.issueDate());
         certificate.setExpiryDate(request.expiryDate());
-        certificate.setCertificateUrl(normalize(request.certificateUrl()));
+        if (request.certificateUrl() != null) {
+            certificate.setCertificateUrl(normalize(request.certificateUrl()));
+        }
         certificate.setStatus(CertificateStatus.PENDING);
         certificate.setReviewedBy(null);
         certificate.setReviewedAt(null);
         certificate.setRejectionReason(null);
         Certificate saved = certificateRepository.saveAndFlush(certificate);
         publishReviewRequired(saved);
-        return certificateMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -134,6 +165,14 @@ public class CertificateService {
                         NotificationReferenceType.CERTIFICATE,
                         certificate.getId(),
                         data)));
+    }
+
+    private CertificateResponse toResponse(Certificate certificate) {
+        String certificateUrl = certificate.getCertificateUrl();
+        if (fileStorageService != null) {
+            certificateUrl = fileStorageService.accessUrl(certificateUrl);
+        }
+        return certificateMapper.toResponse(certificate, certificateUrl);
     }
 
     private String normalize(String value) {

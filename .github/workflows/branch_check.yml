@@ -30,6 +30,7 @@ jobs:
             echo ""
             echo "Allowed:"
             echo "  feat/*"
+            echo "  feature/*"
             echo "  fix/*"
             echo "  refactor/*"
             echo "  docs/*"
