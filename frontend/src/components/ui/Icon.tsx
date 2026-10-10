@@ -13,7 +13,8 @@ export type IconName =
   | 'close'
   | 'book'
   | 'eye'
-  | 'eyeOff';
+  | 'eyeOff'
+  | 'bell';
 
 interface IconProps {
   name: IconName;
@@ -90,6 +91,12 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="m3 3 18 18" />
       <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.1 0 9.5 6 9.5 6a17.5 17.5 0 0 1-3.1 3.4M6.2 6.8C3.9 8.3 2.5 12 2.5 12s3.4 6 9.5 6c1.4 0 2.6-.3 3.7-.8" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+      <path d="M10 21h4" />
     </>
   )
 };
