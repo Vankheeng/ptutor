@@ -124,7 +124,7 @@ export function getTutorCertificate(id: string) {
 export function uploadCertificateFile(file: File) {
   const body = new FormData();
   body.append('file', file);
-  return post<{ certificateUrl: string }>('/api/v1/tutors/me/certificates/upload', body);
+  return post<{ certificateUrl: string; previewUrl: string }>('/api/v1/tutors/me/certificates/upload', body);
 }
 
 export function createTutorCertificate(values: {
