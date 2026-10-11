@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.District;
@@ -19,16 +20,30 @@ import com.ptutor.backend.dto.response.TutorProfileResponse;
 import com.ptutor.backend.dto.response.TutorSelfProfileResponse;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class TutorProfileService {
 
     private final TutorRepository tutorRepository;
     private final ProvinceRepository provinceRepository;
     private final DistrictRepository districtRepository;
     private final TutorProfileMapper tutorProfileMapper;
+    private final CertificateFileStorageService fileStorageService;
+
+    @Autowired
+    public TutorProfileService(TutorRepository tutorRepository, ProvinceRepository provinceRepository,
+            DistrictRepository districtRepository, TutorProfileMapper tutorProfileMapper,
+            CertificateFileStorageService fileStorageService) {
+        this.tutorRepository = tutorRepository;
+        this.provinceRepository = provinceRepository;
+        this.districtRepository = districtRepository;
+        this.tutorProfileMapper = tutorProfileMapper;
+        this.fileStorageService = fileStorageService;
+    }
+
+    public TutorProfileService(TutorRepository tutorRepository, ProvinceRepository provinceRepository,
+            DistrictRepository districtRepository, TutorProfileMapper tutorProfileMapper) {
+        this(tutorRepository, provinceRepository, districtRepository, tutorProfileMapper, null);
+    }
 
     @Transactional(readOnly = true)
     public TutorProfileResponse findById(UUID tutorId) {
@@ -37,7 +52,8 @@ public class TutorProfileService {
                         HttpStatus.NOT_FOUND,
                         "TUTOR_NOT_FOUND",
                         "Tutor not found: " + tutorId));
-        return tutorProfileMapper.toResponse(tutor);
+        TutorProfileResponse response = tutorProfileMapper.toResponse(tutor);
+        return response.withAvatarUrl(resolveAvatarUrl(response.avatarUrl()));
     }
 
     @Transactional(readOnly = true)
@@ -47,7 +63,8 @@ public class TutorProfileService {
                         HttpStatus.NOT_FOUND,
                         "TUTOR_PROFILE_NOT_FOUND",
                         "Tutor profile not found"));
-        return tutorProfileMapper.toSelfResponse(tutor);
+        TutorSelfProfileResponse response = tutorProfileMapper.toSelfResponse(tutor);
+        return response.withAvatarUrl(resolveAvatarUrl(response.avatarUrl()));
     }
 
     @Transactional
@@ -91,7 +108,13 @@ public class TutorProfileService {
             tutor.setProfileRejectionReason(null);
         }
 
-        return tutorProfileMapper.toSelfResponse(tutor);
+        TutorSelfProfileResponse response = tutorProfileMapper.toSelfResponse(tutor);
+        return response.withAvatarUrl(resolveAvatarUrl(response.avatarUrl()));
+    }
+
+    private String resolveAvatarUrl(String value) {
+        if (fileStorageService == null || value == null || !value.startsWith("s3://")) return value;
+        return fileStorageService.accessUrl(value);
     }
 
     private Tutor findMineEntity(UUID userId) {

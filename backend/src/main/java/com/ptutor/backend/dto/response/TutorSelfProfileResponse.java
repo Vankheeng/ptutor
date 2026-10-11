@@ -33,4 +33,11 @@ public record TutorSelfProfileResponse(
         BigDecimal avgResponseTimeHours,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
+
+    public TutorSelfProfileResponse withAvatarUrl(String value) {
+        return new TutorSelfProfileResponse(tutorId, userId, email, firstName, lastName, phone, gender, dateOfBirth,
+                value, address, introduction, experienceYears, education, teachingStyleTags, teachingMethodology,
+                strengthSubjects, targetStudentType, averageRating, totalReviews, completedContractsCount,
+                totalStudentsTaught, acceptanceRate, avgResponseTimeHours, createdAt, updatedAt);
+    }
 }
