@@ -136,6 +136,11 @@ public class EmbeddingTextBuilder {
         return String.join(separator, kept);
     }
 
+    /** Removes e-mails and phone numbers and collapses whitespace; safe to log or send to a model. */
+    public String scrub(String value) {
+        return clean(value);
+    }
+
     private String clean(String value) {
         if (value == null) {
             return "";

@@ -1,0 +1,689 @@
+package com.ptutor.backend.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ptutor.backend.dto.recommendation.AreaScope;
+import com.ptutor.backend.dto.recommendation.ModePreference;
+import com.ptutor.backend.dto.request.TutorRecommendationRequest;
+import com.ptutor.backend.dto.request.TutorRecommendationRequest.Area;
+import com.ptutor.backend.dto.request.TutorRecommendationRequest.Availability;
+import com.ptutor.backend.dto.request.TutorRecommendationRequest.Filters;
+import com.ptutor.backend.dto.request.TutorRecommendationRequest.Price;
+import com.ptutor.backend.dto.response.TutorRecommendationResponse;
+import com.ptutor.backend.dto.response.TutorRecommendationResponse.Item;
+import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.repository.CandidateRepository;
+import com.ptutor.backend.repository.RecommendationLogRepository;
+import com.ptutor.backend.repository.StudentRepository;
+
+import jakarta.persistence.EntityManager;
+
+/**
+ * "Student looks for tutors" end to end against PostgreSQL: criteria merging, hard filters,
+ * vector similarity, scoring, logging and paging. Only the AI service is replaced: the query
+ * vector is fixed, and each posting gets an embedding with a chosen cosine to it.
+ */
+@SpringBootTest
+@Transactional
+class TutorRecommendationIntegrationTest {
+
+    @Autowired StudentRepository studentRepository;
+    @Autowired CandidateRepository candidateRepository;
+    @Autowired RecommendationLogRepository logRepository;
+    @Autowired QueryContextBuilder queryContextBuilder;
+    @Autowired Ranker ranker;
+    @Autowired RecommendationLogger recommendationLogger;
+    @Autowired RecommendationSettings settings;
+    @Autowired EntityManager entityManager;
+    @Autowired JdbcTemplate jdbc;
+
+    private QueryEmbeddingService queryEmbeddingService;
+    private RecommendationService service;
+
+    private UUID provinceId;
+    private UUID otherProvinceId;
+    private UUID homeDistrictId;
+    private UUID nearDistrictId;
+    private UUID farDistrictId;
+    private UUID subjectId;
+    private UUID otherSubjectId;
+    private UUID gradeId;
+    private UUID otherGradeId;
+    private UUID reviewerId;
+    private UUID studentUserId;
+    private UUID studentId;
+
+    @BeforeEach
+    void setUp() {
+        queryEmbeddingService = mock(QueryEmbeddingService.class);
+        when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
+        service = new RecommendationService(studentRepository, candidateRepository, logRepository,
+                queryContextBuilder, queryEmbeddingService, ranker, recommendationLogger, settings, null);
+
+        provinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh A')");
+        otherProvinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh B')");
+        homeDistrictId = insert("INSERT INTO districts (id, name, province_id) VALUES (?, 'Quận Nhà', ?)", provinceId);
+        nearDistrictId = insert("INSERT INTO districts (id, name, province_id) VALUES (?, 'Quận Gần', ?)", provinceId);
+        farDistrictId = insert("INSERT INTO districts (id, name, province_id) VALUES (?, 'Quận Xa', ?)",
+                otherProvinceId);
+        subjectId = insert("INSERT INTO subjects (id, name, status) VALUES (?, ?, 'ACTIVE')", "Toán-" + UUID.randomUUID());
+        otherSubjectId = insert("INSERT INTO subjects (id, name, status) VALUES (?, ?, 'ACTIVE')",
+                "Văn-" + UUID.randomUUID());
+        gradeId = insert("INSERT INTO grades (id, name, status) VALUES (?, ?, 'ACTIVE')", "Lớp 9-" + UUID.randomUUID());
+        otherGradeId = insert("INSERT INTO grades (id, name, status) VALUES (?, ?, 'ACTIVE')",
+                "Lớp 6-" + UUID.randomUUID());
+        reviewerId = insert("INSERT INTO employees (id, user_id, role) VALUES (?, ?, 1)", user(null));
+        studentUserId = user(homeDistrictId);
+        studentId = insert("INSERT INTO students (id, user_id, weak_points) VALUES (?, ?, 'Hình học')", studentUserId);
+    }
+
+    // ---------------------------------------------------------------- criteria
+
+    @Test
+    void asksForSubjectAndGradeInsteadOfSearchingWhenTheyAreMissing() {
+        posting(tutor(), new Posting());
+
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId, null, 0, 20, null);
+
+        assertThat(response.needsInput()).containsExactly("subjectId", "gradeId");
+        assertThat(response.items()).isEmpty();
+        assertThat(response.logId()).isNull();
+        assertThat(logRepository.count()).isEqualTo(countLogsBefore());
+    }
+
+    @Test
+    void fillsMissingCriteriaFromTheStudentsOwnPostingThenFromTheProfile() {
+        UUID ownRequest = insert("""
+                INSERT INTO studying_requests
+                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price, district_id)
+                VALUES (?, ?, ?, ?, 'OFFLINE', 'OPEN', 1, 150000, ?)
+                """, studentId, subjectId, gradeId, nearDistrictId);
+        UUID match = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).price("140000"));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId).price("140000"));
+
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(null, null, null, ownRequest), 0, 20, null);
+
+        assertThat(response.needsInput()).isEmpty();
+        assertThat(response.items()).extracting(Item::teachingRequestId).containsExactly(match);
+        assertThat(response.queryContext().path("sources").path("subject").asString()).isEqualTo("STUDYING_REQUEST");
+        assertThat(response.queryContext().path("sources").path("area").asString()).isEqualTo("STUDYING_REQUEST");
+        assertThat(response.queryContext().path("price").path("max").decimalValue()).isEqualByComparingTo("150000");
+        assertThat(response.queryContext().path("area").path("districtIds").get(0).asString())
+                .isEqualTo(nearDistrictId.toString());
+    }
+
+    @Test
+    void defaultsTheAreaToTheDistrictWhereTheStudentLives() {
+        UUID atHome = posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId));
+        UUID online = posting(tutor(), new Posting().mode("ONLINE"));
+
+        TutorRecommendationResponse response = search(filters());
+
+        assertThat(response.items()).extracting(Item::teachingRequestId).containsExactlyInAnyOrder(atHome, online);
+        assertThat(response.queryContext().path("sources").path("area").asString()).isEqualTo("PROFILE");
+        assertThat(response.queryContext().path("sources").path("learningMode").asString()).isEqualTo("DEFAULT");
+    }
+
+    @Test
+    void rejectsUnknownSubjectAndAnotherStudentsPosting() {
+        Filters unknownSubject = new Filters(UUID.randomUUID(), gradeId, null, null, null, null, null, null, null);
+
+        assertThatThrownBy(() -> search(unknownSubject))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("INVALID_SUBJECT"));
+        assertThatThrownBy(() -> service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(filters(), null, null, UUID.randomUUID()), 0, 20, null))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("STUDYING_REQUEST_NOT_FOUND");
+                });
+    }
+
+    // ---------------------------------------------------------------- hard filters
+
+    @Test
+    void onlyOpenPostingsOfVerifiedActiveTutorsForTheChosenSubjectAndGradeAreCandidates() {
+        UUID valid = posting(tutor(), new Posting());
+        posting(tutor(), new Posting().status("DRAFT"));
+        posting(tutor(), new Posting().status("CLOSED"));
+        posting(tutor("PENDING", "ACTIVE", "70"), new Posting());
+        posting(tutor("VERIFIED", "INACTIVE", "70"), new Posting());
+        posting(tutor(), new Posting().subject(otherSubjectId));
+        posting(tutor(), new Posting().grades(otherGradeId));
+        UUID deleted = posting(tutor(), new Posting());
+        jdbc.update("UPDATE teaching_requests SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", deleted);
+
+        assertThat(search(anywhere()).items()).extracting(Item::teachingRequestId).containsExactly(valid);
+    }
+
+    @Test
+    void learningModeFilterKeepsOnlyMatchingPostingsUnlessAny() {
+        UUID online = posting(tutor(), new Posting().mode("ONLINE"));
+        UUID offline = posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId));
+
+        assertThat(ids(search(mode(ModePreference.ONLINE)))).containsExactly(online);
+        assertThat(ids(search(mode(ModePreference.OFFLINE)))).containsExactly(offline);
+        assertThat(ids(search(mode(ModePreference.ANY)))).containsExactlyInAnyOrder(online, offline);
+    }
+
+    @Test
+    void areaScopeIsDecidedByTheSearcherNotByWhereTheyLive() {
+        UUID home = posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId));
+        UUID near = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId));
+        UUID far = posting(tutor(), new Posting().mode("OFFLINE").districts(farDistrictId));
+
+        assertThat(ids(search(area(AreaScope.DISTRICTS, List.of(nearDistrictId, farDistrictId), null))))
+                .containsExactlyInAnyOrder(near, far);
+        assertThat(ids(search(area(AreaScope.PROVINCE, null, null)))).as("defaults to the home province")
+                .containsExactlyInAnyOrder(home, near);
+        assertThat(ids(search(area(AreaScope.PROVINCE, null, otherProvinceId)))).containsExactly(far);
+        assertThat(ids(search(area(AreaScope.ANY, null, null)))).containsExactlyInAnyOrder(home, near, far);
+    }
+
+    @Test
+    void priceAboveOneAndAHalfTimesTheBudgetIsFilteredOutAndBelowThatIsScored() {
+        UUID within = posting(tutor(), new Posting().price("200000"));
+        UUID slightlyOver = posting(tutor(), new Posting().price("250000"));
+        UUID atLimit = posting(tutor(), new Posting().price("300000"));
+        posting(tutor(), new Posting().price("300001"));
+        UUID noPrice = posting(tutor(), new Posting().price(null));
+
+        TutorRecommendationResponse response = search(new Filters(subjectId, gradeId, null,
+                new Area(AreaScope.ANY, null, null), new Price(null, new BigDecimal("200000")), null, null, null, null));
+
+        assertThat(ids(response)).containsExactlyInAnyOrder(within, slightlyOver, atLimit, noPrice);
+        assertThat(ids(response).get(0)).isEqualTo(within);
+        assertThat(ids(response).indexOf(slightlyOver)).isLessThan(ids(response).indexOf(atLimit));
+    }
+
+    @Test
+    void hidesTutorsAlreadyContractedOrAppliedToOrWhoRecentlyRejectedThatPosting() {
+        UUID contractedTutor = tutor();
+        posting(contractedTutor, new Posting());
+        UUID contractRequest = application(posting(contractedTutor, new Posting().status("CLOSED")), "ACCEPTED", 5);
+        jdbc.update("""
+                INSERT INTO contracts
+                    (id, student_id, tutor_id, subject_id, grade_id, teaching_mode, price, payment_period,
+                     total_lession, start_date, end_date, status, created_by_user_id, preferred_schedule,
+                     student_tutor_request_id)
+                VALUES (?, ?, ?, ?, ?, 'ONLINE', 100000, 'MONTHLY', 8, DATE '2026-06-01', DATE '2027-06-01',
+                        'ACTIVE', ?, 'Monday evening', ?)
+                """, UUID.randomUUID(), studentId, contractedTutor, subjectId, gradeId, studentUserId, contractRequest);
+        application(posting(tutor(), new Posting()), "PENDING", 1);
+        application(posting(tutor(), new Posting()), "REJECTED", 10);
+        UUID rejectedLongAgo = posting(tutor(), new Posting());
+        application(rejectedLongAgo, "REJECTED", 31);
+        UUID cancelledByStudent = posting(tutor(), new Posting());
+        application(cancelledByStudent, "CANCELLED", 1);
+        UUID untouched = posting(tutor(), new Posting());
+
+        assertThat(ids(search(anywhere()))).containsExactlyInAnyOrder(rejectedLongAgo, cancelledByStudent, untouched);
+    }
+
+    // ---------------------------------------------------------------- scoring
+
+    @Test
+    void ranksBySemanticSimilarityAndStillReturnsPostingsWithoutEmbedding() {
+        UUID close = posting(tutor(), new Posting().cosine(0.80));
+        UUID medium = posting(tutor(), new Posting().cosine(0.60));
+        UUID distant = posting(tutor(), new Posting().cosine(0.35));
+        UUID notEmbedded = posting(tutor(), new Posting().cosine(null));
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        List<UUID> embeddedInOrder = ids(response).stream().filter(id -> !id.equals(notEmbedded)).toList();
+        assertThat(embeddedInOrder).containsExactly(close, medium, distant);
+        assertThat(ids(response)).contains(notEmbedded);
+        // a = 0.30 * sem + 0.05 * area + 0.65 * 0.5 (unknown features count as neutral); Q = 0.70 -> x 0.91
+        assertThat(score(response, close)).isCloseTo((0.30 * 1.0 + 0.05 + 0.325) * 0.91, within(0.002));
+        assertThat(score(response, medium)).isCloseTo((0.30 * 0.6 + 0.05 + 0.325) * 0.91, within(0.002));
+        // Only the area is known for the posting without embedding: it ranks below a decent semantic match.
+        assertThat(score(response, notEmbedded)).isCloseTo((0.05 + 0.95 * 0.5) * 0.91, within(0.002));
+        assertThat(ids(response)).containsExactly(close, medium, notEmbedded, distant);
+        assertThat(response.items()).extracting(Item::rank).containsExactly(1, 2, 3, 4);
+    }
+
+    @Test
+    void fallsBackToTheProfileEmbeddingAndStillAnswersWhenTheAiServiceIsDown() {
+        when(queryEmbeddingService.embed(any())).thenReturn(Optional.empty());
+        UUID first = posting(tutor(), new Posting().cosine(0.40));
+        UUID second = posting(tutor(), new Posting().cosine(0.75));
+
+        assertThat(ids(search(anywhere()))).as("no vector at all: every posting is still returned")
+                .containsExactlyInAnyOrder(first, second);
+
+        jdbc.update("UPDATE students SET profile_embedding = CAST(? AS vector) WHERE id = ?", literal(unit(1.0)),
+                studentId);
+        entityManager.clear();
+
+        assertThat(ids(search(anywhere()))).as("profile vector: nearest first").containsExactly(second, first);
+    }
+
+    @Test
+    void tutorQualityBreaksTiesBetweenEquallySuitablePostings() {
+        UUID average = posting(tutor("VERIFIED", "ACTIVE", "40"), new Posting().cosine(0.70));
+        UUID excellent = posting(tutor("VERIFIED", "ACTIVE", "95"), new Posting().cosine(0.70));
+
+        assertThat(ids(search(anywhere()))).containsExactly(excellent, average);
+    }
+
+    @Test
+    void scheduleThatNeverOverlapsAndARecentRejectionPushAPostingDown() {
+        UUID overlapping = posting(tutor(), new Posting().cosine(0.60).slot(2, "19:00", "21:00"));
+        UUID clashing = posting(tutor(), new Posting().cosine(0.80).slot(5, "08:00", "10:00"));
+        UUID rejectingTutor = tutor();
+        UUID otherPostingOfRejectingTutor = posting(rejectingTutor, new Posting().cosine(0.80)
+                .slot(2, "19:00", "21:00"));
+        application(posting(rejectingTutor, new Posting().status("CLOSED")), "REJECTED", 40);
+
+        Filters filters = new Filters(subjectId, gradeId, null, new Area(AreaScope.ANY, null, null), null,
+                List.of(new Availability(2, LocalTime.of(19, 0), LocalTime.of(21, 0))), null, null, null);
+        TutorRecommendationResponse response = search(filters);
+
+        assertThat(ids(response).get(0)).isEqualTo(overlapping);
+        assertThat(ids(response)).containsExactlyInAnyOrder(overlapping, clashing, otherPostingOfRejectingTutor);
+        JsonView log = log(response.logId());
+        assertThat(log.g(clashing)).isEqualTo(0.4);
+        assertThat(log.g(otherPostingOfRejectingTutor)).isEqualTo(0.5);
+        assertThat(log.g(overlapping)).isEqualTo(1.0);
+        assertThat(log.feature(clashing, "sched")).isEqualTo(0.0);
+        assertThat(log.feature(overlapping, "sched")).isEqualTo(1.0);
+    }
+
+    @Test
+    void usesTagsForNeedStyleAndLevelWhenTheVocabularyIsFilled() {
+        UUID examGoal = tag("GOAL", "thi_vao_10_" + UUID.randomUUID(), null);
+        String examCode = jdbc.queryForObject("SELECT code FROM recommendation_tags WHERE id = ?", String.class, examGoal);
+        UUID patient = tag("STYLE", "kien_nhan_" + UUID.randomUUID(), null);
+        String patientCode = jdbc.queryForObject("SELECT code FROM recommendation_tags WHERE id = ?", String.class,
+                patient);
+        UUID average = tag("SEGMENT", "trung_binh", null);
+        entityTag("STUDENT", studentId, average, "SELF");
+        UUID strongTutor = tutor();
+        entityTag("TUTOR", strongTutor, examGoal, "STRENGTH");
+        entityTag("TUTOR", strongTutor, average, "TARGET");
+        UUID matching = posting(strongTutor, new Posting().cosine(0.60));
+        entityTag("TEACHING_REQUEST", matching, patient, "OFFERED");
+        UUID plain = posting(tutor(), new Posting().cosine(0.60));
+
+        TutorRecommendationResponse response = search(new Filters(subjectId, gradeId, null,
+                new Area(AreaScope.ANY, null, null), null, null, List.of(patientCode, "khong_ton_tai"),
+                List.of(examCode), null));
+
+        assertThat(ids(response)).containsExactly(matching, plain);
+        JsonView log = log(response.logId());
+        assertThat(log.feature(matching, "need")).isEqualTo(1.0);
+        assertThat(log.feature(matching, "style")).isEqualTo(1.0);
+        assertThat(log.feature(matching, "segment")).isEqualTo(1.0);
+        assertThat(log.feature(plain, "need")).isEqualTo(0.4);
+        assertThat(log.feature(plain, "style")).isEqualTo(0.5);
+        assertThat(log.feature(plain, "segment")).isEqualTo(0.5);
+        assertThat(response.queryContext().path("styleTagCodes")).hasSize(1);
+        assertThat(response.queryContext().path("levelTagCode").asString()).isEqualTo("trung_binh");
+    }
+
+    @Test
+    void flagsLowConfidenceWhenLittleIsKnownAboutTheMatch() {
+        posting(tutor(), new Posting().cosine(null).mode("OFFLINE").districts(farDistrictId));
+        jdbc.update("UPDATE users SET district_id = NULL WHERE id = ?", studentUserId);
+        entityManager.clear();
+
+        TutorRecommendationResponse vague = search(anywhere());
+        when(queryEmbeddingService.embed(any())).thenReturn(Optional.empty());
+        TutorRecommendationResponse stillVague = search(anywhere());
+
+        assertThat(vague.lowConfidence()).isTrue();
+        assertThat(stillVague.lowConfidence()).isTrue();
+    }
+
+    // ---------------------------------------------------------------- log and paging
+
+    @Test
+    void writesOneLogWithEveryFeatureOfEveryCandidate() {
+        UUID candidate = posting(tutor(), new Posting().cosine(0.55).price("180000"));
+
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(
+                        new Filters(subjectId, gradeId, ModePreference.ANY, new Area(AreaScope.ANY, null, null),
+                                new Price(null, new BigDecimal("200000")), null, null, null, null),
+                        "ôn thi vào 10, gọi 0912345678", "Gia sư Toán 9, mail a@b.vn", null),
+                0, 20, null);
+        entityManager.flush();
+
+        Map<String, Object> row = jdbc.queryForMap("""
+                SELECT searcher_student_id, searcher_tutor_id, direction, algorithm_version, query_text,
+                       latency_ms, query_context::text AS context, returned_candidate_ids::text AS candidates
+                FROM recommendation_logs WHERE id = ?
+                """, response.logId());
+        assertThat(row.get("searcher_student_id")).isEqualTo(studentId);
+        assertThat(row.get("searcher_tutor_id")).isNull();
+        assertThat(row.get("direction")).isEqualTo("STUDENT_TO_TUTOR");
+        assertThat(row.get("algorithm_version")).isEqualTo(response.algorithmVersion()).isEqualTo("v2.1-a");
+        assertThat((String) row.get("query_text")).contains("Gia sư Toán 9").doesNotContain("a@b.vn");
+        assertThat((Integer) row.get("latency_ms")).isNotNegative();
+        assertThat((String) row.get("context")).contains("demandText").contains("ôn thi vào 10")
+                .contains("Hình học").doesNotContain("0912345678");
+        JsonView log = log(response.logId());
+        assertThat(log.feature(candidate, "sem")).isCloseTo(0.5, within(0.002));
+        assertThat(log.feature(candidate, "price")).isEqualTo(1.0);
+        assertThat(log.feature(candidate, "area")).isEqualTo(1.0);
+        assertThat(log.isNull(candidate, "need")).isTrue();
+        assertThat(log.isNull(candidate, "hist")).isTrue();
+        assertThat(response.queryContext().has("demandText")).isFalse();
+        assertThat(response.queryContext().path("semanticText").asString()).isEqualTo("ôn thi vào 10, gọi");
+    }
+
+    @Test
+    void laterPagesAreServedFromTheLogInTheSameOrderEvenIfDataChanged() {
+        UUID first = posting(tutor(), new Posting().cosine(0.80));
+        UUID second = posting(tutor(), new Posting().cosine(0.70));
+        UUID third = posting(tutor(), new Posting().cosine(0.60));
+        UUID fourth = posting(tutor(), new Posting().cosine(0.50));
+        UUID fifth = posting(tutor(), new Posting().cosine(0.40));
+
+        TutorRecommendationResponse pageOne = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(anywhere(), null, null, null), 0, 2, null);
+        entityManager.flush();
+        // Between the two requests the best posting is closed and the worst one becomes the best match.
+        jdbc.update("UPDATE teaching_requests SET status = 'CLOSED' WHERE id = ?", first);
+        jdbc.update("UPDATE teaching_requests SET embedding = CAST(? AS vector) WHERE id = ?", literal(unit(1.0)), fifth);
+        entityManager.clear();
+        when(queryEmbeddingService.embed(any())).thenThrow(new AssertionError("a later page must not embed again"));
+        TutorRecommendationResponse pageTwo = service.recommendTutors(studentUserId, null, 1, 2, pageOne.logId());
+        TutorRecommendationResponse pageThree = service.recommendTutors(studentUserId, null, 2, 2, pageOne.logId());
+
+        assertThat(ids(pageOne)).containsExactly(first, second);
+        assertThat(pageOne.totalElements()).isEqualTo(5);
+        assertThat(ids(pageTwo)).containsExactly(third, fourth);
+        assertThat(pageTwo.items()).extracting(Item::rank).containsExactly(3, 4);
+        assertThat(pageTwo.logId()).isEqualTo(pageOne.logId());
+        assertThat(pageTwo.totalElements()).isEqualTo(5);
+        assertThat(pageTwo.items().get(0).score()).isCloseTo((0.30 * 0.6 + 0.05 + 0.325) * 0.91, within(0.002));
+        assertThat(ids(pageThree)).containsExactly(fifth);
+        assertThat(logRepository.count()).as("paging does not write another log").isEqualTo(countLogsBefore() + 1);
+    }
+
+    @Test
+    void anotherStudentCannotReadSomeoneElsesSearch() {
+        posting(tutor(), new Posting());
+        UUID logId = search(anywhere()).logId();
+        UUID otherUser = user(homeDistrictId);
+        insert("INSERT INTO students (id, user_id) VALUES (?, ?)", otherUser);
+
+        assertThatThrownBy(() -> service.recommendTutors(otherUser, null, 0, 20, logId))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("RECOMMENDATION_LOG_NOT_FOUND");
+                });
+    }
+
+    @Test
+    void keepsAtMostTheConfiguredNumberOfCandidatesInTheLog() {
+        for (int index = 0; index < settings.getLogCandidateLimit() + 3; index++) {
+            posting(tutor(), new Posting().cosine(0.40 + index * 0.005));
+        }
+
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(anywhere(), null, null, null), 0, 50, null);
+
+        assertThat(response.totalElements()).isEqualTo(settings.getLogCandidateLimit());
+        assertThat(response.items()).hasSize(50);
+        assertThat(response.items()).extracting(Item::score).isSortedAccordingTo((left, right) -> right.compareTo(left));
+    }
+
+    // ---------------------------------------------------------------- helpers
+
+    private long logsBefore = -1;
+
+    private long countLogsBefore() {
+        return logsBefore;
+    }
+
+    @BeforeEach
+    void rememberLogCount() {
+        logsBefore = logRepository.count();
+    }
+
+    private TutorRecommendationResponse search(Filters filters) {
+        return service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(filters, null, null, null), 0, 20, null);
+    }
+
+    private double score(TutorRecommendationResponse response, UUID teachingRequestId) {
+        return response.items().stream().filter(item -> item.teachingRequestId().equals(teachingRequestId))
+                .findFirst().orElseThrow().score();
+    }
+
+    private List<UUID> ids(TutorRecommendationResponse response) {
+        return response.items().stream().map(Item::teachingRequestId).toList();
+    }
+
+    private Filters filters() {
+        return new Filters(subjectId, gradeId, null, null, null, null, null, null, null);
+    }
+
+    private Filters anywhere() {
+        return area(AreaScope.ANY, null, null);
+    }
+
+    private Filters mode(ModePreference mode) {
+        return new Filters(subjectId, gradeId, mode, new Area(AreaScope.DISTRICTS, List.of(homeDistrictId), null),
+                null, null, null, null, null);
+    }
+
+    private Filters area(AreaScope scope, List<UUID> districts, UUID province) {
+        return new Filters(subjectId, gradeId, null, new Area(scope, districts, province), null, null, null, null, null);
+    }
+
+    private UUID user(UUID districtId) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO users (id, citizen_id, email, password, status, first_name, last_name, district_id)
+                VALUES (?, ?, ?, 'x', 'ACTIVE', 'An', 'Nguyễn', ?)
+                """, id, "cid-" + id, id + "@example.com", districtId);
+        return id;
+    }
+
+    private UUID tutor() {
+        return tutor("VERIFIED", "ACTIVE", "70");
+    }
+
+    private UUID tutor(String profileStatus, String accountStatus, String score) {
+        UUID userId = user(null);
+        jdbc.update("UPDATE users SET status = ? WHERE id = ?", accountStatus, userId);
+        boolean verified = profileStatus.equals("VERIFIED");
+        return insert("""
+                INSERT INTO tutors (id, user_id, profile_status, profile_reviewed_by, profile_reviewed_at,
+                                    recommendation_score)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, userId, profileStatus, verified ? reviewerId : null,
+                verified ? Timestamp.valueOf(LocalDateTime.now()) : null, new BigDecimal(score));
+    }
+
+    private UUID posting(UUID tutorId, Posting posting) {
+        UUID id = insert("""
+                INSERT INTO teaching_requests (id, tutor_id, subject_id, title, teaching_mode, status, expected_price)
+                VALUES (?, ?, ?, 'Dạy kèm', ?, ?, ?)
+                """, tutorId, posting.subjectId == null ? subjectId : posting.subjectId, posting.mode, posting.status,
+                posting.price);
+        if (posting.cosine != null) {
+            jdbc.update("UPDATE teaching_requests SET embedding = CAST(? AS vector) WHERE id = ?",
+                    literal(unit(posting.cosine)), id);
+        }
+        for (UUID grade : posting.gradeIds == null ? List.of(gradeId) : posting.gradeIds) {
+            insert("INSERT INTO grade_teaching_requests (id, grade_id, teaching_request_id) VALUES (?, ?, ?)", grade, id);
+        }
+        for (UUID district : posting.districtIds) {
+            insert("INSERT INTO teaching_request_districts (id, teaching_request_id, district_id) VALUES (?, ?, ?)",
+                    id, district);
+        }
+        for (Object[] slot : posting.slots) {
+            insert("""
+                    INSERT INTO teaching_request_availabilities (id, teaching_request_id, day_of_week, start_time, end_time)
+                    VALUES (?, ?, ?, CAST(? AS time), CAST(? AS time))
+                    """, id, slot[0], slot[1], slot[2]);
+        }
+        return id;
+    }
+
+    /** An application of the test student to the posting, decided {@code daysAgo} days ago. */
+    private UUID application(UUID teachingRequestId, String status, int daysAgo) {
+        Timestamp when = Timestamp.valueOf(LocalDateTime.now().minusDays(daysAgo));
+        return insert("""
+                INSERT INTO student_tutor_requests
+                    (id, student_id, grade_id, teaching_request_id, learning_mode, status, created_at, updated_at,
+                     responded_at)
+                VALUES (?, ?, ?, ?, 'ONLINE', ?, ?, ?, ?)
+                """, studentId, gradeId, teachingRequestId, status, when, when,
+                status.equals("REJECTED") || status.equals("ACCEPTED") ? when : null);
+    }
+
+    private UUID tag(String group, String code, UUID parentId) {
+        // Fixed codes such as "trung_binh" may already be in the vocabulary of this database.
+        List<UUID> existing = jdbc.queryForList(
+                "SELECT id FROM recommendation_tags WHERE tag_group = ? AND code = ? AND deleted_at IS NULL",
+                UUID.class, group, code);
+        if (!existing.isEmpty()) {
+            return existing.get(0);
+        }
+        return insert("INSERT INTO recommendation_tags (id, tag_group, code, name, parent_id) VALUES (?, ?, ?, ?, ?)",
+                group, code, "Tên " + code, parentId);
+    }
+
+    private void entityTag(String entityType, UUID entityId, UUID tagId, String role) {
+        insert("""
+                INSERT INTO recommendation_entity_tags (id, entity_type, entity_id, tag_id, role, source)
+                VALUES (?, ?, ?, ?, ?, 'USER')
+                """, entityType, entityId, tagId, role);
+    }
+
+    private UUID insert(String sql, Object... args) {
+        UUID id = UUID.randomUUID();
+        Object[] all = new Object[args.length + 1];
+        all[0] = id;
+        System.arraycopy(args, 0, all, 1, args.length);
+        jdbc.update(sql, all);
+        return id;
+    }
+
+    /** A unit vector whose cosine with the query vector (1, 0, 0, ...) is exactly {@code cosine}. */
+    private static float[] unit(double cosine) {
+        float[] vector = new float[1024];
+        vector[0] = (float) cosine;
+        vector[1] = (float) Math.sqrt(1 - cosine * cosine);
+        return vector;
+    }
+
+    private static String literal(float[] vector) {
+        StringBuilder text = new StringBuilder("[");
+        for (int index = 0; index < vector.length; index++) {
+            text.append(index == 0 ? "" : ",").append(vector[index]);
+        }
+        return text.append(']').toString();
+    }
+
+    private JsonView log(UUID logId) {
+        entityManager.flush();
+        entityManager.clear();
+        return new JsonView(logRepository.findById(logId).orElseThrow().getReturnedCandidateIds());
+    }
+
+    private record JsonView(tools.jackson.databind.JsonNode candidates) {
+
+        private tools.jackson.databind.JsonNode of(UUID candidateId) {
+            for (tools.jackson.databind.JsonNode node : candidates) {
+                if (node.path("candidateId").asString().equals(candidateId.toString())) {
+                    return node;
+                }
+            }
+            throw new AssertionError("Candidate " + candidateId + " is not in the log");
+        }
+
+        double g(UUID candidateId) {
+            return of(candidateId).path("g").asDouble();
+        }
+
+        double feature(UUID candidateId, String name) {
+            return of(candidateId).path("features").path(name).asDouble();
+        }
+
+        boolean isNull(UUID candidateId, String name) {
+            return of(candidateId).path("features").path(name).isNull();
+        }
+    }
+
+    private final class Posting {
+        private UUID subjectId;
+        private List<UUID> gradeIds;
+        private String mode = "ONLINE";
+        private String status = "OPEN";
+        private BigDecimal price = new BigDecimal("150000");
+        private Double cosine = 0.6;
+        private List<UUID> districtIds = List.of();
+        private final List<Object[]> slots = new java.util.ArrayList<>();
+
+        Posting subject(UUID value) {
+            subjectId = value;
+            return this;
+        }
+
+        Posting grades(UUID... values) {
+            gradeIds = List.of(values);
+            return this;
+        }
+
+        Posting mode(String value) {
+            mode = value;
+            return this;
+        }
+
+        Posting status(String value) {
+            status = value;
+            return this;
+        }
+
+        Posting price(String value) {
+            price = value == null ? null : new BigDecimal(value);
+            return this;
+        }
+
+        Posting cosine(Double value) {
+            cosine = value;
+            return this;
+        }
+
+        Posting districts(UUID... values) {
+            districtIds = List.of(values);
+            return this;
+        }
+
+        Posting slot(int day, String start, String end) {
+            slots.add(new Object[] { day, start, end });
+            return this;
+        }
+    }
+}

@@ -47,6 +47,8 @@ tags:
     description: Active subject catalog used by teaching requests
   - name: Grades
     description: Active grade catalog used by teaching requests
+  - name: Recommendations
+    description: Personalised tutor and student recommendations
   - name: Reviews
     description: Review operations for the Ptutor platform
   - name: Admin Subjects
@@ -2909,6 +2911,57 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/students/me/tutor-recommendations:
+    post:
+      tags: [Recommendations]
+      summary: Find tutors that fit my criteria
+      description: >-
+        Ranks OPEN teaching requests of verified tutors for the current student. The filters are the main
+        input; missing ones are filled from the student's own studying request (useStudyingRequestId) and
+        then from the profile. Without logId a new search is run and logged. With logId the request body is
+        ignored and another page of that earlier search is returned in the order computed back then
+        (at most 50 results are kept per search).
+      operationId: recommendTutorsForStudent
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - name: logId
+          in: query
+          description: logId returned by the first page; required to read the following pages.
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorRecommendationRequest'
+            example:
+              filters:
+                subjectId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                gradeId: 3fa85f64-5717-4562-b3fc-2c963f66afa7
+                learningMode: ANY
+                area: { scope: DISTRICTS, districtIds: [3fa85f64-5717-4562-b3fc-2c963f66afa8] }
+                price: { max: 200000 }
+                availabilities:
+                  - { dayOfWeek: 2, startTime: '19:00', endTime: '21:00' }
+              semanticText: ôn thi vào lớp 10
+      responses:
+        '200':
+          description: >-
+            Ranked teaching requests. When subject or grade is still missing, needsInput lists them and
+            items is empty.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutorRecommendationResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/students/me/contracts/{contractId}/review:
     parameters:
       - name: contractId
@@ -5431,6 +5484,7 @@ components:
       properties:
         dayOfWeek:
           type: integer
+          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
           minimum: 1
           maximum: 7
         startTime:
@@ -5479,7 +5533,7 @@ components:
           items:
             type: object
             properties:
-              dayOfWeek: { type: integer }
+              dayOfWeek: { type: integer, description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.' }
               startTime: { type: string, format: time }
               endTime: { type: string, format: time }
         createdAt: { type: string, format: date-time }
@@ -5632,6 +5686,111 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    TutorRecommendationRequest:
+      type: object
+      properties:
+        filters:
+          type: object
+          properties:
+            subjectId: { type: string, format: uuid }
+            gradeId: { type: string, format: uuid }
+            learningMode:
+              type: string
+              enum: [ONLINE, OFFLINE, ANY]
+              description: Defaults to ANY (both).
+            area:
+              type: object
+              description: Where to look for offline lessons. Defaults to the district the student lives in.
+              properties:
+                scope: { type: string, enum: [DISTRICTS, PROVINCE, ANY] }
+                districtIds:
+                  type: array
+                  description: Required when scope is DISTRICTS.
+                  items: { type: string, format: uuid }
+                provinceId:
+                  type: string
+                  format: uuid
+                  description: Used when scope is PROVINCE; defaults to the student's province.
+            price:
+              type: object
+              properties:
+                min: { type: number, minimum: 0 }
+                max:
+                  type: number
+                  minimum: 0
+                  description: Budget per lesson. Postings above 1.5 times the budget are not returned.
+            availabilities:
+              type: array
+              maxItems: 42
+              items:
+                type: object
+                required: [dayOfWeek, startTime, endTime]
+                properties:
+                  dayOfWeek:
+                    type: integer
+                    minimum: 1
+                    maximum: 7
+                    description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
+                  startTime: { type: string, format: time }
+                  endTime: { type: string, format: time, description: Must be after startTime. }
+            styleTagCodes: { type: array, items: { type: string } }
+            goalTagCodes: { type: array, items: { type: string } }
+            topicTagCodes: { type: array, items: { type: string } }
+        semanticText:
+          type: string
+          maxLength: 500
+          description: Free text describing the need; used for semantic matching.
+        queryText:
+          type: string
+          maxLength: 500
+          description: The original sentence typed by the user; only stored in the log.
+        useStudyingRequestId:
+          type: string
+          format: uuid
+          description: One of the student's own studying requests, used to fill criteria left empty.
+
+    TutorRecommendationResponse:
+      type: object
+      properties:
+        logId: { type: string, format: uuid, nullable: true }
+        algorithmVersion: { type: string, example: v2.1-a }
+        queryContext:
+          type: object
+          description: Final criteria after merging, with the source of each one (FILTER, STUDYING_REQUEST, PROFILE, DEFAULT).
+        needsInput:
+          type: array
+          items: { type: string, enum: [subjectId, gradeId] }
+        lowConfidence:
+          type: boolean
+          description: True when little is known about the match; the UI should ask for more criteria.
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              rank: { type: integer }
+              teachingRequestId: { type: string, format: uuid }
+              tutor:
+                type: object
+                properties:
+                  userId: { type: string, format: uuid }
+                  displayName: { type: string }
+                  avatarUrl: { type: string, nullable: true }
+                  averageRating: { type: number }
+                  totalReviews: { type: integer }
+              title: { type: string }
+              expectedPrice: { type: number, nullable: true }
+              teachingMode: { type: string, enum: [ONLINE, OFFLINE] }
+              districts: { type: array, items: { type: string } }
+              score: { type: number, minimum: 0, maximum: 1 }
+              isExploration: { type: boolean }
+              reasons: { type: array, items: { type: string } }
+              caution: { type: string, nullable: true }
+        relaxations: { type: array, items: { type: object } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
 
     ReviewCreateRequest:
       type: object
@@ -5909,6 +6068,7 @@ components:
       properties:
         dayOfWeek:
           type: integer
+          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
         startTime:
           type: string
           format: time
@@ -5925,6 +6085,7 @@ components:
       properties:
         dayOfWeek:
           type: integer
+          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
           minimum: 1
           maximum: 7
         startTime:
@@ -6162,6 +6323,7 @@ components:
       properties:
         dayOfWeek:
           type: integer
+          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
         startTime:
           type: string
           format: time
@@ -7258,6 +7420,13 @@ components:
             data:
               nullable: true
               example: null
+
+    TutorRecommendationResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/TutorRecommendationResponse' }
 
     ReviewResponseEnvelope:
       allOf:

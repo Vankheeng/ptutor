@@ -1,0 +1,50 @@
+package com.ptutor.backend.controller;
+
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ptutor.backend.dto.request.TutorRecommendationRequest;
+import com.ptutor.backend.dto.response.TutorRecommendationResponse;
+import com.ptutor.backend.response.ApiResponse;
+import com.ptutor.backend.response.ApiResponseFactory;
+import com.ptutor.backend.security.CurrentUserProvider;
+import com.ptutor.backend.service.RecommendationService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/v1/students/me/tutor-recommendations")
+@RequiredArgsConstructor
+@Validated
+public class StudentRecommendationController {
+
+    private static final String PATH = "/api/v1/students/me/tutor-recommendations";
+
+    private final RecommendationService recommendationService;
+    private final ApiResponseFactory responseFactory;
+    private final CurrentUserProvider currentUserProvider;
+
+    /**
+     * Without {@code logId}: runs a new search from the body. With {@code logId}: returns another
+     * page of that earlier search (the body is ignored), in the order computed back then.
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<TutorRecommendationResponse>> recommend(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID logId,
+            @Valid @RequestBody(required = false) TutorRecommendationRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                recommendationService.recommendTutors(
+                        currentUserProvider.getCurrentUserId(), request, page, size, logId),
+                PATH));
+    }
+}
