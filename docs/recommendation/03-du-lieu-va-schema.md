@@ -281,6 +281,9 @@ Ghi chú:
 ## 3.5. Cột tổng hợp trên `tutors`
 
 `AggregateRefreshJob` (P1) chạy một câu `UPDATE`, ngay trước khi tính lại `recommendation_score`:
+- **hằng đêm** cho mọi gia sư (trong job 02:30 UTC);
+- **theo sự kiện** cho riêng một gia sư (thêm `AND t.id = :tutorId`), trong cùng transaction với lần tính
+  lại điểm do listener kích hoạt (01, mục 1.5, P3–P4) — để điểm phản ánh ngay đánh giá / hợp đồng / đơn mới.
 
 ```sql
 WITH rv AS (
@@ -297,7 +300,8 @@ WITH rv AS (
     SELECT tr.tutor_id,
            COUNT(*) FILTER (WHERE s.status = 'ACCEPTED') AS accepted,
            COUNT(*) FILTER (WHERE s.status IN ('ACCEPTED', 'REJECTED')) AS decided,
-           AVG(EXTRACT(EPOCH FROM (COALESCE(s.responded_at, s.updated_at) - s.created_at)) / 3600.0)
+           AVG(GREATEST(EXTRACT(EPOCH FROM (COALESCE(s.responded_at, s.updated_at) - s.created_at)), 0)
+                   / 3600.0)
                FILTER (WHERE s.status IN ('ACCEPTED', 'REJECTED')) AS resp_hours
     FROM student_tutor_requests s
     JOIN teaching_requests tr ON tr.id = s.teaching_request_id
@@ -311,7 +315,8 @@ UPDATE tutors t SET
     total_students_taught     = COALESCE(ct.students, 0),
     acceptance_rate           = CASE WHEN rq.decided >= 3
                                      THEN ROUND(100.0 * rq.accepted / rq.decided, 2) END,
-    avg_response_time_hours   = LEAST(ROUND(rq.resp_hours::numeric, 2), 9999.99),
+    avg_response_time_hours   = CASE WHEN rq.resp_hours IS NOT NULL
+                                     THEN LEAST(ROUND(rq.resp_hours::numeric, 2), 9999.99) END,
     updated_at                = CURRENT_TIMESTAMP
 FROM tutors x
 LEFT JOIN rv ON rv.tutor_id = x.id
@@ -321,4 +326,6 @@ WHERE t.id = x.id AND t.deleted_at IS NULL;
 ```
 
 `acceptance_rate` để `NULL` khi dưới 3 quyết định (công thức `recommendation_score` dùng giá trị
-trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (gần đúng).
+trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (gần đúng), và để `NULL` khi gia sư chưa
+quyết định đơn nào (`LEAST` của PostgreSQL bỏ qua `NULL` nên phải bọc `CASE`, nếu không sẽ thành 9999,99).
+Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) được tính là 0 nhờ `GREATEST(…, 0)`.
