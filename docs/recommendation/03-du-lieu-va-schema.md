@@ -272,6 +272,9 @@ Ghi chú:
 - Đổi kiểu vector cần sửa `columnDefinition = "vector(1024)"` trong entity `Student`, `Tutor`
   (`ddl-auto: validate`).
 - Không tạo index ANN cho vector ở quy mô đồ án.
+- `recommendation_click_logs` vẫn giữ ràng buộc cũ `ck_recommendation_click_logs_candidate_xor` (đúng một
+  trong `clicked_student_id` / `clicked_tutor_id`). Khi ghi sự kiện trên một tin đăng: điền **chủ tin** vào
+  cột người tương ứng và điền tin đăng vào `candidate_teaching_request_id` / `candidate_studying_request_id`.
 - `recommendation_entity_tags`, `ai_enrichment_jobs` dùng khoá đa hình (`entity_type`, `entity_id`)
   nên không có FK; tầng ứng dụng đảm bảo toàn vẹn.
 - Tag người dùng **tự chọn trên bộ lọc** khi tìm kiếm không ghi vào `recommendation_entity_tags`
