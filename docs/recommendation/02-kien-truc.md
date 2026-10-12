@@ -64,6 +64,22 @@ Nguyên tắc:
 | Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
 | Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian) |
 
+Chi tiết hàng đợi (`ai_enrichment_jobs`):
+- **Ghi job** bằng `INSERT … ON CONFLICT … DO UPDATE` trên index duy nhất của job đang mở: sửa nhiều lần chỉ
+  có một job; nếu job đang `PROCESSING` thì bị đưa về `PENDING` để chạy lại (không mất thay đổi vừa lưu).
+- **Hồ sơ đổi** → ghi thêm job cho các tin đăng còn hiệu lực của người đó (văn bản tin đăng chứa hồ sơ).
+- **Worker** (mỗi 10 s): chỉ lấy job khi AI service `ready` (service tắt thì job nằm chờ, không tốn lượt thử);
+  `FOR UPDATE SKIP LOCKED`; gọi `/embed` từng văn bản, timeout 5 s; lỗi → thử lại sau 1, 5, 15, 60 phút, quá
+  5 lần → `FAILED`; văn bản không đổi (`content_hash`) hoặc rỗng → `SKIPPED`; job kẹt `PROCESSING` quá 10 phút
+  được trả lại hàng đợi.
+- **Quét bù** (2 phút sau khi khởi động, rồi mỗi 6 giờ): ghi job cho hồ sơ / tin đăng chưa có embedding.
+- **Ghi job khi nào:** tạo / sửa tin đăng, sửa hồ sơ, chủ tin **mở lại** tin (`CLOSED` → `OPEN`), admin **duyệt**
+  tin dạy (có thể đổi môn tự nhập thành môn trong danh mục).
+- **Dọn dẹp** (mỗi 6 giờ): xoá job `DONE` / `SKIPPED` cũ hơn 7 ngày (`app.recommendation.jobs.retention-days`);
+  giữ `FAILED` để tra lỗi; ghi log số job theo trạng thái, mức `WARN` khi có `FAILED`.
+- **Nhiều bản backend:** an toàn nhờ `FOR UPDATE SKIP LOCKED` (có test hai worker cùng nhận job).
+- Trước khi có `EnrichmentWorker` (A1), bước lưu ghi thẳng job `EMBED`; khi có A1 sẽ đổi thành `ENRICH` → `EMBED`.
+
 ### Luồng tìm kiếm
 
 ```mermaid
