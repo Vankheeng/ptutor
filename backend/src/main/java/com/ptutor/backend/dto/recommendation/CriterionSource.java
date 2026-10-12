@@ -4,6 +4,7 @@ package com.ptutor.backend.dto.recommendation;
 public enum CriterionSource {
     FILTER,
     STUDYING_REQUEST,
+    TEACHING_REQUEST,
     PROFILE,
     DEFAULT
 }

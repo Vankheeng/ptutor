@@ -78,6 +78,25 @@ public class RecommendationSettings {
     @Value("${app.recommendation.weights.segment:0.05}")
     private double weightSegment = 0.05;
 
+    // Weights of a' when a tutor looks for students (design 06, 6.12).
+    @Value("${app.recommendation.tutor-weights.sem:0.30}")
+    private double tutorWeightSem = 0.30;
+
+    @Value("${app.recommendation.tutor-weights.price:0.25}")
+    private double tutorWeightPrice = 0.25;
+
+    @Value("${app.recommendation.tutor-weights.need:0.20}")
+    private double tutorWeightNeed = 0.20;
+
+    @Value("${app.recommendation.tutor-weights.segment:0.10}")
+    private double tutorWeightSegment = 0.10;
+
+    @Value("${app.recommendation.tutor-weights.sched:0.10}")
+    private double tutorWeightSched = 0.10;
+
+    @Value("${app.recommendation.tutor-weights.area:0.05}")
+    private double tutorWeightArea = 0.05;
+
     @Value("${app.recommendation.area.same-province:0.6}")
     private double areaSameProvince = 0.6;
 
