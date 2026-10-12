@@ -18,7 +18,23 @@ class HealthResponse(BaseModel):
     # "ready" when an LLM API key is configured, "disabled" otherwise; independent of `status`.
     llm: str = "disabled"
     llm_model: str | None = None
+    # "ready", "loading", "error" or "disabled"; independent of `status`, embedding works without it.
+    rerank: str = "disabled"
+    rerank_model: str | None = None
     detail: str | None = None
+
+
+class RerankRequest(BaseModel):
+    """One demand / supply text against the texts of the candidates it is compared with."""
+
+    query: str = Field(min_length=1)
+    documents: list[str] = Field(min_length=1)
+
+
+class RerankResponse(BaseModel):
+    model: str
+    # Relevance in [0, 1], one per document, in the same order.
+    scores: list[float]
 
 
 class VocabularyTag(BaseModel):

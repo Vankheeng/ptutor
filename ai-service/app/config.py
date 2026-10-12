@@ -19,6 +19,20 @@ EMBED_SUBDIR = "bge-m3"
 EMBED_MODEL_VERSION = "bge-m3-int8"
 EMBED_DIMENSIONS = 1024
 
+# ONNX export of BAAI/bge-reranker-v2-m3 (Apache-2.0).
+RERANK_REPO_ID = "onnx-community/bge-reranker-v2-m3-ONNX"
+RERANK_REPO_FILES = (
+    "onnx/model_int8.onnx",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "config.json",
+)
+RERANK_MODEL_FILE = "onnx/model_int8.onnx"
+RERANK_SUBDIR = "bge-reranker-v2-m3"
+# Part of the key of every cached score (model_version, at most 50 characters).
+RERANK_MODEL_VERSION = "bge-reranker-v2-m3-int8"
+
 
 def _flag(name: str, default: bool) -> bool:
     value = os.getenv(name)
@@ -42,10 +56,20 @@ class Settings:
     llm_timeout_seconds: float = 20.0
     llm_reasoning_effort: str = ""
     enrich_max_chars: int = 8000
+    rerank_enabled: bool = True
+    # Per side: the query and each document are cut to this many tokens before being paired.
+    rerank_max_tokens: int = 256
+    rerank_max_documents: int = 40
+    rerank_max_chars: int = 8000
+    rerank_batch_size: int = 4
 
     @property
     def embed_dir(self) -> Path:
         return self.model_dir / EMBED_SUBDIR
+
+    @property
+    def rerank_dir(self) -> Path:
+        return self.model_dir / RERANK_SUBDIR
 
 
 def load_settings() -> Settings:
@@ -64,4 +88,9 @@ def load_settings() -> Settings:
         llm_timeout_seconds=float(os.getenv("AI_LLM_TIMEOUT_SECONDS", "20")),
         llm_reasoning_effort=os.getenv("AI_LLM_REASONING_EFFORT", "").strip(),
         enrich_max_chars=int(os.getenv("AI_ENRICH_MAX_CHARS", "8000")),
+        rerank_enabled=_flag("AI_RERANK_ENABLED", True),
+        rerank_max_tokens=int(os.getenv("AI_RERANK_MAX_TOKENS", "256")),
+        rerank_max_documents=int(os.getenv("AI_RERANK_MAX_DOCUMENTS", "40")),
+        rerank_max_chars=int(os.getenv("AI_RERANK_MAX_CHARS", "8000")),
+        rerank_batch_size=int(os.getenv("AI_RERANK_BATCH_SIZE", "4")),
     )

@@ -1,4 +1,4 @@
-"""Stateless AI service: text in, vectors out. Only the backend calls it, over the internal network."""
+"""Stateless AI service: text in, vectors, relevance scores or extracted tags out. Only the backend calls it, over the internal network."""
 
 import hmac
 import logging
@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 
-from .config import EMBED_MODEL_VERSION, Settings, load_settings
-from .model_store import download_embed_files, missing_embed_files
+from .config import EMBED_MODEL_VERSION, RERANK_MODEL_VERSION, Settings, load_settings
+from .model_store import download_embed_files, download_rerank_files, missing_embed_files, missing_rerank_files
 from .llm import LlmBackend, LlmUnavailable, OpenAiBackend, enrich, suggest_tags
 from .schemas import (
     EmbedRequest,
@@ -16,6 +16,8 @@ from .schemas import (
     EnrichRequest,
     EnrichResponse,
     HealthResponse,
+    RerankRequest,
+    RerankResponse,
     SuggestTagsRequest,
     SuggestTagsResponse,
 )
@@ -27,12 +29,23 @@ class ModelState:
     def __init__(self):
         self.embedder = None
         self.error: str | None = None
+        self.reranker = None
+        self.rerank_enabled = True
+        self.rerank_error: str | None = None
 
     @property
     def status(self) -> str:
         if self.embedder is not None:
             return "ready"
         return "error" if self.error else "loading"
+
+    @property
+    def rerank_status(self) -> str:
+        if self.reranker is not None:
+            return "ready"
+        if not self.rerank_enabled:
+            return "disabled"
+        return "error" if self.rerank_error else "loading"
 
 
 def _load_models(settings: Settings, state: ModelState) -> None:
@@ -54,15 +67,41 @@ def _load_models(settings: Settings, state: ModelState) -> None:
     except Exception as exception:  # the service stays up and reports the problem on /health
         state.error = str(exception)
         log.exception("Unable to load the embedding model")
+    if not settings.rerank_enabled:
+        return
+    try:  # after the embedder: search works without reranking, not without vectors
+        missing = missing_rerank_files(settings.rerank_dir)
+        if missing and settings.auto_download:
+            log.info("Downloading reranking model files to %s", settings.rerank_dir)
+            download_rerank_files(settings.rerank_dir)
+            missing = missing_rerank_files(settings.rerank_dir)
+        if missing:
+            raise FileNotFoundError(
+                f"Missing model files in {settings.rerank_dir}: {', '.join(missing)}. "
+                "Run scripts/download_models.py or set AI_AUTO_DOWNLOAD=true."
+            )
+        from .rerank import Reranker
+
+        state.reranker = Reranker(
+            settings.rerank_dir, settings.rerank_max_tokens, settings.threads, settings.rerank_batch_size
+        )
+        log.info("Reranking model %s is ready", RERANK_MODEL_VERSION)
+    except Exception as exception:
+        state.rerank_error = str(exception)
+        log.exception("Unable to load the reranking model")
 
 
-def create_app(settings: Settings | None = None, embedder=None, llm: LlmBackend | None = None) -> FastAPI:
-    """`embedder` and `llm` let tests inject fakes instead of loading a model or calling a provider."""
+def create_app(
+    settings: Settings | None = None, embedder=None, llm: LlmBackend | None = None, reranker=None
+) -> FastAPI:
+    """`embedder`, `llm` and `reranker` let tests inject fakes instead of loading a model or calling a provider."""
     settings = settings or load_settings()
     if not settings.internal_token and not settings.allow_anonymous:
         raise RuntimeError("AI_INTERNAL_TOKEN must be set (or AI_ALLOW_ANONYMOUS=true for local experiments)")
     state = ModelState()
     state.embedder = embedder
+    state.reranker = reranker
+    state.rerank_enabled = settings.rerank_enabled
     if llm is None and settings.openai_api_key:
         llm = OpenAiBackend(
             settings.openai_api_key, settings.llm_model, settings.llm_timeout_seconds, settings.llm_reasoning_effort
@@ -93,7 +132,9 @@ def create_app(settings: Settings | None = None, embedder=None, llm: LlmBackend 
             embed_model=EMBED_MODEL_VERSION,
             llm="ready" if llm is not None else "disabled",
             llm_model=llm.model if llm is not None else None,
-            detail=state.error,
+            rerank=state.rerank_status,
+            rerank_model=RERANK_MODEL_VERSION if state.rerank_enabled else None,
+            detail=state.error or state.rerank_error,
         )
 
     @app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(require_token)])
@@ -114,6 +155,24 @@ def create_app(settings: Settings | None = None, embedder=None, llm: LlmBackend 
             dimensions=state.embedder.dimensions,
             embeddings=vectors.tolist(),
         )
+
+    @app.post("/rerank", response_model=RerankResponse, dependencies=[Depends(require_token)])
+    def rerank(request: RerankRequest) -> RerankResponse:
+        if state.reranker is None:
+            raise HTTPException(status_code=503, detail=f"Reranking model is {state.rerank_status}")
+        if len(request.documents) > settings.rerank_max_documents:
+            raise HTTPException(
+                status_code=422, detail=f"At most {settings.rerank_max_documents} documents per request"
+            )
+        texts = [request.query, *request.documents]
+        if any(not text.strip() for text in texts):
+            raise HTTPException(status_code=422, detail="Texts must not be blank")
+        if any(len(text) > settings.rerank_max_chars for text in texts):
+            raise HTTPException(
+                status_code=422, detail=f"Each text must be at most {settings.rerank_max_chars} characters"
+            )
+        scores = state.reranker.score(request.query, request.documents)
+        return RerankResponse(model=state.reranker.model_version, scores=scores)
 
     @app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(require_token)])
     def enrich_entity(request: EnrichRequest) -> EnrichResponse:

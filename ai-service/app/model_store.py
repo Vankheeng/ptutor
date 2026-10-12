@@ -6,7 +6,7 @@ cached on the machine would otherwise make Hugging Face answer 401.
 
 from pathlib import Path
 
-from .config import EMBED_REPO_FILES, EMBED_REPO_ID
+from .config import EMBED_REPO_FILES, EMBED_REPO_ID, RERANK_REPO_FILES, RERANK_REPO_ID
 
 
 def missing_embed_files(embed_dir: Path) -> list[str]:
@@ -28,3 +28,23 @@ def download_embed_files(embed_dir: Path) -> None:
     embed_dir.mkdir(parents=True, exist_ok=True)
     for name in EMBED_REPO_FILES:
         hf_hub_download(repo_id=EMBED_REPO_ID, filename=name, local_dir=str(embed_dir), token=False)
+
+
+def missing_rerank_files(rerank_dir: Path) -> list[str]:
+    return [name for name in RERANK_REPO_FILES if not (rerank_dir / name).is_file()]
+
+
+def remote_rerank_file_sizes() -> dict[str, int]:
+    from huggingface_hub import HfApi
+
+    wanted = set(RERANK_REPO_FILES)
+    info = HfApi(token=False).model_info(RERANK_REPO_ID, files_metadata=True)
+    return {s.rfilename: s.size or 0 for s in info.siblings if s.rfilename in wanted}
+
+
+def download_rerank_files(rerank_dir: Path) -> None:
+    from huggingface_hub import hf_hub_download
+
+    rerank_dir.mkdir(parents=True, exist_ok=True)
+    for name in RERANK_REPO_FILES:
+        hf_hub_download(repo_id=RERANK_REPO_ID, filename=name, local_dir=str(rerank_dir), token=False)
