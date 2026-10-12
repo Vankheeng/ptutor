@@ -112,7 +112,7 @@ hạng không có `f_sem`.
 
 ## 8.4. Gia sư tìm học viên
 
-`POST /api/v1/tutors/me/student-recommendations?page=0&size=20`
+`POST /api/v1/tutors/me/student-recommendations?page=0&size=20[&logId=…]`
 
 ```json
 {
@@ -145,6 +145,9 @@ Mỗi item là một tin học, chỉ kèm thông tin **giới hạn** của h�
   "reasons": ["Cần cải thiện Hình học phẳng — thế mạnh của bạn", "…"]
 }
 ```
+
+Gia sư chưa được duyệt hồ sơ → `403 TUTOR_PROFILE_NOT_VERIFIED`. Phân trang bằng `logId` như 8.3. `student.displayName` là "Học sinh {tên lớp}"; response không chứa mã
+học sinh hay mã tài khoản. `savedSearchId` chưa được nhận cho tới khi có tính năng lưu tìm kiếm.
 
 Gia sư **không thấy** họ tên đầy đủ, ảnh, SĐT, địa chỉ chi tiết của học sinh trong danh sách đề xuất;
 thông tin chi tiết chỉ mở theo luồng nghiệp vụ hiện có.

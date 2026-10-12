@@ -369,6 +369,21 @@ Ngoại lệ: học sinh đã gửi đơn `PENDING` vào một tin dạy `OPEN` 
 **Điểm cuối:** `score′ = R′ × G′` (không có hệ số chất lượng cho học sinh). Rerank, gộp (theo học
 sinh), slot khám phá dùng lại y nguyên.
 
+Ghi chú triển khai (12/10/2026):
+- `G′ = g_sched × g_reject`: 0,4 khi hai bên có lịch mà không giao nhau; 0,5 khi học sinh đã từ chối đề
+  nghị của gia sư này (bất kỳ tin nào) trong 90 ngày.
+- a′ áp dụng cùng quy tắc thiếu dữ liệu ở 6.5 (đặc trưng thiếu = 0,5).
+- `f_price` góc gia sư: `1` nếu `sr.max_price ≥ p`, nếu không `max(0, 1 − (p − hi)/(0,3·p))`; góc học sinh
+  (trong `b′_fit`): `1` nếu `p ≤ hi`, nếu không `max(0, 1 − (p − hi)/(0,5·hi))`.
+- `b′_fit`: thành phần thiếu (`f_style`, `f_price`) lấy 0,5; Q là `recommendation_score/100` của gia sư đang
+  tìm (rỗng → 0,5).
+- `b′_hist`: `Q_d` là điểm chất lượng **hiện tại** của gia sư đã gửi đề nghị cũ; giá hoặc Q thiếu → độ
+  giống 0,5; `p0` đo trên `tutor_student_requests` (0,6 khi < 20 quyết định).
+- **Chỉ gia sư có hồ sơ `VERIFIED` mới tìm được học viên** (`403 TUTOR_PROFILE_NOT_VERIFIED`, kể cả khi lật
+  trang bằng `logId`), cho nhất quán với chiều S→T chỉ hiện gia sư đã duyệt (quyết định 12/10/2026).
+- Giá mong muốn để trống → trung vị `expected_price` của mọi tin dạy của gia sư; không có tin → không lọc
+  và không chấm theo giá.
+
 ## 6.13. Lý do khớp
 
 Tối đa **3 lý do tích cực** và **1 lưu ý**, theo bảng mẫu (S→T):

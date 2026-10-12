@@ -12,6 +12,7 @@
 | `semantic.cos-low` / `cos-high` / `rerank-weight` | 0,30 / 0,80 / 0,7 | 06, 6.4 |
 | Trọng số a (S→T): sem / need / price / style / sched / area / segment | 0,30 / 0,20 / 0,20 / 0,10 / 0,10 / 0,05 / 0,05 | 06, 6.4 |
 | Trọng số a′ (T→S): sem / price / need / segment / sched / area | 0,30 / 0,25 / 0,20 / 0,10 / 0,10 / 0,05 | 06, 6.12 |
+| `tutor-weights.*` (a′): sem / price / need / segment / sched / area | 0,30 / 0,25 / 0,20 / 0,10 / 0,10 / 0,05 | 06, 6.12 |
 | `area.same-province` / `area.other-province` | 0,6 / 0,2 | 06, 6.4 |
 | `history.max-weight` / `history.full-signals` | 0,15 / 10 | 06, 6.4 |
 | `history.half-life-days` / `window-days` | 30 / 180 | 07, 7.4 |
