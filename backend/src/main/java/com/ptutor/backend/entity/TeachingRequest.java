@@ -1,11 +1,14 @@
 package com.ptutor.backend.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
@@ -129,4 +132,25 @@ public class TeachingRequest extends BaseEntity {
     @Builder.Default
     @NonFinal
     private List<TeachingRequestAvailability> availabilities = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Column(name = "embedding", columnDefinition = "vector(1024)")
+    @NonFinal
+    private float[] embedding;
+
+    @Column(name = "embedding_source_text", columnDefinition = "text")
+    @NonFinal
+    private String embeddingSourceText;
+
+    @Column(name = "embedding_content_hash", length = 64)
+    @NonFinal
+    private String embeddingContentHash;
+
+    @Column(name = "embedding_model_version", length = 50)
+    @NonFinal
+    private String embeddingModelVersion;
+
+    @Column(name = "embedding_updated_at")
+    @NonFinal
+    private LocalDateTime embeddingUpdatedAt;
 }

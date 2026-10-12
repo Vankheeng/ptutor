@@ -77,7 +77,7 @@ public class Tutor extends BaseEntity {
     private String targetStudentType;
 
     @JdbcTypeCode(SqlTypes.VECTOR)
-    @Column(name = "profile_embedding", columnDefinition = "vector(1536)")
+    @Column(name = "profile_embedding", columnDefinition = "vector(1024)")
     @NonFinal
     private float[] profileEmbedding;
 
@@ -92,6 +92,10 @@ public class Tutor extends BaseEntity {
     @Column(name = "embedding_model_version", length = 50)
     @NonFinal
     private String embeddingModelVersion;
+
+    @Column(name = "embedding_content_hash", length = 64)
+    @NonFinal
+    private String embeddingContentHash;
 
     @Column(name = "average_rating", nullable = false, precision = 3, scale = 2)
     @NonFinal

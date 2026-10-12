@@ -65,7 +65,7 @@ public class Student extends BaseEntity {
     private String weakPoints;
 
     @JdbcTypeCode(SqlTypes.VECTOR)
-    @Column(name = "profile_embedding", columnDefinition = "vector(1536)")
+    @Column(name = "profile_embedding", columnDefinition = "vector(1024)")
     @NonFinal
     private float[] profileEmbedding;
 
@@ -80,5 +80,9 @@ public class Student extends BaseEntity {
     @Column(name = "embedding_model_version", length = 50)
     @NonFinal
     private String embeddingModelVersion;
+
+    @Column(name = "embedding_content_hash", length = 64)
+    @NonFinal
+    private String embeddingContentHash;
 
 }
