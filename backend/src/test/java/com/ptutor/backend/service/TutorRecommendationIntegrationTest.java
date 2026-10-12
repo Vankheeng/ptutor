@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -26,6 +28,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ptutor.backend.client.AiServiceClient;
+import com.ptutor.backend.client.AiServiceClient.RerankResult;
 import com.ptutor.backend.dto.recommendation.AreaScope;
 import com.ptutor.backend.dto.recommendation.ModePreference;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest;
@@ -61,7 +65,12 @@ class TutorRecommendationIntegrationTest {
     @Autowired EntityManager entityManager;
     @Autowired JdbcTemplate jdbc;
 
+    @Autowired com.ptutor.backend.repository.RecommendationRerankCacheRepository rerankCacheRepository;
+    @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
+    @Autowired EmbeddingTextBuilder textBuilder;
+
     private QueryEmbeddingService queryEmbeddingService;
+    private AiServiceClient aiServiceClient;
     private RecommendationService service;
 
     private UUID provinceId;
@@ -85,6 +94,7 @@ class TutorRecommendationIntegrationTest {
     void restoreSettings() {
         ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
+        ReflectionTestUtils.setField(settings, "rerankEnabled", true);
     }
 
     @BeforeEach
@@ -94,8 +104,13 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", Integer.MAX_VALUE);
         queryEmbeddingService = mock(QueryEmbeddingService.class);
         when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
+        // Without an answer from the AI service nothing is reranked: the order of phase 3 is final.
+        aiServiceClient = mock(AiServiceClient.class);
+        RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
+                entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
-                queryContextBuilder, queryEmbeddingService, ranker, recommendationLogger, settings, null);
+                queryContextBuilder, queryEmbeddingService, ranker, rerankService, recommendationLogger, settings,
+                null);
 
         provinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh A')");
         otherProvinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh B')");
@@ -487,7 +502,7 @@ class TutorRecommendationIntegrationTest {
         assertThat(row.get("searcher_student_id")).isEqualTo(studentId);
         assertThat(row.get("searcher_tutor_id")).isNull();
         assertThat(row.get("direction")).isEqualTo("STUDENT_TO_TUTOR");
-        assertThat(row.get("algorithm_version")).isEqualTo(response.algorithmVersion()).isEqualTo("v2.1-rc");
+        assertThat(row.get("algorithm_version")).isEqualTo(response.algorithmVersion()).isEqualTo("v2.2-rcx");
         assertThat((String) row.get("query_text")).contains("Gia sư Toán 9").doesNotContain("a@b.vn");
         assertThat((Integer) row.get("latency_ms")).isNotNegative();
         assertThat((String) row.get("context")).contains("demandText").contains("ôn thi vào 10")
@@ -563,6 +578,120 @@ class TutorRecommendationIntegrationTest {
     // ---------------------------------------------------------------- helpers
 
     private long logsBefore = -1;
+
+    // ---- phase 4: rerank
+
+    @Test
+    void reranksTheBestPostingsStoresTheScoresAndReusesThemOnTheNextSearch() {
+        UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
+        UUID mostRelevant = posting(tutor(), new Posting().cosine(0.55));
+        title(nearestByVector, "Luyện chữ đẹp");
+        title(mostRelevant, "Luyện thi vào 10, mạnh hình học");
+        crossEncoderPrefers("hình học");
+
+        TutorRecommendationResponse first = search(anywhere());
+
+        assertThat(ids(first)).as("phase 3 alone would put the nearest vector first")
+                .containsExactly(mostRelevant, nearestByVector);
+        assertThat(first.queryContext().has("rerankStatus")).isFalse();
+        JsonView log = log(first.logId());
+        assertThat(log.number(mostRelevant, "rerank")).isCloseTo(0.95, within(1e-9));
+        // s = (0.55 - 0.30) / 0.50 = 0.5, f_sem = 0.3 * 0.5 + 0.7 * 0.95
+        assertThat(log.feature(mostRelevant, "sem")).isCloseTo(0.815, within(1e-4));
+        assertThat(log.feature(nearestByVector, "sem")).isCloseTo(0.3 * 0.9 + 0.7 * 0.05, within(1e-4));
+        assertThat(rerankStatus(first.logId())).isEqualTo("ONLINE");
+
+        TutorRecommendationResponse second = search(anywhere());
+
+        assertThat(ids(second)).containsExactly(mostRelevant, nearestByVector);
+        assertThat(score(second, mostRelevant)).isEqualTo(score(first, mostRelevant));
+        assertThat(rerankStatus(second.logId())).isEqualTo("CACHE");
+        verify(aiServiceClient, times(1)).rerank(any(), any(), any());
+
+        // An edited posting is scored again; the other one still comes from the cache.
+        title(nearestByVector, "Luyện chữ đẹp và hình học");
+        entityManager.clear();
+        TutorRecommendationResponse third = search(anywhere());
+
+        assertThat(ids(third)).containsExactly(nearestByVector, mostRelevant);
+        assertThat(rerankStatus(third.logId())).isEqualTo("ONLINE");
+        org.mockito.ArgumentCaptor<List<String>> documents = org.mockito.ArgumentCaptor.captor();
+        verify(aiServiceClient, times(2)).rerank(any(), documents.capture(), any());
+        assertThat(documents.getAllValues().get(1)).singleElement().asString().contains("Luyện chữ đẹp và hình học");
+    }
+
+    @Test
+    void keepsTheOrderOfPhaseThreeWhenTheCrossEncoderDoesNotAnswer() {
+        UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
+        UUID other = posting(tutor(), new Posting().cosine(0.55));
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(nearestByVector, other);
+        assertThat(rerankStatus(response.logId())).isEqualTo("TIMEOUT");
+        assertThat(log(response.logId()).of(nearestByVector).path("rerank").isNull()).isTrue();
+    }
+
+    @Test
+    void skipsRerankingWhenSwitchedOff() {
+        ReflectionTestUtils.setField(settings, "rerankEnabled", false);
+        UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
+        UUID other = posting(tutor(), new Posting().cosine(0.55));
+        crossEncoderPrefers("Dạy kèm");
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(nearestByVector, other);
+        assertThat(rerankStatus(response.logId())).isEqualTo("DISABLED");
+        verify(aiServiceClient, times(0)).rerank(any(), any(), any());
+    }
+
+    @Test
+    void prefetchScoresAheadWhatASearchFromTheStudentsPostingNeeds() {
+        UUID ownRequest = insert("""
+                INSERT INTO studying_requests
+                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1, 200000)
+                """, studentId, subjectId, gradeId);
+        UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
+        UUID mostRelevant = posting(tutor(), new Posting().cosine(0.55));
+        title(mostRelevant, "Luyện thi vào 10, mạnh hình học");
+        crossEncoderPrefers("hình học");
+        long logs = logRepository.count();
+
+        int computed = service.prefetchRerank(studentUserId, ownRequest);
+
+        assertThat(computed).isEqualTo(2);
+        assertThat(logRepository.count()).as("a prefetch is not a search").isEqualTo(logs);
+        assertThat(service.prefetchRerank(studentUserId, ownRequest)).as("nothing left to score").isZero();
+
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(null, null, null, ownRequest), 0, 20, null);
+
+        assertThat(ids(response)).containsExactly(mostRelevant, nearestByVector);
+        assertThat(rerankStatus(response.logId())).isEqualTo("CACHE");
+        verify(aiServiceClient, times(1)).rerank(any(), any(), any());
+        assertThat(service.prefetchRerank(UUID.randomUUID(), ownRequest)).as("unknown student").isZero();
+    }
+
+    private void title(UUID teachingRequestId, String title) {
+        jdbc.update("UPDATE teaching_requests SET title = ? WHERE id = ?", title, teachingRequestId);
+    }
+
+    /** The cross-encoder is replaced by: 0.95 for a posting that mentions the phrase, 0.05 otherwise. */
+    private void crossEncoderPrefers(String phrase) {
+        when(aiServiceClient.rerank(any(), any(), any())).thenAnswer(invocation -> {
+            List<String> documents = invocation.getArgument(1);
+            return Optional.of(new RerankResult("bge-reranker-v2-m3-int8",
+                    documents.stream().map(document -> document.contains(phrase) ? 0.95 : 0.05).toList()));
+        });
+    }
+
+    private String rerankStatus(UUID logId) {
+        entityManager.flush();
+        entityManager.clear();
+        return logRepository.findById(logId).orElseThrow().getQueryContext().path("rerankStatus").asString();
+    }
 
     private long countLogsBefore() {
         return logsBefore;

@@ -1,7 +1,10 @@
 package com.ptutor.backend.service;
 
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -41,8 +44,33 @@ public class Ranker {
                 .map(candidate -> score(context, candidate, platformRate)).sorted(ORDER).toList();
     }
 
+    /**
+     * Phase 4 (design 06, 6.9): postings of the top group that have a cross-encoder score are scored
+     * again with it and the top group is sorted again. Everything below keeps its place.
+     */
+    public List<ScoredCandidate> applyRerank(
+            QueryContext context, List<ScoredCandidate> ranked, Map<UUID, Double> rerankScores,
+            double platformRate) {
+        if (rerankScores.isEmpty()) {
+            return ranked;
+        }
+        int top = Math.min(settings.getRerankTopK(), ranked.size());
+        List<ScoredCandidate> result = new ArrayList<>(ranked.subList(0, top).stream()
+                .map(scored -> {
+                    Double rerank = rerankScores.get(scored.candidate().teachingRequestId());
+                    return rerank == null ? scored : score(context, scored.candidate(), platformRate, rerank);
+                })
+                .sorted(ORDER).toList());
+        result.addAll(ranked.subList(top, ranked.size()));
+        return result;
+    }
+
     ScoredCandidate score(QueryContext context, TeachingCandidate candidate, double platformRate) {
-        FeatureVector features = featureCalculator.calculate(context, candidate);
+        return score(context, candidate, platformRate, null);
+    }
+
+    ScoredCandidate score(QueryContext context, TeachingCandidate candidate, double platformRate, Double rerank) {
+        FeatureVector features = featureCalculator.calculate(context, candidate, rerank);
         double a = features.suitability();
         double q = candidate.tutorScore() == null
                 ? QUALITY_WHEN_UNKNOWN

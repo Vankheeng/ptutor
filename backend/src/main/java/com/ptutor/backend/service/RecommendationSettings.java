@@ -13,8 +13,8 @@ import lombok.Getter;
 @Getter
 public class RecommendationSettings {
 
-    @Value("${app.recommendation.algorithm-version:v2.1-rc}")
-    private String algorithmVersion = "v2.1-rc";
+    @Value("${app.recommendation.algorithm-version:v2.2-rcx}")
+    private String algorithmVersion = "v2.2-rcx";
 
     /** Off: rank by the searcher's side only (V2-a). On: harmonic mean with the other side (V2-R). */
     @Value("${app.recommendation.reciprocal.enabled:true}")
@@ -56,6 +56,39 @@ public class RecommendationSettings {
 
     @Value("${app.recommendation.semantic.cos-high:0.80}")
     private double cosHigh = 0.80;
+
+    /** Share of the cross-encoder score in f_sem when a posting has one; the rest is the cosine part. */
+    @Value("${app.recommendation.semantic.rerank-weight:0.7}")
+    private double rerankWeight = 0.7;
+
+    /** Off: the order of phase 3 is final (V2-RC). On: the best postings are reranked (V2-RCX). */
+    @Value("${app.recommendation.rerank.enabled:true}")
+    private boolean rerankEnabled = true;
+
+    @Value("${app.recommendation.rerank.top-k:20}")
+    private int rerankTopK = 20;
+
+    /** How long a search may wait for pairs that are not cached yet; what is scored by then is used. */
+    @Value("${app.recommendation.rerank.timeout-ms:4000}")
+    private long rerankTimeoutMs = 4000;
+
+    /** Pairs per call to the AI service: small, so that little work is lost when time runs out. */
+    @Value("${app.recommendation.rerank.chunk-size:4}")
+    private int rerankChunkSize = 4;
+
+    /** Must match the version the AI service reports, otherwise cached scores are never found. */
+    @Value("${app.recommendation.rerank.model-version:bge-reranker-v2-m3-int8}")
+    private String rerankModelVersion = "bge-reranker-v2-m3-int8";
+
+    @Value("${app.recommendation.rerank.prefetch-top-k:30}")
+    private int rerankPrefetchTopK = 30;
+
+    /** Time budget of the nightly job for one studying posting. */
+    @Value("${app.recommendation.rerank.prefetch-timeout-ms:120000}")
+    private long rerankPrefetchTimeoutMs = 120_000;
+
+    @Value("${app.recommendation.rerank.cache-retention-days:30}")
+    private int rerankCacheRetentionDays = 30;
 
     @Value("${app.recommendation.weights.sem:0.30}")
     private double weightSem = 0.30;

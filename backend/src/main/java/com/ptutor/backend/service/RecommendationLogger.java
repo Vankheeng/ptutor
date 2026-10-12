@@ -41,10 +41,11 @@ public class RecommendationLogger {
 
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
-            String algorithmVersion, long latencyMs) {
+            String algorithmVersion, long latencyMs, RerankService.Status rerankStatus) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
+        storedContext.put("rerankStatus", rerankStatus.name());
         return logRepository.save(RecommendationLog.builder()
                 .searcherStudent(student)
                 .sourceStudyingRequest(context.sourceStudyingRequestId() == null ? null
@@ -60,9 +61,10 @@ public class RecommendationLogger {
 
     public RecommendationLog logTutorSearch(
             Tutor tutor, SupplyContext context, List<ScoredStudyingCandidate> ranked, String algorithmVersion,
-            long latencyMs) {
+            long latencyMs, RerankService.Status rerankStatus) {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
+        storedContext.put("rerankStatus", rerankStatus.name());
         ArrayNode candidates = objectMapper.createArrayNode();
         int rank = 1;
         for (ScoredStudyingCandidate scored : ranked) {
@@ -79,7 +81,7 @@ public class RecommendationLogger {
             node.put("wHist", 0.0);
             node.put("confidence", round(scored.features().confidence()));
             putFeatures(node, scored.features());
-            node.putNull("rerank");
+            putFeature(node, "rerank", scored.features().rerank());
             node.put("isExploration", false);
         }
         return logRepository.save(RecommendationLog.builder()
@@ -169,7 +171,7 @@ public class RecommendationLogger {
             node.put("wHist", 0.0);
             node.put("confidence", round(features.confidence()));
             putFeatures(node, features);
-            node.putNull("rerank");
+            putFeature(node, "rerank", features.rerank());
             node.put("isExploration", false);
         }
         return array;

@@ -37,6 +37,8 @@ import com.ptutor.backend.repository.RecommendationLogRepository;
 import com.ptutor.backend.repository.StudyingCandidateRepository;
 import com.ptutor.backend.repository.TutorRepository;
 
+import com.ptutor.backend.client.AiServiceClient;
+
 import jakarta.persistence.EntityManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -61,7 +63,12 @@ class StudentRecommendationIntegrationTest {
     @Autowired ObjectMapper objectMapper;
     @Autowired JdbcTemplate jdbc;
 
+    @Autowired com.ptutor.backend.repository.RecommendationRerankCacheRepository rerankCacheRepository;
+    @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
+    @Autowired EmbeddingTextBuilder textBuilder;
+
     private QueryEmbeddingService queryEmbeddingService;
+    private AiServiceClient aiServiceClient;
     private StudentRecommendationService service;
 
     private UUID provinceId;
@@ -90,9 +97,12 @@ class StudentRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", Integer.MAX_VALUE);
         queryEmbeddingService = mock(QueryEmbeddingService.class);
         when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
+        aiServiceClient = mock(AiServiceClient.class);
+        RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
+                entityTagRepository, textBuilder, entityManager, settings);
         service = new StudentRecommendationService(tutorRepository, candidateRepository, logRepository,
-                supplyContextBuilder, queryEmbeddingService, ranker, recommendationService, recommendationLogger,
-                settings);
+                supplyContextBuilder, queryEmbeddingService, ranker, rerankService, recommendationService,
+                recommendationLogger, settings);
 
         provinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh A')");
         otherProvinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh B')");

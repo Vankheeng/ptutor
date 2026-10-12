@@ -18,6 +18,7 @@ import com.ptutor.backend.dto.response.StudentRecommendationResponse;
 import com.ptutor.backend.dto.response.StudentRecommendationResponse.Item;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.RecommendationCandidateType;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
@@ -46,6 +47,7 @@ public class StudentRecommendationService {
     private final SupplyContextBuilder supplyContextBuilder;
     private final QueryEmbeddingService queryEmbeddingService;
     private final TutorSideRanker ranker;
+    private final RerankService rerankService;
     private final RecommendationService recommendationService;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
@@ -89,14 +91,18 @@ public class StudentRecommendationService {
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
                 settings.getWillingnessDefaultRate());
-        List<ScoredStudyingCandidate> kept = ranker.rank(context,
-                        candidateRepository.load(tutor.getId(), hits, settings.getWillingnessHistoryDays()),
-                        platformRate)
+        List<ScoredStudyingCandidate> ranked = ranker.rank(context,
+                candidateRepository.load(tutor.getId(), hits, settings.getWillingnessHistoryDays()),
+                platformRate);
+        RerankService.Result rerank = rerankService.forSearch(
+                context.supplyText(), RecommendationCandidateType.STUDYING_REQUEST,
+                ranked.stream().map(scored -> scored.candidate().studyingRequestId()).toList());
+        List<ScoredStudyingCandidate> kept = ranker.applyRerank(context, ranked, rerank.scores(), platformRate)
                 .stream().limit(settings.getLogCandidateLimit()).toList();
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logTutorSearch(
-                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs);
+                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status());
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
@@ -147,6 +153,7 @@ public class StudentRecommendationService {
         if (context != null && context.isObject()) {
             ObjectNode copy = ((ObjectNode) context).deepCopy();
             copy.remove("supplyText");
+            copy.remove("rerankStatus");
             context = copy;
         }
         return new StudentRecommendationResponse(

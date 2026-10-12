@@ -21,6 +21,7 @@ import com.ptutor.backend.dto.response.TutorRecommendationResponse;
 import com.ptutor.backend.dto.response.TutorRecommendationResponse.Item;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Student;
+import com.ptutor.backend.entity.enums.RecommendationCandidateType;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CandidateRepository;
@@ -31,9 +32,9 @@ import com.ptutor.backend.repository.StudentRepository;
 import tools.jackson.databind.JsonNode;
 
 /**
- * "Student looks for tutors", version V2-RC: merge the criteria, hard-filter OPEN teaching
+ * "Student looks for tutors", version V2-RCX: merge the criteria, hard-filter OPEN teaching
  * postings, score each one from both sides (how well it suits the student, how likely the tutor
- * is to accept) and return them best first.
+ * is to accept), rerank the best ones with a cross-encoder and return them best first.
  */
 @Service
 public class RecommendationService {
@@ -49,6 +50,7 @@ public class RecommendationService {
     private final QueryContextBuilder queryContextBuilder;
     private final QueryEmbeddingService queryEmbeddingService;
     private final Ranker ranker;
+    private final RerankService rerankService;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
     private final CertificateFileStorageService fileStorageService;
@@ -61,6 +63,7 @@ public class RecommendationService {
             QueryContextBuilder queryContextBuilder,
             QueryEmbeddingService queryEmbeddingService,
             Ranker ranker,
+            RerankService rerankService,
             RecommendationLogger recommendationLogger,
             RecommendationSettings settings,
             CertificateFileStorageService fileStorageService) {
@@ -70,6 +73,7 @@ public class RecommendationService {
         this.queryContextBuilder = queryContextBuilder;
         this.queryEmbeddingService = queryEmbeddingService;
         this.ranker = ranker;
+        this.rerankService = rerankService;
         this.recommendationLogger = recommendationLogger;
         this.settings = settings;
         this.fileStorageService = fileStorageService;
@@ -101,22 +105,17 @@ public class RecommendationService {
                     context.needsInput(), false, List.of(), List.of(), safePage, safeSize, 0);
         }
 
-        // Without a usable query vector the ranking still works, only without the semantic feature.
-        float[] queryVector = queryEmbeddingService.embed(context.demandText())
-                .orElse(student.getProfileEmbedding());
-        List<Hit> hits = selectHits(
-                candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
-        double platformRate = candidateRepository.platformAcceptanceRate(
-                settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
-                settings.getWillingnessDefaultRate());
-        List<ScoredCandidate> ranked = ranker.rank(context,
-                candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays()),
-                platformRate);
-        List<ScoredCandidate> kept = ranked.stream().limit(settings.getLogCandidateLimit()).toList();
+        Ranking ranking = rank(student, context);
+        RerankService.Result rerank = rerankService.forSearch(
+                context.demandText(), RecommendationCandidateType.TEACHING_REQUEST, ids(ranking.ranked()));
+        List<ScoredCandidate> kept = ranker
+                .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate())
+                .stream().limit(settings.getLogCandidateLimit()).toList();
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
-                student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs);
+                student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
+                rerank.status());
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
@@ -127,6 +126,50 @@ public class RecommendationService {
         return new TutorRecommendationResponse(
                 log.getId(), settings.getAlgorithmVersion(), recommendationLogger.contextJson(context),
                 List.of(), isLowConfidence(kept), items, List.of(), safePage, safeSize, kept.size());
+    }
+
+    /**
+     * Scores ahead of time the pairs a search from this studying posting would need (design 07, 7.3).
+     * Nothing is logged and nothing is shown to anyone.
+     *
+     * @return how many pairs the model scored
+     */
+    @Transactional
+    public int prefetchRerank(UUID studentUserId, UUID studyingRequestId) {
+        Student student = studentRepository.findProfileByUserId(studentUserId).orElse(null);
+        if (student == null) {
+            return 0;
+        }
+        // Exactly what the student sends when searching from the posting without changing anything.
+        QueryContext context = queryContextBuilder.forStudent(
+                student, new TutorRecommendationRequest(null, null, null, studyingRequestId));
+        if (!context.isComplete()) {
+            return 0;
+        }
+        return rerankService.prefetch(context.demandText(), RecommendationCandidateType.TEACHING_REQUEST,
+                ids(rank(student, context).ranked())).computed();
+    }
+
+    /** Phases 1-3: hard filter, features of both sides, final score. */
+    private Ranking rank(Student student, QueryContext context) {
+        // Without a usable query vector the ranking still works, only without the semantic feature.
+        float[] queryVector = queryEmbeddingService.embed(context.demandText())
+                .orElse(student.getProfileEmbedding());
+        List<Hit> hits = selectHits(
+                candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
+        double platformRate = candidateRepository.platformAcceptanceRate(
+                settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
+                settings.getWillingnessDefaultRate());
+        return new Ranking(ranker.rank(context,
+                candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays()),
+                platformRate), platformRate);
+    }
+
+    private List<UUID> ids(List<ScoredCandidate> ranked) {
+        return ranked.stream().map(scored -> scored.candidate().teachingRequestId()).toList();
+    }
+
+    private record Ranking(List<ScoredCandidate> ranked, double platformRate) {
     }
 
     /**
@@ -193,13 +236,14 @@ public class RecommendationService {
                 stored.size());
     }
 
-    /** The stored context also holds the demand text, which is internal. */
+    /** The stored context also holds the demand text and the rerank status, which are internal. */
     private JsonNode responseContext(JsonNode stored) {
         if (stored == null || !stored.isObject()) {
             return stored;
         }
         tools.jackson.databind.node.ObjectNode copy = ((tools.jackson.databind.node.ObjectNode) stored).deepCopy();
         copy.remove("demandText");
+        copy.remove("rerankStatus");
         return copy;
     }
 

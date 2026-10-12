@@ -40,6 +40,10 @@ class AiServiceClientTest {
     private volatile int enrichStatus = 200;
     private volatile String enrichBody = "";
     private final AtomicReference<JsonNode> receivedEnrichBody = new AtomicReference<>();
+    private volatile int rerankStatus = 200;
+    private volatile String rerankBody = "";
+    private volatile long rerankDelayMs = 0;
+    private final AtomicReference<JsonNode> receivedRerankBody = new AtomicReference<>();
     private volatile int suggestStatus = 200;
     private volatile String suggestBody = "";
     private final AtomicReference<JsonNode> receivedSuggestBody = new AtomicReference<>();
@@ -61,6 +65,13 @@ class AiServiceClientTest {
             receivedEnrichBody.set(objectMapper.readTree(
                     new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
             respond(exchange, enrichStatus, enrichBody);
+        });
+        server.createContext("/rerank", exchange -> {
+            receivedToken.set(exchange.getRequestHeaders().getFirst("X-Internal-Token"));
+            receivedRerankBody.set(objectMapper.readTree(
+                    new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
+            sleep(rerankDelayMs);
+            respond(exchange, rerankStatus, rerankBody);
         });
         server.createContext("/suggest-tags", exchange -> {
             receivedToken.set(exchange.getRequestHeaders().getFirst("X-Internal-Token"));
@@ -201,6 +212,50 @@ class AiServiceClientTest {
         enrichBody = "{\"model\":\"x\",\"tags\":\"oops\"}";
         assertThat(client(true, TOKEN).enrich(request, Duration.ofSeconds(2))).isEmpty();
         assertThat(client(false, TOKEN).enrich(request, Duration.ofSeconds(2))).isEmpty();
+    }
+
+    @Test
+    void rerankSendsQueryAndDocumentsAndReturnsScoresInOrder() {
+        rerankBody = "{\"model\":\"bge-reranker-v2-m3-int8\",\"scores\":[0.91,0.02]}";
+
+        var result = client(true, TOKEN).rerank("Cần gia sư Toán", List.of("Dạy Toán 9", "Dạy Văn"),
+                Duration.ofSeconds(2));
+
+        assertThat(result).isPresent();
+        assertThat(result.get().model()).isEqualTo("bge-reranker-v2-m3-int8");
+        assertThat(result.get().scores()).containsExactly(0.91, 0.02);
+        assertThat(receivedToken.get()).isEqualTo(TOKEN);
+        assertThat(receivedRerankBody.get().path("query").asString()).isEqualTo("Cần gia sư Toán");
+        assertThat(receivedRerankBody.get().path("documents").get(1).asString()).isEqualTo("Dạy Văn");
+    }
+
+    @Test
+    void rerankIsEmptyWhenTheModelIsMissingTooSlowOrAnswersNonsense() {
+        List<String> documents = List.of("Dạy Toán 9", "Dạy Văn");
+
+        rerankStatus = 503;
+        assertThat(client(true, TOKEN).rerank("q", documents, Duration.ofSeconds(2))).isEmpty();
+        rerankStatus = 200;
+        rerankBody = "{\"model\":\"m\",\"scores\":[0.9]}";
+        assertThat(client(true, TOKEN).rerank("q", documents, Duration.ofSeconds(2))).as("one score missing").isEmpty();
+        rerankBody = "{\"model\":\"m\",\"scores\":[0.9,1.7]}";
+        assertThat(client(true, TOKEN).rerank("q", documents, Duration.ofSeconds(2))).as("score above 1").isEmpty();
+        rerankBody = "{\"model\":\"m\",\"scores\":[0.9,0.1]}";
+        rerankDelayMs = 600;
+        assertThat(client(true, TOKEN).rerank("q", documents, Duration.ofMillis(150))).as("too slow").isEmpty();
+        rerankDelayMs = 0;
+        assertThat(client(false, TOKEN).rerank("q", documents, Duration.ofSeconds(2))).isEmpty();
+        assertThat(client(true, TOKEN).rerank("q", List.of(), Duration.ofSeconds(2))).isEmpty();
+    }
+
+    @Test
+    void rerankIsReadyOnlyWhenTheServiceReportsALoadedReranker() {
+        assertThat(client(true, TOKEN).isRerankReady()).as("old service without the rerank field").isFalse();
+        healthBody = "{\"status\":\"ready\",\"embed_model\":\"bge-m3-int8\",\"rerank\":\"loading\"}";
+        assertThat(client(true, TOKEN).isRerankReady()).isFalse();
+        healthBody = "{\"status\":\"ready\",\"embed_model\":\"bge-m3-int8\",\"rerank\":\"ready\"}";
+        assertThat(client(true, TOKEN).isRerankReady()).isTrue();
+        assertThat(client(false, TOKEN).isRerankReady()).isFalse();
     }
 
     @Test

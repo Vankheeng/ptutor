@@ -72,6 +72,61 @@ public class AiServiceClient {
         return "ready".equals(health("llm"));
     }
 
+    /** True when the service answers and its cross-encoder is loaded. */
+    public boolean isRerankReady() {
+        return "ready".equals(health("rerank"));
+    }
+
+    /**
+     * Relevance in [0, 1] of each document to the query, in the same order (design 06, 6.9).
+     * Empty when the service is disabled, unreachable, too slow, has no reranking model, or the
+     * answer is unusable. The caller then keeps the order it already has.
+     */
+    public Optional<RerankResult> rerank(String query, List<String> documents, Duration timeout) {
+        if (!enabled || query == null || query.isBlank() || documents == null || documents.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + "/rerank"))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            objectMapper.writeValueAsString(Map.of("query", query, "documents", documents)),
+                            StandardCharsets.UTF_8));
+            if (!internalToken.isEmpty()) {
+                request.header(TOKEN_HEADER, internalToken);
+            }
+            HttpResponse<String> response = httpClient.send(
+                    request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                log.warn("AI service /rerank answered HTTP {}", response.statusCode());
+                return Optional.empty();
+            }
+            JsonNode body = objectMapper.readTree(response.body());
+            JsonNode scores = body.path("scores");
+            String model = body.path("model").asString("");
+            if (!scores.isArray() || scores.size() != documents.size() || model.isBlank()) {
+                log.warn("AI service /rerank returned {} scores for {} documents", scores.size(), documents.size());
+                return Optional.empty();
+            }
+            List<Double> values = new ArrayList<>(documents.size());
+            for (JsonNode score : scores) {
+                if (!score.isNumber() || score.doubleValue() < 0 || score.doubleValue() > 1) {
+                    log.warn("AI service /rerank returned a score outside [0, 1]");
+                    return Optional.empty();
+                }
+                values.add(score.doubleValue());
+            }
+            return Optional.of(new RerankResult(model, values));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("AI service /rerank failed: {}", exception.toString());
+            return Optional.empty();
+        }
+    }
+
     private String health(String field) {
         if (!enabled) {
             return "";
@@ -283,6 +338,9 @@ public class AiServiceClient {
     }
 
     /** {@code model} is stored as {@code embedding_model_version} next to each vector. */
+    public record RerankResult(String model, List<Double> scores) {
+    }
+
     public record EmbeddingResult(String model, List<float[]> vectors) {
     }
 }

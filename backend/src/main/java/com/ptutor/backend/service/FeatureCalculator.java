@@ -44,7 +44,12 @@ public class FeatureCalculator {
     private final RecommendationSettings settings;
 
     public FeatureVector calculate(QueryContext context, TeachingCandidate candidate) {
-        Double sem = semantic(candidate.cosine());
+        return calculate(context, candidate, null);
+    }
+
+    /** @param rerank cross-encoder score of the posting, or null when it has none (design 06, 6.9) */
+    public FeatureVector calculate(QueryContext context, TeachingCandidate candidate, Double rerank) {
+        Double sem = semantic(candidate.cosine(), rerank);
         Double need = need(context.needTags(), candidate.strengthTags());
         Double style = style(context.styleTags(), candidate.offeredStyleCodes());
         Double segment = segment(context.levelTagCode(), candidate.targetSegmentCodes());
@@ -73,7 +78,7 @@ public class FeatureCalculator {
         // by one perfect feature must not outrank one that is good on everything.
         // Same as  c_a * (weighted mean of known features) + (1 - c_a) * prior.
         double suitability = weighted + (1 - confidence) * settings.getConfidencePrior();
-        return new FeatureVector(sem, need, style, segment, price, sched, area,
+        return new FeatureVector(sem, rerank, need, style, segment, price, sched, area,
                 suitability, confidence, overlap != null && overlap == 0);
     }
 
@@ -83,6 +88,19 @@ public class FeatureCalculator {
             return null;
         }
         return clip((cosine - settings.getCosLow()) / (settings.getCosHigh() - settings.getCosLow()));
+    }
+
+    /**
+     * {@code f_sem = (1 - w) x s + w x rerank} when the posting was reranked, the cosine part alone
+     * otherwise. A reranked posting that has no vector yet is judged by the cross-encoder alone.
+     */
+    Double semantic(Double cosine, Double rerank) {
+        Double s = semantic(cosine);
+        if (rerank == null) {
+            return s;
+        }
+        double weight = settings.getRerankWeight();
+        return s == null ? clip(rerank) : clip((1 - weight) * s + weight * rerank);
     }
 
     /** How much of what the student needs is covered by the tutor's strengths. */

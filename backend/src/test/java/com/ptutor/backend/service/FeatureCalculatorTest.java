@@ -47,6 +47,21 @@ class FeatureCalculatorTest {
         assertThat(calculator.semantic(null)).isNull();
     }
 
+    @ParameterizedTest
+    @CsvSource({ "0.80, 1.0, 1.0", "0.80, 0.0, 0.30", "0.55, 0.9, 0.78", "0.30, 1.0, 0.70" })
+    void semanticIsMostlyTheCrossEncoderScoreWhenThePostingWasReranked(
+            double cosine, double rerank, double expected) {
+        assertThat(calculator.semantic(cosine, rerank)).isCloseTo(expected, within(1e-9));
+    }
+
+    @Test
+    void semanticFallsBackToWhicheverPartIsKnown() {
+        assertThat(calculator.semantic(0.55, null)).isCloseTo(0.5, within(1e-9));
+        assertThat(calculator.semantic(null, 0.9)).as("reranked posting without a vector")
+                .isCloseTo(0.9, within(1e-9));
+        assertThat(calculator.semantic(null, null)).isNull();
+    }
+
     // ---- f_need
 
     @Test

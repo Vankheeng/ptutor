@@ -2,7 +2,9 @@ package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,8 +53,31 @@ public class TutorSideRanker {
                 .map(candidate -> score(context, candidate, platformRate)).sorted(ORDER).toList();
     }
 
+    /** Phase 4, as in {@link Ranker#applyRerank}: only the top group is scored and sorted again. */
+    public List<ScoredStudyingCandidate> applyRerank(
+            SupplyContext context, List<ScoredStudyingCandidate> ranked, Map<UUID, Double> rerankScores,
+            double platformRate) {
+        if (rerankScores.isEmpty()) {
+            return ranked;
+        }
+        int top = Math.min(settings.getRerankTopK(), ranked.size());
+        List<ScoredStudyingCandidate> result = new ArrayList<>(ranked.subList(0, top).stream()
+                .map(scored -> {
+                    Double rerank = rerankScores.get(scored.candidate().studyingRequestId());
+                    return rerank == null ? scored : score(context, scored.candidate(), platformRate, rerank);
+                })
+                .sorted(ORDER).toList());
+        result.addAll(ranked.subList(top, ranked.size()));
+        return result;
+    }
+
     ScoredStudyingCandidate score(SupplyContext context, StudyingCandidate candidate, double platformRate) {
-        FeatureVector features = features(context, candidate);
+        return score(context, candidate, platformRate, null);
+    }
+
+    ScoredStudyingCandidate score(
+            SupplyContext context, StudyingCandidate candidate, double platformRate, Double rerank) {
+        FeatureVector features = features(context, candidate, rerank);
         double a = features.suitability();
         double g = (features.noScheduleOverlap() ? settings.getGateNoScheduleOverlap() : 1.0)
                 * (candidate.rejectedTutorRecently() ? settings.getGateRecentReject() : 1.0);
@@ -64,7 +89,11 @@ public class TutorSideRanker {
 
     /** a': suitability from the tutor's point of view. The style feature belongs to b', not here. */
     FeatureVector features(SupplyContext context, StudyingCandidate candidate) {
-        Double sem = featureCalculator.semantic(candidate.cosine());
+        return features(context, candidate, null);
+    }
+
+    FeatureVector features(SupplyContext context, StudyingCandidate candidate, Double rerank) {
+        Double sem = featureCalculator.semantic(candidate.cosine(), rerank);
         Double price = priceFromTutorView(candidate.maxPrice(), context.expectedPrice());
         Double need = featureCalculator.need(candidate.needTags(), context.strengthTags());
         Double segment = featureCalculator.segment(candidate.levelCode(), context.targetSegmentCodes());
@@ -88,7 +117,7 @@ public class TutorSideRanker {
             }
         }
         double suitability = weighted + (1 - confidence) * settings.getConfidencePrior();
-        return new FeatureVector(sem, need, null, segment, price, sched, area, suitability, confidence,
+        return new FeatureVector(sem, rerank, need, null, segment, price, sched, area, suitability, confidence,
                 overlap != null && overlap == 0);
     }
 

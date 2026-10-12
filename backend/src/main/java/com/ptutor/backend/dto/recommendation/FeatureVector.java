@@ -6,6 +6,8 @@ package com.ptutor.backend.dto.recommendation;
  */
 public record FeatureVector(
         Double sem,
+        /** Cross-encoder score that went into {@code sem}; null when the posting was not reranked. */
+        Double rerank,
         Double need,
         Double style,
         Double segment,
