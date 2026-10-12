@@ -9,7 +9,16 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 
 from .config import EMBED_MODEL_VERSION, Settings, load_settings
 from .model_store import download_embed_files, missing_embed_files
-from .schemas import EmbedRequest, EmbedResponse, HealthResponse
+from .llm import LlmBackend, LlmUnavailable, OpenAiBackend, enrich, suggest_tags
+from .schemas import (
+    EmbedRequest,
+    EmbedResponse,
+    EnrichRequest,
+    EnrichResponse,
+    HealthResponse,
+    SuggestTagsRequest,
+    SuggestTagsResponse,
+)
 
 log = logging.getLogger("ai-service")
 
@@ -47,13 +56,19 @@ def _load_models(settings: Settings, state: ModelState) -> None:
         log.exception("Unable to load the embedding model")
 
 
-def create_app(settings: Settings | None = None, embedder=None) -> FastAPI:
-    """`embedder` lets tests inject a fake model instead of loading the real one."""
+def create_app(settings: Settings | None = None, embedder=None, llm: LlmBackend | None = None) -> FastAPI:
+    """`embedder` and `llm` let tests inject fakes instead of loading a model or calling a provider."""
     settings = settings or load_settings()
     if not settings.internal_token and not settings.allow_anonymous:
         raise RuntimeError("AI_INTERNAL_TOKEN must be set (or AI_ALLOW_ANONYMOUS=true for local experiments)")
     state = ModelState()
     state.embedder = embedder
+    if llm is None and settings.openai_api_key:
+        llm = OpenAiBackend(
+            settings.openai_api_key, settings.llm_model, settings.llm_timeout_seconds, settings.llm_reasoning_effort
+        )
+    if llm is None:
+        log.warning("OPENAI_API_KEY is not set: /enrich is disabled, embedding still works")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -73,7 +88,13 @@ def create_app(settings: Settings | None = None, embedder=None) -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
-        return HealthResponse(status=state.status, embed_model=EMBED_MODEL_VERSION, detail=state.error)
+        return HealthResponse(
+            status=state.status,
+            embed_model=EMBED_MODEL_VERSION,
+            llm="ready" if llm is not None else "disabled",
+            llm_model=llm.model if llm is not None else None,
+            detail=state.error,
+        )
 
     @app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(require_token)])
     def embed(request: EmbedRequest) -> EmbedResponse:
@@ -93,5 +114,34 @@ def create_app(settings: Settings | None = None, embedder=None) -> FastAPI:
             dimensions=state.embedder.dimensions,
             embeddings=vectors.tolist(),
         )
+
+    @app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(require_token)])
+    def enrich_entity(request: EnrichRequest) -> EnrichResponse:
+        if llm is None:
+            raise HTTPException(status_code=503, detail="LLM is not configured")
+        if sum(len(value) for value in request.fields.values()) > settings.enrich_max_chars:
+            raise HTTPException(
+                status_code=422, detail=f"Fields must not exceed {settings.enrich_max_chars} characters"
+            )
+        try:
+            return enrich(llm, request)
+        except LlmUnavailable as error:
+            # The user text is never logged; the message only carries the provider error.
+            log.warning("LLM extraction failed: %s", error)
+            raise HTTPException(status_code=502, detail="LLM provider failed") from error
+
+    @app.post("/suggest-tags", response_model=SuggestTagsResponse, dependencies=[Depends(require_token)])
+    def suggest_subject_tags(request: SuggestTagsRequest) -> SuggestTagsResponse:
+        if llm is None:
+            raise HTTPException(status_code=503, detail="LLM is not configured")
+        if sum(len(sample) for sample in request.samples) > settings.enrich_max_chars:
+            raise HTTPException(
+                status_code=422, detail=f"Samples must not exceed {settings.enrich_max_chars} characters"
+            )
+        try:
+            return suggest_tags(llm, request)
+        except LlmUnavailable as error:
+            log.warning("LLM tag suggestion failed: %s", error)
+            raise HTTPException(status_code=502, detail="LLM provider failed") from error
 
     return app

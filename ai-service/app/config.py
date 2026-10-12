@@ -37,6 +37,11 @@ class Settings:
     embed_max_batch: int
     embed_max_chars: int
     threads: int
+    openai_api_key: str = ""
+    llm_model: str = "gpt-6-luna"
+    llm_timeout_seconds: float = 20.0
+    llm_reasoning_effort: str = ""
+    enrich_max_chars: int = 8000
 
     @property
     def embed_dir(self) -> Path:
@@ -54,4 +59,9 @@ def load_settings() -> Settings:
         embed_max_batch=int(os.getenv("AI_EMBED_MAX_BATCH", "32")),
         embed_max_chars=int(os.getenv("AI_EMBED_MAX_CHARS", "8000")),
         threads=int(os.getenv("AI_THREADS", "0")),
+        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip(),
+        llm_model=os.getenv("AI_LLM_MODEL", "gpt-6-luna").strip() or "gpt-6-luna",
+        llm_timeout_seconds=float(os.getenv("AI_LLM_TIMEOUT_SECONDS", "20")),
+        llm_reasoning_effort=os.getenv("AI_LLM_REASONING_EFFORT", "").strip(),
+        enrich_max_chars=int(os.getenv("AI_ENRICH_MAX_CHARS", "8000")),
     )

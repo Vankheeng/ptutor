@@ -6,6 +6,7 @@ không mở ra Internet. Thiết kế: `docs/recommendation/02-kien-truc.md`, `1
 | Endpoint | Mô tả |
 |---|---|
 | `GET /health` | `{"status": "ready" \| "loading" \| "error", "embed_model": "bge-m3-int8"}`. Không cần token. |
+| `POST /enrich` | A1: trích tag và lịch rảnh từ văn bản tự do bằng LLM (OpenAI, `gpt-6-luna` mặc định), trả JSON theo schema: `{"model", "schedule": [{dayOfWeek, start, end, confidence}], "tags": [{group, code, role, confidence}]}`. Chỉ nhận mã có trong `vocabulary` gửi kèm. Không có `OPENAI_API_KEY` → `503`; nhà cung cấp lỗi → `502`. |
 | `POST /embed` | `{"texts": ["..."]}` → `{"model": "bge-m3-int8", "dimensions": 1024, "embeddings": [[...]]}`. Vector đã chuẩn hoá độ dài 1 (cosine = tích vô hướng). Tối đa 32 văn bản mỗi lần, mỗi văn bản cắt còn 512 token. |
 
 Model: `BAAI/bge-m3` bản ONNX int8 từ `Xenova/bge-m3` (`onnx/model_int8.onnx`, ~586 MB kể cả tokenizer).
@@ -44,6 +45,9 @@ app:
     internal-token: <chuỗi bí mật>
 ```
 
+Văn bản gửi tới OpenAI đã được backend xoá số điện thoại và email, không kèm họ tên hay định danh; lời gọi đặt
+`store=False` để nhà cung cấp không lưu lại.
+
 AI service tắt hoặc chậm thì backend không lỗi: `AiServiceClient` trả kết quả rỗng và nơi gọi dùng phương án dự phòng.
 
 ## Kiểm thử và đo tốc độ
@@ -64,3 +68,6 @@ AI service tắt hoặc chậm thì backend không lỗi: `AiServiceClient` tr�
 | `AI_AUTO_DOWNLOAD` | `false` (Docker: `true`) | Tự tải model khi thiếu |
 | `AI_EMBED_MAX_TOKENS` / `AI_EMBED_MAX_BATCH` / `AI_EMBED_MAX_CHARS` | 512 / 32 / 8000 | Giới hạn đầu vào |
 | `AI_THREADS` | 0 (tự chọn) | Số luồng ONNX Runtime |
+| `OPENAI_API_KEY` | (trống) | Khoá OpenAI cho `/enrich`. Trống thì `/enrich` tắt, `/health` báo `"llm": "disabled"`, embedding vẫn chạy |
+| `AI_LLM_MODEL` | `gpt-6-luna` | Model dùng cho `/enrich` |
+| `AI_LLM_TIMEOUT_SECONDS` / `AI_LLM_REASONING_EFFORT` / `AI_ENRICH_MAX_CHARS` | 20 / (không gửi) / 8000 | Thời gian chờ, mức suy luận (tuỳ chọn), giới hạn độ dài văn bản |
