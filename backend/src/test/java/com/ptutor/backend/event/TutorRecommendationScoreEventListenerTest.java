@@ -37,6 +37,7 @@ import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.scheduler.AggregateRefreshJob;
 import com.ptutor.backend.service.TutorRecommendationScoreService;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +47,7 @@ class TutorRecommendationScoreEventListenerTest {
     @Mock ContractRepository contractRepository;
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
     @Mock TutorRecommendationScoreService scoreService;
+    @Mock AggregateRefreshJob aggregateRefreshJob;
     @Mock PlatformTransactionManager transactionManager;
 
     private TutorRecommendationScoreEventListener listener;
@@ -54,7 +56,7 @@ class TutorRecommendationScoreEventListenerTest {
     void setUp() {
         listener = new TutorRecommendationScoreEventListener(
                 tutorRepository, contractRepository, studentTutorRequestRepository, scoreService,
-                transactionManager);
+                aggregateRefreshJob, transactionManager);
     }
 
     @ParameterizedTest
@@ -80,21 +82,24 @@ class TutorRecommendationScoreEventListenerTest {
                 UUID.randomUUID(), eventType, NotificationReferenceType.STUDENT_TUTOR_REQUEST,
                 UUID.randomUUID(), Map.of()));
 
-        verifyNoInteractions(scoreService, transactionManager);
+        verifyNoInteractions(scoreService, aggregateRefreshJob, transactionManager);
     }
 
     @Test
     void recalculatesTutorOfContractEvent() {
         UUID contractId = UUID.randomUUID();
         UUID tutorUserId = UUID.randomUUID();
+        UUID tutorId = UUID.randomUUID();
+        Tutor tutor = new Tutor();
+        tutor.setId(tutorId);
         when(contractRepository.findTutorUserIdByContractId(contractId)).thenReturn(Optional.of(tutorUserId));
-        when(tutorRepository.findByUser_Id(tutorUserId)).thenReturn(Optional.of(new Tutor()));
+        when(tutorRepository.findByUser_Id(tutorUserId)).thenReturn(Optional.of(tutor));
 
         listener.handle(NotificationDomainEvent.of(
                 UUID.randomUUID(), NotificationEventType.CONTRACT_SIGNED, NotificationReferenceType.CONTRACT,
                 contractId, Map.of()));
 
-        verify(scoreService).recalculateByUserId(tutorUserId);
+        verify(scoreService).recalculateByTutorId(tutorId);
     }
 
     @Test
@@ -105,7 +110,7 @@ class TutorRecommendationScoreEventListenerTest {
         listener.handle(NotificationDomainEvent.of(
                 userId, NotificationEventType.ACCOUNT_SUSPENDED, null, null, Map.of()));
 
-        verifyNoInteractions(scoreService, transactionManager);
+        verifyNoInteractions(scoreService, aggregateRefreshJob, transactionManager);
     }
 
     @Test
@@ -120,7 +125,7 @@ class TutorRecommendationScoreEventListenerTest {
     }
 
     @Test
-    void runsEachRecalculationInItsOwnNewTransaction() {
+    void refreshesAggregatesThenRecalculatesInItsOwnNewTransaction() {
         UUID tutorId = UUID.randomUUID();
         TransactionStatus status = mock(TransactionStatus.class);
         when(transactionManager.getTransaction(any())).thenReturn(status);
@@ -128,8 +133,9 @@ class TutorRecommendationScoreEventListenerTest {
         listener.handle(new TutorScoreRecalculationRequestedEvent(Set.of(tutorId)));
 
         ArgumentCaptor<TransactionDefinition> definition = ArgumentCaptor.forClass(TransactionDefinition.class);
-        InOrder order = inOrder(transactionManager, scoreService);
+        InOrder order = inOrder(transactionManager, aggregateRefreshJob, scoreService);
         order.verify(transactionManager).getTransaction(definition.capture());
+        order.verify(aggregateRefreshJob).refreshTutor(tutorId);
         order.verify(scoreService).recalculateByTutorId(tutorId);
         order.verify(transactionManager).commit(status);
         assertThat(definition.getValue().getPropagationBehavior())

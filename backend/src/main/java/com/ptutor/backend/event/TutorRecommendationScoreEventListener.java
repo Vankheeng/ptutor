@@ -18,6 +18,7 @@ import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.scheduler.AggregateRefreshJob;
 import com.ptutor.backend.service.TutorRecommendationScoreService;
 
 @Component
@@ -45,6 +46,7 @@ public class TutorRecommendationScoreEventListener {
     private final ContractRepository contractRepository;
     private final StudentTutorRequestRepository studentTutorRequestRepository;
     private final TutorRecommendationScoreService scoreService;
+    private final AggregateRefreshJob aggregateRefreshJob;
     private final TransactionTemplate newTransaction;
 
     public TutorRecommendationScoreEventListener(
@@ -52,11 +54,13 @@ public class TutorRecommendationScoreEventListener {
             ContractRepository contractRepository,
             StudentTutorRequestRepository studentTutorRequestRepository,
             TutorRecommendationScoreService scoreService,
+            AggregateRefreshJob aggregateRefreshJob,
             PlatformTransactionManager transactionManager) {
         this.tutorRepository = tutorRepository;
         this.contractRepository = contractRepository;
         this.studentTutorRequestRepository = studentTutorRequestRepository;
         this.scoreService = scoreService;
+        this.aggregateRefreshJob = aggregateRefreshJob;
         // AFTER_COMMIT runs while the committed transaction is still bound to the thread, so a
         // plain @Transactional call would join it and never be flushed. Each recalculation
         // therefore runs in its own transaction.
@@ -102,12 +106,16 @@ public class TutorRecommendationScoreEventListener {
     }
 
     private void recalculateIfTutorUser(UUID userId) {
-        if (userId != null && tutorRepository.findByUser_Id(userId).isPresent()) {
-            newTransaction.executeWithoutResult(status -> scoreService.recalculateByUserId(userId));
+        if (userId != null) {
+            tutorRepository.findByUser_Id(userId).ifPresent(tutor -> recalculateTutor(tutor.getId()));
         }
     }
 
     private void recalculateTutor(UUID tutorId) {
-        newTransaction.executeWithoutResult(status -> scoreService.recalculateByTutorId(tutorId));
+        newTransaction.executeWithoutResult(status -> {
+            // The score is computed from the aggregate columns, so bring them up to date first.
+            aggregateRefreshJob.refreshTutor(tutorId);
+            scoreService.recalculateByTutorId(tutorId);
+        });
     }
 }

@@ -36,13 +36,6 @@ public class TutorRecommendationScoreService {
     private final Clock clock;
 
     @Transactional
-    public Tutor recalculateByUserId(UUID userId) {
-        Tutor tutor = tutorRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> tutorNotFound(userId));
-        return calculateAndSave(tutor);
-    }
-
-    @Transactional
     public Tutor recalculateByTutorId(UUID tutorId) {
         Tutor tutor = tutorRepository.findByIdForScoreUpdate(tutorId)
                 .orElseThrow(() -> new ApiException(
@@ -140,9 +133,5 @@ public class TutorRecommendationScoreService {
 
     private int valueOrZero(Integer value) {
         return value == null ? 0 : value;
-    }
-
-    private ApiException tutorNotFound(UUID userId) {
-        return new ApiException(HttpStatus.NOT_FOUND, "TUTOR_NOT_FOUND", "Tutor not found for user: " + userId);
     }
 }
