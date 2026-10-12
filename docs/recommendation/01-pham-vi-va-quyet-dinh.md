@@ -75,7 +75,7 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | # | Việc | Ghi chú |
 |---|---|---|
 | P1 | Job làm mới 6 cột tổng hợp trên `tutors` | SQL ở 03, mục 3.5 |
-| P2 | API học sinh đánh giá gia sư | Khi hợp đồng `COMPLETED`; mỗi hợp đồng 1 đánh giá |
+| P2 | API học sinh đánh giá gia sư | `POST /api/v1/students/me/contracts/{contractId}/review`. Khi hợp đồng `COMPLETED`; mỗi hợp đồng 1 đánh giá; không gửi thông báo cho gia sư, chỉ kích hoạt tính lại điểm |
 | P3 | Sửa propagation của listener | Listener chạy mỗi lần tính lại trong transaction riêng (`REQUIRES_NEW`). Không đặt trên `recalculateByUserId` / `recalculateByTutorId` vì `AdminTutorService` gọi hai hàm này ngay trong transaction duyệt hồ sơ |
 | P4 | Bổ sung sự kiện kích hoạt tính lại điểm | Hợp đồng `COMPLETED` (bulk update), đơn được chấp nhận/từ chối, có đánh giá mới, sửa hồ sơ |
 | P5 | Thêm `responded_at` cho hai bảng đơn | Tính thời gian phản hồi chính xác |
