@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -52,6 +52,7 @@ export function StudentStudyingRequestDetailPage() {
         <h3>Loading request…</h3>
       </div>
     );
+
   return (
     <>
       <Link className="student-link" to="/student/studying-requests">
@@ -79,76 +80,42 @@ export function StudentStudyingRequestDetailPage() {
       )}
       <div className="student-detail-layout">
         <section className="student-panel">
-          <h2>Learning details</h2>
-          <div className="student-detail-facts">
-            <span>
-              <small>Title</small>
-              <strong>{request.title}</strong>
-            </span>
-            <span>
-              <small>Status</small>
-              <strong>
-                <span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>
-              </strong>
-            </span>
-            <span>
-              <small>Subject</small>
-              <strong>{request.subjectName || request.note || 'Custom subject'}</strong>
-            </span>
-            <span>
-              <small>Grade</small>
-              <strong>{request.gradeName}</strong>
-            </span>
-            <span>
-              <small>Mode</small>
-              <strong>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'}</strong>
-            </span>
-            <span>
-              <small>Budget</small>
-              <strong>
-                {formatMoney(request.minPrice)} – {formatMoney(request.maxPrice)}
-              </strong>
-            </span>
-            <span>
-              <small>Preferred schedule</small>
-              <strong>{request.preferredSchedule || 'Flexible'}</strong>
-            </span>
-            <span>
-              <small>Address</small>
-              <strong>
-                {[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
-              </strong>
-            </span>
-          </div>
-          <div className="student-detail-copy">
-            <small>Description</small>
-            <p>{request.description || 'No description provided.'}</p>
-          </div>
-          {request.learningGoals && (
-            <div className="student-detail-copy">
-              <small>Learning goals</small>
-              <p>{request.learningGoals}</p>
-            </div>
-          )}
-          <div className="student-detail-copy">
-            <small>Availability</small>
-            {request.availabilities.length ? (
-              request.availabilities.map((slot) => (
-                <p key={`${slot.dayOfWeek}-${slot.startTime}`}>
-                  {weekday(slot.dayOfWeek)}: {slot.startTime} – {slot.endTime}
-                </p>
-              ))
-            ) : (
-              <p>Flexible</p>
-            )}
-          </div>
-          <div className="student-audit">
-            <span>
-              Created: <strong>{formatDate(request.createdAt)}</strong>
-            </span>
-            <span>
-              Updated: <strong>{formatDate(request.updatedAt)}</strong>
-            </span>
+          <div className="student-detail-table">
+            <DetailRow label="Title" value={request.title} />
+            <DetailRow
+              label="Status"
+              value={<span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>}
+            />
+            <DetailRow label="Description" value={request.description || 'No description provided.'} multiline />
+            <DetailRow label="Subject" value={request.subjectName || request.note || 'Custom subject'} />
+            <DetailRow label="Grade" value={request.gradeName} />
+            <DetailRow label="Mode" value={request.learningMode === 'ONLINE' ? 'Online' : 'In person'} />
+            <DetailRow label="Budget" value={`${formatMoney(request.minPrice)} – ${formatMoney(request.maxPrice)}`} />
+            <DetailRow label="Preferred schedule" value={request.preferredSchedule || 'Flexible'} />
+            <DetailRow
+              label="Address"
+              value={[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
+            />
+            <DetailRow label="Learning goals" value={request.learningGoals || 'Not specified'} multiline />
+            <DetailRow
+              label="Availability"
+              value={
+                request.availabilities.length ? (
+                  <div className="student-detail-availability">
+                    {request.availabilities.map((slot) => (
+                      <span key={`${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`}>
+                        {weekday(slot.dayOfWeek)}: {slot.startTime} – {slot.endTime}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  'Flexible'
+                )
+              }
+              multiline
+            />
+            <DetailRow label="Created" value={formatDate(request.createdAt)} />
+            <DetailRow label="Updated" value={formatDate(request.updatedAt)} />
           </div>
         </section>
         <section className="student-panel">
@@ -208,6 +175,15 @@ export function StudentStudyingRequestDetailPage() {
         </section>
       </div>
     </>
+  );
+}
+
+function DetailRow({ label, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
+  return (
+    <div className={`student-detail-row${multiline ? ' multiline' : ''}`}>
+      <span>{label}</span>
+      <div className="student-detail-value">{value}</div>
+    </div>
   );
 }
 

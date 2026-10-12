@@ -193,11 +193,11 @@
 }
 .student-request-card.status-draft { background: #faf7ff; border-color: #d9caff; }
 .student-request-card.status-pending_review { background: #fffaf0; border-color: #efd49b; }
-.student-request-card.status-open { background: #f7f8ff; border-color: #cfc4f5; }
+.student-request-card.status-open { background: #f2f9ff; border-color: #b9dcf5; }
 .student-request-card.status-matched { background: #f5fbf8; border-color: #b8e1cc; }
 .student-request-card.status-closed { background: #fafafa; border-color: #d7d9df; }
-.student-request-card.status-cancelled,
-.student-request-card.status-rejected { background: #fff9f8; border-color: #efc3be; }
+.student-request-card.status-cancelled { background: #fff9f8; border-color: #efc3be; }
+.student-request-card.status-rejected { background: #fff7ed; border-color: #f3c98b; }
 .student-card-top,
 .student-meta {
   display: flex;
@@ -456,6 +456,19 @@
   color: #777c8e;
   font-size: 10px;
 }
+.student-payment-retry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #b8ddf3;
+  border-radius: 10px;
+  background: #f1f9fe;
+  color: #2f5369;
+  font-size: 11px;
+}
 .student-availability-editor {
   display: grid;
   gap: 8px;
@@ -485,51 +498,68 @@
   grid-template-columns: 1.1fr 0.9fr;
   gap: 15px;
 }
-.student-detail-copy {
-  color: #44495c;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.7;
-  white-space: pre-wrap;
+.student-detail-table {
+  display: grid;
+  gap: 0;
 }
-.student-detail-copy small {
-  display: block;
-  margin-bottom: 5px;
-  color: #44495c;
-  font-size: 12px;
-  font-weight: 700;
-}
-.student-detail-copy p { margin: 0; }
 .student-detail-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin: 14px 0;
+  padding: 15px;
+  border-radius: 10px;
+  background: #fafaff;
 }
 .student-detail-facts span {
   display: grid;
   gap: 5px;
 }
 .student-detail-facts small {
-  color: #44495c;
-  font-size: 12px;
+  color: #555a6e;
+  font-size: 10px;
   font-weight: 700;
 }
 .student-detail-facts strong {
   color: #44495c;
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.student-audit {
+.student-detail-row {
   display: grid;
-  gap: 5px;
-  margin-top: 18px;
-  color: #44495c;
-  font-size: 12px;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 11px 0;
 }
-.student-audit strong { color: #44495c; }
+.student-detail-row > span,
+.student-detail-value {
+  color: #20243a;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.student-detail-value {
+  overflow-wrap: anywhere;
+}
+.student-detail-row.multiline .student-detail-value { white-space: pre-wrap; }
+.student-detail-availability {
+  display: grid;
+  gap: 4px;
+}
+.student-detail-availability span {
+  display: block;
+}
+.student-detail-row .student-status {
+  display: inline-flex;
+  width: fit-content;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 14px;
+  font-weight: 500;
+}
 .student-list {
   display: grid;
   gap: 11px;
@@ -570,16 +600,15 @@
   color: #a9791a;
 }
 .student-status.pending_review { background: #fff6e6; color: #a9791a; }
-.student-status.open { background: #f1edff; color: #7049c8; }
+.student-status.open { background: #eaf6ff; color: #2673a8; }
 .student-status.matched { background: #eaf8f2; color: #27815b; }
 .student-status.closed { background: #f0f1f4; color: #74798b; }
-.student-status.rejected { background: #fff0ef; color: #ab4039; }
+.student-status.rejected { background: #fff3df; color: #b96a13; }
 .student-status.accepted,
 .student-status.active {
   background: #eaf8f2;
   color: #27815b;
 }
-.student-status.rejected,
 .student-status.cancelled {
   background: #fff0ef;
   color: #ab4039;
@@ -641,11 +670,6 @@
   justify-content: flex-end;
   margin: 12px 0 16px;
 }
-.student-detail-facts .student-status {
-  display: inline-flex;
-  width: fit-content;
-  white-space: nowrap;
-}
 @media (max-width: 1100px) {
   .student-dashboard-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -665,6 +689,10 @@
   }
   .student-toolbar select {
     width: 100%;
+  }
+  .student-payment-retry {
+    align-items: stretch;
+    flex-direction: column;
   }
   .student-welcome {
     min-height: 175px;
@@ -711,6 +739,10 @@
   }
   .student-form-grid {
     grid-template-columns: 1fr;
+  }
+  .student-detail-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
   .student-availability-row {
     grid-template-columns: 1fr 1fr;

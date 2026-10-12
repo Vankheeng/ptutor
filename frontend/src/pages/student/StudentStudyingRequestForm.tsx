@@ -132,7 +132,8 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const action = String(new FormData(event.currentTarget).get('action') ?? 'draft') as 'draft' | 'pay';
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const action = submitter?.value === 'pay' ? 'pay' : 'draft';
     const selectedSubject = state.subjectId;
     if (selectedSubject === 'OTHER' && !state.note.trim()) {
       setError('Enter the custom subject in the Note field.');

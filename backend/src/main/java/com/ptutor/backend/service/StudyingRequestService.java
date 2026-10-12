@@ -237,12 +237,23 @@ public class StudyingRequestService {
 
         studyingRequest.setStatus(RequestStatus.CANCELLED);
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+
+        // The bulk update below clears Hibernate's persistence context. Build the
+        // response before that happens and load availabilities explicitly instead
+        // of touching the lazy collection after the session has been cleared.
+        List<StudyingRequestResponse.Availability> availabilities = availabilityRepository
+                .findAllByStudyingRequest_IdOrderByDayOfWeekAscStartTimeAsc(requestId)
+                .stream()
+                .map(studyingRequestMapper::toAvailability)
+                .toList();
+        StudyingRequestResponse response = toResponse(saved, availabilities);
+
         tutorStudentRequestRepository.cancelActiveByStudyingRequestId(
                 requestId,
                 ACTIVE_TUTOR_REQUEST_STATUSES,
                 ApplicationStatus.CANCELLED,
                 LocalDateTime.now(clock));
-        return toResponse(saved);
+        return response;
     }
 
     /**
