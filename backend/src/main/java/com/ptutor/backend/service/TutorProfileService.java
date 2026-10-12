@@ -1,7 +1,9 @@
 package com.ptutor.backend.service;
 
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import com.ptutor.backend.dto.request.UpdateTutorProfileRequest;
 import com.ptutor.backend.dto.response.TutorProfileResponse;
 import com.ptutor.backend.dto.response.TutorSelfProfileResponse;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
+import com.ptutor.backend.event.TutorScoreRecalculationRequestedEvent;
 
 @Service
 public class TutorProfileService {
@@ -28,21 +31,23 @@ public class TutorProfileService {
     private final DistrictRepository districtRepository;
     private final TutorProfileMapper tutorProfileMapper;
     private final CertificateFileStorageService fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Autowired
     public TutorProfileService(TutorRepository tutorRepository, ProvinceRepository provinceRepository,
             DistrictRepository districtRepository, TutorProfileMapper tutorProfileMapper,
-            CertificateFileStorageService fileStorageService) {
+            CertificateFileStorageService fileStorageService, ApplicationEventPublisher eventPublisher) {
         this.tutorRepository = tutorRepository;
         this.provinceRepository = provinceRepository;
         this.districtRepository = districtRepository;
         this.tutorProfileMapper = tutorProfileMapper;
         this.fileStorageService = fileStorageService;
+        this.eventPublisher = eventPublisher;
     }
 
     public TutorProfileService(TutorRepository tutorRepository, ProvinceRepository provinceRepository,
             DistrictRepository districtRepository, TutorProfileMapper tutorProfileMapper) {
-        this(tutorRepository, provinceRepository, districtRepository, tutorProfileMapper, null);
+        this(tutorRepository, provinceRepository, districtRepository, tutorProfileMapper, null, event -> { });
     }
 
     @Transactional(readOnly = true)
@@ -106,6 +111,8 @@ public class TutorProfileService {
             tutor.setProfileReviewedBy(null);
             tutor.setProfileReviewedAt(null);
             tutor.setProfileRejectionReason(null);
+            // Back to PENDING changes the verification part of the recommendation score.
+            eventPublisher.publishEvent(new TutorScoreRecalculationRequestedEvent(Set.of(tutor.getId())));
         }
 
         TutorSelfProfileResponse response = tutorProfileMapper.toSelfResponse(tutor);

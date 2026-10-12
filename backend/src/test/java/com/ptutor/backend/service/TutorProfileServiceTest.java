@@ -2,12 +2,15 @@ package com.ptutor.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.entity.District;
@@ -25,6 +29,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.Gender;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
+import com.ptutor.backend.event.TutorScoreRecalculationRequestedEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorProfileMapper;
 import com.ptutor.backend.repository.DistrictRepository;
@@ -40,6 +45,7 @@ class TutorProfileServiceTest {
     @Mock TutorRepository tutorRepository;
     @Mock ProvinceRepository provinceRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private TutorProfileService tutorProfileService;
     private UUID tutorId;
@@ -49,7 +55,7 @@ class TutorProfileServiceTest {
     void setUp() {
         tutorProfileService = new TutorProfileService(
                 tutorRepository, provinceRepository, districtRepository,
-                Mappers.getMapper(TutorProfileMapper.class));
+                Mappers.getMapper(TutorProfileMapper.class), null, eventPublisher);
         tutorId = UUID.randomUUID();
         userId = UUID.randomUUID();
     }
@@ -137,6 +143,7 @@ class TutorProfileServiceTest {
         assertThat(tutor.getProfileReviewedBy()).isNull();
         assertThat(tutor.getProfileReviewedAt()).isNull();
         verify(tutorRepository).findByUser_Id(userId);
+        verify(eventPublisher).publishEvent(new TutorScoreRecalculationRequestedEvent(Set.of(tutorId)));
     }
 
     @Test
@@ -157,6 +164,7 @@ class TutorProfileServiceTest {
                 null, null, null, null, null, null, null));
 
         assertThat(tutor.getUser().getDistrict()).isSameAs(district);
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test
