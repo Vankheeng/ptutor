@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -102,6 +104,7 @@ class TeachingRequestServiceTest {
                 });
 
         TeachingRequestResponse response = service.create(userId, requestWithSubject());
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(response.status()).isEqualTo(RequestStatus.DRAFT);
         assertThat(response.subjectId()).isEqualTo(subjectId);
@@ -269,6 +272,21 @@ class TeachingRequestServiceTest {
         TeachingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.CLOSED);
 
         assertThat(response.status()).isEqualTo(RequestStatus.CLOSED);
+        verify(eventPublisher, never()).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
+    }
+
+    @Test
+    void reopeningClosedRequestQueuesItsEmbedding() {
+        TeachingRequest request = existingRequest(RequestStatus.CLOSED);
+        when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
+                .thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        TeachingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.OPEN);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TEACHING_REQUEST, request.getId()));
     }
 
     @Test

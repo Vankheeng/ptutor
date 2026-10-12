@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +56,7 @@ class AdminTeachingRequestServiceTest {
     @Mock EmployeeRepository employeeRepository;
     @Mock WalletService walletService;
     @Mock NotificationService notificationService;
+    @Mock org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private AdminTeachingRequestService service;
     private UUID reviewerUserId;
@@ -65,7 +68,7 @@ class AdminTeachingRequestServiceTest {
         service = new AdminTeachingRequestService(
                 teachingRequestRepository, paymentRepository, subjectRepository, employeeRepository,
                 walletService, notificationService,
-                Clock.fixed(Instant.parse("2026-09-24T03:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-09-24T03:00:00Z"), ZoneOffset.UTC), eventPublisher);
         reviewerUserId = UUID.randomUUID();
         User tutorUser = User.builder()
                 .firstName("An").lastName("Nguyen").email("tutor@example.com").build();
@@ -98,6 +101,8 @@ class AdminTeachingRequestServiceTest {
         assertThat(response.reviewedAt()).isEqualTo("2026-09-24T03:00:00");
         verify(notificationService).createTeachingRequestReviewNotification(
                 request.getTutor().getUser(), request.getId().toString(), request.getTitle(), true, null, null);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TEACHING_REQUEST, request.getId()));
     }
 
     @Test

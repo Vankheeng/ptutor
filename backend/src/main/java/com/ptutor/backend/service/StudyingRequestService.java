@@ -1,6 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -67,6 +70,7 @@ public class StudyingRequestService {
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public PageResponse<StudyingRequestSearchResponse> search(
@@ -126,6 +130,8 @@ public class StudyingRequestService {
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
         replaceAvailabilities(saved, toAvailabilityValues(request.availabilities()));
         availabilityRepository.flush();
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -215,6 +221,8 @@ public class StudyingRequestService {
         if (request.availabilities() != null) {
             availabilityRepository.flush();
         }
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -232,7 +240,13 @@ public class StudyingRequestService {
         }
 
         studyingRequest.setStatus(targetStatus);
-        return toResponse(studyingRequestRepository.saveAndFlush(studyingRequest));
+        StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+        if (targetStatus == RequestStatus.OPEN) {
+            // A reopened posting may never have been embedded: closed postings are skipped.
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
+        }
+        return toResponse(saved);
     }
 
     @Transactional

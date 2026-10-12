@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -67,6 +70,7 @@ class StudyingRequestServiceTest {
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private StudyingRequestService service;
     private UUID userId;
@@ -90,7 +94,8 @@ class StudyingRequestServiceTest {
                 subjectRepository,
                 gradeRepository,
                 districtRepository,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                eventPublisher);
 
         userId = UUID.randomUUID();
         studentId = UUID.randomUUID();
@@ -129,6 +134,7 @@ class StudyingRequestServiceTest {
                 });
 
         StudyingRequestResponse response = service.create(userId, request());
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(response.status()).isEqualTo(RequestStatus.DRAFT);
         assertThat(response.subjectId()).isEqualTo(subjectId);
@@ -278,6 +284,7 @@ class StudyingRequestServiceTest {
                 null, null, null, null, null, null);
 
         StudyingRequestResponse response = service.update(userId, request.getId(), update);
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(request.getTitle()).isEqualTo("Updated title");
         assertThat(request.getDescription()).isEqualTo("Keep this description");
@@ -331,6 +338,21 @@ class StudyingRequestServiceTest {
 
         assertThat(request.getStatus()).isEqualTo(RequestStatus.CLOSED);
         assertThat(response.status()).isEqualTo(RequestStatus.CLOSED);
+        verify(eventPublisher, never()).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
+    }
+
+    @Test
+    void reopeningClosedRequestQueuesItsEmbedding() {
+        StudyingRequest request = existingRequest(RequestStatus.CLOSED);
+        when(studyingRequestRepository.findByIdAndStudent_Id(request.getId(), studentId))
+                .thenReturn(Optional.of(request));
+        when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        StudyingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.OPEN);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.STUDYING_REQUEST, request.getId()));
     }
 
     @Test

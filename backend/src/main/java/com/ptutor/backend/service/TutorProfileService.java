@@ -1,6 +1,8 @@
 package com.ptutor.backend.service;
 
 import java.util.Set;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -113,6 +115,8 @@ public class TutorProfileService {
             tutor.setProfileRejectionReason(null);
             // Back to PENDING changes the verification part of the recommendation score.
             eventPublisher.publishEvent(new TutorScoreRecalculationRequestedEvent(Set.of(tutor.getId())));
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.TUTOR, tutor.getId()));
         }
 
         TutorSelfProfileResponse response = tutorProfileMapper.toSelfResponse(tutor);

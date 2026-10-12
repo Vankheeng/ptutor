@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -144,6 +146,8 @@ class TutorProfileServiceTest {
         assertThat(tutor.getProfileReviewedAt()).isNull();
         verify(tutorRepository).findByUser_Id(userId);
         verify(eventPublisher).publishEvent(new TutorScoreRecalculationRequestedEvent(Set.of(tutorId)));
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TUTOR, tutorId));
     }
 
     @Test
