@@ -17,7 +17,7 @@ JSON. Không sinh nội dung hiển thị cho người dùng.
 
 ## 4.2. Bộ từ vựng tag (seed ban đầu)
 
-Bộ từ vựng nằm trong `recommendation_tags` để admin bổ sung được, không cần sửa code. Seed ban
+Bộ từ vựng nằm trong `recommendation_tags` để admin bổ sung được, không cần sửa code. Cùng bộ từ vựng này được dùng làm **danh sách chip trên bộ lọc tìm kiếm** (05, mục 5.2), nên tiêu chí người dùng chọn và dữ liệu LLM suy ra so khớp được trực tiếp với nhau. Seed ban
 đầu gợi ý:
 
 **STYLE** (dùng chung mọi môn; học sinh → `PREFERRED`, gia sư → `OFFERED`)

@@ -5,16 +5,16 @@
 ```mermaid
 flowchart LR
     subgraph FE["Frontend (React)"]
-        UI1["Màn hình tìm gia sư<br/>(bộ lọc + ô câu tự nhiên)"]
-        UI2["Màn hình 'Học viên phù hợp'<br/>(trong tin dạy của gia sư)"]
-        UI3["Thông báo"]
+        UI1["Tìm gia sư<br/>(bộ lọc + ô câu tự nhiên)"]
+        UI2["Tìm học viên<br/>(bộ lọc của gia sư)"]
+        UI3["Tìm kiếm đã lưu · Thông báo"]
     end
 
     subgraph BE["Spring Boot backend — module recommendation"]
-        API["RecommendationController"]
-        ORC["RecommendationService<br/>(điều phối pipeline)"]
+        API["RecommendationController<br/>SavedSearchController"]
+        ORC["RecommendationService<br/>(dựng QueryContext, điều phối)"]
         CAND["CandidateRepository<br/>(SQL lọc cứng + vector)"]
-        FEAT["FeatureCalculator (a)"]
+        FEAT["FeatureCalculator (a, gồm f_hist)"]
         WILL["WillingnessCalculator (b)"]
         RANK["Ranker (R, Q, G)"]
         EXP["ExplorationSelector (R6)"]
@@ -22,8 +22,8 @@ flowchart LR
         REF["SessionRefineService (B5)"]
         EXPL["ExplanationBuilder"]
         LOG["RecommendationLogger"]
-        JOBS["Job nền:<br/>EnrichmentWorker (A1)<br/>EmbeddingWorker<br/>PairScoringWorker (R3, C7)<br/>AggregateRefreshJob (P1)<br/>ExposureStatsJob (R6)"]
-        AIC["AiServiceClient<br/>(HTTP, timeout, fallback)"]
+        JOBS["Job nền:<br/>EnrichmentWorker (A1) · EmbeddingWorker<br/>MatchAlertWorker (C7) · RerankPrefetchJob<br/>ProfileUpdater (H1) · AggregateRefreshJob (P1)<br/>ExposureStatsJob (R6)"]
+        AIC["AiServiceClient<br/>(HTTP, timeout, dự phòng)"]
     end
 
     subgraph AI["AI service (Python / FastAPI) — chỉ mạng nội bộ"]
@@ -36,35 +36,35 @@ flowchart LR
     DB[("PostgreSQL + pgvector")]
     LLM["LLM API bên ngoài"]
 
-    UI1 & UI2 --> API --> ORC
+    UI1 & UI2 & UI3 --> API --> ORC
     ORC --> CAND & FEAT & WILL & RANK & EXP & RELAX & EXPL & LOG
     API --> REF
     CAND & FEAT & WILL & LOG & JOBS --> DB
     ORC & JOBS --> AIC --> EMB & RR & ENR & PQ
     ENR & PQ --> LLM
-    JOBS -->|"sự kiện RECOMMENDATION_MATCH_FOUND"| UI3
+    JOBS -->|"RECOMMENDATION_MATCH_FOUND"| UI3
 ```
 
 Nguyên tắc:
-- **Backend Java là nơi quyết định.** Toàn bộ lọc, chấm điểm, xếp hạng nằm trong Spring Boot.
-  AI service chỉ là "máy tính" không trạng thái: nhận văn bản, trả vector, điểm hoặc JSON.
-- **AI service không mở ra Internet.** Chỉ backend gọi được, kèm header bí mật dùng chung.
-- **Mọi lời gọi AI service đều có timeout và phương án dự phòng.** Đề xuất vẫn chạy khi AI
-  service chết (chất lượng giảm, không lỗi).
+- **Backend Java ra quyết định**: lọc, chấm điểm, xếp hạng. AI service chỉ là "máy tính" không
+  trạng thái (văn bản → vector / điểm / JSON).
+- **AI service không mở ra Internet**; chỉ backend gọi, kèm header bí mật dùng chung.
+- **Mọi lời gọi AI service có timeout và dự phòng**; AI service chết thì chất lượng giảm, không lỗi.
 
 ## 2.2. Hai loại luồng
 
-### Luồng nền (không ảnh hưởng độ trễ tìm kiếm)
+### Luồng nền
 
 | Sự kiện | Việc làm |
 |---|---|
-| Lưu hồ sơ học sinh / gia sư, tạo/sửa tin học / tin dạy | Ghi một job vào `ai_enrichment_jobs` trong cùng transaction (outbox) |
-| `EnrichmentWorker` (mỗi 30 giây) | Gọi `/enrich` → ghi tag, lịch rảnh suy ra; rồi tạo job embedding |
-| `EmbeddingWorker` | Ghép "văn bản nhu cầu" / "văn bản cung cấp", gọi `/embed`, ghi vector |
-| Tin dạy hoặc tin học chuyển `OPEN`, hoặc vừa có embedding mới | `PairScoringWorker` chấm cặp tin mới với các tin `OPEN` phía bên kia, gọi `/rerank` cho các cặp tốt, lưu `recommendation_pair_scores`, gửi thông báo nếu vượt ngưỡng (C7) |
-| Hằng ngày 02:30 UTC | `AggregateRefreshJob` (P1) → tính lại `recommendation_score` → `ExposureStatsJob` |
+| Lưu hồ sơ, tạo/sửa tin học / tin dạy | Ghi job `ENRICH` vào `ai_enrichment_jobs` trong cùng transaction (outbox) |
+| `EnrichmentWorker` (mỗi 30 s) | Gọi `/enrich` → ghi tag, lịch suy ra → tạo job `EMBED` |
+| `EmbeddingWorker` | Ghép văn bản, gọi `/embed`, ghi vector của tin đăng / hồ sơ |
+| Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
+| Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
+| Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian) |
 
-### Luồng tìm kiếm (đồng bộ)
+### Luồng tìm kiếm
 
 ```mermaid
 sequenceDiagram
@@ -73,63 +73,53 @@ sequenceDiagram
     participant AI as AI service
     participant DB as PostgreSQL
 
-    U->>API: POST /recommendations (bộ lọc, câu tự nhiên?)
-    opt Có câu tự nhiên (A2)
+    opt Gõ câu tự nhiên (A2)
+        U->>API: POST /recommendations/parse-query
         API->>AI: /parse-query
-        AI-->>API: JSON bộ lọc + phần ngữ nghĩa
+        AI-->>API: JSON
+        API-->>U: Giá trị bộ lọc (điền vào form để xem lại, sửa)
     end
+    U->>API: POST /…/tutor-recommendations (bộ lọc)
+    API->>DB: Đọc hồ sơ, hồ sơ sở thích → dựng QueryContext
+    API->>AI: /embed văn bản nhu cầu (có cache)
     API->>DB: Lọc cứng + lấy ứng viên theo vector
-    API->>DB: Đọc đặc trưng, lịch sử chấp nhận, điểm rerank đã lưu
+    API->>DB: Đặc trưng, lịch sử quyết định, cache rerank
     API->>API: Tính a, b, R, Q, G → xếp hạng sơ bộ
-    opt Top-K chưa có điểm rerank
+    opt Top-20 chưa có rerank
         API->>AI: /rerank (timeout 800 ms)
     end
-    API->>API: Xếp hạng lại, chèn slot khám phá (R6), sinh lý do
-    opt Ít kết quả tốt
-        API->>API: Thử nới tiêu chí (C6)
-    end
+    API->>API: Xếp lại, slot khám phá, lý do khớp, (nới tiêu chí nếu ít kết quả)
     API->>DB: Ghi recommendation_logs
     API-->>U: Danh sách + lý do + gợi ý nới + logId
-    U->>API: Click / tym / bỏ qua → POST /refine (B5)
+    U->>API: Xem / tym / bỏ qua → /events, /refine (B5)
 ```
 
 ## 2.3. Ngân sách độ trễ (mục tiêu p95)
 
-| Bước | S→T không có câu tự nhiên | Có câu tự nhiên |
-|---|---|---|
-| `/parse-query` (LLM) | — | ≤ 2 000 ms |
-| Embed câu truy vấn | — | ≤ 150 ms |
-| SQL lọc cứng + vector | ≤ 150 ms | ≤ 150 ms |
-| Chấm điểm ≤ 200 ứng viên | ≤ 50 ms | ≤ 50 ms |
-| Rerank top-20 khi chưa có cache | ≤ 800 ms (timeout) | ≤ 800 ms |
-| Nới tiêu chí (song song) | ≤ 400 ms | ≤ 400 ms |
-| **Tổng** | **≤ 1,5 s** | **≤ 3,5 s** |
-
-Giao diện hiển thị trạng thái "Đang hiểu yêu cầu…" khi có bước LLM.
+| Bước | Thời gian |
+|---|---|
+| `/parse-query` (chỉ khi gõ câu; là bước riêng, trước khi bấm tìm) | ≤ 2 000 ms |
+| Embed văn bản nhu cầu (cache theo mã băm) | ≤ 150 ms |
+| SQL lọc cứng + vector | ≤ 150 ms |
+| Chấm điểm ≤ 200 ứng viên | ≤ 50 ms |
+| Rerank top-20 khi chưa có cache | ≤ 800 ms (timeout) |
+| Nới tiêu chí (song song) | ≤ 400 ms |
+| **Tổng cho một lần bấm tìm** | **≤ 1,5 s** |
 
 ## 2.4. Vị trí code đề xuất
 
 ```
 backend/src/main/java/com/ptutor/backend/recommendation/
-  controller/RecommendationController.java
-  service/RecommendationService.java          # điều phối
-  service/FeatureCalculator.java              # a
-  service/WillingnessCalculator.java          # b
-  service/Ranker.java                         # R, Q, G
-  service/ExplorationSelector.java            # R6
-  service/RelaxationService.java              # C6
-  service/SessionRefineService.java           # B5
-  service/ExplanationBuilder.java
-  service/RecommendationLogger.java
-  job/EnrichmentWorker.java  job/EmbeddingWorker.java
-  job/PairScoringWorker.java job/AggregateRefreshJob.java job/ExposureStatsJob.java
-  client/AiServiceClient.java
-  repository/CandidateRepository.java         # native SQL
-  model/  (QueryContext, Candidate, FeatureVector, ScoredCandidate…)
-ai-service/   (thư mục mới ngang hàng backend/, frontend/)
+  controller/  RecommendationController, SavedSearchController
+  service/     RecommendationService, QueryContextBuilder, FeatureCalculator, WillingnessCalculator,
+               Ranker, ExplorationSelector, RelaxationService, SessionRefineService,
+               ExplanationBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService
+  job/         EnrichmentWorker, EmbeddingWorker, MatchAlertWorker, RerankPrefetchJob,
+               ProfileUpdater, AggregateRefreshJob, ExposureStatsJob
+  client/      AiServiceClient
+  repository/  CandidateRepository (native SQL), …
+  model/       QueryContext, Candidate, FeatureVector, ScoredCandidate, …
+ai-service/    (thư mục mới ngang hàng backend/, frontend/)
   app/main.py  app/embed.py  app/rerank.py  app/llm.py  app/schemas.py
   models/      (volume, không commit)
 ```
-
-Đặt tất cả trong một package `recommendation` giúp tách bạch với phần nghiệp vụ hiện có và dễ
-trình bày trong báo cáo.

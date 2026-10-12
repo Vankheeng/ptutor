@@ -1,143 +1,157 @@
-# 7. Tương tác và chủ động (C6, B5, C7, C8)
+# 7. Tương tác, chủ động và lịch sử hành vi (C6, B5, C7, H1, C8)
 
 ## 7.1. C6 — Gợi ý nới tiêu chí
 
 ### Khi nào kích hoạt
 
-Sau khi xếp hạng xong, nếu **số kết quả có `score ≥ τ_good` ít hơn 5** (τ_good = 0,50) hoặc tổng
-số kết quả ít hơn 10.
+Sau khi xếp hạng, nếu **số kết quả có `score ≥ τ_good` ít hơn 5** (τ_good = 0,50) hoặc tổng số
+kết quả ít hơn 10.
 
 ### Các phép nới
 
-Mỗi phép nới được thử **độc lập** trên `QueryContext` hiện tại:
+Mỗi phép nới thử **độc lập** trên `QueryContext` hiện tại:
 
 | Mã | Phép nới | Áp dụng khi |
 |---|---|---|
-| `PRICE_15` | `max_price × 1,15` | Có `max_price` |
-| `PRICE_30` | `max_price × 1,30` | Có `max_price` |
-| `MODE_ONLINE` | Chuyển `OFFLINE` → `ONLINE` | Đang chọn `OFFLINE` |
-| `AREA_PROVINCE` | `districtIds` = mọi quận cùng tỉnh (`districts.province_id`) | Đang chọn `OFFLINE` |
-| `SCHEDULE_FLEX` | Bỏ lịch của học sinh (`f_sched` thiếu, `g_sched = 1`) | Học sinh có lịch |
+| `AREA_PROVINCE` | Phạm vi "Các quận" → "Toàn tỉnh/thành" | Đang chọn `DISTRICTS` |
+| `AREA_ANY` | Phạm vi → "Không giới hạn" | Đang chọn `DISTRICTS` hoặc `PROVINCE` |
+| `MODE_ANY` | Hình thức → "Cả hai" | Đang chọn riêng Online hoặc Offline |
+| `PRICE_15` / `PRICE_30` | Học sinh: ngân sách tối đa × 1,15 / × 1,30. Gia sư: giá mong muốn × 0,9 / × 0,8 | Có giá |
+| `SCHEDULE_FLEX` | Bỏ lịch rảnh khỏi tiêu chí (`f_sched` thiếu, `g_sched = 1`) | Có lịch |
 
-### Cách đánh giá một phép nới
+### Đánh giá một phép nới
 
-1. Chạy lại **pha 1–3** (06) với `QueryContext` đã nới. Không gọi LLM; chỉ dùng điểm rerank đã
-   có trong cache, không gọi rerank mới.
-2. `gain` = số ứng viên **mới** có `score ≥ τ_good` (không có trong tập tốt hiện tại).
-3. `bestScore` = điểm cao nhất trong số ứng viên mới.
-4. Giữ phép nới nếu `gain ≥ 2`, hoặc `bestScore` cao hơn điểm tốt nhất hiện tại ít nhất 0,10.
-5. Sắp xếp theo `gain` giảm dần; khi bằng nhau, ưu tiên phép nới "nhẹ" hơn
-   (`SCHEDULE_FLEX` < `PRICE_15` < `AREA_PROVINCE` < `MODE_ONLINE` < `PRICE_30`). Trả tối đa 3.
+1. Chạy lại **pha 1–3** (06) với `QueryContext` đã nới; không gọi LLM, chỉ dùng rerank có sẵn
+   trong cache.
+2. `gain` = số ứng viên **mới** có `score ≥ τ_good`; `bestScore` = điểm cao nhất trong số đó.
+3. Giữ nếu `gain ≥ 2` hoặc `bestScore` cao hơn điểm tốt nhất hiện tại ≥ 0,10.
+4. Sắp theo `gain`; bằng nhau thì ưu tiên phép nới nhẹ hơn
+   (`SCHEDULE_FLEX` < `PRICE_15` < `AREA_PROVINCE` < `MODE_ANY` < `AREA_ANY` < `PRICE_30`). Trả tối đa 3.
 
-Các phép nới chạy **song song**, tổng ngân sách 400 ms; phép nào quá giờ thì bỏ.
+Chạy song song, ngân sách 400 ms. Không có ứng viên nào qua lọc cứng → trả danh sách rỗng kèm gợi ý.
 
-### Câu hiển thị
+### Câu hiển thị (kèm nút áp dụng một lần bấm)
 
 | Mã | Mẫu |
 |---|---|
-| `PRICE_15` / `PRICE_30` | "Nếu tăng ngân sách lên {giá mới}, có thêm {gain} gia sư phù hợp" |
-| `MODE_ONLINE` | "Nếu học online, có thêm {gain} gia sư phù hợp, trong đó {k} người đánh giá trên 4,5" |
-| `AREA_PROVINCE` | "Mở rộng ra toàn {tên tỉnh}: thêm {gain} gia sư phù hợp" |
-| `SCHEDULE_FLEX` | "Nếu linh hoạt lịch học, có thêm {gain} gia sư phù hợp" |
-
-Mỗi gợi ý kèm `apply` — phần thay đổi bộ lọc để giao diện áp dụng bằng một lần bấm (08).
-
-Trường hợp **không có ứng viên nào** qua lọc cứng: trả danh sách rỗng kèm luôn các gợi ý nới.
-
-Chiều T→S chỉ dùng `AREA_PROVINCE` và `SCHEDULE_FLEX`: giá và hình thức dạy là nội dung của tin
-dạy đã được duyệt, gia sư không đổi ngay được.
+| `AREA_PROVINCE` | "Mở rộng ra toàn {tỉnh}: thêm {gain} gia sư phù hợp" |
+| `AREA_ANY` | "Bỏ giới hạn khu vực: thêm {gain} gia sư phù hợp" |
+| `MODE_ANY` | "Nhận cả học online: thêm {gain} gia sư, trong đó {k} người đánh giá trên 4,5" |
+| `PRICE_*` | "Nếu ngân sách {giá mới}: thêm {gain} gia sư phù hợp" |
+| `SCHEDULE_FLEX` | "Nếu linh hoạt lịch học: thêm {gain} gia sư phù hợp" |
 
 ## 7.2. B5 — Xếp lại trong phiên (Rocchio)
 
-### Tín hiệu
+### Tín hiệu trong một lần tìm
 
-Trong một lần tìm (một `recommendation_logs.id`), giao diện gửi các sự kiện:
-
-| Sự kiện | Loại | Cách ghi |
+| Sự kiện | Loại | Ghi |
 |---|---|---|
 | Mở chi tiết | Dương | `VIEWED` |
-| Thả tim | Dương | `FAVORITED` (và ghi `favorite_tutors`) |
-| Gửi đơn / nhắn liên hệ | Dương | `CONTACTED` |
+| Thả tim | Dương | `FAVORITED` (+ `favorite_tutors` với chiều S→T) |
+| Gửi đơn / đề nghị / nhắn liên hệ | Dương | `CONTACTED` |
 | Bấm "Không quan tâm" | Âm | `DISMISSED` |
-| Bị lướt qua (nằm **trên** một kết quả được mở mà không được mở) | Âm yếu | Suy ra ở backend, không ghi riêng |
+| Bị lướt qua (nằm trên một kết quả được mở mà không được mở) | Âm yếu | Suy ra ở backend |
 
-### Cập nhật vector truy vấn
-
-```
-q′ = normalize( 1.0·q + 0.6·mean(vector các ứng viên dương) − 0.3·mean(vector các ứng viên âm) )
-```
-
-Âm "bị lướt qua" có trọng số một nửa so với `DISMISSED`.
-
-### Chấm lại
-
-Chỉ chấm lại **các kết quả người dùng chưa xem** trong tập ứng viên đã lưu của lần tìm đó (tối đa
-50 ứng viên đầu, lưu cùng đặc trưng trong `returned_candidate_ids`):
+### Cập nhật vector truy vấn và chấm lại
 
 ```
+q′ = normalize( 1.0·q + 0.6·mean(vector ứng viên dương) − 0.3·mean(vector ứng viên âm) )
 f_sem′ = 0.5·f_sem (ban đầu) + 0.5·s( cos(q′, vector ứng viên) )
 ```
 
-Các đặc trưng khác giữ nguyên; tính lại a, R, `score`; trả về thứ tự mới cho phần chưa xem.
-Phần đã hiển thị không bị đảo, để giao diện không "nhảy".
+Âm "bị lướt qua" có trọng số một nửa `DISMISSED`. Chỉ chấm lại **phần chưa xem** trong ≤ 50 ứng
+viên đã lưu cùng lần tìm; phần đã hiển thị không bị đảo. Cần ≥ 1 tín hiệu dương; giao diện gọi
+`/refine` sau mỗi tín hiệu dương (gộp trong 1 giây). Không gọi AI service.
 
-### Phạm vi
-
-- Chỉ áp dụng trong phiên (không ghi vào hồ sơ) — tránh trôi sở thích vì vài cú bấm ngẫu nhiên.
-- Cần ít nhất 1 tín hiệu dương. Giao diện gọi `/refine` sau mỗi tín hiệu dương, gộp trong 1 giây.
-- Chi phí: chỉ phép tính vector trên ≤ 50 phần tử, không gọi AI service.
+B5 là thích ứng **ngắn hạn** (trong phiên). Thích ứng **dài hạn** qua nhiều phiên là H1 (mục 7.4).
 
 ## 7.3. C7 — Chủ động thông báo ghép đôi tốt
 
+### Nguồn "nhu cầu" được theo dõi
+
+| Phía nhận thông báo | Nguồn nhu cầu |
+|---|---|
+| Học sinh | (1) Tin học `OPEN` của học sinh; (2) tìm kiếm đã lưu (chiều S→T, bật thông báo) |
+| Gia sư | (1) Tin dạy `OPEN` của gia sư (dùng như tiêu chí); (2) tìm kiếm đã lưu (chiều T→S, bật thông báo) |
+
+Nhờ có "tìm kiếm đã lưu", người **không có tin đăng** vẫn nhận được thông báo.
+
 ### Kích hoạt
 
-| Sự kiện | Hành động |
+| Sự kiện | Việc làm |
 |---|---|
-| Tin dạy được duyệt → `OPEN` (đã có sự kiện `TEACHING_REQUEST_APPROVED`) | Job `PAIR_SCORE` cho tin dạy |
-| Tin học thanh toán xong → `OPEN` | Job `PAIR_SCORE` cho tin học |
-| Tin đăng có embedding mới (sau khi sửa nội dung) | Job `PAIR_SCORE` |
-| Hằng đêm | Tính lại các cặp có `content_hash` lệch; xoá cặp của tin không còn `OPEN` |
+| Tin dạy được duyệt → `OPEN` (sự kiện `TEACHING_REQUEST_APPROVED` đã có) | Job `MATCH_ALERT` cho tin dạy: đối chiếu với mọi nguồn nhu cầu phía học sinh |
+| Tin học thanh toán xong → `OPEN` | Job `MATCH_ALERT` cho tin học: đối chiếu với mọi nguồn nhu cầu phía gia sư |
+| Tin đăng có embedding mới (sau khi sửa) | Như trên |
+| Hằng đêm | Rerank sẵn top-30 cho các tin học `OPEN` và tìm kiếm đã lưu → `recommendation_rerank_cache` |
 
-### `PairScoringWorker` — với một tin dạy mới
+### `MatchAlertWorker` — với một tin dạy mới
 
-1. Tìm mọi tin học `OPEN` mà tin dạy này qua được lọc cứng **theo góc nhìn học sinh** (06, 6.2).
-2. Tính a, b, R, score cho từng cặp (pha 3).
-3. Với 30 cặp điểm cao nhất: gọi `/rerank` theo lô (không cần timeout chặt vì chạy nền), tính lại,
-   lưu `recommendation_pair_scores`.
-4. **Gửi thông báo cho học sinh** nếu đồng thời:
-   - `final_score ≥ τ_notify` (τ_notify = 0,65);
-   - tin dạy mới này nằm trong **top-3** các cặp của tin học đó (so với các dòng khác của cùng
-     `studying_request_id` trong `recommendation_pair_scores`);
-   - cặp này chưa từng được thông báo (`notified_at IS NULL`);
-   - học sinh chưa nhận thông báo loại này trong 24 giờ qua.
-5. Thông báo dùng hạ tầng hiện có:
-   - `event_type = 'RECOMMENDATION_MATCH_FOUND'`, `reference_type = 'TEACHING_REQUEST'`,
-     `reference_id = tr.id`;
-   - `deduplication_key = 'rec-match:{sr.id}:{tr.id}'` (đã có unique index);
-   - tiêu đề: "Có gia sư mới rất phù hợp với tin tìm gia sư của bạn"; nội dung kèm 1 lý do khớp.
-6. Ghi `notified_at`.
+1. Với mỗi nguồn nhu cầu phía học sinh: dựng `QueryContext`, kiểm tra tin dạy mới có qua lọc cứng
+   không.
+2. Nếu qua: chạy pha 1–4 cho nguồn đó (rerank không giới hạn thời gian chặt vì chạy nền), xác định
+   **hạng** của tin dạy mới.
+3. **Gửi thông báo** nếu đồng thời: `score ≥ τ_notify` (0,65); tin mới nằm trong **top-3** của nguồn;
+   cặp (nguồn, tin) chưa từng được thông báo; người nhận chưa nhận thông báo loại này trong 24 giờ.
+4. Ghi `recommendation_match_alerts` và tạo notification:
+   `event_type = 'RECOMMENDATION_MATCH_FOUND'`, `reference_type = 'TEACHING_REQUEST'`,
+   `reference_id = tr.id`, `deduplication_key = 'rec-match:{sourceType}:{sourceId}:{tr.id}'`.
+   Tiêu đề: "Có gia sư mới rất phù hợp với tiêu chí của bạn"; nội dung kèm 1 lý do khớp.
 
-### Với một tin học mới
+Với tin học mới: tương tự theo chiều T→S, thông báo cho gia sư "Có học viên mới phù hợp với tiêu
+chí của bạn".
 
-Tương tự theo chiều T→S: chấm tin học mới với mọi tin dạy `OPEN`, lưu `recommendation_pair_scores`
-(nhờ vậy lần tìm đầu tiên của học sinh gần như không phải gọi rerank), và **thông báo cho gia sư**
-"Có học viên mới phù hợp với tin dạy '{title}'" theo cùng các điều kiện ngưỡng, top-3 và giới hạn
-24 giờ.
+Khối lượng: mỗi tin mới × vài trăm nguồn nhu cầu → chạy nền vài giây đến vài chục giây, không ảnh
+hưởng người đang tìm.
 
-### Khối lượng
+## 7.4. H1 — Hồ sơ sở thích dài hạn (gợi ý theo lịch sử hành vi)
 
-Mỗi tin mới × vài trăm tin phía bên kia → vài trăm cặp tính pha 3 (vài chục ms) và 30 cặp rerank
-(vài giây CPU, chạy nền). Không ảnh hưởng người dùng đang tìm.
+### Tín hiệu
 
-### Tác dụng nghiệp vụ
+| Hành vi | Trọng số | Nguồn |
+|---|---|---|
+| Mở xem chi tiết | +1 | `recommendation_click_logs` (`VIEWED`, `CLICKED`) |
+| Thả tim | +2 | `favorite_tutors`, click log `FAVORITED` |
+| Gửi đơn / đề nghị | +3 | `student_tutor_requests` / `tutor_student_requests` (người này là bên gửi) |
+| Được chấp nhận / ký hợp đồng | +4 | Trạng thái `ACCEPTED`, `contracts` |
+| Không quan tâm | −2 | Click log `DISMISSED` |
 
-Gia sư trả phí đăng tin được "chủ động giới thiệu" tới đúng học sinh phù hợp ngay khi tin được
-duyệt — tăng giá trị của tin trả phí; học sinh không phải quay lại tìm thủ công.
+Chỉ xét 180 ngày gần nhất. Mỗi tín hiệu giảm theo thời gian với chu kỳ bán rã 30 ngày:
+`d_i = 0,5^(tuổi_ngày / 30)`.
 
-## 7.4. C8 — Lý do khớp do LLM viết (tuỳ chọn)
+### Tổng hợp
 
-Mặc định dùng câu mẫu (06, mục 6.13). Nếu còn thời gian:
-- Chỉ sinh cho **top-5**, gửi LLM các thành phần điểm và tên tag (không gửi văn bản tự do của
-  người dùng) để viết 1 câu ≤ 30 từ.
-- Cache theo `(studying_request_id, teaching_request_id, model_version)`.
-- Gọi bất đồng bộ: trả kết quả với câu mẫu trước, giao diện thay bằng câu LLM khi có.
+Gọi `e_i` là vector của ứng viên trong tín hiệu i (tin dạy với học sinh, tin học với gia sư), `w_i`
+là trọng số:
+
+```
+v_pref    = normalize( Σ_i w_i · d_i · e_i )
+aff(tag)  = clip( Σ_i w_i · d_i · [tag ∈ tag(i)] / Σ_i |w_i| · d_i , 0, 1 )     (tag STYLE/TOPIC/GOAL/SEGMENT)
+signals   = số tín hiệu dương trong 180 ngày
+```
+
+Lưu vào `recommendation_user_profiles` (`preference_embedding`, `tag_affinity` dạng JSON,
+`signal_count`). Thuật toán dùng qua đặc trưng `f_hist` và trọng số tăng dần `w_hist` (06, mục 6.4).
+
+### Cập nhật
+
+- Listener sự kiện (sau commit, transaction riêng `REQUIRES_NEW`) khi có click/tym/đơn/đổi trạng
+  thái đơn → tính lại hồ sơ của người đó từ dữ liệu 180 ngày (vài chục đến vài trăm dòng, rẻ).
+- Job hằng đêm tính lại toàn bộ để áp dụng giảm theo thời gian.
+
+### Quyền của người dùng
+
+- Nút **"Xoá lịch sử gợi ý"**: xoá hồ sơ sở thích, `w_hist` về 0.
+- Lý do khớp nói rõ khi kết quả được đẩy lên nhờ lịch sử ("Giống các gia sư bạn đã quan tâm…").
+
+### Vì sao không phải collaborative filtering
+
+H1 chỉ dùng **lịch sử của chính người đó** kết hợp nội dung (vector, tag), nên chạy được khi dữ liệu
+còn ít. "Người giống bạn cũng thích…" cần lượng tương tác lớn giữa nhiều người — không phù hợp
+giai đoạn này.
+
+## 7.5. C8 — Lý do khớp do LLM viết (tuỳ chọn)
+
+Mặc định dùng câu mẫu (06, mục 6.13). Nếu còn thời gian: chỉ cho top-5, gửi LLM các thành phần
+điểm và tên tag (không gửi văn bản tự do của người dùng), cache theo (mã băm nhu cầu, ứng viên,
+model), gọi bất đồng bộ — trả câu mẫu trước, thay bằng câu LLM khi có.

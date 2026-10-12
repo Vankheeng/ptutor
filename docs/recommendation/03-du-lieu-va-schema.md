@@ -4,55 +4,47 @@ Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migra
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
-> toán bằng ví). Trước khi tạo migration mới, luôn kiểm tra số lớn nhất trên `dev` để tránh trùng; nên
-> thống nhất với nhóm dành một dải số cho tính năng đề xuất.
+> toán bằng ví). Trước khi tạo migration mới, luôn kiểm tra số lớn nhất trên `dev`; nên thống nhất với
+> nhóm dành một dải số cho tính năng đề xuất.
 
-## 3.1. Dữ liệu đầu vào đã có
+## 3.1. Dữ liệu đầu vào
 
-| Nhóm | Nguồn (bảng.cột) | Dùng cho |
+| Nhóm | Nguồn | Dùng cho |
 |---|---|---|
-| Ngữ cảnh tin học | `studying_requests`: `subject_id`, `grade_id`, `learning_mode`, `district_id`, `min_price`, `max_price`, `learning_goals`, `title`, `description`, `note`, `preferred_schedule`, `quantity`, `status` | Lọc cứng, a, b, văn bản nhu cầu |
-| Ngữ cảnh tin dạy | `teaching_requests`: `subject_id`, `teaching_mode`, `expected_price`, `quantity`, `title`, `description`, `note`, `preferred_schedule`, `status`; `grade_teaching_requests`; `teaching_request_districts` | Lọc cứng, a, b, văn bản cung cấp |
-| Lịch rảnh có cấu trúc | `studying_request_availabilities`, `teaching_request_availabilities` (`day_of_week`, `start_time`, `end_time`) | `f_sched`, gate |
-| Hồ sơ học sinh | `students`: `introduction`, `learning_style`, `personality_tags`, `goals_description`, `current_level`, `weak_points` | Văn bản nhu cầu, A1 |
-| Hồ sơ gia sư | `tutors`: `introduction`, `education`, `teaching_style_tags`, `teaching_methodology`, `strength_subjects`, `target_student_type`, `profile_status`, `recommendation_score` | Văn bản cung cấp, A1, Q |
-| Lịch sử quyết định | `student_tutor_requests` (học sinh gửi → gia sư quyết định), `tutor_student_requests` (gia sư gửi → học sinh quyết định): `status` ∈ `PENDING/ACCEPTED/REJECTED/CANCELLED` | b, chống dồn |
-| Quan hệ hiện tại | `contracts` (`status` ∈ `PENDING/ACTIVE/COMPLETED/CANCELLED`) | Loại trùng |
-| Tài khoản | `users.status` (`ACTIVE/INACTIVE/BLOCKED`), `users.district_id`, `districts.province_id` | Lọc cứng, nới tiêu chí |
-| Hành vi | `recommendation_logs`, `recommendation_click_logs`, `favorite_tutors` | R6, B5, đánh giá |
+| Tiêu chí tìm kiếm | Bộ lọc + câu tự nhiên (05), lưu trong `recommendation_logs.query_context` | Lọc cứng, a, văn bản nhu cầu |
+| Ứng viên phía gia sư | `teaching_requests` (`subject_id`, `teaching_mode`, `expected_price`, `quantity`, `title`, `description`, `note`, `status`), `grade_teaching_requests`, `teaching_request_districts`, `teaching_request_availabilities` | Lọc cứng, a, b, văn bản cung cấp |
+| Ứng viên phía học sinh | `studying_requests` (`subject_id`, `grade_id`, `learning_mode`, `district_id`, `min_price`, `max_price`, `learning_goals`, `title`, `description`, `quantity`, `status`), `studying_request_availabilities` | Lọc cứng (T→S), a′, b′ |
+| Hồ sơ học sinh | `students` (`introduction`, `learning_style`, `personality_tags`, `goals_description`, `current_level`, `weak_points`), `users.district_id` | Giá trị mặc định cho bộ lọc, văn bản nhu cầu, A1 |
+| Hồ sơ gia sư | `tutors` (`introduction`, `education`, `teaching_style_tags`, `teaching_methodology`, `strength_subjects`, `target_student_type`, `profile_status`, `recommendation_score`) | Văn bản cung cấp, A1, Q |
+| Lịch sử quyết định | `student_tutor_requests`, `tutor_student_requests` (`PENDING/ACCEPTED/REJECTED/CANCELLED`) | b, b′, chống dồn, H1 |
+| Quan hệ hiện tại | `contracts` | Loại trùng, H1 |
+| Hành vi | `recommendation_logs`, `recommendation_click_logs`, `favorite_tutors` | R6, B5, H1, đánh giá |
+| Khu vực | `districts.province_id` | Lọc phạm vi tỉnh, `f_area` |
 
 ## 3.2. Văn bản dùng để sinh embedding
 
-Bộ cũ chỉ embed **hồ sơ chung**. Bản này embed **theo tin đăng**, vì ứng viên là tin đăng và phần
-mô tả tin đăng mang nhiều thông tin nhất.
-
-**Văn bản nhu cầu** (cho mỗi tin học; bản không có phần tin đăng dùng cho hồ sơ học sinh):
+**Ứng viên** được embed **theo tin đăng** (tin đăng mang nhiều thông tin nhất):
 
 ```
-Môn {subject.name}, {grade.name}.
-Mục tiêu: {sr.learning_goals}. {student.goals_description}
-Tin đăng: {sr.title}. {sr.description}. {sr.note}
-Trình độ hiện tại: {student.current_level}. Điểm yếu: {student.weak_points}
-Phong cách học mong muốn: {student.learning_style}; {student.personality_tags}
-Nhu cầu đã chuẩn hoá: {tên các tag NEED, GOAL, PREFERRED, SELF}
+Tin dạy:  Môn {subject}, dạy {danh sách lớp}. Tin đăng: {tr.title}. {tr.description}. {tr.note}
+          Giới thiệu: {tutor.introduction}. Học vấn: {tutor.education}
+          Phương pháp: {tutor.teaching_methodology}. Thế mạnh: {tutor.strength_subjects}
+          Đối tượng: {tutor.target_student_type}. Phong cách: {tutor.teaching_style_tags}
+          Đã chuẩn hoá: {tên tag STRENGTH, OFFERED, TARGET}
+
+Tin học:  Môn {subject}, {grade}. Mục tiêu: {sr.learning_goals}. Tin đăng: {sr.title}. {sr.description}. {sr.note}
+          Học sinh: {student.goals_description}. Điểm yếu: {student.weak_points}. Trình độ: {student.current_level}
+          Phong cách mong muốn: {student.learning_style}; {student.personality_tags}
+          Đã chuẩn hoá: {tên tag NEED, GOAL, PREFERRED, SELF}
 ```
 
-**Văn bản cung cấp** (cho mỗi tin dạy; bản không có phần tin đăng dùng cho hồ sơ gia sư):
+**Hồ sơ** (`students.profile_embedding`, `tutors.profile_embedding`) là bản không có phần tin đăng —
+dùng khi người tìm không có tiêu chí văn bản nào.
 
-```
-Môn {subject.name}, dạy {danh sách grade.name}.
-Tin đăng: {tr.title}. {tr.description}. {tr.note}
-Giới thiệu: {tutor.introduction}. Học vấn: {tutor.education}
-Phương pháp: {tutor.teaching_methodology}. Thế mạnh: {tutor.strength_subjects}
-Đối tượng phù hợp: {tutor.target_student_type}. Phong cách: {tutor.teaching_style_tags}
-Thế mạnh đã chuẩn hoá: {tên các tag STRENGTH, OFFERED, TARGET}
-```
+**Truy vấn** (văn bản nhu cầu / cung cấp của người tìm) được sinh lúc tìm kiếm — xem 05, mục 5.5.
 
-Quy tắc:
-- Bỏ trường rỗng; cắt tối đa 512 token.
-- **Không đưa** họ tên, số điện thoại, email, địa chỉ chi tiết, ngày sinh. Chạy thêm bộ lọc regex
-  số điện thoại/email trên văn bản tự do trước khi gửi.
-- Lưu `content_hash` (SHA-256 của văn bản) để chỉ embed lại khi nội dung đổi.
+Quy tắc chung: bỏ trường rỗng; cắt ≤ 512 token; không đưa họ tên, SĐT, email, địa chỉ chi tiết,
+ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash` để chỉ embed lại khi đổi.
 
 ## 3.3. Migration V25 — dữ liệu cho đề xuất
 
@@ -63,14 +55,13 @@ ALTER TABLE tutors   ALTER COLUMN profile_embedding TYPE vector(1024) USING NULL
 ALTER TABLE students ADD COLUMN embedding_content_hash varchar(64);
 ALTER TABLE tutors   ADD COLUMN embedding_content_hash varchar(64);
 
--- ===== 2. Embedding theo tin đăng =====
+-- ===== 2. Embedding theo tin đăng (ứng viên) =====
 ALTER TABLE studying_requests
     ADD COLUMN embedding vector(1024),
     ADD COLUMN embedding_source_text text,
     ADD COLUMN embedding_content_hash varchar(64),
     ADD COLUMN embedding_model_version varchar(50),
     ADD COLUMN embedding_updated_at timestamp;
-
 ALTER TABLE teaching_requests
     ADD COLUMN embedding vector(1024),
     ADD COLUMN embedding_source_text text,
@@ -78,7 +69,7 @@ ALTER TABLE teaching_requests
     ADD COLUMN embedding_model_version varchar(50),
     ADD COLUMN embedding_updated_at timestamp;
 
--- ===== 3. Nguồn gốc của lịch rảnh (người dùng nhập hay LLM suy ra) =====
+-- ===== 3. Nguồn gốc của lịch rảnh =====
 ALTER TABLE studying_request_availabilities
     ADD COLUMN source varchar(10) NOT NULL DEFAULT 'USER',
     ADD CONSTRAINT ck_sr_availabilities_source CHECK (source IN ('USER', 'LLM'));
@@ -86,11 +77,11 @@ ALTER TABLE teaching_request_availabilities
     ADD COLUMN source varchar(10) NOT NULL DEFAULT 'USER',
     ADD CONSTRAINT ck_tr_availabilities_source CHECK (source IN ('USER', 'LLM'));
 
--- ===== 4. Bộ từ vựng tag có kiểm soát =====
+-- ===== 4. Bộ từ vựng tag (cũng là danh sách chip trên bộ lọc) =====
 CREATE TABLE recommendation_tags (
     id uuid PRIMARY KEY,
-    tag_group varchar(20) NOT NULL,          -- TOPIC | STYLE | SEGMENT | GOAL
-    subject_id uuid REFERENCES subjects (id),-- chỉ dùng cho TOPIC (và GOAL theo môn, nếu có)
+    tag_group varchar(20) NOT NULL,           -- TOPIC | STYLE | SEGMENT | GOAL
+    subject_id uuid REFERENCES subjects (id), -- chỉ dùng cho TOPIC
     parent_id uuid REFERENCES recommendation_tags (id),
     code varchar(60) NOT NULL,
     name varchar(120) NOT NULL,
@@ -109,12 +100,12 @@ CREATE UNIQUE INDEX uq_recommendation_tags_code
 -- ===== 5. Tag gắn với hồ sơ / tin đăng =====
 CREATE TABLE recommendation_entity_tags (
     id uuid PRIMARY KEY,
-    entity_type varchar(30) NOT NULL,        -- STUDENT | TUTOR | STUDYING_REQUEST | TEACHING_REQUEST
+    entity_type varchar(30) NOT NULL,         -- STUDENT | TUTOR | STUDYING_REQUEST | TEACHING_REQUEST
     entity_id uuid NOT NULL,
     tag_id uuid NOT NULL REFERENCES recommendation_tags (id),
-    role varchar(20) NOT NULL,               -- NEED | PREFERRED | SELF | STRENGTH | OFFERED | TARGET
+    role varchar(20) NOT NULL,                -- NEED | PREFERRED | SELF | STRENGTH | OFFERED | TARGET
     confidence decimal(3,2) NOT NULL DEFAULT 1.00,
-    source varchar(10) NOT NULL,             -- USER | LLM
+    source varchar(10) NOT NULL,              -- USER | LLM
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp,
@@ -127,10 +118,10 @@ CREATE UNIQUE INDEX uq_ret_entity_tag_role
     ON recommendation_entity_tags (entity_type, entity_id, tag_id, role) WHERE deleted_at IS NULL;
 CREATE INDEX idx_ret_entity ON recommendation_entity_tags (entity_type, entity_id) WHERE deleted_at IS NULL;
 
--- ===== 6. Hàng đợi job nền (outbox) cho A1 + embedding =====
+-- ===== 6. Hàng đợi job nền (outbox) =====
 CREATE TABLE ai_enrichment_jobs (
     id uuid PRIMARY KEY,
-    job_type varchar(20) NOT NULL,           -- ENRICH | EMBED | PAIR_SCORE
+    job_type varchar(20) NOT NULL,            -- ENRICH | EMBED | MATCH_ALERT | RERANK_PREFETCH | PROFILE_UPDATE
     entity_type varchar(30) NOT NULL,
     entity_id uuid NOT NULL,
     content_hash varchar(64),
@@ -141,36 +132,78 @@ CREATE TABLE ai_enrichment_jobs (
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     processed_at timestamp,
-    CONSTRAINT ck_ai_jobs_type CHECK (job_type IN ('ENRICH', 'EMBED', 'PAIR_SCORE')),
-    CONSTRAINT ck_ai_jobs_entity CHECK (entity_type IN ('STUDENT', 'TUTOR', 'STUDYING_REQUEST', 'TEACHING_REQUEST')),
+    CONSTRAINT ck_ai_jobs_type CHECK (job_type IN ('ENRICH', 'EMBED', 'MATCH_ALERT', 'RERANK_PREFETCH', 'PROFILE_UPDATE')),
+    CONSTRAINT ck_ai_jobs_entity CHECK (entity_type IN ('STUDENT', 'TUTOR', 'STUDYING_REQUEST', 'TEACHING_REQUEST',
+                                                        'SAVED_SEARCH', 'USER')),
     CONSTRAINT ck_ai_jobs_status CHECK (status IN ('PENDING', 'PROCESSING', 'DONE', 'FAILED', 'SKIPPED'))
 );
 CREATE INDEX idx_ai_jobs_pending ON ai_enrichment_jobs (status, next_attempt_at) WHERE status = 'PENDING';
--- Không xếp hàng trùng: một entity chỉ có tối đa 1 job đang chờ cho mỗi loại
 CREATE UNIQUE INDEX uq_ai_jobs_pending_entity
     ON ai_enrichment_jobs (job_type, entity_type, entity_id) WHERE status IN ('PENDING', 'PROCESSING');
 
--- ===== 7. Điểm cặp đã tính trước (cache rerank + nền cho C7) =====
-CREATE TABLE recommendation_pair_scores (
-    id uuid PRIMARY KEY,
-    studying_request_id uuid NOT NULL REFERENCES studying_requests (id),
-    teaching_request_id uuid NOT NULL REFERENCES teaching_requests (id),
-    rerank_score decimal(5,4),               -- xác suất từ cross-encoder, [0,1]
-    relevance_a decimal(5,4),                -- a theo chiều S→T
-    willingness_b decimal(5,4),
-    final_score decimal(5,4),
-    sr_content_hash varchar(64) NOT NULL,
-    tr_content_hash varchar(64) NOT NULL,
+-- ===== 7. Bộ nhớ đệm điểm rerank (dùng chung cho tìm kiếm và tiến trình nền) =====
+CREATE TABLE recommendation_rerank_cache (
+    query_hash varchar(64) NOT NULL,          -- sha256 của văn bản nhu cầu / cung cấp
+    candidate_type varchar(30) NOT NULL,      -- TEACHING_REQUEST | STUDYING_REQUEST
+    candidate_id uuid NOT NULL,
+    candidate_content_hash varchar(64) NOT NULL,
     model_version varchar(50) NOT NULL,
-    notified_at timestamp,                   -- đã gửi thông báo C7 cho cặp này chưa
+    rerank_score decimal(5,4) NOT NULL,       -- [0,1]
     computed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pair_scores UNIQUE (studying_request_id, teaching_request_id)
+    PRIMARY KEY (query_hash, candidate_type, candidate_id, model_version),
+    CONSTRAINT ck_rerank_cache_type CHECK (candidate_type IN ('TEACHING_REQUEST', 'STUDYING_REQUEST'))
 );
-CREATE INDEX idx_pair_scores_tr ON recommendation_pair_scores (teaching_request_id);
+CREATE INDEX idx_rerank_cache_candidate ON recommendation_rerank_cache (candidate_type, candidate_id);
 
--- ===== 8. Thống kê hiển thị (R6) =====
+-- ===== 8. Tìm kiếm đã lưu =====
+CREATE TABLE recommendation_saved_searches (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users (id),
+    direction varchar(20) NOT NULL,           -- STUDENT_TO_TUTOR | TUTOR_TO_STUDENT
+    name varchar(120),
+    query_context jsonb NOT NULL,
+    query_text_hash varchar(64),
+    notify_enabled boolean NOT NULL DEFAULT true,
+    last_notified_at timestamp,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at timestamp,
+    CONSTRAINT ck_saved_searches_direction CHECK (direction IN ('STUDENT_TO_TUTOR', 'TUTOR_TO_STUDENT'))
+);
+CREATE INDEX idx_saved_searches_user ON recommendation_saved_searches (user_id) WHERE deleted_at IS NULL;
+
+-- ===== 9. Thông báo ghép đôi đã gửi (C7) =====
+CREATE TABLE recommendation_match_alerts (
+    id uuid PRIMARY KEY,
+    recipient_user_id uuid NOT NULL REFERENCES users (id),
+    source_type varchar(30) NOT NULL,         -- STUDYING_REQUEST | TEACHING_REQUEST | SAVED_SEARCH
+    source_id uuid NOT NULL,
+    candidate_type varchar(30) NOT NULL,
+    candidate_id uuid NOT NULL,
+    final_score decimal(5,4) NOT NULL,
+    candidate_rank integer NOT NULL,
+    notification_id uuid REFERENCES notifications (id),
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_match_alerts_source CHECK (source_type IN ('STUDYING_REQUEST', 'TEACHING_REQUEST', 'SAVED_SEARCH')),
+    CONSTRAINT ck_match_alerts_candidate CHECK (candidate_type IN ('TEACHING_REQUEST', 'STUDYING_REQUEST')),
+    CONSTRAINT uq_match_alerts UNIQUE (source_type, source_id, candidate_type, candidate_id)
+);
+CREATE INDEX idx_match_alerts_recipient ON recommendation_match_alerts (recipient_user_id, created_at DESC);
+
+-- ===== 10. Hồ sơ sở thích dài hạn (H1) =====
+CREATE TABLE recommendation_user_profiles (
+    user_id uuid PRIMARY KEY REFERENCES users (id),
+    role varchar(20) NOT NULL,                -- STUDENT | TUTOR
+    preference_embedding vector(1024),
+    tag_affinity jsonb,                       -- {"luyen_tap_nhieu": 0.8, "kien_nhan": 0.3, ...}
+    signal_count integer NOT NULL DEFAULT 0,
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_user_profiles_role CHECK (role IN ('STUDENT', 'TUTOR'))
+);
+
+-- ===== 11. Thống kê hiển thị (R6) =====
 CREATE TABLE recommendation_exposure_stats (
-    candidate_type varchar(30) NOT NULL,     -- TEACHING_REQUEST | STUDYING_REQUEST
+    candidate_type varchar(30) NOT NULL,
     candidate_id uuid NOT NULL,
     impressions_7d integer NOT NULL DEFAULT 0,
     clicks_7d integer NOT NULL DEFAULT 0,
@@ -181,13 +214,14 @@ CREATE TABLE recommendation_exposure_stats (
     CONSTRAINT ck_exposure_type CHECK (candidate_type IN ('TEACHING_REQUEST', 'STUDYING_REQUEST'))
 );
 
--- ===== 9. Mở rộng log =====
+-- ===== 12. Mở rộng log =====
 ALTER TABLE recommendation_logs
-    ADD COLUMN direction varchar(20),        -- STUDENT_TO_TUTOR | TUTOR_TO_STUDENT
+    ADD COLUMN direction varchar(20),
     ADD COLUMN algorithm_version varchar(30),
-    ADD COLUMN query_text text,              -- câu tự nhiên (A2), đã lọc PII
+    ADD COLUMN query_text text,
     ADD COLUMN parsed_query jsonb,
     ADD COLUMN relaxation_suggestions jsonb,
+    ADD COLUMN saved_search_id uuid REFERENCES recommendation_saved_searches (id),
     ADD COLUMN latency_ms integer,
     ADD CONSTRAINT ck_recommendation_logs_direction
         CHECK (direction IS NULL OR direction IN ('STUDENT_TO_TUTOR', 'TUTOR_TO_STUDENT'));
@@ -199,7 +233,7 @@ ALTER TABLE recommendation_click_logs DROP CONSTRAINT IF EXISTS ck_recommendatio
 ALTER TABLE recommendation_click_logs ADD CONSTRAINT ck_recommendation_click_logs_action
     CHECK (action IN ('VIEWED', 'CLICKED', 'FAVORITED', 'CONTACTED', 'DISMISSED'));
 
--- ===== 10. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có từ V22, rồi thêm loại mới) =====
+-- ===== 13. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có từ V22, rồi thêm loại mới) =====
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_event_type;
 ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
     event_type IS NULL OR event_type IN (
@@ -221,11 +255,14 @@ ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
 ```
 
 Ghi chú:
-- Đổi kiểu vector cần sửa luôn `columnDefinition = "vector(1024)"` trong entity `Student`, `Tutor`
-  (dự án dùng `ddl-auto: validate`).
-- Không tạo index ANN cho vector: quy mô nhỏ, quét tuần tự cho kết quả chính xác.
-- Bảng `recommendation_entity_tags` dùng khoá đa hình (`entity_type`, `entity_id`) nên không có FK.
-  Tính toàn vẹn do tầng ứng dụng đảm bảo; khi xoá mềm entity thì xoá mềm tag tương ứng.
+- Đổi kiểu vector cần sửa `columnDefinition = "vector(1024)"` trong entity `Student`, `Tutor`
+  (`ddl-auto: validate`).
+- Không tạo index ANN cho vector ở quy mô đồ án.
+- `recommendation_entity_tags`, `ai_enrichment_jobs` dùng khoá đa hình (`entity_type`, `entity_id`)
+  nên không có FK; tầng ứng dụng đảm bảo toàn vẹn.
+- Tag người dùng **tự chọn trên bộ lọc** khi tìm kiếm không ghi vào `recommendation_entity_tags`
+  (chỉ nằm trong `query_context`); tag ghi vào hồ sơ khi người dùng sửa hồ sơ (`source = 'USER'`) hoặc
+  do A1 suy ra (`source = 'LLM'`).
 
 ## 3.4. Migration V26 — điều kiện tiên quyết P2, P5
 
@@ -243,8 +280,7 @@ ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
 
 ## 3.5. Cột tổng hợp trên `tutors`
 
-`AggregateRefreshJob` (P1) chạy một câu `UPDATE` duy nhất, ngay trước khi tính lại
-`recommendation_score`:
+`AggregateRefreshJob` (P1) chạy một câu `UPDATE`, ngay trước khi tính lại `recommendation_score`:
 
 ```sql
 WITH rv AS (
@@ -257,7 +293,7 @@ WITH rv AS (
            COUNT(DISTINCT student_id) FILTER (WHERE status IN ('ACTIVE', 'COMPLETED')) AS students
     FROM contracts WHERE deleted_at IS NULL
     GROUP BY tutor_id
-), rq AS (   -- quyết định của gia sư với đơn học sinh gửi tới tin dạy của mình
+), rq AS (
     SELECT tr.tutor_id,
            COUNT(*) FILTER (WHERE s.status = 'ACCEPTED') AS accepted,
            COUNT(*) FILTER (WHERE s.status IN ('ACCEPTED', 'REJECTED')) AS decided,
@@ -284,6 +320,5 @@ LEFT JOIN rq ON rq.tutor_id = x.id
 WHERE t.id = x.id AND t.deleted_at IS NULL;
 ```
 
-- `acceptance_rate` để `NULL` khi gia sư mới có dưới 3 quyết định, để công thức
-  `recommendation_score` dùng giá trị trung lập (7,5 điểm).
-- `avg_response_time_hours` dùng `updated_at` thay cho `responded_at` với dữ liệu cũ (gần đúng).
+`acceptance_rate` để `NULL` khi dưới 3 quyết định (công thức `recommendation_score` dùng giá trị
+trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (gần đúng).
