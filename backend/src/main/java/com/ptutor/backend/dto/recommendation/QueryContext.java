@@ -15,6 +15,8 @@ public record QueryContext(
         UUID studentUserId,
         UUID subjectId,
         UUID gradeId,
+        /** grades.level of the chosen grade; null when unknown. */
+        Integer gradeLevel,
         ModePreference learningMode,
         AreaScope areaScope,
         List<UUID> districtIds,

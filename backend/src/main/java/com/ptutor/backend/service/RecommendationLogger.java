@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import com.ptutor.backend.dto.recommendation.FeatureVector;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
+import com.ptutor.backend.dto.recommendation.Willingness;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
@@ -95,7 +96,18 @@ public class RecommendationLogger {
             node.put("rank", rank++);
             node.put("score", round(scored.score()));
             node.put("a", round(scored.a()));
-            node.putNull("b");
+            Willingness willingness = scored.willingness();
+            if (willingness == null) {
+                node.putNull("b");
+            } else {
+                node.put("b", round(willingness.b()));
+                node.putObject("willingness")
+                        .put("hist", round(willingness.history()))
+                        .put("fit", round(willingness.fit()))
+                        .put("cap", round(willingness.capacity()))
+                        .put("invited", willingness.invited());
+            }
+            node.put("r", round(scored.r()));
             node.put("q", round(scored.q()));
             node.put("g", round(scored.g()));
             node.put("wHist", 0.0);

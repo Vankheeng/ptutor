@@ -16,12 +16,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.recommendation.AreaScope;
@@ -75,8 +77,21 @@ class TutorRecommendationIntegrationTest {
     private UUID studentUserId;
     private UUID studentId;
 
+    /**
+     * The settings bean is shared by the whole test context, so every change is undone afterwards. Most
+     * tests check the student's side only (V2-a); the reciprocal tests switch it back on.
+     */
+    @AfterEach
+    void restoreSettings() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
+        ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
+    }
+
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", false);
+        // Never measure the platform rate on whatever this database happens to contain.
+        ReflectionTestUtils.setField(settings, "willingnessMinDecisions", Integer.MAX_VALUE);
         queryEmbeddingService = mock(QueryEmbeddingService.class);
         when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
@@ -91,7 +106,8 @@ class TutorRecommendationIntegrationTest {
         subjectId = insert("INSERT INTO subjects (id, name, status) VALUES (?, ?, 'ACTIVE')", "Toán-" + UUID.randomUUID());
         otherSubjectId = insert("INSERT INTO subjects (id, name, status) VALUES (?, ?, 'ACTIVE')",
                 "Văn-" + UUID.randomUUID());
-        gradeId = insert("INSERT INTO grades (id, name, status) VALUES (?, ?, 'ACTIVE')", "Lớp 9-" + UUID.randomUUID());
+        gradeId = insert("INSERT INTO grades (id, name, status, level) VALUES (?, ?, 'ACTIVE', 9)",
+                "Lớp 9-" + UUID.randomUUID());
         otherGradeId = insert("INSERT INTO grades (id, name, status) VALUES (?, ?, 'ACTIVE')",
                 "Lớp 6-" + UUID.randomUUID());
         reviewerId = insert("INSERT INTO employees (id, user_id, role) VALUES (?, ?, 1)", user(null));
@@ -360,6 +376,95 @@ class TutorRecommendationIntegrationTest {
         assertThat(stillVague.lowConfidence()).isTrue();
     }
 
+    // ---------------------------------------------------------------- reciprocal (V2-RC)
+
+    @Test
+    void crowdedPostingRanksBelowAFreeOneAndTheLogExplainsWhy() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
+        UUID crowded = posting(tutor(), new Posting().cosine(0.80).quantity(2));
+        applicationOf(otherStudent(), crowded, "ACCEPTED", 3, null);
+        for (int index = 0; index < 4; index++) {
+            applicationOf(otherStudent(), crowded, "PENDING", 1, null);
+        }
+        UUID free = posting(tutor(), new Posting().cosine(0.70));
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(free, crowded);
+        JsonView log = log(response.logId());
+        // 2 places, 1 taken -> r = 1; 4 waiting -> cap = 1 / (1 + 0.5 * 4)
+        assertThat(log.willingness(crowded, "cap")).isCloseTo(1 / 3.0, within(0.001));
+        assertThat(log.willingness(free, "cap")).isEqualTo(1.0);
+        assertThat(log.number(free, "b")).isCloseTo(0.6, within(0.001));
+        assertThat(log.number(free, "r")).isCloseTo(2 * 0.615 * 0.6 / (0.615 + 0.6), within(0.002));
+    }
+
+    @Test
+    void tutorWhoAcceptsSimilarStudentsRanksAboveOneWhoRejectsThem() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
+        UUID welcomingTutor = tutor();
+        UUID pickyTutor = tutor();
+        UUID welcoming = posting(welcomingTutor, new Posting().cosine(0.70));
+        UUID picky = posting(pickyTutor, new Posting().cosine(0.70));
+        UUID oldWelcoming = posting(welcomingTutor, new Posting().status("CLOSED"));
+        UUID oldPicky = posting(pickyTutor, new Posting().status("CLOSED"));
+        for (int index = 0; index < 4; index++) {
+            applicationOf(otherStudent(), oldWelcoming, "ACCEPTED", 20, "150000");
+            applicationOf(otherStudent(), oldPicky, "REJECTED", 20, "150000");
+        }
+        // Too old to count.
+        applicationOf(otherStudent(), oldPicky, "ACCEPTED", 200, "150000");
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(welcoming, picky);
+        JsonView log = log(response.logId());
+        // same grade, same price as the posting, mode ANY -> k = 1 for each of the 4 decisions
+        assertThat(log.willingness(welcoming, "hist")).isCloseTo((4 + 1.2) / 6, within(0.001));
+        assertThat(log.willingness(picky, "hist")).isCloseTo(1.2 / 6, within(0.001));
+    }
+
+    @Test
+    void tutorWhoAlreadyProposedToTheStudentsOpenPostingIsCertainToAccept() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
+        UUID invitingTutor = tutor();
+        UUID invited = posting(invitingTutor, new Posting().cosine(0.60));
+        UUID other = posting(tutor(), new Posting().cosine(0.60));
+        UUID ownRequest = insert("""
+                INSERT INTO studying_requests (id, student_id, subject_id, grade_id, learning_mode, status, quantity)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1)
+                """, studentId, subjectId, gradeId);
+        insert("""
+                INSERT INTO tutor_student_requests (id, tutor_id, grade_id, studying_request_id, teaching_mode, status)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'PENDING')
+                """, invitingTutor, gradeId, ownRequest);
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(invited, other);
+        JsonView log = log(response.logId());
+        assertThat(log.number(invited, "b")).isEqualTo(1.0);
+        assertThat(log.number(other, "b")).isCloseTo(0.6, within(0.001));
+    }
+
+    @Test
+    void platformRateIsMeasuredOnceThereAreEnoughDecisions() {
+        UUID old = posting(tutor(), new Posting().status("CLOSED"));
+        long acceptedBefore = jdbc.queryForObject(DECISIONS.formatted("= 'ACCEPTED'"), Long.class);
+        long decidedBefore = jdbc.queryForObject(DECISIONS.formatted("IN ('ACCEPTED', 'REJECTED')"), Long.class);
+        for (int index = 0; index < 3; index++) {
+            applicationOf(otherStudent(), old, "ACCEPTED", 10, null);
+        }
+        applicationOf(otherStudent(), old, "REJECTED", 10, null);
+        applicationOf(otherStudent(), old, "REJECTED", 200, null);
+
+        double measured = candidateRepository.platformAcceptanceRate(180, 1, 0.6);
+        double tooFew = candidateRepository.platformAcceptanceRate(180, Integer.MAX_VALUE, 0.6);
+
+        assertThat(measured).isCloseTo((acceptedBefore + 3) / (double) (decidedBefore + 4), within(1e-9));
+        assertThat(tooFew).isEqualTo(0.6);
+    }
+
     // ---------------------------------------------------------------- log and paging
 
     @Test
@@ -382,7 +487,7 @@ class TutorRecommendationIntegrationTest {
         assertThat(row.get("searcher_student_id")).isEqualTo(studentId);
         assertThat(row.get("searcher_tutor_id")).isNull();
         assertThat(row.get("direction")).isEqualTo("STUDENT_TO_TUTOR");
-        assertThat(row.get("algorithm_version")).isEqualTo(response.algorithmVersion()).isEqualTo("v2.1-a");
+        assertThat(row.get("algorithm_version")).isEqualTo(response.algorithmVersion()).isEqualTo("v2.1-rc");
         assertThat((String) row.get("query_text")).contains("Gia sư Toán 9").doesNotContain("a@b.vn");
         assertThat((Integer) row.get("latency_ms")).isNotNegative();
         assertThat((String) row.get("context")).contains("demandText").contains("ôn thi vào 10")
@@ -526,10 +631,11 @@ class TutorRecommendationIntegrationTest {
 
     private UUID posting(UUID tutorId, Posting posting) {
         UUID id = insert("""
-                INSERT INTO teaching_requests (id, tutor_id, subject_id, title, teaching_mode, status, expected_price)
-                VALUES (?, ?, ?, 'Dạy kèm', ?, ?, ?)
+                INSERT INTO teaching_requests
+                    (id, tutor_id, subject_id, title, teaching_mode, status, expected_price, quantity)
+                VALUES (?, ?, ?, 'Dạy kèm', ?, ?, ?, ?)
                 """, tutorId, posting.subjectId == null ? subjectId : posting.subjectId, posting.mode, posting.status,
-                posting.price);
+                posting.price, posting.quantity);
         if (posting.cosine != null) {
             jdbc.update("UPDATE teaching_requests SET embedding = CAST(? AS vector) WHERE id = ?",
                     literal(unit(posting.cosine)), id);
@@ -560,6 +666,28 @@ class TutorRecommendationIntegrationTest {
                 VALUES (?, ?, ?, ?, 'ONLINE', ?, ?, ?, ?)
                 """, studentId, gradeId, teachingRequestId, status, when, when,
                 status.equals("REJECTED") || status.equals("ACCEPTED") ? when : null);
+    }
+
+    private static final String DECISIONS = """
+            SELECT count(*) FROM student_tutor_requests
+            WHERE deleted_at IS NULL AND status %s
+              AND COALESCE(responded_at, updated_at) > now() - INTERVAL '180 days'
+            """;
+
+    private UUID otherStudent() {
+        return insert("INSERT INTO students (id, user_id) VALUES (?, ?)", user(null));
+    }
+
+    /** An application of any student, decided (or sent) {@code daysAgo} days ago. */
+    private UUID applicationOf(UUID student, UUID teachingRequestId, String status, int daysAgo, String price) {
+        Timestamp when = Timestamp.valueOf(LocalDateTime.now().minusDays(daysAgo));
+        return insert("""
+                INSERT INTO student_tutor_requests
+                    (id, student_id, grade_id, teaching_request_id, learning_mode, status, created_at, updated_at,
+                     responded_at, proposed_price)
+                VALUES (?, ?, ?, ?, 'ONLINE', ?, ?, ?, ?, ?)
+                """, student, gradeId, teachingRequestId, status, when, when,
+                status.equals("PENDING") ? null : when, price == null ? null : new BigDecimal(price));
     }
 
     private UUID tag(String group, String code, UUID parentId) {
@@ -623,6 +751,14 @@ class TutorRecommendationIntegrationTest {
             throw new AssertionError("Candidate " + candidateId + " is not in the log");
         }
 
+        double number(UUID candidateId, String name) {
+            return of(candidateId).path(name).asDouble();
+        }
+
+        double willingness(UUID candidateId, String name) {
+            return of(candidateId).path("willingness").path(name).asDouble();
+        }
+
         double g(UUID candidateId) {
             return of(candidateId).path("g").asDouble();
         }
@@ -643,6 +779,7 @@ class TutorRecommendationIntegrationTest {
         private String status = "OPEN";
         private BigDecimal price = new BigDecimal("150000");
         private Double cosine = 0.6;
+        private Integer quantity = 1;
         private List<UUID> districtIds = List.of();
         private final List<Object[]> slots = new java.util.ArrayList<>();
 
@@ -668,6 +805,11 @@ class TutorRecommendationIntegrationTest {
 
         Posting price(String value) {
             price = value == null ? null : new BigDecimal(value);
+            return this;
+        }
+
+        Posting quantity(Integer value) {
+            quantity = value;
             return this;
         }
 

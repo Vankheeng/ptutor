@@ -31,8 +31,9 @@ import com.ptutor.backend.repository.StudentRepository;
 import tools.jackson.databind.JsonNode;
 
 /**
- * "Student looks for tutors", version V2-a: merge the criteria, hard-filter OPEN teaching
- * postings, score each one from the student's point of view and return them best first.
+ * "Student looks for tutors", version V2-RC: merge the criteria, hard-filter OPEN teaching
+ * postings, score each one from both sides (how well it suits the student, how likely the tutor
+ * is to accept) and return them best first.
  */
 @Service
 public class RecommendationService {
@@ -105,7 +106,12 @@ public class RecommendationService {
                 .orElse(student.getProfileEmbedding());
         List<Hit> hits = selectHits(
                 candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
-        List<ScoredCandidate> ranked = ranker.rank(context, candidateRepository.load(student.getId(), hits));
+        double platformRate = candidateRepository.platformAcceptanceRate(
+                settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
+                settings.getWillingnessDefaultRate());
+        List<ScoredCandidate> ranked = ranker.rank(context,
+                candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays()),
+                platformRate);
         List<ScoredCandidate> kept = ranked.stream().limit(settings.getLogCandidateLimit()).toList();
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
@@ -170,7 +176,7 @@ public class RecommendationService {
                 .map(node -> new Hit(UUID.fromString(node.path("candidateId").asString()), null, null))
                 .toList();
         Map<UUID, TeachingCandidate> loaded = new HashMap<>();
-        candidateRepository.load(student.getId(), hits)
+        candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays())
                 .forEach(candidate -> loaded.put(candidate.teachingRequestId(), candidate));
         // A posting deleted since the search simply drops out of the page.
         List<Item> items = slice.stream()

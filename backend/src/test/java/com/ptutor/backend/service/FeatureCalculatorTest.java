@@ -306,6 +306,18 @@ class FeatureCalculatorTest {
         private List<WeightedTag> need = List.of();
         private List<WeightedTag> style = List.of();
         private String level;
+        private Integer gradeLevel = 9;
+        private ModePreference mode = ModePreference.ANY;
+
+        ContextBuilder gradeLevel(Integer value) {
+            gradeLevel = value;
+            return this;
+        }
+
+        ContextBuilder mode(ModePreference value) {
+            mode = value;
+            return this;
+        }
 
         ContextBuilder scope(AreaScope value) {
             scope = value;
@@ -350,7 +362,7 @@ class FeatureCalculatorTest {
 
         QueryContext build() {
             return new QueryContext(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                    ModePreference.ANY, scope, districts, null, homeDistrict, homeProvince, null, maxPrice,
+                    gradeLevel, mode, scope, districts, null, homeDistrict, homeProvince, null, maxPrice,
                     availabilities, need, style, level, null, "", null, Map.of(), List.of());
         }
     }
@@ -366,6 +378,26 @@ class FeatureCalculatorTest {
         private Set<String> styles = Set.of();
         private Set<String> segments = Set.of();
         private boolean rejected;
+        private int remaining = 1;
+        private int pending;
+        private List<TeachingCandidate.PastDecision> decisions = List.of();
+        private boolean invited;
+
+        CandidateBuilder capacity(int remainingSlots, int pendingApplications) {
+            remaining = remainingSlots;
+            pending = pendingApplications;
+            return this;
+        }
+
+        CandidateBuilder decisions(List<TeachingCandidate.PastDecision> value) {
+            decisions = value;
+            return this;
+        }
+
+        CandidateBuilder invited(boolean value) {
+            invited = value;
+            return this;
+        }
 
         CandidateBuilder cosine(Double value) {
             cosine = value;
@@ -420,7 +452,7 @@ class FeatureCalculatorTest {
         TeachingCandidate build() {
             return new TeachingCandidate(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Tin dạy", price,
                     mode, null, cosine, tutorScore, "Gia sư", null, null, 0, districts, availabilities, strengths,
-                    styles, segments, rejected);
+                    styles, segments, rejected, remaining, pending, decisions, invited);
         }
     }
 }

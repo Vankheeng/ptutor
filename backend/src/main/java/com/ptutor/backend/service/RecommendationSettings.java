@@ -13,8 +13,33 @@ import lombok.Getter;
 @Getter
 public class RecommendationSettings {
 
-    @Value("${app.recommendation.algorithm-version:v2.1-a}")
-    private String algorithmVersion = "v2.1-a";
+    @Value("${app.recommendation.algorithm-version:v2.1-rc}")
+    private String algorithmVersion = "v2.1-rc";
+
+    /** Off: rank by the searcher's side only (V2-a). On: harmonic mean with the other side (V2-R). */
+    @Value("${app.recommendation.reciprocal.enabled:true}")
+    private boolean reciprocalEnabled = true;
+
+    /** Off: crowded postings are not penalised (V2-R). On: they are (V2-RC). */
+    @Value("${app.recommendation.willingness.congestion-enabled:true}")
+    private boolean congestionEnabled = true;
+
+    /** Strength of the platform-wide prior in the tutor's acceptance history. */
+    @Value("${app.recommendation.willingness.alpha:2}")
+    private double willingnessAlpha = 2;
+
+    /** Platform acceptance rate assumed while there are too few decisions to measure it. */
+    @Value("${app.recommendation.willingness.p0-default:0.6}")
+    private double willingnessDefaultRate = 0.6;
+
+    @Value("${app.recommendation.willingness.p0-min-decisions:20}")
+    private int willingnessMinDecisions = 20;
+
+    @Value("${app.recommendation.willingness.history-days:180}")
+    private int willingnessHistoryDays = 180;
+
+    @Value("${app.recommendation.willingness.congestion-lambda:0.5}")
+    private double congestionLambda = 0.5;
 
     @Value("${app.recommendation.candidate-limit:200}")
     private int candidateLimit = 200;

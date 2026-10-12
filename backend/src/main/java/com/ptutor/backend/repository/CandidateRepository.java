@@ -23,6 +23,8 @@ import com.ptutor.backend.dto.recommendation.QueryContext.TimeSlot;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.CandidateTag;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.District;
+import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
+import com.ptutor.backend.entity.enums.LearningMode;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 import lombok.RequiredArgsConstructor;
@@ -101,7 +103,7 @@ public class CandidateRepository {
     }
 
     /** Loads the scoring data of the given postings, in the order of {@code hits}. */
-    public List<TeachingCandidate> load(UUID studentId, List<Hit> hits) {
+    public List<TeachingCandidate> load(UUID studentId, List<Hit> hits, int historyDays) {
         if (hits.isEmpty()) {
             return List.of();
         }
@@ -110,7 +112,11 @@ public class CandidateRepository {
 
         Map<UUID, Map<String, Object>> rows = new HashMap<>();
         jdbc.queryForList("""
-                SELECT tr.id, tr.tutor_id, t.user_id, tr.title, tr.expected_price, tr.teaching_mode,
+                SELECT tr.id, tr.tutor_id, t.user_id, tr.title, tr.expected_price, tr.teaching_mode, tr.quantity,
+                       (SELECT count(*) FROM student_tutor_requests s WHERE s.teaching_request_id = tr.id
+                           AND s.deleted_at IS NULL AND s.status = 'ACCEPTED') AS accepted_count,
+                       (SELECT count(*) FROM student_tutor_requests s WHERE s.teaching_request_id = tr.id
+                           AND s.deleted_at IS NULL AND s.status = 'PENDING') AS pending_count,
                        t.recommendation_score, t.average_rating, t.total_reviews,
                        u.first_name, u.last_name, u.avatar_url
                 FROM teaching_requests tr
@@ -159,6 +165,35 @@ public class CandidateRepository {
                         .addValue("since", Timestamp.valueOf(LocalDateTime.now().minusDays(RECENT_REJECTION_DAYS))),
                 (row, index) -> row.getObject("tutor_id", UUID.class)));
 
+        Map<UUID, List<PastDecision>> decisions = new HashMap<>();
+        jdbc.query("""
+                SELECT tr.tutor_id, g.level, s.proposed_price, s.learning_mode, s.status
+                FROM student_tutor_requests s
+                JOIN teaching_requests tr ON tr.id = s.teaching_request_id
+                LEFT JOIN grades g ON g.id = s.grade_id
+                WHERE s.deleted_at IS NULL AND s.status IN ('ACCEPTED', 'REJECTED')
+                  AND COALESCE(s.responded_at, s.updated_at) > :since
+                  AND tr.tutor_id IN (:tutorIds)
+                """, new MapSqlParameterSource()
+                        .addValue("tutorIds", tutorIds)
+                        .addValue("since", Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))),
+                row -> {
+                    decisions.computeIfAbsent(row.getObject("tutor_id", UUID.class), key -> new ArrayList<>())
+                            .add(new PastDecision(
+                                    (Integer) row.getObject("level"), row.getBigDecimal("proposed_price"),
+                                    LearningMode.valueOf(row.getString("learning_mode")),
+                                    row.getString("status").equals("ACCEPTED")));
+                });
+        Set<UUID> inviting = new HashSet<>(jdbc.query("""
+                SELECT DISTINCT p.tutor_id
+                FROM tutor_student_requests p
+                JOIN studying_requests sr ON sr.id = p.studying_request_id
+                WHERE p.deleted_at IS NULL AND p.status = 'PENDING'
+                  AND sr.student_id = :studentId AND sr.status = 'OPEN' AND sr.deleted_at IS NULL
+                  AND p.tutor_id IN (:tutorIds)
+                """, new MapSqlParameterSource().addValue("studentId", studentId).addValue("tutorIds", tutorIds),
+                (row, index) -> row.getObject("tutor_id", UUID.class)));
+
         List<TeachingCandidate> candidates = new ArrayList<>(hits.size());
         for (Hit hit : hits) {
             Map<String, Object> row = rows.get(hit.teachingRequestId());
@@ -184,9 +219,30 @@ public class CandidateRepository {
                             .collect(Collectors.toSet()),
                     codes(candidateTags, "OFFERED", "STYLE"),
                     codes(candidateTags, "TARGET", "SEGMENT"),
-                    rejecting.contains(tutorId)));
+                    rejecting.contains(tutorId),
+                    Math.max(1, (row.get("quantity") == null ? 1 : (Integer) row.get("quantity"))
+                            - ((Number) row.get("accepted_count")).intValue()),
+                    ((Number) row.get("pending_count")).intValue(),
+                    decisions.getOrDefault(tutorId, List.of()),
+                    inviting.contains(tutorId)));
         }
         return candidates;
+    }
+
+    /**
+     * Share of applications that tutors accepted, over the whole platform. Used as the prior for a
+     * tutor with little history; the default applies until there are enough decisions to measure it.
+     */
+    public double platformAcceptanceRate(int historyDays, int minDecisions, double defaultRate) {
+        Map<String, Object> row = jdbc.queryForMap("""
+                SELECT count(*) FILTER (WHERE status = 'ACCEPTED') AS accepted, count(*) AS decided
+                FROM student_tutor_requests
+                WHERE deleted_at IS NULL AND status IN ('ACCEPTED', 'REJECTED')
+                  AND COALESCE(responded_at, updated_at) > :since
+                """, new MapSqlParameterSource("since",
+                        Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))));
+        long decided = ((Number) row.get("decided")).longValue();
+        return decided < minDecisions ? defaultRate : ((Number) row.get("accepted")).doubleValue() / decided;
     }
 
     /** Tags of the postings and of their tutors, keyed by the id of the entity they are attached to. */

@@ -169,7 +169,7 @@ public class QueryContextBuilder {
 
         return new QueryContext(
                 student.getId(), student.getUser() == null ? null : student.getUser().getId(),
-                subjectId, grade == null ? null : grade.getId(),
+                subjectId, grade == null ? null : grade.getId(), grade == null ? null : grade.getLevel(),
                 mode, area.scope(), area.districtIds(), area.provinceId(), homeDistrictId, homeProvinceId,
                 minPrice, maxPrice, availabilities, needTags, styleTags,
                 level == null ? null : level.getCode(),
