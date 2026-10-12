@@ -184,7 +184,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidPriceRange() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, 1, "Find a tutor", null, null, districtId, null,
+                subjectId, gradeId, "Find a tutor", null, null, districtId, null,
                 java.math.BigDecimal.valueOf(200), java.math.BigDecimal.valueOf(100),
                 null, LearningMode.ONLINE, null, null);
 
@@ -196,7 +196,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidAvailability() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, 1, "Find a tutor", null, null, null, null,
+                subjectId, gradeId, "Find a tutor", null, null, null, null,
                 null, null, null, LearningMode.ONLINE, null,
                 List.of(new StudyingRequestRequest.Availability(8, LocalTime.of(19, 0), LocalTime.of(18, 0))));
 
@@ -251,17 +251,17 @@ class StudyingRequestServiceTest {
     }
 
     @Test
-    void findMineRejectsUnsupportedStatusFilter() {
-        assertThatThrownBy(() -> service.findMine(
-                userId,
-                RequestStatus.PENDING_REVIEW,
-                PageRequest.of(0, 20)))
-                .isInstanceOfSatisfying(ApiException.class, exception -> {
-                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(exception.getCode()).isEqualTo("INVALID_STUDYING_REQUEST_STATUS");
-                });
-        verify(studyingRequestRepository, never())
-                .findAllByStudent_IdOrderByCreatedAtDesc(any(), any());
+    void findMineAcceptsReviewStatusFilter() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(studyingRequestRepository.findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                studentId, RequestStatus.PENDING_REVIEW, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        var response = service.findMine(userId, RequestStatus.PENDING_REVIEW, pageable);
+
+        assertThat(response.totalElements()).isZero();
+        verify(studyingRequestRepository).findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                studentId, RequestStatus.PENDING_REVIEW, pageable);
     }
 
     @Test
@@ -274,8 +274,8 @@ class StudyingRequestServiceTest {
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, null, "Updated title", null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, "Updated title", null, null, null, null, null,
+                null, null, null, null, null);
 
         StudyingRequestResponse response = service.update(userId, request.getId(), update);
 
@@ -290,7 +290,7 @@ class StudyingRequestServiceTest {
     void updateRejectsEmptyPatch() {
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, UUID.randomUUID(), update))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -308,8 +308,8 @@ class StudyingRequestServiceTest {
                 .thenReturn(Optional.of(request));
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, null, "Updated title", null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, "Updated title", null, null, null, null, null,
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, request.getId(), update))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -404,7 +404,7 @@ class StudyingRequestServiceTest {
 
     private StudyingRequestRequest request() {
         return new StudyingRequestRequest(
-                subjectId, gradeId, 1, "  Find an English tutor  ", "Description", "Note", districtId,
+                subjectId, gradeId, "  Find an English tutor  ", "Description", "Note", districtId,
                 "Address", java.math.BigDecimal.valueOf(100), java.math.BigDecimal.valueOf(200),
                 "Improve speaking", LearningMode.ONLINE, "Evenings",
                 List.of(new StudyingRequestRequest.Availability(2, LocalTime.of(18, 0), LocalTime.of(20, 0))));
@@ -415,7 +415,6 @@ class StudyingRequestServiceTest {
                 .student(student)
                 .subject(subject)
                 .grade(grade)
-                .quantity(1)
                 .district(district)
                 .title("Find an English tutor")
                 .learningMode(LearningMode.ONLINE)

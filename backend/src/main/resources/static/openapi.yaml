@@ -1213,7 +1213,7 @@ paths:
       tags:
         - Tutor Student Requests
       summary: Accept a tutor offer
-      description: Accepts a PENDING tutor offer. When the accepted count reaches quantity, the studying request becomes MATCHED.
+      description: Accepts a PENDING tutor offer. The studying request becomes MATCHED after the first tutor offer is accepted. Other PENDING offers remain unchanged and can be rejected manually by the student.
       operationId: acceptTutorStudentRequest
       security:
         - bearerAuth: []
@@ -5424,7 +5424,7 @@ components:
 
     StudyingRequestSearchResponse:
       type: object
-      required: [id, subjectId, subjectName, gradeId, gradeName, quantity, learningMode, status, availabilities, createdAt]
+      required: [id, subjectId, subjectName, gradeId, gradeName, learningMode, status, availabilities, createdAt]
       properties:
         id: { type: string, format: uuid }
         subjectId: { type: string, format: uuid }
@@ -5433,7 +5433,6 @@ components:
         gradeName: { type: string }
         districtId: { type: string, format: uuid, nullable: true }
         districtName: { type: string, nullable: true }
-        quantity: { type: integer }
         title: { type: string, nullable: true }
         description: { type: string, nullable: true }
         learningGoals: { type: string, nullable: true }

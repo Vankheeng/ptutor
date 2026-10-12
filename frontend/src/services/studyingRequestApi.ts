@@ -1,6 +1,7 @@
 import { get, post } from './httpClient';
 
-export type StudyingRequestStatus = 'DRAFT' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED';
+export type StudyingRequestStatus =
+  'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
 export type LearningMode = 'ONLINE' | 'OFFLINE';
 
 export interface StudyingRequestSearchFilters {
@@ -15,13 +16,12 @@ export interface StudyingRequestSearchFilters {
 
 export interface StudyingRequestSearchResponse {
   id: string;
-  subjectId: string;
-  subjectName: string;
+  subjectId: string | null;
+  subjectName: string | null;
   gradeId: string;
   gradeName: string;
   districtId: string | null;
   districtName: string | null;
-  quantity: number;
   title: string | null;
   description: string | null;
   learningGoals: string | null;

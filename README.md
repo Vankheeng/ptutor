@@ -374,7 +374,6 @@ Ví dụ tạo studying request:
 {
   "subjectId": "5f68e2cf-d21f-1c69-3fbd-1404b89f26ff",
   "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
-  "quantity": 1,
   "title": "Cần gia sư Toán lớp 10",
   "description": "Cần hỗ trợ ôn thi học kỳ.",
   "districtId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
@@ -421,7 +420,7 @@ API danh sách hỗ trợ các query parameter:
 GET /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests?page=0&size=20&status=PENDING
 ```
 
-Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi số Tutor được chấp nhận đạt `quantity` của studying request, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên.
+Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi Student chấp nhận Tutor đầu tiên, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên và Student có thể tự reject từng đề nghị.
 
 Khi gọi API, thêm header:
 

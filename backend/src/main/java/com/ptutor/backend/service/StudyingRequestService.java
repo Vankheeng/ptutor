@@ -49,10 +49,12 @@ public class StudyingRequestService {
 
     private static final Set<RequestStatus> SUPPORTED_LIST_STATUSES = Set.of(
             RequestStatus.DRAFT,
+            RequestStatus.PENDING_REVIEW,
             RequestStatus.OPEN,
             RequestStatus.MATCHED,
             RequestStatus.CLOSED,
-            RequestStatus.CANCELLED);
+            RequestStatus.CANCELLED,
+            RequestStatus.REJECTED);
 
     private static final List<ApplicationStatus> ACTIVE_TUTOR_REQUEST_STATUSES = List.of(
             ApplicationStatus.PENDING,
@@ -101,7 +103,7 @@ public class StudyingRequestService {
         validateRequest(request);
 
         Student student = findStudentByUserId(userId);
-        Subject subject = resolveSubject(request.subjectId());
+        Subject subject = request.subjectId() == null ? null : resolveSubject(request.subjectId());
         Grade grade = resolveGrade(request.gradeId());
         District district = resolveDistrict(request.districtId());
 
@@ -109,7 +111,6 @@ public class StudyingRequestService {
                 .student(student)
                 .subject(subject)
                 .grade(grade)
-                .quantity(request.quantity())
                 .district(district)
                 .title(normalize(request.title()))
                 .description(normalize(request.description()))
@@ -135,10 +136,18 @@ public class StudyingRequestService {
         Student student = findStudentByUserId(userId);
         validateListStatus(status);
 
+        boolean customSort = pageable.getSort().isSorted()
+                && !(pageable.getSort().getOrderFor("createdAt") != null
+                && pageable.getSort().stream().allMatch(order -> "createdAt".equals(order.getProperty())
+                && order.getDirection() == org.springframework.data.domain.Sort.Direction.DESC));
         Page<StudyingRequest> requests = status == null
-                ? studyingRequestRepository.findAllByStudent_IdOrderByCreatedAtDesc(student.getId(), pageable)
-                : studyingRequestRepository.findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
-                        student.getId(), status, pageable);
+                ? (customSort
+                        ? studyingRequestRepository.findAllByStudent_Id(student.getId(), pageable)
+                        : studyingRequestRepository.findAllByStudent_IdOrderByCreatedAtDesc(student.getId(), pageable))
+                : (customSort
+                        ? studyingRequestRepository.findAllByStudent_IdAndStatus(student.getId(), status, pageable)
+                        : studyingRequestRepository.findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                                student.getId(), status, pageable));
 
         return PageResponse.from(requests, toResponses(requests.getContent()));
     }
@@ -180,32 +189,12 @@ public class StudyingRequestService {
         BigDecimal effectiveMaxPrice = request.maxPrice() == null
                 ? studyingRequest.getMaxPrice()
                 : request.maxPrice();
-        Integer effectiveQuantity = request.quantity() == null
-                ? studyingRequest.getQuantity()
-                : request.quantity();
         validatePriceRange(effectiveMinPrice, effectiveMaxPrice);
-        validateQuantity(effectiveQuantity);
-
-        long acceptedCount = 0;
-        if (request.quantity() != null) {
-            acceptedCount = tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
-                    requestId, ApplicationStatus.ACCEPTED);
-            if (acceptedCount > effectiveQuantity) {
-                throw new ApiException(
-                        HttpStatus.CONFLICT,
-                        "INVALID_STUDYING_REQUEST_QUANTITY",
-                        "Quantity cannot be lower than the number of accepted tutor requests");
-            }
-        }
 
         studyingRequestMapper.updateEntity(request, studyingRequest);
         studyingRequest.setSubject(subject);
         studyingRequest.setGrade(grade);
         studyingRequest.setDistrict(district);
-        if (request.quantity() != null && acceptedCount == effectiveQuantity
-                && acceptedCount > 0 && studyingRequest.getStatus() == RequestStatus.OPEN) {
-            studyingRequest.setStatus(RequestStatus.MATCHED);
-        }
 
         if (request.availabilities() != null) {
             replaceAvailabilities(studyingRequest, toUpdateAvailabilityValues(request.availabilities()));
@@ -248,12 +237,23 @@ public class StudyingRequestService {
 
         studyingRequest.setStatus(RequestStatus.CANCELLED);
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+
+        // The bulk update below clears Hibernate's persistence context. Build the
+        // response before that happens and load availabilities explicitly instead
+        // of touching the lazy collection after the session has been cleared.
+        List<StudyingRequestResponse.Availability> availabilities = availabilityRepository
+                .findAllByStudyingRequest_IdOrderByDayOfWeekAscStartTimeAsc(requestId)
+                .stream()
+                .map(studyingRequestMapper::toAvailability)
+                .toList();
+        StudyingRequestResponse response = toResponse(saved, availabilities);
+
         tutorStudentRequestRepository.cancelActiveByStudyingRequestId(
                 requestId,
                 ACTIVE_TUTOR_REQUEST_STATUSES,
                 ApplicationStatus.CANCELLED,
                 LocalDateTime.now(clock));
-        return toResponse(saved);
+        return response;
     }
 
     /**
@@ -268,8 +268,12 @@ public class StudyingRequestService {
             throw invalidTransition("Only DRAFT requests can be activated after payment");
         }
 
-        studyingRequest.setStatus(RequestStatus.OPEN);
+        studyingRequest.setStatus(requiresReview(studyingRequest) ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
         return toResponse(studyingRequestRepository.saveAndFlush(studyingRequest));
+    }
+
+    private boolean requiresReview(StudyingRequest request) {
+        return request.getSubject() == null && request.getNote() != null && !request.getNote().isBlank();
     }
 
     private Student findStudentByUserId(UUID userId) {
@@ -319,17 +323,17 @@ public class StudyingRequestService {
 
     private void validateRequest(StudyingRequestRequest request) {
         if (request == null
-                || request.subjectId() == null
                 || request.gradeId() == null
-                || request.quantity() == null
                 || request.learningMode() == null
                 || request.title() == null
                 || request.title().isBlank()) {
             throw badRequest(
                     "INVALID_STUDYING_REQUEST",
-                    "Subject, grade, quantity, title and learning mode are required");
+                    "Grade, title and learning mode are required");
         }
-        validateQuantity(request.quantity());
+        if (request.subjectId() == null && (request.note() == null || request.note().isBlank())) {
+            throw badRequest("INVALID_STUDYING_REQUEST", "A custom subject requires a note");
+        }
         if (request.minPrice() != null && request.minPrice().compareTo(BigDecimal.ZERO) < 0
                 || request.maxPrice() != null && request.maxPrice().compareTo(BigDecimal.ZERO) < 0
                 || request.minPrice() != null && request.maxPrice() != null
@@ -371,12 +375,6 @@ public class StudyingRequestService {
                 || maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0
                 || minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw badRequest("INVALID_PRICE_RANGE", "Prices must be non-negative and minimum must not exceed maximum");
-        }
-    }
-
-    private void validateQuantity(Integer quantity) {
-        if (quantity == null || quantity <= 0) {
-            throw badRequest("INVALID_STUDYING_REQUEST_QUANTITY", "Quantity must be greater than zero");
         }
     }
 

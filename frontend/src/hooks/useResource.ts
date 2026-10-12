@@ -12,7 +12,7 @@ export function useResource<T>(load: ResourceLoader<T>, refreshKey?: unknown): A
     load(controller.signal)
       .then((data) => setState({ data, error: null, isLoading: false }))
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if ((error instanceof DOMException || error instanceof Error) && error.name === 'AbortError') return;
         setState({
           data: null,
           error: error instanceof Error ? error.message : 'Không thể tải dữ liệu.',

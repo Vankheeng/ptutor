@@ -58,7 +58,6 @@ class StudyingRequestControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subjectId\":\"11111111-1111-1111-1111-111111111111\","
                                 + "\"gradeId\":\"22222222-2222-2222-2222-222222222222\","
-                                + "\"quantity\":1,"
                                 + "\"title\":\"Find a tutor\",\"learningMode\":\"ONLINE\"}"))
                 .andExpect(status().isCreated());
 

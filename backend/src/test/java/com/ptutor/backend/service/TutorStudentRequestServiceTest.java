@@ -222,9 +222,8 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void acceptsPendingRequestAndKeepsStudyingRequestOpenWhenCapacityRemains() {
+    void acceptsPendingRequestAndMarksStudyingRequestMatched() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
-        request.setQuantity(2);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
                 .thenReturn(Optional.of(request));
@@ -237,14 +236,13 @@ class TutorStudentRequestServiceTest {
         service.accept(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
-        assertThat(request.getStatus()).isEqualTo(RequestStatus.OPEN);
-        verify(studyingRequestRepository, never()).saveAndFlush(any());
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
+        verify(studyingRequestRepository).saveAndFlush(request);
     }
 
     @Test
     void acceptsPendingRequestAndMarksStudyingRequestMatchedAtCapacity() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
-        request.setQuantity(1);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
                 .thenReturn(Optional.of(request));
@@ -263,7 +261,7 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void doesNotAcceptWhenQuantityHasAlreadyBeenReached() {
+    void doesNotAcceptWhenStudyingRequestAlreadyHasAnAcceptedTutor() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
@@ -271,14 +269,30 @@ class TutorStudentRequestServiceTest {
         when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
                 .thenReturn(Optional.of(tutorRequest));
         when(tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
-                studyingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(2L);
+                studyingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(1L);
 
         assertThatThrownBy(() -> service.accept(studentUserId, studyingRequestId, requestId))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(exception.getCode()).isEqualTo("STUDYING_REQUEST_QUANTITY_REACHED");
+                    assertThat(exception.getCode()).isEqualTo("STUDYING_REQUEST_ALREADY_MATCHED");
                 });
         verify(tutorStudentRequestRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void allowsStudentToRejectAnotherPendingOfferAfterOneOfferWasAccepted() {
+        StudyingRequest request = studyingRequest(RequestStatus.MATCHED);
+        TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
+        when(studyingRequestRepository.findByIdAndStudent_Id(studyingRequestId, studentId))
+                .thenReturn(Optional.of(request));
+        when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
+                .thenReturn(Optional.of(tutorRequest));
+        when(tutorStudentRequestRepository.saveAndFlush(tutorRequest)).thenReturn(tutorRequest);
+
+        service.reject(studentUserId, studyingRequestId, requestId);
+
+        assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
     }
 
     @Test
@@ -368,7 +382,6 @@ class TutorStudentRequestServiceTest {
                 .student(student())
                 .subject(subject)
                 .grade(grade())
-                .quantity(2)
                 .title("Need an English tutor")
                 .learningMode(com.ptutor.backend.entity.enums.LearningMode.ONLINE)
                 .status(status)

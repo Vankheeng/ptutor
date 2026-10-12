@@ -56,7 +56,14 @@ public interface StudyingRequestRepository extends JpaRepository<StudyingRequest
     Page<StudyingRequest> findAllByStudent_IdOrderByCreatedAtDesc(UUID studentId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"student", "subject", "grade", "district"})
+    Page<StudyingRequest> findAllByStudent_Id(UUID studentId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"student", "subject", "grade", "district"})
     Page<StudyingRequest> findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+            UUID studentId, com.ptutor.backend.entity.enums.RequestStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"student", "subject", "grade", "district"})
+    Page<StudyingRequest> findAllByStudent_IdAndStatus(
             UUID studentId, com.ptutor.backend.entity.enums.RequestStatus status, Pageable pageable);
 
     Optional<StudyingRequest> findByIdAndStudent_Id(UUID id, UUID studentId);
@@ -76,7 +83,7 @@ public interface StudyingRequestRepository extends JpaRepository<StudyingRequest
             select distinct request
             from StudyingRequest request
             join fetch request.student student
-            join fetch request.subject subject
+            left join fetch request.subject subject
             join fetch request.grade grade
             left join fetch request.district district
             left join fetch request.availabilities availability
