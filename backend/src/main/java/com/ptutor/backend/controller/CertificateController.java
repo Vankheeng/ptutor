@@ -54,13 +54,14 @@ public class CertificateController {
         this(certificateService, responseFactory, null);
     }
 
-    public record CertificateUploadResponse(String certificateUrl) { }
+    public record CertificateUploadResponse(String certificateUrl, String previewUrl) { }
 
     @PostMapping(path = "/me/certificates/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CertificateUploadResponse>> upload(@RequestPart("file") MultipartFile file) {
         String reference = certificateFileStorageService.upload(file);
         return ResponseEntity.status(201).body(responseFactory.success(
-                new CertificateUploadResponse(reference), "/api/v1/tutors/me/certificates/upload"));
+                new CertificateUploadResponse(reference, certificateFileStorageService.accessUrl(reference)),
+                "/api/v1/tutors/me/certificates/upload"));
     }
 
     @PostMapping("/me/certificates")

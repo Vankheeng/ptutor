@@ -1,11 +1,12 @@
 import { createContext } from 'react';
-import type { AuthUser, LoginRequest } from '../types/auth';
+import type { AuthProfile, AuthUser, LoginRequest } from '../types/auth';
 
 export interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (request: LoginRequest) => Promise<AuthUser>;
+  updateProfile: (profile: AuthProfile) => void;
   logout: () => Promise<void>;
 }
 

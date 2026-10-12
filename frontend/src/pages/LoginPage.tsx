@@ -46,10 +46,17 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const authenticatedUser = await login({ email, password });
-      navigate(authenticatedUser.role === 'TUTOR' ? '/tutor/dashboard' : '/', {
-        replace: true,
-        state: { message: 'Đăng nhập thành công.' }
-      });
+      navigate(
+        authenticatedUser.role === 'TUTOR'
+          ? '/tutor/dashboard'
+          : authenticatedUser.role === 'STUDENT'
+            ? '/student/dashboard'
+            : '/',
+        {
+          replace: true,
+          state: { message: 'Đăng nhập thành công.' }
+        }
+      );
     } catch (caught) {
       if (caught instanceof ApiError) {
         setFieldErrors(caught.fieldErrors);

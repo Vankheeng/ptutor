@@ -78,9 +78,12 @@ public class CertificateFileStorageService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "CERTIFICATE_UPLOAD_FAILED",
                     "The certificate file could not be read");
         } catch (S3Exception exception) {
-            log.error("Object storage rejected certificate upload (status {}, code {})",
-                    exception.statusCode(), exception.awsErrorDetails() == null
-                            ? "unknown" : exception.awsErrorDetails().errorCode(), exception);
+            log.error("Object storage rejected certificate upload (status {}, code {}, requestId {}, message {})",
+                    exception.statusCode(),
+                    exception.awsErrorDetails() == null ? "unknown" : exception.awsErrorDetails().errorCode(),
+                    exception.requestId(),
+                    exception.awsErrorDetails() == null ? "unknown" : exception.awsErrorDetails().errorMessage(),
+                    exception);
             throw new ApiException(HttpStatus.BAD_GATEWAY, "CERTIFICATE_STORAGE_REJECTED",
                     "Object storage rejected the upload. Check the bucket, region, and write permissions.");
         } catch (SdkClientException | IllegalArgumentException exception) {

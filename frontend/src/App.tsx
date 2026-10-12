@@ -14,6 +14,17 @@ import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
 import { HomeLanding } from './components/home/HomeLanding';
+import { StudentLayout } from './pages/student/StudentLayout';
+import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
+import { StudentStudyingRequestsPage } from './pages/student/StudentStudyingRequestsPage';
+import { StudentStudyingRequestDetailPage } from './pages/student/StudentStudyingRequestDetailPage';
+import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
+import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
+import { StudentContractsPage } from './pages/student/StudentContractsPage';
+import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
+import { StudentNotificationsPage } from './pages/student/StudentNotificationsPage';
+import { StudentWalletPage } from './pages/student/StudentWalletPage';
+import { StudentProfilePage } from './pages/student/StudentProfilePage';
 
 export default function App() {
   return (
@@ -32,6 +43,21 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
+              </Route>
+            </Route>
+            <Route element={<RoleGuard roles={['STUDENT']} />}>
+              <Route path="/student" element={<StudentLayout />}>
+                <Route index element={<StudentDashboardPage />} />
+                <Route path="dashboard" element={<StudentDashboardPage />} />
+                <Route path="studying-requests" element={<StudentStudyingRequestsPage />} />
+                <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
+                <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
+                <Route path="applications" element={<StudentApplicationsPage />} />
+                <Route path="contracts" element={<StudentContractsPage />} />
+                <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />
+                <Route path="notifications" element={<StudentNotificationsPage />} />
+                <Route path="wallet" element={<StudentWalletPage />} />
+                <Route path="profile" element={<StudentProfilePage />} />
               </Route>
             </Route>
           </Route>
