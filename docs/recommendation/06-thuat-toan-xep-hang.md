@@ -249,6 +249,11 @@ b_hist = (Σ_{d ∈ D, ACCEPTED} k(x,d) + α·p0) / (Σ_{d ∈ D} k(x,d) + α)
 
 Gia sư chưa có lịch sử → `b_hist = p0`.
 
+Ghi chú triển khai: mốc thời gian của quyết định là `COALESCE(responded_at, updated_at)`; thành phần nào
+thiếu dữ liệu ở một trong hai phía (đơn cũ không ghi giá đề nghị, lớp không có `level`) thì độ giống của
+thành phần đó là **0,5**; `p0` chỉ được đo khi nền tảng có ≥ 20 quyết định trong 180 ngày
+(`willingness.p0-min-decisions`).
+
 ### `b_fit` — học sinh có hợp tiêu chí công khai của gia sư
 
 Trung bình các thành phần có dữ liệu: đối tượng (như `f_segment`), lịch (`f_sched`), giá theo góc
@@ -268,6 +273,9 @@ b_cap = r / (r + 0.5·n)
 | 1 | 2 | 0,50 |
 | 1 | 6 | 0,25 |
 | 3 | 2 | 0,75 |
+
+Hai cờ phục vụ so sánh các cấu hình (09, mục 9.4): `reciprocal.enabled = false` → chỉ dùng a (V2-a);
+`willingness.congestion-enabled = false` → `b_cap = 1` (V2-R); cả hai bật → V2-RC (mặc định).
 
 ## 6.7. Điểm reciprocal (R1)
 

@@ -18,7 +18,8 @@
 | `history.signal-weights` view / favorite / contact / accepted / dismissed | 1 / 2 / 3 / 4 / −2 | 07, 7.4 |
 | `low-confidence-threshold` / `confidence-prior` | 0,4 / 0,5 | 06, 6.5 |
 | `price.hard-factor` | 1,5 | 06, 6.2 |
-| `willingness.alpha` / `p0-default` / `history-days` / `congestion-lambda` | 2 / 0,6 / 180 / 0,5 | 06, 6.6 |
+| `willingness.alpha` / `p0-default` / `p0-min-decisions` / `history-days` / `congestion-lambda` | 2 / 0,6 / 20 / 180 / 0,5 | 06, 6.6 |
+| `reciprocal.enabled` / `willingness.congestion-enabled` | true / true | 06, 6.6–6.7 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
 | `rerank.top-k` / `timeout-ms` / `max-tokens` | 20 / 800 / 256 | 06, 6.9 |
@@ -28,7 +29,7 @@
 | `proactive.notify-threshold` / `top-k` / `cooldown-hours` | 0,65 / 3 / 24 | 07, 7.3 |
 | `saved-search.max-per-user` | 5 | 05, 5.6 |
 | `enrichment.min-confidence` / `max-attempts` | 0,6 / 5 | 04 |
-| `algorithm-version` | `v2.1` | Ghi vào log |
+| `algorithm-version` | `v2.1-rc` (trước Bước 8: `v2.1-a`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,
 `proactive`. Dùng để chạy ablation (09) và tắt nhanh khi demo gặp sự cố.
