@@ -1,0 +1,97 @@
+"""Stateless AI service: text in, vectors out. Only the backend calls it, over the internal network."""
+
+import hmac
+import logging
+import threading
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, Header, HTTPException
+
+from .config import EMBED_MODEL_VERSION, Settings, load_settings
+from .model_store import download_embed_files, missing_embed_files
+from .schemas import EmbedRequest, EmbedResponse, HealthResponse
+
+log = logging.getLogger("ai-service")
+
+
+class ModelState:
+    def __init__(self):
+        self.embedder = None
+        self.error: str | None = None
+
+    @property
+    def status(self) -> str:
+        if self.embedder is not None:
+            return "ready"
+        return "error" if self.error else "loading"
+
+
+def _load_models(settings: Settings, state: ModelState) -> None:
+    try:
+        missing = missing_embed_files(settings.embed_dir)
+        if missing and settings.auto_download:
+            log.info("Downloading embedding model files to %s", settings.embed_dir)
+            download_embed_files(settings.embed_dir)
+            missing = missing_embed_files(settings.embed_dir)
+        if missing:
+            raise FileNotFoundError(
+                f"Missing model files in {settings.embed_dir}: {', '.join(missing)}. "
+                "Run scripts/download_models.py or set AI_AUTO_DOWNLOAD=true."
+            )
+        from .embed import Embedder
+
+        state.embedder = Embedder(settings.embed_dir, settings.embed_max_tokens, settings.threads)
+        log.info("Embedding model %s is ready", EMBED_MODEL_VERSION)
+    except Exception as exception:  # the service stays up and reports the problem on /health
+        state.error = str(exception)
+        log.exception("Unable to load the embedding model")
+
+
+def create_app(settings: Settings | None = None, embedder=None) -> FastAPI:
+    """`embedder` lets tests inject a fake model instead of loading the real one."""
+    settings = settings or load_settings()
+    if not settings.internal_token and not settings.allow_anonymous:
+        raise RuntimeError("AI_INTERNAL_TOKEN must be set (or AI_ALLOW_ANONYMOUS=true for local experiments)")
+    state = ModelState()
+    state.embedder = embedder
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        if state.embedder is None:
+            # Loading takes a few seconds; do it in the background so /health answers "loading".
+            threading.Thread(target=_load_models, args=(settings, state), daemon=True).start()
+        yield
+
+    app = FastAPI(title="PTutor AI service", lifespan=lifespan)
+    app.state.models = state
+
+    def require_token(x_internal_token: str | None = Header(default=None)) -> None:
+        if not settings.internal_token:
+            return
+        if x_internal_token is None or not hmac.compare_digest(x_internal_token, settings.internal_token):
+            raise HTTPException(status_code=401, detail="Invalid internal token")
+
+    @app.get("/health", response_model=HealthResponse)
+    def health() -> HealthResponse:
+        return HealthResponse(status=state.status, embed_model=EMBED_MODEL_VERSION, detail=state.error)
+
+    @app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(require_token)])
+    def embed(request: EmbedRequest) -> EmbedResponse:
+        if state.embedder is None:
+            raise HTTPException(status_code=503, detail=f"Embedding model is {state.status}")
+        if len(request.texts) > settings.embed_max_batch:
+            raise HTTPException(status_code=422, detail=f"At most {settings.embed_max_batch} texts per request")
+        if any(not text.strip() for text in request.texts):
+            raise HTTPException(status_code=422, detail="Texts must not be blank")
+        if any(len(text) > settings.embed_max_chars for text in request.texts):
+            raise HTTPException(
+                status_code=422, detail=f"Each text must be at most {settings.embed_max_chars} characters"
+            )
+        vectors = state.embedder.embed(request.texts)
+        return EmbedResponse(
+            model=state.embedder.model_version,
+            dimensions=state.embedder.dimensions,
+            embeddings=vectors.tolist(),
+        )
+
+    return app
