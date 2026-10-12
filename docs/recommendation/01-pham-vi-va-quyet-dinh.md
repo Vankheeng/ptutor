@@ -76,7 +76,7 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 |---|---|---|
 | P1 | Job làm mới 6 cột tổng hợp trên `tutors` | SQL ở 03, mục 3.5 |
 | P2 | API học sinh đánh giá gia sư | Khi hợp đồng `COMPLETED`; mỗi hợp đồng 1 đánh giá |
-| P3 | Sửa propagation của listener | `REQUIRES_NEW` cho `recalculateByUserId` / `recalculateByTutorId` |
+| P3 | Sửa propagation của listener | Listener chạy mỗi lần tính lại trong transaction riêng (`REQUIRES_NEW`). Không đặt trên `recalculateByUserId` / `recalculateByTutorId` vì `AdminTutorService` gọi hai hàm này ngay trong transaction duyệt hồ sơ |
 | P4 | Bổ sung sự kiện kích hoạt tính lại điểm | Hợp đồng `COMPLETED` (bulk update), đơn được chấp nhận/từ chối, có đánh giá mới, sửa hồ sơ |
 | P5 | Thêm `responded_at` cho hai bảng đơn | Tính thời gian phản hồi chính xác |
 | P6 | Đổi số chiều vector sang 1024 | Do dùng `bge-m3`; an toàn vì chưa có dữ liệu |
