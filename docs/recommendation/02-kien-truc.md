@@ -107,7 +107,7 @@ sequenceDiagram
     API->>DB: Đặc trưng, lịch sử quyết định, cache rerank
     API->>API: Tính a, b, R, Q, G → xếp hạng sơ bộ
     opt Top-20 chưa có rerank
-        API->>AI: /rerank (timeout 800 ms)
+        API->>AI: /rerank (lô 4 cặp, ngân sách 4 000 ms)
     end
     API->>API: Xếp lại, slot khám phá, lý do khớp, (nới tiêu chí nếu ít kết quả)
     API->>DB: Ghi recommendation_logs
@@ -123,9 +123,9 @@ sequenceDiagram
 | Embed văn bản nhu cầu (cache theo mã băm) | ≤ 150 ms |
 | SQL lọc cứng + vector | ≤ 150 ms |
 | Chấm điểm ≤ 200 ứng viên | ≤ 50 ms |
-| Rerank top-20 khi chưa có cache | ≤ 800 ms (timeout) |
+| Rerank top-20 khi chưa có cache | ≤ 4 000 ms (ngân sách; đo thực tế ~175 ms mỗi cặp, xem 06 mục 6.9) |
 | Nới tiêu chí (song song) | ≤ 400 ms |
-| **Tổng cho một lần bấm tìm** | **≤ 1,5 s** |
+| **Tổng cho một lần bấm tìm** | **≤ 1,5 s khi đã có cache rerank; tới ~5 s ở lần tìm đầu với tiêu chí mới** |
 
 ## 2.4. Vị trí code
 

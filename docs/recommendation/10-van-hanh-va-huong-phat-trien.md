@@ -23,7 +23,9 @@
 | `reciprocal.enabled` / `willingness.congestion-enabled` | true / true | 06, 6.6–6.7 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
-| `rerank.top-k` / `timeout-ms` / `max-tokens` | 20 / 800 / 256 | 06, 6.9 |
+| `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 20 / 4 000 / 4 | 06, 6.9 |
+| `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
+| `rerank.model-version` (backend) · `AI_RERANK_MAX_TOKENS` (AI service, mỗi bên) | `bge-reranker-v2-m3-int8` · 256 | 06, 6.9 |
 | `exploration.page-size` / `slots` / `min-score-ratio` | 20 / [5, 12] / 0,8 | 06, 6.11 |
 | `relaxation.good-threshold` / `budget-ms` / `max-suggestions` | 0,50 / 400 / 3 | 07, 7.1 |
 | `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |
@@ -56,6 +58,12 @@ nhanh hơn (≈ 100–110 ms mỗi văn bản, lô 32 ≈ 3,5 s) → `EmbeddingW
 
 Ngày đầu triển khai: đo độ trễ rerank trên máy phát triển và VPS; nếu 20 cặp > ~1 s thì giảm `top-k`
 hoặc dùng model nhỏ hơn.
+
+**Đã đo trên máy phát triển (12/10/2026, `scripts/benchmark_rerank.py`):** 20 cặp mất 2,2 s (tin rất
+ngắn) – 3,5 s (tin điển hình) – 11,8 s (tin dài 256 token), tức vượt ngưỡng 1 s. Đã chọn giữ model và
+`top-k`, nâng ngân sách lên 4 000 ms và chấm theo lô nhỏ (06 mục 6.9). Trên VPS yếu hơn cần đo lại;
+các núm chỉnh theo thứ tự nên thử: `AI_RERANK_MAX_TOKENS` 256 → 128, `rerank.top-k` 20 → 10.
+AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 
 ## 10.3. Quyền riêng tư
 

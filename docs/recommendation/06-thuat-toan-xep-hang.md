@@ -302,13 +302,39 @@ Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ n�
 1. Sau pha 3, lấy **top-20**.
 2. Tra `recommendation_rerank_cache` theo (mã băm văn bản nhu cầu, ứng viên, mã băm nội dung ứng
    viên, phiên bản model).
-3. Cặp chưa có → gọi `/rerank` theo lô, **timeout 800 ms**. Đầu vào: (văn bản nhu cầu, văn bản
-   cung cấp), mỗi bên ≤ 256 token. Model `bge-reranker-v2-m3` ONNX int8; logit → sigmoid.
-4. Tính lại `f_sem`, a, R, `score`, sắp lại **trong nhóm top-20**; từ hạng 21 giữ nguyên.
-5. Quá giờ/lỗi → giữ thứ tự pha 3 (log `rerankStatus = TIMEOUT`). Điểm mới được ghi vào cache.
+3. Cặp chưa có → gọi `/rerank` **theo lô nhỏ (4 cặp), hạng cao trước, trong ngân sách 4 000 ms**.
+   Đầu vào: (văn bản nhu cầu, văn bản cung cấp), mỗi bên ≤ 256 token. Model `bge-reranker-v2-m3`
+   ONNX int8; logit → sigmoid.
+4. Tính lại `f_sem`, a, R, `score` cho những tin **có điểm rerank**, sắp lại **trong nhóm top-20**;
+   từ hạng 21 giữ nguyên.
+5. Hết ngân sách / lỗi → dừng gọi, dùng những điểm đã có (log `rerankStatus = TIMEOUT`); tin chưa
+   kịp chấm giữ `f_sem = s`. Mọi điểm chấm được đều ghi vào cache, nên lần tìm sau chấm tiếp phần
+   còn lại.
 
 Các tin học `OPEN` và các tìm kiếm đã lưu được rerank sẵn ở tiến trình nền (07, mục 7.3), nên khi
 học sinh tìm lại với tiêu chí tương tự thường đã có cache.
+
+### Ghi chú triển khai (12/10/2026)
+
+**Vì sao không còn 800 ms.** Đo trên máy phát triển (CPU 12 luồng, int8): khoảng 110–120 ms mỗi cặp
+với tin rất ngắn, ~175 ms với tin điển hình (~70 token), ~590 ms với tin dài chạm trần 256 token.
+20 cặp mất 2,2 s / 3,5 s / 11,8 s; gộp lô không nhanh hơn. Với timeout 800 ms và quy tắc "quá giờ thì
+bỏ", lần tìm trực tiếp gần như luôn quá giờ và không bao giờ có cache. Quyết định (người dùng chọn):
+**chờ lâu hơn** — ngân sách 4 000 ms, chia lô nhỏ để giữ lại phần đã chấm khi hết giờ.
+
+| Vấn đề | Cách cài |
+|---|---|
+| Trạng thái ghi log (`query_context.rerankStatus`) | `CACHE` (đủ từ cache) · `ONLINE` (có gọi model, đủ cả nhóm) · `TIMEOUT` (thiếu một phần hoặc toàn bộ) · `DISABLED` |
+| Tin có điểm rerank nhưng chưa có vector | `f_sem = rerank` |
+| Văn bản ứng viên | Đúng văn bản dùng để embed tin đó (`EmbeddingTextBuilder`); mã băm nội dung = sha256 của văn bản này. Tin bị sửa → mã băm đổi → chấm lại |
+| Điểm | Làm tròn 4 chữ số như cột lưu, để điểm lấy từ cache và điểm vừa chấm cho cùng thứ hạng |
+| Chiều gia sư tìm học viên | Cùng cơ chế: văn bản cung cấp × tin học, `candidate_type = STUDYING_REQUEST` |
+| Chấm sẵn ban đêm (`RerankPrefetchJob`, 19:00 UTC) | Với mỗi tin học `OPEN`: chạy pha 1–3 như lần tìm chỉ có `useStudyingRequestId`, chấm top-30, ngân sách 120 s mỗi tin. Không ghi log. Tìm kiếm đã lưu nối vào ở bước C6 |
+| Dọn cache | Job đêm xoá dòng cũ hơn 30 ngày |
+| Cờ tắt | `app.recommendation.rerank.enabled=false` → đúng thứ tự pha 3 (bản V2-RC) |
+
+Hạn chế đã biết: lần tìm đầu với tiêu chí mới chờ thêm tới 4 giây; cache chỉ trúng khi văn bản nhu
+cầu giống hệt (đổi một bộ lọc là văn bản khác); `/rerank` được gọi bên trong transaction của lần tìm.
 
 ## 6.10. Gộp theo người
 
