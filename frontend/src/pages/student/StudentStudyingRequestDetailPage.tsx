@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -9,6 +9,8 @@ import {
   type StudyingRequest,
   type TutorOffer
 } from '../../services/studentApi';
+import { StudentStudyingRequestDetails } from '../../components/student/StudentStudyingRequestDetails';
+import { StudentTutorOffers } from '../../components/student/StudentTutorOffers';
 import { useResource } from '../../hooks/useResource';
 
 export function StudentStudyingRequestDetailPage() {
@@ -79,125 +81,9 @@ export function StudentStudyingRequestDetailPage() {
         </div>
       )}
       <div className="student-detail-layout">
-        <section className="student-panel">
-          <div className="student-detail-table">
-            <DetailRow label="Title" value={request.title} />
-            <DetailRow
-              label="Status"
-              value={<span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>}
-            />
-            <DetailRow label="Description" value={request.description || 'No description provided.'} multiline />
-            <DetailRow label="Subject" value={request.subjectName || request.note || 'Custom subject'} />
-            <DetailRow label="Grade" value={request.gradeName} />
-            <DetailRow label="Mode" value={request.learningMode === 'ONLINE' ? 'Online' : 'In person'} />
-            <DetailRow label="Budget" value={`${formatMoney(request.minPrice)} – ${formatMoney(request.maxPrice)}`} />
-            <DetailRow label="Preferred schedule" value={request.preferredSchedule || 'Flexible'} />
-            <DetailRow
-              label="Address"
-              value={[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
-            />
-            <DetailRow label="Learning goals" value={request.learningGoals || 'Not specified'} multiline />
-            <DetailRow
-              label="Availability"
-              value={
-                request.availabilities.length ? (
-                  <div className="student-detail-availability">
-                    {request.availabilities.map((slot) => (
-                      <span key={`${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`}>
-                        {weekday(slot.dayOfWeek)}: {slot.startTime} – {slot.endTime}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  'Flexible'
-                )
-              }
-              multiline
-            />
-            <DetailRow label="Created" value={formatDate(request.createdAt)} />
-            <DetailRow label="Updated" value={formatDate(request.updatedAt)} />
-          </div>
-        </section>
-        <section className="student-panel">
-          <div className="student-section-heading" style={{ margin: 0 }}>
-            <div>
-              <span className="student-eyebrow">TUTOR OFFERS</span>
-              <h2>Offers received</h2>
-            </div>
-            <span className="student-count">{offers.length}</span>
-          </div>
-          {offers.length ? (
-            <div className="student-list">
-              {offers.map((offer) => (
-                <article className="student-list-row" key={offer.id}>
-                  <div>
-                    <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Tutor'}</h3>
-                    <p>
-                      {offer.tutorEmail}
-                      <br />
-                      {formatMoney(offer.proposedPrice)} · {offer.teachingMode === 'ONLINE' ? 'Online' : 'In person'}
-                      <br />
-                      {offer.message || 'No message included.'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className={`student-status ${offer.status.toLowerCase()}`}>{label(offer.status)}</span>
-                    {offer.status === 'PENDING' && request.status === 'OPEN' && (
-                      <div className="student-form-actions">
-                        <button
-                          className="student-button"
-                          type="button"
-                          disabled={busy === offer.id}
-                          onClick={() => void act(offer, 'accept')}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          className="student-button secondary"
-                          type="button"
-                          disabled={busy === offer.id}
-                          onClick={() => void act(offer, 'reject')}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="student-empty">
-              <h3>No offers yet</h3>
-              <p>Tutor proposals will appear here.</p>
-            </div>
-          )}
-        </section>
+        <StudentStudyingRequestDetails request={request} />
+        <StudentTutorOffers requestStatus={request.status} offers={offers} busyOfferId={busy} onAction={act} />
       </div>
     </>
-  );
-}
-
-function DetailRow({ label, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
-  return (
-    <div className={`student-detail-row${multiline ? ' multiline' : ''}`}>
-      <span>{label}</span>
-      <div className="student-detail-value">{value}</div>
-    </div>
-  );
-}
-
-function formatMoney(value: number | null) {
-  return value === null ? 'Negotiable' : `${new Intl.NumberFormat('en-US').format(value)} VND`;
-}
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-}
-function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
-}
-function weekday(dayOfWeek: number) {
-  return (
-    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayOfWeek - 1] ?? `Day ${dayOfWeek}`
   );
 }
