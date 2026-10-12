@@ -1,0 +1,157 @@
+package com.ptutor.backend.client;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+/**
+ * HTTP client of the internal AI service. Every call has a timeout and never throws: when the
+ * service is down, slow or answers something unexpected the result is empty and the caller
+ * falls back (lower quality, no error for the user).
+ */
+@Component
+public class AiServiceClient {
+
+    public static final int EMBEDDING_DIMENSIONS = 1024;
+
+    private static final Logger log = LoggerFactory.getLogger(AiServiceClient.class);
+    private static final String TOKEN_HEADER = "X-Internal-Token";
+
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
+    private final boolean enabled;
+    private final String baseUrl;
+    private final String internalToken;
+    private final Duration embedTimeout;
+    private final Duration healthTimeout;
+
+    @Autowired
+    public AiServiceClient(
+            ObjectMapper objectMapper,
+            @Value("${app.ai-service.enabled:true}") boolean enabled,
+            @Value("${app.ai-service.base-url:http://127.0.0.1:8000}") String baseUrl,
+            @Value("${app.ai-service.internal-token:}") String internalToken,
+            @Value("${app.ai-service.connect-timeout-ms:500}") long connectTimeoutMs,
+            @Value("${app.ai-service.embed-timeout-ms:1000}") long embedTimeoutMs,
+            @Value("${app.ai-service.health-timeout-ms:500}") long healthTimeoutMs) {
+        this.objectMapper = objectMapper;
+        this.enabled = enabled;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.internalToken = internalToken == null ? "" : internalToken.strip();
+        this.embedTimeout = Duration.ofMillis(embedTimeoutMs);
+        this.healthTimeout = Duration.ofMillis(healthTimeoutMs);
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(connectTimeoutMs))
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+    }
+
+    /** True when the service answers and its embedding model is loaded. */
+    public boolean isReady() {
+        if (!enabled) {
+            return false;
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/health"))
+                    .timeout(healthTimeout)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            return response.statusCode() == 200
+                    && "ready".equals(objectMapper.readTree(response.body()).path("status").asString(""));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (Exception exception) {
+            log.debug("AI service health check failed: {}", exception.toString());
+            return false;
+        }
+    }
+
+    /** Embeds with the default timeout, meant for the interactive search path. */
+    public Optional<EmbeddingResult> embed(List<String> texts) {
+        return embed(texts, embedTimeout);
+    }
+
+    /**
+     * One unit-length vector of {@value #EMBEDDING_DIMENSIONS} floats per text, in the same order.
+     * Empty when the service is disabled, unreachable, too slow, or returns an unusable answer.
+     */
+    public Optional<EmbeddingResult> embed(List<String> texts, Duration timeout) {
+        if (!enabled || texts == null || texts.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + "/embed"))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            objectMapper.writeValueAsString(Map.of("texts", texts)), StandardCharsets.UTF_8));
+            if (!internalToken.isEmpty()) {
+                request.header(TOKEN_HEADER, internalToken);
+            }
+            HttpResponse<String> response = httpClient.send(
+                    request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                log.warn("AI service /embed answered HTTP {}", response.statusCode());
+                return Optional.empty();
+            }
+            return parseEmbeddings(objectMapper.readTree(response.body()), texts.size());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("AI service /embed failed: {}", exception.toString());
+            return Optional.empty();
+        }
+    }
+
+    private Optional<EmbeddingResult> parseEmbeddings(JsonNode body, int expectedCount) {
+        JsonNode embeddings = body.path("embeddings");
+        String model = body.path("model").asString("");
+        if (!embeddings.isArray() || embeddings.size() != expectedCount || model.isBlank()) {
+            log.warn("AI service /embed returned {} vectors for {} texts", embeddings.size(), expectedCount);
+            return Optional.empty();
+        }
+        List<float[]> vectors = new ArrayList<>(expectedCount);
+        for (JsonNode embedding : embeddings) {
+            if (!embedding.isArray() || embedding.size() != EMBEDDING_DIMENSIONS) {
+                log.warn("AI service /embed returned a vector of {} dimensions, expected {}",
+                        embedding.size(), EMBEDDING_DIMENSIONS);
+                return Optional.empty();
+            }
+            float[] vector = new float[EMBEDDING_DIMENSIONS];
+            for (int index = 0; index < EMBEDDING_DIMENSIONS; index++) {
+                JsonNode value = embedding.get(index);
+                if (!value.isNumber()) {
+                    log.warn("AI service /embed returned a non-numeric vector component");
+                    return Optional.empty();
+                }
+                vector[index] = value.floatValue();
+            }
+            vectors.add(vector);
+        }
+        return Optional.of(new EmbeddingResult(model, vectors));
+    }
+
+    /** {@code model} is stored as {@code embedding_model_version} next to each vector. */
+    public record EmbeddingResult(String model, List<float[]> vectors) {
+    }
+}
