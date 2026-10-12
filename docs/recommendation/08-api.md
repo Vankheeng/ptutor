@@ -16,8 +16,13 @@ Theo quy ước của dự án: tiền tố `/api/v1`, cần access token, respo
 | `PUT` / `DELETE` | `/api/v1/users/me/saved-searches/{id}` | STUDENT, TUTOR | Sửa (đổi tên, bật/tắt thông báo) / xoá |
 | `DELETE` | `/api/v1/users/me/recommendation-profile` | STUDENT, TUTOR | Xoá lịch sử gợi ý (H1) |
 | `GET` | `/api/v1/admin/recommendations/logs` | ADMIN | Tra cứu log để phân tích |
+| `GET` | `/api/v1/recommendation-tags` | đã đăng nhập | Tag `ACTIVE` để chọn làm bộ lọc (`group`, `subjectId`) |
+| `GET` / `POST` | `/api/v1/admin/recommendation-tags` | ADMIN, EMPLOYEE (`CONTENT_REVIEWER`) | Xem bộ từ vựng / tạo một hoặc nhiều tag |
+| `PUT` | `/api/v1/admin/recommendation-tags/{id}` | như trên | Đổi tên, mô tả, tag cha (không đổi được mã) |
+| `PATCH` | `/api/v1/admin/recommendation-tags/{id}/status` | như trên | Bật / tắt tag |
+| `POST` | `/api/v1/admin/recommendation-tags/suggestions` | như trên | Nhờ LLM gợi ý TOPIC cho một môn (không lưu) |
 
-Chỉ chủ của `logId` mới gọi được `events`, `refine`.
+Chỉ chủ của `logId` mới gọi được `events`, `refine`. Quy tắc của nhóm endpoint tag: xem `04` mục 4.11.
 
 **Quan hệ với API có sẵn:** `GET /api/v1/studying-requests` và `GET /api/v1/teaching-requests` là
 danh sách duyệt theo bộ lọc, sắp theo thời gian. Giao diện có hai chế độ: **"Gợi ý cho bạn"** (endpoint

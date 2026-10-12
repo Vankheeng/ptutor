@@ -57,8 +57,9 @@ Nguyên tắc:
 
 | Sự kiện | Việc làm |
 |---|---|
-| Lưu hồ sơ, tạo/sửa tin học / tin dạy | Ghi job `ENRICH` vào `ai_enrichment_jobs` trong cùng transaction (outbox) |
-| `EnrichmentWorker` (mỗi 30 s) | Gọi `/enrich` → ghi tag, lịch suy ra → tạo job `EMBED` |
+| Lưu hồ sơ, tạo/sửa tin học / tin dạy | Ghi job `ENRICH` **và** job `EMBED` vào `ai_enrichment_jobs` trong cùng transaction (outbox) — vector không phải chờ LLM |
+| `RecommendationTagService` | Quản trị bộ từ vựng tag: tự nhập hoặc nhờ `/suggest-tags` gợi ý rồi duyệt; thêm / bật / tắt TOPIC thì xếp lại `ENRICH` cho tin của môn đó (04 mục 4.11) |
+| `EnrichmentWorker` (mỗi 30 s) | Gọi `/enrich` → kiểm tra, ghi tag, lịch suy ra → tạo lại job `EMBED` (văn bản embedding chứa tên tag) |
 | `EmbeddingWorker` | Ghép văn bản, gọi `/embed`, ghi vector của tin đăng / hồ sơ |
 | Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
 | Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
@@ -73,12 +74,16 @@ Chi tiết hàng đợi (`ai_enrichment_jobs`):
   5 lần → `FAILED`; văn bản không đổi (`content_hash`) hoặc rỗng → `SKIPPED`; job kẹt `PROCESSING` quá 10 phút
   được trả lại hàng đợi.
 - **Quét bù** (2 phút sau khi khởi động, rồi mỗi 6 giờ): ghi job cho hồ sơ / tin đăng chưa có embedding.
-- **Ghi job khi nào:** tạo / sửa tin đăng, sửa hồ sơ, chủ tin **mở lại** tin (`CLOSED` → `OPEN`), admin **duyệt**
-  tin dạy (có thể đổi môn tự nhập thành môn trong danh mục).
+- **Ghi job khi nào:** tạo / sửa tin đăng, sửa hồ sơ, **thanh toán xong** (tin thành `OPEN` hoặc chờ duyệt),
+  chủ tin **mở lại** tin (`CLOSED` → `OPEN`), admin **duyệt** tin dạy.
+- **Chỉ tin đã đăng mới được xử lý:** worker bỏ qua (`SKIPPED`) tin đăng không ở `OPEN` / `MATCHED` — không tốn
+  LLM hay embedding cho bản nháp chưa thanh toán và tin chờ duyệt; quét bù cũng chỉ lấy tin đã đăng.
 - **Dọn dẹp** (mỗi 6 giờ): xoá job `DONE` / `SKIPPED` cũ hơn 7 ngày (`app.recommendation.jobs.retention-days`);
   giữ `FAILED` để tra lỗi; ghi log số job theo trạng thái, mức `WARN` khi có `FAILED`.
 - **Nhiều bản backend:** an toàn nhờ `FOR UPDATE SKIP LOCKED` (có test hai worker cùng nhận job).
-- Trước khi có `EnrichmentWorker` (A1), bước lưu ghi thẳng job `EMBED`; khi có A1 sẽ đổi thành `ENRICH` → `EMBED`.
+- `EnrichmentWorker` chỉ nhận job khi AI service báo `llm = ready` (có khoá API); không có khoá thì job `ENRICH`
+  nằm chờ, mọi thứ khác vẫn chạy. Job `ENRICH` thành công gần nhất của mỗi đối tượng **không bị dọn**: mã băm
+  của nó giúp không gọi lại LLM khi văn bản không đổi.
 
 ### Luồng tìm kiếm
 

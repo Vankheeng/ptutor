@@ -29,7 +29,7 @@
 | `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |
 | `proactive.notify-threshold` / `top-k` / `cooldown-hours` | 0,65 / 3 / 24 | 07, 7.3 |
 | `saved-search.max-per-user` | 5 | 05, 5.6 |
-| `enrichment.min-confidence` / `max-attempts` | 0,6 / 5 | 04 |
+| `enrichment.min-confidence` / `max-attempts` / `timeout-ms` / `batch-size` / `worker-interval-ms` | 0,6 / 5 / 25 000 / 5 / 30 000 | 04 |
 | `algorithm-version` | `v2.1-rc` (trước Bước 8: `v2.1-a`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,
@@ -42,7 +42,7 @@ Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `h
 | Ngôn ngữ / framework | Python, FastAPI |
 | Embedding | `BAAI/bge-m3` (dense, 1024 chiều), ONNX Runtime int8. File lấy từ bản chuyển đổi `Xenova/bge-m3` (`onnx/model_int8.onnx`, ~586 MB kể cả tokenizer); lấy vector token đầu (CLS) rồi chuẩn hoá độ dài 1. Ghi `embedding_model_version = bge-m3-int8` |
 | Rerank | `BAAI/bge-reranker-v2-m3`, ONNX Runtime int8 |
-| LLM | API bên ngoài, chế độ JSON, `temperature = 0` |
+| LLM | OpenAI `gpt-6-luna` (biến `AI_LLM_MODEL`), đầu ra có schema, `store=False`; không gửi `temperature` |
 | File model | Tải về volume lần chạy đầu, không đóng gói vào image (`ai-service/models`, git bỏ qua) |
 | Bảo mật | Chỉ mạng nội bộ (cổng chỉ mở trên `127.0.0.1`); header `X-Internal-Token`; service không khởi động nếu thiếu token |
 | Địa chỉ | Backend gọi `http://127.0.0.1:8000`, **không dùng `localhost`** (trên Windows `localhost` thử IPv6 trước, chậm ~2 s mỗi kết nối) |
@@ -119,7 +119,7 @@ tuyển dụng (11, mục 11.4).
 1. Điều kiện tiên quyết P1–P7 (01, mục 1.5). Migration **`V25`** (P2, P5; 03, mục 3.3) làm trước; P7 làm cùng bước tìm gia sư (3).
 2. Migration **`V26`** (03, mục 3.4; áp dụng sau `V25`, Flyway không bật `out-of-order`); AI service (`/embed`); `EmbeddingWorker`.
 3. Bộ lọc + `QueryContextBuilder` + pha 1–3 với a, Q, G → **V2-a** chạy được, ghi log.
-4. A1 (`/enrich`, seed bộ từ vựng tag).
+4. A1 (`/enrich`, seed bộ từ vựng tag, API quản trị tag và gợi ý tag bằng LLM — 04 mục 4.11).
 5. b + chống dồn → **V2-RC**.
 6. Rerank + cache + `RerankPrefetchJob` → **V2-RCX**.
 7. H1 (`ProfileUpdater`, `f_hist`), B5, slot khám phá, nới tiêu chí.

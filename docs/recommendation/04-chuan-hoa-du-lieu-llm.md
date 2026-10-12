@@ -179,8 +179,100 @@ Quy tắc ghi:
 | JSON sai schema | Thử lại 1 lần với lời nhắc sửa lỗi; vẫn sai → `FAILED` |
 | Chưa có kết quả A1 | Thuật toán vẫn chạy: các thành phần thiếu dữ liệu bị bỏ và chia lại trọng số (06, mục 6.5) |
 
-## 4.9. Chi phí ước tính
+## 4.9. Ghi chú triển khai (12/10/2026)
+
+- **Nhà cung cấp:** OpenAI, model `gpt-6-luna` (đổi bằng biến `AI_LLM_MODEL`), gọi qua SDK chính thức với
+  đầu ra có schema (`responses.parse`). Dữ liệu API của OpenAI không dùng để huấn luyện theo mặc định; lời gọi
+  đặt thêm `store=False` để không lưu nội dung phía nhà cung cấp. Khoá `OPENAI_API_KEY` chỉ nằm ở AI service.
+- **`temperature`:** không gửi (model suy luận không nhận tham số này); độ ổn định dựa vào schema và bước kiểm
+  tra lại ở hai phía.
+- **Vai trò của tag** do backend suy ra từ (loại đối tượng, nhóm tag) theo bảng ở 4.5, không dùng giá trị
+  `role` LLM trả về.
+- **TOPIC:** tin đăng chỉ nhận chủ đề của đúng môn; hồ sơ nhận chủ đề của mọi môn (mã chủ đề là duy nhất
+  trên toàn bộ từ vựng).
+- **Ghi job:** lưu hồ sơ / tin đăng ghi cả `ENRICH` và `EMBED`; `ENRICH` xong ghi lại `EMBED` (02, mục 2.2).
+- **Bỏ qua khi không đổi:** so mã băm của (loại, môn, lớp, các trường đã lọc PII, phần cần trích) với job
+  `ENRICH` thành công gần nhất. Bộ từ vựng thay đổi **không** làm chạy lại (tránh tốn tiền hàng loạt).
+- **Văn bản rỗng:** không gọi LLM, nhưng xoá các tag / lịch suy ra trước đó.
+- **Người dùng đã nhập lịch:** không yêu cầu trích lịch và xoá các dòng lịch `LLM` còn lại.
+- **JSON sai schema:** không xảy ra với đầu ra có schema; nếu SDK không phân tích được thì coi như LLM lỗi
+  (thử lại theo lịch 1, 5, 15, 60 phút) thay cho "thử lại 1 lần với lời nhắc sửa lỗi" ở 4.8.
+- **Chỉ xử lý tin đã đăng:** tin đăng chỉ được chuẩn hoá **và** embedding khi đang `OPEN` hoặc `MATCHED`
+  (quyết định 12/10/2026). Tin `DRAFT` (chưa thanh toán), `PENDING_REVIEW`, `REJECTED`, `CLOSED`, `CANCELLED`
+  → job `SKIPPED` ("Posting is not published"), không gọi LLM, không gọi `/embed`. Khi tin thành `OPEN`
+  (thanh toán xong mà không cần duyệt, admin duyệt, hoặc chủ tin mở lại) service phát sự kiện ghi job mới;
+  quét bù cũng chỉ lấy tin `OPEN` / `MATCHED`. Hồ sơ học sinh / gia sư không có trạng thái đăng nên vẫn xử
+  lý ngay khi sửa.
+- **Môn do người dùng đề xuất** (tin dạy có `custom_subject_name`, chưa có `subject_id` cho tới khi admin
+  duyệt; môn chỉ vào danh mục sau khi được duyệt): là trường hợp riêng của quy tắc trên — tin chờ duyệt chưa
+  `OPEN` nên chưa gọi LLM và chưa tính vector. Khi admin duyệt (gắn môn có sẵn hoặc tạo môn mới), `AdminTeachingRequestService.approve` phát
+  `EmbeddingRefreshRequestedEvent` → chuẩn hoá và embedding chạy **một lần** với môn chính thức. Môn mới tạo chưa có TOPIC
+  cho tới khi admin thêm tag. Tên môn tự nhập không bao giờ được gửi ra ngoài.
+- **Việc phải làm khi tin học cũng cho đề xuất môn** (nhóm xác nhận 12/10/2026: luồng giống tin dạy; code
+  chưa có trên nhánh nào):
+  1. `EmbeddingTextBuilder.forStudyingRequest`: dùng tên môn tự nhập khi `subject` rỗng, như tin dạy.
+     Phần chuẩn hoá không cần sửa: tin đăng chưa có môn đã tự được bỏ qua.
+  2. Service tạo / sửa / **duyệt** tin học phát `EmbeddingRefreshRequestedEvent(STUDYING_REQUEST, id)` (hiện
+     tạo / sửa / mở lại đã phát; chưa có luồng duyệt).
+  3. Các câu quét bù và lan truyền theo học sinh đã tính sẵn trạng thái `PENDING_REVIEW` của tin học; nếu
+     tên trạng thái khác thì sửa trong `AiEnrichmentJobRepository`.
+  4. `QueryContextBuilder` (học sinh dùng tin của mình làm tiêu chí): tin chưa có môn → `needsInput`, không
+     cần sửa.
+- **Seed từ vựng:** `RecommendationTagSeeder` chạy khi khởi động, chỉ thêm mã chưa có: 10 STYLE, 5 SEGMENT,
+  8 GOAL, TOPIC cho Toán (8), Tiếng Anh (7), Ngữ văn (6), Vật lý (6), Hoá học (6).
+
+## 4.10. Chi phí ước tính
 
 Mỗi lần gọi khoảng 1 000–1 500 token vào và 200–400 token ra. Với vài trăm hồ sơ và tin đăng,
 cộng các lần sửa, tổng số lần gọi trong suốt đồ án chỉ ở mức vài nghìn — chi phí không đáng kể
-với các model nhỏ của những nhà cung cấp phổ biến.
+với các model nhỏ của những nhà cung cấp phổ biến. Với `gpt-6-luna` (0,10 / 0,50 USD mỗi triệu token,
+giá tháng 10/2026): khoảng 0,00035 USD mỗi lần, tức khoảng 1 USD cho 3 000 lần gọi.
+
+## 4.11. Quản trị bộ từ vựng tag (bổ sung 12/10/2026)
+
+**Vì sao cần.** Bộ seed (mục 4.2) chỉ có TOPIC cho 5 môn, trong khi danh mục có nhiều môn hơn và người dùng
+còn được đề xuất môn mới. Môn không có TOPIC thì `f_need` không tính được cho phần chủ đề. Đo trên dữ liệu
+thử: độ tương đồng ngữ nghĩa chỉ bù được khoảng 0,014–0,025 điểm `a`, trong khi `f_need` đóng góp
+0,10–0,20 — tức **không bù đủ**. Vì vậy bộ từ vựng phải mở rộng được mà không cần sửa code.
+
+**Ai thêm tag.** Chỉ quản trị viên (ADMIN, hoặc EMPLOYEE có chức năng `CONTENT_REVIEWER`). Có hai cách, dùng
+riêng hoặc trộn với nhau:
+
+1. **Tự nhập**: gõ mã, tên, mô tả, tag cha.
+2. **Nhờ LLM gợi ý** rồi duyệt: `POST .../suggestions` trả về danh sách chủ đề cho một môn; quản trị viên sửa,
+   bỏ bớt, thêm tay rồi gửi danh sách cuối cùng vào `POST /api/v1/admin/recommendation-tags`.
+
+Gợi ý **không được lưu** ở đâu cả: tag chỉ tồn tại khi quản trị viên tạo. LLM không bao giờ tự thêm tag vào bộ
+từ vựng (giữ nguyên nguyên tắc ở mục 4.6: LLM chỉ được chọn trong danh sách có sẵn).
+
+**Quy tắc.**
+
+| Quy tắc | Lý do |
+|---|---|
+| `code` duy nhất trên toàn bộ từ vựng, dạng `^[a-z0-9_]{3,40}$`, **không sửa được** | Mã là khoá mà LLM trả về và bộ lọc gửi lên |
+| TOPIC bắt buộc thuộc một môn `ACTIVE`; STYLE / GOAL không thuộc môn nào | Chủ đề chỉ có nghĩa trong một môn |
+| Không tạo, không tắt được SEGMENT | Bốn mức `mat_goc / trung_binh / kha / gioi` gắn cứng trong công thức `f_segment` |
+| Tag cha phải là tag gốc cùng nhóm, cùng môn (một cấp) | Khớp cha – con ở `f_need` chỉ xét một cấp |
+| Không xoá, chỉ `ACTIVE` / `INACTIVE` | Giữ liên kết đã gắn; bật lại là dùng lại được |
+| Tạo nhiều tag một lần là tất cả hoặc không gì cả | Tránh bộ từ vựng dở dang khi một dòng sai |
+
+**Ảnh hưởng tới dữ liệu đã có.**
+
+| Thao tác | Việc hệ thống tự làm |
+|---|---|
+| Thêm TOPIC, bật / tắt TOPIC | Xếp lại job `ENRICH` cho các tin `OPEN` / `MATCHED` **của môn đó**. Danh sách mã TOPIC của môn nằm trong hash nội dung của tin nên job không bị bỏ qua vì "nội dung không đổi" |
+| Đổi tên tag | Xếp job `EMBED` cho các hồ sơ / tin đang mang tag (tên tag nằm trong văn bản embedding). Không gọi LLM |
+| Đổi mô tả, đổi tag cha | Không chạy lại gì |
+| Thêm STYLE / GOAL | Không chạy lại gì; áp dụng cho hồ sơ / tin được chuẩn hoá từ sau đó |
+
+Hồ sơ gia sư / học sinh không được chạy lại khi thêm TOPIC (hồ sơ nhận TOPIC của mọi môn, chạy lại toàn bộ sẽ
+tốn kém); hồ sơ nhận tag mới ở lần sửa kế tiếp.
+
+**Gợi ý bằng LLM (`POST /suggest-tags` của AI service).** Backend gửi: tên môn (đã có trong danh mục — tên môn
+đề xuất chưa duyệt không bao giờ được gửi), các TOPIC đã có của môn, tối đa 20 đoạn trích (≤ 300 ký tự, đã bỏ số
+điện thoại và email) từ tin `OPEN` / `MATCHED` của môn, và số lượng tối đa (1–20, mặc định 10). Kết quả được
+kiểm tra hai lần (AI service và backend): bỏ mã sai định dạng, mã trùng nhau, mã đã tồn tại; tag cha không dùng
+được thì bỏ quan hệ cha. LLM lỗi hoặc tắt → `503 TAG_SUGGESTION_UNAVAILABLE`, việc tự nhập không bị ảnh hưởng.
+
+**Người dùng chọn tag.** `GET /api/v1/recommendation-tags?group=&subjectId=` trả tag `ACTIVE` để hiển thị thành
+chip trong bộ lọc; TOPIC chỉ trả khi có `subjectId`.
