@@ -2909,6 +2909,38 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/students/me/contracts/{contractId}/review:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Reviews]
+      summary: Review the tutor of my completed contract
+      description: Only the student of a COMPLETED contract can review its tutor, once per contract. Returns 409 CONTRACT_NOT_COMPLETED or REVIEW_ALREADY_EXISTS otherwise.
+      operationId: createMyContractReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreateRequest'
+            example:
+              rating: 5
+              comment: Thầy dạy dễ hiểu, đúng giờ.
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/students/me/contracts/{contractId}/payment-installments:
     get:
       tags: [Payments]
@@ -5601,6 +5633,29 @@ components:
           type: string
           format: date-time
 
+    ReviewCreateRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    ReviewResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        rating: { type: integer, example: 5 }
+        comment: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
     PublicReviewResponse:
       type: object
       properties:
@@ -7203,6 +7258,13 @@ components:
             data:
               nullable: true
               example: null
+
+    ReviewResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ReviewResponse' }
 
     ContractResponseEnvelope:
       allOf:

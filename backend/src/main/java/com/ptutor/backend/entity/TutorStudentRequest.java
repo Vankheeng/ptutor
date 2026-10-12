@@ -1,6 +1,7 @@
 package com.ptutor.backend.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -74,4 +75,8 @@ public class TutorStudentRequest extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
+
+    @Column(name = "responded_at")
+    @NonFinal
+    private LocalDateTime respondedAt;
 }

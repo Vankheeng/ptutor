@@ -1,5 +1,6 @@
 package com.ptutor.backend.service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -192,6 +193,7 @@ public class TutorStudentRequestService {
         }
 
         tutorRequest.setStatus(ApplicationStatus.ACCEPTED);
+        tutorRequest.setRespondedAt(LocalDateTime.now());
         TutorStudentRequest savedRequest = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
         if (acceptedCount + 1 >= quantity) {
             studyingRequest.setStatus(RequestStatus.MATCHED);
@@ -214,6 +216,7 @@ public class TutorStudentRequestService {
         TutorStudentRequest tutorRequest = findRequest(tutorRequestId, studyingRequestId);
         ensurePending(tutorRequest);
         tutorRequest.setStatus(ApplicationStatus.REJECTED);
+        tutorRequest.setRespondedAt(LocalDateTime.now());
         TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 saved.getTutor().getUser().getId(),

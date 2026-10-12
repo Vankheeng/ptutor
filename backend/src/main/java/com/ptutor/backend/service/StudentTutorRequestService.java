@@ -1,5 +1,6 @@
 package com.ptutor.backend.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +122,7 @@ public class StudentTutorRequestService {
                 throw invalidTransition("Only OPEN teaching requests can accept student applications");
             }
             request.setStatus(ApplicationStatus.ACCEPTED);
+            request.setRespondedAt(LocalDateTime.now());
             StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
             long acceptedCount = studentTutorRequestRepository
                     .countByTeachingRequest_IdAndStatus(teachingRequestId, ApplicationStatus.ACCEPTED);
@@ -136,6 +138,7 @@ public class StudentTutorRequestService {
             return studentTutorRequestMapper.toResponse(savedRequest);
         } else {
             request.setStatus(ApplicationStatus.REJECTED);
+            request.setRespondedAt(LocalDateTime.now());
         }
 
         StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);

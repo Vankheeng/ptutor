@@ -93,6 +93,7 @@ class StudentTutorRequestServiceTest {
                 userId, teachingRequestId, applicationId, ApplicationStatus.ACCEPTED);
 
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
+        assertThat(application.getRespondedAt()).isNotNull();
         assertThat(teachingRequest.getStatus()).isEqualTo(RequestStatus.MATCHED);
         assertThat(response.nextStep()).isEqualTo("CONTRACT_SIGNING");
         verify(teachingRequestRepository).saveAndFlush(teachingRequest);
@@ -120,6 +121,7 @@ class StudentTutorRequestServiceTest {
                 userId, teachingRequestId, applicationId, ApplicationStatus.ACCEPTED);
 
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
+        assertThat(application.getRespondedAt()).isNotNull();
         assertThat(teachingRequest.getStatus()).isEqualTo(RequestStatus.OPEN);
         assertThat(response.nextStep()).isEqualTo("CONTRACT_SIGNING");
         verify(teachingRequestRepository, never()).saveAndFlush(any());
@@ -139,6 +141,7 @@ class StudentTutorRequestServiceTest {
         service.updateStatus(userId, teachingRequestId, applicationId, ApplicationStatus.REJECTED);
 
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
+        assertThat(application.getRespondedAt()).isNotNull();
         assertThat(teachingRequest.getStatus()).isEqualTo(RequestStatus.OPEN);
         verify(teachingRequestRepository, never()).saveAndFlush(any());
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
