@@ -1,11 +1,11 @@
 # 3. Dữ liệu và schema bổ sung
 
-Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung** (dự kiến `V25`, `V26`).
+Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V25` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V26` (dữ liệu cho đề xuất, mục 3.4).
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
-> toán bằng ví). Trước khi tạo migration mới, luôn kiểm tra số lớn nhất trên `dev`; nên thống nhất với
-> nhóm dành một dải số cho tính năng đề xuất.
+> toán bằng ví). Trước khi tạo migration mới, luôn kiểm tra số lớn nhất trên `dev`; Flyway **không** bật `out-of-order`, nên
+> `V25` phải được tạo và áp dụng trước `V26`.
 
 ## 3.1. Dữ liệu đầu vào
 
@@ -46,7 +46,21 @@ dùng khi người tìm không có tiêu chí văn bản nào.
 Quy tắc chung: bỏ trường rỗng; cắt ≤ 512 token; không đưa họ tên, SĐT, email, địa chỉ chi tiết,
 ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash` để chỉ embed lại khi đổi.
 
-## 3.3. Migration V25 — dữ liệu cho đề xuất
+## 3.3. Migration V25 — điều kiện tiên quyết P2, P5
+
+```sql
+-- P2: mỗi hợp đồng tối đa một đánh giá
+ALTER TABLE reviews ADD COLUMN contract_id uuid REFERENCES contracts (id);
+CREATE UNIQUE INDEX uq_reviews_contract ON reviews (contract_id)
+    WHERE contract_id IS NOT NULL AND deleted_at IS NULL;
+ALTER TABLE reviews ADD CONSTRAINT ck_reviews_rating CHECK (rating IS NULL OR rating BETWEEN 1 AND 5);
+
+-- P5: thời điểm phản hồi đơn
+ALTER TABLE student_tutor_requests ADD COLUMN responded_at timestamp;
+ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
+```
+
+## 3.4. Migration V26 — dữ liệu cho đề xuất
 
 ```sql
 -- ===== 1. Đổi số chiều vector sang 1024 (bge-m3). An toàn vì chưa có dữ liệu. =====
@@ -263,20 +277,6 @@ Ghi chú:
 - Tag người dùng **tự chọn trên bộ lọc** khi tìm kiếm không ghi vào `recommendation_entity_tags`
   (chỉ nằm trong `query_context`); tag ghi vào hồ sơ khi người dùng sửa hồ sơ (`source = 'USER'`) hoặc
   do A1 suy ra (`source = 'LLM'`).
-
-## 3.4. Migration V26 — điều kiện tiên quyết P2, P5
-
-```sql
--- P2: mỗi hợp đồng tối đa một đánh giá
-ALTER TABLE reviews ADD COLUMN contract_id uuid REFERENCES contracts (id);
-CREATE UNIQUE INDEX uq_reviews_contract ON reviews (contract_id)
-    WHERE contract_id IS NOT NULL AND deleted_at IS NULL;
-ALTER TABLE reviews ADD CONSTRAINT ck_reviews_rating CHECK (rating IS NULL OR rating BETWEEN 1 AND 5);
-
--- P5: thời điểm phản hồi đơn
-ALTER TABLE student_tutor_requests ADD COLUMN responded_at timestamp;
-ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
-```
 
 ## 3.5. Cột tổng hợp trên `tutors`
 

@@ -108,8 +108,8 @@ tuyển dụng (11, mục 11.4).
 
 ## 10.6. Thứ tự triển khai gợi ý
 
-1. Điều kiện tiên quyết P1–P7 (01, mục 1.5).
-2. Migration V25, V26; AI service (`/embed`); `EmbeddingWorker`.
+1. Điều kiện tiên quyết P1–P7 (01, mục 1.5). Migration **`V25`** (P2, P5; 03, mục 3.3) làm trước; P7 làm cùng bước tìm gia sư (3).
+2. Migration **`V26`** (03, mục 3.4; áp dụng sau `V25`, Flyway không bật `out-of-order`); AI service (`/embed`); `EmbeddingWorker`.
 3. Bộ lọc + `QueryContextBuilder` + pha 1–3 với a, Q, G → **V2-a** chạy được, ghi log.
 4. A1 (`/enrich`, seed bộ từ vựng tag).
 5. b + chống dồn → **V2-RC**.

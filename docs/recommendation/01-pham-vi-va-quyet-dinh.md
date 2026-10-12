@@ -45,6 +45,7 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | 26/08/2026 | Không làm tính năng gia sư đánh giá học sinh (không có điểm chất lượng cho học sinh). |
 | 09/10/2026 | Chọn bộ hướng R1, R2, R3, R6, A1, A2, B4, B5, C6, C7, D9. |
 | 12/10/2026 | **Người tìm không cần có tin đăng**; học sinh tìm → ứng viên là tin dạy `OPEN`; gia sư tìm → ứng viên là tin học `OPEN`. **Bộ lọc là đầu vào chính**. **Khu vực do người tìm chọn** (nhiều quận / cả tỉnh / không giới hạn). Thêm **H1** và **lưu tìm kiếm**. Dùng **trọng số khởi đầu lạnh**; mô hình học từ dữ liệu là hướng phát triển. |
+| 12/10/2026 | (1) **Đổi số migration**: điều kiện tiên quyết P2, P5 là `V25` (làm trước), dữ liệu đề xuất là `V26`, vì Flyway không bật `out-of-order`. (2) Hợp đồng `COMPLETED` (bulk update): lấy danh sách gia sư bị ảnh hưởng của lần cập nhật rồi phát sự kiện tính lại điểm sau commit, không chỉ dựa vào job hằng đêm. (3) Vị trí code **theo cấu trúc tầng sẵn có** của repo (02, mục 2.4). (4) P7 (`day_of_week` ISO) làm cùng bước tìm gia sư V2-a. |
 
 ## 1.3. Giả định
 

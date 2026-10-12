@@ -10,7 +10,7 @@ flowchart LR
         UI3["Tìm kiếm đã lưu · Thông báo"]
     end
 
-    subgraph BE["Spring Boot backend — module recommendation"]
+    subgraph BE["Spring Boot backend — tính năng recommendation"]
         API["RecommendationController<br/>SavedSearchController"]
         ORC["RecommendationService<br/>(dựng QueryContext, điều phối)"]
         CAND["CandidateRepository<br/>(SQL lọc cứng + vector)"]
@@ -106,19 +106,28 @@ sequenceDiagram
 | Nới tiêu chí (song song) | ≤ 400 ms |
 | **Tổng cho một lần bấm tìm** | **≤ 1,5 s** |
 
-## 2.4. Vị trí code đề xuất
+## 2.4. Vị trí code
+
+Code đề xuất đặt **theo cấu trúc tầng sẵn có của repo** (quyết định 12/10/2026), không tạo gói
+`recommendation/` riêng. Tên lớp giữ như dưới; tiền tố/hậu tố giúp tìm nhanh.
 
 ```
-backend/src/main/java/com/ptutor/backend/recommendation/
+backend/src/main/java/com/ptutor/backend/
   controller/  RecommendationController, SavedSearchController
   service/     RecommendationService, QueryContextBuilder, FeatureCalculator, WillingnessCalculator,
                Ranker, ExplorationSelector, RelaxationService, SessionRefineService,
                ExplanationBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService
-  job/         EnrichmentWorker, EmbeddingWorker, MatchAlertWorker, RerankPrefetchJob,
+  scheduler/   EnrichmentWorker, EmbeddingWorker, MatchAlertWorker, RerankPrefetchJob,
                ProfileUpdater, AggregateRefreshJob, ExposureStatsJob
-  client/      AiServiceClient
+  client/      AiServiceClient (gói mới nếu repo chưa có chỗ phù hợp)
   repository/  CandidateRepository (native SQL), …
-  model/       QueryContext, Candidate, FeatureVector, ScoredCandidate, …
+  entity/      các bảng mới (03, mục 3.4)
+  dto/         request/response của endpoint (08); model tính toán nội bộ (QueryContext, Candidate,
+               FeatureVector, ScoredCandidate, …) đặt trong dto/ hoặc gói con riêng của tính năng
+  event/       sự kiện kích hoạt tính lại điểm (01, mục 1.5)
+```
+
+```
 ai-service/    (thư mục mới ngang hàng backend/, frontend/)
   app/main.py  app/embed.py  app/rerank.py  app/llm.py  app/schemas.py
   models/      (volume, không commit)
