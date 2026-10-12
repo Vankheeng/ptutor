@@ -38,7 +38,7 @@ Giao diện điền vào form; người dùng xem lại rồi mới bấm tìm.
 
 ## 8.3. Học sinh tìm gia sư
 
-`POST /api/v1/students/me/tutor-recommendations?page=0&size=20`
+`POST /api/v1/students/me/tutor-recommendations?page=0&size=20[&logId=…]`
 
 ```json
 {
@@ -100,8 +100,15 @@ Giao diện điền vào form; người dùng xem lại rồi mới bấm tìm.
 }
 ```
 
-Trang sau dùng lại danh sách đã xếp hạng lưu trong log, để thứ tự ổn định giữa các trang. Lỗi AI
-service không bao giờ trả lỗi cho người dùng (dùng phương án dự phòng).
+**Phân trang:** lần gọi **không có `logId`** là một lần tìm mới: tính, ghi log, trả `logId`. Trang sau gọi
+kèm **`?logId=…&page=n`** (không cần body): đọc lại danh sách đã xếp hạng lưu trong log (tối đa 50 ứng
+viên, `size` ≤ 50), không tính lại nên thứ tự ổn định dù dữ liệu đổi; tin đã bị xoá thì rơi khỏi trang.
+`logId` của người khác → `404 RECOMMENDATION_LOG_NOT_FOUND`. Lỗi AI service không bao giờ trả lỗi cho
+người dùng: không lấy được vector truy vấn thì dùng `students.profile_embedding`, vẫn không có thì xếp
+hạng không có `f_sem`.
+
+`dayOfWeek` theo **ISO-8601: 1 = Thứ Hai … 7 = Chủ nhật** (đã ghi trong OpenAPI cho mọi API có lịch rảnh).
+`savedSearchId` chưa được nhận cho tới khi có tính năng lưu tìm kiếm.
 
 ## 8.4. Gia sư tìm học viên
 

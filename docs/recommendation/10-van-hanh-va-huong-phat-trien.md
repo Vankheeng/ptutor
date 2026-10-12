@@ -16,7 +16,7 @@
 | `history.max-weight` / `history.full-signals` | 0,15 / 10 | 06, 6.4 |
 | `history.half-life-days` / `window-days` | 30 / 180 | 07, 7.4 |
 | `history.signal-weights` view / favorite / contact / accepted / dismissed | 1 / 2 / 3 / 4 / −2 | 07, 7.4 |
-| `low-confidence-threshold` | 0,4 | 06, 6.5 |
+| `low-confidence-threshold` / `confidence-prior` | 0,4 / 0,5 | 06, 6.5 |
 | `price.hard-factor` | 1,5 | 06, 6.2 |
 | `willingness.alpha` / `p0-default` / `history-days` / `congestion-lambda` | 2 / 0,6 / 180 / 0,5 | 06, 6.6 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |

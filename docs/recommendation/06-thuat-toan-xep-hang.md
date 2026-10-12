@@ -81,6 +81,9 @@ WHERE tr.deleted_at IS NULL
                          OR (s.status = 'REJECTED' AND s.updated_at > CURRENT_TIMESTAMP - INTERVAL '30 days')));
 ```
 
+Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V25); câu
+truy vấn trả thêm `1 − (tr.embedding <=> :queryVector)` để gộp pha 1 và pha 2 trong một lần đọc.
+
 ## 6.3. Pha 2 — Lấy ứng viên theo vector
 
 - **Vector truy vấn** được sinh từ "văn bản nhu cầu" của `QueryContext` (05, mục 5.5) bằng một
@@ -206,9 +209,16 @@ và đối tượng đã được lọc/ước lượng thô nên nhỏ. Đây l
 ## 6.5. Quy tắc khi thiếu dữ liệu
 
 ```
-a_cơ_sở = Σ_{k có dữ liệu} w_k·f_k / Σ_{k có dữ liệu} w_k
-c_a     = Σ_{k có dữ liệu} w_k
+c_a     = Σ_{k có dữ liệu} w_k                                  (độ tin cậy: đã "nhìn thấy" bao nhiêu phần)
+ā       = Σ_{k có dữ liệu} w_k·f_k / c_a                        (trung bình các đặc trưng có dữ liệu)
+a_cơ_sở = c_a·ā + (1 − c_a)·0,5  =  Σ_{k có dữ liệu} w_k·f_k + (1 − c_a)·0,5
 ```
+
+Đặc trưng thiếu được coi là **trung tính (0,5)** chứ không bị bỏ qua. Nếu chỉ chuẩn hoá lại theo các đặc
+trưng có dữ liệu thì ứng viên mà hệ thống biết rất ít sẽ được điểm ảo: một tin online chưa có embedding
+chỉ còn `f_area = 1` sẽ có a = 1,0, ngang tin khớp tốt nhất. Với công thức trên tin đó được
+0,05·1 + 0,95·0,5 = 0,525; ứng viên có đủ 7 đặc trưng (`c_a = 1`) không đổi. Mức trung tính là tham số
+`confidence-prior` (quyết định 12/10/2026, phát hiện khi lập trình Bước 7).
 
 `c_a < 0,4` → đánh dấu `lowConfidence`, giao diện gợi ý "Chọn thêm tiêu chí / bổ sung hồ sơ để
 gợi ý chính xác hơn".
