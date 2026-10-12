@@ -197,6 +197,9 @@ public class TeachingRequestService {
                 : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        // A posting that needs no review is live from now on; one awaiting review is skipped by the workers.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
         }

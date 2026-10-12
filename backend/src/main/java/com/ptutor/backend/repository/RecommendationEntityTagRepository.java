@@ -13,4 +13,6 @@ public interface RecommendationEntityTagRepository extends JpaRepository<Recomme
 
     @EntityGraph(attributePaths = { "tag", "tag.subject" })
     List<RecommendationEntityTag> findAllByEntityTypeAndEntityId(RecommendationEntityType entityType, UUID entityId);
+
+    List<RecommendationEntityTag> findAllByTag_Id(UUID tagId);
 }

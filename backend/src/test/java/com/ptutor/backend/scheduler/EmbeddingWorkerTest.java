@@ -94,6 +94,7 @@ class EmbeddingWorkerTest {
         verify(jobRepository).backfillStudyingRequests(any());
         verify(jobRepository).backfillTutors(any());
         verify(jobRepository).backfillStudents(any());
+        verify(jobRepository).backfillEnrichment(any());
     }
 
     @Test

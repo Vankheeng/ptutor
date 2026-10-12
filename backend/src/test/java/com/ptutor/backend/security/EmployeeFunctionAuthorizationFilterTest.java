@@ -94,6 +94,23 @@ class EmployeeFunctionAuthorizationFilterTest {
     }
 
     @Test
+    void allowsContentReviewerToManageRecommendationTags() throws Exception {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST", "/api/v1/admin/recommendation-tags/suggestions");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
     void allowsContentReviewerToReviewTutorProfiles() throws Exception {
         UUID userId = authenticate("EMPLOYEE");
         Employee employee = Employee.builder()

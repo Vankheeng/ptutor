@@ -23,7 +23,9 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.AiJobStatus;
 import com.ptutor.backend.entity.enums.AiJobType;
 import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.repository.AiEnrichmentJobRepository;
+import com.ptutor.backend.repository.RecommendationEntityTagRepository;
 
 import jakarta.persistence.EntityManager;
 
@@ -38,12 +40,14 @@ public class EmbeddingJobProcessor {
     static final List<Duration> RETRY_DELAYS = List.of(
             Duration.ofMinutes(1), Duration.ofMinutes(5), Duration.ofMinutes(15), Duration.ofMinutes(60));
     static final Duration STALE_AFTER = Duration.ofMinutes(10);
+    static final String NOT_PUBLISHED = "Posting is not published";
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingJobProcessor.class);
     private static final int MAX_ERROR_LENGTH = 500;
 
     private final AiEnrichmentJobRepository jobRepository;
     private final EmbeddingTextBuilder textBuilder;
+    private final RecommendationEntityTagRepository entityTagRepository;
     private final AiServiceClient aiServiceClient;
     private final EntityManager entityManager;
     private final TransactionTemplate transaction;
@@ -54,6 +58,7 @@ public class EmbeddingJobProcessor {
     public EmbeddingJobProcessor(
             AiEnrichmentJobRepository jobRepository,
             EmbeddingTextBuilder textBuilder,
+            RecommendationEntityTagRepository entityTagRepository,
             AiServiceClient aiServiceClient,
             EntityManager entityManager,
             PlatformTransactionManager transactionManager,
@@ -61,6 +66,7 @@ public class EmbeddingJobProcessor {
             @Value("${app.recommendation.embedding.max-attempts:5}") int maxAttempts) {
         this.jobRepository = jobRepository;
         this.textBuilder = textBuilder;
+        this.entityTagRepository = entityTagRepository;
         this.aiServiceClient = aiServiceClient;
         this.entityManager = entityManager;
         this.transaction = new TransactionTemplate(transactionManager);
@@ -102,6 +108,9 @@ public class EmbeddingJobProcessor {
                 return finish(job, AiJobStatus.SKIPPED, null, "Entity no longer exists");
             }
             Prepared input = prepared.get();
+            if (input.skipReason() != null) {
+                return finish(job, AiJobStatus.SKIPPED, null, input.skipReason());
+            }
             if (input.text().isBlank()) {
                 return finish(job, AiJobStatus.SKIPPED, null, "Nothing to embed");
             }
@@ -126,24 +135,53 @@ public class EmbeddingJobProcessor {
     private Optional<Prepared> prepare(ClaimedJob job) {
         return switch (job.entityType()) {
             case TEACHING_REQUEST -> Optional.ofNullable(entityManager.find(TeachingRequest.class, job.entityId()))
-                    .map(request -> prepared(textBuilder.forTeachingRequest(request),
+                    .map(request -> !isPublished(request.getStatus()) ? Prepared.skip(NOT_PUBLISHED) : prepared(textBuilder.forTeachingRequest(request, tagNames(
+                                    RecommendationEntityType.TEACHING_REQUEST, request.getId(),
+                                    RecommendationEntityType.TUTOR,
+                                    request.getTutor() == null ? null : request.getTutor().getId())),
                             request.getEmbeddingContentHash(), request.getEmbedding()));
             case STUDYING_REQUEST -> Optional.ofNullable(entityManager.find(StudyingRequest.class, job.entityId()))
-                    .map(request -> prepared(textBuilder.forStudyingRequest(request),
+                    .map(request -> !isPublished(request.getStatus()) ? Prepared.skip(NOT_PUBLISHED) : prepared(textBuilder.forStudyingRequest(request, tagNames(
+                                    RecommendationEntityType.STUDYING_REQUEST, request.getId(),
+                                    RecommendationEntityType.STUDENT,
+                                    request.getStudent() == null ? null : request.getStudent().getId())),
                             request.getEmbeddingContentHash(), request.getEmbedding()));
             case TUTOR -> Optional.ofNullable(entityManager.find(Tutor.class, job.entityId()))
-                    .map(tutor -> prepared(textBuilder.forTutor(tutor),
+                    .map(tutor -> prepared(textBuilder.forTutor(tutor,
+                                    tagNames(RecommendationEntityType.TUTOR, tutor.getId(), null, null)),
                             tutor.getEmbeddingContentHash(), tutor.getProfileEmbedding()));
             case STUDENT -> Optional.ofNullable(entityManager.find(Student.class, job.entityId()))
-                    .map(student -> prepared(textBuilder.forStudent(student),
+                    .map(student -> prepared(textBuilder.forStudent(student,
+                                    tagNames(RecommendationEntityType.STUDENT, student.getId(), null, null)),
                             student.getEmbeddingContentHash(), student.getProfileEmbedding()));
             default -> Optional.empty();
         };
     }
 
+    /** Names of the tags of an entity and, for a posting, of the person behind it. */
+    private List<String> tagNames(
+            RecommendationEntityType type, UUID id, RecommendationEntityType ownerType, UUID ownerId) {
+        List<String> names = new java.util.ArrayList<>();
+        entityTagRepository.findAllByEntityTypeAndEntityId(type, id)
+                .forEach(tag -> names.add(tag.getTag().getName()));
+        if (ownerId != null) {
+            entityTagRepository.findAllByEntityTypeAndEntityId(ownerType, ownerId)
+                    .forEach(tag -> names.add(tag.getTag().getName()));
+        }
+        return names;
+    }
+
     private Prepared prepared(String text, String storedHash, float[] storedVector) {
         String hash = textBuilder.hash(text);
-        return new Prepared(text, hash, storedVector != null && hash.equals(storedHash));
+        return new Prepared(text, hash, storedVector != null && hash.equals(storedHash), null);
+    }
+
+    /**
+     * Only postings that are live are worth the work: drafts may never be paid for and postings
+     * awaiting review may still change or be rejected. Becoming OPEN queues a new job.
+     */
+    public static boolean isPublished(RequestStatus status) {
+        return status == RequestStatus.OPEN || status == RequestStatus.MATCHED;
     }
 
     /** Updates only the embedding columns, so {@code updated_at} of the entity is left alone. */
@@ -204,6 +242,10 @@ public class EmbeddingJobProcessor {
     public record ClaimedJob(UUID id, RecommendationEntityType entityType, UUID entityId, int attempts) {
     }
 
-    private record Prepared(String text, String hash, boolean upToDate) {
+    private record Prepared(String text, String hash, boolean upToDate, String skipReason) {
+
+        static Prepared skip(String reason) {
+            return new Prepared("", null, false, reason);
+        }
     }
 }

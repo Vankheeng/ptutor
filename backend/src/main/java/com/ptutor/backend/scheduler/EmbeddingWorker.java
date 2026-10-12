@@ -95,9 +95,10 @@ public class EmbeddingWorker {
         int queued = jobRepository.backfillTeachingRequests(now)
                 + jobRepository.backfillStudyingRequests(now)
                 + jobRepository.backfillTutors(now)
-                + jobRepository.backfillStudents(now);
+                + jobRepository.backfillStudents(now)
+                + jobRepository.backfillEnrichment(now);
         if (queued > 0) {
-            log.info("Queued {} embedding jobs for entities without an embedding", queued);
+            log.info("Queued {} jobs for entities without an embedding or never enriched", queued);
         }
     }
 

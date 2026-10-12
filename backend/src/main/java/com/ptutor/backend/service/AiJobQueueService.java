@@ -29,6 +29,9 @@ public class AiJobQueueService {
     @EventListener
     @Transactional(propagation = Propagation.MANDATORY)
     public void on(EmbeddingRefreshRequestedEvent event) {
+        // Both at once: the vector does not wait for the LLM, and is refreshed again when tags arrive.
+        jobRepository.enqueue(
+                AiJobType.ENRICH.name(), event.entityType().name(), event.entityId(), LocalDateTime.now());
         enqueueEmbedding(event.entityType(), event.entityId());
     }
 

@@ -48,6 +48,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_CERTIFICATE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_TAG_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_API;
@@ -171,6 +172,7 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_TEACHING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_SUBJECT_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_GRADE_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_RECOMMENDATION_TAG_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_PROFILE_REVIEW_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_USER_API).hasAnyRole("ADMIN", "EMPLOYEE")

@@ -2,6 +2,7 @@ package com.ptutor.backend.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import com.ptutor.backend.entity.AiEnrichmentJob;
 import com.ptutor.backend.entity.enums.AiJobStatus;
 import com.ptutor.backend.entity.enums.AiJobType;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
 
 public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob, UUID> {
 
@@ -58,7 +60,7 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             SELECT gen_random_uuid(), 'EMBED', 'TEACHING_REQUEST', tr.id, 'PENDING', 0, :now, :now, :now
             FROM teaching_requests tr
             WHERE tr.tutor_id = :tutorId AND tr.deleted_at IS NULL
-              AND tr.status IN ('DRAFT', 'PENDING_REVIEW', 'OPEN', 'MATCHED')
+              AND tr.status IN ('OPEN', 'MATCHED')
             ON CONFLICT (job_type, entity_type, entity_id) WHERE status IN ('PENDING', 'PROCESSING')
             DO UPDATE SET status = 'PENDING', attempts = 0, next_attempt_at = :now,
                           last_error = NULL, updated_at = :now
@@ -73,7 +75,7 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             SELECT gen_random_uuid(), 'EMBED', 'STUDYING_REQUEST', sr.id, 'PENDING', 0, :now, :now, :now
             FROM studying_requests sr
             WHERE sr.student_id = :studentId AND sr.deleted_at IS NULL
-              AND sr.status IN ('DRAFT', 'OPEN', 'MATCHED')
+              AND sr.status IN ('OPEN', 'MATCHED')
             ON CONFLICT (job_type, entity_type, entity_id) WHERE status IN ('PENDING', 'PROCESSING')
             DO UPDATE SET status = 'PENDING', attempts = 0, next_attempt_at = :now,
                           last_error = NULL, updated_at = :now
@@ -89,6 +91,10 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             """, nativeQuery = true)
     List<AiEnrichmentJob> lockDueJobs(
             @Param("jobType") String jobType, @Param("now") LocalDateTime now, @Param("limit") int limit);
+
+    /** The last successful run for an entity; its hash tells whether the text changed since. */
+    Optional<AiEnrichmentJob> findFirstByJobTypeAndEntityTypeAndEntityIdAndStatusOrderByUpdatedAtDesc(
+            AiJobType jobType, RecommendationEntityType entityType, UUID entityId, AiJobStatus status);
 
     boolean existsByJobTypeAndStatusAndNextAttemptAtLessThanEqual(
             AiJobType jobType, AiJobStatus status, LocalDateTime now);
@@ -132,13 +138,25 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             """)
     int releaseStale(@Param("staleBefore") LocalDateTime staleBefore, @Param("now") LocalDateTime now);
 
-    /** Finished jobs are only kept for a while; FAILED ones stay for diagnosis. */
+    /**
+     * Finished jobs are only kept for a while; FAILED ones stay for diagnosis. The latest successful
+     * ENRICH job of each entity is kept for good: its hash is what prevents paying for the LLM again
+     * when the text has not changed.
+     */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             delete from AiEnrichmentJob job
              where job.status in (com.ptutor.backend.entity.enums.AiJobStatus.DONE,
                                   com.ptutor.backend.entity.enums.AiJobStatus.SKIPPED)
                and job.updatedAt < :before
+               and (job.jobType <> com.ptutor.backend.entity.enums.AiJobType.ENRICH
+                    or job.status = com.ptutor.backend.entity.enums.AiJobStatus.SKIPPED
+                    or exists (select 1 from AiEnrichmentJob newer
+                                where newer.jobType = com.ptutor.backend.entity.enums.AiJobType.ENRICH
+                                  and newer.entityType = job.entityType
+                                  and newer.entityId = job.entityId
+                                  and newer.status = com.ptutor.backend.entity.enums.AiJobStatus.DONE
+                                  and newer.updatedAt > job.updatedAt))
             """)
     int deleteFinishedBefore(@Param("before") LocalDateTime before);
 
@@ -155,7 +173,7 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
     @Query(value = BACKFILL_INSERT_A + "TEACHING_REQUEST" + BACKFILL_INSERT_B + """
             FROM teaching_requests e
             WHERE e.deleted_at IS NULL AND e.embedding IS NULL
-              AND e.status IN ('DRAFT', 'PENDING_REVIEW', 'OPEN', 'MATCHED')
+              AND e.status IN ('OPEN', 'MATCHED')
             """ + BACKFILL_GUARD_A + "TEACHING_REQUEST" + BACKFILL_GUARD_B, nativeQuery = true)
     int backfillTeachingRequests(@Param("now") LocalDateTime now);
 
@@ -163,7 +181,7 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
     @Query(value = BACKFILL_INSERT_A + "STUDYING_REQUEST" + BACKFILL_INSERT_B + """
             FROM studying_requests e
             WHERE e.deleted_at IS NULL AND e.embedding IS NULL
-              AND e.status IN ('DRAFT', 'OPEN', 'MATCHED')
+              AND e.status IN ('OPEN', 'MATCHED')
             """ + BACKFILL_GUARD_A + "STUDYING_REQUEST" + BACKFILL_GUARD_B, nativeQuery = true)
     int backfillStudyingRequests(@Param("now") LocalDateTime now);
 
@@ -173,6 +191,51 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             WHERE e.deleted_at IS NULL AND e.profile_embedding IS NULL
             """ + BACKFILL_GUARD_A + "TUTOR" + BACKFILL_GUARD_B, nativeQuery = true)
     int backfillTutors(@Param("now") LocalDateTime now);
+
+    /** Live postings of one subject, queued again after its topic vocabulary changed. */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            INSERT INTO ai_enrichment_jobs
+                (id, job_type, entity_type, entity_id, status, attempts, next_attempt_at, created_at, updated_at)
+            SELECT gen_random_uuid(), 'ENRICH', e.entity_type, e.id, 'PENDING', 0, :now, :now, :now
+            FROM (
+                SELECT 'TEACHING_REQUEST' AS entity_type, id FROM teaching_requests
+                 WHERE deleted_at IS NULL AND status IN ('OPEN', 'MATCHED') AND subject_id = :subjectId
+                UNION ALL
+                SELECT 'STUDYING_REQUEST', id FROM studying_requests
+                 WHERE deleted_at IS NULL AND status IN ('OPEN', 'MATCHED') AND subject_id = :subjectId
+            ) e
+            ON CONFLICT (job_type, entity_type, entity_id) WHERE status IN ('PENDING', 'PROCESSING')
+            DO UPDATE SET status = 'PENDING', attempts = 0, next_attempt_at = :now,
+                          last_error = NULL, updated_at = :now
+            """, nativeQuery = true)
+    int enqueueEnrichmentForSubject(@Param("subjectId") UUID subjectId, @Param("now") LocalDateTime now);
+
+    /** Entities that were never enriched (rows older than the feature, or whose job was lost). */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            INSERT INTO ai_enrichment_jobs
+                (id, job_type, entity_type, entity_id, status, attempts, next_attempt_at, created_at, updated_at)
+            SELECT gen_random_uuid(), 'ENRICH', e.entity_type, e.id, 'PENDING', 0, :now, :now, :now
+            FROM (
+                SELECT 'TEACHING_REQUEST' AS entity_type, id FROM teaching_requests
+                 WHERE deleted_at IS NULL AND status IN ('OPEN', 'MATCHED')
+                UNION ALL
+                SELECT 'STUDYING_REQUEST', id FROM studying_requests
+                 WHERE deleted_at IS NULL AND status IN ('OPEN', 'MATCHED')
+                UNION ALL
+                SELECT 'TUTOR', id FROM tutors WHERE deleted_at IS NULL
+                UNION ALL
+                SELECT 'STUDENT', id FROM students WHERE deleted_at IS NULL
+            ) e
+            WHERE NOT EXISTS (
+                SELECT 1 FROM ai_enrichment_jobs j
+                WHERE j.job_type = 'ENRICH' AND j.entity_type = e.entity_type AND j.entity_id = e.id
+                  AND (j.status IN ('PENDING', 'PROCESSING', 'DONE', 'FAILED')
+                       OR COALESCE(j.last_error, '') <> 'Posting is not published'))
+            ON CONFLICT DO NOTHING
+            """, nativeQuery = true)
+    int backfillEnrichment(@Param("now") LocalDateTime now);
 
     @Modifying(flushAutomatically = true)
     @Query(value = BACKFILL_INSERT_A + "STUDENT" + BACKFILL_INSERT_B + """

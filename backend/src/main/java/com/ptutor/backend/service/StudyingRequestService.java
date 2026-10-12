@@ -283,7 +283,11 @@ public class StudyingRequestService {
         }
 
         studyingRequest.setStatus(RequestStatus.OPEN);
-        return toResponse(studyingRequestRepository.saveAndFlush(studyingRequest));
+        StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+        // The posting is live from now on: tags and vector are computed for it.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
+        return toResponse(saved);
     }
 
     private Student findStudentByUserId(UUID userId) {

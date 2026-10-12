@@ -185,6 +185,8 @@ class TeachingRequestServiceTest {
 
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
         verify(teachingRequestRepository).findById(request.getId());
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TEACHING_REQUEST, request.getId()));
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().recipientUserId()).isEqualTo(employeeUserId);

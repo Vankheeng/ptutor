@@ -64,8 +64,17 @@ public class AiServiceClient {
 
     /** True when the service answers and its embedding model is loaded. */
     public boolean isReady() {
+        return "ready".equals(health("status"));
+    }
+
+    /** True when the service answers and has an LLM configured (an API key is set on its side). */
+    public boolean isLlmReady() {
+        return "ready".equals(health("llm"));
+    }
+
+    private String health(String field) {
         if (!enabled) {
-            return false;
+            return "";
         }
         try {
             HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/health"))
@@ -75,13 +84,62 @@ public class AiServiceClient {
             HttpResponse<String> response = httpClient.send(
                     request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             return response.statusCode() == 200
-                    && "ready".equals(objectMapper.readTree(response.body()).path("status").asString(""));
+                    ? objectMapper.readTree(response.body()).path(field).asString("") : "";
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            return false;
+            return "";
         } catch (Exception exception) {
             log.debug("AI service health check failed: {}", exception.toString());
-            return false;
+            return "";
+        }
+    }
+
+    /**
+     * Asks the LLM to extract tags and weekly availability from free text (design 04, 4.4).
+     * Empty when the service is disabled, unreachable, too slow, has no LLM, or the answer is
+     * unusable. The caller still has to validate every item against its own rules.
+     */
+    public Optional<EnrichResult> enrich(EnrichRequest enrichRequest, Duration timeout) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        try {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + "/enrich"))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            objectMapper.writeValueAsString(enrichRequest), StandardCharsets.UTF_8));
+            if (!internalToken.isEmpty()) {
+                request.header(TOKEN_HEADER, internalToken);
+            }
+            HttpResponse<String> response = httpClient.send(
+                    request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                log.warn("AI service /enrich answered HTTP {}", response.statusCode());
+                return Optional.empty();
+            }
+            JsonNode body = objectMapper.readTree(response.body());
+            if (!body.path("schedule").isArray() || !body.path("tags").isArray()) {
+                log.warn("AI service /enrich returned an unexpected body");
+                return Optional.empty();
+            }
+            List<ExtractedSlot> schedule = new ArrayList<>();
+            for (JsonNode slot : body.path("schedule")) {
+                schedule.add(new ExtractedSlot(slot.path("dayOfWeek").asInt(0), slot.path("start").asString(""),
+                        slot.path("end").asString(""), slot.path("confidence").asDouble(0)));
+            }
+            List<ExtractedTag> tags = new ArrayList<>();
+            for (JsonNode tag : body.path("tags")) {
+                tags.add(new ExtractedTag(tag.path("group").asString(""), tag.path("code").asString(""),
+                        tag.path("confidence").asDouble(0)));
+            }
+            return Optional.of(new EnrichResult(body.path("model").asString(""), schedule, tags));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("AI service /enrich failed: {}", exception.toString());
+            return Optional.empty();
         }
     }
 
@@ -149,6 +207,79 @@ public class AiServiceClient {
             vectors.add(vector);
         }
         return Optional.of(new EmbeddingResult(model, vectors));
+    }
+
+    /**
+     * Asks the LLM for topic ideas for one subject. Empty when the service or the LLM is unavailable.
+     * The caller validates the result and shows it to an administrator; nothing is stored here.
+     */
+    public Optional<TagSuggestions> suggestTags(SuggestTagsRequest suggestRequest, Duration timeout) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        try {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + "/suggest-tags"))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            objectMapper.writeValueAsString(suggestRequest), StandardCharsets.UTF_8));
+            if (!internalToken.isEmpty()) {
+                request.header(TOKEN_HEADER, internalToken);
+            }
+            HttpResponse<String> response = httpClient.send(
+                    request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                log.warn("AI service /suggest-tags answered HTTP {}", response.statusCode());
+                return Optional.empty();
+            }
+            JsonNode body = objectMapper.readTree(response.body());
+            if (!body.path("tags").isArray()) {
+                log.warn("AI service /suggest-tags returned an unexpected body");
+                return Optional.empty();
+            }
+            List<SuggestedTag> tags = new ArrayList<>();
+            for (JsonNode tag : body.path("tags")) {
+                JsonNode parent = tag.path("parentCode");
+                tags.add(new SuggestedTag(tag.path("code").asString(""), tag.path("name").asString(""),
+                        tag.path("description").asString(""), parent.isString() ? parent.asString() : null));
+            }
+            return Optional.of(new TagSuggestions(body.path("model").asString(""), tags));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("AI service /suggest-tags failed: {}", exception.toString());
+            return Optional.empty();
+        }
+    }
+
+    /** Body of {@code POST /suggest-tags}. */
+    public record SuggestTagsRequest(String subject, List<VocabularyTag> existing, List<String> samples, int maxTags) {
+    }
+
+    public record TagSuggestions(String model, List<SuggestedTag> tags) {
+    }
+
+    public record SuggestedTag(String code, String name, String description, String parentCode) {
+    }
+
+    /** Body of {@code POST /enrich}; component names are the JSON field names of the contract. */
+    public record EnrichRequest(
+            String entityType, String subject, List<String> grades, Map<String, String> fields,
+            Map<String, List<VocabularyTag>> vocabulary, List<String> extract) {
+    }
+
+    public record VocabularyTag(String code, String name) {
+    }
+
+    public record EnrichResult(String model, List<ExtractedSlot> schedule, List<ExtractedTag> tags) {
+    }
+
+    /** {@code dayOfWeek} is ISO-8601 (1 = Monday ... 7 = Sunday); times are "HH:mm" strings as received. */
+    public record ExtractedSlot(int dayOfWeek, String start, String end, double confidence) {
+    }
+
+    public record ExtractedTag(String group, String code, double confidence) {
     }
 
     /** {@code model} is stored as {@code embedding_model_version} next to each vector. */

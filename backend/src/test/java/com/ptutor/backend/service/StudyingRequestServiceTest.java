@@ -416,12 +416,14 @@ class StudyingRequestServiceTest {
     }
 
     @Test
-    void activateAfterPaymentChangesDraftToOpen() {
+    void activateAfterPaymentChangesDraftToOpenAndQueuesTagsAndVector() {
         StudyingRequest request = existingRequest(RequestStatus.DRAFT);
         when(studyingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         assertThat(service.activateAfterPayment(request.getId()).status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher).publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, request.getId()));
     }
 
     private StudyingRequestRequest request() {

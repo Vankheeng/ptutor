@@ -34,6 +34,11 @@ public class EmbeddingTextBuilder {
 
     /** A teaching posting: the posting itself followed by the tutor profile behind it. */
     public String forTeachingRequest(TeachingRequest request) {
+        return forTeachingRequest(request, List.of());
+    }
+
+    /** @param tagNames names of the normalised tags of the posting and of its tutor */
+    public String forTeachingRequest(TeachingRequest request, List<String> tagNames) {
         List<String> lines = new ArrayList<>();
         String subject = request.getSubject() != null
                 ? request.getSubject().getName() : request.getCustomSubjectName();
@@ -50,11 +55,16 @@ public class EmbeddingTextBuilder {
                 labelled("dạy", grades),
                 labelled("Tin đăng", sentences(request.getTitle(), request.getDescription(), request.getNote()))));
         lines.addAll(tutorLines(request.getTutor()));
+        lines.add(normalised(tagNames));
         return finish(lines);
     }
 
     /** A studying posting: the posting itself followed by the student profile behind it. */
     public String forStudyingRequest(StudyingRequest request) {
+        return forStudyingRequest(request, List.of());
+    }
+
+    public String forStudyingRequest(StudyingRequest request, List<String> tagNames) {
         List<String> lines = new ArrayList<>();
         lines.add(sentences(
                 labelled("Môn", request.getSubject() == null ? null : request.getSubject().getName()),
@@ -62,16 +72,36 @@ public class EmbeddingTextBuilder {
                 labelled("Mục tiêu", request.getLearningGoals()),
                 labelled("Tin đăng", sentences(request.getTitle(), request.getDescription(), request.getNote()))));
         lines.addAll(studentLines(request.getStudent()));
+        lines.add(normalised(tagNames));
         return finish(lines);
     }
 
     /** Profile-only text, used when a searcher gives no free-text criteria. */
     public String forTutor(Tutor tutor) {
-        return finish(tutorLines(tutor));
+        return forTutor(tutor, List.of());
+    }
+
+    public String forTutor(Tutor tutor, List<String> tagNames) {
+        List<String> lines = new ArrayList<>(tutorLines(tutor));
+        lines.add(normalised(tagNames));
+        return finish(lines);
     }
 
     public String forStudent(Student student) {
-        return finish(studentLines(student));
+        return forStudent(student, List.of());
+    }
+
+    public String forStudent(Student student, List<String> tagNames) {
+        List<String> lines = new ArrayList<>(studentLines(student));
+        lines.add(normalised(tagNames));
+        return finish(lines);
+    }
+
+    /** Tag names are sorted so the same set of tags always gives the same text (and hash). */
+    private String normalised(List<String> tagNames) {
+        String names = tagNames.stream().map(this::clean).filter(name -> !name.isEmpty())
+                .distinct().sorted().collect(Collectors.joining(", "));
+        return names.isEmpty() ? "" : "Đã chuẩn hoá: " + names;
     }
 
     public String hash(String text) {

@@ -49,6 +49,7 @@ class EmbeddingJobIntegrationTest {
     @Autowired AiJobQueueService queueService;
     @Autowired AiEnrichmentJobRepository jobRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
+    @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EntityManager entityManager;
     @Autowired PlatformTransactionManager transactionManager;
     @Autowired ApplicationEventPublisher eventPublisher;
@@ -65,7 +66,8 @@ class EmbeddingJobIntegrationTest {
     void setUp() {
         aiServiceClient = mock(AiServiceClient.class);
         processor = new EmbeddingJobProcessor(
-                jobRepository, textBuilder, aiServiceClient, entityManager, transactionManager, 5_000, 3);
+                jobRepository, textBuilder, entityTagRepository, aiServiceClient, entityManager, transactionManager,
+                5_000, 3);
         // Jobs committed by a developer's running application must not leak into the assertions.
         jdbc.update("DELETE FROM ai_enrichment_jobs");
 
@@ -93,13 +95,14 @@ class EmbeddingJobIntegrationTest {
     }
 
     @Test
-    void eventQueuesOnePendingJobAndRepeatedChangesDoNotDuplicateIt() {
+    void eventQueuesOneEmbeddingAndOneEnrichmentJobAndRepeatedChangesDoNotDuplicateThem() {
         eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
                 RecommendationEntityType.TEACHING_REQUEST, teachingRequestId));
         eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
                 RecommendationEntityType.TEACHING_REQUEST, teachingRequestId));
 
-        assertThat(jobs()).singleElement().satisfies(job -> {
+        assertThat(jobs()).extracting(job -> job.get("job_type")).containsExactlyInAnyOrder("EMBED", "ENRICH");
+        assertThat(jobs()).filteredOn(job -> job.get("job_type").equals("EMBED")).singleElement().satisfies(job -> {
             assertThat(job.get("job_type")).isEqualTo("EMBED");
             assertThat(job.get("entity_type")).isEqualTo("TEACHING_REQUEST");
             assertThat(job.get("entity_id")).isEqualTo(teachingRequestId);
@@ -211,6 +214,46 @@ class EmbeddingJobIntegrationTest {
         assertThat(outcomes).containsExactly(Outcome.SKIPPED, Outcome.SKIPPED);
         verify(aiServiceClient, never()).embed(any(), any());
         assertThat(jobs()).extracting(job -> job.get("status")).containsOnly("SKIPPED");
+    }
+
+    @Test
+    void postingIsEmbeddedOnlyOnceItIsLive() {
+        when(aiServiceClient.embed(any(), any())).thenReturn(embedding(0.5f));
+        for (String status : List.of("DRAFT", "PENDING_REVIEW", "REJECTED", "CLOSED")) {
+            jdbc.update("UPDATE teaching_requests SET status = ? WHERE id = ?", status, teachingRequestId);
+            entityManager.clear();
+            queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+
+            assertThat(processor.process(claimOne())).as(status).isEqualTo(Outcome.SKIPPED);
+        }
+        verify(aiServiceClient, never()).embed(any(), any());
+        assertThat(jobs()).extracting(job -> job.get("last_error")).containsOnly("Posting is not published");
+
+        // Payment (or approval) makes it live and queues the job again.
+        jdbc.update("UPDATE teaching_requests SET status = 'OPEN' WHERE id = ?", teachingRequestId);
+        entityManager.clear();
+        queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+
+        assertThat(processor.process(claimOne())).isEqualTo(Outcome.DONE);
+        assertThat(jdbc.queryForObject(
+                "SELECT embedding IS NOT NULL FROM teaching_requests WHERE id = ?", Boolean.class, teachingRequestId))
+                .isTrue();
+    }
+
+    @Test
+    void backfillAndProfileChangesOnlyQueueLivePostings() {
+        jdbc.update("UPDATE teaching_requests SET status = 'DRAFT', embedding = NULL WHERE id = ?", teachingRequestId);
+        jdbc.update("UPDATE studying_requests SET status = 'DRAFT', embedding = NULL WHERE id = ?", studyingRequestId);
+
+        jobRepository.backfillTeachingRequests(LocalDateTime.now());
+        jobRepository.backfillStudyingRequests(LocalDateTime.now());
+        jobRepository.backfillEnrichment(LocalDateTime.now());
+        queueService.enqueueEmbedding(RecommendationEntityType.TUTOR, tutorId);
+        queueService.enqueueEmbedding(RecommendationEntityType.STUDENT, studentId);
+
+        assertThat(jobs()).extracting(job -> job.get("entity_id"))
+                .doesNotContain(teachingRequestId, studyingRequestId)
+                .contains(tutorId, studentId);
     }
 
     @Test

@@ -150,9 +150,9 @@ class RecommendationSchemaIntegrationTest {
     @Test
     void storesTagVocabularyAndEntityTags() {
         RecommendationTag parent = tagRepository.save(RecommendationTag.builder()
-                .tagGroup(RecommendationTagGroup.STYLE).code("kien_nhan").name("Kiên nhẫn").build());
+                .tagGroup(RecommendationTagGroup.STYLE).code("thu_kien_nhan").name("Kiên nhẫn").build());
         RecommendationTag child = tagRepository.save(RecommendationTag.builder()
-                .tagGroup(RecommendationTagGroup.STYLE).parent(parent).code("kien_nhan_voi_hs_yeu")
+                .tagGroup(RecommendationTagGroup.STYLE).parent(parent).code("thu_kien_nhan_voi_hs_yeu")
                 .name("Kiên nhẫn với học sinh yếu").build());
         entityTagRepository.save(RecommendationEntityTag.builder()
                 .entityType(RecommendationEntityType.TUTOR).entityId(tutorId).tag(child)
@@ -162,7 +162,7 @@ class RecommendationSchemaIntegrationTest {
 
         RecommendationTag reloaded = tagRepository.findById(child.getId()).orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(RecommendationTagStatus.ACTIVE);
-        assertThat(reloaded.getParent().getCode()).isEqualTo("kien_nhan");
+        assertThat(reloaded.getParent().getCode()).isEqualTo("thu_kien_nhan");
         assertThat(entityTagRepository.findAll())
                 .filteredOn(tag -> tag.getEntityId().equals(tutorId))
                 .singleElement()
@@ -172,10 +172,10 @@ class RecommendationSchemaIntegrationTest {
     @Test
     void rejectsDuplicateTagCodeInSameGroup() {
         tagRepository.saveAndFlush(RecommendationTag.builder()
-                .tagGroup(RecommendationTagGroup.GOAL).code("thi_vao_10").name("Thi vào 10").build());
+                .tagGroup(RecommendationTagGroup.GOAL).code("thu_thi_vao_10").name("Thi vào 10").build());
 
         assertThatThrownBy(() -> tagRepository.saveAndFlush(RecommendationTag.builder()
-                .tagGroup(RecommendationTagGroup.GOAL).code("thi_vao_10").name("Trùng").build()))
+                .tagGroup(RecommendationTagGroup.GOAL).code("thu_thi_vao_10").name("Trùng").build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

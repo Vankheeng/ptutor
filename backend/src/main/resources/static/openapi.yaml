@@ -51,6 +51,8 @@ tags:
     description: Personalised tutor and student recommendations
   - name: Reviews
     description: Review operations for the Ptutor platform
+  - name: Admin Recommendation Tags
+    description: Tag vocabulary used by recommendations, for administrators and content reviewers
   - name: Admin Subjects
     description: Subject operations for employees and administrators
   - name: Admin Grades
@@ -2910,6 +2912,204 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/recommendation-tags:
+    get:
+      tags: [Recommendations]
+      summary: Tags a user can pick as search filters
+      description: >-
+        Requires authentication. Returns ACTIVE tags only. Style, goal and level tags apply to every
+        subject. Topics are returned only when subjectId is given, and only those of that subject.
+      operationId: listSelectableRecommendationTags
+      parameters:
+        - name: group
+          in: query
+          schema: { $ref: '#/components/schemas/RecommendationTagGroup' }
+        - name: subjectId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Selectable tags ordered by group and code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/admin/recommendation-tags:
+    get:
+      tags: [Admin Recommendation Tags]
+      summary: List the tag vocabulary
+      description: Requires ADMIN, or EMPLOYEE with the CONTENT_REVIEWER function. Includes inactive tags.
+      operationId: listRecommendationTagsForAdmin
+      parameters:
+        - name: group
+          in: query
+          schema: { $ref: '#/components/schemas/RecommendationTagGroup' }
+        - name: subjectId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE] }
+      responses:
+        '200':
+          description: Tags ordered by group and code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [Admin Recommendation Tags]
+      summary: Create one or more tags
+      description: >-
+        Tags typed by the administrator and / or kept from the suggestions. All or nothing: one invalid
+        item rejects the whole request. Codes are unique over the whole vocabulary and never change.
+        TOPIC needs an active subject; other groups have none. SEGMENT tags cannot be added because the
+        four levels are part of the ranking formula. A parent is a top-level tag of the same group and
+        subject and may be created in the same request, before its children. New topics queue the
+        published postings of that subject for tag extraction again.
+      operationId: createRecommendationTags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationTagCreateRequest'
+      responses:
+        '201':
+          description: Created tags, in request order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
+        '400':
+          description: >-
+            Validation error, or SEGMENT_TAGS_ARE_FIXED, SUBJECT_REQUIRED, SUBJECT_NOT_ALLOWED,
+            INVALID_SUBJECT, INVALID_TAG_PARENT
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: TAG_CODE_ALREADY_EXISTS
+
+  /api/v1/admin/recommendation-tags/{tagId}:
+    put:
+      tags: [Admin Recommendation Tags]
+      summary: Rename a tag, change its description or parent
+      description: >-
+        The code, group and subject cannot be changed. Omitting parentCode removes the parent. Renaming
+        queues the profiles and postings that carry the tag for a new embedding; the LLM is not called.
+      operationId: updateRecommendationTag
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationTagUpdateRequest'
+      responses:
+        '200':
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagResponseEnvelope'
+        '400':
+          description: Validation error or INVALID_TAG_PARENT
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: TAG_NOT_FOUND
+
+  /api/v1/admin/recommendation-tags/{tagId}/status:
+    patch:
+      tags: [Admin Recommendation Tags]
+      summary: Switch a tag on or off
+      description: >-
+        Tags are never deleted. An inactive tag is hidden from users, no longer offered to the LLM and
+        ignored by ranking; what was attached to it counts again when it is switched back on. SEGMENT
+        tags cannot be switched off. Changing a topic queues the published postings of its subject for
+        tag extraction again.
+      operationId: changeRecommendationTagStatus
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [ACTIVE, INACTIVE] }
+      responses:
+        '200':
+          description: Tag with its new status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagResponseEnvelope'
+        '400':
+          description: Validation error or SEGMENT_TAGS_ARE_FIXED
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: TAG_NOT_FOUND
+
+  /api/v1/admin/recommendation-tags/suggestions:
+    post:
+      tags: [Admin Recommendation Tags]
+      summary: Ask the LLM for topic ideas for one subject
+      description: >-
+        Nothing is saved. The administrator reviews the list, edits it freely and creates the tags they
+        want with POST /api/v1/admin/recommendation-tags. The LLM receives the subject name, the topics
+        that already exist and short excerpts of published postings of the subject with phone numbers and
+        e-mails removed. Codes that already exist or are malformed are dropped from the answer.
+      operationId: suggestRecommendationTags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subjectId]
+              properties:
+                subjectId: { type: string, format: uuid }
+                maxTags: { type: integer, minimum: 1, maximum: 20, default: 10 }
+      responses:
+        '200':
+          description: Suggested topics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationTagSuggestionResponseEnvelope'
+        '400':
+          description: Validation error or INVALID_SUBJECT
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '503':
+          description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
 
   /api/v1/students/me/tutor-recommendations:
     post:
@@ -7479,6 +7679,90 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/CertificateResponse'
+
+    RecommendationTagGroup:
+      type: string
+      enum: [TOPIC, STYLE, GOAL, SEGMENT]
+
+    RecommendationTagResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        group: { $ref: '#/components/schemas/RecommendationTagGroup' }
+        subjectId: { type: string, format: uuid, nullable: true, description: Set for TOPIC tags only }
+        subjectName: { type: string, nullable: true }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        parentId: { type: string, format: uuid, nullable: true }
+        parentCode: { type: string, nullable: true }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+
+    RecommendationTagCreateRequest:
+      type: object
+      required: [tags]
+      properties:
+        tags:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            type: object
+            required: [group, code, name]
+            properties:
+              group: { $ref: '#/components/schemas/RecommendationTagGroup' }
+              subjectId: { type: string, format: uuid, description: Required for TOPIC and not allowed otherwise }
+              code: { type: string, pattern: '^[a-z0-9_]{3,40}$' }
+              name: { type: string, maxLength: 120 }
+              description: { type: string, maxLength: 500 }
+              parentCode: { type: string }
+
+    RecommendationTagUpdateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        parentCode: { type: string }
+
+    RecommendationTagListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecommendationTagResponse'
+
+    RecommendationTagResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RecommendationTagResponse'
+
+    RecommendationTagSuggestionResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                subjectId: { type: string, format: uuid }
+                subjectName: { type: string }
+                model: { type: string }
+                suggestions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      code: { type: string }
+                      name: { type: string }
+                      description: { type: string, nullable: true }
+                      parentCode: { type: string, nullable: true }
 
     SubjectListResponseEnvelope:
       allOf:

@@ -90,6 +90,7 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/admin/teaching-requests")
                 || path.startsWith("/api/v1/admin/tutor-profiles")
                 || path.startsWith("/api/v1/admin/subjects")
+                || path.startsWith("/api/v1/admin/recommendation-tags")
                 || path.startsWith("/api/v1/admin/grades")) {
             return EmployeeJobFunction.CONTENT_REVIEWER;
         }
