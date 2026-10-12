@@ -38,13 +38,19 @@ Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `h
 | Hạng mục | Thiết kế |
 |---|---|
 | Ngôn ngữ / framework | Python, FastAPI |
-| Embedding | `BAAI/bge-m3` (dense, 1024 chiều), ONNX Runtime int8 |
+| Embedding | `BAAI/bge-m3` (dense, 1024 chiều), ONNX Runtime int8. File lấy từ bản chuyển đổi `Xenova/bge-m3` (`onnx/model_int8.onnx`, ~586 MB kể cả tokenizer); lấy vector token đầu (CLS) rồi chuẩn hoá độ dài 1. Ghi `embedding_model_version = bge-m3-int8` |
 | Rerank | `BAAI/bge-reranker-v2-m3`, ONNX Runtime int8 |
 | LLM | API bên ngoài, chế độ JSON, `temperature = 0` |
-| File model | Tải về volume lần chạy đầu, không đóng gói vào image |
-| Bảo mật | Chỉ mạng nội bộ; header `X-Internal-Token` |
+| File model | Tải về volume lần chạy đầu, không đóng gói vào image (`ai-service/models`, git bỏ qua) |
+| Bảo mật | Chỉ mạng nội bộ (cổng chỉ mở trên `127.0.0.1`); header `X-Internal-Token`; service không khởi động nếu thiếu token |
+| Địa chỉ | Backend gọi `http://127.0.0.1:8000`, **không dùng `localhost`** (trên Windows `localhost` thử IPv6 trước, chậm ~2 s mỗi kết nối) |
+| Hợp đồng `/embed` | `{"texts": [...]}` → `{"model", "dimensions": 1024, "embeddings": [[...]]}`; ≤ 32 văn bản, mỗi văn bản ≤ 512 token |
 | Sẵn sàng | `GET /health` trả `ready` khi đã nạp model |
 | Bộ nhớ | ~1,5–2 GB RAM với hai model int8 |
+
+Số đo embedding trên máy phát triển (12/10/2026, CPU 12 luồng, `scripts/benchmark_embed.py`): câu truy vấn
+ngắn p50 ≈ 62–76 ms, p95 ≈ 65–91 ms (ngân sách 150 ms); một tin đăng ~80 token ≈ 105–140 ms; gộp lô không
+nhanh hơn (≈ 100–110 ms mỗi văn bản, lô 32 ≈ 3,5 s) → `EmbeddingWorker` dùng lô nhỏ và timeout riêng.
 
 Ngày đầu triển khai: đo độ trễ rerank trên máy phát triển và VPS; nếu 20 cặp > ~1 s thì giảm `top-k`
 hoặc dùng model nhỏ hơn.
