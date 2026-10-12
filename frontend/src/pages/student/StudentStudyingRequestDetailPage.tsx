@@ -1,13 +1,11 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
   acceptTutorOffer,
-  cancelStudyingRequest,
   getMyStudyingRequest,
   getTutorOffers,
   rejectTutorOffer,
-  updateStudyingRequest,
   type StudyingRequest,
   type TutorOffer
 } from '../../services/studentApi';
@@ -15,11 +13,11 @@ import { useResource } from '../../hooks/useResource';
 
 export function StudentStudyingRequestDetailPage() {
   const { requestId = '' } = useParams();
+  const location = useLocation();
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [busy, setBusy] = useState<string | null>(null);
-
   const load = useCallback(async () => {
     const [request, offerPage] = await Promise.all([getMyStudyingRequest(requestId), getTutorOffers(requestId)]);
     return { request, offers: offerPage.content };
@@ -27,6 +25,7 @@ export function StudentStudyingRequestDetailPage() {
   const query = useResource(load, revision);
   const request: StudyingRequest | null = query.data?.request ?? null;
   const offers: TutorOffer[] = query.data?.offers ?? [];
+
   const act = async (offer: TutorOffer, action: 'accept' | 'reject') => {
     setBusy(offer.id);
     setError('');
@@ -35,51 +34,7 @@ export function StudentStudyingRequestDetailPage() {
       setNotice(`Offer ${action}ed.`);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Could not update this offer.'
-      );
-    } finally {
-      setBusy(null);
-    }
-  };
-  const cancel = async () => {
-    setBusy('request');
-    try {
-      await cancelStudyingRequest(requestId);
-      setNotice('Request cancelled.');
-      setRevision((value) => value + 1);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not cancel this request.');
-    } finally {
-      setBusy(null);
-    }
-  };
-  const update = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    setBusy('update');
-    setError('');
-    try {
-      await updateStudyingRequest(requestId, {
-        title: String(values.get('title') ?? ''),
-        quantity: Number(values.get('quantity')),
-        description: String(values.get('description') ?? ''),
-        preferredSchedule: String(values.get('preferredSchedule') ?? '')
-      });
-      setNotice('Studying request updated.');
-      setRevision((value) => value + 1);
-    } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Could not update this request.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this offer.');
     } finally {
       setBusy(null);
     }
@@ -102,15 +57,15 @@ export function StudentStudyingRequestDetailPage() {
       <Link className="student-link" to="/student/studying-requests">
         ← Back to studying requests
       </Link>
-      <div className="student-page-heading">
-        <div>
-          <span className="student-eyebrow">STUDYING REQUEST</span>
-          <h1>{request.title}</h1>
-          <p>
-            {request.subjectName} · {request.gradeName}
-          </p>
-        </div>
-        <span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>
+      <div className="student-detail-actions student-detail-page-actions">
+        {['DRAFT', 'OPEN'].includes(request.status) && (
+          <Link className="student-button warning" to={`/student/studying-requests/${request.id}/edit`}>
+            Edit
+          </Link>
+        )}
+        <Link className="student-button back-to-list" to="/student/studying-requests">
+          Back to list
+        </Link>
       </div>
       {notice && (
         <div className="student-notice" role="status">
@@ -125,17 +80,28 @@ export function StudentStudyingRequestDetailPage() {
       <div className="student-detail-layout">
         <section className="student-panel">
           <h2>Learning details</h2>
-          <p className="student-detail-copy">
-            {request.description || request.learningGoals || 'No description provided.'}
-          </p>
           <div className="student-detail-facts">
+            <span>
+              <small>Title</small>
+              <strong>{request.title}</strong>
+            </span>
+            <span>
+              <small>Status</small>
+              <strong>
+                <span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>
+              </strong>
+            </span>
+            <span>
+              <small>Subject</small>
+              <strong>{request.subjectName || request.note || 'Custom subject'}</strong>
+            </span>
+            <span>
+              <small>Grade</small>
+              <strong>{request.gradeName}</strong>
+            </span>
             <span>
               <small>Mode</small>
               <strong>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'}</strong>
-            </span>
-            <span>
-              <small>Quantity</small>
-              <strong>{request.quantity}</strong>
             </span>
             <span>
               <small>Budget</small>
@@ -144,46 +110,46 @@ export function StudentStudyingRequestDetailPage() {
               </strong>
             </span>
             <span>
-              <small>Schedule</small>
+              <small>Preferred schedule</small>
               <strong>{request.preferredSchedule || 'Flexible'}</strong>
             </span>
+            <span>
+              <small>Address</small>
+              <strong>
+                {[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
+              </strong>
+            </span>
           </div>
-          {['DRAFT', 'OPEN', 'MATCHED', 'CLOSED'].includes(request.status) && (
-            <button
-              className="student-button secondary"
-              style={{ marginTop: 16 }}
-              type="button"
-              disabled={busy === 'request'}
-              onClick={() => void cancel()}
-            >
-              Cancel request
-            </button>
+          <div className="student-detail-copy">
+            <small>Description</small>
+            <p>{request.description || 'No description provided.'}</p>
+          </div>
+          {request.learningGoals && (
+            <div className="student-detail-copy">
+              <small>Learning goals</small>
+              <p>{request.learningGoals}</p>
+            </div>
           )}
-          {['DRAFT', 'OPEN'].includes(request.status) && (
-            <form className="student-form-grid" style={{ marginTop: 20 }} onSubmit={(event) => void update(event)}>
-              <label>
-                Title
-                <input name="title" defaultValue={request.title} required />
-              </label>
-              <label>
-                Quantity
-                <input name="quantity" type="number" min="1" defaultValue={request.quantity} required />
-              </label>
-              <label className="student-field-full">
-                Description
-                <textarea name="description" rows={3} defaultValue={request.description || ''} />
-              </label>
-              <label className="student-field-full">
-                Preferred schedule
-                <input name="preferredSchedule" defaultValue={request.preferredSchedule || ''} />
-              </label>
-              <div className="student-form-actions">
-                <button className="student-button" disabled={busy === 'update'} type="submit">
-                  Save changes
-                </button>
-              </div>
-            </form>
-          )}
+          <div className="student-detail-copy">
+            <small>Availability</small>
+            {request.availabilities.length ? (
+              request.availabilities.map((slot) => (
+                <p key={`${slot.dayOfWeek}-${slot.startTime}`}>
+                  {weekday(slot.dayOfWeek)}: {slot.startTime} – {slot.endTime}
+                </p>
+              ))
+            ) : (
+              <p>Flexible</p>
+            )}
+          </div>
+          <div className="student-audit">
+            <span>
+              Created: <strong>{formatDate(request.createdAt)}</strong>
+            </span>
+            <span>
+              Updated: <strong>{formatDate(request.updatedAt)}</strong>
+            </span>
+          </div>
         </section>
         <section className="student-panel">
           <div className="student-section-heading" style={{ margin: 0 }}>
@@ -200,6 +166,8 @@ export function StudentStudyingRequestDetailPage() {
                   <div>
                     <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Tutor'}</h3>
                     <p>
+                      {offer.tutorEmail}
+                      <br />
                       {formatMoney(offer.proposedPrice)} · {offer.teachingMode === 'ONLINE' ? 'Online' : 'In person'}
                       <br />
                       {offer.message || 'No message included.'}
@@ -246,6 +214,14 @@ export function StudentStudyingRequestDetailPage() {
 function formatMoney(value: number | null) {
   return value === null ? 'Negotiable' : `${new Intl.NumberFormat('en-US').format(value)} VND`;
 }
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
 function label(value: string) {
   return value.toLowerCase().replaceAll('_', ' ');
+}
+function weekday(dayOfWeek: number) {
+  return (
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayOfWeek - 1] ?? `Day ${dayOfWeek}`
+  );
 }

@@ -181,7 +181,7 @@ export function TutorDashboardPage() {
               </div>
               <h3>{request.title || `${request.subjectName} tutoring`}</h3>
               <p className="tutor-request-meta">
-                {request.gradeName} <span>·</span> {request.quantity} student{request.quantity === 1 ? '' : 's'}
+                {request.gradeName} <span>·</span> One tutor match
                 {request.districtName ? ` · ${request.districtName}` : ''}
               </p>
               <p className="tutor-request-description">

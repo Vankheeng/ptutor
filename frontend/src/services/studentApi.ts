@@ -11,7 +11,7 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
-export type RequestStatus = 'DRAFT' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED';
+export type RequestStatus = 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
 export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
 export type LearningMode = 'ONLINE' | 'OFFLINE';
 export type ContractStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -52,11 +52,10 @@ export interface Availability {
 export interface StudyingRequest {
   id: string;
   studentId: string;
-  subjectId: string;
-  subjectName: string;
+  subjectId: string | null;
+  subjectName: string | null;
   gradeId: string;
   gradeName: string;
-  quantity: number;
   districtId: string | null;
   districtName: string | null;
   title: string;
@@ -82,7 +81,7 @@ export interface TutorOffer {
   tutorEmail: string;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
-  subjectId: string;
+  subjectId?: string;
   subjectName: string;
   gradeId: string;
   gradeName: string;
@@ -240,9 +239,8 @@ export interface StudentProfileUpdate {
 }
 
 export interface StudyingRequestInput {
-  subjectId: string;
+  subjectId?: string;
   gradeId: string;
-  quantity: number;
   title: string;
   description?: string;
   note?: string;
@@ -265,9 +263,10 @@ export interface ContractTerms {
   endDate: string;
 }
 
-const pageParams = (page = 0, size = 20, status?: string) => {
+const pageParams = (page = 0, size = 20, status?: string, sort?: 'ASC' | 'DESC') => {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
+  if (sort) params.set('sort', sort);
   return params.toString();
 };
 
@@ -275,10 +274,19 @@ export const getStudentProfile = (signal?: AbortSignal) => get<StudentProfile>('
 export const updateStudentProfile = (values: StudentProfileUpdate) =>
   patch<StudentProfile>('/api/v1/students/me', values);
 
-export function getMyStudyingRequests(status?: RequestStatus, page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<StudyingRequest>>(`/api/v1/students/me/studying-requests?${pageParams(page, size, status)}`, {
-    signal
-  });
+export function getMyStudyingRequests(
+  status?: RequestStatus,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  sort: 'ASC' | 'DESC' = 'DESC'
+) {
+  return get<PageResponse<StudyingRequest>>(
+    `/api/v1/students/me/studying-requests?${pageParams(page, size, status, sort)}`,
+    {
+      signal
+    }
+  );
 }
 export const getMyStudyingRequest = (id: string) => get<StudyingRequest>(`/api/v1/students/me/studying-requests/${id}`);
 export const createStudyingRequest = (values: StudyingRequestInput) =>
