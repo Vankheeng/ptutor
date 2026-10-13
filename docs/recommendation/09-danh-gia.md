@@ -102,6 +102,7 @@ học được với **sở thích ẩn**.
 | A1 — tag | 60 văn bản nhóm tự gán nhãn | Micro-F1 |
 | A1 — lịch | 60 câu lịch dạng chữ | Độ chính xác theo ngày; IoU khung giờ |
 | A2 — tách câu | 80 câu nhóm tự viết | P/R/F1 theo từng ô bộ lọc; % câu điền đúng toàn bộ |
+| A2 — phần ngữ nghĩa (thêm 13/10/2026) | Cùng 80 câu, chạy xếp hạng với hai biến thể `semanticText`: nguyên câu (đang dùng) và "phần còn lại" do LLM tách | Chênh lệch NDCG@10; số câu LLM thêm ý không có trong câu gốc; số ô bộ lọc được **suy ra** thay vì nêu rõ |
 
 ### Hiệu năng
 

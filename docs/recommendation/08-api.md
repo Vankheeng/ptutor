@@ -41,6 +41,10 @@ Response `data`: các giá trị bộ lọc đã ánh xạ ID (cùng cấu trúc
 `semanticText` và `notes` (mục không nhận ra). Lỗi LLM → `filters` rỗng, `semanticText` = cả câu.
 Giao diện điền vào form; người dùng xem lại rồi mới bấm tìm.
 
+Ghi chú triển khai (13/10/2026): `semanticText` trong response **luôn là nguyên câu người dùng** (đã lọc SĐT,
+email), không do LLM viết lại — xem 05 mục 5.4. Response có thêm `understood` (false khi không phân tích được); với
+`direction = TUTOR_TO_STUDENT`, `filters` theo cấu trúc 8.4. Chi tiết ánh xạ: 05 mục 5.4.
+
 ## 8.3. Học sinh tìm gia sư
 
 `POST /api/v1/students/me/tutor-recommendations?page=0&size=20[&logId=…]`

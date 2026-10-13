@@ -119,7 +119,7 @@ sequenceDiagram
 
 | Bước | Thời gian |
 |---|---|
-| `/parse-query` (chỉ khi gõ câu; là bước riêng, trước khi bấm tìm) | ≤ 2 000 ms |
+| `/parse-query` (chỉ khi gõ câu; là bước riêng, trước khi bấm tìm) | ≤ 3 000 ms (timeout; đo thực tế 1,8–2,4 s, xem 05 mục 5.4) |
 | Embed văn bản nhu cầu (cache theo mã băm) | ≤ 150 ms |
 | SQL lọc cứng + vector | ≤ 150 ms |
 | Chấm điểm ≤ 200 ứng viên | ≤ 50 ms |

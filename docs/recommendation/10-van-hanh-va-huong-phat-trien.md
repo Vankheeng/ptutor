@@ -34,6 +34,7 @@
 | `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |
 | `proactive.enabled` / `notify-threshold` / `top-k` / `cooldown-hours` | true / 0,65 / 3 / 24 | 07, 7.3 |
 | `saved-search.max-per-user` | 5 | 05, 5.6 |
+| `parse-query.enabled` / `timeout-ms` / `cache-hours` / `cache-size` | true / 3 000 / 24 / 500 | 05, 5.4 |
 | `enrichment.min-confidence` / `max-attempts` / `timeout-ms` / `batch-size` / `worker-interval-ms` | 0,6 / 5 / 25 000 / 5 / 30 000 | 04 |
 | `algorithm-version` | `v2.1-rc` (trước Bước 8: `v2.1-a`) | Ghi vào log |
 
