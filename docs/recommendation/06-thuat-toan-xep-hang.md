@@ -179,6 +179,11 @@ f_hist = 0.6 · clip((cos(v_pref, tr.embedding) − 0.30) / 0.50, 0, 1)
 
 Thiếu khi người dùng chưa có hồ sơ sở thích.
 
+Ghi chú triển khai (13/10/2026): tin chưa có vector thì phần cosine lấy trung tính 0,5; `aff` tính theo **mã
+tag** của tin và của người đăng; phần tag bị chặn trên ở 1. `a = (1 − w_hist)·a_cơ_sở + w_hist·f_hist` áp dụng
+cho cả hai chiều; `w_hist` và `f_hist` được ghi theo từng ứng viên trong log (`wHist`, `features.hist`).
+Cờ tắt: `history.enabled=false`.
+
 ### Gộp thành a
 
 | Đặc trưng | Trọng số cơ sở w |
@@ -354,6 +359,19 @@ Trang đầu N = 20. **Vị trí 5 và 12** dành cho slot khám phá nếu tậ
    `θ_e × score_e` lớn nhất cho slot 5, lặp lại (không trùng) cho slot 12.
 3. Chèn vào, đẩy phần còn lại xuống; ghi `isExploration = true`.
 
+Ghi chú triển khai (13/10/2026):
+- Chạy **sau rerank**, trên danh sách đã gộp theo người; chỉ khi có hơn N + 5 kết quả.
+- Điều kiện hiển thị là **không vượt trung vị** `impressions_7d` (thay cho "dưới trung vị"): khi phần lớn tin
+  chưa từng hiển thị, trung vị bằng 0 và "dưới trung vị" sẽ không còn tin nào. Trung vị tính trên toàn bộ kết
+  quả của lần tìm; tin chưa có số liệu coi như 0 lượt.
+- Số liệu do `ExposureStatsJob` đếm lại hằng đêm (20:00 UTC) từ log: **lượt hiển thị** = tin nằm trong 20 hạng
+  đầu của một lần tìm (trang đầu luôn được trả về); **lượt bấm** = một lần tìm trong đó người dùng mở / tym /
+  liên hệ tin đó (`DISMISSED` không tính).
+- Rút mẫu Beta bằng hai biến Gamma (Marsaglia–Tsang). Kết quả ngẫu nhiên theo từng lần tìm, nhưng thứ tự đã
+  chọn được lưu trong log nên lật trang và tải lại vẫn ổn định.
+- Tin ở slot khám phá có `isExploration = true` và lý do đầu tiên là "Gia sư mới trên nền tảng" (chiều gia sư:
+  "Tin học ít được xem, có thể hợp với bạn"). Cờ tắt: `exploration.enabled=false`.
+
 Tin mới (`Beta(1,1)`, phân bố rộng) có cơ hội xuất hiện; tin hiển thị nhiều mà ít click dần hết
 được chọn. Không đụng 4 vị trí đầu. Slot khám phá cũng là nguồn dữ liệu ít thiên lệch cho việc
 học trọng số sau này (10).
@@ -463,7 +481,8 @@ Ghi chú triển khai (12/10/2026):
 - Chỉ một lưu ý, theo thứ tự: lịch → giá → khu vực.
 - Lý do được lưu trong `returned_candidate_ids` của log (`reasons`, `caution`), nên trang sau lấy bằng
   `logId` hiện đúng câu của lần tìm.
-- Chưa có: lý do theo `f_hist` (H1) và "Gia sư mới trên nền tảng" (slot khám phá) — làm cùng bước sự kiện.
+- Đã có từ 13/10/2026: lý do theo `f_hist` ("Giống các gia sư bạn đã quan tâm: {tối đa 2 tag người dùng ưa
+  nhất mà tin này có}"; chiều gia sư: "Giống các học viên bạn đã quan tâm…") và lý do của slot khám phá.
 
 ## 6.14. Ví dụ tính tay
 

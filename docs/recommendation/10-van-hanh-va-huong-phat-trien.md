@@ -26,7 +26,9 @@
 | `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 20 / 4 000 / 4 | 06, 6.9 |
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
 | `rerank.model-version` (backend) · `AI_RERANK_MAX_TOKENS` (AI service, mỗi bên) | `bge-reranker-v2-m3-int8` · 256 | 06, 6.9 |
-| `exploration.page-size` / `slots` / `min-score-ratio` | 20 / [5, 12] / 0,8 | 06, 6.11 |
+| `exploration.enabled` / `page-size` / `slots` / `min-score-ratio` / `stats-cron` | true / 20 / 5,12 / 0,8 / `0 0 20 * * *` (UTC) | 06, 6.11 |
+| `history.enabled` / `max-weight` / `full-weight-signals` / `window-days` / `half-life-days` / `nightly-cron` | true / 0,15 / 10 / 180 / 30 / `0 30 19 * * *` (UTC) | 06, 6.4 · 07, 7.4 |
+| `refine.enabled` / `positive-weight` / `negative-weight` / `skipped-weight` / `original-share` | true / 0,6 / 0,3 / 0,5 / 0,5 | 07, 7.2 |
 | `relaxation.enabled` / `good-threshold` / `budget-ms` / `max-suggestions` | true / 0,50 / 400 / 3 | 07, 7.1 |
 | `relaxation.min-good` / `min-results` / `min-gain` / `best-score-margin` | 5 / 10 / 2 / 0,10 | 07, 7.1 |
 | `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |

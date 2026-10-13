@@ -173,6 +173,11 @@ thông tin chi tiết chỉ mở theo luồng nghiệp vụ hiện có.
 `POST /api/v1/recommendations/{logId}/refine` với `{ "seenUpToRank": 8 }` → `items` mới cho các hạng
 sau `seenUpToRank` (07, mục 7.2).
 
+Ghi chú triển khai (13/10/2026): `rank` trong body bị bỏ qua, hạng được lấy từ log; `candidateId` phải là
+một kết quả của lần tìm đó (`400 CANDIDATE_NOT_IN_RESULTS`); `logId` của người khác → `404`. `/refine` trả
+response cùng cấu trúc với lần tìm (8.3 hoặc 8.4), `items` là các hạng sau `seenUpToRank`.
+`DELETE /api/v1/users/me/recommendation-profile` xoá lịch sử gợi ý (07, mục 7.4).
+
 ## 8.6. Tìm kiếm đã lưu
 
 `POST /api/v1/users/me/saved-searches`

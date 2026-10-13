@@ -216,6 +216,9 @@ CREATE TABLE recommendation_user_profiles (
 );
 
 -- ===== 11. Thống kê hiển thị (R6) =====
+-- Bổ sung 13/10/2026 (migration V27): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
+ALTER TABLE recommendation_user_profiles ADD COLUMN history_reset_at timestamp;
+
 CREATE TABLE recommendation_exposure_stats (
     candidate_type varchar(30) NOT NULL,
     candidate_id uuid NOT NULL,

@@ -85,6 +85,20 @@ viên đã lưu cùng lần tìm; phần đã hiển thị không bị đảo. C
 
 B5 là thích ứng **ngắn hạn** (trong phiên). Thích ứng **dài hạn** qua nhiều phiên là H1 (mục 7.4).
 
+### Ghi chú triển khai (13/10/2026)
+
+- Tín hiệu dương: `VIEWED`, `CLICKED`, `FAVORITED`, `CONTACTED`. Tin vừa có tín hiệu dương vừa bị `DISMISSED`
+  thì tính là âm.
+- "Bị lướt qua" = tin có hạng nhỏ hơn hạng thấp nhất trong các tin được mở, mà không được mở cũng không bị
+  bỏ qua; trọng số 0,5 trong trung bình âm.
+- Chấm lại không cần tính lại đặc trưng: `a′ = a + (1 − w_hist)·w_sem·(f_sem′ − f_sem)`, rồi R, `score` từ các
+  giá trị b, Q, G đã lưu trong log. Tin không có vector hoặc không có `f_sem` giữ nguyên.
+- `f_sem (ban đầu)` và `a` ban đầu được giữ trong log (`initial`), nên gọi `/refine` nhiều lần không cộng dồn.
+- Thứ tự mới **ghi đè vào log**: lật trang bằng `logId` theo đúng thứ tự người dùng đang thấy.
+- Vector truy vấn lấy lại từ văn bản nhu cầu lưu trong log, qua bộ nhớ đệm của lần tìm (không gọi AI service
+  khi còn trong bộ nhớ đệm; nếu đã mất và AI service không trả lời thì trả về thứ tự cũ).
+- Không có tín hiệu dương → trả về thứ tự đang lưu. Cờ tắt: `refine.enabled=false`.
+
 ## 7.3. C7 — Chủ động thông báo ghép đôi tốt
 
 ### Nguồn "nhu cầu" được theo dõi
@@ -158,6 +172,23 @@ Lưu vào `recommendation_user_profiles` (`preference_embedding`, `tag_affinity`
 - Listener sự kiện (sau commit, transaction riêng `REQUIRES_NEW`) khi có click/tym/đơn/đổi trạng
   thái đơn → tính lại hồ sơ của người đó từ dữ liệu 180 ngày (vài chục đến vài trăm dòng, rẻ).
 - Job hằng đêm tính lại toàn bộ để áp dụng giảm theo thời gian.
+
+### Ghi chú triển khai (13/10/2026)
+
+- **Cập nhật qua hàng đợi** (quyết định: theo 08, không dùng listener): mỗi sự kiện xếp một job
+  `PROFILE_UPDATE` cho người đó trong `ai_enrichment_jobs`; nhiều sự kiện liên tiếp gộp thành một job.
+  `ProfileUpdateWorker` chạy mỗi 10 giây, có thử lại. 19:30 UTC hằng đêm xếp lại mọi hồ sơ để áp dụng giảm
+  theo thời gian.
+- **Mỗi tin một tín hiệu**: lấy hành vi mạnh nhất với tin đó (mở rồi gửi đơn là một dấu hiệu quan tâm, không
+  phải hai). `DISMISSED` thắng nếu xảy ra sau cùng. `signals` = số tin có tín hiệu dương.
+- Trọng số: `VIEWED`/`CLICKED` +1, `FAVORITED` +2, `CONTACTED` +3, đã gửi đơn / đề nghị +3, đơn `ACCEPTED`
+  +4, `DISMISSED` −2. Hợp đồng không tính riêng (đã thể hiện qua đơn `ACCEPTED`).
+- `favorite_tutors` hiện chỉ được ghi qua sự kiện `FAVORITED`, nên không đọc bảng này lần nữa.
+- Vector và tag của một tín hiệu là của tin đăng tại thời điểm tính lại (cộng tag của người đăng).
+- `tag_affinity` lưu theo mã tag; chỉ lưu giá trị dương.
+- Đổi trạng thái đơn chưa xếp job ngay (không sửa các service đơn có sẵn); job đêm cập nhật.
+- **Xoá lịch sử** cần thêm cột `history_reset_at` (migration V27): hồ sơ được dựng lại từ dữ liệu 180 ngày nên
+  chỉ xoá dòng là chưa đủ. Tín hiệu trước mốc này bị bỏ qua vĩnh viễn; tym, đơn, hợp đồng không bị xoá.
 
 ### Quyền của người dùng
 
