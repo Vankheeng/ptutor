@@ -56,6 +56,9 @@ class Settings:
     llm_timeout_seconds: float = 20.0
     llm_reasoning_effort: str = ""
     enrich_max_chars: int = 8000
+    # /parse-query answers a person who is waiting: no reasoning pass and a short timeout.
+    parse_reasoning_effort: str = "none"
+    parse_timeout_seconds: float = 6.0
     rerank_enabled: bool = True
     # Per side: the query and each document are cut to this many tokens before being paired.
     rerank_max_tokens: int = 256
@@ -88,6 +91,8 @@ def load_settings() -> Settings:
         llm_timeout_seconds=float(os.getenv("AI_LLM_TIMEOUT_SECONDS", "20")),
         llm_reasoning_effort=os.getenv("AI_LLM_REASONING_EFFORT", "").strip(),
         enrich_max_chars=int(os.getenv("AI_ENRICH_MAX_CHARS", "8000")),
+        parse_reasoning_effort=os.getenv("AI_PARSE_REASONING_EFFORT", "none").strip(),
+        parse_timeout_seconds=float(os.getenv("AI_PARSE_TIMEOUT_SECONDS", "6")),
         rerank_enabled=_flag("AI_RERANK_ENABLED", True),
         rerank_max_tokens=int(os.getenv("AI_RERANK_MAX_TOKENS", "256")),
         rerank_max_documents=int(os.getenv("AI_RERANK_MAX_DOCUMENTS", "40")),

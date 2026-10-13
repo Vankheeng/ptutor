@@ -9,13 +9,15 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 
 from .config import EMBED_MODEL_VERSION, RERANK_MODEL_VERSION, Settings, load_settings
 from .model_store import download_embed_files, download_rerank_files, missing_embed_files, missing_rerank_files
-from .llm import LlmBackend, LlmUnavailable, OpenAiBackend, enrich, suggest_tags
+from .llm import LlmBackend, LlmUnavailable, OpenAiBackend, enrich, parse_query, suggest_tags
 from .schemas import (
     EmbedRequest,
     EmbedResponse,
     EnrichRequest,
     EnrichResponse,
     HealthResponse,
+    ParseQueryRequest,
+    ParseQueryResponse,
     RerankRequest,
     RerankResponse,
     SuggestTagsRequest,
@@ -102,9 +104,15 @@ def create_app(
     state.embedder = embedder
     state.reranker = reranker
     state.rerank_enabled = settings.rerank_enabled
+    # Tests inject one fake for everything; in production the interactive endpoint gets its own settings.
+    interactive_llm = llm
     if llm is None and settings.openai_api_key:
         llm = OpenAiBackend(
             settings.openai_api_key, settings.llm_model, settings.llm_timeout_seconds, settings.llm_reasoning_effort
+        )
+        interactive_llm = OpenAiBackend(
+            settings.openai_api_key, settings.llm_model, settings.parse_timeout_seconds,
+            settings.parse_reasoning_effort,
         )
     if llm is None:
         log.warning("OPENAI_API_KEY is not set: /enrich is disabled, embedding still works")
@@ -187,6 +195,19 @@ def create_app(
         except LlmUnavailable as error:
             # The user text is never logged; the message only carries the provider error.
             log.warning("LLM extraction failed: %s", error)
+            raise HTTPException(status_code=502, detail="LLM provider failed") from error
+
+    @app.post("/parse-query", response_model=ParseQueryResponse, dependencies=[Depends(require_token)])
+    def parse_search_query(request: ParseQueryRequest) -> ParseQueryResponse:
+        if interactive_llm is None:
+            raise HTTPException(status_code=503, detail="LLM is not configured")
+        if not request.text.strip():
+            raise HTTPException(status_code=422, detail="Text must not be blank")
+        try:
+            return parse_query(interactive_llm, request)
+        except LlmUnavailable as error:
+            # The sentence itself is never logged; the message only carries the provider error.
+            log.warning("LLM query parsing failed: %s", error)
             raise HTTPException(status_code=502, detail="LLM provider failed") from error
 
     @app.post("/suggest-tags", response_model=SuggestTagsResponse, dependencies=[Depends(require_token)])

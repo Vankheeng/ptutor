@@ -7,6 +7,7 @@ không mở ra Internet. Thiết kế: `docs/recommendation/02-kien-truc.md`, `1
 |---|---|
 | `GET /health` | `{"status": "ready" \| "loading" \| "error", "embed_model": "bge-m3-int8"}`. Không cần token. |
 | `POST /enrich` | A1: trích tag và lịch rảnh từ văn bản tự do bằng LLM (OpenAI, `gpt-6-luna` mặc định), trả JSON theo schema: `{"model", "schedule": [{dayOfWeek, start, end, confidence}], "tags": [{group, code, role, confidence}]}`. Chỉ nhận mã có trong `vocabulary` gửi kèm. Không có `OPENAI_API_KEY` → `503`; nhà cung cấp lỗi → `502`. |
+| `POST /parse-query` | A2: `{"text", "direction", "catalog": {subjects, grades, districtsInUserProvince}, "vocabulary"}` → giá trị cho các ô bộ lọc (`subject`, `grades`, `mode`, `area`, `price`, `schedule`, các nhóm tag, `unparsed`). Chỉ trả tên / mã có trong danh sách gửi kèm. Dùng cấu hình LLM riêng, không có bước suy luận, để trả lời trong khoảng 2 giây. Không có khoá → `503`; nhà cung cấp lỗi → `502`. |
 | `POST /rerank` | R3: `{"query": "...", "documents": ["..."]}` → `{"model": "bge-reranker-v2-m3-int8", "scores": [0.91, 0.02]}`. Điểm trong [0, 1], đúng thứ tự `documents`. Tối đa 40 văn bản mỗi lần; câu truy vấn và mỗi văn bản cắt còn 256 token. Model chưa nạp / đang tắt → `503`; `/health` có thêm `"rerank": "ready" \| "loading" \| "error" \| "disabled"`. |
 | `POST /embed` | `{"texts": ["..."]}` → `{"model": "bge-m3-int8", "dimensions": 1024, "embeddings": [[...]]}`. Vector đã chuẩn hoá độ dài 1 (cosine = tích vô hướng). Tối đa 32 văn bản mỗi lần, mỗi văn bản cắt còn 512 token. |
 
@@ -76,4 +77,5 @@ AI service tắt hoặc chậm thì backend không lỗi: `AiServiceClient` tr�
 | `AI_RERANK_MAX_TOKENS` / `AI_RERANK_MAX_DOCUMENTS` / `AI_RERANK_MAX_CHARS` / `AI_RERANK_BATCH_SIZE` | 256 / 40 / 8000 / 4 | Giới hạn mỗi bên của một cặp, số văn bản mỗi lần gọi, độ dài, cỡ lô suy luận |
 | `OPENAI_API_KEY` | (trống) | Khoá OpenAI cho `/enrich`. Trống thì `/enrich` tắt, `/health` báo `"llm": "disabled"`, embedding vẫn chạy |
 | `AI_LLM_MODEL` | `gpt-6-luna` | Model dùng cho `/enrich` |
+| `AI_PARSE_REASONING_EFFORT` / `AI_PARSE_TIMEOUT_SECONDS` | `none` / 6 | Mức suy luận và thời gian chờ riêng cho `/parse-query` (người dùng đang chờ) |
 | `AI_LLM_TIMEOUT_SECONDS` / `AI_LLM_REASONING_EFFORT` / `AI_ENRICH_MAX_CHARS` | 20 / (không gửi) / 8000 | Thời gian chờ, mức suy luận (tuỳ chọn), giới hạn độ dài văn bản |
