@@ -113,7 +113,7 @@ người dùng: không lấy được vector truy vấn thì dùng `students.pro
 hạng không có `f_sem`.
 
 `dayOfWeek` theo **ISO-8601: 1 = Thứ Hai … 7 = Chủ nhật** (đã ghi trong OpenAPI cho mọi API có lịch rảnh).
-`savedSearchId` chưa được nhận cho tới khi có tính năng lưu tìm kiếm.
+`savedSearchId`: xem 8.6.
 
 ## 8.4. Gia sư tìm học viên
 
@@ -154,7 +154,7 @@ Mỗi item là một tin học, chỉ kèm thông tin **giới hạn** của h�
 ```
 
 Gia sư chưa được duyệt hồ sơ → `403 TUTOR_PROFILE_NOT_VERIFIED`. Phân trang bằng `logId` như 8.3. `student.displayName` là "Học sinh {tên lớp}"; response không chứa mã
-học sinh hay mã tài khoản. `savedSearchId` chưa được nhận cho tới khi có tính năng lưu tìm kiếm.
+học sinh hay mã tài khoản. `savedSearchId`: xem 8.6.
 
 Gia sư **không thấy** họ tên đầy đủ, ảnh, SĐT, địa chỉ chi tiết của học sinh trong danh sách đề xuất;
 thông tin chi tiết chỉ mở theo luồng nghiệp vụ hiện có.
@@ -189,6 +189,17 @@ response cùng cấu trúc với lần tìm (8.3 hoặc 8.4), `items` là các h
 
 Lỗi `409 SAVED_SEARCH_LIMIT_REACHED` khi đã có 5. Mở một tìm kiếm đã lưu = gọi 8.3/8.4 với
 `savedSearchId`.
+
+Ghi chú triển khai (13/10/2026):
+- Lưu lại **bộ lọc người dùng gửi** (`filters`, `semanticText`), không lưu `QueryContext` đã gộp: mỗi lần mở,
+  phần còn thiếu vẫn được điền từ hồ sơ hiện tại.
+- Bộ lọc được kiểm tra như một lần tìm và phải đủ để tìm (môn, lớp): `400 SAVED_SEARCH_INCOMPLETE`,
+  `400 INVALID_SAVED_SEARCH`. Học sinh chỉ lưu chiều `STUDENT_TO_TUTOR`, gia sư chỉ lưu `TUTOR_TO_STUDENT`
+  (`400 SAVED_SEARCH_DIRECTION_NOT_ALLOWED`).
+- `PUT /{id}` chỉ đổi `name` và `notifyEnabled`; muốn đổi tiêu chí thì lưu tìm kiếm mới.
+- Gửi `savedSearchId` trong 8.3 / 8.4: tiêu chí đã lưu **thay cho** `filters` trong body; log ghi
+  `saved_search_id`. Của người khác hoặc sai chiều → `404 SAVED_SEARCH_NOT_FOUND`.
+- `semanticText` chỉ có tác dụng với chiều học sinh tìm gia sư.
 
 ## 8.7. Nội dung lưu trong `recommendation_logs`
 

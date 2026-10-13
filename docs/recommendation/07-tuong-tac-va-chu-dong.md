@@ -138,6 +138,26 @@ chí của bạn".
 Khối lượng: mỗi tin mới × vài trăm nguồn nhu cầu → chạy nền vài giây đến vài chục giây, không ảnh
 hưởng người đang tìm.
 
+### Ghi chú triển khai (13/10/2026)
+
+- **Kích hoạt:** job `MATCH_ALERT` được xếp khi job embedding của một tin `OPEN` / `MATCHED` chạy xong (có
+  vector mới, hoặc vector vẫn đúng). Một điểm này phủ cả "tin vừa thành `OPEN`" (duyệt xong, thanh toán
+  xong) lẫn "tin được sửa", vì cả hai đều xếp job embedding; không phải sửa các service tin đăng. Hệ quả: tin
+  vừa đăng được đối chiếu hai lần (sau embedding đầu, và sau khi LLM gắn tag làm embedding đổi); lần hai
+  không gửi trùng nhờ quy tắc "cặp (nguồn, tin) chỉ thông báo một lần".
+- **Chỉ tin đang `OPEN`** mới sinh thông báo; nguồn nhu cầu được lọc trước theo **môn** của tin.
+- Nguồn phía gia sư chỉ lấy gia sư `VERIFIED`; người nhận phải có tài khoản `ACTIVE`.
+- **Hạng** tính sau khi gộp theo người và rerank (ngân sách nền 120 s), không có slot khám phá. Tin bị một
+  tin khác của cùng người đăng xếp trên thì không được thông báo.
+- **Một người tối đa một thông báo loại này trong 24 giờ** (tính trên mọi nguồn của người đó). Tin đến trong
+  khoảng đó không được bù lại sau; đây là đánh đổi có chủ ý để không làm phiền.
+- Nội dung: học sinh thấy "{tên gia sư} — {tiêu đề tin}. {lý do khớp đầu tiên}."; gia sư thấy "{tiêu đề tin
+  học}. {lý do}." — **không có tên học sinh**. Loại hiển thị `REQUEST`.
+- `recommendation_saved_searches.last_notified_at` được cập nhật khi nguồn là tìm kiếm đã lưu.
+- Mỗi nguồn chạy trong transaction riêng: một tìm kiếm đã lưu không còn chạy được (môn bị tắt…) không chặn
+  các nguồn khác. Cờ tắt: `proactive.enabled=false`.
+- `RerankPrefetchJob` nay chấm sẵn cả cho tìm kiếm đã lưu của hai chiều (việc còn mở từ bước rerank).
+
 ## 7.4. H1 — Hồ sơ sở thích dài hạn (gợi ý theo lịch sử hành vi)
 
 ### Tín hiệu
