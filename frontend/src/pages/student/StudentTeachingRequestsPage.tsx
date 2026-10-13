@@ -2,8 +2,47 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../../services/httpClient';
 import { createStudentApplication, getTeachingRequests, type LearningMode } from '../../services/studentApi';
 import type { TeachingRequest } from '../../types/api';
+import { StudentTutorRecommendations } from './StudentTutorRecommendations';
 
+/** Two ways to find a tutor: ranked for this student (the default), or every open posting, newest first. */
 export function StudentTeachingRequestsPage() {
+  const [mode, setMode] = useState<'RECOMMENDED' | 'ALL'>('RECOMMENDED');
+
+  return (
+    <>
+      <div className="student-page-heading">
+        <div>
+          <span className="student-eyebrow">FIND YOUR TUTOR</span>
+          <h1>Tìm gia sư</h1>
+          <p>Chọn tiêu chí để nhận gợi ý xếp theo mức phù hợp, hoặc xem toàn bộ tin dạy đang mở.</p>
+        </div>
+      </div>
+      <div className="student-filter-tabs rec-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'RECOMMENDED'}
+          className={mode === 'RECOMMENDED' ? 'active' : ''}
+          onClick={() => setMode('RECOMMENDED')}
+        >
+          Gợi ý cho bạn
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'ALL'}
+          className={mode === 'ALL' ? 'active' : ''}
+          onClick={() => setMode('ALL')}
+        >
+          Tất cả
+        </button>
+      </div>
+      {mode === 'RECOMMENDED' ? <StudentTutorRecommendations /> : <AllTeachingRequests />}
+    </>
+  );
+}
+
+function AllTeachingRequests() {
   const [requests, setRequests] = useState<TeachingRequest[]>([]);
   const [active, setActive] = useState<TeachingRequest | null>(null);
   const [error, setError] = useState('');
@@ -44,13 +83,6 @@ export function StudentTeachingRequestsPage() {
 
   return (
     <>
-      <div className="student-page-heading">
-        <div>
-          <span className="student-eyebrow">FIND YOUR TUTOR</span>
-          <h1>Browse Teaching Requests</h1>
-          <p>Find an opportunity that matches your learning goals.</p>
-        </div>
-      </div>
       {notice && (
         <div className="student-notice" role="status">
           {notice}
