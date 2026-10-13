@@ -19,7 +19,7 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 |---|---|---|
 | Tiêu chí tìm kiếm | Bộ lọc + câu tự nhiên (05), lưu trong `recommendation_logs.query_context` | Lọc cứng, a, văn bản nhu cầu |
 | Ứng viên phía gia sư | `teaching_requests` (`subject_id`, `teaching_mode`, `expected_price`, `quantity`, `title`, `description`, `note`, `status`), `grade_teaching_requests`, `teaching_request_districts`, `teaching_request_availabilities` | Lọc cứng, a, b, văn bản cung cấp |
-| Ứng viên phía học sinh | `studying_requests` (`subject_id`, `grade_id`, `learning_mode`, `district_id`, `min_price`, `max_price`, `learning_goals`, `title`, `description`, `quantity`, `status`), `studying_request_availabilities` | Lọc cứng (T→S), a′, b′ |
+| Ứng viên phía học sinh | `studying_requests` (`subject_id`, `grade_id`, `learning_mode`, `district_id`, `min_price`, `max_price`, `learning_goals`, `title`, `description`, `status`), `studying_request_availabilities` (mỗi tin học nhận đúng một gia sư — cột `quantity` đã bị `dev` xoá ở V25) | Lọc cứng (T→S), a′, b′ |
 | Hồ sơ học sinh | `students` (`introduction`, `learning_style`, `personality_tags`, `goals_description`, `current_level`, `weak_points`), `users.district_id` | Giá trị mặc định cho bộ lọc, văn bản nhu cầu, A1 |
 | Hồ sơ gia sư | `tutors` (`introduction`, `education`, `teaching_style_tags`, `teaching_methodology`, `strength_subjects`, `target_student_type`, `profile_status`, `recommendation_score`) | Văn bản cung cấp, A1, Q |
 | Lịch sử quyết định | `student_tutor_requests`, `tutor_student_requests` (`PENDING/ACCEPTED/REJECTED/CANCELLED`) | b, b′, chống dồn, H1 |
