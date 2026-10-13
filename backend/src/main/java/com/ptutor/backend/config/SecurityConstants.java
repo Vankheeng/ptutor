@@ -73,7 +73,9 @@ public final class SecurityConstants {
 
     public static final String[] RECOMMENDATION_INTERACTION_API = {
             "/api/v1/recommendations/**",
-            "/api/v1/users/me/recommendation-profile"
+            "/api/v1/users/me/recommendation-profile",
+            "/api/v1/users/me/saved-searches",
+            "/api/v1/users/me/saved-searches/**"
     };
 
     public static final String[] ADMIN_RECOMMENDATION_TAG_API = {

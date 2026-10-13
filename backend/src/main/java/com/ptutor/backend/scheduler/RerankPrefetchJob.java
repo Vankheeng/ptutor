@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,13 +16,14 @@ import com.ptutor.backend.client.AiServiceClient;
 import com.ptutor.backend.service.RecommendationService;
 import com.ptutor.backend.service.RecommendationSettings;
 import com.ptutor.backend.service.RerankService;
+import com.ptutor.backend.service.StudentRecommendationService;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * Every night, scores the best tutors for each OPEN studying posting ahead of time (design 07, 7.3),
- * so that a student who searches from their posting gets reranked results without waiting for the
- * model. Saved searches join this job when they exist.
+ * Every night, scores ahead of time the best results for each OPEN studying posting and for each
+ * saved search (design 07, 7.3), so that a user who searches from them gets reranked results
+ * without waiting for the model.
  */
 @Component
 @RequiredArgsConstructor
@@ -30,15 +32,23 @@ public class RerankPrefetchJob {
     private static final Logger log = LoggerFactory.getLogger(RerankPrefetchJob.class);
 
     static final String OPEN_STUDYING_REQUESTS = """
-            SELECT sr.id AS request_id, s.user_id AS user_id
+            SELECT sr.id AS source_id, s.user_id AS user_id
             FROM studying_requests sr JOIN students s ON s.id = sr.student_id
             WHERE sr.deleted_at IS NULL AND sr.status = 'OPEN'
             ORDER BY sr.created_at DESC
             """;
 
+    static final String SAVED_SEARCHES = """
+            SELECT ss.id AS source_id, ss.user_id AS user_id
+            FROM recommendation_saved_searches ss
+            WHERE ss.deleted_at IS NULL AND ss.direction = ?
+            ORDER BY ss.created_at DESC
+            """;
+
     private final JdbcTemplate jdbc;
     private final AiServiceClient aiServiceClient;
     private final RecommendationService recommendationService;
+    private final StudentRecommendationService studentRecommendationService;
     private final RerankService rerankService;
     private final RecommendationSettings settings;
 
@@ -54,21 +64,29 @@ public class RerankPrefetchJob {
             log.info("Rerank prefetch skipped: the AI service has no reranking model ready");
             return;
         }
-        List<Map<String, Object>> requests = jdbc.queryForList(OPEN_STUDYING_REQUESTS);
-        int computed = 0;
-        int failed = 0;
-        for (Map<String, Object> request : requests) {
+        int[] totals = new int[3];
+        prefetch(jdbc.queryForList(OPEN_STUDYING_REQUESTS), "studying request",
+                recommendationService::prefetchRerank, totals);
+        prefetch(jdbc.queryForList(SAVED_SEARCHES, "STUDENT_TO_TUTOR"), "saved search",
+                recommendationService::prefetchRerankForSavedSearch, totals);
+        prefetch(jdbc.queryForList(SAVED_SEARCHES, "TUTOR_TO_STUDENT"), "saved search",
+                studentRecommendationService::prefetchRerankForSavedSearch, totals);
+        log.info("Rerank prefetch: {} sources, {} pairs scored, {} failed, {} old cache rows deleted",
+                totals[0], totals[1], totals[2], deleted);
+    }
+
+    /** @param totals sources, pairs scored, failures */
+    private void prefetch(List<Map<String, Object>> sources, String kind,
+            BiFunction<UUID, UUID, Integer> prefetch, int[] totals) {
+        for (Map<String, Object> source : sources) {
+            totals[0]++;
             try {
-                computed += recommendationService.prefetchRerank(
-                        (UUID) request.get("user_id"), (UUID) request.get("request_id"));
+                totals[1] += prefetch.apply((UUID) source.get("user_id"), (UUID) source.get("source_id"));
             } catch (RuntimeException exception) {
-                // One posting that cannot be searched from must not stop the others.
-                failed++;
-                log.warn("Rerank prefetch failed for studying request {}: {}",
-                        request.get("request_id"), exception.toString());
+                // One source that cannot be searched from must not stop the others.
+                totals[2]++;
+                log.warn("Rerank prefetch failed for {} {}: {}", kind, source.get("source_id"), exception.toString());
             }
         }
-        log.info("Rerank prefetch: {} studying requests, {} pairs scored, {} failed, {} old cache rows deleted",
-                requests.size(), computed, failed, deleted);
     }
 }

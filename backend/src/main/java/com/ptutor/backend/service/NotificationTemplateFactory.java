@@ -77,6 +77,20 @@ class NotificationTemplateFactory {
             case TEACHING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.REQUEST,
                     "Teaching request review required",
                     "A teaching request \"" + name + "\" is waiting for approval.");
+            case RECOMMENDATION_MATCH_FOUND -> {
+                // A tutor may be named to a student; a student is never named to a tutor before any contact.
+                boolean tutorFound = event.referenceType()
+                        == com.ptutor.backend.entity.enums.NotificationReferenceType.TEACHING_REQUEST;
+                String posting = data.getOrDefault("title", "");
+                String who = tutorFound && !name.isBlank() ? name + (posting.isBlank() ? "" : " — " + posting)
+                        : posting;
+                String why = reason.isBlank()
+                        ? (tutorFound ? "Xem tin dạy để biết thêm" : "Xem tin học để biết thêm") : reason;
+                yield content(NotificationType.REQUEST,
+                        tutorFound ? "Có gia sư mới rất phù hợp với tiêu chí của bạn"
+                                : "Có học viên mới phù hợp với tiêu chí của bạn",
+                        (who.isBlank() ? "" : who + ". ") + why + ".");
+            }
             case LESSON_MARKED_TAUGHT -> content(NotificationType.CONTRACT,
                     "Lesson awaiting confirmation",
                     "Your tutor marked lesson \"" + name + "\" as taught. Please confirm it.");

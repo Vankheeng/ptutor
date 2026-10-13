@@ -32,6 +32,13 @@ import com.ptutor.backend.client.AiServiceClient;
 import com.ptutor.backend.client.AiServiceClient.RerankResult;
 import com.ptutor.backend.dto.recommendation.AreaScope;
 import com.ptutor.backend.dto.request.RecommendationEventRequest;
+import com.ptutor.backend.dto.request.SavedSearchRequest;
+import com.ptutor.backend.dto.request.SavedSearchUpdateRequest;
+import com.ptutor.backend.dto.response.SavedSearchResponse;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.RecommendationDirection;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.entity.enums.RecommendationAction;
 import com.ptutor.backend.entity.enums.RecommendationProfileRole;
 import com.ptutor.backend.dto.recommendation.ModePreference;
@@ -73,6 +80,13 @@ class TutorRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
     @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired SavedSearchService savedSearchService;
+    @Autowired com.ptutor.backend.repository.RecommendationMatchAlertRepository alertRepository;
+    @Autowired com.ptutor.backend.repository.NotificationRepository notificationRepository;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    private NotificationService notificationService;
+    private MatchAlertService matchAlertService;
     @Autowired ExplorationService explorationService;
     @Autowired PreferenceProfileService preferenceProfileService;
     @Autowired RecommendationEventService eventService;
@@ -115,6 +129,8 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
         ReflectionTestUtils.setField(settings, "relaxationEnabled", true);
         ReflectionTestUtils.setField(settings, "explorationEnabled", true);
+        ReflectionTestUtils.setField(settings, "alertCooldownHours", 24);
+        ReflectionTestUtils.setField(settings, "alertTopRank", 3);
     }
 
     @BeforeEach
@@ -130,10 +146,15 @@ class TutorRecommendationIntegrationTest {
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
                 queryContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
-                relaxationService, explorationService, preferenceProfileService, tagRepository,
+                relaxationService, explorationService, preferenceProfileService, savedSearchService, tagRepository,
                 recommendationLogger, settings, null);
         refineService = new RefineService(eventService, clickLogRepository, logRepository, signalRepository,
                 queryEmbeddingService, service, studentRecommendationService, settings, jsonMapper);
+        // Notifications are written in a transaction of their own, which cannot see this test's rows.
+        notificationService = mock(NotificationService.class);
+        matchAlertService = new MatchAlertService(jdbc, service, studentRecommendationService, savedSearchService,
+                alertRepository, notificationService, notificationRepository, entityManager, settings,
+                transactionManager);
         // Suggestions are computed against a real database: never let a slow machine cut them short.
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
@@ -698,6 +719,172 @@ class TutorRecommendationIntegrationTest {
         posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
 
         assertThat(search(area(AreaScope.DISTRICTS, List.of(homeDistrictId), null)).relaxations()).isEmpty();
+    }
+
+    // ---- saved searches and match alerts (C7)
+
+    @Test
+    void savesASearchRunsItByIdAndLetsTheOwnerRenameOrDeleteIt() {
+        UUID match = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(farDistrictId));
+
+        SavedSearchResponse saved = savedSearchService.create(studentUserId, new SavedSearchRequest(
+                RecommendationDirection.STUDENT_TO_TUTOR, "  Toán 9 gần nhà  ",
+                jsonMapper.valueToTree(area(AreaScope.DISTRICTS, List.of(nearDistrictId), null)),
+                "ôn thi, gọi 0912345678", null));
+        entityManager.flush();
+
+        assertThat(saved.name()).isEqualTo("Toán 9 gần nhà");
+        assertThat(saved.notifyEnabled()).as("notifications are on unless switched off").isTrue();
+        assertThat(saved.semanticText()).isEqualTo("ôn thi, gọi");
+        assertThat(saved.filters().path("subjectId").asString()).isEqualTo(subjectId.toString());
+        assertThat(savedSearchService.findMine(studentUserId)).extracting(SavedSearchResponse::id)
+                .containsExactly(saved.id());
+
+        // Opening it: the saved criteria are the search, the filters in the body are ignored.
+        TutorRecommendationResponse response = service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(anywhere(), null, null, null, saved.id()), 0, 20, null);
+
+        assertThat(ids(response)).containsExactly(match);
+        entityManager.flush();
+        assertThat(jdbc.queryForObject("SELECT saved_search_id FROM recommendation_logs WHERE id = ?", UUID.class,
+                response.logId())).isEqualTo(saved.id());
+
+        SavedSearchResponse renamed = savedSearchService.update(
+                studentUserId, saved.id(), new SavedSearchUpdateRequest("Gần nhà", false));
+        assertThat(renamed.name()).isEqualTo("Gần nhà");
+        assertThat(renamed.notifyEnabled()).isFalse();
+        assertThat(savedSearchService.update(studentUserId, saved.id(), new SavedSearchUpdateRequest(null, null)).name())
+                .as("only what is sent changes").isEqualTo("Gần nhà");
+
+        assertThatThrownBy(() -> savedSearchService.delete(UUID.randomUUID(), saved.id()))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("SAVED_SEARCH_NOT_FOUND"));
+        // A later request: the log written above is no longer in the persistence context.
+        entityManager.flush();
+        entityManager.clear();
+        savedSearchService.delete(studentUserId, saved.id());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(savedSearchService.findMine(studentUserId)).isEmpty();
+        assertThatThrownBy(() -> service.recommendTutors(studentUserId,
+                new TutorRecommendationRequest(null, null, null, null, saved.id()), 0, 20, null))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("SAVED_SEARCH_NOT_FOUND"));
+    }
+
+    @Test
+    void refusesSearchesThatCouldNotBeRunAndMoreThanFivePerUser() {
+        tools.jackson.databind.JsonNode usable = jsonMapper.valueToTree(anywhere());
+        assertSaveRejected("SAVED_SEARCH_INCOMPLETE", RecommendationDirection.STUDENT_TO_TUTOR,
+                jsonMapper.createObjectNode());
+        assertSaveRejected("SAVED_SEARCH_DIRECTION_NOT_ALLOWED", RecommendationDirection.TUTOR_TO_STUDENT, usable);
+        assertSaveRejected("INVALID_SUBJECT", RecommendationDirection.STUDENT_TO_TUTOR,
+                jsonMapper.valueToTree(new Filters(UUID.randomUUID(), gradeId, null, null, null, null, null, null, null)));
+        assertSaveRejected("INVALID_SAVED_SEARCH", RecommendationDirection.STUDENT_TO_TUTOR,
+                jsonMapper.valueToTree(new Filters(subjectId, gradeId, null, null,
+                        new Price(new BigDecimal("300000"), new BigDecimal("100000")), null, null, null, null)));
+
+        for (int index = 0; index < 5; index++) {
+            savedSearchService.create(studentUserId, new SavedSearchRequest(
+                    RecommendationDirection.STUDENT_TO_TUTOR, "Tìm " + index, usable, null, true));
+        }
+        entityManager.flush();
+        assertSaveRejected("SAVED_SEARCH_LIMIT_REACHED", RecommendationDirection.STUDENT_TO_TUTOR, usable);
+
+        savedSearchService.delete(studentUserId, savedSearchService.findMine(studentUserId).get(0).id());
+        entityManager.flush();
+        assertThat(savedSearchService.create(studentUserId, new SavedSearchRequest(
+                RecommendationDirection.STUDENT_TO_TUTOR, "Thay thế", usable, null, true)).id()).isNotNull();
+    }
+
+    @Test
+    void tellsAStudentAboutANewPostingOnlyWhenItFitsVeryWellAndOnlyOncePerDay() {
+        UUID ownRequest = insert("""
+                INSERT INTO studying_requests
+                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1, 200000)
+                """, studentId, subjectId, gradeId);
+        SavedSearchResponse saved = savedSearchService.create(studentUserId, new SavedSearchRequest(
+                RecommendationDirection.STUDENT_TO_TUTOR, "Toán 9", jsonMapper.valueToTree(anywhere()), null, true));
+        UUID weak = posting(tutor("VERIFIED", "ACTIVE", "0"), new Posting().cosine(0.35));
+        UUID great = posting(tutor("VERIFIED", "ACTIVE", "100"), new Posting().cosine(0.80).price("180000"));
+        entityManager.flush();
+
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, weak))
+                .as("first in the list, but far from a very good match").isZero();
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, great))
+                .as("two sources of the same student, one notification").isEqualTo(1);
+
+        org.mockito.ArgumentCaptor<NotificationDomainEvent> sent =
+                org.mockito.ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(notificationService, times(1)).createFromEvent(sent.capture());
+        NotificationDomainEvent event = sent.getValue();
+        assertThat(event.recipientUserId()).isEqualTo(studentUserId);
+        assertThat(event.eventType()).isEqualTo(NotificationEventType.RECOMMENDATION_MATCH_FOUND);
+        assertThat(event.referenceType().name()).isEqualTo("TEACHING_REQUEST");
+        assertThat(event.referenceId()).isEqualTo(great.toString());
+        assertThat(event.deduplicationKey()).startsWith("rec-match:").endsWith(":" + great);
+        assertThat(event.data()).containsEntry("title", "Dạy kèm");
+        assertThat(event.data().get("reason")).isNotBlank();
+        Map<String, Object> alert = jdbc.queryForMap(
+                "SELECT recipient_user_id, candidate_rank, final_score FROM recommendation_match_alerts WHERE candidate_id = ?",
+                great);
+        assertThat(alert.get("recipient_user_id")).isEqualTo(studentUserId);
+        assertThat(alert.get("candidate_rank")).isEqualTo(1);
+        assertThat((BigDecimal) alert.get("final_score")).isGreaterThanOrEqualTo(new BigDecimal("0.65"));
+
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, great))
+                .as("nothing more within the day").isZero();
+
+        // A day later the other source may speak up, but never the same one about the same posting.
+        ReflectionTestUtils.setField(settings, "alertCooldownHours", 0);
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, great)).isEqualTo(1);
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, great)).isZero();
+        assertThat(jdbc.queryForList(
+                "SELECT source_type FROM recommendation_match_alerts WHERE candidate_id = ?", String.class, great))
+                .containsExactlyInAnyOrder("STUDYING_REQUEST", "SAVED_SEARCH");
+        assertThat(jdbc.queryForObject(
+                "SELECT last_notified_at IS NOT NULL FROM recommendation_saved_searches WHERE id = ?", Boolean.class,
+                saved.id())).isTrue();
+        assertThat(ownRequest).isNotNull();
+    }
+
+    @Test
+    void staysQuietAboutAGoodPostingOutsideTheTopThreeOrWhenNotificationsAreOff() {
+        SavedSearchResponse saved = savedSearchService.create(studentUserId, new SavedSearchRequest(
+                RecommendationDirection.STUDENT_TO_TUTOR, "Toán 9", jsonMapper.valueToTree(anywhere()), null, true));
+        for (int index = 0; index < 3; index++) {
+            posting(tutor("VERIFIED", "ACTIVE", "100"), new Posting().cosine(0.80));
+        }
+        UUID fourth = posting(tutor("VERIFIED", "ACTIVE", "100"), new Posting().cosine(0.79));
+        entityManager.flush();
+
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, fourth)).isZero();
+
+        ReflectionTestUtils.setField(settings, "alertTopRank", 4);
+        savedSearchService.update(studentUserId, saved.id(), new SavedSearchUpdateRequest(null, false));
+        entityManager.flush();
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, fourth))
+                .as("notifications switched off for this search").isZero();
+
+        savedSearchService.update(studentUserId, saved.id(), new SavedSearchUpdateRequest(null, true));
+        entityManager.flush();
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, fourth)).isEqualTo(1);
+
+        ReflectionTestUtils.setField(settings, "alertEnabled", false);
+        UUID later = posting(tutor("VERIFIED", "ACTIVE", "100"), new Posting().cosine(0.80));
+        ReflectionTestUtils.setField(settings, "alertCooldownHours", 0);
+        assertThat(matchAlertService.process(RecommendationEntityType.TEACHING_REQUEST, later)).isZero();
+        ReflectionTestUtils.setField(settings, "alertEnabled", true);
+    }
+
+    private void assertSaveRejected(
+            String code, RecommendationDirection direction, tools.jackson.databind.JsonNode filters) {
+        assertThatThrownBy(() -> savedSearchService.create(studentUserId,
+                new SavedSearchRequest(direction, "Tên", filters, null, true)))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo(code));
     }
 
     // ---- events, exposure statistics, exploration slots

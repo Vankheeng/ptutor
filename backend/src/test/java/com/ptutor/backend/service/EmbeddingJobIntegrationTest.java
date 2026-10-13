@@ -287,6 +287,28 @@ class EmbeddingJobIntegrationTest {
     }
 
     @Test
+    void aPostingWithACurrentVectorIsQueuedForMatchAlertsAndAProfileIsNot() {
+        when(aiServiceClient.embed(any(), any())).thenReturn(embedding(0.5f));
+        queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+        assertThat(processor.process(claimOne())).isEqualTo(Outcome.DONE);
+        assertThat(matchAlertJobs()).as("a new vector").containsExactly("TEACHING_REQUEST:PENDING");
+
+        jdbc.update("DELETE FROM ai_enrichment_jobs WHERE job_type = 'MATCH_ALERT'");
+        entityManager.clear();
+        queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+        assertThat(processor.process(claimOne())).isEqualTo(Outcome.SKIPPED);
+        assertThat(matchAlertJobs()).as("unchanged text, but the posting may just have been published")
+                .containsExactly("TEACHING_REQUEST:PENDING");
+
+        jdbc.update("DELETE FROM ai_enrichment_jobs");
+        jdbc.update("UPDATE teaching_requests SET status = 'DRAFT' WHERE id = ?", teachingRequestId);
+        entityManager.clear();
+        queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+        processor.process(claimOne());
+        assertThat(matchAlertJobs()).as("a posting that is not live").isEmpty();
+    }
+
+    @Test
     void changeMadeWhileJobIsProcessingKeepsTheJobQueued() {
         queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
         when(aiServiceClient.embed(any(), any())).thenReturn(embedding(0.5f));
@@ -377,7 +399,15 @@ class EmbeddingJobIntegrationTest {
 
     private List<Map<String, Object>> jobs() {
         entityManager.flush();
-        return jdbc.queryForList("SELECT * FROM ai_enrichment_jobs ORDER BY created_at, entity_type");
+        // Follow-up jobs (match alerts) are checked on their own.
+        return jdbc.queryForList(
+                "SELECT * FROM ai_enrichment_jobs WHERE job_type <> 'MATCH_ALERT' ORDER BY created_at, entity_type");
+    }
+
+    private List<String> matchAlertJobs() {
+        entityManager.flush();
+        return jdbc.queryForList(
+                "SELECT entity_type || ':' || status FROM ai_enrichment_jobs WHERE job_type = 'MATCH_ALERT'", String.class);
     }
 
     private Optional<EmbeddingResult> embedding(float value) {

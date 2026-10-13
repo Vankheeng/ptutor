@@ -212,6 +212,25 @@ public class RecommendationSettings {
     @Value("${app.recommendation.refine.original-share:0.5}")
     private double refineOriginalShare = 0.5;
 
+    /** Off: nobody is notified about new postings that fit them (C7). */
+    @Value("${app.recommendation.proactive.enabled:true}")
+    private boolean alertEnabled = true;
+
+    /** A new posting is worth a notification from this score on ... */
+    @Value("${app.recommendation.proactive.notify-threshold:0.65}")
+    private double alertNotifyThreshold = 0.65;
+
+    /** ... and only when it is among this many best results of the person's search. */
+    @Value("${app.recommendation.proactive.top-k:3}")
+    private int alertTopRank = 3;
+
+    /** At most one such notification per person in this many hours. */
+    @Value("${app.recommendation.proactive.cooldown-hours:24}")
+    private int alertCooldownHours = 24;
+
+    @Value("${app.recommendation.saved-search.max-per-user:5}")
+    private int savedSearchLimit = 5;
+
     /** Off: a search with few good results simply returns them, without suggestions (C6). */
     @Value("${app.recommendation.relaxation.enabled:true}")
     private boolean relaxationEnabled = true;

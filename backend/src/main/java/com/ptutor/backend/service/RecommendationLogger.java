@@ -17,6 +17,7 @@ import com.ptutor.backend.dto.recommendation.SupplyContext;
 import com.ptutor.backend.dto.recommendation.Willingness;
 import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.entity.RecommendationLog;
+import com.ptutor.backend.entity.RecommendationSavedSearch;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
 import com.ptutor.backend.entity.TeachingRequest;
@@ -48,7 +49,8 @@ public class RecommendationLogger {
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
             String algorithmVersion, long latencyMs, RerankService.Status rerankStatus,
-            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations, Set<UUID> explored) {
+            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations, Set<UUID> explored,
+            UUID savedSearchId) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
@@ -63,6 +65,8 @@ public class RecommendationLogger {
                 .queryContext(storedContext)
                 .returnedCandidateIds(candidatesJson(ranked, reasons, explored))
                 .relaxationSuggestions(relaxationsJson(relaxations))
+                .savedSearch(savedSearchId == null ? null
+                        : entityManager.getReference(RecommendationSavedSearch.class, savedSearchId))
                 .latencyMs((int) Math.min(Integer.MAX_VALUE, latencyMs))
                 .build());
     }
@@ -70,7 +74,7 @@ public class RecommendationLogger {
     public RecommendationLog logTutorSearch(
             Tutor tutor, SupplyContext context, List<ScoredStudyingCandidate> ranked, String algorithmVersion,
             long latencyMs, RerankService.Status rerankStatus, Map<UUID, MatchReasons> reasons,
-            List<RelaxationSuggestion> relaxations, Set<UUID> explored) {
+            List<RelaxationSuggestion> relaxations, Set<UUID> explored, UUID savedSearchId) {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
@@ -97,6 +101,8 @@ public class RecommendationLogger {
         return logRepository.save(RecommendationLog.builder()
                 .searcherTutor(tutor)
                 .relaxationSuggestions(relaxationsJson(relaxations))
+                .savedSearch(savedSearchId == null ? null
+                        : entityManager.getReference(RecommendationSavedSearch.class, savedSearchId))
                 .sourceTeachingRequest(context.sourceTeachingRequestId() == null ? null
                         : entityManager.getReference(TeachingRequest.class, context.sourceTeachingRequestId()))
                 .direction(RecommendationDirection.TUTOR_TO_STUDENT)

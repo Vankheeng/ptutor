@@ -115,7 +115,12 @@ public class EmbeddingJobProcessor {
                 return finish(job, AiJobStatus.SKIPPED, null, "Nothing to embed");
             }
             if (input.upToDate()) {
-                return finish(job, AiJobStatus.SKIPPED, input.hash(), null);
+                // The vector is current, but the posting may only just have been published.
+                transaction.executeWithoutResult(status -> {
+                    jobRepository.finish(job.id(), AiJobStatus.SKIPPED, input.hash(), null, LocalDateTime.now());
+                    enqueueMatchAlert(job);
+                });
+                return Outcome.SKIPPED;
             }
             Optional<EmbeddingResult> result = aiServiceClient.embed(List.of(input.text()), embedTimeout);
             if (result.isEmpty()) {
@@ -124,6 +129,7 @@ public class EmbeddingJobProcessor {
             transaction.executeWithoutResult(status -> {
                 store(job, input, result.get());
                 jobRepository.finish(job.id(), AiJobStatus.DONE, input.hash(), null, LocalDateTime.now());
+                enqueueMatchAlert(job);
             });
             return Outcome.DONE;
         } catch (Exception exception) {
@@ -182,6 +188,19 @@ public class EmbeddingJobProcessor {
      */
     public static boolean isPublished(RequestStatus status) {
         return status == RequestStatus.OPEN || status == RequestStatus.MATCHED;
+    }
+
+    /**
+     * A live posting with a current vector is compared with what people on the other side are
+     * waiting for (design 07, 7.3). This point is reached both when a posting is published and when
+     * it is edited, and only for postings that are OPEN or MATCHED; the alert itself requires OPEN.
+     */
+    private void enqueueMatchAlert(ClaimedJob job) {
+        if (job.entityType() == RecommendationEntityType.TEACHING_REQUEST
+                || job.entityType() == RecommendationEntityType.STUDYING_REQUEST) {
+            jobRepository.enqueue(com.ptutor.backend.entity.enums.AiJobType.MATCH_ALERT.name(),
+                    job.entityType().name(), job.entityId(), LocalDateTime.now());
+        }
     }
 
     /** Updates only the embedding columns, so {@code updated_at} of the entity is left alone. */

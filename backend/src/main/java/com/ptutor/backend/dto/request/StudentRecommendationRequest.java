@@ -16,7 +16,13 @@ import jakarta.validation.constraints.Size;
 /** A tutor's search for students. The tutor does not need to have a teaching posting. */
 public record StudentRecommendationRequest(
         @Valid Filters filters,
-        UUID useTeachingRequestId) {
+        UUID useTeachingRequestId,
+        /** Run one of the caller's saved searches: its criteria replace {@code filters}. */
+        UUID savedSearchId) {
+
+    public StudentRecommendationRequest(Filters filters, UUID useTeachingRequestId) {
+        this(filters, useTeachingRequestId, null);
+    }
 
     public record Filters(
             UUID subjectId,

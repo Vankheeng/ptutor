@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.recommendation.History;
+import com.ptutor.backend.dto.recommendation.MatchPosition;
 import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.ScoredStudyingCandidate;
 import com.ptutor.backend.dto.recommendation.StudyingCandidate;
@@ -58,6 +60,7 @@ public class StudentRecommendationService {
     private final RelaxationService relaxationService;
     private final ExplorationService explorationService;
     private final PreferenceProfileService preferenceProfileService;
+    private final SavedSearchService savedSearchService;
     private final RecommendationTagRepository tagRepository;
     private final RecommendationService recommendationService;
     private final RecommendationLogger recommendationLogger;
@@ -86,8 +89,11 @@ public class StudentRecommendationService {
         }
 
         long started = System.nanoTime();
-        StudentRecommendationRequest effective = request == null
+        StudentRecommendationRequest received = request == null
                 ? new StudentRecommendationRequest(null, null) : request;
+        // Opening a saved search: its criteria are the search, whatever else the body contains.
+        StudentRecommendationRequest effective = received.savedSearchId() == null
+                ? received : savedSearchService.tutorRequest(userId, received.savedSearchId());
         SupplyContext context = supplyContextBuilder.forTutor(tutor, effective);
         if (!context.isComplete()) {
             return new StudentRecommendationResponse(
@@ -130,7 +136,7 @@ public class StudentRecommendationService {
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logTutorSearch(
                 tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status(), reasons,
-                relaxations, explored.explored());
+                relaxations, explored.explored(), effective.savedSearchId());
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
@@ -147,6 +153,68 @@ public class StudentRecommendationService {
         return new StudentRecommendationResponse(
                 log.getId(), settings.getAlgorithmVersion(), recommendationLogger.contextJson(context),
                 List.of(), lowConfidence, items, relaxations, safePage, safeSize, kept.size());
+    }
+
+    /**
+     * Where a given studying posting would land if this tutor ran this search now (design 07, 7.3).
+     * Phases 1-4 without the exploration slots; nothing is logged. Only verified tutors are matched.
+     */
+    @Transactional
+    public Optional<MatchPosition> matchPosition(
+            UUID tutorUserId, StudentRecommendationRequest request, UUID studyingRequestId) {
+        Tutor tutor = tutorRepository.findByUser_Id(tutorUserId).orElse(null);
+        if (tutor == null || tutor.getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            return Optional.empty();
+        }
+        SupplyContext context = supplyContextBuilder.forTutor(tutor, request);
+        if (!context.isComplete()) {
+            return Optional.empty();
+        }
+        double platformRate = candidateRepository.platformAcceptanceRate(
+                settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
+                settings.getWillingnessDefaultRate());
+        float[] queryVector = queryEmbeddingService.embed(context.supplyText()).orElse(tutor.getProfileEmbedding());
+        List<ScoredStudyingCandidate> ranked = rank(tutor.getId(), context, queryVector, platformRate, new History[1]);
+        if (ranked.stream().noneMatch(scored -> scored.candidate().studyingRequestId().equals(studyingRequestId))) {
+            return Optional.empty();
+        }
+        RerankService.Result rerank = rerankService.prefetch(
+                context.supplyText(), RecommendationCandidateType.STUDYING_REQUEST,
+                ranked.stream().map(scored -> scored.candidate().studyingRequestId()).toList());
+        List<ScoredStudyingCandidate> all = ranker.applyRerank(context, ranked, rerank.scores(), platformRate);
+        MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
+                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
+        for (int index = 0; index < all.size(); index++) {
+            ScoredStudyingCandidate scored = all.get(index);
+            if (scored.candidate().studyingRequestId().equals(studyingRequestId)) {
+                List<String> reasons = matchReasonBuilder.forTutor(context, scored, tagNames).reasons();
+                // The student is not named: a tutor only learns who they are after contact.
+                return Optional.of(new MatchPosition(index + 1, scored.score(),
+                        reasons.isEmpty() ? null : reasons.get(0), scored.candidate().title(), null));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Scores ahead of time the pairs a saved search of this tutor would need. */
+    @Transactional
+    public int prefetchRerankForSavedSearch(UUID tutorUserId, UUID savedSearchId) {
+        Tutor tutor = tutorRepository.findByUser_Id(tutorUserId).orElse(null);
+        if (tutor == null || tutor.getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            return 0;
+        }
+        SupplyContext context = supplyContextBuilder.forTutor(
+                tutor, savedSearchService.tutorRequest(tutorUserId, savedSearchId));
+        if (!context.isComplete()) {
+            return 0;
+        }
+        double platformRate = candidateRepository.platformAcceptanceRate(
+                settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
+                settings.getWillingnessDefaultRate());
+        float[] queryVector = queryEmbeddingService.embed(context.supplyText()).orElse(tutor.getProfileEmbedding());
+        return rerankService.prefetch(context.supplyText(), RecommendationCandidateType.STUDYING_REQUEST,
+                rank(tutor.getId(), context, queryVector, platformRate, new History[1]).stream()
+                        .map(scored -> scored.candidate().studyingRequestId()).toList()).computed();
     }
 
     /** Phases 1-3, then one result per student: only the best of a student's postings is shown. */

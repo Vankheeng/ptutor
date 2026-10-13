@@ -21,7 +21,14 @@ public record TutorRecommendationRequest(
         @Valid Filters filters,
         @Size(max = 500, message = "Semantic text must not exceed 500 characters") String semanticText,
         @Size(max = 500, message = "Query text must not exceed 500 characters") String queryText,
-        UUID useStudyingRequestId) {
+        UUID useStudyingRequestId,
+        /** Run one of the caller's saved searches: its criteria replace {@code filters} and {@code semanticText}. */
+        UUID savedSearchId) {
+
+    public TutorRecommendationRequest(
+            Filters filters, String semanticText, String queryText, UUID useStudyingRequestId) {
+        this(filters, semanticText, queryText, useStudyingRequestId, null);
+    }
 
     public record Filters(
             UUID subjectId,

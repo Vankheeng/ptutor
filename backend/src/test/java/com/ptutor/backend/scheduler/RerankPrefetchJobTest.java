@@ -26,9 +26,12 @@ class RerankPrefetchJobTest {
     private final AiServiceClient aiServiceClient = mock(AiServiceClient.class);
     private final RecommendationService recommendationService = mock(RecommendationService.class);
     private final RerankService rerankService = mock(RerankService.class);
+    private final com.ptutor.backend.service.StudentRecommendationService studentRecommendationService =
+            mock(com.ptutor.backend.service.StudentRecommendationService.class);
     private final RecommendationSettings settings = new RecommendationSettings();
     private final RerankPrefetchJob job =
-            new RerankPrefetchJob(jdbc, aiServiceClient, recommendationService, rerankService, settings);
+            new RerankPrefetchJob(jdbc, aiServiceClient, recommendationService, studentRecommendationService,
+                    rerankService, settings);
 
     @Test
     void prefetchesEveryOpenStudyingRequestAndKeepsGoingWhenOneFails() {
@@ -38,8 +41,14 @@ class RerankPrefetchJobTest {
         UUID secondRequest = UUID.randomUUID();
         when(aiServiceClient.isRerankReady()).thenReturn(true);
         when(jdbc.queryForList(RerankPrefetchJob.OPEN_STUDYING_REQUESTS)).thenReturn(List.of(
-                Map.of("request_id", firstRequest, "user_id", firstUser),
-                Map.of("request_id", secondRequest, "user_id", secondUser)));
+                Map.of("source_id", firstRequest, "user_id", firstUser),
+                Map.of("source_id", secondRequest, "user_id", secondUser)));
+        UUID savedByStudent = UUID.randomUUID();
+        UUID savedByTutor = UUID.randomUUID();
+        when(jdbc.queryForList(RerankPrefetchJob.SAVED_SEARCHES, "STUDENT_TO_TUTOR"))
+                .thenReturn(List.of(Map.of("source_id", savedByStudent, "user_id", firstUser)));
+        when(jdbc.queryForList(RerankPrefetchJob.SAVED_SEARCHES, "TUTOR_TO_STUDENT"))
+                .thenReturn(List.of(Map.of("source_id", savedByTutor, "user_id", secondUser)));
         when(recommendationService.prefetchRerank(firstUser, firstRequest))
                 .thenThrow(new IllegalStateException("subject was removed"));
 
@@ -47,6 +56,8 @@ class RerankPrefetchJobTest {
 
         verify(recommendationService).prefetchRerank(firstUser, firstRequest);
         verify(recommendationService).prefetchRerank(secondUser, secondRequest);
+        verify(recommendationService).prefetchRerankForSavedSearch(firstUser, savedByStudent);
+        verify(studentRecommendationService).prefetchRerankForSavedSearch(secondUser, savedByTutor);
         verify(rerankService).deleteOlderThan(any());
     }
 
@@ -67,6 +78,6 @@ class RerankPrefetchJobTest {
 
         job.run();
 
-        verifyNoInteractions(jdbc, aiServiceClient, recommendationService, rerankService);
+        verifyNoInteractions(jdbc, aiServiceClient, recommendationService, studentRecommendationService, rerankService);
     }
 }

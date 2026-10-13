@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.recommendation.History;
+import com.ptutor.backend.dto.recommendation.MatchPosition;
 import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
@@ -64,6 +66,7 @@ public class RecommendationService {
     private final RelaxationService relaxationService;
     private final ExplorationService explorationService;
     private final PreferenceProfileService preferenceProfileService;
+    private final SavedSearchService savedSearchService;
     private final RecommendationTagRepository tagRepository;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
@@ -82,6 +85,7 @@ public class RecommendationService {
             RelaxationService relaxationService,
             ExplorationService explorationService,
             PreferenceProfileService preferenceProfileService,
+            SavedSearchService savedSearchService,
             RecommendationTagRepository tagRepository,
             RecommendationLogger recommendationLogger,
             RecommendationSettings settings,
@@ -97,6 +101,7 @@ public class RecommendationService {
         this.relaxationService = relaxationService;
         this.explorationService = explorationService;
         this.preferenceProfileService = preferenceProfileService;
+        this.savedSearchService = savedSearchService;
         this.tagRepository = tagRepository;
         this.recommendationLogger = recommendationLogger;
         this.settings = settings;
@@ -120,8 +125,11 @@ public class RecommendationService {
         }
 
         long started = System.nanoTime();
-        TutorRecommendationRequest effective = request == null
+        TutorRecommendationRequest received = request == null
                 ? new TutorRecommendationRequest(null, null, null, null) : request;
+        // Opening a saved search: its criteria are the search, whatever else the body contains.
+        TutorRecommendationRequest effective = received.savedSearchId() == null
+                ? received : savedSearchService.studentRequest(userId, received.savedSearchId());
         QueryContext context = queryContextBuilder.forStudent(student, effective);
         if (!context.isComplete()) {
             return new TutorRecommendationResponse(
@@ -157,7 +165,7 @@ public class RecommendationService {
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
                 student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
-                rerank.status(), reasons, relaxations, explored.explored());
+                rerank.status(), reasons, relaxations, explored.explored(), effective.savedSearchId());
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
@@ -186,15 +194,69 @@ public class RecommendationService {
             return 0;
         }
         // Exactly what the student sends when searching from the posting without changing anything.
-        QueryContext context = queryContextBuilder.forStudent(
-                student, new TutorRecommendationRequest(null, null, null, studyingRequestId));
+        return prefetchRerank(student, new TutorRecommendationRequest(null, null, null, studyingRequestId));
+    }
+
+    /** The same for the criteria of a saved search of this student. */
+    @Transactional
+    public int prefetchRerankForSavedSearch(UUID studentUserId, UUID savedSearchId) {
+        Student student = studentRepository.findProfileByUserId(studentUserId).orElse(null);
+        return student == null ? 0
+                : prefetchRerank(student, savedSearchService.studentRequest(studentUserId, savedSearchId));
+    }
+
+    private int prefetchRerank(Student student, TutorRecommendationRequest request) {
+        QueryContext context = queryContextBuilder.forStudent(student, request);
         if (!context.isComplete()) {
             return 0;
         }
         return rerankService.prefetch(context.demandText(), RecommendationCandidateType.TEACHING_REQUEST,
-                ids(rank(student.getId(), context, queryVector(student, context),
-                        MatchReasonBuilder.TagNames.of(tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(
-                                RecommendationTagStatus.ACTIVE))).ranked())).computed();
+                ids(rank(student.getId(), context, queryVector(student, context), activeTagNames()).ranked()))
+                .computed();
+    }
+
+    /**
+     * Where a given teaching posting would land if this student ran this search now (design 07, 7.3).
+     * Phases 1-4 without the exploration slots; nothing is logged. Empty when the posting does not
+     * pass the hard filters, or when another posting of the same tutor ranks above it.
+     */
+    @Transactional
+    public Optional<MatchPosition> matchPosition(
+            UUID studentUserId, TutorRecommendationRequest request, UUID teachingRequestId) {
+        Student student = studentRepository.findProfileByUserId(studentUserId).orElse(null);
+        if (student == null) {
+            return Optional.empty();
+        }
+        QueryContext context = queryContextBuilder.forStudent(student, request);
+        if (!context.isComplete()) {
+            return Optional.empty();
+        }
+        MatchReasonBuilder.TagNames tagNames = activeTagNames();
+        Ranking ranking = rank(student.getId(), context, queryVector(student, context), tagNames);
+        if (ranking.ranked().stream().noneMatch(
+                scored -> scored.candidate().teachingRequestId().equals(teachingRequestId))) {
+            return Optional.empty();
+        }
+        // In the background there is time to score every pair, unlike in a search.
+        RerankService.Result rerank = rerankService.prefetch(
+                context.demandText(), RecommendationCandidateType.TEACHING_REQUEST, ids(ranking.ranked()));
+        List<ScoredCandidate> ranked = ranker
+                .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate());
+        for (int index = 0; index < ranked.size(); index++) {
+            ScoredCandidate scored = ranked.get(index);
+            if (scored.candidate().teachingRequestId().equals(teachingRequestId)) {
+                List<String> reasons = matchReasonBuilder.forStudent(context, scored, tagNames).reasons();
+                return Optional.of(new MatchPosition(index + 1, scored.score(),
+                        reasons.isEmpty() ? null : reasons.get(0), scored.candidate().title(),
+                        scored.candidate().tutorDisplayName()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private MatchReasonBuilder.TagNames activeTagNames() {
+        return MatchReasonBuilder.TagNames.of(
+                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
     }
 
     /** Without a usable query vector the ranking still works, only without the semantic feature. */

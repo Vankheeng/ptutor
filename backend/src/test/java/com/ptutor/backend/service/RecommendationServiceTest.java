@@ -99,7 +99,7 @@ class RecommendationServiceTest {
         ReflectionTestUtils.setField(settings, "candidateLimit", candidateLimit);
         ReflectionTestUtils.setField(settings, "candidateUnembeddedQuota", unembeddedQuota);
         return new RecommendationService(
-                null, null, null, null, null, null, null, null, null, null, null, null, null, settings, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, settings, null);
     }
 
     /** {@code embedded} hits with cosine 0.99, 0.98, ... followed by {@code unembedded} hits, oldest first. */

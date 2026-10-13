@@ -68,6 +68,13 @@ class StudentRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
     @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired SavedSearchService savedSearchService;
+    @Autowired com.ptutor.backend.repository.RecommendationMatchAlertRepository alertRepository;
+    @Autowired com.ptutor.backend.repository.NotificationRepository notificationRepository;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    private NotificationService notificationService;
+    private MatchAlertService matchAlertService;
     @Autowired ExplorationService explorationService;
     @Autowired PreferenceProfileService preferenceProfileService;
     @Autowired RecommendationEventService eventService;
@@ -103,6 +110,7 @@ class StudentRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
         ReflectionTestUtils.setField(settings, "relaxationGoodThreshold", 0.50);
+        ReflectionTestUtils.setField(settings, "alertNotifyThreshold", 0.65);
     }
 
     @BeforeEach
@@ -116,10 +124,14 @@ class StudentRecommendationIntegrationTest {
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new StudentRecommendationService(tutorRepository, candidateRepository, logRepository,
                 supplyContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
-                relaxationService, explorationService, preferenceProfileService, tagRepository,
+                relaxationService, explorationService, preferenceProfileService, savedSearchService, tagRepository,
                 recommendationService, recommendationLogger, settings);
         refineService = new RefineService(eventService, clickLogRepository, logRepository, signalRepository,
                 queryEmbeddingService, recommendationService, service, settings, jsonMapper);
+        notificationService = mock(NotificationService.class);
+        matchAlertService = new MatchAlertService(jdbc, recommendationService, service, savedSearchService,
+                alertRepository, notificationService, notificationRepository, entityManager, settings,
+                transactionManager);
         // Suggestions are computed against a real database: never let a slow machine cut them short.
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
@@ -467,6 +479,45 @@ class StudentRecommendationIntegrationTest {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    // ---- saved searches and match alerts (C7)
+
+    @Test
+    void tellsAVerifiedTutorAboutANewStudyingPostingWithoutNamingTheStudent() {
+        // b' of a first contact is modest by design; the point here is who is told and what.
+        ReflectionTestUtils.setField(settings, "alertNotifyThreshold", 0.30);
+        UUID ownPosting = insert("""
+                INSERT INTO teaching_requests (id, tutor_id, subject_id, title, teaching_mode, status, expected_price)
+                VALUES (?, ?, ?, 'Luyện thi vào 10', 'ONLINE', 'OPEN', 180000)
+                """, tutorId, subjectId);
+        insert("INSERT INTO grade_teaching_requests (id, grade_id, teaching_request_id) VALUES (?, ?, ?)", gradeId,
+                ownPosting);
+        com.ptutor.backend.dto.response.SavedSearchResponse saved = savedSearchService.create(tutorUserId,
+                new com.ptutor.backend.dto.request.SavedSearchRequest(
+                        com.ptutor.backend.entity.enums.RecommendationDirection.TUTOR_TO_STUDENT, "Toán 9",
+                        jsonMapper.valueToTree(anywhere()), null, true));
+        UUID studying = request(student(), new Request().cosine(0.80).maxPrice("200000"));
+        entityManager.flush();
+
+        assertThat(matchAlertService.process(
+                com.ptutor.backend.entity.enums.RecommendationEntityType.STUDYING_REQUEST, studying)).isEqualTo(1);
+
+        org.mockito.ArgumentCaptor<com.ptutor.backend.event.NotificationDomainEvent> sent =
+                org.mockito.ArgumentCaptor.forClass(com.ptutor.backend.event.NotificationDomainEvent.class);
+        org.mockito.Mockito.verify(notificationService).createFromEvent(sent.capture());
+        assertThat(sent.getValue().recipientUserId()).isEqualTo(tutorUserId);
+        assertThat(sent.getValue().referenceType().name()).isEqualTo("STUDYING_REQUEST");
+        assertThat(sent.getValue().referenceId()).isEqualTo(studying.toString());
+        assertThat(sent.getValue().data()).containsEntry("name", "").containsEntry("title", "Tìm gia sư");
+        assertThat(jdbc.queryForObject(
+                "SELECT candidate_type FROM recommendation_match_alerts WHERE candidate_id = ?", String.class,
+                studying)).isEqualTo("STUDYING_REQUEST");
+
+        // The saved search can be opened like any search of this tutor.
+        StudentRecommendationResponse opened = service.recommendStudents(tutorUserId,
+                new StudentRecommendationRequest(null, null, saved.id()), 0, 20, null);
+        assertThat(ids(opened)).containsExactly(studying);
+    }
 
     // ---- events, refinement, preference profile
 

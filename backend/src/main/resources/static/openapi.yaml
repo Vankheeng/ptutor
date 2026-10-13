@@ -3111,6 +3111,132 @@ paths:
         '503':
           description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
 
+  /api/v1/users/me/saved-searches:
+    get:
+      tags: [Recommendations]
+      summary: List my saved searches
+      description: Requires STUDENT or TUTOR. Newest first.
+      operationId: listSavedSearches
+      responses:
+        '200':
+          description: Saved searches of the caller
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SavedSearchResponse' }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [Recommendations]
+      summary: Save a search
+      description: >-
+        A student saves a search for tutors (STUDENT_TO_TUTOR), a tutor a search for students
+        (TUTOR_TO_STUDENT). The filters are checked like a search checks them and must contain what a search
+        needs (subject and grade). At most 5 per user. With notifyEnabled (the default) the user is told when
+        a new posting is among the three best results of this search and scores 0.65 or more, at most once
+        a day. Run it with savedSearchId in the search request.
+      operationId: createSavedSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [direction, filters]
+              properties:
+                direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
+                name: { type: string, maxLength: 120 }
+                filters:
+                  type: object
+                  description: The "filters" object of the search request of that direction.
+                semanticText: { type: string, maxLength: 500, description: Used by student searches only }
+                notifyEnabled: { type: boolean, default: true }
+      responses:
+        '201':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SavedSearchResponse' }
+        '400':
+          description: >-
+            Validation error, INVALID_SAVED_SEARCH, SAVED_SEARCH_INCOMPLETE, SAVED_SEARCH_DIRECTION_NOT_ALLOWED,
+            or an error of the filters themselves such as INVALID_SUBJECT
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: SAVED_SEARCH_LIMIT_REACHED
+
+  /api/v1/users/me/saved-searches/{savedSearchId}:
+    put:
+      tags: [Recommendations]
+      summary: Rename a saved search or switch its notifications
+      description: Only the fields that are sent change. The criteria cannot be edited; save a new search instead.
+      operationId: updateSavedSearch
+      parameters:
+        - name: savedSearchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 120 }
+                notifyEnabled: { type: boolean }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SavedSearchResponse' }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: SAVED_SEARCH_NOT_FOUND (also for someone else's)
+    delete:
+      tags: [Recommendations]
+      summary: Delete a saved search
+      operationId: deleteSavedSearch
+      parameters:
+        - name: savedSearchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: SAVED_SEARCH_NOT_FOUND
+
   /api/v1/recommendations/{logId}/events:
     post:
       tags: [Recommendations]
@@ -6090,6 +6216,12 @@ components:
           type: string
           format: uuid
           description: One of the student's own studying requests, used to fill criteria left empty.
+        savedSearchId:
+          type: string
+          format: uuid
+          description: >-
+            Run one of the caller's saved searches: its filters and semanticText replace those of this body.
+            404 SAVED_SEARCH_NOT_FOUND when it is not the caller's or is a tutor search.
 
     TutorRecommendationResponse:
       type: object
@@ -6138,6 +6270,18 @@ components:
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }
+
+    SavedSearchResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
+        name: { type: string, nullable: true }
+        filters: { type: object }
+        semanticText: { type: string, nullable: true }
+        notifyEnabled: { type: boolean }
+        lastNotifiedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
 
     RecommendationRelaxation:
       type: object
@@ -6190,6 +6334,10 @@ components:
           type: string
           format: uuid
           description: One of the tutor's own teaching requests, used to fill criteria left empty.
+        savedSearchId:
+          type: string
+          format: uuid
+          description: Run one of the caller's saved searches; its filters replace those of this body.
 
     StudentRecommendationResponse:
       type: object
