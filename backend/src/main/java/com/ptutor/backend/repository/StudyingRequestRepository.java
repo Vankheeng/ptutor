@@ -93,4 +93,61 @@ public interface StudyingRequestRepository extends JpaRepository<StudyingRequest
     Optional<StudyingRequest> findDetailedByIdAndStudentId(
             @Param("requestId") UUID requestId,
             @Param("studentId") UUID studentId);
+
+    @Query(value = """
+            select request from StudyingRequest request
+            join fetch request.student student
+            join fetch student.user user
+            left join fetch request.subject subject
+            join fetch request.grade
+            where request.status = :status
+              and (:keyword = ''
+                   or lower(coalesce(request.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(request.note, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(user.email, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(concat(coalesce(user.firstName, ''), ' ', coalesce(user.lastName, '')))
+                      like lower(concat('%', :keyword, '%')))
+            """,
+            countQuery = """
+            select count(request) from StudyingRequest request
+            join request.student student
+            join student.user user
+            left join request.subject subject
+            where request.status = :status
+              and (:keyword = ''
+                   or lower(coalesce(request.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(request.note, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(user.email, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(concat(coalesce(user.firstName, ''), ' ', coalesce(user.lastName, '')))
+                      like lower(concat('%', :keyword, '%')))
+            """)
+    Page<StudyingRequest> findAllForAdmin(
+            @Param("status") RequestStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    @Query("""
+            select request from StudyingRequest request
+            join fetch request.student student
+            join fetch student.user
+            left join fetch request.subject
+            join fetch request.grade
+            left join fetch request.district
+            left join fetch request.reviewedBy reviewer
+            left join fetch reviewer.user
+            where request.id = :id
+            """)
+    Optional<StudyingRequest> findByIdForAdmin(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select request from StudyingRequest request
+            join fetch request.student student
+            join fetch student.user
+            join fetch request.grade
+            where request.id = :id
+            """)
+    Optional<StudyingRequest> findByIdForReview(@Param("id") UUID id);
 }
