@@ -14,7 +14,14 @@ public record FeatureVector(
         Double price,
         Double sched,
         Double area,
-        /** Weighted mean of the available features, pulled towards neutral by the missing ones. */
+        /** Resemblance to what the searcher showed interest in before; null without a preference profile. */
+        Double hist,
+        /** Share of {@code hist} in the suitability: 0 for a new user, up to 0.15 with enough history. */
+        double histWeight,
+        /**
+         * Weighted mean of the available features, pulled towards neutral by the missing ones, then
+         * blended with {@code hist}: {@code (1 - histWeight) x base + histWeight x hist}.
+         */
         double suitability,
         /** Sum of the weights of the available features: how much of the picture we actually saw. */
         double confidence,

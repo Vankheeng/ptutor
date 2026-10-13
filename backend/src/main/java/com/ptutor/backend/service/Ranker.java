@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.FeatureVector;
+import com.ptutor.backend.dto.recommendation.History;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
@@ -40,8 +41,16 @@ public class Ranker {
     /** @param platformRate acceptance rate of the whole platform, see {@link WillingnessCalculator} */
     public List<ScoredCandidate> rank(
             QueryContext context, List<TeachingCandidate> candidates, double platformRate) {
+        return rank(context, candidates, platformRate, History.NONE);
+    }
+
+    /** @param history what the student's preference profile says about these candidates */
+    public List<ScoredCandidate> rank(
+            QueryContext context, List<TeachingCandidate> candidates, double platformRate, History history) {
         return candidates.stream()
-                .map(candidate -> score(context, candidate, platformRate)).sorted(ORDER).toList();
+                .map(candidate -> score(context, candidate, platformRate, null,
+                        history.of(candidate.teachingRequestId()), history.weight()))
+                .sorted(ORDER).toList();
     }
 
     /**
@@ -58,7 +67,8 @@ public class Ranker {
         List<ScoredCandidate> result = new ArrayList<>(ranked.subList(0, top).stream()
                 .map(scored -> {
                     Double rerank = rerankScores.get(scored.candidate().teachingRequestId());
-                    return rerank == null ? scored : score(context, scored.candidate(), platformRate, rerank);
+                    return rerank == null ? scored : score(context, scored.candidate(), platformRate, rerank,
+                            scored.features().hist(), scored.features().histWeight());
                 })
                 .sorted(ORDER).toList());
         result.addAll(ranked.subList(top, ranked.size()));
@@ -66,11 +76,16 @@ public class Ranker {
     }
 
     ScoredCandidate score(QueryContext context, TeachingCandidate candidate, double platformRate) {
-        return score(context, candidate, platformRate, null);
+        return score(context, candidate, platformRate, null, null, 0);
     }
 
     ScoredCandidate score(QueryContext context, TeachingCandidate candidate, double platformRate, Double rerank) {
-        FeatureVector features = featureCalculator.calculate(context, candidate, rerank);
+        return score(context, candidate, platformRate, rerank, null, 0);
+    }
+
+    ScoredCandidate score(QueryContext context, TeachingCandidate candidate, double platformRate, Double rerank,
+            Double hist, double histWeight) {
+        FeatureVector features = featureCalculator.calculate(context, candidate, rerank, hist, histWeight);
         double a = features.suitability();
         double q = candidate.tutorScore() == null
                 ? QUALITY_WHEN_UNKNOWN

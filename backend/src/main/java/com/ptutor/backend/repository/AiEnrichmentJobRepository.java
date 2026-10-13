@@ -211,6 +211,24 @@ public interface AiEnrichmentJobRepository extends JpaRepository<AiEnrichmentJob
             """, nativeQuery = true)
     int enqueueEnrichmentForSubject(@Param("subjectId") UUID subjectId, @Param("now") LocalDateTime now);
 
+    /** Everyone who has a preference profile, queued for the nightly rebuild that lets old behaviour fade. */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            INSERT INTO ai_enrichment_jobs
+                (id, job_type, entity_type, entity_id, status, attempts, next_attempt_at, created_at, updated_at)
+            SELECT gen_random_uuid(), 'PROFILE_UPDATE', person.entity_type, person.id, 'PENDING', 0, :now, :now, :now
+            FROM (
+                SELECT 'STUDENT' AS entity_type, s.id FROM recommendation_user_profiles p
+                  JOIN students s ON s.user_id = p.user_id WHERE p.role = 'STUDENT' AND s.deleted_at IS NULL
+                UNION ALL
+                SELECT 'TUTOR', t.id FROM recommendation_user_profiles p
+                  JOIN tutors t ON t.user_id = p.user_id WHERE p.role = 'TUTOR' AND t.deleted_at IS NULL
+            ) person
+            ON CONFLICT (job_type, entity_type, entity_id) WHERE status IN ('PENDING', 'PROCESSING')
+            DO NOTHING
+            """, nativeQuery = true)
+    int enqueueProfileUpdates(@Param("now") LocalDateTime now);
+
     /** Entities that were never enriched (rows older than the feature, or whose job was lost). */
     @Modifying(flushAutomatically = true)
     @Query(value = """

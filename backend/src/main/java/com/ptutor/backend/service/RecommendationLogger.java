@@ -3,6 +3,7 @@ package com.ptutor.backend.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -47,7 +48,7 @@ public class RecommendationLogger {
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
             String algorithmVersion, long latencyMs, RerankService.Status rerankStatus,
-            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations) {
+            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations, Set<UUID> explored) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
@@ -60,7 +61,7 @@ public class RecommendationLogger {
                 .algorithmVersion(algorithmVersion)
                 .queryText(scrubbedQuery.isEmpty() ? null : scrubbedQuery)
                 .queryContext(storedContext)
-                .returnedCandidateIds(candidatesJson(ranked, reasons))
+                .returnedCandidateIds(candidatesJson(ranked, reasons, explored))
                 .relaxationSuggestions(relaxationsJson(relaxations))
                 .latencyMs((int) Math.min(Integer.MAX_VALUE, latencyMs))
                 .build());
@@ -69,7 +70,7 @@ public class RecommendationLogger {
     public RecommendationLog logTutorSearch(
             Tutor tutor, SupplyContext context, List<ScoredStudyingCandidate> ranked, String algorithmVersion,
             long latencyMs, RerankService.Status rerankStatus, Map<UUID, MatchReasons> reasons,
-            List<RelaxationSuggestion> relaxations) {
+            List<RelaxationSuggestion> relaxations, Set<UUID> explored) {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
@@ -86,11 +87,11 @@ public class RecommendationLogger {
             node.put("r", round(scored.r()));
             node.putNull("q");
             node.put("g", round(scored.g()));
-            node.put("wHist", 0.0);
+            node.put("wHist", round(scored.features().histWeight()));
             node.put("confidence", round(scored.features().confidence()));
             putFeatures(node, scored.features());
             putFeature(node, "rerank", scored.features().rerank());
-            node.put("isExploration", false);
+            node.put("isExploration", explored.contains(scored.candidate().studyingRequestId()));
             putReasons(node, reasons.get(scored.candidate().studyingRequestId()));
         }
         return logRepository.save(RecommendationLog.builder()
@@ -163,7 +164,8 @@ public class RecommendationLogger {
         return json;
     }
 
-    private JsonNode candidatesJson(List<ScoredCandidate> ranked, Map<UUID, MatchReasons> reasons) {
+    private JsonNode candidatesJson(
+            List<ScoredCandidate> ranked, Map<UUID, MatchReasons> reasons, Set<UUID> explored) {
         ArrayNode array = objectMapper.createArrayNode();
         int rank = 1;
         for (ScoredCandidate scored : ranked) {
@@ -178,11 +180,11 @@ public class RecommendationLogger {
             node.put("r", round(scored.r()));
             node.put("q", round(scored.q()));
             node.put("g", round(scored.g()));
-            node.put("wHist", 0.0);
+            node.put("wHist", round(features.histWeight()));
             node.put("confidence", round(features.confidence()));
             putFeatures(node, features);
             putFeature(node, "rerank", features.rerank());
-            node.put("isExploration", false);
+            node.put("isExploration", explored.contains(scored.candidate().teachingRequestId()));
             putReasons(node, reasons.get(scored.candidate().teachingRequestId()));
         }
         return array;
@@ -248,7 +250,7 @@ public class RecommendationLogger {
         putFeature(featureNode, "price", features.price());
         putFeature(featureNode, "sched", features.sched());
         putFeature(featureNode, "area", features.area());
-        featureNode.putNull("hist");
+        putFeature(featureNode, "hist", features.hist());
     }
 
     private void putFeature(ObjectNode node, String name, Double value) {

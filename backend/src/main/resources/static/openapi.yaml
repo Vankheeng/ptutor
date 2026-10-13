@@ -3111,6 +3111,108 @@ paths:
         '503':
           description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
 
+  /api/v1/recommendations/{logId}/events:
+    post:
+      tags: [Recommendations]
+      summary: Record what the user did with one result of their search
+      description: >-
+        Requires STUDENT or TUTOR and only works on the caller's own search (logId). VIEWED, CLICKED, FAVORITED
+        and CONTACTED are signs of interest, DISMISSED the opposite. FAVORITED on a student's search also adds
+        the tutor to the student's favourites. The rank recorded is the one the search gave the result; the
+        rank in the body is ignored. Every event queues a rebuild of the caller's preference profile.
+      operationId: recordRecommendationEvent
+      parameters:
+        - name: logId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, candidateId]
+              properties:
+                action: { type: string, enum: [VIEWED, CLICKED, FAVORITED, CONTACTED, DISMISSED] }
+                rank: { type: integer, description: Ignored }
+                candidateId:
+                  type: string
+                  format: uuid
+                  description: teachingRequestId (student's search) or studyingRequestId (tutor's search) of a result
+      responses:
+        '200':
+          description: Event recorded
+        '400':
+          description: Validation error or CANDIDATE_NOT_IN_RESULTS
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: RECOMMENDATION_LOG_NOT_FOUND (also for someone else's search) or CANDIDATE_NOT_FOUND
+
+  /api/v1/recommendations/{logId}/refine:
+    post:
+      tags: [Recommendations]
+      summary: Score again the results the user has not seen yet
+      description: >-
+        Uses the events recorded for this search: results the user opened pull the remaining ones towards
+        similar postings, dismissed and passed-over ones push away. Results up to seenUpToRank never move.
+        Needs at least one sign of interest; otherwise the stored order is returned unchanged. The new order
+        replaces the stored one, so later pages read with logId follow it.
+      operationId: refineRecommendations
+      parameters:
+        - name: logId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seenUpToRank]
+              properties:
+                seenUpToRank: { type: integer, minimum: 0, maximum: 50 }
+      responses:
+        '200':
+          description: >-
+            The results after seenUpToRank in their new order, in the same shape as the search that produced
+            the log (tutor recommendations for a student, student recommendations for a tutor).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/TutorRecommendationResponseEnvelope'
+                  - $ref: '#/components/schemas/StudentRecommendationResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: RECOMMENDATION_LOG_NOT_FOUND
+
+  /api/v1/users/me/recommendation-profile:
+    delete:
+      tags: [Recommendations]
+      summary: Delete my recommendation history
+      description: >-
+        Requires STUDENT or TUTOR. Empties the preference profile built from past behaviour and ignores
+        everything done before this moment, so results are no longer influenced by it. Favourites,
+        applications and contracts themselves are not deleted.
+      operationId: deleteRecommendationHistory
+      responses:
+        '200':
+          description: History deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/students/me/tutor-recommendations:
     post:
       tags: [Recommendations]

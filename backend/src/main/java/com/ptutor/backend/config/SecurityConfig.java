@@ -49,6 +49,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_TAG_API;
+import static com.ptutor.backend.config.SecurityConstants.RECOMMENDATION_INTERACTION_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_API;
@@ -180,6 +181,7 @@ public class SecurityConfig {
                         .requestMatchers(STUDYING_REQUEST_READ_API).hasAnyRole("TUTOR", "EMPLOYEE")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(RECOMMENDATION_INTERACTION_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(COMPLAINT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(WALLET_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")

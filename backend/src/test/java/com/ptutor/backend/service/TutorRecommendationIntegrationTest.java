@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ptutor.backend.client.AiServiceClient;
 import com.ptutor.backend.client.AiServiceClient.RerankResult;
 import com.ptutor.backend.dto.recommendation.AreaScope;
+import com.ptutor.backend.dto.request.RecommendationEventRequest;
+import com.ptutor.backend.entity.enums.RecommendationAction;
+import com.ptutor.backend.entity.enums.RecommendationProfileRole;
 import com.ptutor.backend.dto.recommendation.ModePreference;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest.Area;
@@ -70,6 +73,16 @@ class TutorRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
     @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired ExplorationService explorationService;
+    @Autowired PreferenceProfileService preferenceProfileService;
+    @Autowired RecommendationEventService eventService;
+    @Autowired com.ptutor.backend.repository.RecommendationClickLogRepository clickLogRepository;
+    @Autowired com.ptutor.backend.repository.PreferenceSignalRepository signalRepository;
+    @Autowired tools.jackson.databind.ObjectMapper jsonMapper;
+    @Autowired StudentRecommendationService studentRecommendationService;
+    @Autowired com.ptutor.backend.scheduler.ExposureStatsJob exposureStatsJob;
+
+    private RefineService refineService;
     @Autowired RelaxationService relaxationService;
     @Autowired com.ptutor.backend.repository.RecommendationTagRepository tagRepository;
 
@@ -101,6 +114,7 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "rerankEnabled", true);
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
         ReflectionTestUtils.setField(settings, "relaxationEnabled", true);
+        ReflectionTestUtils.setField(settings, "explorationEnabled", true);
     }
 
     @BeforeEach
@@ -116,7 +130,10 @@ class TutorRecommendationIntegrationTest {
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
                 queryContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
-                relaxationService, tagRepository, recommendationLogger, settings, null);
+                relaxationService, explorationService, preferenceProfileService, tagRepository,
+                recommendationLogger, settings, null);
+        refineService = new RefineService(eventService, clickLogRepository, logRepository, signalRepository,
+                queryEmbeddingService, service, studentRecommendationService, settings, jsonMapper);
         // Suggestions are computed against a real database: never let a slow machine cut them short.
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
@@ -580,7 +597,9 @@ class TutorRecommendationIntegrationTest {
 
         assertThat(response.totalElements()).isEqualTo(settings.getLogCandidateLimit());
         assertThat(response.items()).hasSize(50);
-        assertThat(response.items()).extracting(Item::score).isSortedAccordingTo((left, right) -> right.compareTo(left));
+        // Two places of the first page are exploration slots; everything else is in score order.
+        assertThat(response.items()).filteredOn(item -> !item.isExploration()).extracting(Item::score)
+                .isSortedAccordingTo((left, right) -> right.compareTo(left));
     }
 
     // ---------------------------------------------------------------- helpers
@@ -679,6 +698,207 @@ class TutorRecommendationIntegrationTest {
         posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
 
         assertThat(search(area(AreaScope.DISTRICTS, List.of(homeDistrictId), null)).relaxations()).isEmpty();
+    }
+
+    // ---- events, exposure statistics, exploration slots
+
+    @Test
+    void recordsWhatTheStudentDoesWithAResultAndQueuesOneProfileUpdate() {
+        UUID tutorId = tutor();
+        UUID posting = posting(tutorId, new Posting());
+        TutorRecommendationResponse response = search(anywhere());
+        jdbc.update("DELETE FROM ai_enrichment_jobs WHERE job_type = 'PROFILE_UPDATE'");
+
+        eventService.record(studentUserId, response.logId(), event(RecommendationAction.VIEWED, 99, posting));
+        eventService.record(studentUserId, response.logId(), event(RecommendationAction.FAVORITED, null, posting));
+        eventService.record(studentUserId, response.logId(), event(RecommendationAction.FAVORITED, null, posting));
+        entityManager.flush();
+
+        List<Map<String, Object>> clicks = jdbc.queryForList("""
+                SELECT action, rank, clicked_tutor_id, clicked_student_id, candidate_teaching_request_id
+                FROM recommendation_click_logs WHERE recommendation_log_id = ? ORDER BY created_at, action DESC
+                """, response.logId());
+        assertThat(clicks).hasSize(3).allSatisfy(click -> {
+            assertThat(click.get("rank")).as("the rank of the search, not the one the client sent").isEqualTo(1);
+            assertThat(click.get("clicked_tutor_id")).isEqualTo(tutorId);
+            assertThat(click.get("clicked_student_id")).isNull();
+            assertThat(click.get("candidate_teaching_request_id")).isEqualTo(posting);
+        });
+        assertThat(clicks).extracting(click -> click.get("action")).containsExactlyInAnyOrder(
+                "VIEWED", "FAVORITED", "FAVORITED");
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM favorite_tutors WHERE student_id = ? AND tutor_id = ? AND deleted_at IS NULL",
+                Integer.class, studentId, tutorId)).as("liking twice keeps one favourite").isEqualTo(1);
+        assertThat(jdbc.queryForList(
+                "SELECT entity_type || ':' || entity_id || ':' || status FROM ai_enrichment_jobs WHERE job_type = 'PROFILE_UPDATE'",
+                String.class)).as("three events, one rebuild").containsExactly("STUDENT:" + studentId + ":PENDING");
+
+        assertThatThrownBy(() -> eventService.record(studentUserId, response.logId(),
+                event(RecommendationAction.VIEWED, 1, UUID.randomUUID())))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("CANDIDATE_NOT_IN_RESULTS"));
+        assertThatThrownBy(() -> eventService.record(UUID.randomUUID(), response.logId(),
+                event(RecommendationAction.VIEWED, 1, posting)))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("RECOMMENDATION_LOG_NOT_FOUND"));
+    }
+
+    @Test
+    void countsFirstPageImpressionsAndOneClickPerSearch() {
+        UUID opened = posting(tutor(), new Posting().cosine(0.80));
+        UUID ignored = posting(tutor(), new Posting().cosine(0.70));
+        TutorRecommendationResponse first = search(anywhere());
+        search(anywhere());
+        eventService.record(studentUserId, first.logId(), event(RecommendationAction.VIEWED, null, opened));
+        eventService.record(studentUserId, first.logId(), event(RecommendationAction.FAVORITED, null, opened));
+        eventService.record(studentUserId, first.logId(), event(RecommendationAction.DISMISSED, null, ignored));
+        entityManager.flush();
+
+        exposureStatsJob.run();
+
+        assertThat(exposure(opened)).isEqualTo("2/1 this week, 2/1 in total");
+        assertThat(exposure(ignored)).as("a dismissal is not a click").isEqualTo("2/0 this week, 2/0 in total");
+    }
+
+    @Test
+    void givesTwoPlacesOfTheFirstPageToRarelyShownPostingsAndSaysSo() {
+        List<UUID> byScore = new java.util.ArrayList<>();
+        for (int index = 0; index < 30; index++) {
+            byScore.add(posting(tutor(), new Posting().cosine(0.80 - 0.005 * index)));
+        }
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(response.totalElements()).isEqualTo(30);
+        assertThat(ids(response)).hasSize(20).doesNotHaveDuplicates();
+        assertThat(response.items()).filteredOn(Item::isExploration).hasSize(2);
+        for (int place : List.of(4, 11)) {
+            Item item = response.items().get(place);
+            assertThat(item.isExploration()).isTrue();
+            assertThat(byScore.indexOf(item.teachingRequestId())).as("from below the first page")
+                    .isGreaterThanOrEqualTo(20);
+            assertThat(item.reasons().get(0)).isEqualTo("Gia sư mới trên nền tảng");
+        }
+        assertThat(ids(response).subList(0, 4)).containsExactlyElementsOf(byScore.subList(0, 4));
+
+        TutorRecommendationResponse again = service.recommendTutors(studentUserId, null, 0, 20, response.logId());
+        assertThat(ids(again)).containsExactlyElementsOf(ids(response));
+        assertThat(again.items().get(4).isExploration()).isTrue();
+        assertThat(again.items().get(11).isExploration()).isTrue();
+
+        ReflectionTestUtils.setField(settings, "explorationEnabled", false);
+        TutorRecommendationResponse strict = search(anywhere());
+        assertThat(strict.items()).noneMatch(Item::isExploration);
+        assertThat(ids(strict)).containsExactlyElementsOf(byScore.subList(0, 20));
+    }
+
+    // ---- preference profile (H1)
+
+    @Test
+    void whatTheStudentLikedBeforeLiftsSimilarPostingsUntilTheHistoryIsDeleted() {
+        String code = "thu_luyen_de_" + UUID.randomUUID().toString().substring(0, 8);
+        UUID style = tag("STYLE", code, null);
+        UUID likedTutor = tutor();
+        UUID liked = posting(likedTutor, new Posting().cosine(0.60));
+        entityTag("TUTOR", likedTutor, style, "OFFERED");
+        UUID plain = posting(tutor(), new Posting().cosine(0.60));
+        TutorRecommendationResponse before = search(anywhere());
+        assertThat(score(before, liked)).isEqualTo(score(before, plain));
+        assertThat(log(before.logId()).isNull(liked, "hist")).isTrue();
+
+        eventService.record(studentUserId, before.logId(), event(RecommendationAction.FAVORITED, null, liked));
+        entityManager.flush();
+        assertThat(preferenceProfileService.recompute(RecommendationProfileRole.STUDENT, studentId)).isTrue();
+        entityManager.flush();
+        entityManager.clear();
+
+        Map<String, Object> profile = jdbc.queryForMap(
+                "SELECT role, signal_count, tag_affinity ->> ? AS affinity, preference_embedding IS NOT NULL AS has_vector"
+                        + " FROM recommendation_user_profiles WHERE user_id = ?", code, studentUserId);
+        assertThat(profile).containsEntry("role", "STUDENT").containsEntry("signal_count", 1)
+                .containsEntry("has_vector", true);
+        assertThat(Double.parseDouble((String) profile.get("affinity"))).isCloseTo(1.0, within(1e-9));
+
+        TutorRecommendationResponse after = search(anywhere());
+
+        assertThat(ids(after)).containsExactly(liked, plain);
+        JsonView log = log(after.logId());
+        // one signal of the ten needed: w_hist = 0.15 x 1 / 10
+        assertThat(log.number(liked, "wHist")).isCloseTo(0.015, within(1e-9));
+        // same vector as the liked posting (0.6 x 1) plus its tag (0.4 x 1 / max(1, 1))
+        assertThat(log.feature(liked, "hist")).isCloseTo(1.0, within(1e-4));
+        assertThat(log.feature(plain, "hist")).isCloseTo(0.6, within(1e-4));
+        assertThat(score(after, liked)).isGreaterThan(score(after, plain));
+        assertThat(after.items().get(0).reasons()).contains("Giống các gia sư bạn đã quan tâm: Tên " + code);
+
+        preferenceProfileService.deleteHistory(studentUserId);
+        entityManager.flush();
+        entityManager.clear();
+        TutorRecommendationResponse forgotten = search(anywhere());
+
+        assertThat(score(forgotten, liked)).isEqualTo(score(forgotten, plain));
+        assertThat(log(forgotten.logId()).number(liked, "wHist")).isZero();
+        // Rebuilding the profile must not bring back what the student asked to forget.
+        preferenceProfileService.recompute(RecommendationProfileRole.STUDENT, studentId);
+        entityManager.flush();
+        assertThat(jdbc.queryForObject(
+                "SELECT signal_count FROM recommendation_user_profiles WHERE user_id = ?", Integer.class,
+                studentUserId)).isZero();
+    }
+
+    // ---- in-session refinement (B5)
+
+    @Test
+    void reordersOnlyTheUnseenResultsTowardsWhatTheStudentOpened() {
+        UUID first = posting(tutor("VERIFIED", "ACTIVE", "0"), new Posting().cosine(0.75));
+        UUID opened = posting(tutor("VERIFIED", "ACTIVE", "100"), new Posting().cosine(0.35));
+        UUID third = posting(tutor("VERIFIED", "ACTIVE", "0"), new Posting().cosine(0.55));
+        UUID fourth = posting(tutor("VERIFIED", "ACTIVE", "40"), new Posting().cosine(0.40));
+        TutorRecommendationResponse response = search(anywhere());
+        assertThat(ids(response)).containsExactly(first, opened, third, fourth);
+
+        TutorRecommendationResponse untouched =
+                (TutorRecommendationResponse) refineService.refine(studentUserId, response.logId(), 2);
+        assertThat(ids(untouched)).as("nothing opened yet: nothing to learn from").containsExactly(third, fourth);
+
+        eventService.record(studentUserId, response.logId(), event(RecommendationAction.VIEWED, null, opened));
+        entityManager.flush();
+        TutorRecommendationResponse refined =
+                (TutorRecommendationResponse) refineService.refine(studentUserId, response.logId(), 2);
+
+        // The opened posting lies far from the typed query; the fourth one is nearer to it than the third.
+        assertThat(ids(refined)).containsExactly(fourth, third);
+        assertThat(refined.items()).extracting(Item::rank).containsExactly(3, 4);
+        // q' = normalize(q + 0.6 x opened - 0.3 x first), first being passed over: (0.938, 0.346)
+        // fourth: s' = 0.785, f_sem = 0.5 x 0.2 + 0.5 x 0.785, a = 0.435 + 0.3 x 0.293, x (0.7 + 0.3 x 0.4)
+        assertThat(score(refined, fourth)).isCloseTo(0.429, within(2e-3));
+        // third: s' = 1, f_sem = 0.75, a = 0.525 + 0.3 x 0.25, x 0.7
+        assertThat(score(refined, third)).isCloseTo(0.420, within(2e-3));
+
+        TutorRecommendationResponse page = service.recommendTutors(studentUserId, null, 0, 20, response.logId());
+        assertThat(ids(page)).as("what was on screen stays, the rest follows the new order")
+                .containsExactly(first, opened, fourth, third);
+        assertThat(score(page, first)).isCloseTo(score(response, first), within(1e-3));
+
+        TutorRecommendationResponse twice =
+                (TutorRecommendationResponse) refineService.refine(studentUserId, response.logId(), 2);
+        assertThat(score(twice, fourth)).as("refining again does not compound").isEqualTo(score(refined, fourth));
+
+        assertThatThrownBy(() -> refineService.refine(UUID.randomUUID(), response.logId(), 2))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.getCode()).isEqualTo("RECOMMENDATION_LOG_NOT_FOUND"));
+    }
+
+    private RecommendationEventRequest event(RecommendationAction action, Integer rank, UUID candidateId) {
+        return new RecommendationEventRequest(action, rank, candidateId);
+    }
+
+    private String exposure(UUID teachingRequestId) {
+        return jdbc.queryForObject("""
+                SELECT impressions_7d || '/' || clicks_7d || ' this week, ' || impressions_total || '/' || clicks_total
+                       || ' in total'
+                FROM recommendation_exposure_stats WHERE candidate_type = 'TEACHING_REQUEST' AND candidate_id = ?
+                """, String.class, teachingRequestId);
     }
 
     // ---- phase 4: rerank

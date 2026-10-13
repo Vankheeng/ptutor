@@ -49,6 +49,15 @@ public class FeatureCalculator {
 
     /** @param rerank cross-encoder score of the posting, or null when it has none (design 06, 6.9) */
     public FeatureVector calculate(QueryContext context, TeachingCandidate candidate, Double rerank) {
+        return calculate(context, candidate, rerank, null, 0);
+    }
+
+    /**
+     * @param hist       f_hist of the posting, or null when the student has no preference profile
+     * @param histWeight w_hist, see {@link #blend}
+     */
+    public FeatureVector calculate(
+            QueryContext context, TeachingCandidate candidate, Double rerank, Double hist, double histWeight) {
         Double sem = semantic(candidate.cosine(), rerank);
         Double need = need(context.needTags(), candidate.strengthTags());
         Double style = style(context.styleTags(), candidate.offeredStyleCodes());
@@ -78,8 +87,17 @@ public class FeatureCalculator {
         // by one perfect feature must not outrank one that is good on everything.
         // Same as  c_a * (weighted mean of known features) + (1 - c_a) * prior.
         double suitability = weighted + (1 - confidence) * settings.getConfidencePrior();
-        return new FeatureVector(sem, rerank, need, style, segment, price, sched, area,
-                suitability, confidence, overlap != null && overlap == 0);
+        return new FeatureVector(sem, rerank, need, style, segment, price, sched, area, hist,
+                hist == null ? 0 : histWeight, blend(suitability, hist, histWeight), confidence,
+                overlap != null && overlap == 0);
+    }
+
+    /**
+     * {@code a = (1 - w_hist) x a_base + w_hist x f_hist} (design 06, 6.4): history never replaces the
+     * criteria of the search, it only shifts the result by up to 15 % once there is enough of it.
+     */
+    static double blend(double base, Double hist, double histWeight) {
+        return hist == null || histWeight <= 0 ? base : (1 - histWeight) * base + histWeight * hist;
     }
 
     /** Fixed thresholds instead of per-query min-max, so scores of different searches are comparable. */

@@ -159,6 +159,59 @@ public class RecommendationSettings {
     @Value("${app.recommendation.gate.recent-reject:0.5}")
     private double gateRecentReject = 0.5;
 
+    /** Off: no long-term preference profile is used or built (H1). */
+    @Value("${app.recommendation.history.enabled:true}")
+    private boolean historyEnabled = true;
+
+    /** Largest share of f_hist in the suitability. */
+    @Value("${app.recommendation.history.max-weight:0.15}")
+    private double historyMaxWeight = 0.15;
+
+    /** Number of positive signals at which f_hist reaches its largest share. */
+    @Value("${app.recommendation.history.full-weight-signals:10}")
+    private int historyFullWeightSignals = 10;
+
+    @Value("${app.recommendation.history.window-days:180}")
+    private int historyWindowDays = 180;
+
+    /** A signal counts half as much after this many days. */
+    @Value("${app.recommendation.history.half-life-days:30}")
+    private double historyHalfLifeDays = 30;
+
+    /** Off: results are shown strictly by score (R6). */
+    @Value("${app.recommendation.exploration.enabled:true}")
+    private boolean explorationEnabled = true;
+
+    /** Size of the first page, which is where the exploration slots are. */
+    @Value("${app.recommendation.exploration.page-size:20}")
+    private int explorationPageSize = 20;
+
+    /** 1-based positions of the first page given to less shown postings. */
+    @Value("${app.recommendation.exploration.slots:5,12}")
+    private int[] explorationSlots = { 5, 12 };
+
+    /** A posting may only take a slot when its score is at least this share of the last one on the page. */
+    @Value("${app.recommendation.exploration.min-score-ratio:0.8}")
+    private double explorationMinScoreRatio = 0.8;
+
+    /** Off: /refine returns the stored order unchanged (B5). */
+    @Value("${app.recommendation.refine.enabled:true}")
+    private boolean refineEnabled = true;
+
+    @Value("${app.recommendation.refine.positive-weight:0.6}")
+    private double refinePositiveWeight = 0.6;
+
+    @Value("${app.recommendation.refine.negative-weight:0.3}")
+    private double refineNegativeWeight = 0.3;
+
+    /** Weight of a result that was skipped over, relative to one that was dismissed. */
+    @Value("${app.recommendation.refine.skipped-weight:0.5}")
+    private double refineSkippedWeight = 0.5;
+
+    /** Share of the original f_sem kept when a result is scored again within a session. */
+    @Value("${app.recommendation.refine.original-share:0.5}")
+    private double refineOriginalShare = 0.5;
+
     /** Off: a search with few good results simply returns them, without suggestions (C6). */
     @Value("${app.recommendation.relaxation.enabled:true}")
     private boolean relaxationEnabled = true;

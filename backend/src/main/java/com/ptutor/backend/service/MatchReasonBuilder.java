@@ -59,20 +59,32 @@ public class MatchReasonBuilder {
     /** Reasons that come from the other side rank below every feature, quality below those. */
     private static final double WILLINGNESS_RANK = -1;
     private static final double QUALITY_RANK = -2;
+    /** Why a result sits in an exploration slot is said first: its score alone does not explain its place. */
+    private static final double EXPLORATION_RANK = 10;
+    static final double HISTORY_THRESHOLD_FEATURE = 0.6;
 
     private final RecommendationSettings settings;
 
     /** Display names of tags, looked up once per search. */
-    public record TagNames(Map<UUID, String> byId, Map<String, String> byGroupAndCode) {
+    public record TagNames(Map<UUID, String> byId, Map<String, String> byGroupAndCode,
+            Map<UUID, String> codeById, Map<String, String> nameByCode) {
+
+        public TagNames(Map<UUID, String> byId, Map<String, String> byGroupAndCode) {
+            this(byId, byGroupAndCode, Map.of(), Map.of());
+        }
 
         public static TagNames of(Collection<RecommendationTag> tags) {
             Map<UUID, String> byId = new HashMap<>();
             Map<String, String> byGroupAndCode = new HashMap<>();
+            Map<UUID, String> codeById = new HashMap<>();
+            Map<String, String> nameByCode = new HashMap<>();
             for (RecommendationTag tag : tags) {
                 byId.put(tag.getId(), tag.getName());
+                codeById.put(tag.getId(), tag.getCode());
+                nameByCode.put(tag.getCode(), tag.getName());
                 byGroupAndCode.put(tag.getTagGroup().name() + ":" + tag.getCode(), tag.getName());
             }
-            return new TagNames(byId, byGroupAndCode);
+            return new TagNames(byId, byGroupAndCode, codeById, nameByCode);
         }
 
         String style(String code) {
@@ -86,9 +98,26 @@ public class MatchReasonBuilder {
 
     /** A teaching posting explained to the student who searched. */
     public MatchReasons forStudent(QueryContext context, ScoredCandidate scored, TagNames names) {
+        return forStudent(context, scored, names, false, List.of());
+    }
+
+    /**
+     * @param explored  the posting was moved up into an exploration slot
+     * @param likedTags names of the posting's tags the student showed most interest in before
+     */
+    public MatchReasons forStudent(
+            QueryContext context, ScoredCandidate scored, TagNames names, boolean explored, List<String> likedTags) {
         TeachingCandidate candidate = scored.candidate();
         FeatureVector features = scored.features();
         List<Reason> reasons = new ArrayList<>();
+        if (explored) {
+            reasons.add(new Reason(EXPLORATION_RANK, "Gia sư mới trên nền tảng"));
+        }
+        if (reached(features.hist(), HISTORY_THRESHOLD_FEATURE) && features.histWeight() > 0) {
+            String shared = names(likedTags);
+            reasons.add(new Reason(features.histWeight() * features.hist(), shared.isEmpty()
+                    ? "Giống các gia sư bạn đã quan tâm" : "Giống các gia sư bạn đã quan tâm: " + shared));
+        }
 
         if (reached(features.need(), NEED_THRESHOLD)) {
             Set<UUID> strengths = candidate.strengthTags().stream().map(CandidateTag::tagId).collect(Collectors.toSet());
@@ -161,9 +190,22 @@ public class MatchReasonBuilder {
 
     /** A studying posting explained to the tutor who searched. */
     public MatchReasons forTutor(SupplyContext context, ScoredStudyingCandidate scored, TagNames names) {
+        return forTutor(context, scored, names, false, List.of());
+    }
+
+    public MatchReasons forTutor(SupplyContext context, ScoredStudyingCandidate scored, TagNames names,
+            boolean explored, List<String> likedTags) {
         StudyingCandidate candidate = scored.candidate();
         FeatureVector features = scored.features();
         List<Reason> reasons = new ArrayList<>();
+        if (explored) {
+            reasons.add(new Reason(EXPLORATION_RANK, "Tin học ít được xem, có thể hợp với bạn"));
+        }
+        if (reached(features.hist(), HISTORY_THRESHOLD_FEATURE) && features.histWeight() > 0) {
+            String shared = names(likedTags);
+            reasons.add(new Reason(features.histWeight() * features.hist(), shared.isEmpty()
+                    ? "Giống các học viên bạn đã quan tâm" : "Giống các học viên bạn đã quan tâm: " + shared));
+        }
 
         if (reached(features.need(), NEED_THRESHOLD)) {
             Set<UUID> strengths = context.strengthTags().stream().map(CandidateTag::tagId).collect(Collectors.toSet());

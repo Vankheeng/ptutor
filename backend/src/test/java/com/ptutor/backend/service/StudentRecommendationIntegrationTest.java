@@ -68,6 +68,14 @@ class StudentRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
     @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired ExplorationService explorationService;
+    @Autowired PreferenceProfileService preferenceProfileService;
+    @Autowired RecommendationEventService eventService;
+    @Autowired com.ptutor.backend.repository.RecommendationClickLogRepository clickLogRepository;
+    @Autowired com.ptutor.backend.repository.PreferenceSignalRepository signalRepository;
+    @Autowired tools.jackson.databind.ObjectMapper jsonMapper;
+
+    private RefineService refineService;
     @Autowired RelaxationService relaxationService;
     @Autowired com.ptutor.backend.repository.RecommendationTagRepository tagRepository;
 
@@ -108,7 +116,10 @@ class StudentRecommendationIntegrationTest {
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new StudentRecommendationService(tutorRepository, candidateRepository, logRepository,
                 supplyContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
-                relaxationService, tagRepository, recommendationService, recommendationLogger, settings);
+                relaxationService, explorationService, preferenceProfileService, tagRepository,
+                recommendationService, recommendationLogger, settings);
+        refineService = new RefineService(eventService, clickLogRepository, logRepository, signalRepository,
+                queryEmbeddingService, recommendationService, service, settings, jsonMapper);
         // Suggestions are computed against a real database: never let a slow machine cut them short.
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
@@ -456,6 +467,46 @@ class StudentRecommendationIntegrationTest {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    // ---- events, refinement, preference profile
+
+    @Test
+    void recordsATutorsEventsRefinesTheirSearchAndBuildsTheirProfile() {
+        UUID first = request(student(), new Request().cosine(0.80));
+        UUID second = request(student(), new Request().cosine(0.60));
+        StudentRecommendationResponse response = search(anywhere());
+        assertThat(ids(response)).containsExactly(first, second);
+        jdbc.update("DELETE FROM ai_enrichment_jobs WHERE job_type = 'PROFILE_UPDATE'");
+
+        eventService.record(tutorUserId, response.logId(), new com.ptutor.backend.dto.request.RecommendationEventRequest(
+                com.ptutor.backend.entity.enums.RecommendationAction.CONTACTED, null, first));
+        entityManager.flush();
+
+        java.util.Map<String, Object> click = jdbc.queryForMap("""
+                SELECT action, rank, clicked_student_id, clicked_tutor_id, candidate_studying_request_id
+                FROM recommendation_click_logs WHERE recommendation_log_id = ?
+                """, response.logId());
+        assertThat(click.get("action")).isEqualTo("CONTACTED");
+        assertThat(click.get("rank")).isEqualTo(1);
+        assertThat(click.get("clicked_student_id")).isNotNull();
+        assertThat(click.get("clicked_tutor_id")).isNull();
+        assertThat(click.get("candidate_studying_request_id")).isEqualTo(first);
+        assertThat(jdbc.queryForList(
+                "SELECT entity_type || ':' || entity_id FROM ai_enrichment_jobs WHERE job_type = 'PROFILE_UPDATE'",
+                String.class)).containsExactly("TUTOR:" + tutorId);
+
+        Object refined = refineService.refine(tutorUserId, response.logId(), 1);
+
+        assertThat(refined).isInstanceOf(StudentRecommendationResponse.class);
+        assertThat(ids((StudentRecommendationResponse) refined)).containsExactly(second);
+
+        assertThat(preferenceProfileService.recompute(
+                com.ptutor.backend.entity.enums.RecommendationProfileRole.TUTOR, tutorId)).isTrue();
+        entityManager.flush();
+        assertThat(jdbc.queryForMap(
+                "SELECT role, signal_count FROM recommendation_user_profiles WHERE user_id = ?", tutorUserId))
+                .containsEntry("role", "TUTOR").containsEntry("signal_count", 1);
+    }
 
     // ---- one result per student, reasons, suggestions
 

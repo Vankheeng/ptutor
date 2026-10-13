@@ -63,6 +63,11 @@ public class RecommendationUserProfile {
     @Builder.Default
     private Integer signalCount = 0;
 
+    /** When the user asked to delete their history: behaviour before this moment is ignored. */
+    @Column(name = "history_reset_at")
+    @NonFinal
+    private LocalDateTime historyResetAt;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     @NonFinal

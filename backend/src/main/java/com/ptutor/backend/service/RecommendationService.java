@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ptutor.backend.dto.recommendation.History;
 import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
@@ -61,6 +62,8 @@ public class RecommendationService {
     private final RerankService rerankService;
     private final MatchReasonBuilder matchReasonBuilder;
     private final RelaxationService relaxationService;
+    private final ExplorationService explorationService;
+    private final PreferenceProfileService preferenceProfileService;
     private final RecommendationTagRepository tagRepository;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
@@ -77,6 +80,8 @@ public class RecommendationService {
             RerankService rerankService,
             MatchReasonBuilder matchReasonBuilder,
             RelaxationService relaxationService,
+            ExplorationService explorationService,
+            PreferenceProfileService preferenceProfileService,
             RecommendationTagRepository tagRepository,
             RecommendationLogger recommendationLogger,
             RecommendationSettings settings,
@@ -90,6 +95,8 @@ public class RecommendationService {
         this.rerankService = rerankService;
         this.matchReasonBuilder = matchReasonBuilder;
         this.relaxationService = relaxationService;
+        this.explorationService = explorationService;
+        this.preferenceProfileService = preferenceProfileService;
         this.tagRepository = tagRepository;
         this.recommendationLogger = recommendationLogger;
         this.settings = settings;
@@ -122,28 +129,35 @@ public class RecommendationService {
                     context.needsInput(), false, List.of(), List.of(), safePage, safeSize, 0);
         }
 
+        MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
+                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
         float[] queryVector = queryVector(student, context);
-        Ranking ranking = rank(student.getId(), context, queryVector);
+        Ranking ranking = rank(student.getId(), context, queryVector, tagNames);
         RerankService.Result rerank = rerankService.forSearch(
                 context.demandText(), RecommendationCandidateType.TEACHING_REQUEST, ids(ranking.ranked()));
         List<ScoredCandidate> all = ranker
                 .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate());
-        List<ScoredCandidate> kept = all.stream().limit(settings.getLogCandidateLimit()).toList();
+        ExplorationService.Result<ScoredCandidate> explored = explorationService.apply(
+                all, RecommendationCandidateType.TEACHING_REQUEST,
+                scored -> scored.candidate().teachingRequestId(), ScoredCandidate::score);
+        List<ScoredCandidate> kept = explored.ranked().stream().limit(settings.getLogCandidateLimit()).toList();
 
-        MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
-                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
+        Map<String, Double> affinity = ranking.history().weight() > 0
+                ? preferenceProfileService.affinityOf(context.studentUserId()) : Map.of();
         Map<UUID, MatchReasons> reasons = new HashMap<>();
         kept.forEach(scored -> reasons.put(scored.candidate().teachingRequestId(),
-                matchReasonBuilder.forStudent(context, scored, tagNames)));
+                matchReasonBuilder.forStudent(context, scored, tagNames,
+                        explored.explored().contains(scored.candidate().teachingRequestId()),
+                        likedTags(tagCodes(scored.candidate(), tagNames), affinity, tagNames))));
         List<RelaxationSuggestion> relaxations = relaxationService.suggest(
                 all, relaxationService.forStudent(context),
-                relaxed -> rank(student.getId(), relaxed, queryVector).ranked(),
+                relaxed -> rank(student.getId(), relaxed, queryVector, tagNames).ranked(),
                 scored -> scored.candidate().tutorId(), ScoredCandidate::score, relaxationService::studentMessage);
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
                 student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
-                rerank.status(), reasons, relaxations);
+                rerank.status(), reasons, relaxations, explored.explored());
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
@@ -151,7 +165,8 @@ public class RecommendationService {
         for (int index = from; index < to; index++) {
             ScoredCandidate scored = kept.get(index);
             items.add(item(index + 1, scored.candidate(), scored.score(),
-                    reasons.get(scored.candidate().teachingRequestId())));
+                    reasons.get(scored.candidate().teachingRequestId()),
+                    explored.explored().contains(scored.candidate().teachingRequestId())));
         }
         return new TutorRecommendationResponse(
                 log.getId(), settings.getAlgorithmVersion(), recommendationLogger.contextJson(context),
@@ -177,7 +192,9 @@ public class RecommendationService {
             return 0;
         }
         return rerankService.prefetch(context.demandText(), RecommendationCandidateType.TEACHING_REQUEST,
-                ids(rank(student.getId(), context, queryVector(student, context)).ranked())).computed();
+                ids(rank(student.getId(), context, queryVector(student, context),
+                        MatchReasonBuilder.TagNames.of(tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(
+                                RecommendationTagStatus.ACTIVE))).ranked())).computed();
     }
 
     /** Without a usable query vector the ranking still works, only without the semantic feature. */
@@ -189,15 +206,44 @@ public class RecommendationService {
      * Phases 1-3 (hard filter, features of both sides, final score), then one result per tutor:
      * a tutor with several matching postings is shown once, with the best one (design 06, 6.10).
      */
-    private Ranking rank(UUID studentId, QueryContext context, float[] queryVector) {
+    private Ranking rank(
+            UUID studentId, QueryContext context, float[] queryVector, MatchReasonBuilder.TagNames tagNames) {
         List<Hit> hits = selectHits(
                 candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
                 settings.getWillingnessDefaultRate());
-        return new Ranking(bestPerPerson(ranker.rank(context,
-                candidateRepository.load(studentId, hits, settings.getWillingnessHistoryDays()),
-                platformRate), scored -> scored.candidate().tutorId()), platformRate);
+        List<TeachingCandidate> candidates =
+                candidateRepository.load(studentId, hits, settings.getWillingnessHistoryDays());
+        Map<UUID, Set<String>> tagCodes = new HashMap<>();
+        candidates.forEach(candidate -> tagCodes.put(candidate.teachingRequestId(), tagCodes(candidate, tagNames)));
+        History history = preferenceProfileService.historyFor(
+                context.studentUserId(), RecommendationCandidateType.TEACHING_REQUEST, tagCodes);
+        return new Ranking(bestPerPerson(ranker.rank(context, candidates, platformRate, history),
+                scored -> scored.candidate().tutorId()), platformRate, history);
+    }
+
+    /** Codes of everything the posting and its tutor are tagged with. */
+    private Set<String> tagCodes(TeachingCandidate candidate, MatchReasonBuilder.TagNames tagNames) {
+        Set<String> codes = new java.util.HashSet<>(candidate.offeredStyleCodes());
+        codes.addAll(candidate.targetSegmentCodes());
+        candidate.strengthTags().forEach(tag -> {
+            String code = tagNames.codeById().get(tag.tagId());
+            if (code != null) {
+                codes.add(code);
+            }
+        });
+        return codes;
+    }
+
+    /** Names of the tags of a posting the searcher showed most interest in before, best first. */
+    static List<String> likedTags(
+            Set<String> candidateCodes, Map<String, Double> affinity, MatchReasonBuilder.TagNames tagNames) {
+        return candidateCodes.stream()
+                .filter(code -> affinity.getOrDefault(code, 0.0) > 0 && tagNames.nameByCode().containsKey(code))
+                .sorted(java.util.Comparator.comparingDouble((String code) -> affinity.get(code)).reversed()
+                        .thenComparing(java.util.Comparator.naturalOrder()))
+                .map(tagNames.nameByCode()::get).limit(2).toList();
     }
 
     /** Keeps the first (best ranked) result of every person and drops their other postings. */
@@ -210,7 +256,7 @@ public class RecommendationService {
         return ranked.stream().map(scored -> scored.candidate().teachingRequestId()).toList();
     }
 
-    private record Ranking(List<ScoredCandidate> ranked, double platformRate) {
+    private record Ranking(List<ScoredCandidate> ranked, double platformRate, History history) {
     }
 
     /**
@@ -248,11 +294,21 @@ public class RecommendationService {
                         && found.getDirection() == RecommendationDirection.STUDENT_TO_TUTOR)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND, "RECOMMENDATION_LOG_NOT_FOUND", "Recommendation log not found: " + logId));
+        return pageOf(log, page * size, size, page);
+    }
+
+    /** The results of a stored search after the given rank, for the in-session refinement. */
+    @Transactional(readOnly = true)
+    public TutorRecommendationResponse resultsAfter(RecommendationLog log, int afterRank) {
+        return pageOf(log, Math.max(0, afterRank), settings.getLogCandidateLimit(), 0);
+    }
+
+    private TutorRecommendationResponse pageOf(RecommendationLog log, int offset, int size, int page) {
         List<JsonNode> stored = new ArrayList<>();
         if (log.getReturnedCandidateIds() != null) {
             log.getReturnedCandidateIds().forEach(stored::add);
         }
-        int from = Math.min(page * size, stored.size());
+        int from = Math.min(offset, stored.size());
         int to = Math.min(from + size, stored.size());
         List<JsonNode> slice = stored.subList(from, to);
 
@@ -260,14 +316,15 @@ public class RecommendationService {
                 .map(node -> new Hit(UUID.fromString(node.path("candidateId").asString()), null, null))
                 .toList();
         Map<UUID, TeachingCandidate> loaded = new HashMap<>();
-        candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays())
+        candidateRepository.load(log.getSearcherStudent().getId(), hits, settings.getWillingnessHistoryDays())
                 .forEach(candidate -> loaded.put(candidate.teachingRequestId(), candidate));
         // A posting deleted since the search simply drops out of the page.
         List<Item> items = slice.stream()
                 .filter(node -> loaded.containsKey(UUID.fromString(node.path("candidateId").asString())))
                 .map(node -> item(node.path("rank").asInt(),
                         loaded.get(UUID.fromString(node.path("candidateId").asString())),
-                        node.path("score").asDouble(), recommendationLogger.reasons(node)))
+                        node.path("score").asDouble(), recommendationLogger.reasons(node),
+                        node.path("isExploration").asBoolean(false)))
                 .collect(Collectors.toList());
         double averageConfidence = stored.stream().limit(CONFIDENCE_SAMPLE)
                 .mapToDouble(node -> node.path("confidence").asDouble(1.0)).average().orElse(1.0);
@@ -288,7 +345,8 @@ public class RecommendationService {
         return copy;
     }
 
-    private Item item(int rank, TeachingCandidate candidate, double score, MatchReasons reasons) {
+    private Item item(
+            int rank, TeachingCandidate candidate, double score, MatchReasons reasons, boolean exploration) {
         return new Item(
                 rank,
                 candidate.teachingRequestId(),
@@ -300,7 +358,7 @@ public class RecommendationService {
                 candidate.teachingMode(),
                 candidate.districts().stream().map(TeachingCandidate.District::name).toList(),
                 Math.round(score * 1000) / 1000.0,
-                false,
+                exploration,
                 reasons == null ? List.of() : reasons.reasons(),
                 reasons == null ? null : reasons.caution());
     }
