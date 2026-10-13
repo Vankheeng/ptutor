@@ -6026,10 +6026,30 @@ components:
               isExploration: { type: boolean }
               reasons: { type: array, items: { type: string } }
               caution: { type: string, nullable: true }
-        relaxations: { type: array, items: { type: object } }
+        relaxations:
+          type: array
+          description: >-
+            Ways to loosen the search that would bring more good results (at most 3, best gain first). Empty
+            when at least 5 results score 0.50 or more and there are at least 10 results. The results themselves
+            are never changed; the client overwrites the filters in "apply" and searches again.
+          items: { $ref: '#/components/schemas/RecommendationRelaxation' }
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }
+
+    RecommendationRelaxation:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [SCHEDULE_FLEX, PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30]
+        message: { type: string, description: Sentence to show next to the apply button }
+        gain: { type: integer, description: How many more people would score 0.50 or more }
+        apply:
+          type: object
+          description: >-
+            Filter values to overwrite, in the shape of the request filters: area, learningMode, price
+            (student) or expectedPrice (tutor), availabilities (an empty list means no schedule).
 
     StudentRecommendationRequest:
       type: object
@@ -6103,7 +6123,14 @@ components:
               score: { type: number, minimum: 0, maximum: 1 }
               isExploration: { type: boolean }
               reasons: { type: array, items: { type: string } }
-        relaxations: { type: array, items: { type: object } }
+              caution: { type: string, nullable: true }
+        relaxations:
+          type: array
+          description: >-
+            Ways to loosen the search that would bring more good results (at most 3, best gain first). Empty
+            when at least 5 results score 0.50 or more and there are at least 10 results. The results themselves
+            are never changed; the client overwrites the filters in "apply" and searches again.
+          items: { $ref: '#/components/schemas/RecommendationRelaxation' }
         page: { type: integer }
         size: { type: integer }
         totalElements: { type: integer, format: int64 }

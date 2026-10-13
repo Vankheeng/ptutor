@@ -10,20 +10,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.ScoredStudyingCandidate;
 import com.ptutor.backend.dto.recommendation.StudyingCandidate;
 import com.ptutor.backend.dto.recommendation.SupplyContext;
 import com.ptutor.backend.dto.request.StudentRecommendationRequest;
+import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.dto.response.StudentRecommendationResponse;
 import com.ptutor.backend.dto.response.StudentRecommendationResponse.Item;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.RecommendationCandidateType;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
+import com.ptutor.backend.entity.enums.RecommendationTagStatus;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CandidateRepository.Hit;
 import com.ptutor.backend.repository.RecommendationLogRepository;
+import com.ptutor.backend.repository.RecommendationTagRepository;
 import com.ptutor.backend.repository.StudyingCandidateRepository;
 import com.ptutor.backend.repository.TutorRepository;
 
@@ -48,6 +52,9 @@ public class StudentRecommendationService {
     private final QueryEmbeddingService queryEmbeddingService;
     private final TutorSideRanker ranker;
     private final RerankService rerankService;
+    private final MatchReasonBuilder matchReasonBuilder;
+    private final RelaxationService relaxationService;
+    private final RecommendationTagRepository tagRepository;
     private final RecommendationService recommendationService;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
@@ -86,36 +93,56 @@ public class StudentRecommendationService {
 
         float[] queryVector = queryEmbeddingService.embed(context.supplyText())
                 .orElse(tutor.getProfileEmbedding());
-        List<Hit> hits = recommendationService.selectHits(
-                candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
                 settings.getWillingnessDefaultRate());
-        List<ScoredStudyingCandidate> ranked = ranker.rank(context,
-                candidateRepository.load(tutor.getId(), hits, settings.getWillingnessHistoryDays()),
-                platformRate);
+        List<ScoredStudyingCandidate> ranked = rank(tutor.getId(), context, queryVector, platformRate);
         RerankService.Result rerank = rerankService.forSearch(
                 context.supplyText(), RecommendationCandidateType.STUDYING_REQUEST,
                 ranked.stream().map(scored -> scored.candidate().studyingRequestId()).toList());
-        List<ScoredStudyingCandidate> kept = ranker.applyRerank(context, ranked, rerank.scores(), platformRate)
-                .stream().limit(settings.getLogCandidateLimit()).toList();
+        List<ScoredStudyingCandidate> all = ranker.applyRerank(context, ranked, rerank.scores(), platformRate);
+        List<ScoredStudyingCandidate> kept = all.stream().limit(settings.getLogCandidateLimit()).toList();
+
+        MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
+                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
+        Map<UUID, MatchReasons> reasons = new HashMap<>();
+        kept.forEach(scored -> reasons.put(scored.candidate().studyingRequestId(),
+                matchReasonBuilder.forTutor(context, scored, tagNames)));
+        List<RelaxationSuggestion> relaxations = relaxationService.suggest(
+                all, relaxationService.forTutor(context),
+                relaxed -> rank(tutor.getId(), relaxed, queryVector, platformRate),
+                scored -> scored.candidate().studentId(), ScoredStudyingCandidate::score,
+                relaxationService::tutorMessage);
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logTutorSearch(
-                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status());
+                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status(), reasons,
+                relaxations);
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
         int to = Math.min(from + safeSize, kept.size());
         for (int index = from; index < to; index++) {
-            items.add(item(index + 1, kept.get(index).candidate(), kept.get(index).score()));
+            ScoredStudyingCandidate scored = kept.get(index);
+            items.add(item(index + 1, scored.candidate(), scored.score(),
+                    reasons.get(scored.candidate().studyingRequestId())));
         }
         boolean lowConfidence = kept.stream().limit(RecommendationService.CONFIDENCE_SAMPLE)
                 .mapToDouble(scored -> scored.features().confidence()).average().stream()
                 .anyMatch(average -> average < settings.getLowConfidenceThreshold());
         return new StudentRecommendationResponse(
                 log.getId(), settings.getAlgorithmVersion(), recommendationLogger.contextJson(context),
-                List.of(), lowConfidence, items, List.of(), safePage, safeSize, kept.size());
+                List.of(), lowConfidence, items, relaxations, safePage, safeSize, kept.size());
+    }
+
+    /** Phases 1-3, then one result per student: only the best of a student's postings is shown. */
+    private List<ScoredStudyingCandidate> rank(
+            UUID tutorId, SupplyContext context, float[] queryVector, double platformRate) {
+        List<Hit> hits = recommendationService.selectHits(
+                candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
+        return RecommendationService.bestPerPerson(ranker.rank(context,
+                candidateRepository.load(tutorId, hits, settings.getWillingnessHistoryDays()), platformRate),
+                scored -> scored.candidate().studentId());
     }
 
     private StudentRecommendationResponse pageFromLog(Tutor tutor, UUID logId, int page, int size) {
@@ -144,7 +171,8 @@ public class StudentRecommendationService {
             StudyingCandidate candidate = loaded.get(UUID.fromString(node.path("candidateId").asString()));
             // A posting deleted since the search simply drops out of the page.
             if (candidate != null) {
-                items.add(item(node.path("rank").asInt(), candidate, node.path("score").asDouble()));
+                items.add(item(node.path("rank").asInt(), candidate, node.path("score").asDouble(),
+                        recommendationLogger.reasons(node)));
             }
         }
         double averageConfidence = stored.stream().limit(RecommendationService.CONFIDENCE_SAMPLE)
@@ -158,12 +186,12 @@ public class StudentRecommendationService {
         }
         return new StudentRecommendationResponse(
                 log.getId(), log.getAlgorithmVersion(), context, List.of(),
-                averageConfidence < settings.getLowConfidenceThreshold(), items, List.of(), page, size,
-                stored.size());
+                averageConfidence < settings.getLowConfidenceThreshold(), items,
+                recommendationLogger.relaxations(log.getRelaxationSuggestions()), page, size, stored.size());
     }
 
     /** Only what a tutor may see before any contact: no name, photo, phone number or exact address. */
-    private Item item(int rank, StudyingCandidate candidate, double score) {
+    private Item item(int rank, StudyingCandidate candidate, double score, MatchReasons reasons) {
         String displayName = candidate.gradeName() == null || candidate.gradeName().isBlank()
                 ? "Học sinh" : "Học sinh " + candidate.gradeName().strip();
         return new Item(
@@ -177,6 +205,7 @@ public class StudentRecommendationService {
                 candidate.learningMode(),
                 Math.round(score * 1000) / 1000.0,
                 false,
-                List.of());
+                reasons == null ? List.of() : reasons.reasons(),
+                reasons == null ? null : reasons.caution());
     }
 }

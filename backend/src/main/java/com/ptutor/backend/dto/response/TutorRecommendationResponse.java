@@ -17,7 +17,8 @@ public record TutorRecommendationResponse(
         List<String> needsInput,
         boolean lowConfidence,
         List<Item> items,
-        List<Object> relaxations,
+        /** Ways to loosen the search that would bring more good results; empty when there are enough. */
+        List<RelaxationSuggestion> relaxations,
         int page,
         int size,
         long totalElements) {

@@ -38,6 +38,7 @@ import com.ptutor.backend.repository.StudyingCandidateRepository;
 import com.ptutor.backend.repository.TutorRepository;
 
 import com.ptutor.backend.client.AiServiceClient;
+import com.ptutor.backend.dto.response.RelaxationSuggestion;
 
 import jakarta.persistence.EntityManager;
 import tools.jackson.databind.JsonNode;
@@ -66,6 +67,9 @@ class StudentRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationRerankCacheRepository rerankCacheRepository;
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
+    @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired RelaxationService relaxationService;
+    @Autowired com.ptutor.backend.repository.RecommendationTagRepository tagRepository;
 
     private QueryEmbeddingService queryEmbeddingService;
     private AiServiceClient aiServiceClient;
@@ -89,6 +93,8 @@ class StudentRecommendationIntegrationTest {
     void restoreSettings() {
         ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
+        ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
+        ReflectionTestUtils.setField(settings, "relaxationGoodThreshold", 0.50);
     }
 
     @BeforeEach
@@ -101,8 +107,10 @@ class StudentRecommendationIntegrationTest {
         RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new StudentRecommendationService(tutorRepository, candidateRepository, logRepository,
-                supplyContextBuilder, queryEmbeddingService, ranker, rerankService, recommendationService,
-                recommendationLogger, settings);
+                supplyContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
+                relaxationService, tagRepository, recommendationService, recommendationLogger, settings);
+        // Suggestions are computed against a real database: never let a slow machine cut them short.
+        ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
         provinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh A')");
         otherProvinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh B')");
@@ -448,6 +456,53 @@ class StudentRecommendationIntegrationTest {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    // ---- one result per student, reasons, suggestions
+
+    @Test
+    void showsAStudentOnceWithTheirBestPostingAndSaysWhyItFits() {
+        UUID student = student();
+        UUID best = request(student, new Request().maxPrice("200000").cosine(0.80));
+        request(student, new Request().maxPrice("200000").cosine(0.50));
+        UUID other = request(student(), new Request().maxPrice("150000").cosine(0.60));
+
+        StudentRecommendationResponse response = search(new Filters(subjectId, List.of(gradeId, secondGradeId),
+                null, new Area(AreaScope.ANY, null, null), new BigDecimal("180000"), null, null));
+
+        assertThat(ids(response)).containsExactly(best, other);
+        Item first = response.items().get(0);
+        assertThat(first.reasons()).contains("Nhu cầu của học sinh rất sát với những gì bạn dạy",
+                "Ngân sách tới 200.000đ — đủ mức bạn mong muốn");
+        assertThat(first.caution()).isNull();
+        assertThat(response.items().get(1).caution()).isEqualTo("Ngân sách thấp hơn mức bạn mong muốn 30.000đ");
+
+        StudentRecommendationResponse again = service.recommendStudents(tutorUserId, null, 0, 20, response.logId());
+        assertThat(again.items().get(0).reasons()).isEqualTo(first.reasons());
+        assertThat(again.items().get(1).caution()).isEqualTo(response.items().get(1).caution());
+    }
+
+    @Test
+    void suggestsWideningTheAreaWhenFewStudentsAreFound() {
+        ReflectionTestUtils.setField(settings, "relaxationGoodThreshold", 0.30);
+        UUID home = request(student(), new Request().mode("OFFLINE").district(homeDistrictId).cosine(0.80));
+        request(student(), new Request().mode("OFFLINE").district(nearDistrictId).cosine(0.80));
+        request(student(), new Request().mode("OFFLINE").district(nearDistrictId).cosine(0.80));
+        request(student(), new Request().mode("OFFLINE").district(farDistrictId).cosine(0.80));
+
+        StudentRecommendationResponse response = search(filters(ModePreference.OFFLINE,
+                new Area(AreaScope.DISTRICTS, List.of(homeDistrictId), null)));
+
+        assertThat(ids(response)).containsExactly(home);
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::code)
+                .containsExactly("AREA_ANY", "AREA_PROVINCE");
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::message).containsExactly(
+                "Bỏ giới hạn khu vực: thêm 3 học viên phù hợp",
+                "Mở rộng ra toàn Tỉnh A: thêm 2 học viên phù hợp");
+        assertThat(response.relaxations().get(1).apply().path("area").path("provinceId").asString())
+                .isEqualTo(provinceId.toString());
+        assertThat(service.recommendStudents(tutorUserId, null, 0, 20, response.logId()).relaxations())
+                .extracting(RelaxationSuggestion::code).containsExactly("AREA_ANY", "AREA_PROVINCE");
+    }
 
     private UUID verifiedTutor(UUID userId, String introduction, int score) {
         return insert("""

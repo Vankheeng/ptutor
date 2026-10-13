@@ -16,7 +16,7 @@ public record StudentRecommendationResponse(
         List<String> needsInput,
         boolean lowConfidence,
         List<Item> items,
-        List<Object> relaxations,
+        List<RelaxationSuggestion> relaxations,
         int page,
         int size,
         long totalElements) {
@@ -31,7 +31,8 @@ public record StudentRecommendationResponse(
             LearningMode learningMode,
             double score,
             boolean isExploration,
-            List<String> reasons) {
+            List<String> reasons,
+            String caution) {
     }
 
     /** Deliberately limited: no name, photo, phone number or detailed address of the student. */

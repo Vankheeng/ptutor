@@ -5,7 +5,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,20 +15,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest;
+import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.dto.response.TutorRecommendationResponse;
 import com.ptutor.backend.dto.response.TutorRecommendationResponse.Item;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.enums.RecommendationCandidateType;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
+import com.ptutor.backend.entity.enums.RecommendationTagStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CandidateRepository;
 import com.ptutor.backend.repository.CandidateRepository.Hit;
 import com.ptutor.backend.repository.RecommendationLogRepository;
+import com.ptutor.backend.repository.RecommendationTagRepository;
 import com.ptutor.backend.repository.StudentRepository;
 
 import tools.jackson.databind.JsonNode;
@@ -34,7 +40,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * "Student looks for tutors", version V2-RCX: merge the criteria, hard-filter OPEN teaching
  * postings, score each one from both sides (how well it suits the student, how likely the tutor
- * is to accept), rerank the best ones with a cross-encoder and return them best first.
+ * is to accept), keep the best posting of each tutor, rerank the best ones with a cross-encoder
+ * and return them best first, each with the reasons it matches. When few good results come out,
+ * ways to loosen the search are suggested.
  */
 @Service
 public class RecommendationService {
@@ -51,6 +59,9 @@ public class RecommendationService {
     private final QueryEmbeddingService queryEmbeddingService;
     private final Ranker ranker;
     private final RerankService rerankService;
+    private final MatchReasonBuilder matchReasonBuilder;
+    private final RelaxationService relaxationService;
+    private final RecommendationTagRepository tagRepository;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
     private final CertificateFileStorageService fileStorageService;
@@ -64,6 +75,9 @@ public class RecommendationService {
             QueryEmbeddingService queryEmbeddingService,
             Ranker ranker,
             RerankService rerankService,
+            MatchReasonBuilder matchReasonBuilder,
+            RelaxationService relaxationService,
+            RecommendationTagRepository tagRepository,
             RecommendationLogger recommendationLogger,
             RecommendationSettings settings,
             CertificateFileStorageService fileStorageService) {
@@ -74,6 +88,9 @@ public class RecommendationService {
         this.queryEmbeddingService = queryEmbeddingService;
         this.ranker = ranker;
         this.rerankService = rerankService;
+        this.matchReasonBuilder = matchReasonBuilder;
+        this.relaxationService = relaxationService;
+        this.tagRepository = tagRepository;
         this.recommendationLogger = recommendationLogger;
         this.settings = settings;
         this.fileStorageService = fileStorageService;
@@ -105,27 +122,40 @@ public class RecommendationService {
                     context.needsInput(), false, List.of(), List.of(), safePage, safeSize, 0);
         }
 
-        Ranking ranking = rank(student, context);
+        float[] queryVector = queryVector(student, context);
+        Ranking ranking = rank(student.getId(), context, queryVector);
         RerankService.Result rerank = rerankService.forSearch(
                 context.demandText(), RecommendationCandidateType.TEACHING_REQUEST, ids(ranking.ranked()));
-        List<ScoredCandidate> kept = ranker
-                .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate())
-                .stream().limit(settings.getLogCandidateLimit()).toList();
+        List<ScoredCandidate> all = ranker
+                .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate());
+        List<ScoredCandidate> kept = all.stream().limit(settings.getLogCandidateLimit()).toList();
+
+        MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
+                tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
+        Map<UUID, MatchReasons> reasons = new HashMap<>();
+        kept.forEach(scored -> reasons.put(scored.candidate().teachingRequestId(),
+                matchReasonBuilder.forStudent(context, scored, tagNames)));
+        List<RelaxationSuggestion> relaxations = relaxationService.suggest(
+                all, relaxationService.forStudent(context),
+                relaxed -> rank(student.getId(), relaxed, queryVector).ranked(),
+                scored -> scored.candidate().tutorId(), ScoredCandidate::score, relaxationService::studentMessage);
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
                 student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
-                rerank.status());
+                rerank.status(), reasons, relaxations);
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
         int to = Math.min(from + safeSize, kept.size());
         for (int index = from; index < to; index++) {
-            items.add(item(index + 1, kept.get(index).candidate(), kept.get(index).score()));
+            ScoredCandidate scored = kept.get(index);
+            items.add(item(index + 1, scored.candidate(), scored.score(),
+                    reasons.get(scored.candidate().teachingRequestId())));
         }
         return new TutorRecommendationResponse(
                 log.getId(), settings.getAlgorithmVersion(), recommendationLogger.contextJson(context),
-                List.of(), isLowConfidence(kept), items, List.of(), safePage, safeSize, kept.size());
+                List.of(), isLowConfidence(kept), items, relaxations, safePage, safeSize, kept.size());
     }
 
     /**
@@ -147,22 +177,33 @@ public class RecommendationService {
             return 0;
         }
         return rerankService.prefetch(context.demandText(), RecommendationCandidateType.TEACHING_REQUEST,
-                ids(rank(student, context).ranked())).computed();
+                ids(rank(student.getId(), context, queryVector(student, context)).ranked())).computed();
     }
 
-    /** Phases 1-3: hard filter, features of both sides, final score. */
-    private Ranking rank(Student student, QueryContext context) {
-        // Without a usable query vector the ranking still works, only without the semantic feature.
-        float[] queryVector = queryEmbeddingService.embed(context.demandText())
-                .orElse(student.getProfileEmbedding());
+    /** Without a usable query vector the ranking still works, only without the semantic feature. */
+    private float[] queryVector(Student student, QueryContext context) {
+        return queryEmbeddingService.embed(context.demandText()).orElse(student.getProfileEmbedding());
+    }
+
+    /**
+     * Phases 1-3 (hard filter, features of both sides, final score), then one result per tutor:
+     * a tutor with several matching postings is shown once, with the best one (design 06, 6.10).
+     */
+    private Ranking rank(UUID studentId, QueryContext context, float[] queryVector) {
         List<Hit> hits = selectHits(
                 candidateRepository.findHits(context, queryVector, settings.getPriceHardFactor()));
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
                 settings.getWillingnessDefaultRate());
-        return new Ranking(ranker.rank(context,
-                candidateRepository.load(student.getId(), hits, settings.getWillingnessHistoryDays()),
-                platformRate), platformRate);
+        return new Ranking(bestPerPerson(ranker.rank(context,
+                candidateRepository.load(studentId, hits, settings.getWillingnessHistoryDays()),
+                platformRate), scored -> scored.candidate().tutorId()), platformRate);
+    }
+
+    /** Keeps the first (best ranked) result of every person and drops their other postings. */
+    static <S> List<S> bestPerPerson(List<S> ranked, Function<S, UUID> person) {
+        Set<UUID> seen = new java.util.HashSet<>();
+        return ranked.stream().filter(scored -> seen.add(person.apply(scored))).toList();
     }
 
     private List<UUID> ids(List<ScoredCandidate> ranked) {
@@ -226,14 +267,14 @@ public class RecommendationService {
                 .filter(node -> loaded.containsKey(UUID.fromString(node.path("candidateId").asString())))
                 .map(node -> item(node.path("rank").asInt(),
                         loaded.get(UUID.fromString(node.path("candidateId").asString())),
-                        node.path("score").asDouble()))
+                        node.path("score").asDouble(), recommendationLogger.reasons(node)))
                 .collect(Collectors.toList());
         double averageConfidence = stored.stream().limit(CONFIDENCE_SAMPLE)
                 .mapToDouble(node -> node.path("confidence").asDouble(1.0)).average().orElse(1.0);
         return new TutorRecommendationResponse(
                 log.getId(), log.getAlgorithmVersion(), responseContext(log.getQueryContext()), List.of(),
-                averageConfidence < settings.getLowConfidenceThreshold(), items, List.of(), page, size,
-                stored.size());
+                averageConfidence < settings.getLowConfidenceThreshold(), items,
+                recommendationLogger.relaxations(log.getRelaxationSuggestions()), page, size, stored.size());
     }
 
     /** The stored context also holds the demand text and the rerank status, which are internal. */
@@ -247,7 +288,7 @@ public class RecommendationService {
         return copy;
     }
 
-    private Item item(int rank, TeachingCandidate candidate, double score) {
+    private Item item(int rank, TeachingCandidate candidate, double score, MatchReasons reasons) {
         return new Item(
                 rank,
                 candidate.teachingRequestId(),
@@ -260,8 +301,8 @@ public class RecommendationService {
                 candidate.districts().stream().map(TeachingCandidate.District::name).toList(),
                 Math.round(score * 1000) / 1000.0,
                 false,
-                List.of(),
-                null);
+                reasons == null ? List.of() : reasons.reasons(),
+                reasons == null ? null : reasons.caution());
     }
 
     private String avatarUrl(String value) {

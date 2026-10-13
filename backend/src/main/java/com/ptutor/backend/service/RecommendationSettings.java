@@ -159,6 +159,36 @@ public class RecommendationSettings {
     @Value("${app.recommendation.gate.recent-reject:0.5}")
     private double gateRecentReject = 0.5;
 
+    /** Off: a search with few good results simply returns them, without suggestions (C6). */
+    @Value("${app.recommendation.relaxation.enabled:true}")
+    private boolean relaxationEnabled = true;
+
+    /** A result is "good" from this score on. */
+    @Value("${app.recommendation.relaxation.good-threshold:0.50}")
+    private double relaxationGoodThreshold = 0.50;
+
+    /** Suggestions are looked for when fewer good results than this were found ... */
+    @Value("${app.recommendation.relaxation.min-good:5}")
+    private int relaxationMinGood = 5;
+
+    /** ... or fewer results than this in total. */
+    @Value("${app.recommendation.relaxation.min-results:10}")
+    private int relaxationMinResults = 10;
+
+    @Value("${app.recommendation.relaxation.budget-ms:400}")
+    private long relaxationBudgetMs = 400;
+
+    @Value("${app.recommendation.relaxation.max-suggestions:3}")
+    private int relaxationMaxSuggestions = 3;
+
+    /** A loosening is worth suggesting when it brings at least this many new good results ... */
+    @Value("${app.recommendation.relaxation.min-gain:2}")
+    private int relaxationMinGain = 2;
+
+    /** ... or one that beats the best current result by this much. */
+    @Value("${app.recommendation.relaxation.best-score-margin:0.10}")
+    private double relaxationBestScoreMargin = 0.10;
+
     @Value("${app.recommendation.query-embedding.timeout-ms:1000}")
     private long queryEmbeddingTimeoutMs = 1000;
 

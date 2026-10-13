@@ -43,4 +43,29 @@ public record SupplyContext(
     public boolean isComplete() {
         return needsInput.isEmpty();
     }
+
+    // Loosened copies for the relaxation suggestions (design 07, 7.1).
+
+    public SupplyContext withArea(AreaScope scope, List<UUID> districts, UUID province) {
+        return copy(teachingMode, scope, districts, province, expectedPrice, availabilities);
+    }
+
+    public SupplyContext withTeachingMode(ModePreference mode) {
+        return copy(mode, areaScope, districtIds, provinceId, expectedPrice, availabilities);
+    }
+
+    public SupplyContext withExpectedPrice(BigDecimal price) {
+        return copy(teachingMode, areaScope, districtIds, provinceId, price, availabilities);
+    }
+
+    public SupplyContext withoutSchedule() {
+        return copy(teachingMode, areaScope, districtIds, provinceId, expectedPrice, List.of());
+    }
+
+    private SupplyContext copy(ModePreference mode, AreaScope scope, List<UUID> districts, UUID province,
+            BigDecimal price, List<TimeSlot> slots) {
+        return new SupplyContext(tutorId, tutorUserId, subjectId, gradeIds, mode, scope, districts, province,
+                homeDistrictId, homeProvinceId, price, slots, strengthTags, offeredStyleCodes, targetSegmentCodes,
+                quality, supplyText, sourceTeachingRequestId, sources, needsInput);
+    }
 }

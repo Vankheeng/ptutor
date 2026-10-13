@@ -37,6 +37,7 @@ import com.ptutor.backend.dto.request.TutorRecommendationRequest.Area;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest.Availability;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest.Filters;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest.Price;
+import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.dto.response.TutorRecommendationResponse;
 import com.ptutor.backend.dto.response.TutorRecommendationResponse.Item;
 import com.ptutor.backend.exception.ApiException;
@@ -68,6 +69,9 @@ class TutorRecommendationIntegrationTest {
     @Autowired com.ptutor.backend.repository.RecommendationRerankCacheRepository rerankCacheRepository;
     @Autowired com.ptutor.backend.repository.RecommendationEntityTagRepository entityTagRepository;
     @Autowired EmbeddingTextBuilder textBuilder;
+    @Autowired MatchReasonBuilder matchReasonBuilder;
+    @Autowired RelaxationService relaxationService;
+    @Autowired com.ptutor.backend.repository.RecommendationTagRepository tagRepository;
 
     private QueryEmbeddingService queryEmbeddingService;
     private AiServiceClient aiServiceClient;
@@ -95,6 +99,8 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
         ReflectionTestUtils.setField(settings, "rerankEnabled", true);
+        ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
+        ReflectionTestUtils.setField(settings, "relaxationEnabled", true);
     }
 
     @BeforeEach
@@ -109,8 +115,10 @@ class TutorRecommendationIntegrationTest {
         RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
-                queryContextBuilder, queryEmbeddingService, ranker, rerankService, recommendationLogger, settings,
-                null);
+                queryContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
+                relaxationService, tagRepository, recommendationLogger, settings, null);
+        // Suggestions are computed against a real database: never let a slow machine cut them short.
+        ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 60_000L);
 
         provinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh A')");
         otherProvinceId = insert("INSERT INTO provinces (id, name) VALUES (?, 'Tỉnh B')");
@@ -578,6 +586,100 @@ class TutorRecommendationIntegrationTest {
     // ---------------------------------------------------------------- helpers
 
     private long logsBefore = -1;
+
+    // ---- one result per tutor, reasons, suggestions
+
+    @Test
+    void showsATutorOnceWithTheirBestPosting() {
+        UUID busyTutor = tutor();
+        UUID best = posting(busyTutor, new Posting().cosine(0.80));
+        posting(busyTutor, new Posting().cosine(0.70));
+        posting(busyTutor, new Posting().cosine(0.50));
+        UUID other = posting(tutor(), new Posting().cosine(0.60));
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        assertThat(ids(response)).containsExactly(best, other);
+        assertThat(response.totalElements()).isEqualTo(2);
+    }
+
+    @Test
+    void saysWhyAPostingFitsAndRepeatsItOnLaterPages() {
+        UUID affordable = posting(tutor(), new Posting().cosine(0.80).price("180000"));
+        UUID expensive = posting(tutor(), new Posting().cosine(0.45).price("230000"));
+        Filters filters = new Filters(subjectId, gradeId, null, new Area(AreaScope.ANY, null, null),
+                new Price(null, new BigDecimal("200000")), null, null, null, null);
+
+        TutorRecommendationResponse response = search(filters);
+
+        assertThat(ids(response)).containsExactly(affordable, expensive);
+        assertThat(response.items().get(0).reasons()).containsExactly(
+                "Nội dung tin đăng rất sát với nhu cầu của bạn", "Học phí 180.000đ — nằm trong ngân sách");
+        assertThat(response.items().get(0).caution()).isNull();
+        assertThat(response.items().get(1).reasons()).isEmpty();
+        assertThat(response.items().get(1).caution()).isEqualTo("Học phí cao hơn ngân sách 30.000đ");
+
+        TutorRecommendationResponse again = service.recommendTutors(studentUserId, null, 0, 20, response.logId());
+        assertThat(again.items().get(0).reasons()).isEqualTo(response.items().get(0).reasons());
+        assertThat(again.items().get(1).caution()).isEqualTo("Học phí cao hơn ngân sách 30.000đ");
+    }
+
+    @Test
+    void suggestsLooseningTheSearchWhenFewGoodTutorsAreFoundAndApplyingItFindsThem() {
+        UUID atHome = posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId).cosine(0.80));
+        UUID near = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
+        UUID alsoNear = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(farDistrictId).cosine(0.80));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(farDistrictId).cosine(0.80));
+
+        TutorRecommendationResponse response =
+                search(area(AreaScope.DISTRICTS, List.of(homeDistrictId), null));
+
+        assertThat(ids(response)).as("suggestions never change the results").containsExactly(atHome);
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::code)
+                .containsExactly("AREA_ANY", "AREA_PROVINCE");
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::message).containsExactly(
+                "Bỏ giới hạn khu vực: thêm 4 gia sư phù hợp", "Mở rộng ra toàn Tỉnh A: thêm 2 gia sư phù hợp");
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::gain).containsExactly(4, 2);
+
+        tools.jackson.databind.JsonNode apply = response.relaxations().get(1).apply().path("area");
+        assertThat(apply.path("scope").asString()).isEqualTo("PROVINCE");
+        TutorRecommendationResponse widened = search(area(AreaScope.valueOf(apply.path("scope").asString()),
+                null, UUID.fromString(apply.path("provinceId").asString())));
+        assertThat(ids(widened)).containsExactlyInAnyOrder(atHome, near, alsoNear);
+
+        assertThat(service.recommendTutors(studentUserId, null, 0, 20, response.logId()).relaxations())
+                .as("a later page repeats the suggestions of the search")
+                .extracting(RelaxationSuggestion::code).containsExactly("AREA_ANY", "AREA_PROVINCE");
+    }
+
+    @Test
+    void suggestsARaisedBudgetOrAFlexibleScheduleOnlyWhenThatReallyHelps() {
+        posting(tutor(), new Posting().cosine(0.80).price("350000"));
+        posting(tutor(), new Posting().cosine(0.80).price("360000"));
+        Filters filters = new Filters(subjectId, gradeId, null, new Area(AreaScope.ANY, null, null),
+                new Price(null, new BigDecimal("200000")),
+                List.of(new Availability(2, LocalTime.of(19, 0), LocalTime.of(21, 0))), null, null, null);
+
+        TutorRecommendationResponse response = search(filters);
+
+        // 350k and 360k are above 1.5 x 200k (filtered out) and above 1.5 x 230k, but within 1.5 x 260k.
+        assertThat(response.items()).isEmpty();
+        assertThat(response.relaxations()).extracting(RelaxationSuggestion::code).containsExactly("PRICE_30");
+        assertThat(response.relaxations().get(0).message())
+                .isEqualTo("Nếu ngân sách 260.000đ: thêm 2 gia sư phù hợp");
+        assertThat(response.relaxations().get(0).apply().path("price").path("max").decimalValue())
+                .isEqualByComparingTo("260000");
+    }
+
+    @Test
+    void givesNoSuggestionsWhenSwitchedOff() {
+        ReflectionTestUtils.setField(settings, "relaxationEnabled", false);
+        posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
+        posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).cosine(0.80));
+
+        assertThat(search(area(AreaScope.DISTRICTS, List.of(homeDistrictId), null)).relaxations()).isEmpty();
+    }
 
     // ---- phase 4: rerank
 

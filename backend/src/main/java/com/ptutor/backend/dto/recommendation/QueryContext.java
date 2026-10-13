@@ -46,4 +46,30 @@ public record QueryContext(
     public boolean isComplete() {
         return needsInput.isEmpty();
     }
+
+    // Loosened copies for the relaxation suggestions (design 07, 7.1). The demand text stays the same:
+    // what the student is looking for has not changed, only how strict the search is.
+
+    public QueryContext withArea(AreaScope scope, List<UUID> districts, UUID province) {
+        return copy(learningMode, scope, districts, province, maxPrice, availabilities);
+    }
+
+    public QueryContext withLearningMode(ModePreference mode) {
+        return copy(mode, areaScope, districtIds, provinceId, maxPrice, availabilities);
+    }
+
+    public QueryContext withMaxPrice(BigDecimal price) {
+        return copy(learningMode, areaScope, districtIds, provinceId, price, availabilities);
+    }
+
+    public QueryContext withoutSchedule() {
+        return copy(learningMode, areaScope, districtIds, provinceId, maxPrice, List.of());
+    }
+
+    private QueryContext copy(ModePreference mode, AreaScope scope, List<UUID> districts, UUID province,
+            BigDecimal price, List<TimeSlot> slots) {
+        return new QueryContext(studentId, studentUserId, subjectId, gradeId, gradeLevel, mode, scope, districts,
+                province, homeDistrictId, homeProvinceId, minPrice, price, slots, needTags, styleTags, levelTagCode,
+                semanticText, demandText, sourceStudyingRequestId, sources, needsInput);
+    }
 }

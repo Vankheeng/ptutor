@@ -80,11 +80,26 @@ class RecommendationServiceTest {
         verify(client, times(2)).embed(any(), any());
     }
 
+    @Test
+    void keepsOnlyTheBestRankedResultOfEachPerson() {
+        java.util.UUID lan = java.util.UUID.randomUUID();
+        java.util.UUID minh = java.util.UUID.randomUUID();
+        record Posting(String title, java.util.UUID owner) {
+        }
+        List<Posting> ranked = List.of(new Posting("Lan 1", lan), new Posting("Minh 1", minh),
+                new Posting("Lan 2", lan), new Posting("Lan 3", lan), new Posting("Minh 2", minh));
+
+        assertThat(RecommendationService.bestPerPerson(ranked, Posting::owner))
+                .extracting(Posting::title).containsExactly("Lan 1", "Minh 1");
+        assertThat(RecommendationService.bestPerPerson(List.<Posting>of(), Posting::owner)).isEmpty();
+    }
+
     private RecommendationService service(int candidateLimit, int unembeddedQuota) {
         RecommendationSettings settings = new RecommendationSettings();
         ReflectionTestUtils.setField(settings, "candidateLimit", candidateLimit);
         ReflectionTestUtils.setField(settings, "candidateUnembeddedQuota", unembeddedQuota);
-        return new RecommendationService(null, null, null, null, null, null, null, null, settings, null);
+        return new RecommendationService(
+                null, null, null, null, null, null, null, null, null, null, null, settings, null);
     }
 
     /** {@code embedded} hits with cosine 0.99, 0.98, ... followed by {@code unembedded} hits, oldest first. */

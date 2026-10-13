@@ -1,15 +1,20 @@
 package com.ptutor.backend.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.FeatureVector;
+import com.ptutor.backend.dto.recommendation.MatchReasons;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.ScoredStudyingCandidate;
 import com.ptutor.backend.dto.recommendation.SupplyContext;
 import com.ptutor.backend.dto.recommendation.Willingness;
+import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.entity.RecommendationLog;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
@@ -41,7 +46,8 @@ public class RecommendationLogger {
 
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
-            String algorithmVersion, long latencyMs, RerankService.Status rerankStatus) {
+            String algorithmVersion, long latencyMs, RerankService.Status rerankStatus,
+            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
@@ -54,14 +60,16 @@ public class RecommendationLogger {
                 .algorithmVersion(algorithmVersion)
                 .queryText(scrubbedQuery.isEmpty() ? null : scrubbedQuery)
                 .queryContext(storedContext)
-                .returnedCandidateIds(candidatesJson(ranked))
+                .returnedCandidateIds(candidatesJson(ranked, reasons))
+                .relaxationSuggestions(relaxationsJson(relaxations))
                 .latencyMs((int) Math.min(Integer.MAX_VALUE, latencyMs))
                 .build());
     }
 
     public RecommendationLog logTutorSearch(
             Tutor tutor, SupplyContext context, List<ScoredStudyingCandidate> ranked, String algorithmVersion,
-            long latencyMs, RerankService.Status rerankStatus) {
+            long latencyMs, RerankService.Status rerankStatus, Map<UUID, MatchReasons> reasons,
+            List<RelaxationSuggestion> relaxations) {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
@@ -83,9 +91,11 @@ public class RecommendationLogger {
             putFeatures(node, scored.features());
             putFeature(node, "rerank", scored.features().rerank());
             node.put("isExploration", false);
+            putReasons(node, reasons.get(scored.candidate().studyingRequestId()));
         }
         return logRepository.save(RecommendationLog.builder()
                 .searcherTutor(tutor)
+                .relaxationSuggestions(relaxationsJson(relaxations))
                 .sourceTeachingRequest(context.sourceTeachingRequestId() == null ? null
                         : entityManager.getReference(TeachingRequest.class, context.sourceTeachingRequestId()))
                 .direction(RecommendationDirection.TUTOR_TO_STUDENT)
@@ -153,7 +163,7 @@ public class RecommendationLogger {
         return json;
     }
 
-    private JsonNode candidatesJson(List<ScoredCandidate> ranked) {
+    private JsonNode candidatesJson(List<ScoredCandidate> ranked, Map<UUID, MatchReasons> reasons) {
         ArrayNode array = objectMapper.createArrayNode();
         int rank = 1;
         for (ScoredCandidate scored : ranked) {
@@ -173,8 +183,47 @@ public class RecommendationLogger {
             putFeatures(node, features);
             putFeature(node, "rerank", features.rerank());
             node.put("isExploration", false);
+            putReasons(node, reasons.get(scored.candidate().teachingRequestId()));
         }
         return array;
+    }
+
+    /** Stored with the candidate so that a later page shows the same sentences as the first one. */
+    private void putReasons(ObjectNode node, MatchReasons reasons) {
+        MatchReasons known = reasons == null ? MatchReasons.NONE : reasons;
+        ArrayNode texts = node.putArray("reasons");
+        known.reasons().forEach(texts::add);
+        node.put("caution", known.caution());
+    }
+
+    /** What {@link #putReasons} stored; empty for logs written before reasons existed. */
+    public MatchReasons reasons(JsonNode candidate) {
+        List<String> texts = new ArrayList<>();
+        candidate.path("reasons").forEach(text -> texts.add(text.asString()));
+        JsonNode caution = candidate.path("caution");
+        return new MatchReasons(texts, caution.isString() ? caution.asString() : null);
+    }
+
+    private JsonNode relaxationsJson(List<RelaxationSuggestion> relaxations) {
+        ArrayNode array = objectMapper.createArrayNode();
+        for (RelaxationSuggestion relaxation : relaxations) {
+            ObjectNode node = array.addObject();
+            node.put("code", relaxation.code());
+            node.put("message", relaxation.message());
+            node.put("gain", relaxation.gain());
+            node.set("apply", relaxation.apply());
+        }
+        return array;
+    }
+
+    /** The suggestions of a stored search, for its later pages. */
+    public List<RelaxationSuggestion> relaxations(JsonNode stored) {
+        List<RelaxationSuggestion> relaxations = new ArrayList<>();
+        if (stored != null && stored.isArray()) {
+            stored.forEach(node -> relaxations.add(new RelaxationSuggestion(node.path("code").asString(),
+                    node.path("message").asString(), node.path("gain").asInt(), node.path("apply"))));
+        }
+        return relaxations;
     }
 
     private void putWillingness(ObjectNode node, Willingness willingness) {
