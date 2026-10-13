@@ -58,6 +58,16 @@ class NotificationTemplateFactory {
                             + "\" was rejected. Reason: " + reason
                             + ". The posting fee of " + data.getOrDefault("amount", "")
                             + " has been refunded to your wallet balance.");
+            case STUDYING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,
+                    "Studying request review required",
+                    "A studying request \"" + name + "\" is waiting for approval.");
+            case STUDYING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
+                    "Studying request approved", "Your studying request \"" + name + "\" has been approved.");
+            case STUDYING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
+                    "Studying request rejected", "Your studying request \"" + name
+                            + "\" was rejected. Reason: " + reason
+                            + ". The posting fee of " + data.getOrDefault("amount", "")
+                            + " has been refunded to your wallet balance.");
             case COMPLAINT_EVIDENCE_REQUESTED -> content(NotificationType.COMPLAINT,
                     "Additional evidence required", "Additional evidence is required for your complaint. " + reason);
             case COMPLAINT_RESOLVED -> content(NotificationType.COMPLAINT,

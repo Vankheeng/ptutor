@@ -56,6 +56,9 @@ public interface StudyingRequestMapper {
     @Mapping(target = "grade", ignore = true)
     @Mapping(target = "district", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "reviewedAt", ignore = true)
+    @Mapping(target = "rejectionReason", ignore = true)
     @Mapping(target = "availabilities", ignore = true)
     void updateEntity(StudyingRequestUpdateRequest source, @MappingTarget StudyingRequest target);
 }

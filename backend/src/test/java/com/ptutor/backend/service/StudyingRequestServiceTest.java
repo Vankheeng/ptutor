@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -43,10 +44,13 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
@@ -67,6 +71,8 @@ class StudyingRequestServiceTest {
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock EmployeeRepository employeeRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private StudyingRequestService service;
     private UUID userId;
@@ -90,7 +96,9 @@ class StudyingRequestServiceTest {
                 subjectRepository,
                 gradeRepository,
                 districtRepository,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                employeeRepository,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                eventPublisher);
 
         userId = UUID.randomUUID();
         studentId = UUID.randomUUID();
@@ -400,6 +408,25 @@ class StudyingRequestServiceTest {
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         assertThat(service.activateAfterPayment(request.getId()).status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void activateAfterPaymentSendsCustomSubjectToReviewAndNotifiesEmployees() {
+        StudyingRequest request = customSubjectRequest(RequestStatus.DRAFT);
+        UUID employeeUserId = UUID.randomUUID();
+        when(studyingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
+        when(employeeRepository.findAllUserIds()).thenReturn(List.of(employeeUserId));
+
+        assertThat(service.activateAfterPayment(request.getId()).status())
+                .isEqualTo(RequestStatus.PENDING_REVIEW);
+
+        verify(eventPublisher).publishEvent(org.mockito.ArgumentMatchers.<Object>argThat(event ->
+                event instanceof NotificationDomainEvent notification
+                        && notification.recipientUserId().equals(employeeUserId)
+                        && notification.eventType() == NotificationEventType.STUDYING_REQUEST_REVIEW_REQUIRED
+                        && notification.referenceId().equals(request.getId().toString())));
     }
 
     private StudyingRequestRequest request() {
@@ -408,6 +435,13 @@ class StudyingRequestServiceTest {
                 "Address", java.math.BigDecimal.valueOf(100), java.math.BigDecimal.valueOf(200),
                 "Improve speaking", LearningMode.ONLINE, "Evenings",
                 List.of(new StudyingRequestRequest.Availability(2, LocalTime.of(18, 0), LocalTime.of(20, 0))));
+    }
+
+    private StudyingRequest customSubjectRequest(RequestStatus status) {
+        StudyingRequest request = existingRequest(status);
+        request.setSubject(null);
+        request.setNote("Korean");
+        return request;
     }
 
     private StudyingRequest existingRequest(RequestStatus status) {

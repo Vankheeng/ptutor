@@ -162,4 +162,34 @@ public class NotificationService {
                 .isRead(false)
                 .build());
     }
+
+    @Transactional
+    public void createStudyingRequestReviewNotification(
+            User recipient,
+            String studyingRequestId,
+            String requestTitle,
+            boolean approved,
+            String rejectionReason,
+            BigDecimal refundedAmount) {
+        NotificationEventType eventType = approved
+                ? NotificationEventType.STUDYING_REQUEST_APPROVED
+                : NotificationEventType.STUDYING_REQUEST_REJECTED;
+        NotificationContent template = templateFactory.create(new NotificationDomainEvent(
+                recipient.getId(), eventType, NotificationReferenceType.STUDYING_REQUEST, studyingRequestId,
+                java.util.Map.of(
+                        "name", requestTitle == null ? "" : requestTitle,
+                        "reason", rejectionReason == null ? "" : rejectionReason,
+                        "amount", refundedAmount == null ? "" : refundedAmount.toPlainString()),
+                null));
+        notificationRepository.save(Notification.builder()
+                .user(recipient)
+                .title(template.title())
+                .content(template.content())
+                .referenceId(studyingRequestId)
+                .type(template.type())
+                .eventType(eventType)
+                .referenceType(NotificationReferenceType.STUDYING_REQUEST)
+                .isRead(false)
+                .build());
+    }
 }

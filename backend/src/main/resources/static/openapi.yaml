@@ -41,6 +41,8 @@ tags:
     description: Manual certificate review operations for employees and administrators
   - name: Admin Teaching Request Review
     description: Teaching request review operations for employees and administrators
+  - name: Admin Studying Request Review
+    description: Studying request review operations for employees and administrators
   - name: Teaching Requests
     description: Tutor teaching-request management and authenticated request browsing
   - name: Subjects
@@ -2481,6 +2483,90 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/studying-requests:
+    get:
+      tags: [Admin Studying Request Review]
+      summary: List studying requests for administration
+      description: Lists PENDING_REVIEW, OPEN or REJECTED studying requests. Defaults to the pending review queue, oldest first.
+      parameters:
+        - { name: status, in: query, schema: { type: string, default: PENDING_REVIEW, enum: [PENDING_REVIEW, OPEN, REJECTED] } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Studying requests retrieved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Admin Studying Request Review]
+      summary: Get studying request review details
+      responses:
+        '200':
+          description: Studying request details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}/approve:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Admin Studying Request Review]
+      summary: Approve a pending studying request
+      description: A studying request is reviewed because its subject is outside the catalogue; the student's proposed subject is in the note. The reviewer must create a catalogue subject or link an existing active subject in the same transaction that opens the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudyingRequestApprovalRequest' }
+      responses:
+        '200':
+          description: Studying request opened and student notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}/reject:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Admin Studying Request Review]
+      summary: Reject a pending studying request and refund its posting fee to the student wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudyingRequestRejectionRequest' }
+      responses:
+        '200':
+          description: Studying request rejected, posting fee refunded, and student notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
@@ -5511,7 +5597,7 @@ components:
             $ref: '#/components/schemas/StudyingRequestAvailabilityResponse'
         status:
           type: string
-          enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED]
+          enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
         createdAt:
           type: string
           format: date-time
@@ -6345,6 +6431,85 @@ components:
       properties:
         rejectionReason: { type: string, minLength: 1, maxLength: 500 }
 
+    StudyingRequestRejectionRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason: { type: string, minLength: 1, maxLength: 500 }
+
+    StudyingRequestApprovalRequest:
+      type: object
+      required: [subjectResolution]
+      properties:
+        subjectResolution:
+          $ref: '#/components/schemas/TeachingRequestSubjectResolution'
+
+    AdminStudyingRequestSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        subjectName: { type: string, nullable: true, description: Null until a reviewer resolves the custom subject. }
+        gradeName: { type: string }
+        title: { type: string, nullable: true }
+        note: { type: string, nullable: true, description: Holds the student's proposed subject for a custom subject. }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        status: { type: string, enum: [PENDING_REVIEW, OPEN, REJECTED] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+
+    AdminStudyingRequestDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        studentAvatarUrl: { type: string, nullable: true }
+        subjectId: { type: string, format: uuid, nullable: true }
+        subjectName: { type: string, nullable: true }
+        grade: { $ref: '#/components/schemas/TeachingRequestReferenceResponse' }
+        district:
+          allOf:
+            - $ref: '#/components/schemas/TeachingRequestReferenceResponse'
+          nullable: true
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        detailAddress: { type: string, nullable: true }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        preferredSchedule: { type: string, nullable: true }
+        availabilities:
+          type: array
+          items: { $ref: '#/components/schemas/TeachingRequestAvailabilityResponse' }
+        status: { type: string, enum: [PENDING_REVIEW, OPEN, REJECTED] }
+        reviewer:
+          allOf:
+            - $ref: '#/components/schemas/CertificateReviewerResponse'
+          nullable: true
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        rejectionReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminStudyingRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminStudyingRequestSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+
     TeachingRequestRejectionRequest:
       type: object
       required: [rejectionReason]
@@ -7121,6 +7286,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminCertificatePageResponse' }
+
+    AdminStudyingRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponse' }
+
+    AdminStudyingRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudyingRequestPageResponse' }
 
     AdminTeachingRequestDetailResponseEnvelope:
       allOf:
