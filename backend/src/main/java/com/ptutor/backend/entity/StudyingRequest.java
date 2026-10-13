@@ -56,8 +56,8 @@ public class StudyingRequest extends BaseEntity {
     @NonFinal
     private Student student;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subject_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
     @NonFinal
     private Subject subject;
 
@@ -65,10 +65,6 @@ public class StudyingRequest extends BaseEntity {
     @JoinColumn(name = "grade_id", nullable = false)
     @NonFinal
     private Grade grade;
-
-    @Column(name = "quantity", nullable = false)
-    @NonFinal
-    private Integer quantity;
 
     @Column(name = "title", length = 255)
     @NonFinal

@@ -36,7 +36,7 @@ public record StudyingCandidate(
         String levelCode,
         /** The student rejected a proposal of this tutor (any posting) recently. */
         boolean rejectedTutorRecently,
-        /** Tutors still wanted: quantity minus accepted proposals, at least 1. */
+        /** Tutors still wanted: always 1, a studying posting takes one tutor and is MATCHED once it has one. */
         int remainingSlots,
         /** Proposals waiting for the student's decision on this posting. */
         int pendingProposals,

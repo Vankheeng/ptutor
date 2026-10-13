@@ -18,6 +18,8 @@ import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
 import { StudentStudyingRequestsPage } from './pages/student/StudentStudyingRequestsPage';
 import { StudentStudyingRequestDetailPage } from './pages/student/StudentStudyingRequestDetailPage';
+import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyingRequestCreatePage';
+import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentContractsPage } from './pages/student/StudentContractsPage';
@@ -50,7 +52,9 @@ export default function App() {
                 <Route index element={<StudentDashboardPage />} />
                 <Route path="dashboard" element={<StudentDashboardPage />} />
                 <Route path="studying-requests" element={<StudentStudyingRequestsPage />} />
+                <Route path="studying-requests/new" element={<StudentStudyingRequestCreatePage />} />
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
+                <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="contracts" element={<StudentContractsPage />} />

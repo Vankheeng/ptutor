@@ -93,10 +93,6 @@ export function TutorStudyingRequestPage() {
           )}
           <div className="tutor-detail-facts">
             <span>
-              <small>Student count</small>
-              <strong>{request.quantity}</strong>
-            </span>
-            <span>
               <small>Budget</small>
               <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
             </span>

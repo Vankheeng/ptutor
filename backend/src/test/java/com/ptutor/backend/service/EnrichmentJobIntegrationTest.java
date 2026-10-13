@@ -106,8 +106,8 @@ class EnrichmentJobIntegrationTest {
                 teachingRequestId);
         studyingRequestId = insert("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, title, learning_mode, status, quantity, preferred_schedule)
-                VALUES (?, ?, ?, ?, 'Tìm gia sư Toán 9', 'ONLINE', 'OPEN', 1, 'Tối thứ 3')
+                    (id, student_id, subject_id, grade_id, title, learning_mode, status, preferred_schedule)
+                VALUES (?, ?, ?, ?, 'Tìm gia sư Toán 9', 'ONLINE', 'OPEN', 'Tối thứ 3')
                 """, studentId, subjectId, gradeId);
     }
 

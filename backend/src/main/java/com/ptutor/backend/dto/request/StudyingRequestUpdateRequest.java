@@ -13,15 +13,11 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record StudyingRequestUpdateRequest(
         UUID subjectId,
         UUID gradeId,
-
-        @Positive(message = "Quantity must be greater than zero")
-        Integer quantity,
 
         @NotBlank(message = "Title must not be blank")
         @Size(max = 255, message = "Title must not exceed 255 characters")
@@ -62,7 +58,6 @@ public record StudyingRequestUpdateRequest(
     public boolean isEmpty() {
         return subjectId == null
                 && gradeId == null
-                && quantity == null
                 && title == null
                 && description == null
                 && note == null

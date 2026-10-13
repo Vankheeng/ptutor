@@ -218,6 +218,13 @@ Quy tắc ghi:
      tên trạng thái khác thì sửa trong `AiEnrichmentJobRepository`.
   4. `QueryContextBuilder` (học sinh dùng tin của mình làm tiêu chí): tin chưa có môn → `needsInput`, không
      cần sửa.
+- **Cập nhật 13/10/2026 (sau merge `dev` #49):** tin học đã cho ghi môn ngoài danh mục, nhưng khác dự kiến ở hai
+  điểm: tên môn tự nhập nằm trong cột **`note`** (không có `custom_subject_name`), và **chưa có luồng duyệt** —
+  tin vào `PENDING_REVIEW` sau thanh toán rồi dừng ở đó. Đối chiếu bốn việc trên: (1) chưa cần làm, vì tin chưa
+  có môn không bao giờ `OPEN` nên không bao giờ được embed; (2) `activateAfterPayment` chỉ phát sự kiện khi tin
+  thành `OPEN`; khi `dev` có luồng duyệt, bước duyệt phải phát `EmbeddingRefreshRequestedEvent`; (3) tên trạng
+  thái đúng là `PENDING_REVIEW`, không phải sửa; (4) đúng như dự kiến. `note` của tin `OPEN` vẫn được coi là
+  ghi chú thường.
 - **Seed từ vựng:** `RecommendationTagSeeder` chạy khi khởi động, chỉ thêm mã chưa có: 10 STYLE, 5 SEGMENT,
   8 GOAL, TOPIC cho Toán (8), Tiếng Anh (7), Ngữ văn (6), Vật lý (6), Hoá học (6).
 

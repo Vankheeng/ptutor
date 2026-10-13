@@ -178,27 +178,18 @@ public class TutorStudentRequestService {
 
         long acceptedCount = tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
                 studyingRequestId, ApplicationStatus.ACCEPTED);
-        Integer quantity = studyingRequest.getQuantity();
-        if (quantity == null || quantity <= 0) {
+        if (acceptedCount > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "INVALID_STUDYING_REQUEST_QUANTITY",
-                    "Studying request quantity is invalid");
-        }
-        if (acceptedCount >= quantity) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "STUDYING_REQUEST_QUANTITY_REACHED",
-                    "Studying request has already reached its tutor quantity");
+                    "STUDYING_REQUEST_ALREADY_MATCHED",
+                    "Studying request already has an accepted tutor");
         }
 
         tutorRequest.setStatus(ApplicationStatus.ACCEPTED);
         tutorRequest.setRespondedAt(LocalDateTime.now());
         TutorStudentRequest savedRequest = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
-        if (acceptedCount + 1 >= quantity) {
-            studyingRequest.setStatus(RequestStatus.MATCHED);
-            studyingRequestRepository.saveAndFlush(studyingRequest);
-        }
+        studyingRequest.setStatus(RequestStatus.MATCHED);
+        studyingRequestRepository.saveAndFlush(studyingRequest);
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 tutorRequest.getTutor().getUser().getId(),
                 NotificationEventType.TUTOR_REQUEST_ACCEPTED,

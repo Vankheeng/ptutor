@@ -195,8 +195,8 @@ class TutorRecommendationIntegrationTest {
     void fillsMissingCriteriaFromTheStudentsOwnPostingThenFromTheProfile() {
         UUID ownRequest = insert("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price, district_id)
-                VALUES (?, ?, ?, ?, 'OFFLINE', 'OPEN', 1, 150000, ?)
+                    (id, student_id, subject_id, grade_id, learning_mode, status, max_price, district_id)
+                VALUES (?, ?, ?, ?, 'OFFLINE', 'OPEN', 150000, ?)
                 """, studentId, subjectId, gradeId, nearDistrictId);
         UUID match = posting(tutor(), new Posting().mode("OFFLINE").districts(nearDistrictId).price("140000"));
         posting(tutor(), new Posting().mode("OFFLINE").districts(homeDistrictId).price("140000"));
@@ -493,8 +493,8 @@ class TutorRecommendationIntegrationTest {
         UUID invited = posting(invitingTutor, new Posting().cosine(0.60));
         UUID other = posting(tutor(), new Posting().cosine(0.60));
         UUID ownRequest = insert("""
-                INSERT INTO studying_requests (id, student_id, subject_id, grade_id, learning_mode, status, quantity)
-                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1)
+                INSERT INTO studying_requests (id, student_id, subject_id, grade_id, learning_mode, status)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN')
                 """, studentId, subjectId, gradeId);
         insert("""
                 INSERT INTO tutor_student_requests (id, tutor_id, grade_id, studying_request_id, teaching_mode, status)
@@ -803,8 +803,8 @@ class TutorRecommendationIntegrationTest {
     void tellsAStudentAboutANewPostingOnlyWhenItFitsVeryWellAndOnlyOncePerDay() {
         UUID ownRequest = insert("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price)
-                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1, 200000)
+                    (id, student_id, subject_id, grade_id, learning_mode, status, max_price)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 200000)
                 """, studentId, subjectId, gradeId);
         SavedSearchResponse saved = savedSearchService.create(studentUserId, new SavedSearchRequest(
                 RecommendationDirection.STUDENT_TO_TUTOR, "Toán 9", jsonMapper.valueToTree(anywhere()), null, true));
@@ -1160,8 +1160,8 @@ class TutorRecommendationIntegrationTest {
     void prefetchScoresAheadWhatASearchFromTheStudentsPostingNeeds() {
         UUID ownRequest = insert("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, max_price)
-                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 1, 200000)
+                    (id, student_id, subject_id, grade_id, learning_mode, status, max_price)
+                VALUES (?, ?, ?, ?, 'ONLINE', 'OPEN', 200000)
                 """, studentId, subjectId, gradeId);
         UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
         UUID mostRelevant = posting(tutor(), new Posting().cosine(0.55));

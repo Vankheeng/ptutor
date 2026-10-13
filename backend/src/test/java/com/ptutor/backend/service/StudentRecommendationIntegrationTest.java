@@ -671,9 +671,9 @@ class StudentRecommendationIntegrationTest {
     private UUID request(UUID studentId, Request request) {
         UUID id = insert("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, learning_mode, status, quantity, min_price, max_price,
+                    (id, student_id, subject_id, grade_id, learning_mode, status, min_price, max_price,
                      district_id, title)
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'Tìm gia sư')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Tìm gia sư')
                 """, studentId, request.subjectId == null ? subjectId : request.subjectId,
                 request.gradeId == null ? gradeId : request.gradeId, request.mode, request.status, request.minPrice,
                 request.maxPrice, request.districtId);

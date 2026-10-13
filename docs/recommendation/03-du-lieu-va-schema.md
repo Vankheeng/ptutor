@@ -1,11 +1,17 @@
 # 3. Dữ liệu và schema bổ sung
 
-Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V25` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V26` (dữ liệu cho đề xuất, mục 3.4).
+Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V27` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V28` (dữ liệu cho đề xuất, mục 3.4).
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
 > toán bằng ví). Trước khi tạo migration mới, luôn kiểm tra số lớn nhất trên `dev`; Flyway **không** bật `out-of-order`, nên
-> `V25` phải được tạo và áp dụng trước `V26`.
+> `V27` phải được tạo và áp dụng trước `V28`.
+>
+> **Đổi số lần hai (13/10/2026).** Sau khi merge `dev` (#49), `dev` đã dùng `V25` (bỏ `studying_requests.quantity`)
+> và `V26` (tin học được ghi môn ngoài danh mục, thêm trạng thái `PENDING_REVIEW`, `REJECTED`). Ba migration của
+> nhánh này vì vậy là **`V27`** (điều kiện tiên quyết), **`V28`** (dữ liệu đề xuất), **`V29`** (mốc xoá lịch sử).
+> Nội dung ba file không đổi; chúng không đụng tới cột hay ràng buộc mà `V25`, `V26` của `dev` sửa, nên thứ tự
+> áp dụng không ảnh hưởng kết quả.
 
 ## 3.1. Dữ liệu đầu vào
 
@@ -46,7 +52,7 @@ dùng khi người tìm không có tiêu chí văn bản nào.
 Quy tắc chung: bỏ trường rỗng; cắt ≤ 512 token; không đưa họ tên, SĐT, email, địa chỉ chi tiết,
 ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash` để chỉ embed lại khi đổi.
 
-## 3.3. Migration V25 — điều kiện tiên quyết P2, P5
+## 3.3. Migration V27 — điều kiện tiên quyết P2, P5
 
 ```sql
 -- P2: mỗi hợp đồng tối đa một đánh giá
@@ -60,7 +66,7 @@ ALTER TABLE student_tutor_requests ADD COLUMN responded_at timestamp;
 ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
 ```
 
-## 3.4. Migration V26 — dữ liệu cho đề xuất
+## 3.4. Migration V28 — dữ liệu cho đề xuất
 
 ```sql
 -- ===== 1. Đổi số chiều vector sang 1024 (bge-m3). An toàn vì chưa có dữ liệu. =====
@@ -216,7 +222,7 @@ CREATE TABLE recommendation_user_profiles (
 );
 
 -- ===== 11. Thống kê hiển thị (R6) =====
--- Bổ sung 13/10/2026 (migration V27): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
+-- Bổ sung 13/10/2026 (migration V29): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
 ALTER TABLE recommendation_user_profiles ADD COLUMN history_reset_at timestamp;
 
 CREATE TABLE recommendation_exposure_stats (

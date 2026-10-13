@@ -59,7 +59,7 @@ class TutorAggregateRefreshIntegrationTest {
         UUID firstAccepted = insertRequest(firstStudent, "ACCEPTED", CREATED_AT.plusHours(2), null);
         UUID secondAccepted = insertRequest(secondStudent, "ACCEPTED", CREATED_AT.plusHours(4), null);
         UUID thirdAccepted = insertRequest(thirdStudent, "ACCEPTED", CREATED_AT.plusHours(6), null);
-        // Processed before V25: responded_at is missing, updated_at is used instead.
+        // Processed before V27: responded_at is missing, updated_at is used instead.
         insertRequest(firstStudent, "REJECTED", null, CREATED_AT.plusHours(12));
         // Not decisions of the tutor: ignored.
         insertRequest(secondStudent, "PENDING", null, CREATED_AT.plusHours(100));

@@ -89,8 +89,8 @@ class EmbeddingJobIntegrationTest {
         studyingRequestId = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO studying_requests
-                    (id, student_id, subject_id, grade_id, title, learning_mode, status, quantity)
-                VALUES (?, ?, ?, ?, 'Tìm gia sư Toán 9', 'ONLINE', 'OPEN', 1)
+                    (id, student_id, subject_id, grade_id, title, learning_mode, status)
+                VALUES (?, ?, ?, ?, 'Tìm gia sư Toán 9', 'ONLINE', 'OPEN')
                 """, studyingRequestId, studentId, subjectId, gradeId);
     }
 

@@ -207,7 +207,7 @@ Lưu vào `recommendation_user_profiles` (`preference_embedding`, `tag_affinity`
 - Vector và tag của một tín hiệu là của tin đăng tại thời điểm tính lại (cộng tag của người đăng).
 - `tag_affinity` lưu theo mã tag; chỉ lưu giá trị dương.
 - Đổi trạng thái đơn chưa xếp job ngay (không sửa các service đơn có sẵn); job đêm cập nhật.
-- **Xoá lịch sử** cần thêm cột `history_reset_at` (migration V27): hồ sơ được dựng lại từ dữ liệu 180 ngày nên
+- **Xoá lịch sử** cần thêm cột `history_reset_at` (migration V29): hồ sơ được dựng lại từ dữ liệu 180 ngày nên
   chỉ xoá dòng là chưa đủ. Tín hiệu trước mốc này bị bỏ qua vĩnh viễn; tym, đơn, hợp đồng không bị xoá.
 
 ### Quyền của người dùng

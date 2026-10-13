@@ -81,7 +81,7 @@ WHERE tr.deleted_at IS NULL
                          OR (s.status = 'REJECTED' AND s.updated_at > CURRENT_TIMESTAMP - INTERVAL '30 days')));
 ```
 
-Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V25); câu
+Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V27); câu
 truy vấn trả thêm `1 − (tr.embedding <=> :queryVector)` để gộp pha 1 và pha 2 trong một lần đọc.
 
 ## 6.3. Pha 2 — Lấy ứng viên theo vector
@@ -410,7 +410,7 @@ b′      = (0.5·b′_hist + 0.5·b′_fit) × b′_cap
 b′_fit  = 0.4·Q + 0.3·f_style + 0.3·f_price (góc học sinh: giá mong muốn so với sr.max_price)
 b′_hist = lịch sử học sinh nhận/từ chối đề nghị (tutor_student_requests),
           k = 0.5·price_sim + 0.5·(1 − |Q_x − Q_d|),  α = 2,  p0 = tỉ lệ chung
-b′_cap  = r / (r + 0.5·n);  r = sr.quantity − đề nghị ACCEPTED vào sr;  n = đề nghị PENDING vào sr
+b′_cap  = 1 / (1 + 0.5·n);  n = đề nghị PENDING vào sr   (mỗi tin học nhận đúng một gia sư, xem ghi chú 13/10/2026)
 ```
 
 Ngoại lệ: học sinh đã gửi đơn `PENDING` vào một tin dạy `OPEN` của chính gia sư này → `b′ = 1`.
@@ -428,6 +428,13 @@ Ghi chú triển khai (12/10/2026):
   tìm (rỗng → 0,5).
 - `b′_hist`: `Q_d` là điểm chất lượng **hiện tại** của gia sư đã gửi đề nghị cũ; giá hoặc Q thiếu → độ
   giống 0,5; `p0` đo trên `tutor_student_requests` (0,6 khi < 20 quyết định).
+- **Sau khi merge `dev` #49 (13/10/2026):** cột `studying_requests.quantity` bị xoá — mỗi tin học nhận đúng một gia
+  sư và chuyển `MATCHED` ngay khi có đề nghị được nhận. Vì ứng viên luôn là tin `OPEN`, số chỗ còn lại luôn là 1
+  và `b′_cap = 1 / (1 + 0,5·n)`. Chiều học sinh tìm gia sư không đổi (tin dạy vẫn có `quantity`).
+- **Tin học ghi môn ngoài danh mục** (`subject_id` rỗng, tên môn nằm trong `note`) ở trạng thái `PENDING_REVIEW`
+  cho tới khi được duyệt: **không được đề xuất** (lọc cứng cần `OPEN` và đúng môn), không được embed, không gửi
+  LLM, không sinh thông báo ghép đôi. Hiện `dev` chưa có luồng duyệt tin học, nên các tin này chưa thể thành
+  `OPEN`.
 - **Chỉ gia sư có hồ sơ `VERIFIED` mới tìm được học viên** (`403 TUTOR_PROFILE_NOT_VERIFIED`, kể cả khi lật
   trang bằng `logId`), cho nhất quán với chiều S→T chỉ hiện gia sư đã duyệt (quyết định 12/10/2026).
 - Giá mong muốn để trống → trung vị `expected_price` của mọi tin dạy của gia sư; không có tin → không lọc
@@ -468,7 +475,7 @@ Thứ tự ưu tiên: đóng góp `w_k·f_k`, rồi lý do từ b, rồi Q.
 | `f_area = 1` và `OFFLINE` | "Học tại {quận}, trong khu vực bạn dạy" |
 | Học sinh đã gửi đơn vào tin dạy của gia sư (`b′ = 1`) | "Học sinh này đã gửi đơn vào tin dạy của bạn" |
 | `b′_hist ≥ 0,75` và ≥ 3 quyết định | "Học sinh này thường nhận lời đề nghị của gia sư" |
-| `b′_cap = 1` | "Còn {r} chỗ, chưa có nhiều gia sư gửi đề nghị" |
+| `b′_cap = 1` | "Chưa có gia sư nào khác đang chờ học sinh này trả lời" |
 | **Lưu ý:** `g_sched < 1` | "Lịch chưa trùng — có thể trao đổi thêm" |
 | **Lưu ý:** `f_price < 1` | "Ngân sách thấp hơn mức bạn mong muốn {chênh lệch}" |
 | **Lưu ý:** `f_area ≤ 0,6` | "Ngoài khu vực bạn chọn ưu tiên ({quận})" |

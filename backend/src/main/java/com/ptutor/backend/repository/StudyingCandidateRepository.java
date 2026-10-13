@@ -105,10 +105,8 @@ public class StudyingCandidateRepository {
         Map<UUID, Map<String, Object>> rows = new HashMap<>();
         jdbc.queryForList("""
                 SELECT sr.id, sr.student_id, st.user_id, sr.title, sr.learning_goals, sr.min_price, sr.max_price,
-                       sr.learning_mode, sr.quantity, g.name AS grade_name,
+                       sr.learning_mode, g.name AS grade_name,
                        d.id AS district_id, d.name AS district_name, d.province_id,
-                       (SELECT count(*) FROM tutor_student_requests p WHERE p.studying_request_id = sr.id
-                           AND p.deleted_at IS NULL AND p.status = 'ACCEPTED') AS accepted_count,
                        (SELECT count(*) FROM tutor_student_requests p WHERE p.studying_request_id = sr.id
                            AND p.deleted_at IS NULL AND p.status = 'PENDING') AS pending_count
                 FROM studying_requests sr
@@ -223,8 +221,9 @@ public class StudyingCandidateRepository {
                             .filter(tag -> tag.role().equals("SELF") && tag.group().equals("SEGMENT"))
                             .map(TagRow::code).findFirst().orElse(null),
                     rejecting.contains(studentId),
-                    Math.max(1, (row.get("quantity") == null ? 1 : (Integer) row.get("quantity"))
-                            - ((Number) row.get("accepted_count")).intValue()),
+                    // A studying posting takes exactly one tutor and becomes MATCHED when it has one,
+                    // so an OPEN posting always has one place left.
+                    1,
                     ((Number) row.get("pending_count")).intValue(),
                     decisions.getOrDefault(studentId, List.of()),
                     applied.contains(studentId)));

@@ -253,8 +253,8 @@ public class MatchReasonBuilder {
                             "Học sinh này thường nhận lời đề nghị của gia sư"));
                 }
                 if (willingness.capacity() >= 1.0) {
-                    reasons.add(new Reason(WILLINGNESS_RANK, "Còn " + Math.max(1, candidate.remainingSlots())
-                            + " chỗ, chưa có nhiều gia sư gửi đề nghị"));
+                    // A studying posting takes one tutor: full capacity means nobody else is waiting.
+                    reasons.add(new Reason(WILLINGNESS_RANK, "Chưa có gia sư nào khác đang chờ học sinh này trả lời"));
                 }
             }
         }

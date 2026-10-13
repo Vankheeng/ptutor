@@ -10,7 +10,8 @@
   top: 0;
   height: 100vh;
   padding: 25px 17px 18px;
-  background: var(--purple-900, #39147c);
+  background: #fff;
+  border-right: 1px solid #e9ebf2;
   display: flex;
   flex-direction: column;
   z-index: 2;
@@ -26,7 +27,6 @@
   height: 32px;
   object-fit: contain;
   object-position: left center;
-  filter: brightness(0) invert(1);
 }
 .student-identity {
   display: flex;
@@ -34,11 +34,11 @@
   gap: 11px;
   padding: 11px 9px;
   margin-bottom: 27px;
-  background: #ffffff16;
-  border: 1px solid #ffffff2d;
+  background: #fafaff;
+  border: 1px solid #f0eff6;
   border-radius: 12px;
   min-width: 0;
-  color: #fff;
+  color: #20243a;
 }
 .student-avatar {
   width: 38px;
@@ -48,8 +48,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  background: var(--purple-500, #9367ff);
-  color: #fff;
+  background: #e9e2ff;
+  color: #6033c5;
   font-size: 13px;
   font-weight: 800;
 }
@@ -71,7 +71,7 @@
 }
 .student-identity small {
   font-size: 10px;
-  color: #dfd5ff;
+  color: #84889a;
 }
 .student-nav {
   display: grid;
@@ -87,7 +87,7 @@
 }
 .student-nav-label {
   padding: 0 12px 5px;
-  color: #d3c4ff;
+  color: #a1a5b5;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.13em;
@@ -101,7 +101,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #eee8ff;
+  color: #666b7e;
   text-decoration: none;
   font: inherit;
   font-size: 11px;
@@ -114,24 +114,24 @@
 }
 .student-nav-link > span {
   width: 18px;
-  color: #c8b5ff;
+  color: #85899b;
   text-align: center;
   font-size: 16px;
 }
 .student-nav-link:hover,
 .student-nav-link.active {
-  background: #ffffff22;
-  color: #fff;
+  background: #f0ebff;
+  color: #6033c5;
 }
 .student-nav-link.active {
-  box-shadow: inset 3px 0 var(--purple-500, #9367ff);
+  box-shadow: inset 3px 0 #6033c5;
 }
 .student-nav-link.active > span {
-  color: #fff;
+  color: #6033c5;
 }
 .student-sidebar-bottom {
   margin-top: auto;
-  border-top: 1px solid #ffffff2d;
+  border-top: 1px solid #eff0f5;
   padding-top: 12px;
   display: grid;
   gap: 4px;
@@ -145,8 +145,8 @@
 .student-topbar {
   min-height: 70px;
   padding: 0 38px;
-  background: var(--purple-800, #5020a8);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #e9ebf2;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -159,14 +159,14 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: #d9ccff;
+  color: #a0a4b3;
 }
 .student-topbar strong {
   font-size: 12px;
 }
 .student-topbar-status {
   font-size: 10px;
-  color: #ece7ff;
+  color: #74798d;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -244,7 +244,7 @@
   .student-nav-group + .student-nav-group {
     margin: 0;
     padding-left: 8px;
-    border-left: 1px solid #ffffff40;
+    border-left: 1px solid #eff0f5;
   }
   .student-nav-link {
     height: 36px;

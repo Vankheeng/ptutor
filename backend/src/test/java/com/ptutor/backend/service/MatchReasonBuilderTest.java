@@ -192,7 +192,7 @@ class MatchReasonBuilderTest {
                 .containsExactly("Học sinh này đã gửi đơn vào tin dạy của bạn");
         assertThat(builder.forTutor(tutor, tutorSideRanker.score(tutor, easygoing, P0), NAMES).reasons())
                 .containsExactly("Học sinh này thường nhận lời đề nghị của gia sư",
-                        "Còn 2 chỗ, chưa có nhiều gia sư gửi đề nghị");
+                        "Chưa có gia sư nào khác đang chờ học sinh này trả lời");
         MatchReasons tight = builder.forTutor(tutor, tutorSideRanker.score(tutor, tightBudget, P0), NAMES);
         assertThat(tight.reasons()).isEmpty();
         assertThat(tight.caution()).isEqualTo("Ngân sách thấp hơn mức bạn mong muốn 30.000đ");
