@@ -37,6 +37,7 @@ class RecommendationInteractionControllerTest {
     @Mock RecommendationEventService eventService;
     @Mock RefineService refineService;
     @Mock PreferenceProfileService profileService;
+    @Mock com.ptutor.backend.service.QueryParseService queryParseService;
     @Mock CurrentUserProvider currentUserProvider;
 
     private final UUID userId = UUID.randomUUID();
@@ -46,7 +47,8 @@ class RecommendationInteractionControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new RecommendationInteractionController(
-                eventService, refineService, profileService, new ApiResponseFactory(Clock.systemUTC()),
+                eventService, refineService, profileService, queryParseService,
+                new ApiResponseFactory(Clock.systemUTC()),
                 currentUserProvider)).build();
     }
 
@@ -96,6 +98,24 @@ class RecommendationInteractionControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(refineService).refine(userId, logId, 8);
+    }
+
+    @Test
+    void parsesASentenceForTheSignedInUserAndRejectsAnEmptyOne() throws Exception {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
+
+        mockMvc.perform(post("/api/v1/recommendations/parse-query").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\": \"Gia sư Toán lớp 9\", \"direction\": \"STUDENT_TO_TUTOR\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/recommendations/parse-query").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\": \"  \", \"direction\": \"STUDENT_TO_TUTOR\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/recommendations/parse-query").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\": \"Gia sư Toán\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(queryParseService).parse(userId, "Gia sư Toán lớp 9",
+                com.ptutor.backend.entity.enums.RecommendationDirection.STUDENT_TO_TUTOR);
     }
 
     @Test

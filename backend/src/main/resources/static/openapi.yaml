@@ -3111,6 +3111,60 @@ paths:
         '503':
           description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
 
+  /api/v1/recommendations/parse-query:
+    post:
+      tags: [Recommendations]
+      summary: Turn a typed sentence into filter values
+      description: >-
+        Requires STUDENT or TUTOR. Nothing is searched: the client fills the form with the returned filters,
+        the user reviews it and then searches. Phone numbers and e-mails are removed before the sentence
+        reaches the LLM. Only values found in the catalogue are returned, already as IDs. When the sentence
+        cannot be analysed (LLM unavailable or too slow) the answer is still 200 with empty filters,
+        understood = false and the whole sentence as semanticText. Answers are cached for 24 hours.
+      operationId: parseRecommendationQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, direction]
+              properties:
+                text: { type: string, maxLength: 500 }
+                direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
+      responses:
+        '200':
+          description: Recognised filter values
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          filters:
+                            type: object
+                            description: >-
+                              Only the recognised fields, in the shape of "filters" of the search of that
+                              direction (tutor search for STUDENT_TO_TUTOR, student search for TUTOR_TO_STUDENT).
+                          semanticText:
+                            type: string
+                            nullable: true
+                            description: >-
+                              The sentence itself without contact details, to be sent as semanticText of the
+                              search. It is the user's own wording, never a rewording by the LLM.
+                          notes: { type: array, items: { type: string }, description: What was not recognised }
+                          understood: { type: boolean }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/users/me/saved-searches:
     get:
       tags: [Recommendations]

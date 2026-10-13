@@ -81,6 +81,7 @@ class TutorRecommendationIntegrationTest {
     @Autowired EmbeddingTextBuilder textBuilder;
     @Autowired MatchReasonBuilder matchReasonBuilder;
     @Autowired SavedSearchService savedSearchService;
+    @Autowired QueryParseService queryParseService;
     @Autowired com.ptutor.backend.repository.RecommendationMatchAlertRepository alertRepository;
     @Autowired com.ptutor.backend.repository.NotificationRepository notificationRepository;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -146,8 +147,8 @@ class TutorRecommendationIntegrationTest {
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
                 queryContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
-                relaxationService, explorationService, preferenceProfileService, savedSearchService, tagRepository,
-                recommendationLogger, settings, null);
+                relaxationService, explorationService, preferenceProfileService, savedSearchService, queryParseService,
+                tagRepository, recommendationLogger, settings, null);
         refineService = new RefineService(eventService, clickLogRepository, logRepository, signalRepository,
                 queryEmbeddingService, service, studentRecommendationService, settings, jsonMapper);
         // Notifications are written in a transaction of their own, which cannot see this test's rows.

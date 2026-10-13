@@ -50,7 +50,7 @@ public class RecommendationLogger {
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
             String algorithmVersion, long latencyMs, RerankService.Status rerankStatus,
             Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations, Set<UUID> explored,
-            UUID savedSearchId) {
+            UUID savedSearchId, JsonNode parsedQuery) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
@@ -62,6 +62,7 @@ public class RecommendationLogger {
                 .direction(RecommendationDirection.STUDENT_TO_TUTOR)
                 .algorithmVersion(algorithmVersion)
                 .queryText(scrubbedQuery.isEmpty() ? null : scrubbedQuery)
+                .parsedQuery(parsedQuery)
                 .queryContext(storedContext)
                 .returnedCandidateIds(candidatesJson(ranked, reasons, explored))
                 .relaxationSuggestions(relaxationsJson(relaxations))

@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ptutor.backend.dto.request.QueryParseRequest;
 import com.ptutor.backend.dto.request.RecommendationEventRequest;
 import com.ptutor.backend.dto.request.RecommendationRefineRequest;
+import com.ptutor.backend.dto.response.QueryParseResponse;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.PreferenceProfileService;
+import com.ptutor.backend.service.QueryParseService;
 import com.ptutor.backend.service.RecommendationEventService;
 import com.ptutor.backend.service.RefineService;
 
@@ -33,8 +36,20 @@ public class RecommendationInteractionController {
     private final RecommendationEventService eventService;
     private final RefineService refineService;
     private final PreferenceProfileService profileService;
+    private final QueryParseService queryParseService;
     private final ApiResponseFactory responseFactory;
     private final CurrentUserProvider currentUserProvider;
+
+    /**
+     * Turns a typed sentence into values for the filter form. Nothing is searched: the client fills
+     * the form, the user reviews it and then searches.
+     */
+    @PostMapping("/recommendations/parse-query")
+    public ResponseEntity<ApiResponse<QueryParseResponse>> parseQuery(@Valid @RequestBody QueryParseRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                queryParseService.parse(currentUserProvider.getCurrentUserId(), request.text(), request.direction()),
+                "/api/v1/recommendations/parse-query"));
+    }
 
     /** Opened, liked, contacted or dismissed one of the results. */
     @PostMapping("/recommendations/{logId}/events")

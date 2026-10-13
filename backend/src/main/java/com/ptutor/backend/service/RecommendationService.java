@@ -67,6 +67,7 @@ public class RecommendationService {
     private final ExplorationService explorationService;
     private final PreferenceProfileService preferenceProfileService;
     private final SavedSearchService savedSearchService;
+    private final QueryParseService queryParseService;
     private final RecommendationTagRepository tagRepository;
     private final RecommendationLogger recommendationLogger;
     private final RecommendationSettings settings;
@@ -86,6 +87,7 @@ public class RecommendationService {
             ExplorationService explorationService,
             PreferenceProfileService preferenceProfileService,
             SavedSearchService savedSearchService,
+            QueryParseService queryParseService,
             RecommendationTagRepository tagRepository,
             RecommendationLogger recommendationLogger,
             RecommendationSettings settings,
@@ -102,6 +104,7 @@ public class RecommendationService {
         this.explorationService = explorationService;
         this.preferenceProfileService = preferenceProfileService;
         this.savedSearchService = savedSearchService;
+        this.queryParseService = queryParseService;
         this.tagRepository = tagRepository;
         this.recommendationLogger = recommendationLogger;
         this.settings = settings;
@@ -165,7 +168,10 @@ public class RecommendationService {
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
                 student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
-                rerank.status(), reasons, relaxations, explored.explored(), effective.savedSearchId());
+                rerank.status(), reasons, relaxations, explored.explored(), effective.savedSearchId(),
+                // What the sentence was understood as, next to what was finally searched (design 05, 5.7).
+                effective.queryText() == null ? null : queryParseService.recall(context.homeProvinceId(),
+                        effective.queryText(), RecommendationDirection.STUDENT_TO_TUTOR).orElse(null));
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());

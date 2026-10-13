@@ -44,6 +44,9 @@ class AiServiceClientTest {
     private volatile String rerankBody = "";
     private volatile long rerankDelayMs = 0;
     private final AtomicReference<JsonNode> receivedRerankBody = new AtomicReference<>();
+    private volatile int parseStatus = 200;
+    private volatile String parseBody = "";
+    private final AtomicReference<JsonNode> receivedParseBody = new AtomicReference<>();
     private volatile int suggestStatus = 200;
     private volatile String suggestBody = "";
     private final AtomicReference<JsonNode> receivedSuggestBody = new AtomicReference<>();
@@ -72,6 +75,12 @@ class AiServiceClientTest {
                     new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
             sleep(rerankDelayMs);
             respond(exchange, rerankStatus, rerankBody);
+        });
+        server.createContext("/parse-query", exchange -> {
+            receivedToken.set(exchange.getRequestHeaders().getFirst("X-Internal-Token"));
+            receivedParseBody.set(objectMapper.readTree(
+                    new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
+            respond(exchange, parseStatus, parseBody);
         });
         server.createContext("/suggest-tags", exchange -> {
             receivedToken.set(exchange.getRequestHeaders().getFirst("X-Internal-Token"));
@@ -256,6 +265,35 @@ class AiServiceClientTest {
         healthBody = "{\"status\":\"ready\",\"embed_model\":\"bge-m3-int8\",\"rerank\":\"ready\"}";
         assertThat(client(true, TOKEN).isRerankReady()).isTrue();
         assertThat(client(false, TOKEN).isRerankReady()).isFalse();
+    }
+
+    @Test
+    void parseQuerySendsTheCatalogueAndReturnsTheAnswerAsItIs() {
+        parseBody = "{\"model\":\"gpt-6-luna\",\"subject\":\"Toán\",\"area\":{\"scope\":null,\"districts\":[]},"
+                + "\"price\":{\"min\":null,\"max\":200000}}";
+        AiServiceClient.ParseQueryRequest request = new AiServiceClient.ParseQueryRequest(
+                "Gia sư Toán dưới 200k", "STUDENT_TO_TUTOR",
+                new AiServiceClient.ParseQueryCatalog(List.of("Toán"), List.of("Lớp 9"), List.of("Cầu Giấy")),
+                java.util.Map.of("STYLE", List.of(new AiServiceClient.VocabularyTag("kien_nhan", "Kiên nhẫn"))));
+
+        var result = client(true, TOKEN).parseQuery(request, Duration.ofSeconds(2));
+
+        assertThat(result).isPresent();
+        assertThat(result.get().path("subject").asString()).isEqualTo("Toán");
+        assertThat(result.get().path("price").path("max").asInt()).isEqualTo(200000);
+        assertThat(receivedToken.get()).isEqualTo(TOKEN);
+        JsonNode sent = receivedParseBody.get();
+        assertThat(sent.path("text").asString()).isEqualTo("Gia sư Toán dưới 200k");
+        assertThat(sent.path("direction").asString()).isEqualTo("STUDENT_TO_TUTOR");
+        assertThat(sent.path("catalog").path("districtsInUserProvince").get(0).asString()).isEqualTo("Cầu Giấy");
+        assertThat(sent.path("vocabulary").path("STYLE").get(0).path("code").asString()).isEqualTo("kien_nhan");
+
+        parseStatus = 502;
+        assertThat(client(true, TOKEN).parseQuery(request, Duration.ofSeconds(2))).isEmpty();
+        parseStatus = 200;
+        parseBody = "[]";
+        assertThat(client(true, TOKEN).parseQuery(request, Duration.ofSeconds(2))).isEmpty();
+        assertThat(client(false, TOKEN).parseQuery(request, Duration.ofSeconds(2))).isEmpty();
     }
 
     @Test

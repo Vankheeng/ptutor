@@ -308,6 +308,53 @@ public class AiServiceClient {
         }
     }
 
+    /**
+     * A2 (design 05, 5.4): asks the LLM which filter values a typed sentence means. Returns the raw
+     * answer; the caller checks every name and code against the catalogue. Empty when the service or
+     * the LLM is unavailable or too slow, in which case the sentence is used as free text.
+     */
+    public Optional<JsonNode> parseQuery(ParseQueryRequest parseRequest, Duration timeout) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        try {
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(baseUrl + "/parse-query"))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            objectMapper.writeValueAsString(parseRequest), StandardCharsets.UTF_8));
+            if (!internalToken.isEmpty()) {
+                request.header(TOKEN_HEADER, internalToken);
+            }
+            HttpResponse<String> response = httpClient.send(
+                    request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                log.warn("AI service /parse-query answered HTTP {}", response.statusCode());
+                return Optional.empty();
+            }
+            JsonNode body = objectMapper.readTree(response.body());
+            if (!body.isObject() || !body.path("area").isObject() || !body.path("price").isObject()) {
+                log.warn("AI service /parse-query returned an unexpected body");
+                return Optional.empty();
+            }
+            return Optional.of(body);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("AI service /parse-query failed: {}", exception.toString());
+            return Optional.empty();
+        }
+    }
+
+    /** Body of {@code POST /parse-query}; component names are the JSON field names of the contract. */
+    public record ParseQueryRequest(
+            String text, String direction, ParseQueryCatalog catalog, Map<String, List<VocabularyTag>> vocabulary) {
+    }
+
+    public record ParseQueryCatalog(List<String> subjects, List<String> grades, List<String> districtsInUserProvince) {
+    }
+
     /** Body of {@code POST /suggest-tags}. */
     public record SuggestTagsRequest(String subject, List<VocabularyTag> existing, List<String> samples, int maxTags) {
     }

@@ -212,6 +212,20 @@ public class RecommendationSettings {
     @Value("${app.recommendation.refine.original-share:0.5}")
     private double refineOriginalShare = 0.5;
 
+    /** Off: a typed sentence is never sent to the LLM; it is used as free text as a whole (A2). */
+    @Value("${app.recommendation.parse-query.enabled:true}")
+    private boolean parseQueryEnabled = true;
+
+    /** How long the user waits for the form to be filled in before the sentence is used as it is. */
+    @Value("${app.recommendation.parse-query.timeout-ms:3000}")
+    private long parseQueryTimeoutMs = 3000;
+
+    @Value("${app.recommendation.parse-query.cache-hours:24}")
+    private int parseQueryCacheHours = 24;
+
+    @Value("${app.recommendation.parse-query.cache-size:500}")
+    private int parseQueryCacheSize = 500;
+
     /** Off: nobody is notified about new postings that fit them (C7). */
     @Value("${app.recommendation.proactive.enabled:true}")
     private boolean alertEnabled = true;
