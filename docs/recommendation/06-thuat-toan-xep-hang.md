@@ -340,6 +340,11 @@ cầu giống hệt (đổi một bộ lọc là văn bản khác); `/rerank` đ
 
 Một gia sư có nhiều tin dạy cùng khớp → chỉ giữ tin có `score` cao nhất.
 
+**Thứ tự thực hiện (quyết định 12/10/2026): gộp ngay sau pha 3, trước rerank.** Lý do: rerank chậm, không
+nên chấm những tin sẽ bị bỏ; và sau khi gộp, cả top-20 (20 *người* khác nhau) đều được chấm. Đổi lại, tin
+đại diện của mỗi người được chọn theo điểm trước rerank. Chiều gia sư tìm học viên gộp theo học sinh.
+Gợi ý nới tiêu chí (07 mục 7.1) cũng đếm theo người.
+
 ## 6.11. Pha 5 — Slot khám phá (R6)
 
 Trang đầu N = 20. **Vị trí 5 và 12** dành cho slot khám phá nếu tập ứng viên > N + 5.
@@ -432,6 +437,33 @@ Tối đa **3 lý do tích cực** và **1 lưu ý**, theo bảng mẫu (S→T):
 | **Lưu ý:** `f_area ≤ 0,6` | "Ngoài khu vực bạn chọn ưu tiên ({quận})" |
 
 Thứ tự ưu tiên: đóng góp `w_k·f_k`, rồi lý do từ b, rồi Q.
+
+**Chiều gia sư tìm học viên (T→S)** — bổ sung 12/10/2026, đối xứng với bảng trên:
+
+| Điều kiện | Câu mẫu |
+|---|---|
+| `f_need ≥ 0,7` | "Học sinh cần đúng phần bạn mạnh: {tag khớp}" |
+| `f_sem ≥ 0,7` | "Nhu cầu của học sinh rất sát với những gì bạn dạy" |
+| `f_segment = 1` | "Trình độ {mức} — đúng đối tượng bạn muốn dạy" |
+| `f_price = 1` | "Ngân sách tới {max_price} — đủ mức bạn mong muốn" |
+| `f_sched ≥ 0,8` | "Trùng lịch rảnh: {khung giờ}" |
+| `f_area = 1` và `OFFLINE` | "Học tại {quận}, trong khu vực bạn dạy" |
+| Học sinh đã gửi đơn vào tin dạy của gia sư (`b′ = 1`) | "Học sinh này đã gửi đơn vào tin dạy của bạn" |
+| `b′_hist ≥ 0,75` và ≥ 3 quyết định | "Học sinh này thường nhận lời đề nghị của gia sư" |
+| `b′_cap = 1` | "Còn {r} chỗ, chưa có nhiều gia sư gửi đề nghị" |
+| **Lưu ý:** `g_sched < 1` | "Lịch chưa trùng — có thể trao đổi thêm" |
+| **Lưu ý:** `f_price < 1` | "Ngân sách thấp hơn mức bạn mong muốn {chênh lệch}" |
+| **Lưu ý:** `f_area ≤ 0,6` | "Ngoài khu vực bạn chọn ưu tiên ({quận})" |
+
+Ghi chú triển khai (12/10/2026):
+- Chỉ sinh câu khi có **dữ kiện thật**: `f_style = 0,5` do gia sư chưa có tag phong cách (giá trị trung tính)
+  không tạo câu "Phong cách…"; câu "Dạy tại {quận}" chỉ có khi tin thật sự có quận nằm trong vùng đã chọn;
+  câu đánh giá chỉ có khi gia sư đã có lượt đánh giá.
+- Tối đa 2 tag và 2 khung giờ mỗi câu. Tiền viết kiểu `180.000đ`; `{lớp}` là "lớp {level}".
+- Chỉ một lưu ý, theo thứ tự: lịch → giá → khu vực.
+- Lý do được lưu trong `returned_candidate_ids` của log (`reasons`, `caution`), nên trang sau lấy bằng
+  `logId` hiện đúng câu của lần tìm.
+- Chưa có: lý do theo `f_hist` (H1) và "Gia sư mới trên nền tảng" (slot khám phá) — làm cùng bước sự kiện.
 
 ## 6.14. Ví dụ tính tay
 

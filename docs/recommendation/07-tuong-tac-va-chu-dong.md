@@ -40,6 +40,26 @@ Chạy song song, ngân sách 400 ms. Không có ứng viên nào qua lọc cứ
 | `PRICE_*` | "Nếu ngân sách {giá mới}: thêm {gain} gia sư phù hợp" |
 | `SCHEDULE_FLEX` | "Nếu linh hoạt lịch học: thêm {gain} gia sư phù hợp" |
 
+### Ghi chú triển khai (12/10/2026)
+
+- **Đếm theo người**: `gain` là số gia sư (học viên) *chưa có trong kết quả hiện tại* đạt `score ≥ τ_good`,
+  sau khi gộp mỗi người một tin.
+- **Chạy lần lượt, không song song**, theo thứ tự nhẹ → nặng, dừng khi hết ngân sách 400 ms (phép nới chưa
+  kịp thử thì bỏ). Lý do: chạy song song phải mở thêm kết nối database ngoài transaction của lần tìm.
+- **Không dùng rerank** khi đánh giá phép nới (kể cả từ cache): tra cache cần dựng lại văn bản của từng tin,
+  quá đắt so với ngân sách. `gain` vì vậy tính theo điểm pha 3.
+- Văn bản nhu cầu và vector truy vấn giữ nguyên; chỉ điều kiện lọc và đặc trưng liên quan thay đổi.
+- Giá mới làm tròn theo nghìn (học sinh làm tròn lên, gia sư làm tròn xuống).
+- `AREA_PROVINCE` lấy tỉnh của quận đã chọn (nếu không có thì tỉnh nơi ở).
+- `MODE_ANY` khi đang chọn riêng Online: phần gặp trực tiếp cần khu vực, lấy quận nơi ở (như lần tìm không
+  chọn khu vực); `apply` ghi rõ cả `learningMode` và `area` để bấm áp dụng ra đúng kết quả đã đếm.
+- `SCHEDULE_FLEX`: `apply` là `{"availabilities": []}` — danh sách rỗng nghĩa là "không xét lịch" (khác với
+  không gửi trường này: khi đó lịch lấy từ tin học / tin dạy).
+- Mẫu câu chiều gia sư: thay "gia sư" bằng "học viên"; giá: "Nếu nhận mức {giá mới} mỗi buổi: thêm {gain}
+  học viên phù hợp"; lịch: "Nếu linh hoạt lịch dạy: …"; hình thức: "Nhận cả dạy online / trực tiếp: …".
+- Gợi ý được lưu vào `recommendation_logs.relaxation_suggestions` và trả lại ở các trang sau.
+- Phép nới lỗi khi đánh giá thì bị bỏ qua, không làm hỏng lần tìm. Cờ tắt: `relaxation.enabled=false`.
+
 ## 7.2. B5 — Xếp lại trong phiên (Rocchio)
 
 ### Tín hiệu trong một lần tìm

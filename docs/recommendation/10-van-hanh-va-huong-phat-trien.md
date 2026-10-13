@@ -27,7 +27,8 @@
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
 | `rerank.model-version` (backend) · `AI_RERANK_MAX_TOKENS` (AI service, mỗi bên) | `bge-reranker-v2-m3-int8` · 256 | 06, 6.9 |
 | `exploration.page-size` / `slots` / `min-score-ratio` | 20 / [5, 12] / 0,8 | 06, 6.11 |
-| `relaxation.good-threshold` / `budget-ms` / `max-suggestions` | 0,50 / 400 / 3 | 07, 7.1 |
+| `relaxation.enabled` / `good-threshold` / `budget-ms` / `max-suggestions` | true / 0,50 / 400 / 3 | 07, 7.1 |
+| `relaxation.min-good` / `min-results` / `min-gain` / `best-score-margin` | 5 / 10 / 2 / 0,10 | 07, 7.1 |
 | `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |
 | `proactive.notify-threshold` / `top-k` / `cooldown-hours` | 0,65 / 3 / 24 | 07, 7.3 |
 | `saved-search.max-per-user` | 5 | 05, 5.6 |

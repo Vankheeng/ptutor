@@ -147,7 +147,9 @@ Mỗi item là một tin học, chỉ kèm thông tin **giới hạn** của h�
   "priceRange": { "min": 150000, "max": 200000 },
   "learningMode": "OFFLINE",
   "score": 0.71,
-  "reasons": ["Cần cải thiện Hình học phẳng — thế mạnh của bạn", "…"]
+  "isExploration": false,
+  "reasons": ["Học sinh cần đúng phần bạn mạnh: Hình học phẳng", "…"],
+  "caution": null
 }
 ```
 
