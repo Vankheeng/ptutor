@@ -16,6 +16,9 @@ Theo quy ước của dự án: tiền tố `/api/v1`, cần access token, respo
 | `PUT` / `DELETE` | `/api/v1/users/me/saved-searches/{id}` | STUDENT, TUTOR | Sửa (đổi tên, bật/tắt thông báo) / xoá |
 | `DELETE` | `/api/v1/users/me/recommendation-profile` | STUDENT, TUTOR | Xoá lịch sử gợi ý (H1) |
 | `GET` | `/api/v1/admin/recommendations/logs` | ADMIN | Tra cứu log để phân tích |
+| `GET` | `/api/v1/admin/recommendations/weights` | ADMIN | Trọng số L1: prior, bản đang dùng, lịch sử version, đánh giá (tuỳ chọn — 12, mục 12.9) |
+| `POST` | `/api/v1/admin/recommendations/weights/{model}/activate/{version}` | ADMIN | Kích hoạt một version (quay lui) |
+| `PUT` | `/api/v1/admin/recommendations/weights/{model}/mode` | ADMIN | Đổi chế độ `OFF` / `SHADOW` / `ACTIVE` của một mô hình |
 | `GET` | `/api/v1/recommendation-tags` | đã đăng nhập | Tag `ACTIVE` để chọn làm bộ lọc (`group`, `subjectId`) |
 | `GET` / `POST` | `/api/v1/admin/recommendation-tags` | ADMIN, EMPLOYEE (`CONTENT_REVIEWER`) | Xem bộ từ vựng / tạo một hoặc nhiều tag |
 | `PUT` | `/api/v1/admin/recommendation-tags/{id}` | như trên | Đổi tên, mô tả, tag cha (không đổi được mã) |
@@ -214,8 +217,10 @@ Ghi chú triển khai (13/10/2026):
 | `saved_search_id` | Nếu mở từ tìm kiếm đã lưu |
 | `direction`, `algorithm_version` | `STUDENT_TO_TUTOR`, `v2.1` … |
 | `query_text`, `parsed_query`, `query_context` | Câu gốc (đã lọc PII), kết quả A2, tiêu chí cuối cùng |
-| `returned_candidate_ids` | ≤ 50 phần tử: `{candidateId, candidateUserId, rank, score, a, b, q, g, wHist, features:{sem, need, style, segment, price, sched, area, hist}, rerank, isExploration}` |
+| `returned_candidate_ids` | ≤ 50 phần tử: `{candidateId, candidateUserId, rank, score, a, b, willingness:{hist, fit, cap, invited}, q, g, wHist, confidence, features:{sem, need, style, segment, price, sched, area, hist}, rerank, isExploration}`; L1 thêm `willingness.fitSegment`, `fitSched`, `fitPrice` (chiều T→S: `fitQuality`, `fitStyle`, `fitPrice`) |
+| `query_context.weights` (L1) | `{"A": {model, version, mode, sampled, values}, "B": {…}}` — trọng số **thực sự đã dùng** cho lần tìm |
 | `relaxation_suggestions`, `latency_ms` | |
 
 Lưu đủ đặc trưng từng ứng viên để: phân trang và `/refine` không phải tính lại; giải thích "vì sao
-người này đứng đầu"; sau này học trọng số từ dữ liệu mà không đổi schema (10, mục 10.5).
+người này đứng đầu"; học trọng số từ dữ liệu (L1). L1 bổ sung `query_context.weights` (trọng số đã dùng)
+và các thành phần fit của từng ứng viên; API quản trị trọng số ở 12, mục 12.9.

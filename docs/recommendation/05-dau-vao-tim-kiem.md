@@ -174,4 +174,5 @@ thông báo (07, mục 7.3). Tính năng này giúp người **chưa có tin đ�
 ## 5.7. Ghi log
 
 `recommendation_logs.query_text` (đã lọc PII), `parsed_query` (kết quả A2 sau ánh xạ) và
-`query_context` (sau khi gộp) được lưu để đo độ chính xác A2 (09, mục 9.5) và để phân tích.
+`query_context` (sau khi gộp) được lưu để đo độ chính xác A2 (09, mục 9.5) và để phân tích. Từ L1,
+`query_context.weights` ghi thêm trọng số đã dùng (08, mục 8.7).

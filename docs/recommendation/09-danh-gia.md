@@ -68,6 +68,10 @@ hai chiều có xét dồn đơn (11, mục 11.3).
 | **V2-full − H1** | Bỏ lịch sử hành vi |
 | **V2-full − A1** | Bỏ dữ liệu chuẩn hoá từ A1 |
 
+Các cấu hình trên dùng **trọng số prior**. Ảnh hưởng của L1 (học trọng số) được đánh giá riêng bằng thí
+nghiệm học tuần tự ở mục 9.9 (Fixed / LinTS-prior / LinTS-bad / Greedy / Oracle), vì L1 chỉ có tác dụng theo
+thời gian, không so được trên một lượt truy vấn tĩnh.
+
 ## 9.5. Chỉ số
 
 ### Chất lượng xếp hạng (trung bình theo truy vấn)
@@ -116,6 +120,7 @@ p50/p95 từng pha trên laptop và VPS; tỉ lệ rerank timeout.
 4. Hiệu chỉnh trọng số/ngưỡng trên nửa hiệu chỉnh (tìm lưới thô quanh giá trị khởi đầu).
 5. Chạy mọi cấu hình trên nửa kiểm tra, xuất CSV.
 6. So từng cặp cấu hình theo truy vấn bằng **Wilcoxon signed-rank**, khoảng tin cậy 95% bằng **bootstrap**.
+7. Phân tích độ nhạy và thí nghiệm học trọng số (9.9).
 
 ## 9.7. Mẫu bảng kết quả
 
@@ -138,5 +143,73 @@ mà NDCG giảm không đáng kể.
 
 - Dữ liệu mô phỏng; hành vi người thật có thể khác. Thuộc tính ẩn, mô hình quyết định và mô hình click
   do nhóm thiết kế.
-- Trọng số được hiệu chỉnh trên mô phỏng, chưa học từ dữ liệu thật (hướng phát triển — 10, mục 10.5).
+- Cơ chế học trọng số (L1) chỉ được chứng minh trên mô phỏng; chưa có kết quả học từ người dùng thật.
 - Nhãn LLM chỉ là bổ sung; kết luận chính dựa trên đáp án từ thuộc tính ẩn.
+
+## 9.9. Trọng số: phân tích độ nhạy và thí nghiệm học (L1)
+
+Mục này trả lời hai câu hỏi về trọng số tự đặt: **kết quả có phụ thuộc mạnh vào con số cụ thể không**, và
+**nếu sai thì hệ thống có tự sửa được không** (cơ chế L1 — [12](./12-hoc-trong-so.md)).
+
+### 9.9.1. Phân tích độ nhạy (trên nửa kiểm tra)
+
+- Mỗi trọng số trong a, a′, b (dạng dàn phẳng) và các tham số giữ cố định (kernel, điểm thành phần, λ):
+  tăng / giảm **±25% và ±50%**, chuẩn hoá lại tổng, chạy lại V2-full.
+- Đo: NDCG@10, EA@10, và **Kendall τ** giữa top-10 mới và top-10 gốc.
+- Kết quả trình bày dạng biểu đồ "lốc xoáy" (tornado): tham số nào làm chỉ số đổi nhiều nhất.
+- Kỳ vọng: kết quả **ổn định** (τ cao, NDCG đổi ít) với đa số tham số — trọng số tự đặt không phải "điểm
+  may mắn". Tham số nhạy được nêu trong báo cáo và là ứng viên ưu tiên cho L1.
+
+### 9.9.2. Mô hình hành vi có "trọng số thật"
+
+Để kiểm tra L1 có học đúng hay không, mô hình hành vi của người dùng ảo (9.3) được viết sao cho **biết
+trước trọng số thật**:
+
+```
+Người tìm (phía a):  u = w* · x  +  ε                         (x = vector đặc trưng như hệ thống tính)
+                     P(hấp dẫn | x) = sigmoid(κ_u · (u − c_u))
+                     P(hành động) = P(nhìn tới vị trí k) × P(hấp dẫn) → xem / tym / gửi đơn theo ngưỡng
+Phía kia (phía b):   P(nhận) = sigmoid(β · z)                  (z = thành phần b dàn phẳng)
+```
+
+`w*` và `β` là tham số **ẩn** của bộ mô phỏng, khác với prior (ví dụ người dùng ảo coi giá quan trọng hơn,
+ngữ nghĩa ít hơn so với trọng số nhóm đặt). Hệ thống chỉ thấy phản hồi, không thấy `w*`, `β`.
+
+### 9.9.3. Giao thức
+
+- Vector đặc trưng **không phụ thuộc trọng số**, nên chạy backend một lần cho mọi truy vấn với
+  `log-candidate-limit = 200`, xuất `x`, thành phần b, Q, G từ log. Thí nghiệm học chạy trong Python trên dữ
+  liệu xuất này (nhanh, lặp được nhiều lần); điểm được tính lại đúng công thức 06.
+- Bản Python của `LinearBayesModel` và hàm `project` được đối chiếu với bản Java bằng một test dùng chung
+  dữ liệu (cùng đầu vào → cùng μ, cùng trọng số sau `project`) — để cơ chế được chứng minh **chính là** cơ
+  chế trong sản phẩm.
+- Mô phỏng tuần tự **T = 3 000 lần tìm**; cứ 100 lần tìm thì cập nhật một lần (giả lập job đêm); 10 hạt
+  giống ngẫu nhiên.
+
+| Cấu hình | Mô tả |
+|---|---|
+| **Fixed** | Luôn dùng prior (bản hiện tại) |
+| **LinTS-prior** | L1 xuất phát từ prior |
+| **LinTS-bad** | L1 xuất phát từ prior **cố tình đặt sai** (ví dụ đảo thứ tự quan trọng, hoặc chia đều) |
+| **Greedy** | Như LinTS-prior nhưng `ρ = 0` (không khám phá) |
+| **Oracle** | Dùng đúng `w*`, `β` — giới hạn trên |
+
+### 9.9.4. Chỉ số và biểu đồ
+
+| Chỉ số | Biểu đồ |
+|---|---|
+| **Regret tích luỹ** = Σ (phần thưởng kỳ vọng của Oracle − của cấu hình) | Đường theo số lần tìm; LinTS tăng chậm dần, Fixed tăng tuyến tính |
+| **Sai số trọng số** ‖w_t − w*‖₁ (sau khi chuẩn hoá) | Đường theo số lần tìm; quỹ đạo từng trọng số so với đường ngang `w*` |
+| NDCG@10 và EA@10 theo số lần tìm | Đường |
+| Phía b: log-loss / AUC dự đoán nhận so với `β` | Đường |
+| Số lần tìm cần để sai số trọng số < 0,05 | Bảng — con số "cần bao nhiêu dữ liệu" dùng khi bảo vệ |
+| Kiểm tra an toàn: không lần cập nhật nào vượt `max-step`, mọi trọng số trong biên kẹp | Bảng |
+
+Thêm một lượt **độ nhạy của L1**: κ ∈ {50, 200, 800}, ρ ∈ {0, 0,5, 1, 2}, có / không IPW.
+
+Giả thuyết (cần kiểm chứng): LinTS-prior có regret thấp hơn Fixed và Greedy; trọng số hội tụ về `w*`
+(trong giới hạn của biên kẹp); **LinTS-bad bắt kịp LinTS-prior** sau một số lần tìm; Greedy có thể mắc kẹt
+khi prior lệch nhiều.
+
+Hạn chế riêng: `w*`, `β` và mô hình click do nhóm đặt; nếu `w*` nằm ngoài biên kẹp quanh prior thì L1 chỉ
+tới được biên — điều này được trình bày như một **đánh đổi có chủ đích** giữa an toàn và tốc độ học.

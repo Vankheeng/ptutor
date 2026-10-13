@@ -36,10 +36,11 @@
 | `saved-search.max-per-user` | 5 | 05, 5.6 |
 | `parse-query.enabled` / `timeout-ms` / `cache-hours` / `cache-size` | true / 3 000 / 24 / 500 | 05, 5.4 |
 | `enrichment.min-confidence` / `max-attempts` / `timeout-ms` / `batch-size` / `worker-interval-ms` | 0,6 / 5 / 25 000 / 5 / 30 000 | 04 |
+| `learning.enabled` / `models.<key>.mode` / `prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` | true / `SHADOW` / 200 / 1,0 / 0,5 / 2,0 / 0,05 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng và mẫu phía b) |
 | `algorithm-version` | `v2.1-rc` (trước Bước 8: `v2.1-a`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,
-`proactive`. Dùng để chạy ablation (09) và tắt nhanh khi demo gặp sự cố.
+`proactive`, `learning`. Dùng để chạy ablation (09) và tắt nhanh khi demo gặp sự cố.
 
 ## 10.2. AI service
 
@@ -87,13 +88,20 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
   viên sau mỗi pha.
 - Số job `ai_enrichment_jobs` theo trạng thái; cảnh báo khi `FAILED` tăng.
 - Màn hình admin (tuỳ chọn): xem một lần tìm với đủ a, b, Q, G, `f_hist` của từng ứng viên.
+- L1: sau mỗi lần chạy `WeightLearningJob` ghi log số mẫu mới, trọng số trước / sau, khoảng cách tới prior,
+  kết quả đánh giá so với prior và việc có kích hoạt hay không; mức `WARN` khi một trọng số chạm biên kẹp
+  nhiều đêm liền (dấu hiệu prior lệch xa hoặc dữ liệu bất thường) hoặc khi job lỗi.
 
 ## 10.5. Hướng phát triển
 
 ### Mô hình học từ dữ liệu (learning-to-rank)
 
-Giai đoạn này dùng **trọng số khởi đầu lạnh**, hiệu chỉnh trên dữ liệu mô phỏng. Khi có dữ liệu thật,
-thay trọng số bằng mô hình học — **giữ nguyên cấu trúc** `R = 2ab/(a+b)`, `× Q × G`, chỉ thay cách tính
+> Từ 13/10/2026, **học trọng số tuyến tính trực tuyến đã thuộc phạm vi đồ án** (L1, [12](./12-hoc-trong-so.md)):
+> trọng số tự đặt là prior, contextual bandit / hồi quy Bayes tự tinh chỉnh. Mục này giữ lại cho bước tiếp
+> theo — mô hình phi tuyến (LightGBM LambdaMART) khi đủ dữ liệu, huấn luyện trên chính log của L1.
+
+Giai đoạn này dùng **trọng số khởi đầu lạnh** làm prior cho L1. Khi có nhiều dữ liệu thật,
+thay phần gộp tuyến tính bằng mô hình học — **giữ nguyên cấu trúc** `R = 2ab/(a+b)`, `× Q × G`, chỉ thay cách tính
 a và b:
 
 | Mô hình | Dự đoán | Dữ liệu huấn luyện | Khi nào có |
@@ -138,3 +146,7 @@ tuyển dụng (11, mục 11.4).
 8. Lưu tìm kiếm + C7 (`MatchAlertWorker`).
 9. A2 (`/parse-query`, tự điền bộ lọc).
 10. Dữ liệu mô phỏng và đánh giá (có thể bắt đầu song song từ bước 3).
+11. L1 (12): (a) chuyển hằng số viết cứng vào `RecommendationSettings` + `WeightProvider` trả prior — kết quả
+    không đổi; (b) migration bảng trọng số và snapshot, ghi snapshot khi tạo đơn, bổ sung log;
+    (c) `LinearBayesModel` + `WeightLearningJob` + chế độ `SHADOW`/`ACTIVE`; (d) thí nghiệm học trên mô
+    phỏng (09, mục 9.9); (e) API quản trị (tuỳ chọn).

@@ -21,8 +21,14 @@ flowchart LR
         RELAX["RelaxationService (C6)"]
         REF["SessionRefineService (B5)"]
         EXPL["ExplanationBuilder"]
-        LOG["RecommendationLogger"]
+        LOG["RecommendationLogger<br/>(kèm trọng số đã dùng)"]
         JOBS["Job nền:<br/>EnrichmentWorker (A1) · EmbeddingWorker<br/>MatchAlertWorker (C7) · RerankPrefetchJob<br/>ProfileUpdater (H1) · AggregateRefreshJob (P1)<br/>ExposureStatsJob (R6)"]
+        subgraph L1["Học trọng số (L1)"]
+            WP["WeightProvider<br/>(trọng số đang dùng, giữ trong bộ nhớ,<br/>chưa có bản học → prior)"]
+            LEARN["WeightLearningJob<br/>(mỗi đêm: LinearBayesModel)"]
+            SNAP["DecisionSnapshotRecorder"]
+        end
+        REQ["StudentTutorRequestService<br/>TutorStudentRequestService (sẵn có)"]
         AIC["AiServiceClient<br/>(HTTP, timeout, dự phòng)"]
     end
 
@@ -40,6 +46,12 @@ flowchart LR
     ORC --> CAND & FEAT & WILL & RANK & EXP & RELAX & EXPL & LOG
     API --> REF
     CAND & FEAT & WILL & LOG & JOBS --> DB
+    WP -->|"trọng số a, a′"| FEAT
+    WP -->|"trọng số b, b′"| WILL
+    REQ -->|"tạo đơn / đề nghị"| SNAP --> DB
+    LEARN -->|"đọc log, click, snapshot, đơn,<br/>ghi version trọng số mới"| DB
+    LEARN -.->|"LearnedWeightsUpdatedEvent"| WP
+    DB -.->|"nạp bản is_active<br/>(khởi động + khi có event)"| WP
     ORC & JOBS --> AIC --> EMB & RR & ENR & PQ
     ENR & PQ --> LLM
     JOBS -->|"RECOMMENDATION_MATCH_FOUND"| UI3
@@ -50,6 +62,9 @@ Nguyên tắc:
   trạng thái (văn bản → vector / điểm / JSON).
 - **AI service không mở ra Internet**; chỉ backend gọi, kèm header bí mật dùng chung.
 - **Mọi lời gọi AI service có timeout và dự phòng**; AI service chết thì chất lượng giảm, không lỗi.
+- **Trọng số là dữ liệu, không phải code** (L1, 12): `RecommendationSettings` giữ prior và giới hạn; bản học
+  được nằm trong `recommendation_learned_weights`; `WeightProvider` là nơi duy nhất các calculator hỏi trọng
+  số. Lỗi hoặc tắt L1 → quay về prior, không ảnh hưởng tìm kiếm.
 
 ## 2.2. Hai loại luồng
 
@@ -63,7 +78,8 @@ Nguyên tắc:
 | `EmbeddingWorker` | Ghép văn bản, gọi `/embed`, ghi vector của tin đăng / hồ sơ |
 | Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
 | Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
-| Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian) |
+| Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian); 20:30 UTC: `WeightLearningJob` cập nhật trọng số học được (L1, 12) |
+| Tạo đơn / đề nghị | `DecisionSnapshotRecorder` ghi ảnh chụp các thành phần b của cặp (L1, 12.6) |
 
 Chi tiết hàng đợi (`ai_enrichment_jobs`):
 - **Ghi job** bằng `INSERT … ON CONFLICT … DO UPDATE` trên index duy nhất của job đang mở: sửa nhiều lần chỉ
@@ -105,15 +121,46 @@ sequenceDiagram
     API->>AI: /embed văn bản nhu cầu (có cache)
     API->>DB: Lọc cứng + lấy ứng viên theo vector
     API->>DB: Đặc trưng, lịch sử quyết định, cache rerank
+    API->>API: Lấy trọng số từ WeightProvider (trong bộ nhớ, không truy vấn DB.<br/>L1 ACTIVE: mẫu Thompson theo người dùng + ngày)
     API->>API: Tính a, b, R, Q, G → xếp hạng sơ bộ
     opt Top-20 chưa có rerank
         API->>AI: /rerank (lô 4 cặp, ngân sách 4 000 ms)
     end
     API->>API: Xếp lại, slot khám phá, lý do khớp, (nới tiêu chí nếu ít kết quả)
-    API->>DB: Ghi recommendation_logs
+    API->>DB: Ghi recommendation_logs (kèm đặc trưng và trọng số đã dùng)
     API-->>U: Danh sách + lý do + gợi ý nới + logId
     U->>API: Xem / tym / bỏ qua → /events, /refine (B5)
 ```
+
+### Vòng học trọng số (L1)
+
+```mermaid
+sequenceDiagram
+    participant U as Người dùng
+    participant API as Backend (tìm kiếm, đơn)
+    participant DB as PostgreSQL
+    participant J as WeightLearningJob
+    participant W as WeightProvider
+
+    Note over W: Khởi động: nạp bản is_active của 4 mô hình<br/>(chưa có → prior từ RecommendationSettings)
+    U->>API: Tìm kiếm
+    API->>W: Lấy trọng số
+    API->>DB: Ghi log (đặc trưng + trọng số đã dùng)
+    U->>API: Xem / tym / liên hệ / bỏ qua
+    API->>DB: recommendation_click_logs
+    U->>API: Gửi đơn / đề nghị
+    API->>DB: Đơn + ảnh chụp thành phần b (DecisionSnapshotRecorder)
+    Note over U,DB: Phía kia nhận / từ chối → cập nhật trạng thái đơn
+    Note over J: Mỗi đêm 20:30 UTC
+    J->>DB: Đọc bản mới nhất (A, c, trained_until)
+    J->>DB: Đọc dữ liệu mới: log ≥ 7 ngày tuổi + click + đơn (phía a),<br/>snapshot + quyết định (phía b)
+    J->>J: Cập nhật A, c → μ → kẹp, giới hạn bước, chuẩn hoá<br/>→ đánh giá với prior trên 7 ngày cuối
+    J->>DB: Chèn version mới, đủ điều kiện thì đặt is_active
+    J-->>W: LearnedWeightsUpdatedEvent
+    W->>DB: Nạp lại bản is_active
+```
+
+Chi tiết: [12](./12-hoc-trong-so.md), mục 12.7–12.9.
 
 ## 2.3. Ngân sách độ trễ (mục tiêu p95)
 
@@ -137,15 +184,16 @@ backend/src/main/java/com/ptutor/backend/
   controller/  RecommendationController, SavedSearchController
   service/     RecommendationService, QueryContextBuilder, FeatureCalculator, WillingnessCalculator,
                Ranker, ExplorationSelector, RelaxationService, SessionRefineService,
-               ExplanationBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService
+               ExplanationBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService,
+               WeightProvider, LinearBayesModel, DecisionSnapshotRecorder (L1)
   scheduler/   EnrichmentWorker, EmbeddingWorker, MatchAlertWorker, RerankPrefetchJob,
-               ProfileUpdater, AggregateRefreshJob, ExposureStatsJob
+               ProfileUpdater, AggregateRefreshJob, ExposureStatsJob, WeightLearningJob (L1)
   client/      AiServiceClient (gói mới nếu repo chưa có chỗ phù hợp)
-  repository/  CandidateRepository (native SQL), …
-  entity/      các bảng mới (03, mục 3.4)
+  repository/  CandidateRepository (native SQL), LearningDataRepository (L1), …
+  entity/      các bảng mới (03, mục 3.4 và 3.6)
   dto/         request/response của endpoint (08); model tính toán nội bộ (QueryContext, Candidate,
                FeatureVector, ScoredCandidate, …) đặt trong dto/ hoặc gói con riêng của tính năng
-  event/       sự kiện kích hoạt tính lại điểm (01, mục 1.5)
+  event/       sự kiện kích hoạt tính lại điểm (01, mục 1.5); LearnedWeightsUpdatedEvent (L1)
 ```
 
 ```

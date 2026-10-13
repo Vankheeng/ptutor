@@ -24,6 +24,10 @@ cross-encoder, dành chỗ cho người ít được hiển thị, **cá nhân h
 nhiều phiên), gợi ý cách nới tiêu chí khi ít kết quả, và **chủ động thông báo** khi xuất hiện ghép đôi tốt
 cho tin đăng hoặc tìm kiếm đã lưu của người dùng.
 
+Trọng số gộp do nhóm đặt là **điểm xuất phát (prior)**: khi vận hành, hệ thống **tự tinh chỉnh trọng số**
+từ phản hồi — contextual bandit (Linear Thompson Sampling) cho phía người tìm, hồi quy Bayes trực tuyến cho
+phía đồng ý — có giới hạn an toàn và chế độ chạy ngầm; cơ chế học được kiểm chứng trên dữ liệu mô phỏng (L1).
+
 ## Các hướng được chọn
 
 | Mã | Hướng | Tài liệu |
@@ -40,8 +44,9 @@ cho tin đăng hoặc tìm kiếm đã lưu của người dùng.
 | C6 | Gợi ý nới tiêu chí | [07](./07-tuong-tac-va-chu-dong.md) |
 | C7 | Chủ động thông báo + lưu tìm kiếm | [07](./07-tuong-tac-va-chu-dong.md), [05](./05-dau-vao-tim-kiem.md) |
 | D9 | Đánh giá bằng dữ liệu mô phỏng có đáp án ẩn | [09](./09-danh-gia.md) |
+| L1 | Học trọng số trực tuyến (contextual bandit, trọng số tự đặt làm prior) | [12](./12-hoc-trong-so.md), [09](./09-danh-gia.md) |
 
-Tuỳ chọn: C8 (lý do khớp do LLM viết). Hướng phát triển: mô hình học từ dữ liệu (learning-to-rank), xếp
+Tuỳ chọn: C8 (lý do khớp do LLM viết). Hướng phát triển: learning-to-rank đầy đủ (LightGBM), xếp
 hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: collaborative filtering. Lý do ở
 [01](./01-pham-vi-va-quyet-dinh.md).
 
@@ -58,6 +63,7 @@ hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: c
 9. [Đánh giá](./09-danh-gia.md)
 10. [Vận hành, tham số và hướng phát triển](./10-van-hanh-va-huong-phat-trien.md)
 11. [Cơ sở lý thuyết và công trình liên quan](./11-co-so-ly-thuyet.md)
+12. [L1 — Học trọng số trực tuyến](./12-hoc-trong-so.md)
 
 ## Thuật ngữ
 
@@ -74,3 +80,5 @@ hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: c
 | Q | Điểm chất lượng tĩnh của gia sư = `tutors.recommendation_score / 100` |
 | G | Hệ số chặn mềm |
 | `f_hist`, `w_hist` | Đặc trưng lịch sử hành vi và trọng số tăng dần của nó |
+| Prior | Trọng số nhóm tự đặt — điểm xuất phát và mốc giới hạn của L1 |
+| `WeightProvider` | Thành phần trả trọng số đang dùng: bản học được nếu có, nếu không thì prior (12) |

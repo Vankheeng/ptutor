@@ -226,3 +226,21 @@ giai đoạn này.
 Mặc định dùng câu mẫu (06, mục 6.13). Nếu còn thời gian: chỉ cho top-5, gửi LLM các thành phần
 điểm và tên tag (không gửi văn bản tự do của người dùng), cache theo (mã băm nhu cầu, ứng viên,
 model), gọi bất đồng bộ — trả câu mẫu trước, thay bằng câu LLM khi có.
+
+## 7.6. Quan hệ với L1 (học trọng số)
+
+Các tín hiệu ở chương này còn được L1 dùng làm phần thưởng ([12](./12-hoc-trong-so.md), mục 12.4). Ba điểm
+cần phân biệt:
+
+| | H1 / B5 (chương này) | L1 |
+|---|---|---|
+| Học cái gì | Sở thích **của từng người** (vector, tag ưa thích) | Trọng số gộp **chung** của một chiều tìm kiếm |
+| Thang tín hiệu | H1: xem 1, tym 2, liên hệ / gửi đơn 3, được nhận 4, bỏ qua −2 | Xem 0,3, tym 0,6, liên hệ 0,8, gửi đơn 1,0, bỏ qua −0,2 — chỉ hành động của người tìm; "được nhận" thuộc phía b |
+| Khi nào cập nhật | H1: hằng đêm và theo sự kiện; B5: ngay trong phiên | Hằng đêm, theo lô |
+
+Hai thang tín hiệu là **định nghĩa**, cố định, không được học (12, mục 12.2). Cá nhân hoá vẫn do H1 và B5 đảm
+nhận; L1 chỉ chỉnh mức quan trọng chung của từng đặc trưng.
+
+**C7 và L1:** để dùng tín hiệu tuỳ chọn "bấm vào thông báo ghép đôi" (12.4), thông báo cần mang mã alert
+(`recommendation_match_alerts.id`) trong đường dẫn để sự kiện truy được về thông báo. Hiện thông báo chưa mang
+mã này; tín hiệu để tắt (`rewards.alert-click = false`) cho tới khi bổ sung.

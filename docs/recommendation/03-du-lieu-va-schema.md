@@ -1,6 +1,6 @@
 # 3. Dữ liệu và schema bổ sung
 
-Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V27` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V28` (dữ liệu cho đề xuất, mục 3.4).
+Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V27` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V28` (dữ liệu cho đề xuất, mục 3.4); `V30` (dự kiến — học trọng số L1, mục 3.6) thiết kế ngày 13/10/2026, chưa tạo file.
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
@@ -341,3 +341,10 @@ WHERE t.id = x.id AND t.deleted_at IS NULL;
 trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (gần đúng), và để `NULL` khi gia sư chưa
 quyết định đơn nào (`LEAST` của PostgreSQL bỏ qua `NULL` nên phải bọc `CASE`, nếu không sẽ thành 9999,99).
 Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) được tính là 0 nhờ `GREATEST(…, 0)`.
+
+## 3.6. Migration V30 — học trọng số (L1)
+
+Hai bảng mới: `recommendation_learned_weights` (mỗi lần cập nhật một dòng, có version, thống kê A, c và
+cờ `is_active`) và `recommendation_decision_snapshots` (ảnh chụp thành phần b khi đơn / đề nghị được tạo).
+SQL đầy đủ và các trường bổ sung vào `recommendation_logs` ở 12, mục 12.8. Số migration kiểm tra lại với
+`dev` trước khi tạo file.

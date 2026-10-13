@@ -32,7 +32,8 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | C7 Chủ động thông báo | Chọn, **kèm "lưu tìm kiếm"** | Người không có tin đăng vẫn nhận được thông báo |
 | D9 Đánh giá mô phỏng | Chọn | Thiếu dữ liệu thật |
 | C8 Lý do do LLM viết | Tuỳ chọn | |
-| Mô hình học từ dữ liệu (learning-to-rank) | **Hoãn — hướng phát triển** | Chưa có dữ liệu thật. Giai đoạn này dùng trọng số thiết lập cho khởi đầu lạnh, hiệu chỉnh trên dữ liệu mô phỏng; log và slot khám phá được chuẩn bị sẵn (10, mục 10.5) |
+| **L1 Học trọng số trực tuyến** | **Chọn** (quyết định 13/10/2026) | Trọng số tự đặt thành prior; contextual bandit (phía a) và hồi quy Bayes (phía b) tự tinh chỉnh khi có dữ liệu; mặc định chế độ `SHADOW`; chứng minh cơ chế trên mô phỏng (12; 09, mục 9.9) |
+| Learning-to-rank đầy đủ (LightGBM) | **Hoãn — hướng phát triển** | Cần nhiều dữ liệu thật; dùng lại log của L1 (10, mục 10.5) |
 | Ghép đôi thành công lâu dài | Hoãn | Cần nhiều hợp đồng đã kết thúc |
 | Gale–Shapley toàn cục | Hoãn | Nặng; bản chống dồn đơn giản đủ ở quy mô đồ án |
 | Collaborative filtering | Loại | Dữ liệu tương tác quá thưa |

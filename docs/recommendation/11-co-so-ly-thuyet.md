@@ -18,7 +18,8 @@ huấn luyện sẵn** cho phần hiểu văn bản (`bge-m3`, `bge-reranker-v2-
 Sở thích của mỗi người được học từ những người họ đã liên hệ; tính điểm hai chiều riêng rẽ, gộp bằng
 **trung bình điều hoà**. Không cần huấn luyện mô hình, phù hợp khi ít dữ liệu.
 
-→ Áp dụng: điểm b học từ lịch sử nhận/từ chối của gia sư (06, mục 6.6); công thức `R = 2ab/(a+b)`.
+→ Áp dụng: thành phần `b_hist` ước lượng từ lịch sử nhận/từ chối của gia sư (06, mục 6.6); công thức
+`R = 2ab/(a+b)`.
 
 **Palomares, Porcel, Pizzato, Guy, Herrera-Viedma (2020/2021), "Reciprocal Recommender Systems:
 Analysis of State-of-Art Literature, Challenges and Opportunities towards Social Recommendation".**
@@ -63,25 +64,59 @@ bản tự do tiếng Việt bằng LLM/embedding, thích ứng theo hành vi, v
 Các nền tảng gia sư thương mại có chức năng ghép nhưng không công bố thuật toán; một số cách làm chỉ
 xuất hiện dưới dạng bằng sáng chế, không dùng làm căn cứ học thuật.
 
-## 11.6. Các kỹ thuật khác được dùng
+## 11.6. Contextual bandit — cơ sở cho L1
+
+**Bài toán bandit** là dạng đơn giản nhất của học tăng cường: mỗi lượt, tác tử chọn một hành động, nhận
+phần thưởng, không có trạng thái chuyển tiếp (Sutton & Barto, 2018, chương 2). Khó khăn cốt lõi là
+**cân bằng khai thác – khám phá**: dùng lựa chọn đang tốt nhất hay thử lựa chọn chưa chắc chắn.
+**Contextual bandit** thêm ngữ cảnh: phần thưởng phụ thuộc vào đặc trưng của lượt đó.
+
+**Li, Chu, Langford, Schapire (2010), "A Contextual-Bandit Approach to Personalized News Article
+Recommendation", WWW.** Đặt bài toán gợi ý tin tức là contextual bandit với phần thưởng tuyến tính theo
+đặc trưng (LinUCB); thử nghiệm trên Yahoo! Front Page. Là công trình nền tảng đưa bandit vào hệ gợi ý.
+
+**Agrawal & Goyal (2013), "Thompson Sampling for Contextual Bandits with Linear Payoffs", ICML.** Linear
+Thompson Sampling: giữ phân phối hậu nghiệm Gauss của vector trọng số, mỗi lượt rút một mẫu và hành động
+theo mẫu đó; chứng minh cận regret. **Chapelle & Li (2011)** cho thấy Thompson sampling tốt ngang hoặc hơn
+UCB trên dữ liệu quảng cáo và tin tức, và chịu được phản hồi trễ / cập nhật theo lô.
+
+**Joachims, Swaminathan, Schnabel (2017), "Unbiased Learning-to-Rank with Biased Feedback", WSDM.** Click
+bị thiên lệch theo vị trí; dùng trọng số nghịch đảo xác suất được nhìn (IPW) để ước lượng không chệch.
+
+**Yue & Joachims (2009), "Interactively Optimizing Information Retrieval Systems as a Dueling Bandits
+Problem", ICML.** Học trọng số của bộ xếp hạng tuyến tính từ so sánh click giữa hai danh sách trộn
+(interleaving) — phương án thay thế cho L1, không chọn vì phức tạp khi hiển thị và hội tụ chậm hơn (12,
+mục 12.12).
+
+→ Áp dụng (L1, [12](./12-hoc-trong-so.md)): vector đặc trưng a là ngữ cảnh; trọng số tự đặt là **trung
+bình của prior Gauss**; Linear Thompson Sampling cho phía người tìm (phản hồi phụ thuộc thứ tự hiển thị nên
+cần khám phá); hồi quy Bayes trực tuyến cho phía đồng ý (nhãn nhận / từ chối không phụ thuộc vị trí); IPW
+và slot khám phá để giảm thiên lệch vị trí. Khác các công trình trên: hành động ở đây là **chọn bộ trọng
+số cho cả danh sách**, có kẹp quanh prior và giới hạn bước để an toàn.
+
+## 11.7. Các kỹ thuật khác được dùng
 
 | Kỹ thuật | Dùng ở | Ghi chú |
 |---|---|---|
 | Bi-encoder embedding + cross-encoder rerank | R3 | Mô hình huấn luyện sẵn `bge-m3`, `bge-reranker-v2-m3` (BAAI) |
 | Phản hồi liên quan Rocchio | B5 | Kỹ thuật kinh điển trong truy hồi thông tin |
-| Thompson sampling | R6 | Cân bằng khai thác/khám phá |
+| Thompson sampling | R6, L1 | Cân bằng khai thác/khám phá (Beta cho slot khám phá; Linear TS cho trọng số) |
+| Hồi quy tuyến tính Bayes trực tuyến | L1 | Prior = trọng số tự đặt; cập nhật bằng thống kê đủ |
 | Làm trơn Bayes | b, `recommendation_score` | Tránh đánh giá sai khi ít dữ liệu |
 | Chuẩn hoá có schema bằng LLM | A1, A2 | LLM chỉ trích xuất, đầu ra luôn được kiểm tra |
 
-## 11.7. Cách mô tả trong báo cáo
+## 11.8. Cách mô tả trong báo cáo
 
 > Hệ gợi ý hai chiều **dựa trên nội dung theo hướng RECON**, tính riêng hai chiều và gộp bằng trung
 > bình điều hoà; bổ sung **cơ chế chống dồn đơn đơn giản** lấy cảm hứng từ Su và cộng sự (2022); dùng
 > **LLM và embedding để hiểu văn bản tự do tiếng Việt**; **thích ứng theo hành vi** trong phiên
-> (Rocchio) và dài hạn (hồ sơ sở thích). Trọng số được thiết lập cho giai đoạn khởi đầu lạnh và hiệu
-> chỉnh trên dữ liệu mô phỏng; hướng phát triển là học trọng số từ dữ liệu theo Goda và cộng sự (2024).
+> (Rocchio) và dài hạn (hồ sơ sở thích). Trọng số do nhóm thiết lập đóng vai trò **prior cho giai đoạn
+> khởi đầu lạnh**; khi vận hành, hệ thống **tự tinh chỉnh trọng số bằng contextual bandit** (Linear
+> Thompson Sampling — Agrawal & Goyal, 2013) cho phía người tìm và **hồi quy Bayes trực tuyến** cho phía
+> đồng ý; cơ chế học được kiểm chứng trên dữ liệu mô phỏng có đáp án ẩn. Hướng phát triển là mô hình
+> phi tuyến học từ dữ liệu theo Goda và cộng sự (2024).
 
-## 11.8. Tài liệu tham khảo
+## 11.9. Tài liệu tham khảo
 
 - Pizzato, L. và cộng sự (2010). RECON: A Reciprocal Recommender for Online Dating. RecSys.
   https://ls13-www.cs.tu-dortmund.de/homepage/ITWP2010/papers/ReciprocalRecommender.pdf
@@ -98,3 +133,14 @@ xuất hiện dưới dạng bằng sáng chế, không dùng làm căn cứ h�
 - Xia, P. và cộng sự. Reciprocal Recommendation System for Online Dating (RCF).
   https://arxiv.org/abs/1501.06247
 - Tham khảo cài đặt RECON (Python, MIT): https://github.com/m-ochi/recon
+- Li, L., Chu, W., Langford, J., Schapire, R. E. (2010). A Contextual-Bandit Approach to Personalized News
+  Article Recommendation. WWW. https://arxiv.org/abs/1003.0146
+- Agrawal, S., Goyal, N. (2013). Thompson Sampling for Contextual Bandits with Linear Payoffs. ICML.
+  https://arxiv.org/abs/1209.3352
+- Chapelle, O., Li, L. (2011). An Empirical Evaluation of Thompson Sampling. NeurIPS.
+- Joachims, T., Swaminathan, A., Schnabel, T. (2017). Unbiased Learning-to-Rank with Biased Feedback. WSDM.
+  https://arxiv.org/abs/1608.04468
+- Lattimore, T., Szepesvári, C. (2020). Bandit Algorithms. Cambridge University Press.
+- Sutton, R. S., Barto, A. G. (2018). Reinforcement Learning: An Introduction (2nd ed.), chương 2. MIT Press.
+- Yue, Y., Joachims, T. (2009). Interactively Optimizing Information Retrieval Systems as a Dueling Bandits
+  Problem. ICML.

@@ -21,6 +21,7 @@ QueryContext (bộ lọc + câu tự nhiên + hồ sơ người tìm [+ tin đă
   │           b  = khả năng phía kia đồng ý          (6.6, gồm chống dồn B4)
   │           R  = 2ab / (a + b)                     (6.7, reciprocal R1)
   │           score = R × (0.7 + 0.3·Q) × G          (6.8, cấu trúc nhân R2)
+  │           (trọng số gộp của a, b lấy từ WeightProvider — prior hoặc bản học được, L1 — 12)
   ├─ Pha 4  Rerank top-20 bằng cross-encoder (R3)   (6.9)
   ├─ Pha 5  Gộp theo người, chèn slot khám phá (R6) (6.10, 6.11)
   └─ Pha 6  Sinh lý do khớp, ghi log                (6.13)
@@ -208,8 +209,12 @@ Người mới: `w_hist = 0`, không bị ảnh hưởng. Người có ≥ 10 t�
 
 Lý do chọn trọng số: ngữ nghĩa lớn nhất vì gom nhiều thông tin nhất; nhu cầu và giá là hai điều
 kiện học sinh quan tâm trực tiếp; phong cách và lịch thường thiếu dữ liệu nên vừa phải; khu vực
-và đối tượng đã được lọc/ước lượng thô nên nhỏ. Đây là **trọng số cho giai đoạn khởi đầu lạnh**,
-được hiệu chỉnh trên dữ liệu mô phỏng (09); học trọng số từ dữ liệu thật là hướng phát triển (10).
+và đối tượng đã được lọc/ước lượng thô nên nhỏ. Đây là **trọng số cho giai đoạn khởi đầu lạnh**.
+
+**Từ L1 (13/10/2026):** bảng trên là **prior**. Trọng số thực sự dùng do `WeightProvider` cung cấp: bản học
+được (mô hình `A_S2T`) khi L1 ở chế độ `ACTIVE`, nếu không thì đúng các giá trị trên. Bản học được bị kẹp
+trong `[0,5×; 2×]` giá trị prior và chuẩn hoá tổng bằng 1. `w_hist` vẫn theo quy tắc tăng dần ở dưới. Chi tiết:
+[12](./12-hoc-trong-so.md).
 
 ## 6.5. Quy tắc khi thiếu dữ liệu
 
@@ -234,10 +239,16 @@ gợi ý chính xác hơn".
 b = (0.5·b_hist + 0.5·b_fit) × b_cap
 ```
 
+`b_hist` là **ước lượng tỉ lệ nhận có làm trơn Bayes**: giá trị tự cập nhật khi gia sư nhận / từ chối thêm
+đơn, nhưng các trọng số (0,5 / 0,5 ở trên, kernel 0,5 / 0,3 / 0,2, α, p0) do nhóm đặt. Từ L1, tỉ lệ
+`0,5·b_hist + 0,5·b_fit` được viết dạng dàn phẳng `0,5·b_hist + 1/6·fit_segment + 1/6·fit_sched +
+1/6·fit_price` và 4 trọng số này được học từ quyết định nhận / từ chối (mô hình `B_S2T`, 12, mục 12.6);
+kernel và `b_cap` giữ cố định (12, mục 12.2).
+
 **Ngoại lệ:** học sinh có tin học `OPEN` và gia sư **đã chủ động gửi đề nghị** (`tutor_student_requests`
 `PENDING`) vào tin đó → `b = 1`.
 
-### `b_hist` — học từ lịch sử quyết định của gia sư (theo RECON)
+### `b_hist` — ước lượng từ lịch sử quyết định của gia sư (theo RECON)
 
 D = các đơn học sinh gửi tới **mọi tin dạy** của gia sư, trạng thái `ACCEPTED`/`REJECTED`, 180 ngày.
 
@@ -414,6 +425,9 @@ b′_cap  = 1 / (1 + 0.5·n);  n = đề nghị PENDING vào sr   (mỗi tin h�
 ```
 
 Ngoại lệ: học sinh đã gửi đơn `PENDING` vào một tin dạy `OPEN` của chính gia sư này → `b′ = 1`.
+
+Từ L1: trọng số a′ (mô hình `A_T2S`) và dạng dàn phẳng của b′ — `0,5·b′_hist + 0,20·Q + 0,15·f_style +
+0,15·f_price` (mô hình `B_T2S`) — là prior và được học như chiều S→T ([12](./12-hoc-trong-so.md)).
 
 **Điểm cuối:** `score′ = R′ × G′` (không có hệ số chất lượng cho học sinh). Rerank, gộp (theo học
 sinh), slot khám phá dùng lại y nguyên.
