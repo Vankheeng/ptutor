@@ -31,8 +31,6 @@ ALTER TABLE wallet_transactions
         ))
     );
 
--- The full list is redeclared. RECOMMENDATION_MATCH_FOUND belongs to the recommendation
--- migrations (V28) and is kept here so this script is valid whether or not they ran first.
 ALTER TABLE notifications
     DROP CONSTRAINT IF EXISTS ck_notifications_event_type;
 
@@ -52,7 +50,6 @@ ALTER TABLE notifications
             'COMPLAINT_EVIDENCE_REQUESTED', 'COMPLAINT_RESOLVED', 'COMPLAINT_REJECTED',
             'ACCOUNT_SUSPENDED', 'ACCOUNT_REACTIVATED',
             'LESSON_MARKED_TAUGHT', 'LESSON_CANCELLED',
-            'WITHDRAWAL_REVIEW_REQUIRED',
-            'RECOMMENDATION_MATCH_FOUND'
+            'WITHDRAWAL_REVIEW_REQUIRED'
         )
     );
