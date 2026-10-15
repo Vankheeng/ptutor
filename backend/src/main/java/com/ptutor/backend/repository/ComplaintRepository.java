@@ -13,6 +13,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.ptutor.backend.entity.Complaint;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 
 import jakarta.persistence.LockModeType;
@@ -39,6 +41,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
             from Complaint complaint
             where (:status is null or complaint.status = :status)
               and (:contractId is null or complaint.contract.id = :contractId)
+              and (:category is null or complaint.category = :category)
+              and (:faultParty is null or complaint.faultParty = :faultParty)
               and (:keyword = ''
                    or lower(complaint.title) like lower(concat('%', :keyword, '%'))
                    or lower(complaint.user.email) like lower(concat('%', :keyword, '%'))
@@ -50,6 +54,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
                     from Complaint complaint
                     where (:status is null or complaint.status = :status)
                       and (:contractId is null or complaint.contract.id = :contractId)
+                      and (:category is null or complaint.category = :category)
+                      and (:faultParty is null or complaint.faultParty = :faultParty)
                       and (:keyword = ''
                            or lower(complaint.title) like lower(concat('%', :keyword, '%'))
                            or lower(complaint.user.email) like lower(concat('%', :keyword, '%'))
@@ -59,6 +65,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
     Page<Complaint> findAllForReview(
             @Param("status") ComplaintStatus status,
             @Param("contractId") UUID contractId,
+            @Param("category") ComplaintCategory category,
+            @Param("faultParty") ComplaintFaultParty faultParty,
             @Param("keyword") String keyword,
             Pageable pageable);
 
