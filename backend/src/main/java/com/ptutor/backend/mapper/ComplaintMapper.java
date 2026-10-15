@@ -17,5 +17,6 @@ public interface ComplaintMapper {
     @Mapping(target = "evidences", source = "evidenceResponses")
     ComplaintResponse toResponse(Complaint complaint, List<ComplaintResponse.Evidence> evidenceResponses);
 
+    @Mapping(target = "uploadedByUserId", source = "uploadedBy.id")
     ComplaintResponse.Evidence toEvidenceResponse(Evidence evidence);
 }

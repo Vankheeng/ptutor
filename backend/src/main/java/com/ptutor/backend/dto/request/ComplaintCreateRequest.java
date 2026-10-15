@@ -3,6 +3,8 @@ package com.ptutor.backend.dto.request;
 import java.util.List;
 import java.util.UUID;
 
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +13,8 @@ import jakarta.validation.constraints.Size;
 public record ComplaintCreateRequest(
         @NotNull(message = "Contract ID is required")
         UUID contractId,
+        @NotNull(message = "Category is required")
+        ComplaintCategory category,
 
         @NotBlank(message = "Title is required")
         @Size(max = 255, message = "Title must not exceed 255 characters")

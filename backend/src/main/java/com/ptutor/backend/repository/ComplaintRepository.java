@@ -64,6 +64,31 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     @EntityGraph(attributePaths = {
             "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
+            "contract.tutor.user"
+    })
+    @Query(value = """
+            select complaint
+            from Complaint complaint
+            where complaint.status in :statuses
+              and complaint.user.id <> :userId
+              and (complaint.contract.student.user.id = :userId
+                   or complaint.contract.tutor.user.id = :userId)
+            """,
+            countQuery = """
+                    select count(complaint)
+                    from Complaint complaint
+                    where complaint.status in :statuses
+                      and complaint.user.id <> :userId
+                      and (complaint.contract.student.user.id = :userId
+                           or complaint.contract.tutor.user.id = :userId)
+                    """)
+    Page<Complaint> findAllAgainstUser(
+            @Param("userId") UUID userId,
+            @Param("statuses") Collection<ComplaintStatus> statuses,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
             "contract.tutor.user", "employee", "employee.user"
     })
     @Query(value = """
