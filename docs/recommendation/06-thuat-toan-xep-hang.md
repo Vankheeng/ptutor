@@ -313,6 +313,73 @@ g_reject = 0.5 nếu gia sư đã từ chối học sinh này (bất kỳ tin n�
 
 Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ nên không cộng thêm thưởng chứng chỉ.
 
+### Điểm chất lượng `recommendation_score` và khiếu nại có lỗi (bổ sung 15/10/2026)
+
+Công thức hiện tại (`TutorRecommendationScoreService`, `v1`, thang 100):
+
+| Thành phần | Điểm tối đa | Cách tính |
+|---|---|---|
+| Đánh giá | 35 | Điểm trung bình làm trơn về 3,5 với độ tin cậy n/(n + 5), nhân 7 |
+| Hợp đồng hoàn thành | 20 | min(số hợp đồng `COMPLETED`, 20) |
+| Tỉ lệ nhận đơn | 15 | Theo `acceptance_rate`; chưa đủ 3 quyết định → 7,5 |
+| Tốc độ phản hồi | 10 | ≤ 1 giờ → 10; ≥ 48 giờ → 0; chưa có → 5 |
+| Kinh nghiệm | 10 | min(số học sinh đã dạy, 20) / 2 |
+| Xác minh | 10 | Hồ sơ `VERIFIED` 5 + có chứng chỉ được duyệt 5 |
+| Phạt bị khoá tài khoản | −15 | −5 mỗi lần bị khoá, tối đa −15 |
+| **Phạt khiếu nại có lỗi (mới, `v2`)** | **−20** | Dưới đây |
+
+**Phạt khiếu nại có lỗi.** Dựa trên kết luận có cấu trúc của tính năng xử lý khiếu nại
+(`complaints.fault_party`, `category`; nhánh `feat/complaint-structured-resolution`, migration `V28` của nhánh
+đó). Bên bị khiếu nại là bên còn lại của hợp đồng (`ComplaintParties.respondentOf`).
+
+```
+Khiếu nại c được tính cho gia sư T khi:
+  c.status = RESOLVED, c.resolved_at trong 365 ngày gần nhất, c.contract.tutor = T, và
+    (T là bên bị khiếu nại  — c.user ≠ T.user —  và c.fault_party ∈ {RESPONDENT, BOTH})
+  hoặc (T là người gửi      — c.user = T.user —  và c.fault_party ∈ {COMPLAINANT, BOTH})
+
+mức(c) = trọng số loại × (0,5 nếu BOTH, 1 nếu không)
+  trọng số loại (khi T là bên bị khiếu nại): ABSENCE 1,0 · LATE_OR_SHORT 0,5 · TEACHING_QUALITY 0,5
+                                             MISCONDUCT 1,5 · SERIOUS_MISCONDUCT 3,0 · OTHER / rỗng 1,0
+  khi T là người gửi mà có lỗi: 1,0 (loại do T chọn mô tả học sinh, không mô tả lỗi của T)
+
+W       = Σ mức(c)
+n       = số hợp đồng đã ký của T (ACTIVE, COMPLETED, CANCELLED; không tính PENDING, đã xoá)
+phạt_K  = min(20, 40 × W / (n + 5))
+score   = clamp(… − phạt_khoá − phạt_K, 0, 100)
+```
+
+| Ví dụ | W | n | phạt_K |
+|---|---|---|---|
+| 1 lần vắng mặt, gia sư mới | 1 | 0 | 8,0 |
+| 1 lần vắng mặt, gia sư 20 hợp đồng | 1 | 20 | 1,6 |
+| 3 lần vắng mặt trên 5 hợp đồng | 3 | 5 | 12,0 |
+| 1 lần vi phạm nghiêm trọng, gia sư mới | 3 | 0 | 20,0 (chạm trần) |
+
+Nguyên tắc:
+- **Chỉ khiếu nại đã được nhân viên kết luận gia sư có lỗi** mới bị tính. `PENDING`, `IN_REVIEW`,
+  `AWAITING_EVIDENCE`, `REJECTED`, `CANCELLED`, `fault_party = NONE` và khiếu nại kết luận trước khi có trường
+  `fault_party` (giá trị rỗng) **không** ảnh hưởng — tránh việc gửi khiếu nại để hạ thứ hạng đối thủ.
+- **Tỉ lệ có làm trơn Bayes** trên số hợp đồng (như cách làm trơn điểm đánh giá): một khiếu nại với gia sư
+  dạy nhiều nhẹ hơn với gia sư mới; prior "5 hợp đồng sạch".
+- Cửa sổ **365 ngày**: lỗi cũ hết tác dụng, gia sư có thể cải thiện. Job đêm tính lại toàn bộ nên điểm tự hồi
+  khi khiếu nại ra khỏi cửa sổ.
+- `category` là nhận định của người gửi; nhân viên kết luận lỗi sau khi xem minh chứng của hai bên, nên trọng
+  số loại được dùng nhưng có trần chung 20 điểm. Nếu sau này nhân viên được xác nhận / sửa loại khi kết luận,
+  dùng loại đã xác nhận.
+- Ghi vào `score_breakdown`: `complaintPenalty`, `faultComplaints` (số khiếu nại), `complaintWeight` (W);
+  `score_formula_version = v2`.
+- **Không hiển thị cho học sinh** dưới dạng lý do khớp hay lưu ý (thông tin xử lý khiếu nại là nội bộ); admin
+  xem qua `score_breakdown`.
+- Không thêm gate cứng: phạt qua Q (chỉ dịch điểm cuối ±15%) đủ nhẹ để công bằng; trường hợp nghiêm trọng
+  dùng cơ chế khoá tài khoản sẵn có — gia sư bị khoá không xuất hiện trong đề xuất.
+- **Tính lại ngay khi có kết luận:** `TutorRecommendationScoreEventListener` thêm `COMPLAINT_RESOLVED` và
+  `COMPLAINT_AGAINST_YOU_RESOLVED` vào nhóm sự kiện "tính lại nếu người nhận là gia sư" — `AdminComplaintService`
+  gửi hai thông báo này cho người gửi và bên bị khiếu nại, nên gia sư ở vai nào cũng được tính lại.
+- Truy vấn đếm đặt ở phía đề xuất (SQL riêng trong service / repository của tính năng đề xuất), không sửa
+  `ComplaintRepository` của tính năng khiếu nại.
+- Học sinh có lỗi: chưa có điểm chất lượng cho học sinh (chiều T→S không có Q) — để hướng phát triển (10).
+
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
 
 1. Sau pha 3, lấy **top-20**.

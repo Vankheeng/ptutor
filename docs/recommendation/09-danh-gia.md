@@ -35,6 +35,11 @@ trên phần kiểm tra.
 > 30% / không phủ nhu cầu chính; 1–3 theo mức phủ nhu cầu, phong cách, đối tượng — công thức cố
 định, công bố trong báo cáo).
 
+**Độ tin cậy ẩn của gia sư** (bổ sung 15/10/2026): một phần nhỏ gia sư ảo có độ tin cậy thấp; khiếu nại được
+sinh theo độ tin cậy, kèm `category` và `fault_party` (có cả khiếu nại vô căn cứ → `REJECTED` / `NONE`). Kiểm
+tra: phạt khiếu nại trong Q làm giảm lượt hiển thị top-10 của gia sư kém tin cậy, trong khi gia sư chỉ bị khiếu
+nại vô căn cứ không bị ảnh hưởng.
+
 **Quyết định của gia sư:**
 
 ```
@@ -153,7 +158,8 @@ Mục này trả lời hai câu hỏi về trọng số tự đặt: **kết qu�
 
 ### 9.9.1. Phân tích độ nhạy (trên nửa kiểm tra)
 
-- Mỗi trọng số trong a, a′, b (dạng dàn phẳng) và các tham số giữ cố định (kernel, điểm thành phần, λ):
+- Mỗi trọng số trong a, a′, b (dạng dàn phẳng) và các tham số giữ cố định (kernel, điểm thành phần, λ, tham số
+  phạt khiếu nại `penalty-scale`, `max-penalty`, `prior-contracts`):
   tăng / giảm **±25% và ±50%**, chuẩn hoá lại tổng, chạy lại V2-full.
 - Đo: NDCG@10, EA@10, và **Kendall τ** giữa top-10 mới và top-10 gốc.
 - Kết quả trình bày dạng biểu đồ "lốc xoáy" (tornado): tham số nào làm chỉ số đổi nhiều nhất.

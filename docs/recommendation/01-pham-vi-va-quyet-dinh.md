@@ -83,3 +83,4 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | P5 | Thêm `responded_at` cho hai bảng đơn | Tính thời gian phản hồi chính xác |
 | P6 | Đổi số chiều vector sang 1024 | Do dùng `bge-m3`; an toàn vì chưa có dữ liệu |
 | P7 | Chốt quy ước `day_of_week` ISO | Cập nhật OpenAPI + validation |
+| P8 | Kết luận khiếu nại có cấu trúc | `complaints.fault_party`, `category` (nhánh `feat/complaint-structured-resolution`). Phải vào `dev` và được merge vào nhánh đề xuất trước khi code phạt khiếu nại trong Q (06, mục 6.8) |

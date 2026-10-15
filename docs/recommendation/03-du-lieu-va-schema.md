@@ -12,6 +12,16 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 > nhánh này vì vậy là **`V27`** (điều kiện tiên quyết), **`V28`** (dữ liệu đề xuất), **`V29`** (mốc xoá lịch sử).
 > Nội dung ba file không đổi; chúng không đụng tới cột hay ràng buộc mà `V25`, `V26` của `dev` sửa, nên thứ tự
 > áp dụng không ảnh hưởng kết quả.
+>
+> **Cần đổi số lần ba (ghi nhận 15/10/2026).** `dev` nay đã có `V27__add_studying_request_review.sql` (PR #51), trùng
+> số với `V27` của nhánh này; nhánh `feat/complaint-structured-resolution` dùng `V28__add_structured_complaint_resolution.sql`.
+> Khi merge, ba migration của nhánh này phải lấy số **sau số lớn nhất của `dev` lúc đó** (ví dụ `V29`–`V31` nếu
+> khiếu nại vào `dev` trước), và `V30` dự kiến của L1 đổi theo. **Ràng buộc `ck_notifications_event_type`:** cả
+> `V27` của `dev`, `V28` của nhánh khiếu nại và migration dữ liệu đề xuất của nhánh này đều xoá rồi tạo lại ràng buộc
+> này với danh sách đầy đủ. Migration chạy **sau cùng** phải chứa **hợp** của mọi danh sách (thêm
+> `STUDYING_REQUEST_REVIEW_REQUIRED`, `STUDYING_REQUEST_APPROVED`, `STUDYING_REQUEST_REJECTED`,
+> `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` cùng
+> `RECOMMENDATION_MATCH_FOUND`), nếu không thông báo của tính năng khác sẽ bị database từ chối.
 
 ## 3.1. Dữ liệu đầu vào
 
@@ -23,6 +33,7 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 | Hồ sơ học sinh | `students` (`introduction`, `learning_style`, `personality_tags`, `goals_description`, `current_level`, `weak_points`), `users.district_id` | Giá trị mặc định cho bộ lọc, văn bản nhu cầu, A1 |
 | Hồ sơ gia sư | `tutors` (`introduction`, `education`, `teaching_style_tags`, `teaching_methodology`, `strength_subjects`, `target_student_type`, `profile_status`, `recommendation_score`) | Văn bản cung cấp, A1, Q |
 | Lịch sử quyết định | `student_tutor_requests`, `tutor_student_requests` (`PENDING/ACCEPTED/REJECTED/CANCELLED`) | b, b′, chống dồn, H1 |
+| Khiếu nại | `complaints` (`user_id` người gửi, `contract_id`, `status`, `category`, `fault_party`, `resolved_at`) — cột `category`, `fault_party` do tính năng xử lý khiếu nại thêm (nhánh `feat/complaint-structured-resolution`) | Phạt khiếu nại có lỗi trong Q (06, mục 6.8) |
 | Quan hệ hiện tại | `contracts` | Loại trùng, H1 |
 | Hành vi | `recommendation_logs`, `recommendation_click_logs`, `favorite_tutors` | R6, B5, H1, đánh giá |
 | Khu vực | `districts.province_id` | Lọc phạm vi tỉnh, `f_area` |

@@ -22,6 +22,8 @@
 | `willingness.alpha` / `p0-default` / `p0-min-decisions` / `history-days` / `congestion-lambda` | 2 / 0,6 / 20 / 180 / 0,5 | 06, 6.6 |
 | `reciprocal.enabled` / `willingness.congestion-enabled` | true / true | 06, 6.6–6.7 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |
+| `complaint.window-days` / `prior-contracts` / `penalty-scale` / `max-penalty` | 365 / 5 / 40 / 20 | 06, 6.8 |
+| `complaint.category-weights` ABSENCE / LATE_OR_SHORT / TEACHING_QUALITY / MISCONDUCT / SERIOUS_MISCONDUCT / OTHER; `both-factor` | 1,0 / 0,5 / 0,5 / 1,5 / 3,0 / 1,0; 0,5 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
 | `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 20 / 4 000 / 4 | 06, 6.9 |
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
@@ -131,7 +133,7 @@ tuyển dụng (11, mục 11.4).
 |---|---|---|
 | Xếp hạng theo ghép đôi thành công lâu dài | Đủ hợp đồng đã kết thúc | Nhãn định nghĩa được từ `contracts`, `renewed_from_contract_id`, `lessons`, `cancel_contract_requests`, `complaints` |
 | Tối ưu toàn cục cho thị trường ghép đôi (Su và cộng sự, 2022) / Gale–Shapley | Nhiều tin đăng mở cùng lúc | Log, mô hình b |
-| Đánh giá học sinh (để có Q cho chiều T→S) | Quyết định sản phẩm | — |
+| Đánh giá học sinh (để có Q cho chiều T→S) | Quyết định sản phẩm | Khiếu nại có `fault_party` chỉ học sinh có lỗi đã dùng được làm một thành phần độ tin cậy của học sinh (cùng cách tính như 06, mục 6.8) |
 | Index ANN (`hnsw`) | > ~10 000 tin đăng | — |
 
 ## 10.6. Thứ tự triển khai gợi ý

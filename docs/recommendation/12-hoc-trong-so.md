@@ -72,7 +72,7 @@ Phía a dùng đúng quy tắc thiếu dữ liệu ở 06, mục 6.5: đặc tr�
 
 | Tham số | Lý do không học |
 |---|---|
-| Điểm chất lượng Q (cách tính `recommendation_score`) | Quy tắc nghiệp vụ, công khai và giải thích được với gia sư; tự học sẽ làm điểm đổi mà không lý giải được |
+| Điểm chất lượng Q (cách tính `recommendation_score`, gồm phạt khiếu nại có lỗi) | Quy tắc nghiệp vụ, công khai và giải thích được với gia sư; tự học sẽ làm điểm đổi mà không lý giải được |
 | `b_cap`, λ = 0,5 | Chính sách cấp **thị trường** (chống dồn đơn). Học theo từng lượt sẽ tối ưu cho từng đơn và làm mất tác dụng chống dồn (Su và cộng sự, 2022) |
 | Gate G (0,4 / 0,5), hệ số chất lượng 0,7 / 0,3 | Chính sách sản phẩm; dữ liệu phản hồi không đủ để phân biệt tác động |
 | Trọng số tín hiệu (xem 1, tym 2…) và thang thưởng của L1 | Chính là **định nghĩa phần thưởng** — không thể vừa làm thước đo vừa đem đi học |
@@ -172,7 +172,8 @@ Mỗi ứng viên đã hiển thị trong một lần tìm là một quan sát `
 | Rời trang chi tiết < 5 giây | xem → 0,1 | **cần thêm sự kiện từ frontend** (chưa có) | Tuỳ chọn |
 
 Việc phía kia nhận hay từ chối thuộc về b. **Kết quả dài hạn** (hợp đồng đủ N buổi, hoàn thành hoặc gia hạn
-qua `renewed_from_contract_id`, đánh giá ≥ 4 sao; ngược lại huỷ hợp đồng, khiếu nại) hiếm và đến chậm 1–3
+qua `renewed_from_contract_id`, đánh giá ≥ 4 sao; ngược lại huỷ hợp đồng, khiếu nại có `fault_party` chỉ gia sư
+hoặc học sinh có lỗi) hiếm và đến chậm 1–3
 tháng: dùng làm **thước đo đánh giá**; dùng làm phần thưởng phụ (cửa sổ 60 ngày, trọng số nhỏ) là mở rộng
 (12.13).
 

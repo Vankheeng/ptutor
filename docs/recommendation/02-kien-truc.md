@@ -78,6 +78,7 @@ Nguyên tắc:
 | `EmbeddingWorker` | Ghép văn bản, gọi `/embed`, ghi vector của tin đăng / hồ sơ |
 | Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
 | Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
+| Khiếu nại được kết luận (`COMPLAINT_RESOLVED`, `COMPLAINT_AGAINST_YOU_RESOLVED`) | `TutorRecommendationScoreEventListener` tính lại `recommendation_score` nếu người nhận là gia sư (phạt khiếu nại có lỗi — 06, mục 6.8) |
 | Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian); 20:30 UTC: `WeightLearningJob` cập nhật trọng số học được (L1, 12) |
 | Tạo đơn / đề nghị | `DecisionSnapshotRecorder` ghi ảnh chụp các thành phần b của cặp (L1, 12.6) |
 
