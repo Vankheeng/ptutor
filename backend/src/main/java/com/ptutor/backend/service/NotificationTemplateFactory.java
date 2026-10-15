@@ -74,6 +74,15 @@ class NotificationTemplateFactory {
                     "Complaint accepted", "Your complaint has been accepted. Resolution: " + reason);
             case COMPLAINT_REJECTED -> content(NotificationType.COMPLAINT,
                     "Complaint rejected", "Your complaint has been rejected. Reason: " + reason);
+            case COMPLAINT_RECEIVED_AGAINST_YOU -> content(NotificationType.COMPLAINT,
+                    "Complaint received about you",
+                    "A complaint about your contract is now under review. You can submit one response with evidence.");
+            case COMPLAINT_AGAINST_YOU_RESOLVED -> content(NotificationType.COMPLAINT,
+                    "Complaint about you resolved",
+                    "A complaint about you has been resolved. Party at fault: "
+                            + data.getOrDefault("faultParty", "") + ". Resolution: " + reason);
+            case COMPLAINT_AGAINST_YOU_REJECTED -> content(NotificationType.COMPLAINT,
+                    "Complaint about you rejected", "A complaint about you has been rejected. Reason: " + reason);
             case ACCOUNT_SUSPENDED -> {
                 String until = data.getOrDefault("until", "");
                 String duration = "TEMPORARY".equals(data.get("type"))
