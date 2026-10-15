@@ -1394,6 +1394,75 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/users/me/complaints/against-me:
+    get:
+      tags: [Complaints]
+      summary: List complaints submitted about me
+      description: >-
+        Returns complaints where the current user is the other contract participant. Complaints are visible
+        from IN_REVIEW onwards; while a complaint is open its resolution is hidden.
+      operationId: listComplaintsAgainstMe
+      parameters:
+        - $ref: '#/components/parameters/ComplaintStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated complaints about the current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/complaints/against-me/{complaintId}:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    get:
+      tags: [Complaints]
+      summary: Get a complaint submitted about me
+      operationId: getComplaintAgainstMe
+      responses:
+        '200':
+          description: Complaint detail for the respondent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/users/me/complaints/against-me/{complaintId}/responses:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    post:
+      tags: [Complaints]
+      summary: Submit the respondent's single response
+      description: >-
+        Allowed once while the complaint is IN_REVIEW or AWAITING_EVIDENCE. Returns
+        RESPONDENT_RESPONSE_NOT_ALLOWED or RESPONDENT_RESPONSE_ALREADY_SUBMITTED (409) otherwise.
+      operationId: respondToComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintRespondentResponseRequest' }
+      responses:
+        '200':
+          description: Response and evidence saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/admin/complaints:
     get:
       tags: [Admin Complaints]
@@ -1404,6 +1473,12 @@ paths:
         - name: contractId
           in: query
           schema: { type: string, format: uuid }
+        - name: category
+          in: query
+          schema: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
+        - name: faultParty
+          in: query
+          schema: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE] }
         - name: keyword
           in: query
           schema: { type: string }
@@ -1487,12 +1562,13 @@ paths:
     patch:
       tags: [Admin Complaints]
       summary: Accept a complaint
+      description: Stores the resolution and the party at fault, then notifies both participants.
       operationId: acceptComplaint
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ComplaintResolutionRequest' }
+            schema: { $ref: '#/components/schemas/ComplaintAcceptRequest' }
       responses:
         '200':
           description: Complaint resolved
@@ -5390,9 +5466,10 @@ components:
 
     ComplaintCreateRequest:
       type: object
-      required: [contractId, title, content]
+      required: [contractId, category, title, content]
       properties:
         contractId: { type: string, format: uuid }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
         title: { type: string, maxLength: 255 }
         content: { type: string, maxLength: 10000 }
         evidences:
@@ -5406,8 +5483,9 @@ components:
 
     ComplaintUpdateRequest:
       type: object
-      required: [title, content]
+      required: [category, title, content]
       properties:
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
         title: { type: string, maxLength: 255 }
         content: { type: string, maxLength: 10000 }
         evidences:
@@ -5440,6 +5518,33 @@ components:
       required: [resolution]
       properties:
         resolution: { type: string, minLength: 1, maxLength: 5000 }
+
+    ComplaintAcceptRequest:
+      type: object
+      required: [resolution, faultParty]
+      properties:
+        resolution: { type: string, minLength: 1, maxLength: 5000 }
+        faultParty:
+          type: string
+          enum: [RESPONDENT, COMPLAINANT, BOTH, NONE]
+          description: >-
+            RESPONDENT means the other contract participant is at fault, COMPLAINANT means the submitter is
+            at fault, BOTH or NONE otherwise.
+
+    ComplaintRespondentResponseRequest:
+      type: object
+      required: [response]
+      properties:
+        response: { type: string, minLength: 1, maxLength: 5000 }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
 
     ComplaintEvidenceRequest:
       type: object
@@ -5739,11 +5844,15 @@ components:
         contractId: { type: string, format: uuid }
         title: { type: string }
         content: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
         resolution: { type: string, nullable: true }
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         resolvedAt: { type: string, format: date-time, nullable: true }
+        respondentResponse: { type: string, nullable: true }
+        respondentRespondedAt: { type: string, format: date-time, nullable: true }
         evidences:
           type: array
           items:
@@ -5752,6 +5861,7 @@ components:
               id: { type: string, format: uuid }
               fileUrl: { type: string }
               fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -5778,9 +5888,11 @@ components:
         complainantRole: { type: string, enum: [STUDENT, TUTOR] }
         contractId: { type: string, format: uuid }
         title: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         assignedEmployeeId: { type: string, format: uuid, nullable: true }
         assignedEmployeeName: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
@@ -5792,10 +5904,12 @@ components:
         id: { type: string, format: uuid }
         title: { type: string }
         content: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
         resolution: { type: string, nullable: true }
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         resolvedAt: { type: string, format: date-time, nullable: true }
         complainant:
           type: object
@@ -5804,6 +5918,16 @@ components:
             name: { type: string }
             email: { type: string, format: email }
             role: { type: string, enum: [STUDENT, TUTOR] }
+        respondent:
+          type: object
+          description: The other contract participant and their single response, if any.
+          properties:
+            userId: { type: string, format: uuid }
+            name: { type: string }
+            email: { type: string, format: email }
+            role: { type: string, enum: [STUDENT, TUTOR] }
+            response: { type: string, nullable: true }
+            respondedAt: { type: string, format: date-time, nullable: true }
         reviewer:
           type: object
           nullable: true
@@ -5822,6 +5946,7 @@ components:
               id: { type: string, format: uuid }
               fileUrl: { type: string }
               fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid, nullable: true }
               createdAt: { type: string, format: date-time }
         lessons:
           type: array

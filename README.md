@@ -530,18 +530,31 @@ Chỉ đề nghị `PENDING` mới được hủy và khi hủy sẽ chuyển sa
 
 ### 6.12. API khiếu nại (Complaint)
 
-API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại. Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
+API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại; bên còn lại của hợp đồng là bên bị khiếu nại (respondent). Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
-| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING`, có thể kèm evidence URL |
+| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING` với `category` bắt buộc, có thể kèm evidence URL |
 | `GET` | `/api/v1/users/me/complaints` | Lấy khiếu nại của tôi; hỗ trợ `status`, `page`, `size` |
 | `GET` | `/api/v1/users/me/complaints/{complaintId}` | Xem trạng thái, resolution và evidence |
-| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật title, content và evidence của khiếu nại `PENDING` |
+| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật category, title, content và evidence của khiếu nại `PENDING` |
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/evidences` | Bổ sung evidence khi complaint đang `AWAITING_EVIDENCE`; hệ thống đưa complaint về `IN_REVIEW` |
+| `GET` | `/api/v1/users/me/complaints/against-me` | Bên bị khiếu nại xem các khiếu nại về mình; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/users/me/complaints/against-me/{complaintId}` | Bên bị khiếu nại xem chi tiết, evidence của hai bên và kết luận |
+| `POST` | `/api/v1/users/me/complaints/against-me/{complaintId}/responses` | Bên bị khiếu nại gửi một phản hồi duy nhất, có thể kèm tối đa 5 evidence |
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `AWAITING_EVIDENCE`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`. Evidence bổ sung được append và không thay thế evidence đã có.
+
+`category` là nhận định của người gửi về loại vấn đề: `ABSENCE` (vắng mặt), `LATE_OR_SHORT` (đi muộn, dạy thiếu giờ), `TEACHING_QUALITY`, `MISCONDUCT`, `SERIOUS_MISCONDUCT` (quấy rối, lừa đảo, giao dịch ngoài nền tảng) hoặc `OTHER`. Complaint tạo trước khi có trường này trả về `category = null`.
+
+Bên bị khiếu nại chỉ thấy complaint từ khi nhân viên tiếp nhận (`IN_REVIEW`) trở đi, vì trước đó người gửi vẫn có thể sửa hoặc hủy. Họ được thông báo khi complaint được tiếp nhận và được gửi đúng một phản hồi trong lúc complaint còn `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; phản hồi và evidence đã gửi không sửa được. Khi complaint chưa có kết quả, API của bên bị khiếu nại không trả `resolution`, vì trường này đang chứa yêu cầu của nhân viên gửi cho người gửi. Mỗi evidence có `uploadedByUserId` để phân biệt evidence của hai bên.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `COMPLAINT_NOT_FOUND` (`404`) | Complaint không tồn tại, không liên quan tới user hiện tại, hoặc chưa được tiếp nhận khi gọi API của bên bị khiếu nại |
+| `RESPONDENT_RESPONSE_NOT_ALLOWED` (`409`) | Gửi phản hồi khi complaint không còn `IN_REVIEW`/`AWAITING_EVIDENCE` |
+| `RESPONDENT_RESPONSE_ALREADY_SUBMITTED` (`409`) | Bên bị khiếu nại gửi phản hồi lần thứ hai |
 
 ### 6.13. API hợp đồng (Contract)
 
@@ -910,6 +923,7 @@ Các workflow hiện tạo notification tự động:
 | Thanh toán thành công hoặc sắp đến hạn học phí | `PAYMENT_SUCCEEDED`, `PAYMENT_INSTALLMENT_DUE` | Người thanh toán/Student | Đối tượng thanh toán hoặc `INSTALLMENT` |
 | Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REVIEW_REQUIRED` | Admin/Employee | `WITHDRAWAL_REQUEST` |
 | Xử lý Complaint | `COMPLAINT_EVIDENCE_REQUESTED`, `COMPLAINT_RESOLVED`, `COMPLAINT_REJECTED` | Người gửi Complaint | `COMPLAINT` |
+| Tiếp nhận và kết luận Complaint | `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` | Bên bị khiếu nại | `COMPLAINT` |
 | Khóa hoặc mở lại tài khoản | `ACCOUNT_SUSPENDED`, `ACCOUNT_REACTIVATED` | Tài khoản bị tác động | `USER` |
 
 Notification nghiệp vụ được tạo với `isRead=false`. Với các workflow phát `NotificationDomainEvent`, listener chỉ lưu notification sau khi transaction nghiệp vụ commit thành công; vì vậy không tạo thông báo cho thao tác đã rollback. `referenceId` là ID của record liên quan, frontend nên kết hợp `referenceType` và `referenceId` để mở đúng màn hình chi tiết.
@@ -950,13 +964,31 @@ Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
-| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `keyword`, `page`, `size` |
-| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại và chuyển `PENDING → IN_REVIEW` |
+| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `category`, `faultParty`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, người gửi, bên bị khiếu nại và phản hồi của họ, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại, chuyển `PENDING → IN_REVIEW` và thông báo bên bị khiếu nại |
 | `PATCH` | `/api/v1/admin/complaints/{complaintId}/request-evidence` | Lưu yêu cầu vào `resolution`, chuyển `IN_REVIEW → AWAITING_EVIDENCE` và thông báo người gửi |
 | `PATCH` | `/api/v1/admin/complaints/{complaintId}/reassign` | Admin chuyển complaint đang mở sang một nhân viên khác mà không đổi trạng thái |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận, chuyển `IN_REVIEW → RESOLVED` và thông báo người gửi |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo người gửi |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận và `faultParty`, chuyển `IN_REVIEW → RESOLVED` và thông báo hai bên |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo hai bên |
+
+Khi chấp nhận complaint, nhân viên bắt buộc chọn bên có lỗi:
+
+```json
+{
+  "resolution": "Gia sư không tham gia buổi học ngày 12/10 và không báo trước.",
+  "faultParty": "RESPONDENT"
+}
+```
+
+| `faultParty` | Ý nghĩa |
+| --- | --- |
+| `RESPONDENT` | Bên bị khiếu nại có lỗi |
+| `COMPLAINANT` | Chính người gửi có lỗi, ví dụ gia sư khiếu nại để phản đối nhưng minh chứng cho thấy buổi học không diễn ra |
+| `BOTH` | Cả hai bên có lỗi |
+| `NONE` | Không bên nào có lỗi, ví dụ sự cố khách quan |
+
+`faultParty` chỉ có giá trị khi complaint `RESOLVED`; complaint `REJECTED` (không đủ căn cứ để xét) và complaint được kết luận trước khi có trường này luôn trả `faultParty = null`. Database cũng chặn việc lưu `fault_party` cho complaint chưa `RESOLVED`. API `reject` giữ nguyên body `{ "resolution": "..." }`.
 
 Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý chưa tự động hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học.
 
