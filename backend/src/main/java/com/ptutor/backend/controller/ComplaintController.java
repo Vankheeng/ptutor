@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.ComplaintCreateRequest;
 import com.ptutor.backend.dto.request.ComplaintEvidenceSubmissionRequest;
+import com.ptutor.backend.dto.request.ComplaintRespondentResponseRequest;
 import com.ptutor.backend.dto.request.ComplaintUpdateRequest;
 import com.ptutor.backend.dto.response.ComplaintResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -93,5 +94,33 @@ public class ComplaintController {
                 complaintService.submitEvidence(
                         currentUserProvider.getCurrentUserId(), complaintId, request),
                 BASE_PATH + "/" + complaintId + "/evidences"));
+    }
+
+    @GetMapping("/against-me")
+    public ResponseEntity<ApiResponse<PageResponse<ComplaintResponse>>> findAgainstMe(
+            @RequestParam(required = false) ComplaintStatus status,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
+            @Max(value = 100, message = "Size must not exceed 100") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return ResponseEntity.ok(responseFactory.success(
+                complaintService.findAgainstMe(currentUserProvider.getCurrentUserId(), status, pageable),
+                BASE_PATH + "/against-me"));
+    }
+
+    @GetMapping("/against-me/{complaintId}")
+    public ResponseEntity<ApiResponse<ComplaintResponse>> findAgainstMeById(@PathVariable UUID complaintId) {
+        return ResponseEntity.ok(responseFactory.success(
+                complaintService.findAgainstMeById(currentUserProvider.getCurrentUserId(), complaintId),
+                BASE_PATH + "/against-me/" + complaintId));
+    }
+
+    @PostMapping("/against-me/{complaintId}/responses")
+    public ResponseEntity<ApiResponse<ComplaintResponse>> respond(
+            @PathVariable UUID complaintId,
+            @Valid @RequestBody ComplaintRespondentResponseRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                complaintService.respond(currentUserProvider.getCurrentUserId(), complaintId, request),
+                BASE_PATH + "/against-me/" + complaintId + "/responses"));
     }
 }

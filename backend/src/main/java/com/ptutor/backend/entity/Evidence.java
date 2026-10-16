@@ -43,4 +43,9 @@ public class Evidence extends BaseEntity {
     @Column(name = "file_type", columnDefinition = "varchar")
     @NonFinal
     private String fileType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by_user_id")
+    @NonFinal
+    private User uploadedBy;
 }
