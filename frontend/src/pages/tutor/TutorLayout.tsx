@@ -10,8 +10,8 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/proposals', label: 'My requests to teach', icon: '↗' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Contracts', icon: '▣' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Calendar', icon: '▦' },
-  { section: 'ACCOUNT', to: '/tutor/sections/notifications', label: 'Notifications', icon: '♢' },
-  { section: 'ACCOUNT', to: '/tutor/sections/wallet', label: 'Wallet', icon: '◈' },
+  { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Notifications', icon: '♢' },
+  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Wallet', icon: '◈' },
   { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Certificates', icon: '▤' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'My Profile', icon: '◉' }
 ];
