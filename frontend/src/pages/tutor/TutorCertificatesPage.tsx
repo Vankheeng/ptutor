@@ -9,6 +9,7 @@ import {
   type TutorCertificate
 } from '../../services/tutorApi';
 import { useTutorCertificates } from '../../hooks/useTutorWorkspace';
+import { tutorStatusLabel } from '../../utils/tutorDisplay';
 
 const statuses = ['ALL', 'PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'] as const;
 type CertificateFilter = (typeof statuses)[number];
@@ -47,7 +48,7 @@ export function TutorCertificatesPage() {
         ...(uploadedReference ? { certificateUrl: uploadedReference } : {})
       };
       if (!editing && !uploadedReference && !text('certificateUrl')) {
-        setError('Upload a document or enter a certificate URL.');
+        setError('Vui lòng tải tài liệu lên hoặc nhập đường dẫn chứng chỉ.');
         return;
       }
       if (editing) {
@@ -56,13 +57,13 @@ export function TutorCertificatesPage() {
           ...(!uploadedReference && text('certificateUrl') ? { certificateUrl: text('certificateUrl') } : {}),
           certificateUrl: uploadedReference || text('certificateUrl') || undefined
         });
-        setNotice('Certificate updated and sent for review.');
+        setNotice('Đã cập nhật chứng chỉ và gửi để xét duyệt.');
       } else {
         await createTutorCertificate({
           ...payload,
           certificateUrl: uploadedReference || text('certificateUrl')
         });
-        setNotice('Certificate uploaded and sent for review.');
+        setNotice('Đã tải chứng chỉ lên và gửi để xét duyệt.');
       }
       form.reset();
       setEditing(null);
@@ -73,7 +74,7 @@ export function TutorCertificatesPage() {
           ? caught.message
           : caught instanceof Error
             ? caught.message
-            : 'Could not save your certificate.'
+            : 'Không thể lưu chứng chỉ.'
       );
     } finally {
       setSaving(false);
@@ -83,7 +84,7 @@ export function TutorCertificatesPage() {
   const openDocument = async (certificate: TutorCertificate) => {
     const tab = window.open('about:blank', '_blank');
     if (!tab) {
-      setError('Allow pop-ups to open the certificate document.');
+      setError('Hãy cho phép cửa sổ bật lên để mở tài liệu chứng chỉ.');
       return;
     }
     tab.opener = null;
@@ -92,14 +93,12 @@ export function TutorCertificatesPage() {
     try {
       const fresh = await getTutorCertificate(certificate.id);
       if (!fresh.certificateUrl || !/^https?:\/\//i.test(fresh.certificateUrl)) {
-        throw new Error(
-          'A viewable certificate URL is not available. Check the configured object-storage public endpoint.'
-        );
+        throw new Error('Không tìm thấy đường dẫn chứng chỉ có thể xem. Vui lòng kiểm tra cấu hình lưu trữ tệp.');
       }
       tab.location.replace(fresh.certificateUrl);
     } catch (caught) {
       tab.close();
-      setError(caught instanceof Error ? caught.message : 'Could not open the certificate.');
+      setError(caught instanceof Error ? caught.message : 'Không thể mở chứng chỉ.');
     } finally {
       setOpeningId(null);
     }
@@ -110,23 +109,23 @@ export function TutorCertificatesPage() {
     try {
       const detail = await getTutorCertificate(certificate.id);
       setEditing(detail);
-      setNotice(`Editing ${detail.name}.`);
+      setNotice(`Đang chỉnh sửa chứng chỉ ${detail.name}.`);
       document.getElementById('certificate-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not retrieve certificate details.');
+      setError(caught instanceof Error ? caught.message : 'Không thể tải thông tin chứng chỉ.');
     }
   };
 
   const removeCertificate = async (certificate: TutorCertificate) => {
-    if (!window.confirm(`Delete “${certificate.name}”?`)) return;
+    if (!window.confirm(`Bạn có chắc muốn xóa chứng chỉ “${certificate.name}” không?`)) return;
     setError('');
     try {
       await deleteTutorCertificate(certificate.id);
       setRevision((value) => value + 1);
       if (editing?.id === certificate.id) setEditing(null);
-      setNotice('Certificate deleted.');
+      setNotice('Đã xóa chứng chỉ.');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not delete this certificate.');
+      setError(caught instanceof Error ? caught.message : 'Không thể xóa chứng chỉ.');
     }
   };
 
@@ -139,11 +138,11 @@ export function TutorCertificatesPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">CREDENTIALS & TRUST</span>
-          <h1>Certificates</h1>
-          <p>Add credentials that help students feel confident choosing you.</p>
+          <span className="tutor-eyebrow">CHỨNG CHỈ & ĐỘ TIN CẬY</span>
+          <h1>Chứng chỉ</h1>
+          <p>Bổ sung chứng chỉ để học viên an tâm hơn khi lựa chọn bạn.</p>
         </div>
-        <span className="tutor-profile-badge">Private review</span>
+        <span className="tutor-profile-badge">Chờ xét duyệt</span>
       </div>
       {notice && (
         <div className="tutor-notice" role="status">
@@ -160,8 +159,8 @@ export function TutorCertificatesPage() {
           <div className="tutor-panel-heading">
             <span>{editing ? '✎' : '＋'}</span>
             <div>
-              <h2>{editing ? 'Edit certificate' : 'Add a certificate'}</h2>
-              <p>PDF, JPEG or PNG, up to 10 MB. New or updated certificates return to review.</p>
+              <h2>{editing ? 'Chỉnh sửa chứng chỉ' : 'Thêm chứng chỉ'}</h2>
+              <p>Chấp nhận PDF, JPEG hoặc PNG, tối đa 10 MB. Chứng chỉ mới hoặc vừa cập nhật sẽ được xét duyệt lại.</p>
             </div>
           </div>
           <form
@@ -170,47 +169,47 @@ export function TutorCertificatesPage() {
             onSubmit={(event) => void saveCertificate(event)}
           >
             <label className="tutor-field-full">
-              Certificate name
+              Tên chứng chỉ
               <input
                 name="name"
                 required
                 maxLength={255}
                 defaultValue={editing?.name ?? ''}
-                placeholder="e.g. IELTS 8.0"
+                placeholder="Ví dụ: IELTS 8.0"
               />
             </label>
             <label className="tutor-field-full">
-              Issuing organization
+              Đơn vị cấp
               <input
                 name="issuingOrganization"
                 maxLength={255}
                 defaultValue={editing?.issuingOrganization ?? ''}
-                placeholder="e.g. British Council"
+                placeholder="Ví dụ: British Council"
               />
             </label>
             <label>
-              Issue date
+              Ngày cấp
               <input name="issueDate" type="date" defaultValue={editing?.issueDate ?? ''} />
             </label>
             <label>
-              Expiry date
+              Ngày hết hạn
               <input name="expiryDate" type="date" defaultValue={editing?.expiryDate ?? ''} />
             </label>
             <label className="tutor-field-full">
-              Description
+              Mô tả
               <input
                 name="description"
                 maxLength={255}
                 defaultValue={editing?.description ?? ''}
-                placeholder="Optional details"
+                placeholder="Thông tin bổ sung (không bắt buộc)"
               />
             </label>
             <label className="tutor-field-full tutor-file-input">
-              Replace certificate file
+              Thay tệp chứng chỉ
               <input name="file" type="file" accept="application/pdf,image/jpeg,image/png" />
             </label>
             <label className="tutor-field-full">
-              Or certificate URL
+              Hoặc đường dẫn chứng chỉ
               <input
                 name="certificateUrl"
                 type="url"
@@ -223,12 +222,12 @@ export function TutorCertificatesPage() {
               <div>
                 {editing && (
                   <button className="tutor-button secondary" type="button" onClick={cancelEdit}>
-                    Cancel edit
+                    Hủy chỉnh sửa
                   </button>
                 )}
               </div>
               <button className="tutor-button" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : editing ? 'Save changes' : 'Upload and submit'}
+                {saving ? 'Đang lưu…' : editing ? 'Lưu thay đổi' : 'Tải lên và gửi'}
               </button>
             </div>
           </form>
@@ -237,27 +236,27 @@ export function TutorCertificatesPage() {
           <div className="tutor-panel-heading">
             <span>✓</span>
             <div>
-              <h2>Your certificates</h2>
-              <p>Review status and submitted documents.</p>
+              <h2>Chứng chỉ của bạn</h2>
+              <p>Theo dõi trạng thái xét duyệt và các tài liệu đã gửi.</p>
             </div>
           </div>
           <label className="tutor-certificate-filter">
-            Filter status
+            Lọc theo trạng thái
             <select value={filter} onChange={(event) => setFilter(event.target.value as CertificateFilter)}>
               {statuses.map((status) => (
                 <option value={status} key={status}>
-                  {status === 'ALL' ? 'All certificates' : titleCase(status)}
+                  {status === 'ALL' ? 'Tất cả chứng chỉ' : tutorStatusLabel(status)}
                 </option>
               ))}
             </select>
           </label>
           {loading ? (
-            <p className="tutor-muted">Loading certificates…</p>
+            <p className="tutor-muted">Đang tải chứng chỉ…</p>
           ) : certificates.length === 0 ? (
             <div className="tutor-empty compact">
               <span>▤</span>
-              <h3>No certificates in this view</h3>
-              <p>Uploaded credentials will appear here.</p>
+              <h3>Chưa có chứng chỉ trong danh sách này</h3>
+              <p>Chứng chỉ đã tải lên sẽ hiển thị tại đây.</p>
             </div>
           ) : (
             <div className="tutor-cert-list">
@@ -268,15 +267,15 @@ export function TutorCertificatesPage() {
                     <div className="tutor-cert-title">
                       <h3>{certificate.name}</h3>
                       <span className={`tutor-cert-status status-${certificate.status.toLowerCase()}`}>
-                        {titleCase(certificate.status)}
+                        {tutorStatusLabel(certificate.status)}
                       </span>
                     </div>
                     <p>
-                      {certificate.issuingOrganization || 'Certificate'}
-                      {certificate.issueDate ? ` · Issued ${certificate.issueDate}` : ''}
+                      {certificate.issuingOrganization || 'Chứng chỉ'}
+                      {certificate.issueDate ? ` · Ngày cấp ${certificate.issueDate}` : ''}
                     </p>
                     {certificate.rejectionReason && (
-                      <small className="tutor-rejection">Review note: {certificate.rejectionReason}</small>
+                      <small className="tutor-rejection">Lý do từ chối: {certificate.rejectionReason}</small>
                     )}
                     <div className="tutor-cert-actions">
                       <button
@@ -285,11 +284,11 @@ export function TutorCertificatesPage() {
                         disabled={openingId === certificate.id}
                         onClick={() => void openDocument(certificate)}
                       >
-                        {openingId === certificate.id ? 'Opening…' : 'View document ↗'}
+                        {openingId === certificate.id ? 'Đang mở…' : 'Xem tài liệu ↗'}
                       </button>
                       {certificate.status !== 'VERIFIED' && (
                         <button className="tutor-detail-link" type="button" onClick={() => void beginEdit(certificate)}>
-                          Edit
+                          Chỉnh sửa
                         </button>
                       )}
                     </div>
@@ -297,7 +296,7 @@ export function TutorCertificatesPage() {
                   <button
                     className="tutor-icon-button"
                     type="button"
-                    aria-label={`Delete ${certificate.name}`}
+                    aria-label={`Xóa chứng chỉ ${certificate.name}`}
                     onClick={() => void removeCertificate(certificate)}
                   >
                     ×
@@ -310,11 +309,4 @@ export function TutorCertificatesPage() {
       </div>
     </>
   );
-}
-
-function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
