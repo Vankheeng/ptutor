@@ -2,32 +2,32 @@ import { Link, useParams } from 'react-router-dom';
 
 const copy: Record<string, { title: string; description: string }> = {
   'teaching-requests': {
-    title: 'My Teaching Requests',
-    description: 'Manage the teaching opportunities you have posted for students.'
+    title: 'Yêu cầu dạy của tôi',
+    description: 'Quản lý các yêu cầu dạy bạn đã đăng cho học viên.'
   },
-  contracts: { title: 'Contracts', description: 'Review contract details and manage your agreements with students.' },
-  calendar: { title: 'Calendar', description: 'See your teaching schedule and plan upcoming sessions.' },
+  contracts: { title: 'Hợp đồng', description: 'Xem chi tiết hợp đồng và quản lý thỏa thuận với học viên.' },
+  calendar: { title: 'Lịch dạy', description: 'Xem lịch dạy và lên kế hoạch cho các buổi học sắp tới.' },
   notifications: {
-    title: 'Notifications',
-    description: 'Keep up with proposal updates, lessons, and account activity.'
+    title: 'Thông báo',
+    description: 'Cập nhật về đề xuất, buổi học và hoạt động tài khoản.'
   },
-  wallet: { title: 'Wallet', description: 'Review your tutor balance and wallet transactions.' }
+  wallet: { title: 'Ví tiền', description: 'Xem số dư và các giao dịch trong ví gia sư.' }
 };
 
 export function TutorComingSoonPage() {
   const { section = '' } = useParams();
   const page = copy[section] ?? {
-    title: 'Tutor workspace',
-    description: 'This workspace section will be available soon.'
+    title: 'Không gian gia sư',
+    description: 'Mục này sẽ sớm được đưa vào hoạt động.'
   };
   return (
     <section className="tutor-panel tutor-coming-soon">
-      <span className="tutor-eyebrow">TUTOR WORKSPACE</span>
+      <span className="tutor-eyebrow">KHÔNG GIAN GIA SƯ</span>
       <h1>{page.title}</h1>
       <p>{page.description}</p>
-      <span className="tutor-coming-badge">Coming soon</span>
+      <span className="tutor-coming-badge">Sắp ra mắt</span>
       <Link className="tutor-detail-link" to="/tutor/dashboard">
-        ← Back to dashboard
+        ← Về trang tổng quan
       </Link>
     </section>
   );
