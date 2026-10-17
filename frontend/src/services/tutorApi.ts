@@ -69,6 +69,10 @@ export interface TutorTeachingProposal {
   proposedPrice: number;
   teachingMode: 'ONLINE' | 'OFFLINE';
   preferredSchedule: string | null;
+  preferredProvinceId: string | null;
+  preferredProvinceName: string | null;
+  preferredDistrictId: string | null;
+  preferredDistrictName: string | null;
   message: string | null;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
@@ -164,6 +168,21 @@ export function getTutorProposals(status?: TutorTeachingProposal['status'], sign
 
 export function cancelTutorProposal(id: string) {
   return post(`/api/v1/tutors/me/tutor-student-requests/${id}/cancel`);
+}
+
+export function updateTutorProposal(
+  id: string,
+  values: {
+    gradeId: string;
+    proposedPrice: number;
+    teachingMode: 'ONLINE' | 'OFFLINE';
+    preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    message?: string;
+  }
+) {
+  return put<TutorTeachingProposal>(`/api/v1/tutors/me/tutor-student-requests/${id}`, values);
 }
 
 export function getTutorContracts(signal?: AbortSignal) {
