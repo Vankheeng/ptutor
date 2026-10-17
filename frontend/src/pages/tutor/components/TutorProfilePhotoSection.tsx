@@ -23,15 +23,15 @@ export function TutorProfilePhotoSection({ avatarUrl, initials, uploading, onUpl
           {imageFailed || !avatarUrl ? (
             initials
           ) : (
-            <img src={avatarUrl} alt="Profile" onError={() => setFailedImageUrl(avatarUrl)} />
+            <img src={avatarUrl} alt="Ảnh hồ sơ" onError={() => setFailedImageUrl(avatarUrl)} />
           )}
         </span>
         <div>
-          <strong>Your photo</strong>
-          <small>Upload a JPG or PNG image (up to 10 MB).</small>
+          <strong>Ảnh đại diện</strong>
+          <small>Tải ảnh JPG hoặc PNG, dung lượng tối đa 10 MB.</small>
         </div>
         <label className="tutor-avatar-url tutor-photo-upload">
-          {uploading ? 'Uploading…' : 'Choose photo'}
+          {uploading ? 'Đang tải ảnh…' : 'Chọn ảnh'}
           <input
             type="file"
             accept="image/jpeg,image/png"
