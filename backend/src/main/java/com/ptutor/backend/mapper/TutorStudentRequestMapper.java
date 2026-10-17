@@ -19,6 +19,10 @@ public interface TutorStudentRequestMapper {
     @Mapping(target = "subjectName", source = "studyingRequest.subject.name")
     @Mapping(target = "gradeId", source = "grade.id")
     @Mapping(target = "gradeName", source = "grade.name")
+    @Mapping(target = "preferredProvinceId", source = "preferredProvince.id")
+    @Mapping(target = "preferredProvinceName", source = "preferredProvince.name")
+    @Mapping(target = "preferredDistrictId", source = "preferredDistrict.id")
+    @Mapping(target = "preferredDistrictName", source = "preferredDistrict.name")
     @Mapping(
             target = "nextStep",
             expression = "java(request.getStatus() == com.ptutor.backend.entity.enums.ApplicationStatus.ACCEPTED ? \"CONTRACT_SIGNING\" : null)")

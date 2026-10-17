@@ -27,6 +27,8 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.entity.Grade;
+import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
 import com.ptutor.backend.entity.Subject;
@@ -42,6 +44,7 @@ import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -54,6 +57,7 @@ class TutorStudentRequestServiceTest {
     @Mock StudyingRequestRepository studyingRequestRepository;
     @Mock TutorRepository tutorRepository;
     @Mock GradeRepository gradeRepository;
+    @Mock DistrictRepository districtRepository;
     @Mock StudentRepository studentRepository;
     @Mock ApplicationEventPublisher eventPublisher;
 
@@ -73,6 +77,7 @@ class TutorStudentRequestServiceTest {
                 studyingRequestRepository,
                 tutorRepository,
                 gradeRepository,
+                districtRepository,
                 studentRepository,
                 Mappers.getMapper(TutorStudentRequestMapper.class),
                 eventPublisher);
@@ -115,6 +120,40 @@ class TutorStudentRequestServiceTest {
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().recipientUserId()).isEqualTo(studentUserId);
         assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.TUTOR_REQUEST_RECEIVED);
+    }
+
+    @Test
+    void createsOfflineProposalWithValidatedProvinceAndDistrict() {
+        UUID provinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        Province province = Province.builder().name("Hanoi").build();
+        province.setId(provinceId);
+        District district = District.builder().name("Ba Dinh").province(province).build();
+        district.setId(districtId);
+
+        when(studyingRequestRepository.findById(studyingRequestId))
+                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
+        when(tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
+                tutorId, studyingRequestId, ApplicationStatus.PENDING)).thenReturn(false);
+        when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
+                .thenAnswer(invocation -> {
+                    TutorStudentRequest value = invocation.getArgument(0);
+                    value.setId(requestId);
+                    return value;
+                });
+
+        var request = new TutorStudentRequestCreateRequest(
+                gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
+                "Saturday mornings", "", provinceId, districtId);
+
+        service.create(tutorUserId, studyingRequestId, request);
+
+        ArgumentCaptor<TutorStudentRequest> captor = ArgumentCaptor.forClass(TutorStudentRequest.class);
+        verify(tutorStudentRequestRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getPreferredProvince()).isSameAs(province);
+        assertThat(captor.getValue().getPreferredDistrict()).isSameAs(district);
     }
 
     @Test

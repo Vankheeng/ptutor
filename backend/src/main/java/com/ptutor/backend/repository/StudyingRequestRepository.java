@@ -19,7 +19,7 @@ import com.ptutor.backend.entity.enums.RequestStatus;
 
 public interface StudyingRequestRepository extends JpaRepository<StudyingRequest, UUID> {
 
-    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities"})
+    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities", "student.user"})
     @Query(value = """
             select distinct request from StudyingRequest request
             where (:status is null or request.status = :status)
@@ -44,7 +44,7 @@ public interface StudyingRequestRepository extends JpaRepository<StudyingRequest
             @Param("learningMode") LearningMode learningMode,
             Pageable pageable);
 
-    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities"})
+    @EntityGraph(attributePaths = {"subject", "grade", "district", "availabilities", "student.user"})
     @Query("""
             select request from StudyingRequest request
             where request.id = :id and (:status is null or request.status = :status)
