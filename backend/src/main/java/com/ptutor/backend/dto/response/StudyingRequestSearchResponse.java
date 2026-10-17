@@ -26,7 +26,12 @@ public record StudyingRequestSearchResponse(
         String preferredSchedule,
         RequestStatus status,
         List<Availability> availabilities,
-        LocalDateTime createdAt) {
+        String studentFirstName,
+        String studentLastName,
+        LocalDateTime createdAt,
+        String note,
+        String detailAddress,
+        String provinceName) {
 
     public record Availability(Integer dayOfWeek, LocalTime startTime, LocalTime endTime) { }
 }
