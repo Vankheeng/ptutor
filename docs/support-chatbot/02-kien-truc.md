@@ -4,55 +4,56 @@
 
 ### Sơ đồ tổng quan
 
-Bốn tầng, mũi tên đi từ trên xuống; chỉ có một mũi tên đi ngược lên — tool tra cứu gọi lại API nghiệp vụ của
-backend.
+Bốn tầng, mọi mũi tên đi từ trên xuống. API nghiệp vụ thuộc backend nhưng vẽ ở tầng dưới cùng vì với trợ lý nó
+chỉ là một nguồn dữ liệu (tool tra cứu gọi tới bằng token của người hỏi).
 
 ```mermaid
 flowchart TB
-    subgraph FE["Frontend (React)"]
+    subgraph FE["Frontend · React"]
         direction LR
         W["Widget chat<br/>học viên · gia sư"]
         ADM["Trang quản trị<br/>kho tri thức · admin"]
     end
 
-    subgraph BE["Spring Boot backend"]
-        direction LR
-        GW["Cổng trợ lý<br/>AssistantController · AdminAssistantController<br/>→ AssistantProxyService<br/>xác thực JWT · rate limit · timeout"]
-        BIZ["API nghiệp vụ sẵn có<br/>chỉ GET: /users/me · /students/me · /tutors/me"]
+    subgraph GWL["Backend · cổng trợ lý"]
+        GW["AssistantController · AdminAssistantController<br/>→ AssistantProxyService<br/>JWT · rate limit · timeout"]
     end
 
-    subgraph AS["assistant-service · Python / FastAPI · chỉ mạng nội bộ"]
+    subgraph AS["assistant-service · FastAPI · nội bộ"]
         direction LR
-        AG["Agent hỏi đáp<br/>vòng lặp agent đơn + harness 6 hook"]
-        KB["Quản lý kho tri thức<br/>soạn · công bố · chia đoạn + embed"]
+        AG["Agent hỏi đáp<br/>agent đơn + harness 6 hook"]
+        KB["Quản lý kho tri thức<br/>công bố · chia đoạn · embed"]
     end
 
-    subgraph EXT["Lưu trữ và dịch vụ dùng chung"]
+    subgraph EXT["Dữ liệu và dịch vụ"]
         direction LR
-        DB[("PostgreSQL + pgvector<br/>schema assistant")]
-        AIS["ai-service<br/>/embed bge-m3 · /rerank"]
+        BIZ["Backend · API nghiệp vụ<br/>chỉ GET /me"]
         LLM["LLM API"]
+        AIS["ai-service<br/>embed · rerank"]
+        DB[("PostgreSQL + pgvector<br/>schema assistant")]
     end
 
     W --> GW
     ADM --> GW
     GW -->|hỏi đáp| AG
     GW -->|quản trị| KB
-    AG -.->|"tool tra cứu: GET + token người hỏi"| BIZ
-    AG --> DB
-    AG --> AIS
+    AG -->|"tool tra cứu<br/>token người hỏi"| BIZ
     AG --> LLM
-    KB --> DB
+    AG --> AIS
+    AG --> DB
     KB --> AIS
+    KB --> DB
 ```
 
 | Tầng | Thành phần | Vai trò |
 |---|---|---|
-| Frontend | Widget chat | Nút nổi trong `StudentLayout`, `TutorLayout` ([08](./08-giao-dien.md)) |
+| Frontend | Widget chat | Nút nổi trong `StudentLayout`, `TutorLayout` ([08](./08-giao-dien.md)); hộp thoại gửi câu hỏi cho nhân viên |
+| | Trang yêu cầu hỗ trợ | Học viên / gia sư xem câu trả lời; nhân viên xử lý hàng chờ ([14](./14-yeu-cau-ho-tro.md)) |
 | | Trang quản trị kho tri thức | Admin soạn, công bố, khôi phục tài liệu; xem câu hỏi chưa trả lời được |
 | Backend | `AssistantController`, `AdminAssistantController` | Nhận request, kiểm vai trò (`STUDENT` / `TUTOR`; `ADMIN`) |
 | | `AssistantProxyService` | Rate limit; gọi `assistant-service` với `X-Internal-Token`, `X-User-*`, chuyển tiếp `Authorization`; timeout |
 | | API nghiệp vụ sẵn có | Nguồn dữ liệu cho tool tra cứu — không sửa gì |
+| | Yêu cầu hỗ trợ (mới) | Bảng, API, thông báo cho việc chuyển câu hỏi cho nhân viên `USER_SUPPORT` ([14](./14-yeu-cau-ho-tro.md)) |
 | assistant-service | Agent hỏi đáp | `AgentRunner` + chuỗi middleware (mục 2.3); `Retriever`, `ToolRegistry` + `BackendClient`, `CitationVerifier` |
 | | Quản lý kho tri thức | `KnowledgeBaseService`: phiên bản, công bố, chia đoạn, embed; import bản khởi tạo từ `knowledge-base/` trong repo |
 | | Nhà cung cấp | `LlmProvider` (LLM API), `EmbeddingProvider` (`ai-service`) — đổi được bằng cấu hình |
@@ -64,12 +65,12 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    Q(["Câu hỏi"]) --> P1["1. Chuẩn bị<br/>kiểm tra đầu vào<br/>nạp lịch sử + focus"]
-    P1 --> P2["2. Tìm tài liệu<br/>viết lại câu hỏi<br/>vector + full-text + rerank"]
-    P2 --> P3["3. Sinh câu trả lời<br/>LLM"]
-    P3 <-->|"cần dữ liệu cá nhân<br/>≤ 3 lần"| T["Tool tra cứu<br/>qua ToolGate"]
-    P3 --> P4{"4. Kiểm chứng<br/>trích dẫn"}
-    P4 -->|đạt| OK(["Trả lời<br/>+ lưu"])
+    Q(["Câu hỏi"]) --> P1["Bước 1 · Chuẩn bị<br/>kiểm tra đầu vào<br/>nạp lịch sử + focus"]
+    P1 --> P2["Bước 2 · Tìm tài liệu<br/>viết lại câu hỏi<br/>vector + full-text + rerank"]
+    P2 --> P3["Bước 3 · Sinh câu trả lời<br/>LLM"]
+    P3 <-->|"cần dữ liệu cá nhân<br/>tối đa 3 lần"| T["Tool tra cứu<br/>qua ToolGate"]
+    P3 --> P4{"Bước 4<br/>Kiểm chứng<br/>trích dẫn"}
+    P4 -->|đạt| OK(["Trả lời + lưu"])
     P4 -.->|"không đạt<br/>thử lại 1 lần"| P3
     P4 -->|"vẫn không đạt"| NO(["Từ chối trả lời<br/>gợi ý kênh hỗ trợ"])
 ```
@@ -108,7 +109,7 @@ một hoặc vài hook; thứ tự đăng ký quyết định thứ tự chạy.
 
 ```mermaid
 flowchart TB
-    S([Yêu cầu từ backend]) --> BA["① before_agent<br/>Trace · Budget · InputGuard · Memory · Retrieval"]
+    S([Yêu cầu từ backend]) --> BA["① before_agent<br/>Trace · Budget · InputGuard · Memory ·<br/>Query · ScopeGuard · Retrieval"]
     BA --> BM["② before_model<br/>Memory · ContextInjection · ToolSelection"]
     BM --> WM["③ wrap_model_call<br/>ModelCall (timeout, retry, đo token)"]
     WM --> AM["④ after_model<br/>OutputSchema · LoopGuard · Budget"]
@@ -125,7 +126,9 @@ flowchart TB
 | `TraceMiddleware` | ①, ③, ⑤, ⑥ | Mở root span theo `X-Request-Id`; mỗi lời gọi model / tool là một span con (thời gian, token, trạng thái); đóng span ở ⑥ |
 | `BudgetMiddleware` | ①, ④, ⑤, ⑥ | Khởi tạo hạn mức mỗi lượt: ≤ 4 lời gọi model (không tính verifier), ≤ 3 lời gọi tool, ≤ 40.000 token, ≤ 25 giây. Trừ dần; chạm trần → dừng có kiểm soát (circuit breaker), trả phần đã có + ghi `fallback_reason = BUDGET` |
 | `InputGuardMiddleware` | ① | Độ dài ≤ 1.000 ký tự; hội thoại thuộc đúng người dùng; che SĐT, email, dãy số dài trước khi model thấy |
-| `RetrievalMiddleware` | ① | Viết lại câu hỏi (khi có lịch sử), truy xuất lai, rerank, lọc audience; đặt kết quả vào state (chạy **một lần** mỗi lượt) |
+| `QueryMiddleware` | ① | Viết lại câu hỏi (khi có lịch sử) và embed câu hỏi qua `ai-service` (một lần mỗi lượt; vector dùng chung cho ScopeGuard và Retrieval) |
+| `ScopeGuardMiddleware` | ① | Lớp chặn câu hỏi ngoài phạm vi: luật → so khớp embedding với câu mẫu; ngoài phạm vi → trả câu từ chối mẫu, dừng lượt (không truy xuất, không gọi Actor) ([04](./04-luong-hoi-dap.md) mục 4.11) |
+| `RetrievalMiddleware` | ① | Truy xuất lai, rerank, lọc audience; đặt kết quả vào state (chạy **một lần** mỗi lượt) |
 | `MemoryMiddleware` | ①, ②, ⑥ | Bộ nhớ ngắn hạn ([04](./04-luong-hoi-dap.md) mục 4.10). ① nạp lịch sử + `session_state` của hội thoại (đã kiểm quyền sở hữu). ② cửa sổ trượt 6 lượt, **loại bỏ có cấu trúc** (lượt cũ chỉ giữ câu hỏi + câu trả lời cuối, bỏ kết quả tool thô). ⑥ cập nhật `session_state.focus` từ kết quả tool |
 | `ContextInjectionMiddleware` | ② | Dựng ngữ cảnh theo **thứ tự lớp và ngân sách token từng lớp** ([04](./04-luong-hoi-dap.md) mục 4.10): system prompt theo vai trò (có phiên bản, không bao giờ cắt), tool, ngữ cảnh người dùng, trạng thái phiên, đoạn `[D1]…[Dk]`, kết quả tool, lịch sử; khi thử lại sau kiểm chứng: chèn **góp ý** của verifier |
 | `ToolSelectionMiddleware` | ② | **Chọn tool động**: chỉ tool của vai trò; ưu tiên tool cùng nhóm chức năng (`features`) với các đoạn truy xuất được / trang đang mở; tối đa 6 tool mỗi lời gọi; câu hỏi `POLICY` thuần không cần tool → không gửi tool |
@@ -170,6 +173,7 @@ biện pháp ở hook:
 | Không lặp gọi tool | `LoopGuardMiddleware`, `BudgetMiddleware` |
 | Nội dung tài liệu / kết quả tool là dữ liệu, không phải chỉ dẫn | Bọc thẻ + các biện pháp trên làm cho chỉ dẫn chèn vào không gây ra được hành động nào ngoài phạm vi người dùng tự làm được |
 | Không trả lời dài lan man | Giới hạn token đầu ra ở `ModelCallMiddleware` |
+| Chỉ trả lời câu hỏi về nền tảng | `ScopeGuardMiddleware` chặn trước khi gọi model ([04](./04-luong-hoi-dap.md) mục 4.11) |
 
 ## 2.5. Cấu trúc thư mục dự kiến
 
@@ -227,3 +231,11 @@ Hai container cùng mạng compose nên `assistant-service` gọi `ai-service` b
 
 Chạy: `docker compose --profile ai --profile assistant up -d`. Danh sách đầy đủ biến môi trường ở
 [11](./11-lo-trinh-va-van-hanh.md).
+
+## 2.7. Đánh đổi kiến trúc
+
+| Điểm | Đánh đổi | Lý do chọn / hướng xử lý sau |
+|---|---|---|
+| **Gọi vòng** backend → `assistant-service` → backend (tool tra cứu) | Hai service phụ thuộc lẫn nhau; một request giữ hai kết nối tới backend | Tool dùng chính token người hỏi nên hưởng nguyên phân quyền sẵn có, không viết lại logic quyền. Phương án khác — backend tự chạy tool, `assistant-service` chỉ trả "cần gọi tool X" — tránh gọi vòng nhưng chia logic agent ra hai nơi; không cần ở quy mô đồ án |
+| **Chuỗi gọi đồng bộ dài** (frontend → backend → assistant → LLM / ai-service / backend) | Độ trễ cộng dồn; lỗi một mắt xích làm hỏng cả lượt | Timeout xếp bậc từ trong ra ngoài (25 s → 30 s → 35 s); lỗi tool / rerank có phương án dự phòng (mục 4.3, [05](./05-cong-cu-tra-cuu.md) mục 5.5). Streaming / bất đồng bộ để hướng phát triển |
+| **Dùng chung `ai-service`** với tính năng đề xuất gia sư | Embed / rerank chạy CPU, hai tính năng tranh tài nguyên khi tải cao | Chấp nhận ở quy mô đồ án; cần thì chạy thêm instance `ai-service` riêng cho trợ lý (chỉ đổi `AI_SERVICE_URL`) |

@@ -64,6 +64,7 @@ tiên tool có `features` trùng với các đoạn tài liệu truy xuất đư
 | `list_my_withdrawals` | `GET /api/v1/users/me/wallet/withdrawals` | id, số tiền, `WithdrawalRequestStatus`, thời gian | "Yêu cầu rút tiền tới đâu rồi?" |
 | `list_my_complaints` | `GET /api/v1/users/me/complaints` | id, tiêu đề / loại, `ComplaintStatus`, thời gian | "Khiếu nại của tôi…" |
 | `get_my_complaint` | `GET /api/v1/users/me/complaints/{complaintId}` | trạng thái, yêu cầu bổ sung (nếu có), thời gian | "Vì sao khiếu nại cần bổ sung?" |
+| `list_my_support_requests` | `GET /api/v1/users/me/support-requests` | mã, trạng thái, câu hỏi (cắt ngắn), thời gian gửi / trả lời | "Câu hỏi tôi gửi nhân viên đã có trả lời chưa?" ([14](./14-yeu-cau-ho-tro.md)) |
 | `get_unread_notification_count` | `GET /api/v1/users/me/notifications/unread-count` | số lượng | "Tôi có thông báo mới không?" |
 
 ### Chỉ `STUDENT`
@@ -86,7 +87,7 @@ tiên tool có `features` trùng với các đoạn tài liệu truy xuất đư
 | `list_student_requests_for_my_post` | `GET /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests` | "Có học viên nào đăng ký tin của tôi?" |
 | `list_my_offers_to_students` | `GET /api/v1/tutors/me/tutor-student-requests` | "Các đề nghị dạy tôi đã gửi?" |
 
-Tổng: 10 tool chung + 5 tool học viên = 15 tool cho `STUDENT`; 10 + 5 = 15 tool cho `TUTOR`. Mỗi lời gọi model
+Tổng: 11 tool chung + 5 tool học viên = 16 tool cho `STUDENT`; 11 + 5 = 16 tool cho `TUTOR`. Mỗi lời gọi model
 chỉ thấy tối đa 6 nhờ chọn tool động.
 
 **Không có tool:**
@@ -94,6 +95,7 @@ chỉ thấy tối đa 6 nhờ chọn tool động.
 - **Buổi học**: buổi học chỉ phục vụ thanh toán theo buổi; câu hỏi liên quan trả lời qua
   `list_my_payment_installments` và tài liệu nhóm `payment`.
 - **`EMPLOYEE`, `ADMIN`**: không tra cứu dữ liệu qua trợ lý (QĐ9).
+- **Tạo / hủy yêu cầu hỗ trợ**: chỉ người dùng tự làm qua hộp thoại ([14](./14-yeu-cau-ho-tro.md)); trợ lý chỉ đọc trạng thái.
 
 ## 5.4. Lọc và rút gọn kết quả
 

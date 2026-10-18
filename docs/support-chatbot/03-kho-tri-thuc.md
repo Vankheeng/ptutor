@@ -97,6 +97,13 @@ truy xuất được "đang chờ bạn bổ sung bằng chứng".
 - Đoạn kế thừa `audience`, `features`, `routes`, `type` của tài liệu; có `anchor` (slug heading) để trích dẫn.
 - Embedding theo lô 32 văn bản (giới hạn `AI_EMBED_MAX_BATCH` của `ai-service`).
 
+**Đoạn để tìm và đoạn để đọc (small-to-big).** Đoạn ≤ 400 token chỉ dùng để **tìm** (vector chính xác hơn, vừa giới
+hạn 512 token của `/embed`). Khi một đoạn được chọn, model được **đọc cả mục** chứa nó: ghép mọi đoạn cùng phiên bản
+tài liệu và cùng `heading_path`, theo `ordinal`, tối đa ~1.200 token (mục dài hơn → lấy đoạn được chọn và các đoạn
+liền kề cho tới giới hạn). Như vậy một mục dài bị chia nhỏ vẫn không mất điều kiện / ngoại lệ nằm ở phần sau. Không
+tăng trực tiếp giới hạn 400 token vì đoạn càng dài vector càng "loãng" và embed trên CPU càng chậm. Chi tiết dựng
+ngữ cảnh: [04](./04-luong-hoi-dap.md) mục 4.3.
+
 ## 3.6. Bản khởi tạo sinh từ code
 
 Khi dự án đã hoàn thiện, bản khởi tạo được **sinh từ code** (có sự hỗ trợ của AI) rồi import vào DB dạng nháp;

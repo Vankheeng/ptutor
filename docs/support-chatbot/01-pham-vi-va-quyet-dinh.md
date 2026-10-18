@@ -50,6 +50,8 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 - Hướng dẫn thao tác trên giao diện, kèm link tới trang (chỉ trang có trong danh sách route cho phép).
 - Tra cứu chỉ-đọc dữ liệu của chính người hỏi.
 - Hội thoại nhiều lượt (hiểu câu hỏi tiếp nối như "còn hợp đồng kia thì sao?").
+- Chuyển câu hỏi chưa trả lời được cho nhân viên hỗ trợ — **người dùng tự gửi**; nhân viên `USER_SUPPORT` xử lý trên
+  trang riêng ([14](./14-yeu-cau-ho-tro.md)).
 
 **Ngoài phạm vi**
 
@@ -59,7 +61,7 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 - Tư vấn học tập, giải bài tập (thuộc "chatbot hỗ trợ học tập", là tính năng khác).
 - Tìm và gợi ý gia sư — thuộc tính năng recommendation; trợ lý chỉ hướng dẫn cách dùng trang tìm kiếm.
 - Trả lời thay nhân viên trong việc phân xử khiếu nại hay quyết định hoàn tiền.
-- Câu hỏi không liên quan đến nền tảng.
+- Câu hỏi không liên quan đến nền tảng — bị chặn bởi lớp chặn ngoài phạm vi ([04](./04-luong-hoi-dap.md) mục 4.11).
 
 ## 1.5. Quyết định
 
@@ -77,7 +79,10 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 | QĐ10 | Agent đơn + harness 6 hook | Bài toán chỉ cần retrieval + tool + structured output; thêm agent / tree search chỉ tăng độ trễ, chi phí, điểm lỗi ([12](./12-co-so-ly-thuyet.md)) |
 | QĐ11 | Kiểm chứng trích dẫn | Bắt loại lỗi "trích dẫn có thật nhưng không chứa điều được khẳng định" mà kiểm tra hình thức không bắt được |
 | QĐ12 | Cổng hồi quy cho mọi thay đổi | Không đo được thì không được thay đổi; thay đổi làm giảm chỉ số cũ là thoái lui |
-| QĐ13 | Bộ nhớ chỉ trong một hội thoại; không lưu dài hạn / xuyên phiên | Dữ liệu người dùng đổi trạng thái liên tục và đã có trong DB nghiệp vụ; lưu bản sao gây trả lời bằng dữ liệu cũ, rủi ro gán nhầm người dùng, trái tối thiểu hóa dữ liệu ([04](./04-luong-hoi-dap.md) mục 4.10) |
+| QĐ13 | Bộ nhớ chỉ trong một hội thoại; không lưu dài hạn / xuyên phiên. Phiên kết thúc khi đóng tab hoặc đăng xuất, không hết hạn theo thời gian | Dữ liệu người dùng đổi trạng thái liên tục và đã có trong DB nghiệp vụ; lưu bản sao gây trả lời bằng dữ liệu cũ, rủi ro gán nhầm người dùng, trái tối thiểu hóa dữ liệu ([04](./04-luong-hoi-dap.md) mục 4.10) |
+| QĐ14 | Lớp chặn câu hỏi ngoài phạm vi trước khi gọi model (luật + so khớp embedding, Actor là tầng cuối) | Tiết kiệm chi phí, giữ trợ lý đúng vai; dùng lại vector đã có nên gần như không tốn thêm; ưu tiên không chặn nhầm ([04](./04-luong-hoi-dap.md) mục 4.11) |
+| QĐ15 | Chuyển câu hỏi cho nhân viên bằng **yêu cầu hỗ trợ** riêng (không dùng Khiếu nại), người dùng tự gửi | Đúng nghĩa nghiệp vụ; giữ QĐ7 ([14](./14-yeu-cau-ho-tro.md)) |
+| QĐ16 | Không dùng Graph RAG | Kho nhỏ, theo chủ đề, câu hỏi chủ yếu 1–2 đoạn; quan hệ dữ liệu người dùng đã có trong DB và lấy qua tool; chi phí dựng / duy trì đồ thị cao ([12](./12-co-so-ly-thuyet.md) mục 12.5) |
 
 ## 1.6. Các câu hỏi đã chốt
 
@@ -95,5 +100,5 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 - **`ai-service` phải có trên `dev`** (đang ở nhánh `feat/tutor-recommendation`). Trước khi gộp, `assistant-service`
   dùng `EmbeddingProvider` giả lập (`fake`) để phát triển và test; không được nạp kho tri thức thật bằng
   embedding giả.
-- **Trang quản trị trên frontend**: `dev` chưa có khu vực admin; trang quản lý kho tri thức cần layout quản
-  trị chung (có thể dùng chung với các chức năng `Admin*` khác).
+- **Trang quản trị trên frontend**: `dev` chưa có khu vực admin; trang quản lý kho tri thức và trang xử lý yêu cầu
+  hỗ trợ của nhân viên cần layout quản trị chung (có thể dùng chung với các chức năng `Admin*` khác).

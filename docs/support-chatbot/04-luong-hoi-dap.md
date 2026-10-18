@@ -15,9 +15,11 @@ sequenceDiagram
     U->>B: POST /api/v1/assistant/messages {conversationId?, message, pagePath}
     B->>B: Xác thực JWT, kiểm tra tài khoản, rate limit
     B->>A: POST /v1/chat (X-Internal-Token, X-User-*, Authorization)
-    Note over A: ① before_agent: trace, budget, kiểm tra đầu vào
+    Note over A: ① before_agent: trace, budget, kiểm tra đầu vào, nạp bộ nhớ
     A->>L: Viết lại câu hỏi (chỉ khi có lịch sử)
     A->>AI: /embed câu hỏi
+    A->>A: Lớp chặn ngoài phạm vi (luật + so khớp embedding)
+    Note over A: Ngoài phạm vi → trả câu từ chối mẫu, dừng (không gọi Actor)
     A->>A: Truy xuất lai (vector + full-text, RRF, lọc audience)
     A->>AI: /rerank top 20
     loop Tối đa 3 vòng tool
@@ -65,7 +67,8 @@ quá giờ → dùng nguyên câu gốc.
 | Gộp | Reciprocal Rank Fusion: `score = Σ 1 / (60 + rank)` → top 20 |
 | Rerank | `ai-service /rerank` (bge-reranker-v2-m3) trên top 20 (giới hạn 40 văn bản / lần); `ai-service` báo rerank `disabled` / lỗi → giữ thứ tự RRF |
 | Ưu tiên ngữ cảnh | Đoạn có `routes` khớp `pagePath` cộng thêm điểm nhỏ |
-| Cắt | Top 6 đoạn, tổng ≤ ~3.000 token |
+| Mở rộng thành mục (small-to-big) | Với mỗi đoạn trong top: lấy cả mục chứa nó (cùng phiên bản + `heading_path`, ghép theo `ordinal`, ≤ ~1.200 token); nhiều đoạn cùng một mục → gộp làm một |
+| Cắt | Tối đa 6 mục `[D1]…[D6]` theo thứ hạng đoạn tốt nhất của mục, tổng ≤ ~3.000 token (vượt → bỏ mục hạng thấp, giữ tối thiểu 2) |
 | Ngưỡng | Điểm rerank của đoạn tốt nhất < 0,3 (hoặc, khi không rerank: cosine < 0,45 **và** full-text không khớp) → đánh dấu `NO_CONTEXT` |
 
 Ngưỡng là giá trị khởi đầu, hiệu chỉnh trên bộ câu hỏi mẫu ([10](./10-danh-gia.md)).
@@ -81,7 +84,11 @@ Ngữ cảnh gửi model do `ContextInjectionMiddleware` dựng:
 - **Ngữ cảnh người dùng**: vai trò, trang đang mở, ngày hiện tại. Không gửi họ tên, email.
 - **Trạng thái phiên** và **lịch sử** (6 lượt gần nhất, chỉ câu hỏi + câu trả lời cuối, đã bỏ kết quả tool thô),
   theo ngân sách token từng lớp ở mục 4.10.
-- **Các đoạn tài liệu** `[D1]…[D6]`: tiêu đề, mục, nội dung.
+- **Các mục tài liệu** `[D1]…[D6]` (đã mở rộng small-to-big), mỗi mục trình bày kèm tiêu đề và đường dẫn heading:
+  ```
+  [D1] Hủy hợp đồng — Các bước hủy (học viên)
+  1. Vào Hợp đồng → chọn hợp đồng cần hủy. ...
+  ```
 - **Tool** do `ToolSelectionMiddleware` chọn (tối đa 6), hoặc không có tool.
 - Trường hợp `NO_CONTEXT` và không có tool phù hợp → **không gọi Actor**, trả ngay câu trả lời abstain (tiết
   kiệm chi phí, không cho model cơ hội bịa).
@@ -100,6 +107,12 @@ Ngữ cảnh gửi model do `ContextInjectionMiddleware` dựng:
   "suggestions": ["Thanh toán VNPay bị lỗi thì sao?"]
 }
 ```
+
+**Gọi tool và trả JSON trong cùng lượt.** Mặc định một lời gọi Actor vừa có thể gọi tool vừa trả JSON theo schema.
+Nếu nhà cung cấp / model không hỗ trợ tốt cả hai cùng lúc (kiểm chứng ở giai đoạn 0, [11](./11-lo-trinh-va-van-hanh.md)),
+chuyển sang **hai pha**: pha tool (model chỉ được gọi tool hoặc báo "đủ dữ liệu") → pha trả lời (một lời gọi với
+response schema, không có tool). Chỉ thay đổi bên trong `AgentRunner`, middleware giữ nguyên; tốn thêm tối đa một lời
+gọi cho câu `LOOKUP`.
 
 Yêu cầu model **tách sẵn các khẳng định** (`claims`) kèm nguồn giúp bước kiểm chứng không phải tự tách câu, và
 cho phép code kiểm tra từng khẳng định.
@@ -124,8 +137,9 @@ Ba loại lỗi trích dẫn và lớp bắt từng loại:
   ```json
   {"verdicts": [{"claim": 0, "verdict": "SUPPORTED", "evidence": "tối thiểu 10.000 đ", "reason": "..."}]}
   ```
-- **Kiểm tra bằng code**: `evidence` phải là chuỗi con (sau chuẩn hóa khoảng trắng) của đoạn nguồn; không phải
-  → coi là `UNSUPPORTED`. Bước này chặn trường hợp verifier tự bịa bằng chứng.
+- **Kiểm tra bằng code**: `evidence` phải là chuỗi con của mục nguồn `[Dn]` sau khi chuẩn hóa cả hai phía (Unicode
+  NFC, chữ thường, gộp khoảng trắng, thống nhất dấu ngoặc kép / gạch nối; **giữ nguyên dấu tiếng Việt và chữ số**
+  để không che sai lệch số liệu); không phải → coi là `UNSUPPORTED`. Bước này chặn trường hợp verifier tự bịa bằng chứng.
 - Dùng prompt riêng, nhiệt độ 0; có thể dùng model khác Actor (cấu hình `ASSISTANT_VERIFIER_MODEL`).
 
 **Khẳng định từ tool** — kiểm tra bằng code, không cần LLM: số tiền, ngày, mã trạng thái xuất hiện trong khẳng
@@ -161,7 +175,7 @@ Câu trả lời abstain:
 |---|---|
 | `actions[].route` không thuộc `_routes.yaml` hoặc tham số không thuộc `seen_ids` | Bỏ action |
 | `answer` > ~1.200 ký tự | Cắt theo đoạn |
-| `OUT_OF_SCOPE` | Câu từ chối lịch sự + gợi ý những gì trợ lý làm được |
+| `OUT_OF_SCOPE` | Câu từ chối mẫu + gợi ý những gì trợ lý làm được (cùng câu với lớp chặn, mục 4.11) |
 | Che thông tin cá nhân | Trước khi lưu log |
 
 ## 4.8. Ví dụ
@@ -211,6 +225,17 @@ Agent **không bao giờ tự ghi** vào bộ nhớ bền vững (kho tri thức
 nguồn gốc (`source_refs`, `edited_by`, `published_at`). Điều này loại bỏ rủi ro "đầu độc bộ nhớ" — một lần chèn chỉ
 dẫn thành công không thể được lưu lại và lan sang các phiên sau.
 
+### Cửa sổ lịch sử
+
+| Lượt hiện tại | Lịch sử đưa vào ngữ cảnh |
+|---|---|
+| 1–6 | Toàn bộ các lượt trước |
+| Từ 7 | 6 lượt gần nhất (cặp hỏi – đáp, chỉ câu trả lời cuối), ≤ 1.500 token — vượt thì bỏ lượt cũ nhất trước; lượt cũ hơn chỉ còn dấu vết qua `focus` |
+| Mốc 20 | **Không đổi cách nhớ, không chặn hỏi tiếp** — widget chỉ gợi ý mở cuộc trò chuyện mới |
+
+Ngoài lịch sử, mỗi lượt model còn thấy câu hỏi đã viết lại, `focus`, các mục tài liệu và kết quả tool của lượt hiện
+tại. `history_turns = 6` là giá trị khởi đầu, kiểm tra bằng thí nghiệm E4 trên bộ hội thoại nhiều lượt.
+
 ### Trạng thái phiên (`session_state`)
 
 Cửa sổ 6 lượt có điểm yếu: nếu người dùng hỏi đi hỏi lại một chi tiết nhỏ, cả cửa sổ chỉ còn chi tiết đó và mất
@@ -259,8 +284,64 @@ bằng `turn_trace`):
 Thứ tự cắt khi vượt: lịch sử → kết quả tool → đoạn tài liệu → trạng thái phiên. Lớp 1–3 không bao giờ bị cắt.
 Số token thực tế từng lớp được ghi vào span của lời gọi model để phân tích phân bổ ([13](./13-thiet-ke-eval.md) mục 13.11).
 
+### Vòng đời phiên
+
+Một **phiên** = một `conversation`. Phiên chỉ kết thúc khi người dùng **đóng tab** hoặc **đăng xuất** — không có hết
+hạn theo thời gian không hoạt động.
+
+| Sự kiện | Cơ chế |
+|---|---|
+| **Bắt đầu** | Widget gửi tin nhắn khi chưa có `conversationId` (lần đầu mở trong tab, hoặc sau "Cuộc trò chuyện mới") → backend tạo `conversation`, trả `conversationId` |
+| **Tiếp tục** | Widget giữ `conversationId` trong `sessionStorage` của tab: chuyển trang, tải lại trang, đóng / mở khung chat trong **cùng tab** vẫn là một phiên. Mỗi tab là một phiên riêng |
+| **Kết thúc — đóng tab** | Trình duyệt tự xóa `sessionStorage` của tab → lần mở widget tiếp theo không còn `conversationId` → phiên mới. Phía server không cần nhận tín hiệu: phiên cũ đơn giản là không được tiếp tục |
+| **Kết thúc — đăng xuất** | Hàm đăng xuất của frontend (cùng chỗ xóa token trong `authStorage`) xóa `conversationId` và gọi `POST /api/v1/assistant/conversations/{id}/end` (không chờ kết quả) → server đặt `ended_at` |
+| **Kết thúc — chủ động** | Nút "Cuộc trò chuyện mới" → gọi `/end` cho phiên hiện tại rồi xóa `conversationId` |
+| Tiếp tục phiên đã kết thúc | Gửi tin với `conversationId` có `ended_at` → `409 CONVERSATION_ENDED` → widget tự bắt đầu phiên mới và gửi lại câu hỏi |
+
+- Khi phiên kết thúc, chỉ **bộ nhớ ngắn hạn** (lịch sử đưa vào ngữ cảnh, `session_state`) không còn được dùng; nội dung
+  phiên **vẫn được lưu** theo thời hạn ở [09](./09-bao-mat-va-quyen-rieng-tu.md) mục 9.3 (phục vụ thống kê, câu hỏi
+  chưa trả lời được, đính kèm yêu cầu hỗ trợ).
+- Phiên dài vượt 20 lượt: widget chỉ **gợi ý** bắt đầu phiên mới, không tự kết thúc.
+- Nhân bản tab (duplicate) sao chép `sessionStorage` → hai tab dùng chung một phiên; an toàn nhờ khóa theo
+  `conversation_id` khi xử lý một lượt (mỗi lúc chỉ một lượt của một phiên được xử lý; lượt đến sau chờ hoặc nhận
+  `409 CONVERSATION_BUSY`).
+
 ### Phạm vi và xóa
 
 - Mọi thứ trong bộ nhớ ngắn hạn thuộc **một `conversation_id` của một `user_id`**; mỗi lượt đều kiểm tra quyền sở
   hữu trước khi nạp. Không có cơ chế chia sẻ ngữ cảnh giữa người dùng hay giữa các hội thoại.
 - Xóa hội thoại xóa cả `session_state` và mọi bản ghi liên quan, có kiểm chứng ([09](./09-bao-mat-va-quyen-rieng-tu.md) mục 9.3).
+
+## 4.11. Lớp chặn câu hỏi ngoài phạm vi
+
+Mục đích: người dùng không dùng trợ lý cho việc ngoài nền tảng (giải bài tập, viết văn, hỏi chuyện chung…) — tiết kiệm
+chi phí LLM, giữ trợ lý đúng vai. Đây là lớp về **phạm vi và chi phí**, không phải lớp bảo mật: kể cả khi bị vượt,
+trợ lý vẫn không làm được gì ngoài phạm vi người dùng tự xem được ([09](./09-bao-mat-va-quyen-rieng-tu.md)).
+
+`ScopeGuardMiddleware` chạy ở ① **sau khi viết lại câu hỏi và embed** (để câu tiếp nối như "còn cái kia thì sao?"
+được xét bằng câu đầy đủ), **trước khi truy xuất**. Ba tầng, từ rẻ đến đắt:
+
+| Tầng | Cách làm | Chi phí | Kết quả |
+|---|---|---|---|
+| 1. Luật | Mẫu chào hỏi / cảm ơn → `CHITCHAT` (trả lời ngắn mẫu). Mẫu rõ ràng ngoài phạm vi: biểu thức toán, "giải bài", "viết bài văn / đoạn văn", "viết code", "dịch đoạn này"… → `OUT_OF_SCOPE` | Không gọi gì | Quyết định ngay nếu khớp |
+| 2. So khớp embedding | Dùng chính vector câu hỏi đã có, so cosine với hai tập câu mẫu: **trong phạm vi** (~150 câu, lấy từ tập dev của bộ câu hỏi mẫu + admin bổ sung) và **ngoài phạm vi** (~60 câu). `in = max cosine tới tập trong`, `out = max cosine tới tập ngoài` | Không gọi thêm (vector đã có) | `in ≥ τ_in` → trong phạm vi. `in < τ_in` và `out − in ≥ δ` → `OUT_OF_SCOPE`. Còn lại → **chưa chắc**, cho đi tiếp |
+| 3. Actor | Câu "chưa chắc" đi tiếp như bình thường; Actor có intent `OUT_OF_SCOPE`. Nếu truy xuất `NO_CONTEXT` và không có tool phù hợp, đã abstain mà không gọi Actor (mục 4.4) | Một lời gọi bình thường | Từ chối nếu Actor phân loại `OUT_OF_SCOPE` |
+
+Giá trị khởi đầu `τ_in = 0,55`, `δ = 0,05` — hiệu chỉnh trên tập dev sao cho **tỉ lệ chặn nhầm câu trong phạm vi
+≤ 3%** (chặn nhầm tệ hơn bỏ lọt, vì câu bỏ lọt vẫn bị tầng 3 xử lý).
+
+**Câu hỏi lẫn** ("tìm gia sư toán thế nào, giải giúp luôn bài này") không bị chặn ở tầng 2 (độ tương đồng với tập
+trong phạm vi cao); Actor trả lời phần thuộc nền tảng và từ chối phần còn lại (quy định trong system prompt, verifier
+không cho khẳng định ngoài tài liệu).
+
+**Câu từ chối mẫu** (không gọi LLM):
+
+> Mình chỉ hỗ trợ các câu hỏi về việc sử dụng PTutor: tìm gia sư / học viên, hợp đồng, thanh toán, ví, khiếu nại,
+> tài khoản… Bạn có thể hỏi, ví dụ: [câu gợi ý theo trang]
+
+- Không hiện nút "Gửi câu hỏi cho nhân viên" cho câu ngoài phạm vi ([14](./14-yeu-cau-ho-tro.md)).
+- Ghi `intent = OUT_OF_SCOPE`, `fallback_reason = OUT_OF_SCOPE_RULE | OUT_OF_SCOPE_EMBEDDING | OUT_OF_SCOPE_MODEL`
+  để đo từng tầng.
+- Câu mẫu lưu ở bảng `assistant.scope_exemplar` ([06](./06-du-lieu-va-schema.md)); admin xem các câu bị chặn trong
+  danh sách "câu hỏi chưa trả lời được" và có thể chuyển một câu bị chặn nhầm thành câu mẫu trong phạm vi.
+- Luật tầng 1 lưu ở `kb_setting` (`scope_rules`), admin sửa được.

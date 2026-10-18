@@ -30,6 +30,7 @@ public static final String[] ADMIN_ASSISTANT_API = {
 | `POST` | `/api/v1/assistant/messages` | Gửi câu hỏi, nhận câu trả lời; không có `conversationId` → tạo hội thoại mới |
 | `GET` | `/api/v1/assistant/conversations` | Hội thoại của tôi (phân trang, mới nhất trước) |
 | `GET` | `/api/v1/assistant/conversations/{conversationId}/messages` | Tin nhắn của một hội thoại |
+| `POST` | `/api/v1/assistant/conversations/{conversationId}/end` | Kết thúc phiên (đăng xuất, "Cuộc trò chuyện mới") — đặt `ended_at` |
 | `DELETE` | `/api/v1/assistant/conversations/{conversationId}` | Xóa (mềm) hội thoại |
 | `POST` | `/api/v1/assistant/messages/{messageId}/feedback` | Đánh giá 👍/👎 |
 | `GET` | `/api/v1/assistant/suggestions?pagePath=...` | Câu hỏi gợi ý theo vai trò và trang |
@@ -69,6 +70,8 @@ Response `data`:
 |---|---|---|
 | 400 | `INVALID_MESSAGE` | Rỗng hoặc quá 1.000 ký tự |
 | 404 | `CONVERSATION_NOT_FOUND` | Không tồn tại hoặc không thuộc người dùng |
+| 409 | `CONVERSATION_ENDED` | Phiên đã kết thúc → widget bắt đầu phiên mới và gửi lại |
+| 409 | `CONVERSATION_BUSY` | Phiên đang xử lý một lượt khác (hai tab dùng chung phiên) |
 | 429 | `ASSISTANT_RATE_LIMITED` | Quá giới hạn (khởi đầu: 20 tin / 5 phút / người) |
 | 503 | `ASSISTANT_UNAVAILABLE` | `assistant-service` hoặc `ai-service` tắt, lỗi, quá thời gian |
 
@@ -142,3 +145,8 @@ Câu hỏi gợi ý lưu ở `kb_setting` (`suggestions`), ví dụ:
   }
 }
 ```
+
+## 7.6. API yêu cầu hỗ trợ
+
+API cho người dùng, nhân viên và admin, cùng endpoint nội bộ `/v1/conversations/{id}/excerpt`:
+[14](./14-yeu-cau-ho-tro.md) mục 14.5.

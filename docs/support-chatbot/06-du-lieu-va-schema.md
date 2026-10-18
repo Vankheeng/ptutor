@@ -12,6 +12,11 @@
 -- backend: V25__create_assistant_schema.sql (số phiên bản chốt khi gộp vào dev)
 CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE SCHEMA IF NOT EXISTS assistant;
+-- unaccent() không phải IMMUTABLE nên không dùng trực tiếp trong cột sinh tự động / chỉ mục được.
+-- Bọc trong hàm IMMUTABLE với từ điển chỉ định rõ:
+CREATE OR REPLACE FUNCTION assistant.f_unaccent(text) RETURNS text
+  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+  AS $$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $$;
 -- Role và mật khẩu tạo ngoài migration (biến môi trường).
 ```
 
@@ -80,21 +85,39 @@ Chỉ mục duy nhất một phần: mỗi tài liệu có tối đa một phiê
 | `anchor` | `varchar(200)` | |
 | `content` | `text` | Nội dung hiển thị / đưa cho model |
 | `search_text` | `text` | `title > heading_path` + nội dung — văn bản đem embed |
-| `tsv` | `tsvector` | Từ `unaccent(search_text)` + `keywords`, cấu hình `simple` |
+| `tsv` | `tsvector` | `to_tsvector('simple', assistant.f_unaccent(search_text \|\| ' ' \|\| keywords))` — tính khi công bố (hoặc cột sinh tự động dùng `f_unaccent`); câu hỏi cũng đi qua `f_unaccent` trước khi tạo `tsquery` |
 | `embedding` | `vector(1024)` | bge-m3 qua `ai-service` |
 | `embedding_model` | `varchar(80)` | `bge-m3-int8` (giá trị `model` do `/embed` trả) |
 | `token_count` | `int` | ≤ 400 |
 | `audience`, `features`, `routes`, `type` | | Sao chép từ phiên bản để lọc không cần join |
 | `is_active` | `boolean` | `true` khi phiên bản là bản đang công bố |
 
-Chỉ mục: HNSW `embedding vector_cosine_ops` (một phần, `WHERE is_active`); GIN `tsv`; GIN `audience`.
+Chỉ mục: HNSW `embedding vector_cosine_ops` (một phần, `WHERE is_active`); GIN `tsv`; GIN `audience`;
+B-tree `(version_id, heading_path, ordinal)` để mở rộng đoạn thành cả mục (small-to-big).
 
 Đổi model embedding: chạy `python -m app.kb.reembed` → embed lại mọi đoạn `is_active`; `embedding_model` cho biết
 đoạn nào còn cũ. Số chiều khác 1024 cần migration đổi cột.
 
+### `assistant.scope_exemplar`
+
+Câu mẫu cho lớp chặn ngoài phạm vi ([04](./04-luong-hoi-dap.md) mục 4.11).
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | `uuid` PK | |
+| `text` | `varchar(500)` | |
+| `label` | `varchar(10)` | `IN`, `OUT` |
+| `source` | `varchar(20)` | `DATASET` (từ tập dev), `ADMIN` |
+| `embedding` | `vector(1024)` | |
+| `embedding_model` | `varchar(80)` | |
+| `created_by`, `created_at` | `uuid`, `timestamptz` | |
+
+Ít dòng (vài trăm) → so khớp bằng quét tuần tự, không cần chỉ mục.
+
 ### `assistant.kb_setting`
 
-Cấu hình admin sửa được: danh sách route cho phép, câu hỏi gợi ý theo vai trò / trang. Cột `key`, `value jsonb`,
+Cấu hình admin sửa được: danh sách route cho phép, câu hỏi gợi ý theo vai trò / trang, luật chặn ngoài phạm vi
+(`scope_rules`). Cột `key`, `value jsonb`,
 `updated_by`, `updated_at`.
 
 ## 6.4. Hội thoại
@@ -109,6 +132,7 @@ Cấu hình admin sửa được: danh sách route cho phép, câu hỏi gợi �
 | `title` | `varchar(200)` | Từ câu hỏi đầu (cắt ngắn) |
 | `created_at`, `last_message_at` | `timestamptz` | |
 | `session_state` | `jsonb` | Bộ nhớ ngắn hạn có cấu trúc: `focus` — các đối tượng đang bàn ([04](./04-luong-hoi-dap.md) mục 4.10). Chỉ chứa ID + nhãn ngắn, **không** chứa trạng thái, số tiền hay dữ liệu nghiệp vụ khác |
+| `ended_at` | `timestamptz`, null | Phiên đã kết thúc (đăng xuất / "Cuộc trò chuyện mới"); gửi tiếp → `409` ([04](./04-luong-hoi-dap.md) mục 4.10) |
 | `deleted_at` | `timestamptz` | Đánh dấu đã xóa (tombstone): từ thời điểm này hội thoại không bao giờ được nạp / trả về |
 
 Chỉ mục: `(user_id, last_message_at DESC)`.
@@ -216,3 +240,8 @@ WHERE a.sender = 'ASSISTANT'
   AND a.created_at > now() - interval '30 days'
 ORDER BY a.created_at DESC;
 ```
+
+## 6.6. Dữ liệu ở backend
+
+Bảng `support_requests` (yêu cầu hỗ trợ) thuộc **schema `public` của backend**, do Flyway quản lý, vì đây là dữ liệu
+nghiệp vụ giữa người dùng và nhân viên: [14](./14-yeu-cau-ho-tro.md) mục 14.4.

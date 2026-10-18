@@ -1,4 +1,4 @@
-# Thiết kế tính năng Trợ lý hỗ trợ người dùng (Support Assistant) — phiên bản 0.4
+# Thiết kế tính năng Trợ lý hỗ trợ người dùng (Support Assistant) — phiên bản 0.6
 
 > Nhánh: `feat/support-chatbot` (tạo từ `dev`). Mọi tên endpoint, enum, bảng nhắc tới dưới đây lấy theo
 > code trên `dev` (migration Flyway V1–V24, các controller trong `backend/.../controller`).
@@ -17,7 +17,17 @@
 >
 > 0.4 (13/10/2026): thu gọn phạm vi — bỏ tóm tắt hội thoại bằng LLM, `topics` / `unresolved`, thử hỏi trên bản nháp,
 > kiểm tra hồi quy khi công bố, LLM chấm điểm, chạy 5 lần, thí nghiệm E3 / E5 / E6, workflow CI; giữ E1, E2, E4; thêm
-> khôi phục phiên bản. Các phần bỏ ghi ở [11](./11-lo-trinh-va-van-hanh.md) mục 11.5.
+> khôi phục phiên bản; thêm benchmark B2 (phân rã độ trễ, token, chi phí — [10](./10-danh-gia.md) mục 10.5). Các phần
+> bỏ ghi ở [11](./11-lo-trinh-va-van-hanh.md) mục 11.5.
+>
+> 0.5 (18/10/2026): vòng đời phiên (kết thúc khi đóng tab / đăng xuất); lớp chặn câu hỏi ngoài phạm vi
+> ([04](./04-luong-hoi-dap.md) mục 4.11); chuyển câu hỏi cho nhân viên bằng yêu cầu hỗ trợ, gồm trang xử lý của nhân
+> viên ([14](./14-yeu-cau-ho-tro.md)); lý do không dùng Graph RAG.
+>
+> 0.6 (18/10/2026): tách đoạn để tìm (≤ 400 token) và mục để đọc (≤ 1.200 token, small-to-big); làm rõ cửa sổ lịch
+> sử 6 lượt và mốc 20 lượt; chuẩn hóa khi kiểm bằng chứng của verifier; phương án hai pha khi model không gọi tool
+> và trả JSON cùng lúc; sửa `unaccent` (hàm IMMUTABLE); đánh đổi kiến trúc ([02](./02-kien-truc.md) mục 2.7); bản
+> thử nhỏ ở giai đoạn 0; bỏ việc chuyển câu trả lời của nhân viên thành tài liệu.
 
 ## Tóm tắt
 
@@ -51,7 +61,10 @@ sinh từ code và nạp vào dưới dạng nháp.
 | QĐ10 | **Agent đơn + harness 6 hook**; không multi-agent, không tree search | [02](./02-kien-truc.md), [12](./12-co-so-ly-thuyet.md) |
 | QĐ11 | **Kiểm chứng trích dẫn** ở `after_model`: verifier tách ngữ cảnh, thử lại tối đa 1 lần, sau đó từ chối | [04](./04-luong-hoi-dap.md) |
 | QĐ12 | Mọi thay đổi prompt / model / cấu hình phải qua **bộ hồi quy** trước khi áp dụng | [10](./10-danh-gia.md), [13](./13-thiet-ke-eval.md) |
-| QĐ13 | Bộ nhớ chỉ **trong một hội thoại** (cửa sổ 6 lượt + trạng thái phiên do code cập nhật); **không** bộ nhớ dài hạn / xuyên phiên — dữ liệu người dùng lấy mới qua tool; agent không tự ghi bộ nhớ bền vững | [04](./04-luong-hoi-dap.md), [12](./12-co-so-ly-thuyet.md) |
+| QĐ13 | Bộ nhớ chỉ **trong một hội thoại** (phiên kết thúc khi đóng tab / đăng xuất) (cửa sổ 6 lượt + trạng thái phiên do code cập nhật); **không** bộ nhớ dài hạn / xuyên phiên — dữ liệu người dùng lấy mới qua tool; agent không tự ghi bộ nhớ bền vững | [04](./04-luong-hoi-dap.md), [12](./12-co-so-ly-thuyet.md) |
+| QĐ14 | Lớp chặn câu hỏi ngoài phạm vi trước khi gọi model | [04](./04-luong-hoi-dap.md) |
+| QĐ15 | Chuyển câu hỏi cho nhân viên bằng yêu cầu hỗ trợ (người dùng tự gửi; nhân viên `USER_SUPPORT` xử lý) | [14](./14-yeu-cau-ho-tro.md) |
+| QĐ16 | Không dùng Graph RAG | [12](./12-co-so-ly-thuyet.md) |
 
 ## Mục lục
 
@@ -68,6 +81,7 @@ sinh từ code và nạp vào dưới dạng nháp.
 11. [Lộ trình, vận hành, rủi ro và hướng phát triển](./11-lo-trinh-va-van-hanh.md)
 12. [Cơ sở lý thuyết](./12-co-so-ly-thuyet.md)
 13. [Thiết kế kiểm thử và eval](./13-thiet-ke-eval.md)
+14. [Chuyển câu hỏi cho nhân viên (yêu cầu hỗ trợ)](./14-yeu-cau-ho-tro.md)
 
 ## Thuật ngữ
 
@@ -87,6 +101,8 @@ sinh từ code và nạp vào dưới dạng nháp.
 | Verifier | Lượt gọi model riêng kiểm chứng từng khẳng định với đoạn được trích |
 | Grounded | Câu trả lời mà mọi khẳng định đều có căn cứ trong đoạn tài liệu hoặc kết quả tool |
 | Abstain | Từ chối trả lời khi không đủ căn cứ |
+| Phiên | Một `conversation`: bắt đầu khi widget chưa có `conversationId`, kết thúc khi đóng tab hoặc đăng xuất |
+| Yêu cầu hỗ trợ | Câu hỏi người dùng tự gửi cho nhân viên khi trợ lý không trả lời được |
 | Trace / span | Dấu vết một lượt (root span) và từng lời gọi model / tool bên trong (span con) |
 | Trạng thái phiên / `session_state` | Bộ nhớ ngắn hạn có cấu trúc của một hội thoại: các đối tượng đang bàn (`focus`) |
 | Tombstone | Đánh dấu đã xóa để dữ liệu không bao giờ được dùng lại, trước khi xóa vật lý |

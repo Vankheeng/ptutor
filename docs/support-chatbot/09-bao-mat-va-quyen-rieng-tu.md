@@ -31,6 +31,9 @@ lý và admin (qua trang quản trị) **không sửa được** chúng. Admin c
 | T8 | Gọi thẳng `assistant-service` / `ai-service` từ ngoài | Bind `127.0.0.1`, token nội bộ so sánh thời gian hằng |
 | T9 | Lạm dụng tốn chi phí LLM | Lớp 5; theo dõi token trong `turn_trace` |
 | T10 | `assistant-service` đọc trộm dữ liệu nghiệp vụ | Role DB `assistant_app` không có quyền schema `public` |
+| T12 | Dùng trợ lý cho việc ngoài nền tảng (tốn chi phí, sai vai trò) | Lớp chặn ngoài phạm vi trước khi gọi model ([04](./04-luong-hoi-dap.md) mục 4.11) — lớp về phạm vi / chi phí, không thay cho các lớp bảo mật |
+| T13 | Lộ hội thoại qua yêu cầu hỗ trợ | Chỉ đính kèm khi người dùng đồng ý; đoạn trích đã che thông tin cá nhân; chỉ nhân viên `USER_SUPPORT` / `ADMIN` xem được ([14](./14-yeu-cau-ho-tro.md) mục 14.8) |
+| T14 | Trợ lý tạo yêu cầu hỗ trợ hàng loạt do injection | Trợ lý không có tool tạo yêu cầu; chỉ người dùng bấm gửi; giới hạn 5 yêu cầu mở / 10 mỗi ngày |
 | T11 | XSS qua câu trả lời / nội dung tài liệu | Render Markdown không cho HTML ở widget và trang xem trước; link chỉ là route nội bộ qua `navigate` |
 
 ## 9.3. Dữ liệu lưu và thời hạn
@@ -45,6 +48,8 @@ lý và admin (qua trang quản trị) **không sửa được** chúng. Admin c
 | Đánh giá 👍/👎 và ghi chú | Có | Cùng tin nhắn |
 | Access token | **Không** | — |
 | Kho tri thức (mọi phiên bản) | Có | Không xóa (cần cho trích dẫn cũ, lịch sử thay đổi) |
+| Yêu cầu hỗ trợ: câu hỏi, câu trả lời | Có (backend) | Giữ để thống kê |
+| Yêu cầu hỗ trợ: đoạn hội thoại đính kèm | Có, khi người dùng đồng ý | 365 ngày sau khi đóng yêu cầu; không bị xóa theo hội thoại gốc (người dùng được báo trước) |
 
 - **Không có bộ nhớ xuyên phiên** và **không có hồ sơ người dùng** do trợ lý tự lưu ([04](./04-luong-hoi-dap.md) mục
   4.10): dữ liệu cá nhân chỉ tồn tại trong phạm vi một hội thoại và trong DB nghiệp vụ vốn có — tối thiểu hóa dữ

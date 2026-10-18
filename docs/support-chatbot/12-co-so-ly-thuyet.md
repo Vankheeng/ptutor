@@ -13,7 +13,7 @@ Khi năng lực model nền tảng đã đủ cao, khác biệt giữa các sả
 | Núm | Bản chất | Trong thiết kế |
 |---|---|---|
 | System prompt | Tĩnh; sửa hành vi, không sửa cơ chế | Prompt theo vai trò, có `prompt_version` ([04](./04-luong-hoi-dap.md) mục 4.4) |
-| Tools | Tĩnh; mỗi tool là một khả năng và một bề mặt rủi ro | 15 tool chỉ-đọc mỗi vai trò, chọn động ≤ 6 ([05](./05-cong-cu-tra-cuu.md)) |
+| Tools | Tĩnh; mỗi tool là một khả năng và một bề mặt rủi ro | 16 tool chỉ-đọc mỗi vai trò, chọn động ≤ 6 ([05](./05-cong-cu-tra-cuu.md)) |
 | Middleware | Lập trình được, có trạng thái, thấy được lịch sử, ngân sách, mẫu lặp | 6 hook ([02](./02-kien-truc.md) mục 2.3) |
 
 Prompt và tool chỉ **mô tả** agent; middleware **can thiệp** lúc chạy: đọc trạng thái, chặn hành động, sửa ngữ
@@ -57,6 +57,22 @@ nhiên → thử lại, có giới hạn số lần [BG §2.1–2.3; Shinn et al
 | Verdict máy đọc được | JSON `{claim, verdict, evidence, reason}` |
 | Tách ngữ cảnh với Actor | Verifier chỉ thấy khẳng định + đoạn nguồn, không thấy lập luận của Actor |
 
+Trạng thái của một Reflexion agent thường gồm `messages`, `trajectory`, `reflection_memory`, `attempt_count`,
+`success` [BG §2.2]. Vòng kiểm chứng của trợ lý có đủ năm thành phần đó trong `TurnState` ([02](./02-kien-truc.md) mục
+2.3) — đây là trí nhớ **giữa các lần thử trong một lượt**, khác với trí nhớ giữa các lượt hội thoại (mục 12.8):
+
+| Reflexion | Trợ lý PTutor |
+|---|---|
+| `messages` | `messages` — ngữ cảnh gửi model |
+| `trajectory` | `tool_calls` + `spans` — tool đã gọi, các lời gọi model (lưu `turn_trace`) |
+| `reflection_memory` | Góp ý của verifier ("khẳng định #2 không có trong D1…"), chèn vào lần thử sau |
+| `attempt_count` / `max_attempts` | `attempts` / `max_verify_retries = 1` |
+| `success` | Quyết định của verifier: chấp nhận / thử lại / từ chối |
+
+Vì chỉ thử lại tối đa 1 lần, mỗi lượt có nhiều nhất một góp ý — không cần cửa sổ trượt cho bài học, và tránh luôn
+vấn đề bài học phình to hoặc mâu thuẫn nhau. Khi thử lại chỉ đưa góp ý ngắn, không đưa lại toàn bộ câu trả lời sai —
+tương ứng bước reset `messages` của Reflexion.
+
 Tránh các cạm bẫy [BG §2.7]: *correlated failure* — prompt riêng, có thể dùng model khác; *reflection không đổi
 chiến lược* — góp ý chỉ rõ khẳng định nào sai và vì sao; *retry không giới hạn* — `max_verify_retries = 1`;
 *bài học mâu thuẫn* — không giữ "bài học" qua các lượt. Góp ý chỉ chứa thông tin cô đọng, không đưa lại transcript
@@ -91,6 +107,14 @@ gấp 3–13 lần và thường cần GPU; bản tinh chỉnh riêng tiếng Vi
 vượt bản gốc. Với kho tri thức nhỏ, hẹp, có thêm full-text và rerank, bge-m3 (đã chạy sẵn trong `ai-service`) là
 lựa chọn cân bằng; Recall@6 trên bộ câu hỏi của chính hệ thống được báo cáo ở thí nghiệm E1
 ([10](./10-danh-gia.md)); so sánh với model embedding khác để ở hướng phát triển.
+
+**Vì sao không dùng Graph RAG** (QĐ16). Graph RAG dựng đồ thị thực thể – quan hệ từ tài liệu (thường bằng LLM) rồi
+truy xuất theo đồ thị; nó có lợi khi câu hỏi cần **nối nhiều nguồn qua quan hệ** (multi-hop) hoặc **tổng hợp toàn cục**
+trên kho tài liệu lớn. Bài toán trợ lý không thuộc hai trường hợp đó: kho tri thức nhỏ, mỗi tài liệu một chủ đề, câu
+hỏi chủ yếu cần 1–2 đoạn; các quan hệ quan trọng (luồng trạng thái, các bước) đã được viết thẳng trong tài liệu
+glossary / hướng dẫn; quan hệ của dữ liệu người dùng (hợp đồng – kỳ thanh toán – ví) nằm trong CSDL quan hệ và được lấy
+có cấu trúc qua tool. Trong khi đó, đồ thị phải dựng lại mỗi lần admin sửa tài liệu và lỗi trích xuất quan hệ khó kiểm,
+đi ngược yêu cầu trích dẫn chính xác. Điều kiện xem lại và bước thử rẻ hơn: [11](./11-lo-trinh-va-van-hanh.md) mục 11.5.
 
 ## 12.6. Guardrails: prompt không phải biện pháp kiểm soát
 

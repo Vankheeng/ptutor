@@ -19,6 +19,7 @@ src/components/assistant/
 ├── ActionButtons.tsx         # nút điều hướng (react-router navigate)
 ├── SuggestionChips.tsx       # câu hỏi gợi ý
 ├── FeedbackButtons.tsx       # 👍 / 👎 + lý do
+├── SupportRequestDialog.tsx  # gửi câu hỏi cho nhân viên (14)
 └── useAssistant.ts           # gọi API, giữ conversationId, trạng thái đang trả lời
 src/services/assistantApi.ts  # dùng httpClient sẵn có (tự gắn token, tự làm mới token khi 401)
 ```
@@ -32,14 +33,20 @@ src/services/assistantApi.ts  # dùng httpClient sẵn có (tự gắn token, t�
 | Có trích dẫn | Chip `[1]`; bấm → tooltip tên tài liệu và mục |
 | Có `actions` | Nút dưới câu trả lời; bấm → điều hướng trong ứng dụng, giữ khung chat mở |
 | `grounded = PARTIAL` | Câu trả lời bình thường + dòng nhỏ "Một phần câu hỏi chưa có thông tin chính thức" |
-| `grounded = NONE` (abstain) | Viền nhạt khác màu + nút "Gửi khiếu nại / liên hệ hỗ trợ" |
-| 👎 | Hỏi lý do (Sai / Không hữu ích / Đã cũ / Khác) + ô ghi chú tùy chọn |
+| `grounded = NONE` (abstain) | Viền nhạt khác màu + nút "Gửi câu hỏi cho nhân viên" ([14](./14-yeu-cau-ho-tro.md)) |
+| `grounded = PARTIAL` | Như trên, thêm nút "Gửi câu hỏi cho nhân viên" |
+| `OUT_OF_SCOPE` | Câu từ chối mẫu + chip câu hỏi gợi ý; **không** có nút gửi nhân viên |
+| 👎 | Hỏi lý do (Sai / Không hữu ích / Đã cũ / Khác) + ô ghi chú tùy chọn; sau đó gợi ý "Gửi câu hỏi cho nhân viên" |
 | `429` | "Bạn gửi hơi nhanh, thử lại sau ít phút" |
 | `503` | "Trợ lý tạm thời không khả dụng" — không ảnh hưởng phần còn lại của trang |
-| Hội thoại mới | Nút "Cuộc trò chuyện mới" ở header; hội thoại vượt 20 lượt → gợi ý bắt đầu cuộc trò chuyện mới |
+| Hội thoại mới | Nút "Cuộc trò chuyện mới" ở header; hội thoại vượt 20 lượt → chỉ gợi ý bắt đầu cuộc trò chuyện mới |
+| Menu header | "Hỏi nhân viên hỗ trợ" (mở hộp thoại gửi), "Yêu cầu hỗ trợ của tôi" (mở trang danh sách) |
+| `409 CONVERSATION_ENDED` | Tự bắt đầu phiên mới, gửi lại câu hỏi, hiện dòng nhỏ "Đã bắt đầu cuộc trò chuyện mới" |
 
 - Gửi kèm `pagePath = location.pathname` để trợ lý ưu tiên tài liệu và tool của trang hiện tại.
-- `conversationId` giữ trong state của widget (và `sessionStorage` bọc try/catch) để không mất khi chuyển trang.
+- `conversationId` giữ trong state của widget và `sessionStorage` (bọc try/catch) — sống theo **tab**: không mất khi
+  chuyển trang hay tải lại, mất khi đóng tab. Đăng xuất xóa `conversationId` và gọi `/end` (vòng đời phiên:
+  [04](./04-luong-hoi-dap.md) mục 4.10). Không hết hạn theo thời gian không hoạt động.
 - Dòng chú thích dưới ô nhập: "Trợ lý có thể sai. Thông tin chính thức xem tại trang tương ứng."
 
 ## 8.2. Trang quản trị kho tri thức (ADMIN)
@@ -82,7 +89,11 @@ src/pages/admin/assistant/
 - **Câu hỏi chưa trả lời được**: mỗi dòng có nút "Tạo tài liệu" (điền sẵn câu hỏi vào bản nháp mới) hoặc
   "Mở tài liệu liên quan" (theo đoạn được truy xuất gần nhất).
 
-## 8.3. Mở rộng sau
+## 8.3. Trang yêu cầu hỗ trợ
+
+Trang của học viên / gia sư và trang xử lý của nhân viên: [14](./14-yeu-cau-ho-tro.md) mục 14.6.
+
+## 8.4. Mở rộng sau
 
 - **Streaming** (SSE) để hiện chữ dần. Lưu ý: khi có bước kiểm chứng, chỉ stream được sau khi verifier chấp nhận
   (hoặc stream rồi thay thế khi bị bác) — giai đoạn đầu trả một lần.
