@@ -120,6 +120,12 @@ export interface StudentApplication {
 
 export type PaymentPeriod = 'PER_LESSON' | 'WEEKLY' | 'MONTHLY' | 'PACKAGE';
 
+export interface ContractSchedule {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
 export interface Contract {
   id: string;
   studentId: string;
@@ -139,6 +145,7 @@ export interface Contract {
   paymentPeriod: PaymentPeriod;
   totalLessons: number;
   preferredSchedule: string;
+  schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
   status: ContractStatus;
@@ -257,8 +264,9 @@ export interface StudyingRequestInput {
 export interface ContractTerms {
   price: number;
   paymentPeriod: PaymentPeriod;
-  totalLessons: number;
-  preferredSchedule: string;
+  totalLessons?: number;
+  preferredSchedule?: string;
+  schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
 }
