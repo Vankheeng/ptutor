@@ -1,6 +1,10 @@
 # 1. Phạm vi, quyết định và điều kiện tiên quyết
 
+> 💡 **File này nói về gì:** Tính năng phải làm được gì, các hướng kỹ thuật nào được chọn hay bỏ (kèm lý do), nhóm đã chốt những gì theo từng ngày, và những việc phải sửa trong code cũ trước khi xây tính năng. Đọc khi cần biết "vì sao làm thế này mà không làm thế kia". Bản giải thích bằng lời thường cho toàn bộ tính năng: [00](./00-doc-truoc.md).
+
 ## 1.1. Mục tiêu
+
+> 💡 Bảy điều tính năng phải đạt. Tóm gọn: người tìm (học sinh hoặc gia sư) nhập tiêu chí và nhận danh sách tin đăng của phía bên kia, xếp theo mức **hợp cả hai phía**, kèm lý do; ít kết quả thì gợi ý nới tiêu chí; kết quả hiểu người dùng dần qua hành vi; hệ thống tự báo khi có tin mới rất hợp; và có số liệu để so các phiên bản thuật toán. **LLM** (mô hình ngôn ngữ lớn, như GPT) chỉ dùng để trích thông tin, không trò chuyện.
 
 1. **Học sinh** nhập tiêu chí (bộ lọc, có thể kèm câu tự nhiên) → nhận danh sách **tin dạy** phù hợp
    nhất mà gia sư **có khả năng cao sẽ nhận** em. Học sinh **không cần có tin đăng**.
@@ -16,6 +20,8 @@
 Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác vụ (trích xuất có schema).
 
 ## 1.2. Quyết định phạm vi
+
+> 💡 Bảng các hướng kỹ thuật, mỗi hướng có một mã (R1, A1, H1…) dùng xuyên suốt bộ tài liệu, và quyết định chọn / hoãn / loại. Vài mã hay gặp: **R1** gợi ý hai chiều (phải hợp cả hai phía), **B4** chống dồn đơn vào một gia sư, **H1** học sở thích từ hành vi, **A1/A2** dùng LLM đọc văn bản / câu gõ, **L1** tự học trọng số. "Collaborative filtering" (gợi ý kiểu "người giống bạn cũng thích…") bị loại vì dữ liệu tương tác còn quá ít.
 
 | Hướng | Quyết định | Lý do |
 |---|---|---|
@@ -40,6 +46,8 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 
 ### Các quyết định của nhóm (theo thời gian)
 
+> 💡 Nhật ký các quyết định đã chốt, xếp theo ngày. Khi tài liệu ở chỗ khác có vẻ mâu thuẫn, quyết định mới hơn trong bảng này là căn cứ.
+
 | Ngày | Quyết định |
 |---|---|
 | 25/08/2026 | Ứng viên phía gia sư chỉ gồm **tin dạy đã trả phí và được duyệt** (`OPEN`). Không dùng toạ độ địa lý. |
@@ -51,6 +59,8 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 
 ## 1.3. Giả định
 
+> 💡 Những điều kiện thiết kế dựa vào: quy mô nhỏ (vài trăm tin đăng, nên chưa cần chỉ mục tìm vector nhanh — "index ANN"), máy chủ chỉ có CPU, tin đăng chỉ có hai hình thức online / offline (lúc tìm thì chọn thêm được "Cả hai" = `ANY`), và thứ trong tuần đánh số theo chuẩn ISO: 1 = Thứ Hai … 7 = Chủ nhật.
+
 - Quy mô đồ án: vài trăm tin đăng mỗi loại; truy vấn vector không cần index ANN.
 - Máy chạy AI service: CPU, không GPU, RAM ≥ 8 GB. LLM dùng qua API; embedding và rerank chạy cục bộ.
 - Tin đăng chỉ có hình thức `OFFLINE`/`ONLINE` (theo `CHECK` hiện tại). Ở **tiêu chí tìm kiếm**,
@@ -59,6 +69,8 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
   OpenAPI cho mọi schema có `dayOfWeek`; các API đều kiểm tra 1–7 (P7, xong 12/10/2026).
 
 ## 1.4. Hiện trạng code liên quan (đã rà soát, cập nhật 09/10/2026)
+
+> 💡 Ảnh chụp code **trước khi** bắt đầu làm tính năng (09/10/2026): cái gì đã có, cái gì còn thiếu. Nhiều dòng "chưa có" ở đây nay đã được làm; xem nhật ký phát triển và các mục "Ghi chú triển khai" trong 02–07 để biết trạng thái mới.
 
 | Thành phần | Hiện trạng |
 |---|---|
@@ -73,6 +85,8 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | Listener tính lại điểm | `AFTER_COMMIT` gọi hàm `@Transactional` mặc định → **nguy cơ không lưu** |
 
 ## 1.5. Điều kiện tiên quyết (làm trước khi xây tính năng)
+
+> 💡 Các việc sửa code cũ phải làm trước, để dữ liệu đầu vào của thuật toán đúng. Ví dụ: điểm uy tín gia sư (`recommendation_score`) đọc 6 cột tổng hợp như điểm đánh giá trung bình, tỉ lệ nhận đơn… mà trước đây không có code nào cập nhật (P1); chưa có API để học sinh đánh giá gia sư (P2). "Listener" là đoạn code tự chạy khi có một sự kiện (ví dụ hợp đồng được ký); "propagation `REQUIRES_NEW`" nghĩa là đoạn code đó chạy trong một giao dịch database riêng để chắc chắn được lưu.
 
 | # | Việc | Ghi chú |
 |---|---|---|

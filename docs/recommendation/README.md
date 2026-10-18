@@ -1,5 +1,11 @@
 # Thiết kế tính năng Đề xuất Gia sư ↔ Học viên — phiên bản 2.1
 
+> 📖 **Mới đọc lần đầu? Bắt đầu từ [00 — Đọc trước](./00-doc-truoc.md)**: giải thích toàn bộ tính năng bằng lời thường,
+> khoảng 15 phút đọc, kèm bảng giải nghĩa thuật ngữ và bảng "muốn biết gì thì đọc file nào". Mỗi file 01–12 cũng có
+> khung 💡 giải thích ngắn ngay dưới tiêu đề và dưới từng mục.
+>
+> Ghi chú phiên bản (18/10/2026): thêm file 00 và các khung 💡 giải thích bằng lời thường; nội dung kỹ thuật không đổi.
+
 > Bộ tài liệu này thay thế bộ `docs/01–08` cũ (nằm ngoài repo, tại `D:\DATN\AI_Tutor_Recommendation\docs`),
 > vốn phân tích file `Đồ án .sql` và không còn khớp schema thật. Mọi tên bảng, cột, enum dưới đây lấy theo
 > migration Flyway V1–V24 trên nhánh `dev`.
@@ -52,6 +58,7 @@ hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: c
 
 ## Mục lục
 
+0. [**Đọc trước — giải thích bằng lời thường**](./00-doc-truoc.md)
 1. [Phạm vi, quyết định và điều kiện tiên quyết](./01-pham-vi-va-quyet-dinh.md)
 2. [Kiến trúc tổng thể](./02-kien-truc.md)
 3. [Dữ liệu và schema bổ sung](./03-du-lieu-va-schema.md)

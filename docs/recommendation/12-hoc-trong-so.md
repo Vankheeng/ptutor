@@ -1,8 +1,12 @@
 # 12. Học trọng số trực tuyến (L1)
 
+> 💡 **File này nói về gì:** Thiết kế (chưa lập trình) cho việc hệ thống **tự chỉnh dần các trọng số** — mức quan trọng của nội dung, giá, lịch… khi tính điểm — từ phản hồi của người dùng, thay vì dùng mãi con số nhóm tự đặt. Đây là phần nặng toán nhất; giải thích trực giác trước ở [00](./00-doc-truoc.md) mục 4.9.
+
 > Trạng thái: **bản thiết kế**, chưa triển khai. Viết ngày 13/10/2026.
 
 ## 12.1. Mục tiêu và ý tưởng
+
+> 💡 Trọng số nhóm đặt trở thành **prior** — điểm xuất phát. Chưa có dữ liệu thì hệ thống chạy y hệt bản hiện tại; có dữ liệu thì trọng số dịch dần về phía làm người dùng phản ứng tốt hơn. Phía a (người tìm có thích không) là **học tăng cường dạng contextual bandit**: hệ thống chọn bộ trọng số → người dùng phản hồi → học, và phải chủ động thử. Phía b (phía kia có nhận không) là **học có giám sát**: đã có sẵn đáp án nhận / từ chối trong bảng đơn, không cần thử.
 
 Các trọng số trong a, a′, b, b′ (06) là **giá trị nhóm tự đặt** cho giai đoạn khởi đầu lạnh. L1 biến
 chúng thành **điểm xuất phát (prior)** của một mô hình học: khi hệ thống chạy thật, mô hình cập nhật
@@ -43,7 +47,11 @@ trưng, rerank, slot khám phá. L1 chỉ thay **trọng số gộp**.
 
 ## 12.2. Tham số nào được học, tham số nào giữ cố định
 
+> 💡 Chỉ học các **trọng số gộp** của a và b; còn lại giữ cố định có lý do — ví dụ điểm uy tín Q là quy tắc công khai phải giải thích được với gia sư, hệ số chống dồn đơn là chính sách cho cả thị trường, thang điểm phản hồi chính là thước đo nên không thể vừa làm thước vừa đem đi học.
+
 ### Được học — bốn mô hình
+
+> 💡 Bốn bộ trọng số được học riêng: a và b cho chiều học sinh tìm gia sư (`A_S2T`, `B_S2T`), a′ và b′ cho chiều gia sư tìm học viên (`A_T2S`, `B_T2S`). Công thức b hiện tại được viết lại dạng "dàn phẳng" (một tổng có trọng số) cho dễ học, mà với trọng số ban đầu vẫn cho đúng kết quả cũ. Ví dụ b_fit = trung bình 3 thành phần = mỗi thành phần × 1/3, rồi × 0,5 → mỗi thành phần có trọng số 1/6.
 
 | Mô hình | Trọng số | Prior (= giá trị hiện tại) | Tín hiệu học |
 |---|---|---|---|
@@ -70,6 +78,8 @@ Phía a dùng đúng quy tắc thiếu dữ liệu ở 06, mục 6.5: đặc tr�
 
 ### Giữ cố định — có lý do
 
+> 💡 Bảng từng nhóm tham số không được học và lý do. Kèm một việc phải làm trước: gom các hằng số đang viết cứng trong code vào file cấu hình.
+
 | Tham số | Lý do không học |
 |---|---|
 | Điểm chất lượng Q (cách tính `recommendation_score`, gồm phạt khiếu nại có lỗi) | Quy tắc nghiệp vụ, công khai và giải thích được với gia sư; tự học sẽ làm điểm đổi mà không lý giải được |
@@ -87,6 +97,8 @@ Phía a dùng đúng quy tắc thiếu dữ liệu ở 06, mục 6.5: đặc tr�
 trong `FeatureCalculator`. Đây cũng là điều kiện để chạy phân tích độ nhạy.
 
 ## 12.3. Mô hình toán
+
+> 💡 **Hồi quy tuyến tính Bayes**: giả định phản hồi r ≈ tổng có trọng số của các đặc trưng x, cộng nhiễu. θ là vector trọng số cần học. Thay vì nhớ hết dữ liệu, chỉ cần giữ hai bảng số tích lũy **A** (ma trận) và **c** (vector), mỗi quan sát mới cộng thêm vào; trọng số ước lượng μ = A⁻¹c. **κ** = trọng số nhóm đặt "đáng giá" bao nhiêu quan sát (200): lúc đầu μ gần như bằng prior, phải có hàng trăm quan sát mới kéo lệch được. Σ đo mức chưa chắc chắn, càng nhiều dữ liệu càng nhỏ.
 
 Mỗi mô hình là **hồi quy tuyến tính Bayes** trên vector đặc trưng `x` (thêm hệ số chặn `x₀ = 1`):
 
@@ -117,6 +129,8 @@ c  = c₀ + Σ_i s_i · r_i · x_i
 
 ### Từ θ sang trọng số dùng được
 
+> 💡 Trọng số học ra có thể âm, lệch thang hoặc đổi quá nhanh, nên qua bốn bước an toàn: bỏ hệ số chặn; **kẹp** trong khoảng 0,5–2 lần giá trị nhóm đặt; mỗi lần đổi tối đa 0,05; **chuẩn hóa** cho tổng bằng 1. Ví dụ prior của giá là 0,20, mô hình học ra 0,55 → kẹp còn 0,40; nếu bản trước là 0,20 thì lần này chỉ được lên 0,25 (trước bước chuẩn hóa).
+
 θ học được có thể âm, lệch thang hoặc thay đổi quá nhanh. Trước khi dùng:
 
 ```
@@ -130,6 +144,8 @@ Kẹp quanh prior nghĩa là trọng số tự đặt vẫn quyết định **v�
 "tắt hẳn" hay chiếm toàn bộ điểm. Biên `[0,5×; 2×]` là tham số (`learning.min-ratio`, `max-ratio`).
 
 ## 12.4. Phía a: Linear Thompson Sampling
+
+> 💡 Phía a phải chủ động thử, vì tin không được hiển thị thì không bao giờ có phản hồi. Mỗi lần tìm, hệ thống **rút ngẫu nhiên** một bộ trọng số quanh μ (θ̃ ~ N(μ, ρ²Σ): phân phối chuẩn, càng chưa chắc thì rút càng xa), qua bốn bước an toàn, rồi xếp hạng bằng bộ đó. **ρ** chỉnh mức thử; ρ = 0 là luôn dùng μ (tham lam). Cùng một người trong cùng một ngày nhận cùng bộ trọng số, để tìm lại không bị đảo lộn.
 
 Khác phía b, phản hồi phía a **phụ thuộc chính thứ tự hệ thống hiển thị**: ứng viên không được hiển thị
 thì không bao giờ có phản hồi. Nếu luôn dùng trọng số tốt nhất hiện tại, mô hình có thể mắc kẹt ở một
@@ -154,6 +170,8 @@ Mỗi lần tìm (khi mô hình ở chế độ ACTIVE):
   Hai cơ chế độc lập, cùng dựa trên Thompson sampling.
 
 ### Phần thưởng phía a
+
+> 💡 Mỗi tin đã hiển thị cho một **điểm thưởng r** theo hành động mạnh nhất của người tìm trong 7 ngày: không làm gì 0, xem 0,3, tym 0,6, liên hệ 0,8, gửi đơn 1,0, bấm "bỏ qua" −0,2. Ví dụ người dùng xem rồi gửi đơn → r = 1,0. Chỉ tính hành động của người tìm; việc phía kia nhận hay không thuộc phía b.
 
 Mỗi ứng viên đã hiển thị trong một lần tìm là một quan sát `(x, r)`. `r` = mức **cao nhất** người tìm đạt
 được với ứng viên đó trong **7 ngày** kể từ lần tìm, cộng / trừ các điều chỉnh:
@@ -185,6 +203,8 @@ Phần thưởng phía a **chỉ gồm hành động của người tìm** — �
 
 ## 12.5. Thiên lệch vị trí
 
+> 💡 Tin ở trên được bấm nhiều hơn chỉ vì đứng trên. Ba cách bù: chỉ học từ phần danh sách người dùng có khả năng đã đọc (tới vị trí tương tác thấp nhất + 2); tin ở slot khám phá được tính nặng gấp đôi vì vị trí của chúng không do điểm quyết định; và (nâng cao) **IPW** — nhân mỗi quan sát với nghịch đảo xác suất được nhìn thấy, ví dụ vị trí chỉ 25% người đọc tới thì một lượt bấm ở đó tính bằng 4.
+
 Ứng viên ở trên được bấm nhiều hơn chỉ vì đứng trên. Ba lớp xử lý:
 
 1. **Chỉ lấy phần đã được nhìn:** với mỗi lần tìm có ít nhất một tương tác, chỉ lấy các ứng viên ở vị trí
@@ -197,6 +217,8 @@ Phần thưởng phía a **chỉ gồm hành động của người tìm** — �
    Bật bằng `learning.ipw.enabled`.
 
 ## 12.6. Phía b: hồi quy Bayes trên quyết định nhận / từ chối
+
+> 💡 Đáp án là quyết định thật trong bảng đơn: nhận = 1, từ chối = 0. Thêm vài loại mẫu phụ với trọng số nhỏ hơn, ví dụ gia sư **chủ động mời** một học sinh cũng là dấu hiệu sẵn lòng dạy kiểu học sinh đó; đơn chờ quá 14 ngày coi như từ chối ngầm. Vì các con số thay đổi theo thời gian, lúc tạo đơn hệ thống chụp lại (**snapshot**) các thành phần b tại thời điểm đó. Phía b dùng thẳng μ, không thử ngẫu nhiên.
 
 Nhãn phía b là **quyết định thật của phía kia**, có ngay trong bảng đơn và không phụ thuộc vị trí hiển
 thị:
@@ -234,7 +256,11 @@ thứ tự hiển thị, và thử nghiệm trên b sẽ ảnh hưởng tới ph
 
 ## 12.7. Vòng đời và cơ chế an toàn
 
+> 💡 Mỗi mô hình có ba chế độ và điều kiện chuyển chế độ, job chạy mỗi đêm, và lưới an toàn để quay về trọng số nhóm đặt bất cứ lúc nào.
+
 ### Ba chế độ cho mỗi mô hình
+
+> 💡 `OFF`: không học, dùng prior. `SHADOW` (**chạy ngầm**, mặc định): vẫn học và ghi lại mỗi đêm nhưng người dùng vẫn được phục vụ bằng prior. `ACTIVE`: người dùng được phục vụ bằng bản học được.
 
 | Chế độ | Phục vụ người dùng bằng | Học | Dùng khi |
 |---|---|---|---|
@@ -244,6 +270,8 @@ thứ tự hiển thị, và thử nghiệm trên b sẽ ảnh hưởng tới ph
 
 ### Điều kiện kích hoạt (từ `SHADOW` sang `ACTIVE`)
 
+> 💡 Chỉ chuyển sang dùng thật khi đủ dữ liệu (phía a ≥ 2.000 quan sát, phía b ≥ 300 quyết định) **và** bản học được không tệ hơn prior trên dữ liệu 7 ngày gần nhất chưa dùng để học. **Log-loss** là chỉ số đo dự đoán xác suất sai tới đâu (càng nhỏ càng tốt).
+
 1. Đủ dữ liệu: phía a ≥ `learning.min-samples-a` (2 000 quan sát, từ ≥ 300 lần tìm có tương tác); phía b ≥
    `learning.min-samples-b` (300 quyết định).
 2. **Đánh giá lại trên dữ liệu gần nhất chưa dùng để học** (7 ngày cuối): bản học được phải không tệ hơn
@@ -252,6 +280,8 @@ thứ tự hiển thị, và thử nghiệm trên b sẽ ảnh hưởng tới ph
 3. `learning.auto-activate = true` thì job tự kích hoạt; `false` thì chờ admin bấm (12.9).
 
 ### Mỗi đêm — `WeightLearningJob` (20:30 UTC = 03:30 giờ Việt Nam, sau `ExposureStatsJob` lúc 20:00 UTC)
+
+> 💡 Bảy bước của job đêm: đọc bản cũ → đọc dữ liệu mới → cập nhật A, c → tính trọng số mới và đánh giá → lưu thành **phiên bản mới** (không ghi đè bản cũ) → đủ điều kiện thì kích hoạt → báo cho `WeightProvider` nạp lại.
 
 ```
 Với mỗi mô hình có chế độ ≠ OFF:
@@ -268,12 +298,16 @@ Với mỗi mô hình có chế độ ≠ OFF:
 
 ### Lưới an toàn
 
+> 💡 Bốn lớp bảo vệ: kẹp và giới hạn bước; quay lui về phiên bản cũ hoặc tắt hẳn; bản mới kém hơn thì không được dùng; mọi lần tìm đều ghi phiên bản trọng số đã dùng để truy lại được.
+
 - Kẹp quanh prior và giới hạn bước mỗi đêm (12.3).
 - Quay lui: kích hoạt lại một version cũ, hoặc chuyển chế độ `OFF` để về prior ngay.
 - Bản mới tệ hơn prior trên dữ liệu kiểm tra → **không** kích hoạt, bản đang dùng giữ nguyên.
 - Mọi lần tìm ghi version trọng số đã dùng → truy được kết quả nào xếp bằng bộ trọng số nào.
 
 ## 12.8. Lưu trữ — migration V30
+
+> 💡 Hai bảng mới: một bảng lưu các phiên bản trọng số (kèm A, c và cờ đang dùng), một bảng lưu ảnh chụp thành phần b lúc tạo đơn; cộng các trường thêm vào nhật ký tìm kiếm.
 
 ```sql
 CREATE TABLE recommendation_learned_weights (
@@ -325,6 +359,8 @@ thống sẵn có hoặc một dòng riêng, quyết định khi code.
 
 ## 12.9. Thành phần và luồng
 
+> 💡 Các lớp code sẽ có: `WeightProvider` giữ trọng số hiện hành trong bộ nhớ (không truy vấn database mỗi lần tìm); `LinearBayesModel` là phần toán thuần; `WeightLearningJob` là job đêm; `DecisionSnapshotRecorder` ghi ảnh chụp khi tạo đơn. Khi L1 tắt, kết quả phải giống hệt hiện tại (có test kiểm tra).
+
 ```
 RecommendationSettings ──(prior, giới hạn, chế độ)──┐
                                                       ▼
@@ -354,6 +390,8 @@ hiện tại (có test khẳng định điều này).
 
 ## 12.10. Tham số `app.recommendation.learning.*`
 
+> 💡 Bảng mọi tham số của cơ chế học, mỗi dòng có ý nghĩa ngắn. Các tham số quan trọng nhất: κ (prior đáng bao nhiêu quan sát), ρ (mức thử), khoảng kẹp 0,5–2, bước tối đa 0,05, ngưỡng dữ liệu để kích hoạt.
+
 | Tham số | Giá trị khởi đầu | Ý nghĩa |
 |---|---|---|
 | `enabled` | `true` | Tắt toàn bộ L1 (mọi mô hình về prior) |
@@ -378,6 +416,8 @@ hiện tại (có test khẳng định điều này).
 | `job-cron` | `0 30 20 * * *` (UTC) | Lịch `WeightLearningJob` |
 
 ## 12.11. Chứng minh trong đồ án
+
+> 💡 Chưa có người dùng thật nên chỉ chứng minh **cơ chế** trên dữ liệu mô phỏng (09 mục 9.9). Có câu trình bày mẫu, những điều **không được tuyên bố**, và bảng câu hỏi hội đồng có thể hỏi kèm câu trả lời ngắn.
 
 Chưa có người dùng thật, nên đồ án chứng minh **cơ chế học** trên bộ mô phỏng của 09 — nơi "trọng số thật"
 của người dùng ảo được biết trước nhưng hệ thống không nhìn thấy. Chi tiết thí nghiệm ở 09, mục 9.9.
@@ -406,6 +446,8 @@ của người dùng ảo được biết trước nhưng hệ thống không nh
 
 ## 12.12. Vì sao chọn mô hình này
 
+> 💡 Sáu tiêu chí chọn (ít dữ liệu, dùng được trọng số nhóm đặt, giữ cấu trúc công thức, giải thích được, chạy rẻ trong Java, chứng minh được trên mô phỏng) và bảng so sánh với các phương án khác — ε-greedy (thỉnh thoảng thử ngẫu nhiên hoàn toàn), LinUCB, A/B test, deep RL… — kèm lý do không chọn.
+
 Sáu tiêu chí xuất phát từ hoàn cảnh đồ án: (1) ít hoặc chưa có dữ liệu; (2) dùng được trọng số tự đặt làm
 điểm xuất phát; (3) giữ nguyên cấu trúc `R = 2ab/(a+b)…`; (4) giải thích được từng trọng số; (5) chạy trong
 Java, không GPU, cập nhật rẻ mỗi đêm; (6) chứng minh được trên mô phỏng.
@@ -432,6 +474,8 @@ nhiên hơn với nhãn nhị phân nhưng đổi cấu trúc thành `σ(θ·z)`
 đích; có thể so sánh hai cách trong thí nghiệm mô phỏng (09, mục 9.9) nếu còn thời gian.
 
 ## 12.13. Giới hạn và mở rộng
+
+> 💡 Những gì mô hình chưa làm được (trọng số chung cho mọi người, mô hình tuyến tính, phản hồi bấm chưa phản ánh hết "ghép đôi tốt lâu dài") và hướng mở rộng.
 
 **Giới hạn:**
 - Mô hình tuyến tính, trọng số **chung cho mọi người dùng** của một chiều; cá nhân hoá vẫn do H1 và B5 đảm

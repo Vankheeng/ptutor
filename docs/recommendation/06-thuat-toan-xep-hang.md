@@ -1,6 +1,10 @@
 # 6. Thuật toán xếp hạng (R1, R2, R3, R6, B4, H1)
 
+> 💡 **File này nói về gì:** Trái tim của tính năng: từ tiêu chí của người tìm, hệ thống lọc, chấm điểm và xếp thứ tự các tin đăng như thế nào. Có đủ công thức, mỗi công thức có khung giải thích ý nghĩa và ví dụ số. Nếu chỉ muốn hiểu trực giác (không công thức), đọc [00](./00-doc-truoc.md) mục 3–4 trước. Cuối file (6.14) có một ví dụ tính tay trọn vẹn.
+
 ## 6.1. Tổng quan
+
+> 💡 Quy trình sáu pha. Pha 1 **lọc cứng** (loại hẳn tin không đạt điều kiện bắt buộc). Pha 2 lấy tối đa 200 tin gần nghĩa nhất. Pha 3 chấm điểm: **a** = người tìm có thích tin này không, **b** = phía kia có khả năng nhận không, **R** gộp a và b sao cho phải hợp cả hai, rồi nhân với **Q** (uy tín gia sư) và **G** (hệ số phạt nhẹ). Pha 4 chấm kỹ 20 tin đầu (**rerank**). Pha 5 gộp mỗi người một tin và chèn tin cần được khám phá. Pha 6 viết lý do và ghi nhật ký. S→T = học sinh tìm gia sư; T→S = gia sư tìm học viên.
 
 Người tìm **không cần có tin đăng**. Họ nhập tiêu chí (bộ lọc, có thể kèm câu tự nhiên — xem
 [05](./05-dau-vao-tim-kiem.md)); hệ thống ghép tiêu chí với hồ sơ của họ thành một **nhu cầu**
@@ -30,6 +34,8 @@ QueryContext (bộ lọc + câu tự nhiên + hồ sơ người tìm [+ tin đă
 Mục 6.2–6.11 mô tả chiều **học sinh tìm gia sư (S→T)**. Chiều ngược lại ở mục 6.12.
 
 ## 6.2. Pha 1 — Lọc cứng (S→T)
+
+> 💡 Loại ngay những tin chắc chắn không hợp, bằng một câu SQL: tin phải đang mở (`OPEN`), gia sư đã được duyệt (`VERIFIED`) và không bị khóa, đúng môn, có dạy lớp đó, đúng hình thức, nằm trong khu vực người tìm chọn (nếu học trực tiếp), học phí không vượt **1,5 lần** ngân sách, hai bên chưa có hợp đồng đang chạy, học sinh chưa gửi đơn vào tin đó và chưa bị từ chối ở đó trong 30 ngày. Ví dụ: ngân sách 200.000 đ thì tin 290.000 đ vẫn qua (chấm điểm giá thấp ở bước sau), tin 310.000 đ bị loại.
 
 Các tiêu chí khu vực và hình thức học do **người tìm tự chọn** (05, mục 5.2):
 - `learningMode` ∈ `ONLINE` / `OFFLINE` / `ANY` (cả hai);
@@ -87,6 +93,8 @@ truy vấn trả thêm `1 − (tr.embedding <=> :queryVector)` để gộp pha 1
 
 ## 6.3. Pha 2 — Lấy ứng viên theo vector
 
+> 💡 Nhu cầu của người tìm được biến thành một **vector** (dãy số đại diện ý nghĩa). Nếu có hơn 200 tin qua lọc cứng, lấy 180 tin có vector gần nhất (`<=>` là phép đo "khoảng cách" giữa hai vector trong pgvector) cộng 20 tin mới chưa có vector — để tin mới không bị bỏ sót. Quy mô nhỏ nên so tuần tự với mọi tin, không cần chỉ mục tìm nhanh (ANN).
+
 - **Vector truy vấn** được sinh từ "văn bản nhu cầu" của `QueryContext` (05, mục 5.5) bằng một
   lời gọi `/embed` (~100 ms), cache theo mã băm văn bản. Không có văn bản nào → dùng
   `students.profile_embedding`.
@@ -97,9 +105,13 @@ Quét tuần tự, không index ANN — chính xác, đủ nhanh ở quy mô đ�
 
 ## 6.4. Độ phù hợp a (theo góc nhìn học sinh)
 
+> 💡 a trả lời câu hỏi "học sinh có thích tin này không", là trung bình có trọng số của 7 **đặc trưng** — mỗi đặc trưng (ký hiệu `f_…`) là điểm của một tiêu chí nhỏ, từ 0 (không hợp) tới 1 (rất hợp), hoặc **thiếu** khi không có dữ liệu. Các mục con dưới đây giải thích từng đặc trưng.
+
 Mỗi đặc trưng nằm trong [0, 1] hoặc **thiếu**.
 
 ### `f_sem` — ngữ nghĩa
+
+> 💡 Đo nội dung tin "nói cùng chuyện" với nhu cầu tới đâu. `cos` (cosine) là độ giống của hai vector, gần 1 là rất giống nghĩa. Vì cosine thực tế hay rơi vào khoảng 0,3–0,8, công thức kéo giãn khoảng này thành 0–1 (`clip` = cắt về trong đoạn [0, 1]). Ví dụ cos = 0,68 → s = (0,68 − 0,30) / 0,50 = 0,76. Nếu tin đã được chấm kỹ bằng rerank (6.9) thì điểm rerank chiếm 70%: rerank 0,85 → f_sem = 0,3·0,76 + 0,7·0,85 = 0,823.
 
 ```
 cos   = 1 − (queryVector <=> tr.embedding)
@@ -113,6 +125,8 @@ nhau, dùng chung ngưỡng cho C6, C7. Hai ngưỡng hiệu chỉnh trên bộ 
 
 ### `f_need` — thế mạnh của gia sư có phủ nhu cầu của học sinh
 
+> 💡 N là các chủ đề / mục tiêu học sinh cần (mỗi cái kèm mức chắc chắn `conf`), S là các thế mạnh của gia sư. Mỗi nhu cầu được 1 điểm nếu gia sư mạnh đúng chủ đề đó, 0,6 nếu gia sư mạnh chủ đề "cha" hoặc "con" của nó, 0 nếu không; rồi lấy trung bình có trọng số theo `conf`. Ví dụ học sinh cần hình học phẳng (0,95), bài chứng minh (0,9), thi vào 10 (0,95); gia sư mạnh hình học phẳng và thi vào 10 → (0,95·1 + 0,9·0,6 + 0,95·1) / 2,8 = 0,871.
+
 N = tag TOPIC/GOAL nhu cầu của học sinh (từ bộ lọc, câu tự nhiên, tin học nếu chọn dùng, hồ sơ —
 role `NEED`/`SELF`), kèm độ tin cậy. S = tag TOPIC/GOAL `STRENGTH` của tin dạy và hồ sơ gia sư.
 
@@ -125,16 +139,22 @@ Thiếu khi N rỗng. S rỗng → 0,4.
 
 ### `f_style` — phong cách dạy
 
+> 💡 Tỉ lệ phong cách học sinh mong muốn mà gia sư có. Ví dụ muốn "kiên nhẫn" và "giải thích kỹ", gia sư chỉ ghi "kiên nhẫn" → 1/2 = 0,5. Gia sư không ghi phong cách nào → 0,5 (trung tính).
+
 P = STYLE học sinh mong muốn (bộ lọc + hồ sơ); O = STYLE `OFFERED` của gia sư.
 `f_style = |P ∩ O| / |P|` (O rỗng → 0,5). Thiếu khi P rỗng.
 
 ### `f_segment` — trình độ có thuộc đối tượng gia sư nhắm tới
+
+> 💡 Trình độ xếp theo thứ tự mất gốc < trung bình < khá < giỏi. Học sinh đúng đối tượng gia sư nhắm tới → 1; lệch một bậc → 0,5; lệch xa hơn → 0,1.
 
 Thứ tự `mat_goc < trung_binh < kha < gioi` (`can_kem_cap` ≈ `mat_goc`).
 `1.0` nếu thuộc; `0.5` nếu kề; `0.1` nếu không; `0.5` nếu gia sư không ghi đối tượng. Thiếu khi
 không biết trình độ học sinh.
 
 ### `f_price` — giá (góc nhìn học sinh)
+
+> 💡 p là học phí của tin, hi là ngân sách tối đa. Trong ngân sách → 1; vượt thì giảm đều, vượt 50% thì về 0. Ví dụ ngân sách 200.000 đ, tin 220.000 đ → 1 − 20.000 / 100.000 = 0,8.
 
 ```
 f_price = 1                                   nếu p ≤ hi
@@ -144,6 +164,8 @@ f_price = 1                                   nếu p ≤ hi
 p = `tr.expected_price`, hi = ngân sách tối đa. Thiếu khi một trong hai rỗng.
 
 ### `f_sched` — lịch giao nhau
+
+> 💡 Đếm số phút hai lịch trùng nhau (overlap), chia cho số phút "cần" — tối đa 180 phút, tức chỉ cần trùng khoảng 3 giờ mỗi tuần là đủ điểm. Ví dụ học sinh rảnh tối thứ Ba và thứ Năm 19–21h (240 phút, nên need = 180), gia sư rảnh thứ Ba 18–20h và thứ Năm 19–21h → trùng 60 + 120 = 180 phút → f_sched = 1.
 
 A = lịch rảnh học sinh chọn trên lưới (hoặc từ tin học/câu tự nhiên); B = lịch của tin dạy.
 
@@ -155,6 +177,8 @@ f_sched = min(1, overlap / need)
 Thiếu khi A hoặc B rỗng.
 
 ### `f_area` — mức thuận tiện về khu vực (chỉ áp dụng tin `OFFLINE`)
+
+> 💡 Lọc cứng đã giữ tin trong phạm vi người dùng chọn; đặc trưng này phân biệt gần hay xa **bên trong** phạm vi đó: dạy ở quận mình chọn (hoặc nơi ở) → 1; chỉ cùng tỉnh → 0,6; khác tỉnh → 0,2. Tin online luôn được 1.
 
 Lọc cứng đã đảm bảo tin nằm trong phạm vi người dùng chọn. `f_area` phân biệt **trong** phạm vi đó:
 
@@ -169,6 +193,8 @@ f_area = 1.0  với tin ONLINE
 Thiếu khi người dùng chọn `ANY` mà không có quận nơi ở. Không dùng toạ độ — chỉ so mã quận/tỉnh.
 
 ### `f_hist` — lịch sử hành vi (H1)
+
+> 💡 Tin này có giống những tin người dùng **từng quan tâm** không. `v_pref` là vector sở thích (tổng hợp từ các tin họ đã xem / tym / gửi đơn), `aff(tag)` là mức ưa thích từng tag (0–1). 60% điểm đến từ độ giống với `v_pref`, 40% từ các tag của tin mà người dùng ưa. Người chưa có lịch sử thì đặc trưng này thiếu.
 
 Từ **hồ sơ sở thích dài hạn** của người tìm (cách cập nhật ở 07, mục 7.4): vector sở thích `v_pref`
 và mức ưa thích từng tag `aff(tag)` ∈ [0, 1].
@@ -186,6 +212,8 @@ cho cả hai chiều; `w_hist` và `f_hist` được ghi theo từng ứng viên
 Cờ tắt: `history.enabled=false`.
 
 ### Gộp thành a
+
+> 💡 Cộng 7 đặc trưng theo trọng số (nội dung 30%, nhu cầu 20%, giá 20%, phong cách 10%, lịch 10%, khu vực 5%, trình độ 5%). Sau đó trộn thêm lịch sử hành vi với trọng số `w_hist` tăng dần: 0 với người mới, tối đa 0,15 khi có từ 10 tín hiệu. Ví dụ có 4 tín hiệu → w_hist = 0,15 × 4/10 = 0,06, tức lịch sử chiếm 6%. Các trọng số này do nhóm đặt (**prior** — giá trị xuất phát), sau này có thể được tự học (12).
 
 | Đặc trưng | Trọng số cơ sở w |
 |---|---|
@@ -218,6 +246,8 @@ trong `[0,5×; 2×]` giá trị prior và chuẩn hoá tổng bằng 1. `w_hist`
 
 ## 6.5. Quy tắc khi thiếu dữ liệu
 
+> 💡 Đặc trưng nào thiếu dữ liệu thì được tính là **0,5 — trung tính**, không bỏ qua. Lý do: nếu bỏ qua và chỉ tính trên phần có dữ liệu, một tin hệ thống biết rất ít lại được điểm ảo rất cao. `c_a` = tổng trọng số của các đặc trưng có dữ liệu (mức "đã nhìn thấy" bao nhiêu phần). Ví dụ chỉ biết `f_area = 1` (trọng số 0,05): a = 0,05·1 + 0,95·0,5 = 0,525, chứ không phải 1,0. `c_a` dưới 0,4 thì gắn nhãn "độ tin cậy thấp".
+
 ```
 c_a     = Σ_{k có dữ liệu} w_k                                  (độ tin cậy: đã "nhìn thấy" bao nhiêu phần)
 ā       = Σ_{k có dữ liệu} w_k·f_k / c_a                        (trung bình các đặc trưng có dữ liệu)
@@ -235,6 +265,8 @@ gợi ý chính xác hơn".
 
 ## 6.6. Khả năng gia sư nhận học sinh — b (R1 + B4)
 
+> 💡 b ước lượng gia sư có nhận học sinh này không: một nửa từ **lịch sử nhận / từ chối** của gia sư (`b_hist`), một nửa từ mức học sinh **hợp tiêu chí công khai** của gia sư (`b_fit`), rồi nhân với hệ số **chống dồn đơn** (`b_cap`). Gia sư đã chủ động mời học sinh này thì b = 1. Ba mục con giải thích từng phần.
+
 ```
 b = (0.5·b_hist + 0.5·b_fit) × b_cap
 ```
@@ -249,6 +281,8 @@ kernel và `b_cap` giữ cố định (12, mục 12.2).
 `PENDING`) vào tin đó → `b = 1`.
 
 ### `b_hist` — ước lượng từ lịch sử quyết định của gia sư (theo RECON)
+
+> 💡 Xem các đơn cũ gia sư đã nhận / từ chối trong 180 ngày; đơn nào **càng giống** học sinh hiện tại (cùng lớp, giá gần, cùng hình thức — đo bằng `k`, từ 0 đến 1) thì càng được tính nặng. Phần `α·p0` là **làm trơn Bayes**: cộng thêm 2 "đơn ảo" theo tỉ lệ nhận chung của nền tảng `p0` (mặc định 0,6), để gia sư ít dữ liệu không bị kết luận vội. Ví dụ tổng độ giống của các đơn đã nhận là 2,6, của tất cả các đơn là 3,4 → b_hist = (2,6 + 2·0,6) / (3,4 + 2) = 0,704.
 
 D = các đơn học sinh gửi tới **mọi tin dạy** của gia sư, trạng thái `ACCEPTED`/`REJECTED`, 180 ngày.
 
@@ -272,10 +306,14 @@ thành phần đó là **0,5**; `p0` chỉ được đo khi nền tảng có ≥
 
 ### `b_fit` — học sinh có hợp tiêu chí công khai của gia sư
 
+> 💡 Trung bình ba câu hỏi: học sinh có đúng đối tượng gia sư ghi không, lịch có trùng không, ngân sách có đủ mức giá của gia sư không. Ví dụ đúng đối tượng (1), lịch trùng đủ (1), ngân sách đủ (1) → b_fit = 1.
+
 Trung bình các thành phần có dữ liệu: đối tượng (như `f_segment`), lịch (`f_sched`), giá theo góc
 nhìn gia sư (`1` nếu `hi ≥ p`, nếu không `max(0, 1 − (p − hi)/(0.3·p))`). Không có dữ liệu → `p0`.
 
 ### `b_cap` — chống dồn đơn (B4)
+
+> 💡 r = số chỗ còn trống của tin, n = số đơn đang chờ. Tin càng nhiều người chờ thì b càng giảm, để không đẩy thêm học sinh vào chỗ gần như chắc chắn bị từ chối. Ví dụ còn 1 chỗ, 3 người chờ → 1 / (1 + 0,5·3) = 0,4. Bảng dưới có thêm ví dụ.
 
 ```
 r     = quantity − số đơn ACCEPTED vào tr        (≥ 1 vì tr đang OPEN; quantity rỗng → 1)
@@ -295,6 +333,8 @@ Hai cờ phục vụ so sánh các cấu hình (09, mục 9.4): `reciprocal.enab
 
 ## 6.7. Điểm reciprocal (R1)
 
+> 💡 **Reciprocal** = hai chiều. R là **trung bình điều hòa** của a và b: luôn gần số **nhỏ hơn**, nên muốn R cao thì cả hai phải cao. Ví dụ a = 0,9, b = 0,2: trung bình cộng là 0,55, còn R = 2·0,9·0,2 / 1,1 ≈ 0,33. Cách gộp này theo mô hình RECON (11 mục 11.2).
+
 ```
 R = 2·a·b / (a + b)          (R = 0 nếu a + b = 0)
 ```
@@ -302,6 +342,8 @@ R = 2·a·b / (a + b)          (R = 0 nếu a + b = 0)
 Trung bình điều hoà bị kéo về giá trị nhỏ: a = 0,9, b = 0,2 → R ≈ 0,33. Phải hợp **cả hai phía**.
 
 ## 6.8. Điểm cuối (R2)
+
+> 💡 Điểm cuối = R × hệ số uy tín × hệ số phạt. Hệ số uy tín `(0,7 + 0,3·Q)` nằm trong khoảng 0,7–1,0, tức Q (điểm uy tín gia sư, 0–1) chỉ dịch điểm khoảng ±15%. G gồm hai "phanh": lịch hai bên có mà không trùng chút nào → × 0,4; gia sư đã từ chối học sinh này trong 90 ngày → × 0,5. Dùng **phép nhân** để một yếu tố rất tệ kéo cả điểm xuống, không bị yếu tố khác "bù" lại. Ví dụ R = 0,490, Q = 0,82, G = 1 → 0,490 × 0,946 = 0,463.
 
 ```
 score    = R × (0.7 + 0.3·Q) × G
@@ -314,6 +356,8 @@ g_reject = 0.5 nếu gia sư đã từ chối học sinh này (bất kỳ tin n�
 Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ nên không cộng thêm thưởng chứng chỉ.
 
 ### Điểm chất lượng `recommendation_score` và khiếu nại có lỗi (bổ sung 15/10/2026)
+
+> 💡 Cách tính điểm uy tín gia sư (thang 100): đánh giá sao, hợp đồng hoàn thành, tỉ lệ nhận đơn, tốc độ phản hồi, kinh nghiệm, xác minh hồ sơ, trừ điểm nếu từng bị khóa. Phần mới (**đang thiết kế**, phiên bản `v2`, code hiện vẫn là `v1`) trừ thêm tối đa 20 điểm khi **nhân viên đã kết luận gia sư có lỗi** trong khiếu nại; mức trừ nhẹ dần khi gia sư có nhiều hợp đồng ("làm trơn" với 5 hợp đồng sạch giả định). Ví dụ 1 lần vắng mặt: gia sư mới bị trừ 8 điểm, gia sư đã có 20 hợp đồng chỉ bị trừ 1,6. Khiếu nại chưa kết luận hay vô căn cứ không bị tính.
 
 Công thức hiện tại (`TutorRecommendationScoreService`, `v1`, thang 100):
 
@@ -382,6 +426,8 @@ Nguyên tắc:
 
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
 
+> 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô; **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên chính xác hơn nhưng chậm. Vì vậy chỉ chấm 20 tin đầu, theo lô 4 cặp, giới hạn tổng 4 giây; điểm chấm được lưu vào **cache** (bộ nhớ đệm) để lần sau dùng lại. Hết giờ thì giữ điểm đã có, không báo lỗi. "Logit → sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
+
 1. Sau pha 3, lấy **top-20**.
 2. Tra `recommendation_rerank_cache` theo (mã băm văn bản nhu cầu, ứng viên, mã băm nội dung ứng
    viên, phiên bản model).
@@ -398,6 +444,8 @@ Các tin học `OPEN` và các tìm kiếm đã lưu được rerank sẵn ở t
 học sinh tìm lại với tiêu chí tương tự thường đã có cache.
 
 ### Ghi chú triển khai (12/10/2026)
+
+> 💡 Lúc thiết kế đặt giới hạn 800 ms, nhưng đo thật mỗi cặp mất ~175 ms, 20 cặp mất ~3,5 giây; với 800 ms thì gần như lần nào cũng quá giờ và không bao giờ có cache. Nên đã nâng lên 4 giây và chấm theo lô nhỏ. Bảng dưới ghi cách xử lý các trường hợp cụ thể, kể cả job chấm sẵn ban đêm.
 
 **Vì sao không còn 800 ms.** Đo trên máy phát triển (CPU 12 luồng, int8): khoảng 110–120 ms mỗi cặp
 với tin rất ngắn, ~175 ms với tin điển hình (~70 token), ~590 ms với tin dài chạm trần 256 token.
@@ -421,6 +469,8 @@ cầu giống hệt (đổi một bộ lọc là văn bản khác); `/rerank` đ
 
 ## 6.10. Gộp theo người
 
+> 💡 Một gia sư có nhiều tin cùng khớp thì chỉ giữ tin điểm cao nhất, để danh sách là các **người** khác nhau. Bước này làm **trước** rerank để không tốn thời gian chấm kỹ những tin sẽ bị bỏ.
+
 Một gia sư có nhiều tin dạy cùng khớp → chỉ giữ tin có `score` cao nhất.
 
 **Thứ tự thực hiện (quyết định 12/10/2026): gộp ngay sau pha 3, trước rerank.** Lý do: rerank chậm, không
@@ -429,6 +479,8 @@ nên chấm những tin sẽ bị bỏ; và sau khi gộp, cả top-20 (20 *ngư
 Gợi ý nới tiêu chí (07 mục 7.1) cũng đếm theo người.
 
 ## 6.11. Pha 5 — Slot khám phá (R6)
+
+> 💡 Vị trí 5 và 12 trên trang đầu được dành cho tin "đủ tốt" (điểm ≥ 80% điểm của hạng 20) nhưng **ít được hiển thị** — để gia sư mới có cơ hội. Chọn bằng **Thompson Sampling**: mỗi tin có một phân phối Beta mô tả "tỉ lệ được bấm có thể là bao nhiêu"; rút ngẫu nhiên một số từ đó rồi nhân với điểm. Tin mới (`Beta(1,1)`, chưa biết gì) có khoảng rất rộng nên đôi khi rút ra số cao; tin hiển thị nhiều mà ít ai bấm thì khoảng hẹp, thấp, dần hết được chọn. Bốn vị trí đầu không bị đụng tới.
 
 Trang đầu N = 20. **Vị trí 5 và 12** dành cho slot khám phá nếu tập ứng viên > N + 5.
 
@@ -455,6 +507,8 @@ Tin mới (`Beta(1,1)`, phân bố rộng) có cơ hội xuất hiện; tin hi�
 học trọng số sau này (10).
 
 ## 6.12. Chiều ngược lại — gia sư tìm học viên (T→S)
+
+> 💡 Cùng khung như chiều học sinh tìm gia sư, đổi vai: ứng viên là **tin học** đang mở; a′ (dấu phẩy ′ chỉ chiều ngược lại) đo gia sư có thích tin học này không, giá có trọng số cao hơn (25%); b′ đo học sinh có khả năng nhận lời đề nghị của gia sư không, dựa vào uy tín, phong cách, giá của gia sư đang tìm và lịch sử học sinh nhận / từ chối đề nghị. Không có hệ số uy tín cho học sinh (nhóm không làm tính năng đánh giá học sinh). Chỉ gia sư đã được duyệt hồ sơ mới tìm được.
 
 Gia sư **không cần có tin dạy**. Họ chọn tiêu chí: môn (bắt buộc), một hoặc nhiều lớp, hình thức,
 phạm vi khu vực dạy được, mức giá mong muốn (tuỳ chọn — để trống thì lấy trung vị
@@ -523,6 +577,8 @@ Ghi chú triển khai (12/10/2026):
 
 ## 6.13. Lý do khớp
 
+> 💡 Mỗi kết quả có tối đa 3 câu lý do tích cực và 1 câu lưu ý, chọn theo **bảng mẫu**: đặc trưng nào đủ cao thì sinh câu tương ứng, điền tên tag, giá, khung giờ thật vào. Ví dụ `f_price = 1` → "Học phí 180.000đ — nằm trong ngân sách". Lý do nào đóng góp nhiều điểm hơn thì đứng trước. Câu do code sinh, không do AI viết, và chỉ sinh khi có dữ kiện thật.
+
 Tối đa **3 lý do tích cực** và **1 lưu ý**, theo bảng mẫu (S→T):
 
 | Điều kiện | Câu mẫu |
@@ -573,6 +629,8 @@ Ghi chú triển khai (12/10/2026):
   nhất mà tin này có}"; chiều gia sư: "Giống các học viên bạn đã quan tâm…") và lý do của slot khám phá.
 
 ## 6.14. Ví dụ tính tay
+
+> 💡 Đi trọn một ví dụ với số cụ thể: gia sư X rất hợp với Minh (a = 0,871) nhưng tin đang có 3 người chờ cho 1 chỗ nên b chỉ 0,341; gia sư Y hợp vừa phải (a = 0,75) nhưng tin còn trống và hay nhận học sinh như Minh (b = 0,80). Kết quả Y (0,681) đứng trên X (0,463) — đúng tinh thần "phải hợp cả hai phía". Đoạn cuối cho thấy lịch sử hành vi dần thay đổi thứ hạng.
 
 Minh, lớp 9, chọn trên bộ lọc: Toán, lớp 9, offline, quận Cầu Giấy, ngân sách ≤ 200k, rảnh tối T3,
 T5 19–21h, phong cách "kiên nhẫn", "giải thích kỹ"; hồ sơ: yếu hình học phẳng (0,95), bài chứng

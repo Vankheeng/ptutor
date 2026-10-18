@@ -1,9 +1,13 @@
 # 9. Đánh giá (D9)
 
+> 💡 **File này nói về gì:** Làm sao chứng minh bằng số liệu rằng thuật toán tốt, và phiên bản mới tốt hơn phiên bản cũ, khi **chưa có người dùng thật**. Cách làm: tự tạo dữ liệu mô phỏng có đáp án ẩn. File này dùng trực tiếp cho chương đánh giá trong báo cáo. Giải thích trực giác: [00](./00-doc-truoc.md) mục 4.10.
+
 Mục tiêu: trả lời bằng số liệu câu hỏi "làm sao biết thuật toán mới tốt hơn?" khi chưa có người
 dùng thật.
 
 ## 9.1. Ý tưởng chính: dữ liệu mô phỏng có "đáp án ẩn"
+
+> 💡 Code sinh học sinh và gia sư ảo với **thuộc tính ẩn** (nhu cầu thật, ngân sách, gia sư thật sự thích nhận ai…); LLM viết hồ sơ, tin đăng dạng chữ từ các thuộc tính đó. Hệ thống đề xuất chỉ được đọc chữ; người chấm thì biết thuộc tính ẩn nên biết đáp án đúng. Giống thầy giáo tự soạn đề kèm đáp án, tránh cảnh "AI tự chấm bài AI làm".
 
 Dữ liệu được sinh theo **hai lớp**:
 
@@ -18,6 +22,8 @@ Hệ thống đề xuất **chỉ thấy văn bản và tiêu chí nhập**, nh�
 
 ## 9.2. Bộ dữ liệu
 
+> 💡 Quy mô bộ dữ liệu ảo: 3 môn, 120 gia sư (~180 tin dạy), 60 học sinh, mỗi người vài lần tìm, cộng 4 tuần lịch sử gửi đơn và duyệt danh sách. Một nửa số lần tìm dùng để **hiệu chỉnh** trọng số, nửa kia để **kiểm tra** — chỉ báo cáo số liệu trên nửa kiểm tra, để không "học tủ".
+
 | Thành phần | Quy mô |
 |---|---|
 | Môn / lớp / khu vực | Toán, Tiếng Anh, Vật lý; lớp 6–12; Hà Nội và TP.HCM, mỗi nơi 6 quận |
@@ -30,6 +36,8 @@ Truy vấn chia đôi: **50% hiệu chỉnh** (trọng số, ngưỡng) và **50
 trên phần kiểm tra.
 
 ## 9.3. Đáp án và mô hình hành vi
+
+> 💡 Đáp án `rel` từ 0 đến 3 = mức phù hợp thật của một cặp (0 là hoàn toàn không hợp). Quyết định nhận / từ chối của gia sư ảo theo một công thức xác suất: `sigmoid` biến một tổng điểm thành xác suất 0–1, ví dụ đúng lớp ưa thích và đủ giá thì xác suất nhận cao. Hành vi bấm của người dùng ảo giảm dần theo vị trí (ít ai đọc tới cuối danh sách). Cohen's kappa là chỉ số đo hai người chấm đồng ý với nhau tới đâu.
 
 **Độ phù hợp thật** `rel ∈ {0, 1, 2, 3}` từ thuộc tính ẩn (0: lệch lịch hoàn toàn / vượt ngân sách
 > 30% / không phủ nhu cầu chính; 1–3 theo mức phủ nhu cầu, phong cách, đối tượng — công thức cố
@@ -59,6 +67,8 @@ rubric; nhóm chấm lại 20%; báo cáo Cohen's kappa có trọng số và tư
 
 ## 9.4. Các cấu hình so sánh
 
+> 💡 Bật dần từng thành phần để thấy mỗi thành phần đóng góp bao nhiêu: V1 (cách cũ, cộng tuyến tính) → V2-a (chỉ một chiều) → V2-R (thêm hai chiều) → V2-RC (thêm chống dồn) → V2-RCX (thêm rerank) → V2-full (thêm khám phá và lịch sử). Hai dòng "− H1", "− A1" là bỏ riêng một thành phần ra (ablation) để đo tác dụng của nó.
+
 Thiết kế so sánh theo cách của Su, Bayoumi, Joachims (2022): từ xếp hạng một chiều → hai chiều →
 hai chiều có xét dồn đơn (11, mục 11.3).
 
@@ -79,7 +89,11 @@ thời gian, không so được trên một lượt truy vấn tĩnh.
 
 ## 9.5. Chỉ số
 
+> 💡 Các con số dùng để chấm, chia theo nhóm: chất lượng xếp hạng, hiệu quả cho cả thị trường, khả năng học sở thích, công bằng hiển thị, độ chính xác của phần LLM, và tốc độ.
+
 ### Chất lượng xếp hạng (trung bình theo truy vấn)
+
+> 💡 **NDCG@10**: các tin phù hợp có nằm ở 10 vị trí đầu, càng phù hợp càng ở cao không (1 là hoàn hảo). **Precision@5**: trong 5 tin đầu có bao nhiêu tin phù hợp. **MRR**: tin phù hợp đầu tiên nằm ở vị trí mấy (ở vị trí 1 → 1; ở vị trí 2 → 0,5). **EA@10** và **MS@10** đo thêm phía kia: các tin trong top-10 có khả năng nhận người tìm không.
 
 | Chỉ số | Ý nghĩa |
 |---|---|
@@ -91,10 +105,14 @@ thời gian, không so được trên một lượt truy vấn tĩnh.
 
 ### Mô phỏng cả thị trường (tác dụng của R1 + B4)
 
+> 💡 Cho mọi học sinh ảo cùng gửi đơn vào top-3 của mình, gia sư ảo quyết định theo mô hình. Đo tỉ lệ ghép thành công và số lần bị từ chối — để thấy gợi ý hai chiều và chống dồn đơn giúp được bao nhiêu.
+
 Mỗi học sinh nộp đơn lần lượt vào top-3; gia sư quyết định theo mô phỏng, có giới hạn chỗ. Đo
 **tỉ lệ ghép thành công**, **số lần bị từ chối trung bình**, **độ phù hợp trung bình** của ghép đôi.
 
 ### Thích ứng theo hành vi (H1)
+
+> 💡 Cho cùng một học sinh ảo tìm nhiều lần liên tiếp; kiểm tra NDCG có tăng dần theo số lần không, và sở thích hệ thống học ra có khớp với sở thích ẩn không.
 
 Chạy nhiều phiên liên tiếp cho cùng học sinh ảo: sau mỗi phiên cập nhật hồ sơ sở thích từ các click
 mô phỏng. Đo **NDCG@10 theo số phiên** (V2-full so với V2-full − H1) và mức trùng giữa tag ưa thích
@@ -102,9 +120,13 @@ học được với **sở thích ẩn**.
 
 ### Công bằng hiển thị (R6)
 
+> 💡 **Gini** đo mức chênh lệch lượt hiển thị giữa các tin (0 = chia đều tuyệt đối, 1 = một tin chiếm hết). **Coverage@20**: bao nhiêu phần trăm tin từng xuất hiện trong top-20.
+
 **Gini** lượt hiển thị giữa các tin dạy; **Coverage@20**; lượt hiển thị trung bình của gia sư mới.
 
 ### Thành phần LLM
+
+> 💡 Đo độ chính xác của phần LLM trên các bộ câu nhóm tự gán nhãn. **F1** là chỉ số gộp hai câu hỏi "trích ra có đúng không" (precision) và "có bỏ sót không" (recall). **IoU** khung giờ = phần giờ trùng chia phần giờ hợp của hai khung.
 
 | Thành phần | Bộ kiểm tra | Chỉ số |
 |---|---|---|
@@ -115,9 +137,13 @@ học được với **sở thích ẩn**.
 
 ### Hiệu năng
 
+> 💡 Đo thời gian chạy: p50 là mức mà một nửa số lần tìm nhanh hơn, p95 là mức mà 95% số lần nhanh hơn.
+
 p50/p95 từng pha trên laptop và VPS; tỉ lệ rerank timeout.
 
 ## 9.6. Quy trình
+
+> 💡 Bảy bước từ sinh dữ liệu đến so sánh. **Wilcoxon signed-rank** là phép kiểm định thống kê xem chênh lệch giữa hai cấu hình có thật hay do may rủi; **bootstrap** là cách ước lượng khoảng tin cậy bằng cách lấy mẫu lại nhiều lần.
 
 1. Sinh thuộc tính ẩn (Python, seed cố định).
 2. LLM viết văn bản → nạp qua chính API của hệ thống (A1, embedding chạy đúng luồng thật).
@@ -128,6 +154,8 @@ p50/p95 từng pha trên laptop và VPS; tỉ lệ rerank timeout.
 7. Phân tích độ nhạy và thí nghiệm học trọng số (9.9).
 
 ## 9.7. Mẫu bảng kết quả
+
+> 💡 Khung bảng sẽ điền khi chạy xong, kèm các giả thuyết cần kiểm chứng (ví dụ "thêm hai chiều thì tỉ lệ ghép thành công tăng").
 
 | Cấu hình | NDCG@10 | P@5 | EA@10 | MS@10 | Tỉ lệ ghép | Từ chối/HS | Gini | p95 (ms) |
 |---|---|---|---|---|---|---|---|---|
@@ -146,6 +174,8 @@ mà NDCG giảm không đáng kể.
 
 ## 9.8. Hạn chế cần nêu
 
+> 💡 Những điểm phải nói thẳng trong báo cáo: dữ liệu là mô phỏng, mô hình hành vi do nhóm tự đặt, cơ chế học trọng số mới chỉ chứng minh trên mô phỏng.
+
 - Dữ liệu mô phỏng; hành vi người thật có thể khác. Thuộc tính ẩn, mô hình quyết định và mô hình click
   do nhóm thiết kế.
 - Cơ chế học trọng số (L1) chỉ được chứng minh trên mô phỏng; chưa có kết quả học từ người dùng thật.
@@ -153,10 +183,14 @@ mà NDCG giảm không đáng kể.
 
 ## 9.9. Trọng số: phân tích độ nhạy và thí nghiệm học (L1)
 
+> 💡 Hai câu hỏi về các trọng số nhóm tự đặt: kết quả có thay đổi mạnh nếu đổi trọng số một chút không (**độ nhạy**), và nếu trọng số sai thì cơ chế tự học (L1, đang thiết kế) có tự sửa được không.
+
 Mục này trả lời hai câu hỏi về trọng số tự đặt: **kết quả có phụ thuộc mạnh vào con số cụ thể không**, và
 **nếu sai thì hệ thống có tự sửa được không** (cơ chế L1 — [12](./12-hoc-trong-so.md)).
 
 ### 9.9.1. Phân tích độ nhạy (trên nửa kiểm tra)
+
+> 💡 Tăng / giảm từng trọng số 25% và 50%, chạy lại, xem kết quả đổi bao nhiêu. **Kendall τ** đo hai danh sách xếp hạng giống nhau tới đâu (1 = y hệt). Biểu đồ "lốc xoáy" (tornado) xếp các tham số theo mức ảnh hưởng. Kỳ vọng: đa số tham số đổi chút ít thì kết quả vẫn ổn định.
 
 - Mỗi trọng số trong a, a′, b (dạng dàn phẳng) và các tham số giữ cố định (kernel, điểm thành phần, λ, tham số
   phạt khiếu nại `penalty-scale`, `max-penalty`, `prior-contracts`):
@@ -167,6 +201,8 @@ Mục này trả lời hai câu hỏi về trọng số tự đặt: **kết qu�
   may mắn". Tham số nhạy được nêu trong báo cáo và là ứng viên ưu tiên cho L1.
 
 ### 9.9.2. Mô hình hành vi có "trọng số thật"
+
+> 💡 Để kiểm tra L1 học đúng không, người dùng ảo được cho một bộ **trọng số thật** `w*` (ví dụ coi giá quan trọng hơn nhóm nghĩ) mà hệ thống không nhìn thấy. `ε` là nhiễu ngẫu nhiên cho giống người thật. Nếu L1 tốt, trọng số nó học ra phải tiến dần về `w*`.
 
 Để kiểm tra L1 có học đúng hay không, mô hình hành vi của người dùng ảo (9.3) được viết sao cho **biết
 trước trọng số thật**:
@@ -182,6 +218,8 @@ Phía kia (phía b):   P(nhận) = sigmoid(β · z)                  (z = thành
 ngữ nghĩa ít hơn so với trọng số nhóm đặt). Hệ thống chỉ thấy phản hồi, không thấy `w*`, `β`.
 
 ### 9.9.3. Giao thức
+
+> 💡 Cách chạy thí nghiệm: xuất dữ liệu từ backend một lần, rồi mô phỏng 3.000 lần tìm trong Python, cập nhật trọng số mỗi 100 lần. So năm cấu hình: dùng trọng số cố định; tự học từ trọng số nhóm đặt; tự học từ trọng số **cố tình đặt sai**; tự học nhưng không thử nghiệm (Greedy — tham lam); và Oracle — biết trước đáp án, dùng làm mức tốt nhất có thể.
 
 - Vector đặc trưng **không phụ thuộc trọng số**, nên chạy backend một lần cho mọi truy vấn với
   `log-candidate-limit = 200`, xuất `x`, thành phần b, Q, G từ log. Thí nghiệm học chạy trong Python trên dữ
@@ -201,6 +239,8 @@ ngữ nghĩa ít hơn so với trọng số nhóm đặt). Hệ thống chỉ th
 | **Oracle** | Dùng đúng `w*`, `β` — giới hạn trên |
 
 ### 9.9.4. Chỉ số và biểu đồ
+
+> 💡 **Regret** ("tiếc nuối") = tổng phần thưởng bị mất so với Oracle; cơ chế học tốt thì regret tăng chậm dần, còn trọng số cố định thì tăng đều. Thêm sai số giữa trọng số học được và `w*`, và "cần bao nhiêu lần tìm thì sai số đủ nhỏ" — con số hữu ích khi bảo vệ. κ, ρ là hai tham số của cơ chế học (12 mục 12.3–12.4); IPW là cách giảm thiên lệch vị trí (12 mục 12.5).
 
 | Chỉ số | Biểu đồ |
 |---|---|

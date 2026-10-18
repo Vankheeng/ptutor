@@ -1,9 +1,13 @@
 # 8. API
 
+> 💡 **File này nói về gì:** Danh sách các **API** (địa chỉ mà giao diện gọi tới backend để lấy hay gửi dữ liệu) của tính năng: gửi gì lên, nhận gì về, lỗi nào có thể xảy ra. Đọc khi làm giao diện hoặc viết test API. "Endpoint" là một địa chỉ API cụ thể; `POST`, `GET`, `PUT`, `DELETE` là loại thao tác (gửi, lấy, sửa, xóa).
+
 Theo quy ước của dự án: tiền tố `/api/v1`, cần access token, response bọc trong
 `{ success, code, message, data }`. Ví dụ dưới đây chỉ ghi phần `data`.
 
 ## 8.1. Danh sách endpoint
+
+> 💡 Bảng tổng hợp mọi endpoint và vai trò được gọi (STUDENT, TUTOR, ADMIN). Nhóm chính: tìm kiếm của hai phía, ghi hành vi (`events`), xếp lại trong phiên (`refine`), tìm kiếm đã lưu, xóa lịch sử gợi ý, quản lý tag. Các API trọng số (`weights`) thuộc phần học trọng số **đang thiết kế**. Chế độ "Tất cả" vẫn dùng API danh sách có sẵn, không bị sửa.
 
 | Method | Endpoint | Role | Mô tả |
 |---|---|---|---|
@@ -33,6 +37,8 @@ danh sách duyệt theo bộ lọc, sắp theo thời gian. Giao diện có hai 
 
 ## 8.2. Tách câu tự nhiên
 
+> 💡 Gửi câu người dùng gõ, nhận về giá trị đã điền cho các ô bộ lọc (đã đổi tên môn, quận… thành mã trong hệ thống). Giao diện điền vào form để người dùng xem lại. Lỗi thì trả bộ lọc rỗng, không báo lỗi.
+
 `POST /api/v1/recommendations/parse-query`
 
 ```json
@@ -49,6 +55,8 @@ email), không do LLM viết lại — xem 05 mục 5.4. Response có thêm `und
 `direction = TUTOR_TO_STUDENT`, `filters` theo cấu trúc 8.4. Chi tiết ánh xạ: 05 mục 5.4.
 
 ## 8.3. Học sinh tìm gia sư
+
+> 💡 Endpoint chính của học sinh. Gửi `filters` (bộ lọc); nhận về `logId` (mã của lần tìm), danh sách kết quả — mỗi kết quả có điểm, lý do, lưu ý — và gợi ý nới tiêu chí. **Phân trang** bằng `logId`: trang sau đọc lại đúng danh sách đã xếp và lưu ở lần tìm đầu, nên thứ tự không bị xáo dù dữ liệu thay đổi. AI service lỗi cũng không làm lần tìm báo lỗi.
 
 `POST /api/v1/students/me/tutor-recommendations?page=0&size=20[&logId=…]`
 
@@ -124,6 +132,8 @@ hạng không có `f_sem`.
 
 ## 8.4. Gia sư tìm học viên
 
+> 💡 Endpoint của gia sư, cấu trúc tương tự. Để bảo vệ học sinh (có thể chưa đủ 18 tuổi), mỗi kết quả chỉ hiện thông tin **giới hạn**: "Học sinh lớp 9", quận, tiêu đề tin, khoảng giá — không có họ tên, ảnh, số điện thoại, mã tài khoản. Gia sư chưa được duyệt hồ sơ bị từ chối (lỗi 403 = không có quyền).
+
 `POST /api/v1/tutors/me/student-recommendations?page=0&size=20[&logId=…]`
 
 ```json
@@ -168,6 +178,8 @@ thông tin chi tiết chỉ mở theo luồng nghiệp vụ hiện có.
 
 ## 8.5. Sự kiện và xếp lại trong phiên
 
+> 💡 `events` ghi hành vi trên một kết quả (xem, bấm, tym, liên hệ, không quan tâm) — dữ liệu này nuôi tính năng xếp lại và hồ sơ sở thích. `refine` trả danh sách mới cho các hạng **sau** vị trí người dùng đã xem tới (07 mục 7.2).
+
 `POST /api/v1/recommendations/{logId}/events`
 
 ```json
@@ -186,6 +198,8 @@ response cùng cấu trúc với lần tìm (8.3 hoặc 8.4), `items` là các h
 `DELETE /api/v1/users/me/recommendation-profile` xoá lịch sử gợi ý (07, mục 7.4).
 
 ## 8.6. Tìm kiếm đã lưu
+
+> 💡 Lưu, xem, đổi tên, bật / tắt thông báo, xóa tìm kiếm đã lưu (tối đa 5; quá thì lỗi 409 = xung đột). Lưu **bộ lọc** chứ không lưu kết quả: mỗi lần mở lại là một lần tìm mới, phần thiếu được điền từ hồ sơ hiện tại.
 
 `POST /api/v1/users/me/saved-searches`
 
@@ -209,6 +223,8 @@ Ghi chú triển khai (13/10/2026):
 - `semanticText` chỉ có tác dụng với chiều học sinh tìm gia sư.
 
 ## 8.7. Nội dung lưu trong `recommendation_logs`
+
+> 💡 Mỗi lần tìm ghi một dòng **nhật ký** (log): ai tìm, tiêu chí gì, và tối đa 50 kết quả kèm **đủ các con số** (a, b, Q, G, từng đặc trưng…). Nhờ vậy lật trang không phải tính lại, giải thích được "vì sao người này đứng đầu", và có dữ liệu để học trọng số sau này.
 
 | Cột | Nội dung |
 |---|---|

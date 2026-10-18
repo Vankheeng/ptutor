@@ -1,6 +1,10 @@
 # 5. Đầu vào tìm kiếm — bộ lọc và câu tự nhiên (A2)
 
+> 💡 **File này nói về gì:** Người tìm nhập tiêu chí thế nào: các ô bộ lọc của học sinh và của gia sư, cách gõ một câu để hệ thống tự điền bộ lọc (A2), cách gộp bộ lọc với hồ sơ thành một **nhu cầu** (`QueryContext`), và lưu tìm kiếm. Đọc khi làm màn hình tìm kiếm hoặc endpoint tách câu.
+
 ## 5.1. Nguyên tắc
+
+> 💡 Bộ lọc là cách nhập chính; gõ câu chỉ là cách phụ để điền nhanh bộ lọc, người dùng luôn xem lại trước khi tìm. Hai cách cuối cùng tạo ra cùng một `QueryContext` (gói toàn bộ tiêu chí) nên thuật toán phía sau không phân biệt. Người tìm không cần có tin đăng.
 
 - **Bộ lọc là đầu vào chính.** Người tìm chọn tiêu chí bằng danh sách sổ, ô nhập, lưới lịch, chip.
 - **Câu tự nhiên là đầu vào phụ** (A2): gõ một câu, hệ thống **tự điền** vào các ô bộ lọc để người
@@ -9,6 +13,8 @@
   tôi làm tiêu chí" để điền sẵn bộ lọc.
 
 ## 5.2. Bộ lọc — học sinh tìm gia sư
+
+> 💡 Các ô học sinh chọn. Bắt buộc chỉ có môn và lớp; còn lại tùy chọn, ô nào trống thì lấy từ hồ sơ. Khu vực do học sinh **tự chọn** (vài quận, cả tỉnh, hoặc không giới hạn), không bị bó theo nơi ở. "Chip" là nút nhỏ bấm chọn nhiều, ở đây lấy từ bộ từ vựng tag (04).
 
 | Tiêu chí | Kiểu nhập | Bắt buộc | Mặc định |
 |---|---|---|---|
@@ -29,6 +35,8 @@ các quận được chọn/nơi ở (06, `f_area`).
 
 ## 5.3. Bộ lọc — gia sư tìm học viên
 
+> 💡 Tương tự cho gia sư: chọn được nhiều lớp, mức giá mong muốn (để trống thì lấy mức giữa của các tin dạy trước đây — "trung vị"), đối tượng học sinh muốn dạy. Gia sư có thể bấm "Dùng tin của tôi làm tiêu chí" nhưng không bắt buộc.
+
 | Tiêu chí | Kiểu nhập | Bắt buộc | Mặc định |
 |---|---|---|---|
 | Môn | Danh sách sổ | Có | Môn trong tin dạy gần nhất (nếu có) |
@@ -42,6 +50,8 @@ các quận được chọn/nơi ở (06, `f_area`).
 Gia sư có tin dạy `OPEN` có thể bấm "Dùng tin của tôi làm tiêu chí" — **tuỳ chọn**, không bắt buộc.
 
 ## 5.4. Câu tự nhiên (A2) — tự điền bộ lọc
+
+> 💡 Người dùng gõ *"Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"*; LLM đọc câu và trả về giá trị cho từng ô (môn = Toán, lớp = 9, học phí tối đa = 200.000…), backend đối chiếu tên với danh mục thật (bỏ dấu, không phân biệt hoa thường) rồi điền vào form. Phần không điền được ô nào (`semanticText`) dùng để so nghĩa. Số điện thoại, email trong câu bị lọc trước (PII = thông tin định danh cá nhân). Kết quả được nhớ 24 giờ (cache).
 
 ```mermaid
 flowchart LR
@@ -97,6 +107,8 @@ Cache theo mã băm câu đã chuẩn hoá + mã tỉnh, 24 giờ. Mỗi lượt
 
 ### Thay đổi 13/10/2026 — `semanticText` là nguyên câu người dùng, không do LLM viết
 
+> 💡 Khi chạy thật, LLM đôi khi **tự thêm ý** người dùng không viết (ví dụ "cần cô dạy" thành "ưu tiên gia sư nữ"). Vì vậy đã đổi: LLM chỉ điền ô bộ lọc, còn phần dùng để so nghĩa luôn là **nguyên câu người dùng gõ**. Đánh đổi (có thể kém chính xác hơn một chút) sẽ được đo ở bước đánh giá.
+
 > **CẦN THEO DÕI.** Thiết kế gốc ở trên để LLM tách "phần không điền vào ô nào" làm `semanticText`. Khi chạy
 > thật, model đôi khi **thêm ý người dùng không viết** vào phần này (từ "cần cô dạy" ghi "Ưu tiên gia sư nữ":
 > 3 / 6 lượt khi bật suy luận), hoặc ghi câu đệm vô nghĩa. Phần này đi thẳng vào vector truy vấn mà người
@@ -114,6 +126,8 @@ Cache theo mã băm câu đã chuẩn hoá + mã tỉnh, 24 giờ. Mỗi lượt
 > truy được về câu gốc (so gần đúng để chịu lỗi chính tả, chấp nhận ~80 %), không đạt thì dùng nguyên câu.
 
 ### Ghi chú triển khai (13/10/2026)
+
+> 💡 Chi tiết khi lập trình: tắt chế độ "suy luận" của LLM cho bước này để trả lời trong ~2 giây thay vì ~5 giây; cách so tên quận (bỏ chữ "Quận", "Huyện"…); khi lỗi thì vẫn trả về bình thường với bộ lọc rỗng và cả câu làm phần so nghĩa.
 
 - **Độ trễ thật:** với mức suy luận mặc định của `gpt-6-luna`, một lượt mất 2,8–5,8 giây — vượt timeout 3 giây.
   Tắt bước suy luận (`reasoning.effort = none`) còn **1,8–2,4 giây** với kết quả như nhau trên các câu thử. AI
@@ -138,6 +152,8 @@ Cache theo mã băm câu đã chuẩn hoá + mã tỉnh, 24 giờ. Mỗi lượt
 - Cờ tắt: `parse-query.enabled=false`.
 
 ## 5.5. Gộp thành `QueryContext`
+
+> 💡 Một tiêu chí có thể đến từ nhiều nguồn; thứ tự ưu tiên: (1) giá trị người dùng chọn trên bộ lọc, (2) tin đăng của chính họ nếu họ chọn dùng, (3) hồ sơ. Thiếu môn hoặc lớp thì API trả `needsInput` để giao diện làm nổi ô cần chọn. Từ nhu cầu đã gộp, hệ thống ghép một đoạn **văn bản nhu cầu** ("Môn Toán, Lớp 9. Mục tiêu: … Cần cải thiện: …") để tính vector và để chấm kỹ (rerank).
 
 Thứ tự ưu tiên khi cùng một tiêu chí có nhiều nguồn:
 
@@ -167,11 +183,15 @@ Văn bản được lọc PII, cắt ≤ 512 token; vector được cache theo m
 
 ## 5.6. Lưu tìm kiếm
 
+> 💡 Lưu bộ tiêu chí (tối đa 5 mỗi người) để mở lại nhanh và **nhận thông báo** khi có tin mới rất hợp — nhờ vậy cả người chưa đăng tin cũng được báo.
+
 Người dùng có thể bấm **"Lưu tìm kiếm và nhận thông báo"**: `QueryContext` được lưu vào
 `recommendation_saved_searches` (tối đa 5 mỗi người). Khi có tin đăng mới khớp tốt, hệ thống gửi
 thông báo (07, mục 7.3). Tính năng này giúp người **chưa có tin đăng** vẫn được thông báo chủ động.
 
 ## 5.7. Ghi log
+
+> 💡 Mỗi lần tìm lưu câu gõ (đã lọc thông tin cá nhân), kết quả tách câu và tiêu chí cuối cùng vào bảng nhật ký `recommendation_logs`, để sau này đo độ chính xác và phân tích.
 
 `recommendation_logs.query_text` (đã lọc PII), `parsed_query` (kết quả A2 sau ánh xạ) và
 `query_context` (sau khi gộp) được lưu để đo độ chính xác A2 (09, mục 9.5) và để phân tích. Từ L1,

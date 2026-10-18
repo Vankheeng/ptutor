@@ -1,5 +1,7 @@
 # 3. Dữ liệu và schema bổ sung
 
+> 💡 **File này nói về gì:** Thuật toán đọc những dữ liệu nào, văn bản nào được biến thành vector, và các bảng / cột mới phải thêm vào database. "Schema" là cấu trúc database; "migration" là file SQL có đánh số (V27, V28…) mà công cụ **Flyway** chạy lần lượt để thay đổi cấu trúc đó. Đọc khi cần biết dữ liệu nằm ở bảng nào.
+
 Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V27` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V28` (dữ liệu cho đề xuất, mục 3.4); `V30` (dự kiến — học trọng số L1, mục 3.6) thiết kế ngày 13/10/2026, chưa tạo file.
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
@@ -25,6 +27,8 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 
 ## 3.1. Dữ liệu đầu vào
 
+> 💡 Bảng liệt kê từng nhóm dữ liệu, lấy từ bảng nào, dùng cho bước nào. Ví dụ: tin dạy (`teaching_requests`) là ứng viên khi học sinh tìm; lịch sử đơn được nhận / từ chối dùng để ước lượng b (khả năng phía kia đồng ý); hành vi xem / tym dùng để cá nhân hóa.
+
 | Nhóm | Nguồn | Dùng cho |
 |---|---|---|
 | Tiêu chí tìm kiếm | Bộ lọc + câu tự nhiên (05), lưu trong `recommendation_logs.query_context` | Lọc cứng, a, văn bản nhu cầu |
@@ -39,6 +43,8 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 | Khu vực | `districts.province_id` | Lọc phạm vi tỉnh, `f_area` |
 
 ## 3.2. Văn bản dùng để sinh embedding
+
+> 💡 **Embedding** là việc biến một đoạn văn thành vector, để hai đoạn cùng nghĩa có vector gần nhau. Mục này nói đoạn văn nào được ghép lại để tính vector: mỗi **tin đăng** một vector (gồm môn, lớp, tiêu đề, mô tả…). Tên, số điện thoại, email bị bỏ ra; `content_hash` là "dấu vân tay" của đoạn văn, giúp chỉ tính lại khi nội dung thật sự đổi.
 
 **Ứng viên** được embed **theo tin đăng** (tin đăng mang nhiều thông tin nhất):
 
@@ -65,6 +71,8 @@ ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash`
 
 ## 3.3. Migration V27 — điều kiện tiên quyết P2, P5
 
+> 💡 Hai thay đổi nhỏ: gắn mỗi đánh giá với đúng một hợp đồng (để mỗi hợp đồng chỉ được đánh giá một lần) và thêm cột `responded_at` ghi lúc phía kia trả lời đơn (để đo tốc độ phản hồi chính xác). Lưu ý số migration đã phải đổi mấy lần vì nhánh khác dùng trùng số (xem khung ghi chú đầu file).
+
 ```sql
 -- P2: mỗi hợp đồng tối đa một đánh giá
 ALTER TABLE reviews ADD COLUMN contract_id uuid REFERENCES contracts (id);
@@ -78,6 +86,8 @@ ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
 ```
 
 ## 3.4. Migration V28 — dữ liệu cho đề xuất
+
+> 💡 Toàn bộ bảng mới cho tính năng, đánh số từ 1 đến 13 trong file SQL: cột vector cho tin đăng (1024 số mỗi vector, theo mô hình `bge-m3`), bộ từ vựng **tag** (mã chuẩn như `kien_nhan`, `hinh_hoc_phang`), hàng đợi job nền, bộ nhớ đệm điểm rerank, tìm kiếm đã lưu, thông báo đã gửi, hồ sơ sở thích, thống kê lượt hiển thị, và các cột thêm vào bảng nhật ký. Không cần đọc hết SQL; mỗi khối có dòng chú thích `-- =====` nói nó là gì.
 
 ```sql
 -- ===== 1. Đổi số chiều vector sang 1024 (bge-m3). An toàn vì chưa có dữ liệu. =====
@@ -303,6 +313,8 @@ Ghi chú:
 
 ## 3.5. Cột tổng hợp trên `tutors`
 
+> 💡 Một câu SQL tính lại 6 con số tóm tắt của mỗi gia sư từ dữ liệu gốc: điểm đánh giá trung bình, số đánh giá, số hợp đồng hoàn thành, số học sinh đã dạy, tỉ lệ nhận đơn, thời gian phản hồi trung bình. Các con số này là đầu vào của điểm uy tín gia sư (Q). Chạy mỗi đêm cho mọi gia sư, và chạy ngay cho một gia sư khi có sự kiện liên quan (đánh giá mới, đơn được trả lời…). Dưới 3 quyết định thì chưa tính tỉ lệ nhận (để trống, công thức dùng giá trị trung lập).
+
 `AggregateRefreshJob` (P1) chạy một câu `UPDATE`, ngay trước khi tính lại `recommendation_score`:
 - **hằng đêm** cho mọi gia sư (trong job 02:30 UTC);
 - **theo sự kiện** cho riêng một gia sư (thêm `AND t.id = :tutorId`), trong cùng transaction với lần tính
@@ -354,6 +366,8 @@ quyết định đơn nào (`LEAST` của PostgreSQL bỏ qua `NULL` nên phải
 Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) được tính là 0 nhờ `GREATEST(…, 0)`.
 
 ## 3.6. Migration V30 — học trọng số (L1)
+
+> 💡 Phần **đang thiết kế**: hai bảng cho việc tự học trọng số — một bảng lưu các phiên bản trọng số đã học, một bảng lưu "ảnh chụp" các con số tại lúc đơn được tạo (để sau này biết lúc đó hệ thống đã ước lượng gì).
 
 Hai bảng mới: `recommendation_learned_weights` (mỗi lần cập nhật một dòng, có version, thống kê A, c và
 cờ `is_active`) và `recommendation_decision_snapshots` (ảnh chụp thành phần b khi đơn / đề nghị được tạo).

@@ -1,6 +1,10 @@
 # 2. Kiến trúc tổng thể
 
+> 💡 **File này nói về gì:** Hệ thống gồm những bộ phận nào, chúng nói chuyện với nhau ra sao, việc gì chạy ngay khi người dùng bấm tìm và việc gì chạy nền, mỗi bước được phép mất bao lâu, và code nằm ở thư mục nào. Đọc khi cần hình dung tổng thể trước khi đọc code. Bản ví von dễ hiểu: [00](./00-doc-truoc.md) mục 2.
+
 ## 2.1. Thành phần
+
+> 💡 Sơ đồ ba khối: giao diện (React), backend Java (nơi **ra mọi quyết định**: lọc, chấm điểm, xếp hạng) và AI service viết bằng Python (chỉ làm "máy tính": biến chữ thành **vector** — dãy số đại diện ý nghĩa — và chấm độ khớp của một cặp văn bản). Mỗi ô là một lớp (class) trong code, ví dụ `FeatureCalculator` tính điểm phù hợp a, `WillingnessCalculator` tính khả năng đồng ý b. Khối "Học trọng số (L1)" là phần **đang thiết kế**. Nguyên tắc quan trọng: AI service lỗi thì kết quả kém chính xác hơn chứ không báo lỗi cho người dùng.
 
 ```mermaid
 flowchart LR
@@ -68,7 +72,11 @@ Nguyên tắc:
 
 ## 2.2. Hai loại luồng
 
+> 💡 Việc được chia hai loại: việc **chạy nền** (không ai phải chờ, ví dụ tính vector cho tin mới đăng) và việc chạy **khi người dùng bấm tìm** (phải nhanh).
+
 ### Luồng nền
+
+> 💡 Các "ca trực" chạy định kỳ. Cơ chế chính là **outbox**: khi người dùng lưu hồ sơ hay tin đăng, code ghi thêm một dòng "việc cần làm" vào bảng `ai_enrichment_jobs` **trong cùng lần lưu**, rồi worker (tiến trình chạy nền) lấy việc ra làm: gọi LLM chuẩn hóa văn bản (ENRICH), tính vector (EMBED)… Lỗi thì thử lại sau 1, 5, 15, 60 phút. `FOR UPDATE SKIP LOCKED` là cách để hai bản backend chạy song song không cùng nhận một việc.
 
 | Sự kiện | Việc làm |
 |---|---|
@@ -104,6 +112,8 @@ Chi tiết hàng đợi (`ai_enrichment_jobs`):
 
 ### Luồng tìm kiếm
 
+> 💡 Trình tự một lần bấm tìm: (tùy chọn) tách câu gõ thành bộ lọc → gộp tiêu chí → tính vector cho nhu cầu → lọc trong database → chấm điểm → chấm kỹ top-20 (**rerank**) → hoàn thiện danh sách → ghi nhật ký (log) → trả kết quả kèm `logId` (mã của lần tìm, dùng để lật trang và ghi phản hồi). Đi từng bước bằng lời thường: [00](./00-doc-truoc.md) mục 3.
+
 ```mermaid
 sequenceDiagram
     participant U as Người dùng
@@ -135,6 +145,8 @@ sequenceDiagram
 
 ### Vòng học trọng số (L1)
 
+> 💡 Phần **đang thiết kế**: mỗi lần tìm ghi lại trọng số đã dùng; mỗi đêm một job đọc phản hồi (xem, tym, gửi đơn, nhận / từ chối) rồi tính bộ trọng số mới. `WeightProvider` là chỗ duy nhất các bộ tính điểm hỏi "trọng số hiện tại là bao nhiêu"; chưa có bản học được thì trả về trọng số nhóm tự đặt (**prior**). A, c là hai bảng số tích lũy mà mô hình học cập nhật dần (giải thích ở 12 mục 12.3).
+
 ```mermaid
 sequenceDiagram
     participant U as Người dùng
@@ -165,6 +177,8 @@ Chi tiết: [12](./12-hoc-trong-so.md), mục 12.7–12.9.
 
 ## 2.3. Ngân sách độ trễ (mục tiêu p95)
 
+> 💡 Mỗi bước được phép mất tối đa bao lâu. "p95" nghĩa là 95% số lần tìm phải nhanh hơn mốc này. Bước chậm nhất là rerank (chấm kỹ top-20): lần đầu với tiêu chí mới có thể mất tới ~4 giây, những lần sau dùng kết quả đã lưu (cache) nên tổng chỉ khoảng 1,5 giây.
+
 | Bước | Thời gian |
 |---|---|
 | `/parse-query` (chỉ khi gõ câu; là bước riêng, trước khi bấm tìm) | ≤ 3 000 ms (timeout; đo thực tế 1,8–2,4 s, xem 05 mục 5.4) |
@@ -176,6 +190,8 @@ Chi tiết: [12](./12-hoc-trong-so.md), mục 12.7–12.9.
 | **Tổng cho một lần bấm tìm** | **≤ 1,5 s khi đã có cache rerank; tới ~5 s ở lần tìm đầu với tiêu chí mới** |
 
 ## 2.4. Vị trí code
+
+> 💡 Code của tính năng đặt theo **cấu trúc tầng** sẵn có của repo (controller → service → repository → entity), không tạo thư mục riêng. Danh sách này là tên dự kiến lúc thiết kế; vài lớp khi lập trình mang tên khác (ví dụ slot khám phá nằm ở `ExplorationService`, lý do khớp ở `MatchReasonBuilder`, xếp lại trong phiên ở `RefineService`).
 
 Code đề xuất đặt **theo cấu trúc tầng sẵn có của repo** (quyết định 12/10/2026), không tạo gói
 `recommendation/` riêng. Tên lớp giữ như dưới; tiền tố/hậu tố giúp tìm nhanh.

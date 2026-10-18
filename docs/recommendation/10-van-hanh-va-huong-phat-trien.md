@@ -1,6 +1,10 @@
 # 10. Vận hành, tham số và hướng phát triển
 
+> 💡 **File này nói về gì:** Mọi con số chỉnh được của thuật toán (ngưỡng, trọng số, lịch chạy job), cấu hình AI service, nguyên tắc quyền riêng tư, cách theo dõi khi chạy thật, các hướng phát triển sau đồ án, và thứ tự nên làm. Đọc khi cần tra một tham số hoặc khi lập kế hoạch.
+
 ## 10.1. Bảng tham số
+
+> 💡 Các con số đặt trong file cấu hình (tiền tố `app.recommendation.`), đổi được mà không sửa code. Mỗi dòng ghi giá trị khởi đầu và mục tài liệu giải thích nó. Các "cờ bật / tắt" (`…enabled`) cho phép tắt từng thành phần — dùng để so sánh khi đánh giá, hoặc tắt nhanh khi demo gặp sự cố. Cron (ví dụ `0 0 19 * * *`) là cách ghi lịch chạy định kỳ; UTC chậm hơn giờ Việt Nam 7 tiếng.
 
 Đặt trong cấu hình `app.recommendation.*`. Lưu ý: dự án đang để `application.yml` trong
 `.gitignore` — cần tách phần cấu hình không bí mật ra file được Git theo dõi (ví dụ
@@ -46,6 +50,8 @@ Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `h
 
 ## 10.2. AI service
 
+> 💡 Cấu hình dịch vụ Python: dùng mô hình `bge-m3` để tạo vector 1024 chiều, `bge-reranker-v2-m3` để chấm kỹ, chạy bằng ONNX Runtime ở dạng **int8** (nén số để chạy nhanh hơn trên CPU, ít tốn RAM hơn). Dịch vụ chỉ nghe trên máy chủ nội bộ (`127.0.0.1`) và đòi mã bí mật dùng chung. Có kèm số đo tốc độ thật trên máy phát triển.
+
 | Hạng mục | Thiết kế |
 |---|---|
 | Ngôn ngữ / framework | Python, FastAPI |
@@ -74,6 +80,8 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 
 ## 10.3. Quyền riêng tư
 
+> 💡 Tóm tắt các nguyên tắc bảo vệ dữ liệu cá nhân và chỗ áp dụng: không gửi định danh ra ngoài, lọc số điện thoại / email, AI chạy tại chỗ, gia sư chỉ thấy thông tin giới hạn của học sinh, xóa được lịch sử, không dùng tọa độ.
+
 | Nguyên tắc | Áp dụng ở |
 |---|---|
 | Không gửi định danh cá nhân ra ngoài | A1, A2, C8 |
@@ -86,6 +94,8 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 
 ## 10.4. Giám sát tối thiểu
 
+> 💡 Những gì cần ghi lại khi chạy thật để phát hiện sự cố: thời gian từng bước, rerank có bị quá giờ không, số việc nền bị lỗi, và nhật ký của job học trọng số.
+
 - Log mỗi lần tìm: độ trễ từng pha, `rerankStatus` (`CACHE`/`ONLINE`/`TIMEOUT`/`DISABLED`), số ứng
   viên sau mỗi pha.
 - Số job `ai_enrichment_jobs` theo trạng thái; cảnh báo khi `FAILED` tăng.
@@ -96,7 +106,11 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 
 ## 10.5. Hướng phát triển
 
+> 💡 Những gì có thể làm tiếp sau đồ án, khi có dữ liệu thật.
+
 ### Mô hình học từ dữ liệu (learning-to-rank)
+
+> 💡 **Learning-to-rank** là cho máy tự học cách xếp hạng từ dữ liệu, thay cho công thức tay. Bước đầu đã đưa vào đồ án dưới dạng học trọng số (L1, file 12); bước sau là mô hình mạnh hơn như **LightGBM LambdaMART** (một loại mô hình cây quyết định chuyên xếp hạng) khi có đủ dữ liệu. Lưu ý **thiên lệch vị trí**: tin ở trên được bấm nhiều chỉ vì đứng trên, nên phải xử lý khi học từ lượt bấm.
 
 > Từ 13/10/2026, **học trọng số tuyến tính trực tuyến đã thuộc phạm vi đồ án** (L1, [12](./12-hoc-trong-so.md)):
 > trọng số tự đặt là prior, contextual bandit / hồi quy Bayes tự tinh chỉnh. Mục này giữ lại cho bước tiếp
@@ -129,6 +143,8 @@ tuyển dụng (11, mục 11.4).
 
 ### Các hướng khác
 
+> 💡 Các ý tưởng xa hơn kèm điều kiện cần có: xếp theo khả năng ghép đôi thành công lâu dài, tối ưu cho cả thị trường cùng lúc, đánh giá học sinh, chỉ mục tìm vector nhanh (HNSW) khi số tin rất lớn.
+
 | Hướng | Điều kiện | Đã chuẩn bị |
 |---|---|---|
 | Xếp hạng theo ghép đôi thành công lâu dài | Đủ hợp đồng đã kết thúc | Nhãn định nghĩa được từ `contracts`, `renewed_from_contract_id`, `lessons`, `cancel_contract_requests`, `complaints` |
@@ -137,6 +153,8 @@ tuyển dụng (11, mục 11.4).
 | Index ANN (`hnsw`) | > ~10 000 tin đăng | — |
 
 ## 10.6. Thứ tự triển khai gợi ý
+
+> 💡 Thứ tự làm từng phần, mỗi bước chạy được và đo được trước khi sang bước sau: điều kiện tiên quyết → dữ liệu và AI service → bản tìm kiếm cơ bản (V2-a) → chuẩn hóa bằng LLM → hai chiều + chống dồn → rerank → cá nhân hóa, khám phá, nới tiêu chí → thông báo chủ động → tách câu → đánh giá → học trọng số.
 
 1. Điều kiện tiên quyết P1–P7 (01, mục 1.5). Migration **`V27`** (P2, P5; 03, mục 3.3) làm trước; P7 làm cùng bước tìm gia sư (3).
 2. Migration **`V28`** (03, mục 3.4; áp dụng sau `V27`, Flyway không bật `out-of-order`); AI service (`/embed`); `EmbeddingWorker`.
