@@ -1,6 +1,10 @@
 # 11. Lộ trình, vận hành và rủi ro
 
+> 💡 **File này nói về gì:** làm theo thứ tự nào (các giai đoạn và việc cụ thể), các cấu hình cần đặt, rủi ro, và những gì để lại cho hướng phát triển. Dùng để chia việc cho nhóm.
+
 ## 11.1. Lộ trình
+
+> 💡 **Nói đơn giản:** Làm "bộ máy" trước, "nội dung" sau: mỗi giai đoạn kết thúc bằng một bản chạy được. Giai đoạn 0 bắt đầu bằng bản thử nhỏ để kiểm các giả định rủi ro nhất.
 
 Nguyên tắc: **phần "máy" làm trước, phần "dữ liệu" bổ sung dần**; mỗi giai đoạn kết thúc bằng một bản chạy được
 từ đầu đến cuối và một lần chạy đánh giá.
@@ -73,6 +77,8 @@ dùng `EmbeddingProvider = fake` cho phát triển và test. Trang quản trị 
 
 ## 11.2. Biến môi trường
 
+> 💡 **Nói đơn giản:** Các cấu hình đặt khi chạy (khóa API, địa chỉ service, ngưỡng…) — đổi được mà không sửa code.
+
 ### `assistant-service`
 
 | Biến | Mặc định | Ý nghĩa |
@@ -121,6 +127,8 @@ app:
 
 ## 11.4. Rủi ro
 
+> 💡 **Nói đơn giản:** Điều có thể đi sai và cách giảm thiểu.
+
 | Rủi ro | Mức | Giảm thiểu |
 |---|---|---|
 | Kho tri thức mỏng giai đoạn đầu | Cao | Seed tài liệu cho luồng ổn định; abstain đúng; log câu hỏi thiếu để admin bổ sung |
@@ -133,6 +141,8 @@ app:
 | Tiếng Việt không dấu / viết tắt | Trung bình | Full-text trên văn bản đã `unaccent`; `keywords`; câu hỏi mẫu không dấu |
 
 ## 11.5. Ngoài phạm vi hiện tại (hướng phát triển)
+
+> 💡 **Nói đơn giản:** Những phần đã cân nhắc nhưng cố ý không làm, lý do, và cách đang bù — đưa thẳng vào mục "Hạn chế và hướng phát triển" của báo cáo.
 
 Các phần sau được thiết kế nhưng **không làm** trong phạm vi đồ án để tập trung vào phần lõi. Ghi vào mục "Hạn chế và
 hướng phát triển" của báo cáo cùng lý do và cách đang bù.

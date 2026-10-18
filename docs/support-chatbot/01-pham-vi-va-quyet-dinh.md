@@ -1,6 +1,10 @@
 # 1. Phạm vi và quyết định
 
+> 💡 **File này nói về gì:** trợ lý giải quyết vấn đề gì, ai được dùng, làm gì / không làm gì, và các quyết định lớn kèm lý do. Đây là file nên đọc đầu tiên trong phần kỹ thuật.
+
 ## 1.1. Bối cảnh
+
+> 💡 **Nói đơn giản:** Nghiệp vụ PTutor có nhiều "trạng thái" (tin đăng chờ duyệt, hợp đồng chờ ký, khiếu nại chờ bằng chứng…). Người dùng hay không biết mình đang ở bước nào → hỏi nhân viên rất nhiều. Bảng dưới liệt kê các trạng thái này lấy đúng từ code.
 
 Nghiệp vụ của PTutor đan xen nhiều luồng, mỗi luồng có trạng thái riêng (theo enum trên `dev`):
 
@@ -22,6 +26,8 @@ Người dùng thường không biết mình đang ở bước nào, bước ti�
 
 ## 1.2. Mục tiêu
 
+> 💡 **Nói đơn giản:** Năm điều trợ lý phải đạt, mỗi điều có cách đo cụ thể ở file 10 (để chứng minh được trong báo cáo, không chỉ nói "tốt").
+
 | Mã | Mục tiêu | Đo bằng ([10](./10-danh-gia.md)) |
 |---|---|---|
 | M1 | Trả lời đúng câu hỏi về quy định, có trích dẫn | Tỉ lệ trả lời đúng, độ chính xác trích dẫn |
@@ -31,6 +37,8 @@ Người dùng thường không biết mình đang ở bước nào, bước ti�
 | M5 | Phản hồi đủ nhanh | p95 thời gian một lượt ≤ 10 giây (khởi đầu; gồm cả bước kiểm chứng) |
 
 ## 1.3. Đối tượng và phạm vi theo vai trò
+
+> 💡 **Nói đơn giản:** Ai được dùng trợ lý và thấy được gì. Học viên chỉ thấy tài liệu dành cho học viên, gia sư chỉ thấy tài liệu cho gia sư; cả hai chỉ tra được dữ liệu **của chính mình**. Admin không chat, chỉ quản lý kho tài liệu.
 
 Vai trò lấy từ claim `role` trong access token (`UserRole`).
 
@@ -43,6 +51,8 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 | `ADMIN` | Quản lý kho tri thức (soạn, duyệt, công bố, khôi phục phiên bản), xem thống kê và câu hỏi chưa trả lời được | Tất cả (trong trang quản trị) | **Không** |
 
 ## 1.4. Trong phạm vi / ngoài phạm vi
+
+> 💡 **Nói đơn giản:** Ranh giới việc trợ lý làm. Quan trọng nhất: trợ lý **chỉ đọc và hướng dẫn**, không bao giờ làm thay (hủy, thanh toán…).
 
 **Trong phạm vi**
 
@@ -65,6 +75,8 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 
 ## 1.5. Quyết định
 
+> 💡 **Nói đơn giản:** Mỗi dòng là một lựa chọn thiết kế (đánh mã QĐ1, QĐ2…) và lý do chọn. Các file sau hay nhắc "QĐx" — quay lại đây để xem vì sao. Khi bảo vệ, bảng này trả lời câu "tại sao làm vậy?".
+
 | Mã | Quyết định | Lý do |
 |---|---|---|
 | QĐ1 | Service riêng `assistant-service` | `ai-service` là service không trạng thái cho đề xuất; trợ lý có trạng thái (hội thoại, kho tri thức, log) và vòng đời khác. Lỗi hay nâng cấp bên này không ảnh hưởng bên kia |
@@ -86,6 +98,8 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 
 ## 1.6. Các câu hỏi đã chốt
 
+> 💡 **Nói đơn giản:** Những câu hỏi nhóm đã trả lời trong quá trình thiết kế (Q1–Q6) và chúng làm thiết kế thay đổi thế nào.
+
 | # | Câu hỏi | Chốt | Ảnh hưởng |
 |---|---|---|---|
 | Q1 | Mở cho khách chưa đăng nhập? | Không | Không có endpoint public |
@@ -96,6 +110,8 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 | Q6 | Lưu hội thoại bao lâu? | Nhóm thiết kế đề xuất | 90 ngày cho nội dung; không lưu kết quả tool, không lưu token ([09](./09-bao-mat-va-quyen-rieng-tu.md)) |
 
 ## 1.7. Phụ thuộc
+
+> 💡 **Nói đơn giản:** Những thứ phải có trước thì trợ lý mới chạy thật được — không nằm trong tay phần chatbot.
 
 - **`ai-service` phải có trên `dev`** (đang ở nhánh `feat/tutor-recommendation`). Trước khi gộp, `assistant-service`
   dùng `EmbeddingProvider` giả lập (`fake`) để phát triển và test; không được nạp kho tri thức thật bằng

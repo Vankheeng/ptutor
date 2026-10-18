@@ -1,6 +1,10 @@
 # 3. Kho tri thức — soạn, duyệt, công bố
 
+> 💡 **File này nói về gì:** "kho tri thức" là tập bài viết (quy định, hướng dẫn, hỏi đáp) mà trợ lý được phép dựa vào để trả lời. File mô tả bài viết trông thế nào, ai viết, cách đưa vào hệ thống và cách cắt nhỏ để tìm kiếm.
+
 ## 3.1. Nguyên tắc
+
+> 💡 **Nói đơn giản:** Kho do **admin** quản lý trên trang quản trị. Chỉ bài đã "công bố" mới được dùng; bài nháp không bao giờ lọt vào câu trả lời.
 
 - **Bản đang dùng nằm trong DB**, admin quản lý qua trang quản trị (QĐ4). Thư mục `knowledge-base/` trong repo
   chỉ chứa **bản khởi tạo** (sinh từ code), được import vào DB dưới dạng nháp.
@@ -11,6 +15,8 @@
 - **Chỉ bản `PUBLISHED` được truy xuất.** Bản nháp không bao giờ xuất hiện trong câu trả lời cho người dùng.
 
 ## 3.2. Vòng đời tài liệu
+
+> 💡 **Nói đơn giản:** Một bài viết đi qua các trạng thái: nháp → công bố → (sửa thành nháp mới) → công bố bản mới… Bản cũ không bị xóa, nên công bố nhầm thì khôi phục được.
 
 ```mermaid
 stateDiagram-v2
@@ -34,6 +40,8 @@ stateDiagram-v2
   phát triển ([11](./11-lo-trinh-va-van-hanh.md) mục 11.5).
 
 ## 3.3. Định dạng tài liệu
+
+> 💡 **Nói đơn giản:** Mỗi bài là văn bản Markdown kèm phần "thông tin về bài" ở đầu (front matter): dành cho ai, thuộc chức năng nào, trang liên quan, căn cứ trong code. Phần thông tin này giúp hệ thống lọc đúng bài cho đúng người.
 
 Nội dung là Markdown; metadata lưu thành cột trong DB và hiện trên form của trang quản trị. Bản khởi tạo trong
 repo dùng front matter YAML với cùng các trường:
@@ -78,6 +86,8 @@ Kiểm tra khi lưu / công bố (lỗi → không cho công bố, hiện lỗi 
 
 ## 3.4. Loại tài liệu
 
+> 💡 **Nói đơn giản:** Bốn loại bài: quy định, hướng dẫn thao tác, hỏi đáp thường gặp, và "giải nghĩa trạng thái" (để trợ lý giải thích được các mã như `AWAITING_EVIDENCE`).
+
 | `type` | Nội dung | Ví dụ |
 |---|---|---|
 | `policy` | Quy định, điều kiện, phí, hạn mức | Phí đăng tin, nạp ví, xử lý khiếu nại |
@@ -89,6 +99,8 @@ Tài liệu `glossary` giúp trợ lý **diễn giải kết quả tra cứu**: 
 truy xuất được "đang chờ bạn bổ sung bằng chứng".
 
 ## 3.5. Chia đoạn (chunking)
+
+> 💡 **Nói đơn giản:** Tìm kiếm hoạt động tốt trên **mảnh nhỏ**, nên mỗi bài được cắt theo từng mục (heading). Mỗi mảnh ≤ 400 token (khoảng 250–300 chữ) và luôn kèm tên bài + tên mục. Khi đã tìm thấy mảnh đúng, LLM được đọc **cả mục** chứa nó để không thiếu ý.
 
 - Chia theo heading `##` / `###`; một đoạn = nội dung dưới một heading.
 - **Giới hạn 400 token mỗi đoạn**: `ai-service /embed` cắt văn bản ở 512 token, chừa chỗ cho phần ngữ cảnh tiêu
@@ -105,6 +117,8 @@ tăng trực tiếp giới hạn 400 token vì đoạn càng dài vector càng "
 ngữ cảnh: [04](./04-luong-hoi-dap.md) mục 4.3.
 
 ## 3.6. Bản khởi tạo sinh từ code
+
+> 💡 **Nói đơn giản:** Để admin không phải viết từ đầu: khi dự án xong, bản đầu tiên của các bài được sinh tự động bằng cách đọc code (màn hình, trạng thái, điều kiện). Chỗ nào code không trả lời được thì để thành câu hỏi (`todo`) cho admin.
 
 Khi dự án đã hoàn thiện, bản khởi tạo được **sinh từ code** (có sự hỗ trợ của AI) rồi import vào DB dạng nháp;
 admin duyệt, trả lời các mục `todo`, và công bố.
@@ -133,6 +147,8 @@ có tên.
 
 ## 3.7. Danh mục tài liệu
 
+> 💡 **Nói đơn giản:** Danh sách các chủ đề cần viết, căn cứ trong code của từng chủ đề, và chủ đề nào đã sẵn sàng để viết.
+
 Mã chức năng (`features`) và mức sẵn sàng trên `dev` hiện tại.
 
 | `features` | Chủ đề | Căn cứ trong code | Sẵn sàng |
@@ -157,6 +173,8 @@ khẩu, đăng tin tìm gia sư, trạng thái tin đăng (glossary), nạp ví,
 (glossary), nộp chứng chỉ.
 
 ## 3.8. Danh sách route và câu hỏi gợi ý
+
+> 💡 **Nói đơn giản:** "Route" = đường dẫn trang trên web (vd `/student/wallet`). Trợ lý chỉ được đưa nút dẫn tới các trang có trong danh sách này — không đưa link lạ.
 
 - **Route cho phép** lấy từ router frontend (`frontend/src/App.tsx`), lưu ở `knowledge-base/_routes.yaml`, import
   vào bảng cấu hình; ví dụ `/student/contracts`, `/student/contracts/:contractId`, `/student/wallet`,

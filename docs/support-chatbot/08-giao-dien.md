@@ -1,6 +1,10 @@
 # 8. Giao diện
 
+> 💡 **File này nói về gì:** khung chat cho học viên / gia sư và trang quản trị kho tri thức cho admin — đặt ở đâu, gồm những thành phần nào, hiển thị thế nào trong từng tình huống.
+
 ## 8.1. Widget chat (học viên, gia sư)
+
+> 💡 **Nói đơn giản:** "Widget" = khung chat nổi ở góc dưới phải, có mặt trên mọi trang sau khi đăng nhập.
 
 ### Vị trí
 
@@ -26,6 +30,8 @@ src/services/assistantApi.ts  # dùng httpClient sẵn có (tự gắn token, t�
 
 ### Hành vi
 
+> 💡 **Nói đơn giản:** Bảng "tình huống → hiển thị gì": đang chờ, có trích dẫn, trợ lý từ chối, lỗi, hết lượt… Dùng khi code giao diện.
+
 | Tình huống | Hiển thị |
 |---|---|
 | Mở lần đầu | Lời chào theo vai trò + 3–4 câu hỏi gợi ý theo trang đang mở |
@@ -50,6 +56,8 @@ src/services/assistantApi.ts  # dùng httpClient sẵn có (tự gắn token, t�
 - Dòng chú thích dưới ô nhập: "Trợ lý có thể sai. Thông tin chính thức xem tại trang tương ứng."
 
 ## 8.2. Trang quản trị kho tri thức (ADMIN)
+
+> 💡 **Nói đơn giản:** Nơi admin soạn bài, xem trước cách bài được cắt mảnh, công bố, khôi phục bản cũ, xem câu hỏi chưa trả lời được.
 
 `dev` chưa có khu vực quản trị trên frontend; các trang dưới đây đặt trong layout quản trị chung (route gợi ý
 `/admin/assistant/...`), dùng chung với các chức năng `Admin*` khác khi được xây dựng.

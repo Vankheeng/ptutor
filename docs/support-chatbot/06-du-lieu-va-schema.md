@@ -1,6 +1,10 @@
 # 6. Dữ liệu và schema
 
+> 💡 **File này nói về gì:** các bảng trong cơ sở dữ liệu mà trợ lý dùng. "Schema" ở đây là một ngăn riêng trong cùng cơ sở dữ liệu PostgreSQL, tên `assistant`, tách khỏi các bảng nghiệp vụ.
+
 ## 6.1. Vị trí và quyền
+
+> 💡 **Nói đơn giản:** Trợ lý có ngăn dữ liệu riêng và **không được quyền** đọc các bảng nghiệp vụ (hợp đồng, ví…) — muốn biết thì phải hỏi qua API như người dùng.
 
 - Cùng cơ sở dữ liệu PostgreSQL của hệ thống (image `pgvector/pgvector:pg17`, extension `vector` đã bật ở
   `V1__create_initial_schema.sql`), **schema riêng `assistant`**.
@@ -25,6 +29,8 @@ CREATE OR REPLACE FUNCTION assistant.f_unaccent(text) RETURNS text
 
 ## 6.2. Sơ đồ
 
+> 💡 **Nói đơn giản:** Quan hệ giữa các bảng: tài liệu → phiên bản → mảnh; cuộc trò chuyện → tin nhắn → trích dẫn / nhật ký tra cứu / dấu vết / đánh giá.
+
 ```mermaid
 erDiagram
     kb_document ||--o{ kb_document_version : "có"
@@ -38,6 +44,8 @@ erDiagram
 ```
 
 ## 6.3. Kho tri thức
+
+> 💡 **Nói đơn giản:** Ba bảng chính: tài liệu (định danh), phiên bản tài liệu (nội dung từng lần sửa), mảnh (đoạn đã cắt kèm vector để tìm). Thêm bảng câu mẫu cho lớp chặn ngoài phạm vi và bảng cấu hình.
 
 ### `assistant.kb_document` — tài liệu (định danh ổn định)
 
@@ -122,6 +130,8 @@ Cấu hình admin sửa được: danh sách route cho phép, câu hỏi gợi �
 
 ## 6.4. Hội thoại
 
+> 💡 **Nói đơn giản:** Lưu cuộc trò chuyện, từng tin nhắn, tài liệu đã dùng, các lần tra cứu (chỉ ghi đã gọi gì, **không** lưu dữ liệu trả về), dấu vết thời gian / chi phí và đánh giá 👍/👎.
+
 ### `assistant.conversation`
 
 | Cột | Kiểu | Ghi chú |
@@ -138,6 +148,8 @@ Cấu hình admin sửa được: danh sách route cho phép, câu hỏi gợi �
 Chỉ mục: `(user_id, last_message_at DESC)`.
 
 ### Xóa hội thoại
+
+> 💡 **Nói đơn giản:** Dữ liệu một cuộc trò chuyện nằm rải ở 6 bảng; xóa đi qua một hàm duy nhất rồi kiểm tra lại không sót gì, để đảm bảo xóa thật.
 
 Dữ liệu của một hội thoại nằm ở 6 bảng: `conversation`, `message`, `message_citation`, `tool_call_log`,
 `turn_trace`, `message_feedback`. Toàn bộ việc xóa đi qua **một hàm duy nhất** `purge_conversation(conversation_id)`
@@ -228,6 +240,8 @@ Một lượt = một trace; phục vụ debug, đo chi phí và **so sánh hai 
 
 ## 6.5. Truy vấn "câu hỏi chưa trả lời được"
 
+> 💡 **Nói đơn giản:** Câu SQL lấy ra các câu trợ lý từ chối hoặc bị 👎 — để admin biết cần viết thêm bài nào.
+
 Nguồn cho trang quản trị, để admin bổ sung tài liệu:
 
 ```sql
@@ -242,6 +256,8 @@ ORDER BY a.created_at DESC;
 ```
 
 ## 6.6. Dữ liệu ở backend
+
+> 💡 **Nói đơn giản:** Bảng yêu cầu hỗ trợ nằm ở backend (không ở ngăn `assistant`) vì đó là dữ liệu nghiệp vụ giữa người dùng và nhân viên.
 
 Bảng `support_requests` (yêu cầu hỗ trợ) thuộc **schema `public` của backend**, do Flyway quản lý, vì đây là dữ liệu
 nghiệp vụ giữa người dùng và nhân viên: [14](./14-yeu-cau-ho-tro.md) mục 14.4.

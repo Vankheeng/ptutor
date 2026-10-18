@@ -1,6 +1,10 @@
 # 10. Đánh giá
 
+> 💡 **File này nói về gì:** làm sao biết trợ lý tốt — đo những gì, mục tiêu bao nhiêu, và các thí nghiệm để đưa vào chương đánh giá của báo cáo. Cách chạy chi tiết ở file 13.
+
 ## 10.1. Bộ câu hỏi mẫu (golden set)
+
+> 💡 **Nói đơn giản:** Bộ ~100 câu hỏi có sẵn đáp án (gọi là "golden set") để chạy trợ lý và chấm điểm, gồm cả câu "bẫy" mà trợ lý phải từ chối.
 
 `assistant-service/eval/datasets/golden/*.yaml`, lớn dần theo kho tri thức (mỗi tài liệu công bố có 3–5 câu).
 Mỗi câu gồm vai trò, người dùng giả, kịch bản dữ liệu (fixture), câu hỏi và kỳ vọng (`intent`, `grounded`, tài
@@ -21,6 +25,8 @@ tắt, hỏi tiếp nối nhiều lượt, câu có chỉ dẫn chèn vào ("b�
 
 ## 10.2. Chỉ số
 
+> 💡 **Nói đơn giản:** Các con số dùng để chấm. Ví dụ: "Recall@6" = trong 6 tài liệu trợ lý tìm được, có tài liệu đúng không; "từ chối đúng" = câu không có trong tài liệu thì trợ lý có nói "chưa có thông tin" không.
+
 ### Kết quả cuối
 
 | Nhóm | Chỉ số | Cách đo | Mục tiêu khởi đầu |
@@ -38,6 +44,8 @@ tắt, hỏi tiếp nối nhiều lượt, câu có chỉ dẫn chèn vào ("b�
 | | Token / lượt | `turn_trace.tokens_in + tokens_out` | Theo dõi |
 
 ### Trajectory (con đường, không chỉ đích đến)
+
+> 💡 **Nói đơn giản:** Không chỉ chấm câu trả lời cuối mà chấm cả **cách làm**: có gọi đúng lệnh tra cứu không, có gọi thừa không, gặp lỗi có tự xử lý được không.
 
 | Chỉ số | Cách đo (từ `turn_trace`, `tool_call_log`) | Mục tiêu |
 |---|---|---|
@@ -60,6 +68,8 @@ có nhãn tay ([13](./13-thiet-ke-eval.md) mục 13.8):
 | Hiệu quả thử lại | Tỉ lệ lượt thử lại chuyển thành đạt | Theo dõi; quá thấp → góp ý chưa đủ cụ thể |
 
 ## 10.3. Cổng hồi quy (QĐ12)
+
+> 💡 **Nói đơn giản:** "Hồi quy" = sửa chỗ này làm hỏng chỗ khác. Mỗi lần thay đổi phải chạy lại bộ câu hỏi; an toàn phải đạt 100%, câu trước đúng không được thành sai.
 
 Mọi thay đổi **prompt, model, tham số truy xuất, model embedding, middleware** phải chạy toàn bộ bộ câu hỏi mẫu
 trước khi áp dụng. Thứ tự ưu tiên khi xét:
@@ -88,6 +98,8 @@ cd assistant-service
 - Chi tiết môi trường chạy, bộ chấm, xử lý nhiễu, báo cáo: [13](./13-thiet-ke-eval.md).
 
 ## 10.5. Thí nghiệm cho chương đánh giá
+
+> 💡 **Nói đơn giản:** Ba thí nghiệm bật / tắt từng thành phần để chứng minh nó có ích (E1: cách tìm tài liệu, E2: người kiểm tra, E4: viết lại câu hỏi), kèm bảng thời gian và chi phí (B2).
 
 Chạy cùng bộ câu hỏi, chỉ đổi một yếu tố mỗi lần. Ba thí nghiệm, mỗi thí nghiệm trả lời cho một quyết định thiết kế
 có chi phí đáng kể (truy xuất lai, kiểm chứng, viết lại câu hỏi); các thí nghiệm khác để ở hướng phát triển

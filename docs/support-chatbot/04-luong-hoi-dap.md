@@ -1,6 +1,10 @@
 # 4. Luồng hỏi đáp (RAG) và kiểm chứng trích dẫn
 
+> 💡 **File này nói về gì:** chuyện gì xảy ra từ lúc người dùng gửi câu hỏi tới lúc nhận câu trả lời. "RAG" = **tìm tài liệu trước, rồi cho LLM viết dựa trên tài liệu đó**. Ví dụ đi từng bước bằng lời thường: [00](./00-doc-truoc.md) mục 3.
+
 ## 4.1. Một lượt hội thoại
+
+> 💡 **Nói đơn giản:** Sơ đồ toàn bộ một lượt hỏi–đáp. Các số ①–⑥ là 6 "trạm kiểm soát" ở file 02 mục 2.3. Đọc từ trên xuống theo thời gian.
 
 ```mermaid
 sequenceDiagram
@@ -45,12 +49,16 @@ sequenceDiagram
 
 ## 4.2. Kiểm tra đầu vào (①)
 
+> 💡 **Nói đơn giản:** Trước khi làm gì: câu hỏi không quá dài, cuộc trò chuyện đúng là của người này, và xóa số điện thoại / email khỏi câu hỏi để không gửi ra ngoài.
+
 - Độ dài tối đa 1.000 ký tự; rỗng → `INVALID_MESSAGE`.
 - Che số điện thoại, email, dãy số dài giống số tài khoản / CCCD **trước khi** gửi ra LLM (cùng cách `ai-service`
   làm cho `/enrich`).
 - `conversationId` phải thuộc đúng `userId` (header backend gửi), nếu không → `404`.
 
 ## 4.3. Viết lại câu hỏi và truy xuất (①)
+
+> 💡 **Nói đơn giản:** Hai việc: (1) biến câu hỏi cụt ("còn cái kia?") thành câu đầy đủ dựa vào các lượt trước; (2) tìm tài liệu — vừa tìm theo **ý nghĩa** (vector), vừa tìm theo **từ khóa**, gộp hai kết quả rồi xếp hạng lại (rerank). Không tìm thấy gì đủ liên quan → đánh dấu "không có căn cứ".
 
 **Viết lại câu hỏi** — chỉ khi hội thoại có lịch sử: một lời gọi LLM ngắn (không suy luận, timeout ~3 giây) với
 đầu vào là các lượt gần nhất **và trạng thái phiên** (mục 4.10: đối tượng đang bàn kèm nhãn), đưa câu hỏi về dạng
@@ -75,6 +83,8 @@ Ngưỡng là giá trị khởi đầu, hiệu chỉnh trên bộ câu hỏi m�
 
 ## 4.4. Sinh câu trả lời — Actor (②–⑤)
 
+> 💡 **Nói đơn giản:** "Actor" = lần gọi LLM để viết câu trả lời. Ở đây mô tả LLM được đưa những gì: lời dặn, thông tin người hỏi (không có tên, email), lịch sử, các mục tài liệu đánh số [D1]…[D6], và các lệnh tra cứu được phép dùng.
+
 Ngữ cảnh gửi model do `ContextInjectionMiddleware` dựng:
 
 - **System prompt** theo vai trò (có `prompt_version`): vai trò trợ lý PTutor; chỉ trả lời dựa trên `<doc>` và
@@ -94,6 +104,8 @@ Ngữ cảnh gửi model do `ContextInjectionMiddleware` dựng:
   kiệm chi phí, không cho model cơ hội bịa).
 
 ## 4.5. Định dạng đầu ra (structured output)
+
+> 💡 **Nói đơn giản:** LLM không trả lời văn tự do mà trả về một khuôn cố định (JSON): loại câu hỏi, **từng câu khẳng định kèm nguồn**, câu trả lời, nút bấm. Nhờ có khuôn, code kiểm tra được từng câu.
 
 ```json
 {
@@ -118,6 +130,8 @@ Yêu cầu model **tách sẵn các khẳng định** (`claims`) kèm nguồn gi
 cho phép code kiểm tra từng khẳng định.
 
 ## 4.6. Kiểm chứng trích dẫn (④')
+
+> 💡 **Nói đơn giản:** Bước chống bịa. Một lần gọi LLM riêng ("người kiểm tra" / verifier) đọc từng câu khẳng định và đúng đoạn tài liệu được trích, chấm có khớp không. Không khớp → bắt viết lại một lần; vẫn không khớp → bỏ câu đó hoặc trả lời "chưa có thông tin".
 
 Ba loại lỗi trích dẫn và lớp bắt từng loại:
 
@@ -171,6 +185,8 @@ Câu trả lời abstain:
 
 ## 4.7. Các kiểm tra khác ở ④'
 
+> 💡 **Nói đơn giản:** Vài kiểm tra cuối bằng code: nút bấm chỉ dẫn tới trang hợp lệ, câu trả lời không quá dài, câu ngoài phạm vi được từ chối.
+
 | Kiểm tra | Xử lý khi vi phạm |
 |---|---|
 | `actions[].route` không thuộc `_routes.yaml` hoặc tham số không thuộc `seen_ids` | Bỏ action |
@@ -179,6 +195,8 @@ Câu trả lời abstain:
 | Che thông tin cá nhân | Trước khi lưu log |
 
 ## 4.8. Ví dụ
+
+> 💡 **Nói đơn giản:** Ba tình huống cụ thể: hỏi quy định, tra cứu dữ liệu, và một lần LLM trích sai bị bắt.
 
 **Hỏi quy định — học viên**: "Nạp ví tối thiểu bao nhiêu?" → truy xuất "Nạp ví > Hạn mức"; Actor: claim
 "tối thiểu 10.000 đ, tối đa 100.000.000 đ" nguồn D1; verifier `SUPPORTED`, evidence là chuỗi con của D1 → trả
@@ -195,6 +213,8 @@ hủy → verifier `UNSUPPORTED` → thử lại với góp ý → Actor bỏ c�
 
 ## 4.9. Tham số khởi đầu
 
+> 💡 **Nói đơn giản:** Các con số cấu hình (lấy bao nhiêu tài liệu, tối đa mấy lần tra cứu, chờ bao lâu…). Đây là giá trị ban đầu, sẽ chỉnh lại khi chạy thử.
+
 | Tham số | Giá trị | Ghi chú |
 |---|---|---|
 | `history_turns` | 6 | Cửa sổ trượt (mục 4.10) |
@@ -209,6 +229,8 @@ hủy → verifier `UNSUPPORTED` → thử lại với góp ý → Actor bỏ c�
 | `llm_timeout_s` / `verifier_timeout_s` / `turn_timeout_s` | 15 / 8 / 25 | Backend chờ 30 giây |
 
 ## 4.10. Bộ nhớ hội thoại
+
+> 💡 **Nói đơn giản:** Trợ lý nhớ gì trong một cuộc trò chuyện và quên khi nào. Tóm tắt: nhớ 6 lượt gần nhất + một "sổ tay" các thứ đang bàn; cuộc trò chuyện kết thúc khi đóng tab / đăng xuất; sang cuộc mới thì không nhớ cuộc cũ (cố ý, vì dữ liệu thay đổi liên tục).
 
 ### Mô hình bộ nhớ
 
@@ -237,6 +259,8 @@ Ngoài lịch sử, mỗi lượt model còn thấy câu hỏi đã viết lại
 tại. `history_turns = 6` là giá trị khởi đầu, kiểm tra bằng thí nghiệm E4 trên bộ hội thoại nhiều lượt.
 
 ### Trạng thái phiên (`session_state`)
+
+> 💡 **Nói đơn giản:** "Sổ tay phiên": danh sách những thứ đang bàn (vd hợp đồng Tiếng Anh 7 có mã …0002). Code tự ghi từ kết quả tra cứu — không lấy từ lời người dùng — để câu "còn cái tiếng Anh" được hiểu đúng.
 
 Cửa sổ 6 lượt có điểm yếu: nếu người dùng hỏi đi hỏi lại một chi tiết nhỏ, cả cửa sổ chỉ còn chi tiết đó và mất
 mạch chính (đang nói về hợp đồng nào, vấn đề nào chưa giải quyết). Vì vậy mỗi hội thoại có thêm một **trạng thái
@@ -267,6 +291,8 @@ toán rồi" mà tool cho kết quả khác → **dữ liệu tool thắng**; tr
 ý liên hệ hỗ trợ nếu thấy sai. Quy tắc / chính sách luôn thắng mong muốn của người dùng.
 
 ### Ngân sách token theo lớp ngữ cảnh
+
+> 💡 **Nói đơn giản:** "Token" là đơn vị độ dài chữ mà LLM tính. Mỗi lần gọi LLM chỉ đưa được một lượng chữ có hạn, nên chia "suất" cho từng loại nội dung. Khi vượt, cắt phần ít quan trọng trước (lịch sử cũ), không bao giờ cắt lời dặn quy tắc.
 
 `ContextInjectionMiddleware` dựng ngữ cảnh theo thứ tự lớp cố định và ngân sách từng lớp (giá trị khởi đầu, đo lại
 bằng `turn_trace`):
@@ -313,6 +339,8 @@ hạn theo thời gian không hoạt động.
 - Xóa hội thoại xóa cả `session_state` và mọi bản ghi liên quan, có kiểm chứng ([09](./09-bao-mat-va-quyen-rieng-tu.md) mục 9.3).
 
 ## 4.11. Lớp chặn câu hỏi ngoài phạm vi
+
+> 💡 **Nói đơn giản:** Trạm lọc câu hỏi không liên quan tới PTutor (giải toán, viết văn…) **trước khi** gọi LLM, để tiết kiệm chi phí. Lọc theo ba tầng từ rẻ đến đắt; câu không chắc thì cho qua để LLM tự xử lý, tránh chặn nhầm.
 
 Mục đích: người dùng không dùng trợ lý cho việc ngoài nền tảng (giải bài tập, viết văn, hỏi chuyện chung…) — tiết kiệm
 chi phí LLM, giữ trợ lý đúng vai. Đây là lớp về **phạm vi và chi phí**, không phải lớp bảo mật: kể cả khi bị vượt,

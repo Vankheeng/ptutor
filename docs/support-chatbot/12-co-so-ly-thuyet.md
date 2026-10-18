@@ -1,11 +1,15 @@
 # 12. Cơ sở lý thuyết
 
+> 💡 **File này nói về gì:** nối từng quyết định thiết kế với lý thuyết (bài giảng AICB về kiến trúc agent và bộ nhớ, các bài báo về RAG, Reflexion…). Dùng để viết chương cơ sở lý thuyết và trả lời "dựa vào đâu mà thiết kế vậy".
+
 Tài liệu này đối chiếu các quyết định thiết kế với lý thuyết về kiến trúc agent và RAG, để dùng cho chương cơ sở
 lý thuyết và phần lập luận thiết kế trong báo cáo. Ký hiệu [BG §x] chỉ mục tương ứng trong bài giảng
 *Advanced Agent Architectures — Harness & Kiến trúc* (AICB-P2T3, Ngày 16, VinUniversity); [MEM Sx] chỉ slide tương
 ứng trong bài giảng *Memory Systems for Agents* (AICB-P2T3, Ngày 17, VinUniversity).
 
 ## 12.1. Harness: hiệu năng không nằm hết trong model
+
+> 💡 **Nói đơn giản:** Ý chính: model thuê từ nhà cung cấp là cố định; chất lượng sản phẩm phụ thuộc nhiều vào phần code mình viết bao quanh (lời dặn, công cụ, các trạm kiểm soát).
 
 Khi năng lực model nền tảng đã đủ cao, khác biệt giữa các sản phẩm AI nằm ở **harness** — lớp code bao quanh model
 [BG Mở đầu, §7.1]. Harness có ba "núm xoay" [BG §7.2]:
@@ -20,6 +24,8 @@ Prompt và tool chỉ **mô tả** agent; middleware **can thiệp** lúc chạy
 cảnh, dừng vòng lặp. Đó là lý do thiết kế đặt mọi quy tắc an toàn ở middleware.
 
 ## 12.2. Chọn mức kiến trúc: bắt đầu đơn giản
+
+> 💡 **Nói đơn giản:** Lý thuyết khuyên bắt đầu bằng kiến trúc đơn giản nhất đủ dùng, chỉ thêm phức tạp khi có bằng chứng cần — đây là lý do chọn một agent.
 
 **ReAct** xen kẽ suy luận và hành động (Thought → Action → Observation) [BG §1.1; Yao et al., 2023]. Ba kiểu thất
 bại: lỗi lan tỏa, vòng lặp vô hạn, không quay đầu [BG §1.2]. Nhiều tác vụ thực tế chỉ cần **retrieval + tools +
@@ -43,6 +49,8 @@ model, kiểm chứng cuối; **vòng lặp vô hạn** — `LoopGuardMiddleware
 [BG §7.8]; **không quay đầu** — thử lại có góp ý một lần, sau đó abstain thay vì cố đi tiếp.
 
 ## 12.3. Critic layer và kiểm chứng trích dẫn
+
+> 💡 **Nói đơn giản:** "Critic layer" = lớp phê bình: một bước chấm lại câu trả lời rồi cho làm lại nếu sai (ý tưởng Reflexion). Người kiểm tra trích dẫn của trợ lý là một lớp như vậy, có giới hạn chỉ làm lại 1 lần.
 
 **Reflexion** thêm Evaluator và Reflector quanh vòng lặp ReAct: sinh → chấm → rút bài học bằng ngôn ngữ tự
 nhiên → thử lại, có giới hạn số lần [BG §2.1–2.3; Shinn et al., 2023]. Reflexion không phải kiến trúc riêng mà là
@@ -95,6 +103,8 @@ khi thiếu bằng chứng thay vì bịa để lấp khoảng trống [BG §11.
 
 ## 12.5. RAG và mô hình embedding
 
+> 💡 **Nói đơn giản:** Cơ sở cho cách tìm tài liệu (tìm theo ý nghĩa + từ khóa), lý do chọn mô hình bge-m3 cho tiếng Việt, và vì sao không dùng Graph RAG.
+
 **Retrieval-Augmented Generation** kết hợp truy xuất văn bản với sinh câu trả lời để giảm bịa và cập nhật kiến
 thức mà không huấn luyện lại model (Lewis et al., 2020). Thiết kế dùng **truy xuất lai**: vector cho ngữ nghĩa,
 full-text cho từ khóa chính xác, gộp bằng **Reciprocal Rank Fusion** (Cormack et al., 2009) rồi xếp lại bằng
@@ -117,6 +127,8 @@ có cấu trúc qua tool. Trong khi đó, đồ thị phải dựng lại mỗi 
 đi ngược yêu cầu trích dẫn chính xác. Điều kiện xem lại và bước thử rẻ hơn: [11](./11-lo-trinh-va-van-hanh.md) mục 11.5.
 
 ## 12.6. Guardrails: prompt không phải biện pháp kiểm soát
+
+> 💡 **Nói đơn giản:** "Guardrails" = rào chắn an toàn. Lý thuyết nhấn mạnh rào chắn phải là code / hạ tầng, không chỉ là lời dặn LLM.
 
 Bề mặt tấn công mới của agent: chỉ dẫn chèn qua nội dung truy xuất, qua kết quả tool, và tool bị đầu độc
 [BG §10.1]. **Phòng thủ nhiều lớp** gồm: kiểm tra đầu vào, kiểm tra đầu ra, thực thi quyền qua bản khai năng lực
@@ -145,6 +157,8 @@ thiết — đây là lựa chọn có chủ đích (QĐ7), giảm hẳn rủi r
   thức hay guardrail, và guardrail nằm ngoài vùng admin chỉnh sửa được.
 
 ## 12.8. Bộ nhớ của agent
+
+> 💡 **Nói đơn giản:** Lý thuyết về 4 loại bộ nhớ (ngắn hạn, dài hạn, trải nghiệm, tri thức chung) và vì sao trợ lý chỉ dùng 2 loại.
 
 **Agent mặc định không có trạng thái**: mỗi lời gọi LLM là độc lập; muốn "nhớ" thì lớp ứng dụng phải lưu và nạp lại
 [MEM S2]. Ngữ cảnh là tài nguyên hữu hạn, cần tổ chức thành các lớp có thứ tự ưu tiên khi cắt; lớp chính sách /

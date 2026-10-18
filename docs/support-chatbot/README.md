@@ -1,4 +1,4 @@
-# Thiết kế tính năng Trợ lý hỗ trợ người dùng (Support Assistant) — phiên bản 0.6
+# Thiết kế tính năng Trợ lý hỗ trợ người dùng (Support Assistant) — phiên bản 0.7
 
 > **Mới đọc lần đầu? Đọc [00 — Đọc trước](./00-doc-truoc.md)**: giải thích toàn bộ thiết kế bằng lời thường, có ví dụ
 > đi theo một câu hỏi và bảng giải nghĩa thuật ngữ. Các file 01–14 là bản kỹ thuật chi tiết.
@@ -31,6 +31,9 @@
 > sử 6 lượt và mốc 20 lượt; chuẩn hóa khi kiểm bằng chứng của verifier; phương án hai pha khi model không gọi tool
 > và trả JSON cùng lúc; sửa `unaccent` (hàm IMMUTABLE); đánh đổi kiến trúc ([02](./02-kien-truc.md) mục 2.7); bản
 > thử nhỏ ở giai đoạn 0; bỏ việc chuyển câu trả lời của nhân viên thành tài liệu.
+>
+> 0.7 (18/10/2026): thêm [00 — Đọc trước](./00-doc-truoc.md) và các khung "💡 Nói đơn giản" ngay dưới từng mục của
+> các file 01–14, giải thích bằng lời thường tại chỗ.
 
 ## Tóm tắt
 

@@ -1,6 +1,10 @@
 # 9. Bảo mật và quyền riêng tư
 
+> 💡 **File này nói về gì:** những rủi ro (lừa trợ lý, xem trộm dữ liệu, lộ thông tin cá nhân…) và cách thiết kế chặn từng rủi ro; dữ liệu được lưu bao lâu. Bản lời thường: [00](./00-doc-truoc.md) mục 5.
+
 ## 9.1. Phòng thủ nhiều lớp
+
+> 💡 **Nói đơn giản:** Không dựa vào một lớp bảo vệ duy nhất mà xếp nhiều lớp chồng nhau; lớp này bị vượt thì còn lớp kia. Và **không coi lời dặn LLM là một lớp bảo vệ** — chỉ code mới tính.
 
 Không dựa vào một lớp duy nhất, và **không coi quy tắc trong prompt là một lớp phòng thủ**. Mỗi lớp dưới đây là
 code / hạ tầng:
@@ -18,6 +22,8 @@ Các cơ chế bảo vệ (allowlist, bản khai tool, ngân sách) nằm trong 
 lý và admin (qua trang quản trị) **không sửa được** chúng. Admin chỉ sửa được nội dung kho tri thức.
 
 ## 9.2. Mối đe dọa và biện pháp
+
+> 💡 **Nói đơn giản:** Từng kiểu tấn công / sự cố cụ thể (T1, T2…) và biện pháp tương ứng. "Prompt injection" = câu lừa LLM làm trái quy tắc.
 
 | # | Mối đe dọa | Biện pháp (lớp) |
 |---|---|---|
@@ -37,6 +43,8 @@ lý và admin (qua trang quản trị) **không sửa được** chúng. Admin c
 | T11 | XSS qua câu trả lời / nội dung tài liệu | Render Markdown không cho HTML ở widget và trang xem trước; link chỉ là route nội bộ qua `navigate` |
 
 ## 9.3. Dữ liệu lưu và thời hạn
+
+> 💡 **Nói đơn giản:** Cái gì được lưu, lưu bao lâu, cái gì **không** lưu (dữ liệu tra cứu, quyền đăng nhập), và cách xóa có kiểm tra.
 
 | Dữ liệu | Lưu | Thời hạn |
 |---|---|---|
@@ -64,6 +72,8 @@ lý và admin (qua trang quản trị) **không sửa được** chúng. Admin c
 - Admin xem câu hỏi chưa trả lời được: chỉ thấy nội dung đã che, **không thấy `user_id`**.
 
 ## 9.4. Minh bạch với người dùng
+
+> 💡 **Nói đơn giản:** Người dùng được báo rõ trợ lý dùng AI, có thể sai, và câu hỏi được lưu bao lâu.
 
 - Dòng chú thích dưới ô nhập ([08](./08-giao-dien.md)).
 - Câu trả lời có dữ liệu cá nhân nói rõ nguồn ("theo hợp đồng của bạn…").

@@ -1,5 +1,7 @@
 # 7. API
 
+> 💡 **File này nói về gì:** các đường gọi (API) giữa giao diện, backend và `assistant-service`: gọi vào đâu, gửi gì, nhận gì, lỗi thế nào. Dùng khi code.
+
 Hai lớp API:
 
 - **API công khai của backend** — frontend gọi, bọc trong `ApiResponse<T>` như các API khác (`success`, `code`,
@@ -7,6 +9,8 @@ Hai lớp API:
 - **API nội bộ của `assistant-service`** (`/v1/**`) — chỉ backend gọi, header `X-Internal-Token`.
 
 ## 7.1. Phân quyền ở backend
+
+> 💡 **Nói đơn giản:** Ai được gọi API nào: học viên / gia sư gọi API trợ lý; chỉ admin gọi API quản trị kho tri thức.
 
 Thêm vào `SecurityConstants` / `SecurityConfig`:
 
@@ -24,6 +28,8 @@ public static final String[] ADMIN_ASSISTANT_API = {
 ```
 
 ## 7.2. API trợ lý (học viên, gia sư)
+
+> 💡 **Nói đơn giản:** Các API khung chat dùng: gửi câu hỏi, xem lại cuộc trò chuyện, kết thúc phiên, đánh giá, lấy câu hỏi gợi ý. Có ví dụ dữ liệu gửi và nhận.
 
 | Phương thức | Đường dẫn | Mô tả |
 |---|---|---|
@@ -85,6 +91,8 @@ Gửi lại → ghi đè.
 
 ## 7.3. API quản trị kho tri thức (ADMIN)
 
+> 💡 **Nói đơn giản:** Các API trang quản trị dùng: tạo / sửa bài nháp, công bố, lưu trữ, khôi phục phiên bản, xem câu hỏi chưa trả lời được, thống kê.
+
 | Phương thức | Đường dẫn | Mô tả |
 |---|---|---|
 | `GET` | `/api/v1/admin/assistant/documents` | Danh sách tài liệu: lọc theo `status`, `type`, `features`, `audience`, từ khóa; có cờ "có bản nháp", "còn todo" |
@@ -103,6 +111,8 @@ Gửi lại → ghi đè.
 
 ## 7.4. Backend → `assistant-service`
 
+> 💡 **Nói đơn giản:** Backend chuyển câu hỏi vào trong kèm "thẻ ra vào" nội bộ và thông tin người hỏi. Quyền đăng nhập của người hỏi được chuyển theo chỉ để dùng cho tra cứu.
+
 `AssistantProxyService` thêm header:
 
 | Header | Giá trị |
@@ -119,6 +129,8 @@ chủ token. API quản trị chỉ được gọi từ `AdminAssistantControlle
 lại `X-User-Role = ADMIN` cho mọi `/v1/admin/**`.
 
 ## 7.5. API nội bộ của `assistant-service`
+
+> 💡 **Nói đơn giản:** Các API chỉ backend gọi được (không mở ra ngoài).
 
 | Phương thức | Đường dẫn | Mô tả |
 |---|---|---|

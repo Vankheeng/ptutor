@@ -1,6 +1,10 @@
 # 5. Công cụ tra cứu dữ liệu người dùng
 
+> 💡 **File này nói về gì:** các "công cụ" (tool) — lệnh tra cứu mà LLM được phép đề nghị dùng để lấy dữ liệu thật của người hỏi (hợp đồng, ví, khiếu nại…). Mỗi công cụ gọi một API **xem** đã có sẵn của backend.
+
 ## 5.1. Nguyên tắc
+
+> 💡 **Nói đơn giản:** LLM chỉ **đề nghị** gọi công cụ; code mới quyết định cho gọi hay không. Công cụ chỉ đọc, chỉ đọc dữ liệu của chính người hỏi, và dùng chính quyền đăng nhập của người đó — nên không thể lấy được dữ liệu người khác.
 
 Model chỉ **đề nghị** gọi tool; **harness quyết định** có cho chạy hay không (`ToolGateMiddleware` ở hook
 `wrap_tool_call`, [02](./02-kien-truc.md) mục 2.3). Mọi nguyên tắc dưới đây được thực thi bằng code.
@@ -20,6 +24,8 @@ Model chỉ **đề nghị** gọi tool; **harness quyết định** có cho ch�
    `<tool_result>`; vì không có tool ghi, chỉ dẫn chèn vào cũng không gây ra được hành động nào.
 
 ## 5.2. Định nghĩa một tool
+
+> 💡 **Nói đơn giản:** Mỗi công cụ được khai báo một lần: tên, dành cho vai trò nào, gọi API nào, được giữ lại những trường dữ liệu nào. Thêm công cụ mới = thêm một khai báo.
 
 Mỗi tool khai báo đủ **phạm vi** (vai trò, đường dẫn), **mục allowlist** và **mức khả năng hoàn tác**:
 
@@ -48,6 +54,8 @@ tiên tool có `features` trùng với các đoạn tài liệu truy xuất đư
 (không có dấu hiệu "của tôi", "hiện tại"…) có thể không gửi tool nào.
 
 ## 5.3. Danh sách tool
+
+> 💡 **Nói đơn giản:** Toàn bộ các lệnh tra cứu, chia theo học viên / gia sư, kèm câu hỏi ví dụ dùng tới lệnh đó.
 
 Đường dẫn lấy theo controller trên `dev`. Tham số query cụ thể (phân trang, lọc) đối chiếu lại khi triển khai.
 
@@ -99,6 +107,8 @@ chỉ thấy tối đa 6 nhờ chọn tool động.
 
 ## 5.4. Lọc và rút gọn kết quả
 
+> 💡 **Nói đơn giản:** Dữ liệu trả về được cắt bớt trước khi đưa LLM: bỏ email, họ tên đầy đủ…; danh sách dài chỉ giữ 10 mục mới nhất; đổi ngày giờ, tiền sang dạng dễ đọc.
+
 - Bỏ trường ngoài danh sách `fields`; với `ContractResponse` bỏ `studentEmail`, `tutorEmail`, `lastName`, các
   ID nội bộ không cần (`createdByUserId`, `signedByUserId`…).
 - Danh sách dài → giữ `max_items` mục mới nhất + tổng số, ví dụ `{"total": 37, "items": [...10 mục]}`.
@@ -106,6 +116,8 @@ chỉ thấy tối đa 6 nhờ chọn tool động.
 - Trạng thái giữ mã enum (để truy xuất glossary) kèm nhãn tiếng Việt từ bảng ánh xạ cố định.
 
 ## 5.5. Lỗi
+
+> 💡 **Nói đơn giản:** Khi tra cứu lỗi (hết phiên đăng nhập, không có quyền, hệ thống lỗi) thì trợ lý nói gì.
 
 | Backend trả | Trợ lý xử lý |
 |---|---|
@@ -116,6 +128,8 @@ chỉ thấy tối đa 6 nhờ chọn tool động.
 | Bị `ToolGate` chặn (ngoài allowlist, ID lạ, gọi lặp) | Trả cho model thông báo lỗi ngắn để nó đổi cách; ghi `tool_call_log.blocked_reason` |
 
 ## 5.6. Làm trước khi API sẵn sàng
+
+> 💡 **Nói đơn giản:** Chế độ "giả lập" (mock): dùng dữ liệu mẫu thay cho API thật để test và demo khi backend chưa xong.
 
 - `BackendClient` có chế độ **mock**: đọc fixture theo kịch bản trong `eval/fixtures/scenarios/<kịch bản>/<tool>.json`
   (bật bằng `ASSISTANT_TOOLS_MODE=mock`; định dạng ở [13](./13-thiet-ke-eval.md) mục 13.4). Mock chỉ thay tầng

@@ -1,10 +1,14 @@
 # 13. Thiết kế kiểm thử và eval
 
+> 💡 **File này nói về gì:** cách chạy việc chấm điểm trong thực tế — test nào chạy khi nào, dữ liệu mẫu, cách chấm, xử lý việc LLM trả lời mỗi lần một khác. File 10 nói "đo gì", file này nói "đo thế nào".
+
 [10](./10-danh-gia.md) trả lời **đo cái gì**; tài liệu này trả lời **chạy thế nào**: phân tầng kiểm thử, môi
 trường chạy cố định, định dạng test case và fixture, bộ chấm, xử lý nhiễu, bộ test an toàn, bộ dữ liệu cho
 verifier, báo cáo và cổng hồi quy.
 
 ## 13.1. Phân tầng kiểm thử
+
+> 💡 **Nói đơn giản:** Năm tầng: T0–T1 là test bằng code (nhanh, không tốn tiền LLM), T2 kiểm tra API backend còn đúng, T3 chạy trợ lý thật trên bộ câu hỏi, T4 cho người thật dùng thử.
 
 | Tầng | Kiểm tra gì | Gọi LLM? | Công cụ | Chạy khi |
 |---|---|---|---|---|
@@ -75,6 +79,8 @@ assistant-service/eval/
 
 ## 13.3. Môi trường chạy cố định
 
+> 💡 **Nói đơn giản:** Để kết quả so sánh được giữa các lần chạy: dùng bản sao cố định của kho tài liệu, dữ liệu tra cứu giả lập, đồng hồ cố định.
+
 Kết quả eval phải **lặp lại được** và **chỉ thay đổi khi thứ đang thử thay đổi**.
 
 | Yếu tố | Cách cố định |
@@ -92,6 +98,8 @@ Kết quả eval phải **lặp lại được** và **chỉ thay đổi khi th�
 (`--reuse-run <id>`). Khi đo chất lượng luôn gọi LLM thật (không cache), vì mục đích chính là đo cả độ dao động.
 
 ## 13.4. Định dạng test case
+
+> 💡 **Nói đơn giản:** Một câu hỏi mẫu được viết thế nào (câu hỏi, người hỏi, kỳ vọng). "Fixture" = dữ liệu giả lập trả về cho từng lệnh tra cứu.
 
 ### Một lượt
 
@@ -200,6 +208,8 @@ tiết nhỏ, đẩy lượt nhắc tới hợp đồng ra khỏi cửa sổ 6 l
 
 ## 13.5. Bộ chấm (graders)
 
+> 💡 **Nói đơn giản:** Ai / cái gì chấm điểm: phần lớn chấm tự động bằng code; phần "trả lời có đúng ý không" thì người chấm tay theo thang điểm.
+
 ### Chấm bằng code (tất định)
 
 | Grader | Đạt khi | Dùng cho chỉ số |
@@ -243,6 +253,8 @@ trong cùng lượt chấm trên: với mỗi câu trả lời, đánh dấu kh�
 
 ## 13.6. Nhiễu: chạy lặp và so sánh
 
+> 💡 **Nói đơn giản:** LLM mỗi lần trả lời có thể hơi khác, nên mỗi câu chạy 3 lần và tính đạt theo đa số, tránh kết luận sai vì "hên xui".
+
 LLM không tất định, nên một lần chạy không đủ để kết luận.
 
 | Chế độ | Số lần chạy mỗi case | Dùng khi |
@@ -260,6 +272,8 @@ LLM không tất định, nên một lần chạy không đủ để kết luậ
   không đổi và kiểm định McNemar cho tỉ lệ đạt; không chỉ so hai con số trung bình.
 
 ## 13.7. Bộ test an toàn
+
+> 💡 **Nói đơn giản:** Các câu cố tình lừa / phá trợ lý; phải đạt 100%.
 
 `datasets/safety/*.yaml` — **yêu cầu đạt 100%**, mọi lần chạy, mọi cấu hình.
 
@@ -301,6 +315,8 @@ Mỗi nhóm có biến thể không dấu, tiếng Anh, và dạng nhiều lư�
   Chạy: `python -m eval.verifier --k 3`.
 
 ## 13.9. Xây dựng bộ câu hỏi và tránh "học tủ"
+
+> 💡 **Nói đơn giản:** Chia bộ câu hỏi làm hai phần: một phần để chỉnh hệ thống, một phần **giữ riêng** chỉ dùng để báo cáo kết quả — giống đề ôn và đề thi, để số liệu trung thực.
 
 **Nguồn câu hỏi**
 

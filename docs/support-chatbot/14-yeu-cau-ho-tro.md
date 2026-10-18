@@ -1,5 +1,7 @@
 # 14. Chuyển câu hỏi cho nhân viên (yêu cầu hỗ trợ)
 
+> 💡 **File này nói về gì:** khi trợ lý không trả lời được, người dùng bấm gửi câu hỏi cho nhân viên; nhân viên trả lời trên trang riêng; người dùng nhận thông báo. Đây là chức năng mới của backend, không phải của phần AI.
+
 Khi trợ lý không trả lời được, người dùng **tự gửi** câu hỏi cho nhân viên hỗ trợ; nhân viên trả lời qua trang xử
 lý; người dùng nhận thông báo.
 
@@ -16,6 +18,8 @@ Trợ lý chỉ đưa ra nút gửi và có một tool chỉ-đọc để tra tr
 | Một vòng hỏi – đáp | Đủ cho câu hỏi hỗ trợ; cần hỏi thêm thì gửi yêu cầu mới (có liên kết yêu cầu trước) |
 
 ## 14.2. Luồng
+
+> 💡 **Nói đơn giản:** Sơ đồ từ lúc người dùng bấm gửi tới lúc nhận câu trả lời.
 
 ```mermaid
 sequenceDiagram
@@ -50,6 +54,8 @@ thoại để nhân viên hiểu rõ hơn" (mặc định **không** chọn) kè
 cầu, kể cả khi bạn xóa cuộc trò chuyện"; nút "Gửi".
 
 ## 14.3. Trạng thái
+
+> 💡 **Nói đơn giản:** Một yêu cầu đi qua: mở → đang xử lý → đã trả lời → đã đóng (hoặc người dùng hủy).
 
 ```mermaid
 stateDiagram-v2

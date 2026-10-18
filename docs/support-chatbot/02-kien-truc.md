@@ -1,6 +1,10 @@
 # 2. Kiến trúc tổng thể và harness
 
+> 💡 **File này nói về gì:** hệ thống gồm những bộ phận nào, chúng nói chuyện với nhau ra sao, và "harness" — phần code bao quanh LLM để giữ nó đúng quy tắc. Bản giải thích bằng lời thường: [00](./00-doc-truoc.md) mục 2–3.
+
 ## 2.1. Thành phần
+
+> 💡 **Nói đơn giản:** Có 4 tầng: giao diện → backend (lễ tân: kiểm tra đăng nhập) → `assistant-service` (phần AI mới) → các dịch vụ dùng chung (cơ sở dữ liệu, `ai-service`, LLM). Người dùng không bao giờ nói chuyện thẳng với phần AI; mọi thứ đi qua backend.
 
 ### Sơ đồ tổng quan
 
@@ -89,6 +93,8 @@ Nguyên tắc:
 
 ## 2.2. Agent đơn — vì sao không phức tạp hơn
 
+> 💡 **Nói đơn giản:** "Agent" = chương trình để LLM vừa suy nghĩ vừa được gọi công cụ (tra cứu). Có nhiều kiến trúc phức tạp hơn (nhiều agent phối hợp, tìm kiếm theo cây…), nhưng câu hỏi hỗ trợ ngắn nên **một agent là đủ**; thêm vào chỉ chậm và đắt hơn.
+
 Một lượt hội thoại chỉ cần ba năng lực: **truy xuất**, **gọi tool có sẵn**, **trả kết quả có cấu trúc**. Vì vậy:
 
 | Lựa chọn | Dùng? | Lý do |
@@ -103,6 +109,8 @@ Tín hiệu để xem xét lại: số tool mỗi vai trò vượt ~15 mà chọ
 thuộc nhau. Căn cứ lý thuyết ở [12](./12-co-so-ly-thuyet.md).
 
 ## 2.3. Harness: 6 hook middleware
+
+> 💡 **Nói đơn giản:** Hình dung vòng xử lý một câu hỏi có **6 "trạm kiểm soát"** cố định (hook): lúc bắt đầu, trước khi gọi LLM, quanh lúc gọi LLM, sau khi LLM trả lời, quanh lúc gọi công cụ, lúc kết thúc. Mỗi "middleware" là một đoạn code đứng ở một vài trạm, làm một việc (đếm ngân sách, chặn tra cứu sai, kiểm tra trích dẫn…). Mọi quy tắc an toàn nằm ở các trạm này — là **code**, nên LLM không "cãi" được.
 
 Vòng lặp agent (`AgentRunner`) gọi các middleware tại 6 điểm cố định. Mỗi middleware là một lớp Python cài đặt
 một hoặc vài hook; thứ tự đăng ký quyết định thứ tự chạy.
@@ -161,6 +169,8 @@ class Middleware:
 
 ## 2.4. Quy tắc trong prompt và biện pháp tương ứng ở code
 
+> 💡 **Nói đơn giản:** "Prompt" = lời dặn LLM. Lời dặn có thể bị LLM bỏ qua hoặc bị người dùng lừa vượt qua. Bảng này cho thấy **mỗi lời dặn đều có một lớp code chặn tương ứng**, nên kể cả LLM không nghe lời thì quy tắc vẫn được giữ.
+
 Một quy tắc chỉ nằm trong system prompt **không phải** biện pháp kiểm soát. Mỗi quy tắc dưới đây có một
 biện pháp ở hook:
 
@@ -176,6 +186,8 @@ biện pháp ở hook:
 | Chỉ trả lời câu hỏi về nền tảng | `ScopeGuardMiddleware` chặn trước khi gọi model ([04](./04-luong-hoi-dap.md) mục 4.11) |
 
 ## 2.5. Cấu trúc thư mục dự kiến
+
+> 💡 **Nói đơn giản:** Code sẽ nằm ở đâu khi bắt đầu làm — dùng khi chia việc cho nhóm.
 
 ```
 ptutor/
@@ -208,6 +220,8 @@ ptutor/
 
 ## 2.6. Triển khai
 
+> 💡 **Nói đơn giản:** Cách chạy service mới cùng các service có sẵn bằng Docker. Cổng chỉ mở trong máy (`127.0.0.1`), người ngoài không gọi thẳng vào được.
+
 Thêm vào `docker-compose.yml` theo cùng khuôn với `ai-service` (profile riêng, cổng chỉ bind `127.0.0.1`).
 Hai container cùng mạng compose nên `assistant-service` gọi `ai-service` bằng tên service.
 
@@ -233,6 +247,8 @@ Chạy: `docker compose --profile ai --profile assistant up -d`. Danh sách đ�
 [11](./11-lo-trinh-va-van-hanh.md).
 
 ## 2.7. Đánh đổi kiến trúc
+
+> 💡 **Nói đơn giản:** Ba chỗ thiết kế chấp nhận một nhược điểm để đổi lấy sự đơn giản — nên trình bày khi bảo vệ để cho thấy nhóm đã cân nhắc.
 
 | Điểm | Đánh đổi | Lý do chọn / hướng xử lý sau |
 |---|---|---|
