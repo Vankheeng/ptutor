@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Contract, ContractSchedule } from '../../services/studentApi';
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
 const times = Array.from(
   { length: 48 },
   (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
@@ -36,25 +36,25 @@ export function StudentContractEditForm({
   return (
     <form className="student-form-grid" onSubmit={(event) => void submit(event)}>
       <label>
-        Price
+        Giá
         <input value={price} type="number" min="0" onChange={(event) => setPrice(event.target.value)} required />
       </label>
       {!schedules.length && (
         <label>
-          Preferred schedule
+          Lịch học
           <input value={preferredSchedule} onChange={(event) => setPreferredSchedule(event.target.value)} required />
         </label>
       )}
       {!!schedules.length && (
         <div className="student-field-full student-contract-schedule-editor">
           <div className="student-contract-schedule-heading">
-            <span>Preferred schedule</span>
-            <small>Update weekly time slots.</small>
+            <span>Lịch học</span>
+            <small>Cập nhật các khung giờ học hàng tuần.</small>
           </div>
           {schedules.map((schedule, index) => (
             <div className="student-contract-schedule-row" key={`${index}-${schedule.dayOfWeek}`}>
               <label>
-                Day
+                Ngày
                 <select
                   value={schedule.dayOfWeek}
                   onChange={(event) => update(index, { dayOfWeek: Number(event.target.value) })}
@@ -67,7 +67,7 @@ export function StudentContractEditForm({
                 </select>
               </label>
               <label>
-                From
+                Từ
                 <select
                   value={schedule.startTime}
                   onChange={(event) => update(index, { startTime: event.target.value })}
@@ -78,7 +78,7 @@ export function StudentContractEditForm({
                 </select>
               </label>
               <label>
-                To
+                Đến
                 <select value={schedule.endTime} onChange={(event) => update(index, { endTime: event.target.value })}>
                   {times.map((time) => (
                     <option key={time}>{time}</option>
@@ -91,7 +91,7 @@ export function StudentContractEditForm({
                 disabled={loading}
                 onClick={() => setSchedules((current) => current.filter((_, row) => row !== index))}
               >
-                Remove
+                Xóa
               </button>
             </div>
           ))}
@@ -103,13 +103,13 @@ export function StudentContractEditForm({
               setSchedules((current) => [...current, { dayOfWeek: 1, startTime: '16:00', endTime: '17:00' }])
             }
           >
-            Add availability
+            Thêm khung giờ
           </button>
         </div>
       )}
       <div className="student-form-actions student-field-full">
         <button className="student-button" disabled={loading} type="submit">
-          Save changes
+          Lưu thay đổi
         </button>
       </div>
     </form>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { TutorOffer } from '../../services/studentApi';
-import { formatStudyingRequestMoney, statusLabel } from './studyingRequestUtils';
+import { formatStudyingRequestMoney } from './studyingRequestUtils';
 
 interface Props {
   requestStatus: string;
@@ -14,8 +14,8 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
   return (
     <section id="tutor-offers" className="student-panel student-tutor-offers">
       <div className="student-tutor-offers-heading">
-        <h2>Tutor Offers</h2>
-        <p>View and manage offers from tutors.</p>
+        <h2>Đề nghị từ gia sư</h2>
+        <p>Xem và quản lý các đề nghị từ gia sư.</p>
       </div>
       {offers.length ? (
         <div className="student-offer-list">
@@ -26,14 +26,14 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                   {getTutorInitials(offer)}
                 </span>
                 <div>
-                  <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Tutor'}</h3>
+                  <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'}</h3>
                   <p>{formatStudyingRequestMoney(offer.proposedPrice)}</p>
-                  <time dateTime={offer.createdAt}>Sent {formatOfferDate(offer.createdAt)}</time>
+                  <time dateTime={offer.createdAt}>Gửi lúc {formatOfferDate(offer.createdAt)}</time>
                 </div>
               </div>
 
               <div className="student-offer-status">
-                <span className={`student-status ${offer.status.toLowerCase()}`}>{statusLabel(offer.status)}</span>
+                <span className={`student-status ${offer.status.toLowerCase()}`}>{offerStatusLabel(offer.status)}</span>
               </div>
 
               <div className="student-offer-actions">
@@ -45,7 +45,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                       disabled={busyOfferId === offer.id}
                       onClick={() => onAction(offer, 'accept')}
                     >
-                      Accept
+                      Chấp nhận
                     </button>
                     <button
                       className="student-button danger"
@@ -53,7 +53,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                       disabled={busyOfferId === offer.id}
                       onClick={() => onAction(offer, 'reject')}
                     >
-                      Reject
+                      Từ chối
                     </button>
                   </div>
                 )}
@@ -63,7 +63,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                     type="button"
                     onClick={() => onCreateContract(offer)}
                   >
-                    Create contract
+                    Tạo hợp đồng
                   </button>
                 )}
                 {!['PENDING', 'ACCEPTED'].includes(offer.status) && (
@@ -71,7 +71,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                     className="student-button student-offer-view"
                     to={`/student/studying-requests/${offer.studyingRequestId}/tutor-requests/${offer.id}`}
                   >
-                    View
+                    Xem
                   </Link>
                 )}
               </div>
@@ -80,8 +80,8 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No offers yet</h3>
-          <p>Tutor proposals will appear here.</p>
+          <h3>Chưa có đề nghị nào</h3>
+          <p>Đề nghị từ gia sư sẽ được hiển thị tại đây.</p>
         </div>
       )}
     </section>
@@ -96,8 +96,17 @@ function getTutorInitials(offer: TutorOffer) {
   return initials || 'T';
 }
 
+function offerStatusLabel(status: TutorOffer['status']) {
+  return {
+    PENDING: 'Đang chờ',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Đã từ chối',
+    CANCELLED: 'Đã hủy'
+  }[status];
+}
+
 function formatOfferDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

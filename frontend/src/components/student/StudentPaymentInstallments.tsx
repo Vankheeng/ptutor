@@ -12,15 +12,15 @@ export function StudentPaymentInstallments({
 }) {
   return (
     <section className="student-panel student-contract-section">
-      <h2 className="student-contract-panel-heading">Payment installments</h2>
+      <h2 className="student-contract-panel-heading">Các kỳ thanh toán</h2>
       {installments.length ? (
-        <div className="student-installment-table" role="table" aria-label="Payment installments">
+        <div className="student-installment-table" role="table" aria-label="Các kỳ thanh toán">
           <div className="student-installment-row student-installment-header" role="row">
             <span role="columnheader">#</span>
-            <span role="columnheader">Due date</span>
-            <span role="columnheader">Amount</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader">Action</span>
+            <span role="columnheader">Ngày đến hạn</span>
+            <span role="columnheader">Số tiền</span>
+            <span role="columnheader">Trạng thái</span>
+            <span role="columnheader">Thao tác</span>
           </div>
           {installments.map((item) => (
             <div className="student-installment-row" role="row" key={item.id}>
@@ -38,7 +38,7 @@ export function StudentPaymentInstallments({
                     disabled={loading}
                     onClick={() => onPay(item.id)}
                   >
-                    Pay
+                    Thanh toán
                   </button>
                 )}
               </span>
@@ -46,14 +46,14 @@ export function StudentPaymentInstallments({
           ))}
         </div>
       ) : (
-        <p className="student-muted">No installments are available.</p>
+        <p className="student-muted">Chưa có kỳ thanh toán nào.</p>
       )}
     </section>
   );
 }
 
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 
 function formatDate(value: string) {

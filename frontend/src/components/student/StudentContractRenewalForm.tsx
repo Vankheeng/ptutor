@@ -22,19 +22,19 @@ export function StudentContractRenewalForm({
             <Icon name="contract" size={17} />
           </span>
           <div>
-            <h2>Renewal proposal</h2>
-            <p>Propose a renewal for this contract when it is active.</p>
+            <h2>Đề xuất gia hạn</h2>
+            <p>Đề xuất gia hạn hợp đồng này khi hợp đồng đang hoạt động.</p>
           </div>
         </div>
         <button className="student-button" type="button" onClick={() => setOpen((value) => !value)}>
-          {open ? 'Close renewal form' : 'Propose renewal'}
+          {open ? 'Đóng biểu mẫu gia hạn' : 'Đề xuất gia hạn'}
         </button>
       </div>
       {open && (
         <div className="student-contract-renewal-form">
           <StudentContractTermsForm
             loading={loading}
-            submitLabel="Submit renewal proposal"
+            submitLabel="Gửi đề xuất gia hạn"
             initial={{
               price: contract.price,
               paymentPeriod: contract.paymentPeriod,

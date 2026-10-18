@@ -18,28 +18,28 @@ export function StudentContractActionBar({ contract, currentUserId, busy, onSign
     <div className="student-contract-actions-panel">
       <div className="student-contract-actions-copy">
         <h2>
-          <Icon name="contract" size={15} /> Actions
+          <Icon name="contract" size={15} /> Thao tác
         </h2>
         <p>
           {createdByYou
-            ? 'You can cancel this contract while it is Pending.'
-            : 'Only available when contract is in Pending status and you are the recipient.'}
+            ? 'Bạn có thể hủy hợp đồng này khi hợp đồng đang ở trạng thái Đang chờ.'
+            : 'Chỉ khả dụng khi hợp đồng ở trạng thái Đang chờ và bạn là bên nhận.'}
         </p>
       </div>
       <div className="student-contract-actions-buttons">
         {!createdByYou && (
           <>
             <button className="student-button success" disabled={busy} type="button" onClick={onSign}>
-              Sign contract
+              Ký hợp đồng
             </button>
             <button className="student-button danger" disabled={busy} type="button" onClick={onReject}>
-              Reject contract
+              Từ chối hợp đồng
             </button>
           </>
         )}
         {createdByYou && (
           <button className="student-button danger" disabled={busy} type="button" onClick={onCancel}>
-            Cancel contract
+            Hủy hợp đồng
           </button>
         )}
       </div>

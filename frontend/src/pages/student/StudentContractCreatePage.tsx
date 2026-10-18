@@ -37,11 +37,9 @@ export function StudentContractCreatePage() {
     setError('');
     try {
       const created = await createStudentContract(studyingRequestId, tutorRequestId, terms);
-      navigate(`/student/contracts/${created.id}`, { state: { notice: 'Contract created and sent to the tutor.' } });
+      navigate(`/student/contracts/${created.id}`, { state: { notice: 'Đã tạo hợp đồng và gửi cho gia sư.' } });
     } catch (caught) {
-      setError(
-        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not create the contract.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tạo hợp đồng.');
     } finally {
       setSaving(false);
     }
@@ -56,20 +54,20 @@ export function StudentContractCreatePage() {
   if (!request || !offer)
     return (
       <div className="student-empty">
-        <h3>Loading contract details…</h3>
+        <h3>Đang tải thông tin hợp đồng…</h3>
       </div>
     );
 
   return (
     <>
       <Link className="student-link" to={`/student/studying-requests/${studyingRequestId}`}>
-        ← Back to studying request
+        ← Quay lại yêu cầu tìm gia sư
       </Link>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">CREATE CONTRACT</span>
-          <h1>Create contract</h1>
-          <p>Fill in the contract details to create a new agreement with the tutor.</p>
+          <span className="student-eyebrow">TẠO HỢP ĐỒNG</span>
+          <h1>Tạo hợp đồng</h1>
+          <p>Điền thông tin hợp đồng để tạo thỏa thuận mới với gia sư.</p>
         </div>
       </div>
       {error && (
@@ -80,17 +78,17 @@ export function StudentContractCreatePage() {
       <div className="student-contract-create-layout">
         <div className="student-contract-create-student">
           <StudentContractParticipantCard
-            title="Student information"
+            title="Thông tin học viên"
             icon="book"
             details={[
               {
-                label: 'Full name',
-                value: getDisplayName(user?.profile?.firstName, user?.profile?.lastName, user?.email, 'Student')
+                label: 'Họ và tên',
+                value: getDisplayName(user?.profile?.firstName, user?.profile?.lastName, user?.email, 'Học viên')
               },
-              { label: 'Email', value: user?.email ?? 'Student email unavailable' },
-              { label: 'Role', value: 'Student' },
+              { label: 'Email', value: user?.email ?? 'Chưa có email học viên' },
+              { label: 'Vai trò', value: 'Học viên' },
               {
-                label: 'Studying request',
+                label: 'Yêu cầu tìm gia sư',
                 value: (
                   <Link className="student-contract-source-tag" to={`/student/studying-requests/${studyingRequestId}`}>
                     {request.title}
@@ -103,23 +101,23 @@ export function StudentContractCreatePage() {
 
         <div className="student-contract-create-tutor">
           <StudentContractParticipantCard
-            title="Tutor information"
+            title="Thông tin gia sư"
             icon="support"
             details={[
               {
-                label: 'Full name',
-                value: getDisplayName(offer.tutorFirstName, offer.tutorLastName, offer.tutorEmail, 'Tutor')
+                label: 'Họ và tên',
+                value: getDisplayName(offer.tutorFirstName, offer.tutorLastName, offer.tutorEmail, 'Gia sư')
               },
               { label: 'Email', value: offer.tutorEmail },
-              { label: 'Role', value: 'Tutor' },
+              { label: 'Vai trò', value: 'Gia sư' },
               {
-                label: 'Proposal teaching',
+                label: 'Đề nghị dạy học',
                 value: (
                   <Link
                     className="student-contract-source-tag"
                     to={`/student/studying-requests/${studyingRequestId}#tutor-offers`}
                   >
-                    Accepted proposal
+                    Đề nghị đã chấp nhận
                   </Link>
                 )
               }
@@ -129,19 +127,19 @@ export function StudentContractCreatePage() {
 
         <section className="student-panel student-contract-create-terms">
           <h2 className="student-contract-panel-heading">
-            <Icon name="contract" size={16} /> Contract terms
+            <Icon name="contract" size={16} /> Điều khoản hợp đồng
           </h2>
           <p className="student-contract-create-help">
-            Review the fixed information and define the terms for this agreement.
+            Kiểm tra thông tin cố định và thiết lập các điều khoản cho thỏa thuận này.
           </p>
           <div className="student-contract-fixed-terms">
-            <ReadOnlyTerm label="Subject" value={request.subjectName || request.note || 'Custom subject'} />
-            <ReadOnlyTerm label="Grade" value={offer.gradeName} />
-            <ReadOnlyTerm label="Teaching mode" value={offer.teachingMode === 'ONLINE' ? 'Online' : 'In person'} />
+            <ReadOnlyTerm label="Môn học" value={request.subjectName || request.note || 'Môn học tùy chỉnh'} />
+            <ReadOnlyTerm label="Lớp" value={offer.gradeName} />
+            <ReadOnlyTerm label="Hình thức dạy" value={offer.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} />
           </div>
           <StudentContractTermsForm
             loading={saving}
-            submitLabel="Create contract"
+            submitLabel="Tạo hợp đồng"
             initial={{
               price: offer.proposedPrice,
               schedules: findCommonSchedules(request.availabilities, offer.preferredSchedule)

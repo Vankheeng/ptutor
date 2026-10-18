@@ -2,11 +2,7 @@ import { useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import { getTutorOffer, type TutorOffer } from '../../services/studentApi';
-import {
-  statusLabel,
-  formatStudyingRequestDate,
-  formatStudyingRequestMoney
-} from '../../components/student/studyingRequestUtils';
+import { formatStudyingRequestDate, formatStudyingRequestMoney } from '../../components/student/studyingRequestUtils';
 
 export function StudentTutorOfferDetailPage() {
   const { studyingRequestId = '', tutorRequestId = '' } = useParams();
@@ -23,22 +19,22 @@ export function StudentTutorOfferDetailPage() {
   if (!offer)
     return (
       <div className="student-empty">
-        <h3>Loading tutor request…</h3>
+        <h3>Đang tải đề nghị của gia sư…</h3>
       </div>
     );
 
-  const tutorName = [offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Tutor';
+  const tutorName = [offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
 
   return (
     <>
       <Link className="student-link" to={`/student/studying-requests/${studyingRequestId}#tutor-offers`}>
-        ← Back to tutor offers
+        ← Quay lại các đề nghị từ gia sư
       </Link>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">TUTOR REQUEST</span>
-          <h1>Tutor request details</h1>
-          <p>Review the tutor&apos;s proposal for your studying request.</p>
+          <span className="student-eyebrow">ĐỀ NGHỊ DẠY HỌC</span>
+          <h1>Chi tiết đề nghị từ gia sư</h1>
+          <p>Xem đề nghị của gia sư cho yêu cầu tìm gia sư của bạn.</p>
         </div>
       </div>
       <section className="student-panel student-tutor-offer-detail">
@@ -52,18 +48,18 @@ export function StudentTutorOfferDetailPage() {
               <p>{offer.tutorEmail}</p>
             </div>
           </div>
-          <span className={`student-status ${offer.status.toLowerCase()}`}>{statusLabel(offer.status)}</span>
+          <span className={`student-status ${offer.status.toLowerCase()}`}>{offerStatusLabel(offer.status)}</span>
         </div>
         <div className="student-tutor-offer-detail-grid">
-          <Detail label="Studying request" value={offer.studyingRequestTitle || 'Studying request'} />
-          <Detail label="Subject" value={offer.subjectName || 'Not specified'} />
-          <Detail label="Grade" value={offer.gradeName || 'Not specified'} />
-          <Detail label="Proposed price" value={formatStudyingRequestMoney(offer.proposedPrice)} />
-          <Detail label="Teaching mode" value={offer.teachingMode === 'ONLINE' ? 'Online' : 'In person'} />
-          <Detail label="Preferred schedule" value={offer.preferredSchedule || 'Flexible'} />
-          <Detail label="Message" value={offer.message || 'No message provided'} />
-          <Detail label="Sent at" value={formatStudyingRequestDate(offer.createdAt)} />
-          <Detail label="Updated at" value={formatStudyingRequestDate(offer.updatedAt)} />
+          <Detail label="Yêu cầu tìm gia sư" value={offer.studyingRequestTitle || 'Yêu cầu tìm gia sư'} />
+          <Detail label="Môn học" value={offer.subjectName || 'Chưa xác định'} />
+          <Detail label="Lớp" value={offer.gradeName || 'Chưa xác định'} />
+          <Detail label="Giá đề nghị" value={formatStudyingRequestMoney(offer.proposedPrice)} />
+          <Detail label="Hình thức dạy" value={offer.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} />
+          <Detail label="Lịch học mong muốn" value={offer.preferredSchedule || 'Linh hoạt'} />
+          <Detail label="Lời nhắn" value={offer.message || 'Không có lời nhắn'} />
+          <Detail label="Gửi lúc" value={formatStudyingRequestDate(offer.createdAt)} />
+          <Detail label="Cập nhật lúc" value={formatStudyingRequestDate(offer.updatedAt)} />
         </div>
       </section>
     </>
@@ -85,4 +81,13 @@ function getInitials(offer: TutorOffer) {
     .map((part) => part!.trim().charAt(0).toUpperCase())
     .join('');
   return initials || 'T';
+}
+
+function offerStatusLabel(status: TutorOffer['status']) {
+  return {
+    PENDING: 'Đang chờ',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Đã từ chối',
+    CANCELLED: 'Đã hủy'
+  }[status];
 }

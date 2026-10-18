@@ -4,15 +4,15 @@ import { Icon } from '../ui/Icon';
 import { StudentContractStatusBadge } from './StudentContractStatusBadge';
 
 export function StudentContractCard({ contract }: { contract: Contract }) {
-  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Tutor';
+  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const tutorInitials = tutorName
     .split(/\s+/)
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
-  const subjectName = contract.subjectName || 'Subject';
-  const gradeName = contract.gradeName || 'Grade not specified';
+  const subjectName = contract.subjectName || 'Môn học';
+  const gradeName = contract.gradeName || 'Chưa có lớp';
   const paymentPeriod = formatPaymentPeriod(contract.paymentPeriod);
 
   return (
@@ -33,7 +33,7 @@ export function StudentContractCard({ contract }: { contract: Contract }) {
         </span>
         <div>
           <strong>{tutorName}</strong>
-          <span>Tutor</span>
+          <span>Gia sư</span>
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export function StudentContractCard({ contract }: { contract: Contract }) {
 
       <div className="student-contract-action">
         <Link className="student-button secondary student-contract-view" to={`/student/contracts/${contract.id}`}>
-          <span>View contract</span>
+          <span>Xem hợp đồng</span>
           <span aria-hidden="true">&rarr;</span>
         </Link>
       </div>
@@ -63,20 +63,20 @@ export function StudentContractCard({ contract }: { contract: Contract }) {
 }
 
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 
 function formatPaymentPeriod(value: Contract['paymentPeriod']) {
   return {
-    PER_LESSON: 'Per lesson',
-    WEEKLY: 'Weekly',
-    MONTHLY: 'Monthly',
-    PACKAGE: 'Package'
+    PER_LESSON: 'Mỗi buổi',
+    WEEKLY: 'Hàng tuần',
+    MONTHLY: 'Hàng tháng',
+    PACKAGE: 'Theo gói'
   }[value];
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'

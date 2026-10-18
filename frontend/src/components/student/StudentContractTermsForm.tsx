@@ -2,13 +2,13 @@ import { useMemo, useState, type FormEvent } from 'react';
 import type { ContractSchedule, ContractTerms, PaymentPeriod } from '../../services/studentApi';
 
 const days = [
-  ['1', 'Monday'],
-  ['2', 'Tuesday'],
-  ['3', 'Wednesday'],
-  ['4', 'Thursday'],
-  ['5', 'Friday'],
-  ['6', 'Saturday'],
-  ['7', 'Sunday']
+  ['1', 'Thứ Hai'],
+  ['2', 'Thứ Ba'],
+  ['3', 'Thứ Tư'],
+  ['4', 'Thứ Năm'],
+  ['5', 'Thứ Sáu'],
+  ['6', 'Thứ Bảy'],
+  ['7', 'Chủ Nhật']
 ] as const;
 
 const timeOptions = Array.from({ length: 48 }, (_, index) => {
@@ -54,26 +54,26 @@ export function StudentContractTermsForm({
     event.preventDefault();
     setError('');
     if (!price || Number(price) < 0) {
-      setError('Price must not be negative.');
+      setError('Giá không được là số âm.');
       return;
     }
     if (!startDate || !endDate || endDate <= startDate) {
-      setError('End date must be after start date.');
+      setError('Ngày kết thúc phải sau ngày bắt đầu.');
       return;
     }
     if (
       !schedules.length ||
       schedules.some((schedule) => !schedule.dayOfWeek || !schedule.startTime || !schedule.endTime)
     ) {
-      setError('Add at least one complete availability row.');
+      setError('Vui lòng thêm ít nhất một khung giờ đầy đủ.');
       return;
     }
     if (schedules.some((schedule) => schedule.endTime <= schedule.startTime)) {
-      setError('Each end time must be after its start time.');
+      setError('Thời gian kết thúc của mỗi khung phải sau thời gian bắt đầu.');
       return;
     }
     if (!calculatedLessons) {
-      setError('The selected schedule does not contain any lesson in this date range.');
+      setError('Lịch đã chọn không có buổi học nào trong khoảng thời gian này.');
       return;
     }
     await onSubmit({
@@ -89,32 +89,32 @@ export function StudentContractTermsForm({
   return (
     <form className="student-form-grid" onSubmit={(event) => void submit(event)}>
       <label>
-        Price
+        Giá
         <input value={price} type="number" min="0" onChange={(event) => setPrice(event.target.value)} required />
       </label>
       <label>
-        Payment period
+        Chu kỳ thanh toán
         <select value={paymentPeriod} onChange={(event) => setPaymentPeriod(event.target.value as PaymentPeriod)}>
-          <option value="PER_LESSON">Per lesson</option>
-          <option value="WEEKLY">Weekly</option>
-          <option value="MONTHLY">Monthly</option>
-          {includePackage && <option value="PACKAGE">Package</option>}
+          <option value="PER_LESSON">Mỗi buổi</option>
+          <option value="WEEKLY">Hàng tuần</option>
+          <option value="MONTHLY">Hàng tháng</option>
+          {includePackage && <option value="PACKAGE">Theo gói</option>}
         </select>
       </label>
       <div className="student-field-full student-contract-schedule-editor">
         <div className="student-contract-schedule-heading">
-          <span>Preferred schedule</span>
-          <small>Choose one or more weekly time slots.</small>
+          <span>Lịch học</span>
+          <small>Chọn một hoặc nhiều khung giờ học hàng tuần.</small>
         </div>
         {schedules.map((schedule, index) => (
           <div className="student-contract-schedule-row" key={`${index}-${schedule.dayOfWeek}`}>
             <label>
-              Day
+              Ngày
               <select
                 value={schedule.dayOfWeek || ''}
                 onChange={(event) => updateSchedule(index, { dayOfWeek: Number(event.target.value) })}
               >
-                <option value="">Select day</option>
+                <option value="">Chọn ngày</option>
                 {days.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -123,12 +123,12 @@ export function StudentContractTermsForm({
               </select>
             </label>
             <label>
-              From
+              Từ
               <select
                 value={schedule.startTime}
                 onChange={(event) => updateSchedule(index, { startTime: event.target.value })}
               >
-                <option value="">Start time</option>
+                <option value="">Giờ bắt đầu</option>
                 {timeOptions.map((time) => (
                   <option key={time} value={time}>
                     {time}
@@ -137,12 +137,12 @@ export function StudentContractTermsForm({
               </select>
             </label>
             <label>
-              To
+              Đến
               <select
                 value={schedule.endTime}
                 onChange={(event) => updateSchedule(index, { endTime: event.target.value })}
               >
-                <option value="">End time</option>
+                <option value="">Giờ kết thúc</option>
                 {timeOptions.map((time) => (
                   <option key={time} value={time}>
                     {time}
@@ -156,7 +156,7 @@ export function StudentContractTermsForm({
               disabled={loading}
               onClick={() => setSchedules((current) => current.filter((_, row) => row !== index))}
             >
-              Remove
+              Xóa
             </button>
           </div>
         ))}
@@ -166,19 +166,19 @@ export function StudentContractTermsForm({
           disabled={loading}
           onClick={() => setSchedules((current) => [...current, { dayOfWeek: 0, startTime: '', endTime: '' }])}
         >
-          Add availability
+          Thêm khung giờ
         </button>
       </div>
       <label>
-        Start date
+        Ngày bắt đầu
         <input value={startDate} type="date" onChange={(event) => setStartDate(event.target.value)} required />
       </label>
       <label>
-        End date
+        Ngày kết thúc
         <input value={endDate} type="date" onChange={(event) => setEndDate(event.target.value)} required />
       </label>
       <div className="student-field-full student-contract-calculated-lessons">
-        Calculated total lessons: <strong>{calculatedLessons || '—'}</strong>
+        Tổng số buổi dự kiến: <strong>{calculatedLessons || '—'}</strong>
       </div>
       {error && (
         <p className="student-form-error student-field-full" role="alert">
@@ -188,7 +188,7 @@ export function StudentContractTermsForm({
       <div className="student-form-actions student-field-full">
         {onCancel && (
           <button className="student-button danger" disabled={loading} type="button" onClick={onCancel}>
-            Cancel
+            Hủy
           </button>
         )}
         <button className="student-button" disabled={loading} type="submit">

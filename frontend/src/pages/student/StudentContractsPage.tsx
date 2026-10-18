@@ -17,9 +17,9 @@ export function StudentContractsPage() {
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR AGREEMENTS</span>
-          <h1>Contracts</h1>
-          <p>View and manage your tutoring contracts with tutors.</p>
+          <span className="student-eyebrow">THỎA THUẬN CỦA BẠN</span>
+          <h1>Hợp đồng</h1>
+          <p>Xem và quản lý các hợp đồng dạy học của bạn với gia sư.</p>
         </div>
       </div>
       {query.error && (
@@ -38,13 +38,13 @@ export function StudentContractsPage() {
               setPage(0);
             }}
           >
-            {item === 'ALL' ? 'All' : label(item)}
+            {item === 'ALL' ? 'Tất cả' : label(item)}
           </button>
         ))}
       </div>
       {query.isLoading ? (
         <div className="student-empty">
-          <h3>Loading contracts…</h3>
+          <h3>Đang tải hợp đồng…</h3>
         </div>
       ) : contractPage?.content.length ? (
         <div className="student-list">
@@ -54,8 +54,8 @@ export function StudentContractsPage() {
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No contracts in this view</h3>
-          <p>Accepted tutor offers can become contracts.</p>
+          <h3>Không có hợp đồng trong mục này</h3>
+          <p>Các đề nghị từ gia sư đã được chấp nhận có thể trở thành hợp đồng.</p>
         </div>
       )}
       {contractPage?.content.length ? (
@@ -63,19 +63,19 @@ export function StudentContractsPage() {
           <button
             className="student-pagination-arrow"
             type="button"
-            aria-label="Previous page"
+            aria-label="Trang trước"
             disabled={contractPage.first}
             onClick={() => setPage((value) => value - 1)}
           >
             ‹
           </button>
-          <div className="student-pagination-pages" aria-label="Contract pages">
+          <div className="student-pagination-pages" aria-label="Các trang hợp đồng">
             {Array.from({ length: Math.max(contractPage.totalPages, 1) }, (_, index) => (
               <button
                 className={index === contractPage.page ? 'active' : ''}
                 key={index}
                 type="button"
-                aria-label={`Page ${index + 1}`}
+                aria-label={`Trang ${index + 1}`}
                 aria-current={index === contractPage.page ? 'page' : undefined}
                 onClick={() => setPage(index)}
               >
@@ -86,7 +86,7 @@ export function StudentContractsPage() {
           <button
             className="student-pagination-arrow"
             type="button"
-            aria-label="Next page"
+            aria-label="Trang sau"
             disabled={contractPage.last}
             onClick={() => setPage((value) => value + 1)}
           >
@@ -98,5 +98,12 @@ export function StudentContractsPage() {
   );
 }
 function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+  return (
+    {
+      PENDING: 'Đang chờ',
+      ACTIVE: 'Đang hoạt động',
+      COMPLETED: 'Đã hoàn tất',
+      CANCELLED: 'Đã hủy'
+    }[value] ?? value
+  );
 }

@@ -49,9 +49,7 @@ export function StudentContractDetailPage() {
       setNotice(message);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(
-        caught instanceof ApiError || caught instanceof Error ? caught.message : 'The contract could not be updated.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
     } finally {
       setBusy(false);
     }
@@ -63,12 +61,12 @@ export function StudentContractDetailPage() {
     schedules?: import('../../services/studentApi').ContractSchedule[];
   }) => {
     if (!contract) return;
-    await action(() => updateContract(contract.id, values), 'Contract updated.');
+    await action(() => updateContract(contract.id, values), 'Đã cập nhật hợp đồng.');
   };
 
   const proposeRenewal = async (terms: ContractTerms) => {
     if (!contract) return;
-    await action(() => renewContract(contract.id, terms), 'Renewal proposal created.');
+    await action(() => renewContract(contract.id, terms), 'Đã tạo đề xuất gia hạn.');
   };
 
   const pay = async (installmentId: string) => {
@@ -78,9 +76,7 @@ export function StudentContractDetailPage() {
       const payment = await payInstallment(contractId, installmentId);
       window.open(payment.paymentUrl, '_blank', 'noopener,noreferrer');
     } catch (caught) {
-      setError(
-        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not create the payment.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tạo thanh toán.');
     } finally {
       setBusy(false);
     }
@@ -93,13 +89,13 @@ export function StudentContractDetailPage() {
       </div>
     ) : (
       <div className="student-empty">
-        <h3>Loading contract...</h3>
+        <h3>Đang tải hợp đồng...</h3>
       </div>
     );
   }
 
   const createdByYou = contract.createdByUserId === user?.userId;
-  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Tutor';
+  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const tutorInitials = tutorName
     .split(/\s+/)
     .map((part) => part[0])
@@ -111,7 +107,7 @@ export function StudentContractDetailPage() {
     <>
       <div className="student-contract-detail-topbar">
         <Link className="student-link" to="/student/contracts">
-          <span aria-hidden="true">&larr;</span> Back to contracts
+          <span aria-hidden="true">&larr;</span> Quay lại danh sách hợp đồng
         </Link>
       </div>
 
@@ -121,8 +117,8 @@ export function StudentContractDetailPage() {
             <Icon name="contract" size={24} />
           </span>
           <div>
-            <h1>{contract.subjectName || 'Subject'}</h1>
-            <span>{contract.gradeName || 'Grade not specified'}</span>
+            <h1>{contract.subjectName || 'Môn học'}</h1>
+            <span>{contract.gradeName || 'Chưa có lớp'}</span>
           </div>
         </div>
         <div className="student-contract-hero-tutor">
@@ -131,7 +127,7 @@ export function StudentContractDetailPage() {
           </span>
           <div>
             <strong>{tutorName}</strong>
-            <span>Tutor</span>
+            <span>Gia sư</span>
           </div>
         </div>
         <StudentContractStatusBadge status={contract.status} />
@@ -153,15 +149,15 @@ export function StudentContractDetailPage() {
         contract={contract}
         currentUserId={user?.userId}
         busy={busy}
-        onSign={() => void action(() => signContract(contract.id), 'Contract signed.')}
-        onReject={() => void action(() => rejectContract(contract.id), 'Contract rejected.')}
-        onCancel={() => void action(() => cancelContract(contract.id), 'Contract cancelled.')}
+        onSign={() => void action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
+        onReject={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
+        onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
       />
 
       {contract.status === 'PENDING' && createdByYou && (
         <section className="student-panel student-contract-section">
           <h2 className="student-contract-panel-heading">
-            <Icon name="contract" size={16} /> Edit contract terms
+            <Icon name="contract" size={16} /> Chỉnh sửa điều khoản hợp đồng
           </h2>
           <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
         </section>
