@@ -1,5 +1,8 @@
 # Thiết kế tính năng Trợ lý hỗ trợ người dùng (Support Assistant) — phiên bản 0.6
 
+> **Mới đọc lần đầu? Đọc [00 — Đọc trước](./00-doc-truoc.md)**: giải thích toàn bộ thiết kế bằng lời thường, có ví dụ
+> đi theo một câu hỏi và bảng giải nghĩa thuật ngữ. Các file 01–14 là bản kỹ thuật chi tiết.
+
 > Nhánh: `feat/support-chatbot` (tạo từ `dev`). Mọi tên endpoint, enum, bảng nhắc tới dưới đây lấy theo
 > code trên `dev` (migration Flyway V1–V24, các controller trong `backend/.../controller`).
 >
@@ -68,6 +71,7 @@ sinh từ code và nạp vào dưới dạng nháp.
 
 ## Mục lục
 
+0. [Đọc trước — giải thích bằng lời thường](./00-doc-truoc.md)
 1. [Phạm vi và quyết định](./01-pham-vi-va-quyet-dinh.md)
 2. [Kiến trúc tổng thể và harness](./02-kien-truc.md)
 3. [Kho tri thức — soạn, duyệt, công bố](./03-kho-tri-thuc.md)
