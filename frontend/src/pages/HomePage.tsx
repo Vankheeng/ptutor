@@ -6,5 +6,6 @@ export default function HomePage() {
   const { user } = useAuth();
   if (user?.role === 'TUTOR') return <Navigate replace to="/tutor/dashboard" />;
   if (user?.role === 'STUDENT') return <Navigate replace to="/student/dashboard" />;
+  if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') return <Navigate replace to="/admin" />;
   return <HomeLanding />;
 }

@@ -27,6 +27,8 @@ import { StudentContractDetailPage } from './pages/student/StudentContractDetail
 import { NotificationsPage } from './pages/common-user/NotificationsPage';
 import { WalletPage } from './pages/common-user/WalletPage';
 import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 
 export default function App() {
   return (
@@ -64,6 +66,13 @@ export default function App() {
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="profile" element={<StudentProfilePage />} />
+              </Route>
+            </Route>
+            <Route element={<RoleGuard roles={['ADMIN', 'EMPLOYEE']} />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate replace to="teaching-requests" />} />
+                <Route path="teaching-requests" element={<AdminRequestReviewPage key="teaching" kind="teaching" />} />
+                <Route path="studying-requests" element={<AdminRequestReviewPage key="studying" kind="studying" />} />
               </Route>
             </Route>
           </Route>

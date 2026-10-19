@@ -1,0 +1,47 @@
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/useAuth';
+import logo from '../../assets/ptutor-logo.svg';
+import './admin.css';
+
+const navigation = [
+  { to: '/admin/teaching-requests', label: 'Duyệt yêu cầu dạy' },
+  { to: '/admin/studying-requests', label: 'Duyệt yêu cầu học' }
+];
+
+export function AdminLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <NavLink className="admin-brand" to="/admin">
+          <img src={logo} alt="" />
+          <span>PTutor Admin</span>
+        </NavLink>
+        <nav className="admin-nav" aria-label="Menu quản trị">
+          {navigation.map((item) => (
+            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="admin-sidebar-footer">
+          <span title={user?.email}>{user?.email}</span>
+          <button
+            type="button"
+            onClick={() => {
+              void logout();
+              navigate('/');
+            }}
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+      <main className="admin-main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
