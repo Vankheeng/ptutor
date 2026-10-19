@@ -46,12 +46,13 @@ public class AdminCertificateController {
     public ResponseEntity<ApiResponse<PageResponse<AdminCertificateSummaryResponse>>> findAll(
             @RequestParam(defaultValue = "PENDING") CertificateStatus status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "false") boolean excludePendingProfiles,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
         return ResponseEntity.ok(responseFactory.success(
-                adminCertificateService.findAll(status, keyword, pageable), BASE_PATH));
+                adminCertificateService.findAll(status, keyword, excludePendingProfiles, pageable), BASE_PATH));
     }
 
     @GetMapping("/{certificateId}")

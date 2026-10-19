@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../../services/httpClient';
-import { updateTutorProfile, uploadCertificateFile } from '../../services/tutorApi';
+import { updateTutorProfile, uploadCertificateFile, type TutorProfileStatus } from '../../services/tutorApi';
 import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import { useAuth } from '../../auth/useAuth';
 import { getDistricts, getProvinces } from '../../services/locationApi';
@@ -8,6 +8,12 @@ import type { District, Province } from '../../types/api';
 import { TutorProfilePhotoSection } from './components/TutorProfilePhotoSection';
 import { TutorPersonalInformationSection } from './components/TutorPersonalInformationSection';
 import { TutorTeachingProfileSection } from './components/TutorTeachingProfileSection';
+
+const PROFILE_STATUS_LABELS: Record<TutorProfileStatus, string> = {
+  PENDING: 'Waiting for review',
+  VERIFIED: 'Verified profile',
+  REJECTED: 'Not approved'
+};
 
 export function TutorProfilePage() {
   const { updateProfile } = useAuth();
@@ -133,8 +139,22 @@ export function TutorProfilePage() {
           <h1>Edit user profile</h1>
           <p>Help students understand your experience and how you teach.</p>
         </div>
-        <span className="tutor-profile-badge">Tutor profile</span>
+        <span className={`tutor-profile-badge status-${profile.profileStatus.toLowerCase()}`}>
+          {PROFILE_STATUS_LABELS[profile.profileStatus]}
+        </span>
       </div>
+      {profile.profileStatus === 'REJECTED' && (
+        <div className="tutor-error" role="status">
+          <strong>Your profile was not approved.</strong>{' '}
+          {profile.profileRejectionReason && <>Reason: {profile.profileRejectionReason}. </>}
+          Update your teaching details and save to send it for review again.
+        </div>
+      )}
+      {profile.profileStatus === 'PENDING' && (
+        <div className="tutor-notice tutor-review-pending" role="status">
+          Your profile is waiting for review. Students can find you once it is approved.
+        </div>
+      )}
       {notice && (
         <div className="tutor-notice" role="status">
           {notice}

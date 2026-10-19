@@ -3,8 +3,10 @@ package com.ptutor.backend.service;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,8 +35,11 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.entity.enums.UserStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.CertificateMapper;
 import com.ptutor.backend.mapper.ContractMapper;
@@ -60,6 +65,7 @@ public class AdminTutorService {
     private final CertificateMapper certificateMapper;
     private final ContractMapper contractMapper;
     private final TutorRecommendationScoreService scoreService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -160,6 +166,7 @@ public class AdminTutorService {
         tutor.setProfileRejectionReason(null);
         tutorRepository.saveAndFlush(tutor);
         scoreService.recalculateByTutorId(tutor.getId());
+        publishReviewNotification(tutor, NotificationEventType.TUTOR_PROFILE_APPROVED, Map.of());
         return toDetail(tutorRepository.findAdminDetailByUserId(tutorUserId).orElseThrow());
     }
 
@@ -178,7 +185,15 @@ public class AdminTutorService {
         tutor.setProfileRejectionReason(normalizedReason);
         tutorRepository.saveAndFlush(tutor);
         scoreService.recalculateByTutorId(tutor.getId());
+        publishReviewNotification(tutor, NotificationEventType.TUTOR_PROFILE_REJECTED,
+                Map.of("reason", normalizedReason));
         return toDetail(tutorRepository.findAdminDetailByUserId(tutorUserId).orElseThrow());
+    }
+
+    private void publishReviewNotification(Tutor tutor, NotificationEventType eventType, Map<String, String> data) {
+        UUID tutorUserId = tutor.getUser().getId();
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                tutorUserId, eventType, NotificationReferenceType.USER, tutorUserId, data));
     }
 
     private Tutor requireTutor(UUID userId) {

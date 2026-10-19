@@ -44,7 +44,7 @@ class AdminCertificateControllerTest {
     void listDefaultsToPendingAndOldestFirst() throws Exception {
         when(adminCertificateService.findAll(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.any(Pageable.class)))
+                org.mockito.ArgumentMatchers.anyBoolean(), org.mockito.ArgumentMatchers.any(Pageable.class)))
                 .thenReturn(new PageResponse<>(java.util.List.of(), 0, 20, 0, 0, true, true));
 
         mockMvc.perform(get("/api/v1/admin/certificates"))
@@ -53,9 +53,25 @@ class AdminCertificateControllerTest {
         verify(adminCertificateService).findAll(
                 org.mockito.ArgumentMatchers.eq(com.ptutor.backend.entity.enums.CertificateStatus.PENDING),
                 org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq(false),
                 org.mockito.ArgumentMatchers.argThat(pageable -> pageable.getPageNumber() == 0
                         && pageable.getPageSize() == 20
                         && pageable.getSort().getOrderFor("createdAt").isAscending()));
+    }
+
+    @Test
+    void listCanExcludeCertificatesOfProfilesUnderReview() throws Exception {
+        when(adminCertificateService.findAll(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.anyBoolean(), org.mockito.ArgumentMatchers.any(Pageable.class)))
+                .thenReturn(new PageResponse<>(java.util.List.of(), 0, 20, 0, 0, true, true));
+
+        mockMvc.perform(get("/api/v1/admin/certificates").param("excludePendingProfiles", "true"))
+                .andExpect(status().isOk());
+
+        verify(adminCertificateService).findAll(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq(true), org.mockito.ArgumentMatchers.any(Pageable.class));
     }
 
     @Test

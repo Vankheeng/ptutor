@@ -99,6 +99,20 @@ class TutorProfileServiceTest {
     }
 
     @Test
+    void findMineReturnsProfileReviewOutcome() {
+        Tutor tutor = tutor();
+        tutor.setProfileStatus(TutorProfileStatus.REJECTED);
+        tutor.setProfileRejectionReason("Education does not match the submitted certificates.");
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+
+        TutorSelfProfileResponse selfResponse = tutorProfileService.findMine(userId);
+
+        assertThat(selfResponse.profileStatus()).isEqualTo(TutorProfileStatus.REJECTED);
+        assertThat(selfResponse.profileRejectionReason())
+                .isEqualTo("Education does not match the submitted certificates.");
+    }
+
+    @Test
     void findMineThrowsNotFoundWhenTutorProfileDoesNotExist() {
         when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.empty());
 
