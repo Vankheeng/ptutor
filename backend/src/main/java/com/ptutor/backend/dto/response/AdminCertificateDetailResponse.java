@@ -9,6 +9,7 @@ import com.ptutor.backend.entity.enums.CertificateStatus;
 public record AdminCertificateDetailResponse(
         UUID id,
         UUID tutorId,
+        UUID tutorUserId,
         String tutorName,
         String tutorEmail,
         String tutorAvatarUrl,

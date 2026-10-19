@@ -809,7 +809,7 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 | `PATCH` | `/api/v1/admin/certificates/{certificateId}/approve` | Phê duyệt certificate `PENDING` |
 | `PATCH` | `/api/v1/admin/certificates/{certificateId}/reject` | Từ chối certificate `PENDING`, bắt buộc có lý do |
 
-API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
+API danh sách hỗ trợ `page`, `size`, `status`, `keyword` và `excludePendingProfiles` (bỏ chứng chỉ của hồ sơ gia sư còn `PENDING`, vì các chứng chỉ đó được duyệt cùng hồ sơ). Kết quả có `tutorUserId` để mở `/api/v1/admin/tutors/{userId}`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
 ### 6.17. API Admin/Employee duyệt yêu cầu dạy
 
@@ -1046,7 +1046,7 @@ API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contrac
 
 ### 6.22. API Admin/Employee quản lý gia sư
 
-Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT`. Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
+Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT` hoặc `CONTENT_REVIEWER` (người duyệt cần xem hồ sơ và chứng chỉ trước khi duyệt; chỉ áp dụng cho `GET`). Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1070,6 +1070,8 @@ Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` h
 | --- | --- | --- |
 | `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/approve` | Chuyển hồ sơ `PENDING → VERIFIED` |
 | `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/reject` | Chuyển hồ sơ `PENDING → REJECTED`; lý do bắt buộc từ 10 đến 500 ký tự |
+
+Sau khi duyệt, gia sư nhận thông báo `TUTOR_PROFILE_APPROVED` hoặc `TUTOR_PROFILE_REJECTED` (kèm lý do). `GET /api/v1/tutors/me` trả về `profileStatus`, `profileReviewedAt` và `profileRejectionReason` để trang hồ sơ của gia sư hiển thị kết quả duyệt.
 
 Việc cập nhật các trường nghề nghiệp của Tutor đưa hồ sơ về `PENDING` và xoá metadata lần duyệt trước. Quy trình duyệt khóa bản ghi Tutor trong transaction để tránh hai người xử lý đồng thời. Chỉ tài khoản `ACTIVE` có hồ sơ `VERIFIED` mới đủ điều kiện tham gia đề xuất; trạng thái không đủ điều kiện không làm điểm bị ép về `0`.
 

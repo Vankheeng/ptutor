@@ -16,6 +16,7 @@ import jakarta.persistence.LockModeType;
 
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 public interface CertificateRepository extends JpaRepository<Certificate, UUID> {
 
@@ -44,6 +45,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
             JOIN FETCH certificate.tutor tutor
             JOIN FETCH tutor.user user
             WHERE (:status IS NULL OR certificate.status = :status)
+              AND (:excludedProfileStatus IS NULL OR tutor.profileStatus <> :excludedProfileStatus)
               AND (LOWER(certificate.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(COALESCE(certificate.issuingOrganization, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(user.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -54,6 +56,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
             JOIN certificate.tutor tutor
             JOIN tutor.user user
             WHERE (:status IS NULL OR certificate.status = :status)
+              AND (:excludedProfileStatus IS NULL OR tutor.profileStatus <> :excludedProfileStatus)
               AND (LOWER(certificate.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(COALESCE(certificate.issuingOrganization, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(user.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -62,6 +65,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
             """)
     Page<Certificate> findAllForReview(
             @Param("status") CertificateStatus status,
+            @Param("excludedProfileStatus") TutorProfileStatus excludedProfileStatus,
             @Param("keyword") String keyword,
             Pageable pageable);
 
