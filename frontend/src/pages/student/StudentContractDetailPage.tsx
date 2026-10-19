@@ -1,5 +1,5 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -16,13 +16,21 @@ import {
   type Installment
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
+import { StudentContractActionBar } from '../../components/student/StudentContractActionBar';
+import { StudentContractEditForm } from '../../components/student/StudentContractEditForm';
+import { StudentContractOverview } from '../../components/student/StudentContractOverview';
+import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
+import { StudentContractStatusBadge } from '../../components/student/StudentContractStatusBadge';
+import { StudentPaymentInstallments } from '../../components/student/StudentPaymentInstallments';
+import { Icon } from '../../components/ui/Icon';
 
 export function StudentContractDetailPage() {
   const { contractId = '' } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     const item = await getContract(contractId);
@@ -32,6 +40,7 @@ export function StudentContractDetailPage() {
   const query = useResource(load, revision);
   const contract: Contract | null = query.data?.item ?? null;
   const installments: Installment[] = query.data?.installments ?? [];
+
   const action = async (callback: () => Promise<unknown>, message: string) => {
     setBusy(true);
     setError('');
@@ -40,43 +49,26 @@ export function StudentContractDetailPage() {
       setNotice(message);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'The contract could not be updated.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
     } finally {
       setBusy(false);
     }
   };
-  const edit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+
+  const saveTerms = async (values: {
+    price: number;
+    preferredSchedule?: string;
+    schedules?: import('../../services/studentApi').ContractSchedule[];
+  }) => {
     if (!contract) return;
-    const values = new FormData(event.currentTarget);
-    const payload = {
-      price: Number(values.get('price')),
-      preferredSchedule: String(values.get('preferredSchedule') ?? ''),
-      startDate: String(values.get('startDate') ?? ''),
-      endDate: String(values.get('endDate') ?? '')
-    };
-    await action(() => updateContract(contract.id, payload), 'Contract updated.');
+    await action(() => updateContract(contract.id, values), 'Đã cập nhật hợp đồng.');
   };
-  const renew = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+
+  const proposeRenewal = async (terms: ContractTerms) => {
     if (!contract) return;
-    const values = new FormData(event.currentTarget);
-    const terms: ContractTerms = {
-      price: Number(values.get('price')),
-      paymentPeriod: contract.paymentPeriod,
-      totalLessons: Number(values.get('totalLessons')),
-      preferredSchedule: String(values.get('preferredSchedule') ?? ''),
-      startDate: String(values.get('startDate') ?? ''),
-      endDate: String(values.get('endDate') ?? '')
-    };
-    await action(() => renewContract(contract.id, terms), 'Renewal proposal created.');
+    await action(() => renewContract(contract.id, terms), 'Đã tạo đề xuất gia hạn.');
   };
+
   const pay = async (installmentId: string) => {
     setBusy(true);
     setError('');
@@ -84,42 +76,63 @@ export function StudentContractDetailPage() {
       const payment = await payInstallment(contractId, installmentId);
       window.open(payment.paymentUrl, '_blank', 'noopener,noreferrer');
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Could not create the payment.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tạo thanh toán.');
     } finally {
       setBusy(false);
     }
   };
-  if (!contract)
+
+  if (!contract) {
     return query.error ? (
       <div className="student-error" role="alert">
         {query.error}
       </div>
     ) : (
       <div className="student-empty">
-        <h3>Loading contract…</h3>
+        <h3>Đang tải hợp đồng...</h3>
       </div>
     );
+  }
+
+  const createdByYou = contract.createdByUserId === user?.userId;
+  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
+  const tutorInitials = tutorName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <>
-      <Link className="student-link" to="/student/contracts">
-        ← Back to contracts
-      </Link>
-      <div className="student-page-heading">
-        <div>
-          <span className="student-eyebrow">CONTRACT DETAILS</span>
-          <h1>
-            {contract.subjectName} · {contract.gradeName}
-          </h1>
-          <p>With {[contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'your tutor'}</p>
-        </div>
-        <span className={`student-status ${contract.status.toLowerCase()}`}>{label(contract.status)}</span>
+      <div className="student-contract-detail-topbar">
+        <Link className="student-link" to="/student/contracts">
+          <span aria-hidden="true">&larr;</span> Quay lại danh sách hợp đồng
+        </Link>
       </div>
+
+      <section className="student-contract-hero">
+        <div className="student-contract-hero-main">
+          <span className="student-contract-subject-icon" aria-hidden="true">
+            <Icon name="contract" size={24} />
+          </span>
+          <div>
+            <h1>{contract.subjectName || 'Môn học'}</h1>
+            <span>{contract.gradeName || 'Chưa có lớp'}</span>
+          </div>
+        </div>
+        <div className="student-contract-hero-tutor">
+          <span className="student-contract-tutor-avatar" aria-hidden="true">
+            {tutorInitials}
+          </span>
+          <div>
+            <strong>{tutorName}</strong>
+            <span>Gia sư</span>
+          </div>
+        </div>
+        <StudentContractStatusBadge status={contract.status} />
+      </section>
+
       {notice && (
         <div className="student-notice" role="status">
           {notice}
@@ -130,169 +143,31 @@ export function StudentContractDetailPage() {
           {error}
         </div>
       )}
-      <section className="student-panel">
-        <div className="student-detail-facts">
-          <span>
-            <small>Price</small>
-            <strong>{formatMoney(contract.price)}</strong>
-          </span>
-          <span>
-            <small>Payment period</small>
-            <strong>{contract.paymentPeriod}</strong>
-          </span>
-          <span>
-            <small>Lessons</small>
-            <strong>{contract.totalLessons}</strong>
-          </span>
-          <span>
-            <small>Schedule</small>
-            <strong>{contract.preferredSchedule}</strong>
-          </span>
-          <span>
-            <small>Dates</small>
-            <strong>
-              {contract.startDate} → {contract.endDate}
-            </strong>
-          </span>
-          <span>
-            <small>Created by</small>
-            <strong>{contract.createdByUserId === user?.userId ? 'You' : 'Tutor'}</strong>
-          </span>
-        </div>
-        <div className="student-form-actions">
-          {contract.status === 'PENDING' && contract.createdByUserId !== user?.userId && (
-            <button
-              className="student-button"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => signContract(contract.id), 'Contract signed.')}
-            >
-              Sign contract
-            </button>
-          )}
-          {contract.status === 'PENDING' && contract.createdByUserId !== user?.userId && (
-            <button
-              className="student-button secondary"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => rejectContract(contract.id), 'Contract rejected.')}
-            >
-              Reject
-            </button>
-          )}
-          {contract.status === 'PENDING' && contract.createdByUserId === user?.userId && (
-            <button
-              className="student-button secondary"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => cancelContract(contract.id), 'Contract cancelled.')}
-            >
-              Cancel contract
-            </button>
-          )}
-        </div>
-      </section>
-      {contract.status === 'PENDING' && contract.createdByUserId === user?.userId && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Edit contract terms</h2>
-          <form className="student-form-grid" onSubmit={(event) => void edit(event)}>
-            <label>
-              Price
-              <input name="price" type="number" min="0" defaultValue={contract.price} />
-            </label>
-            <label>
-              Preferred schedule
-              <input name="preferredSchedule" defaultValue={contract.preferredSchedule} required />
-            </label>
-            <label>
-              Start date
-              <input name="startDate" type="date" defaultValue={contract.startDate} required />
-            </label>
-            <label>
-              End date
-              <input name="endDate" type="date" defaultValue={contract.endDate} required />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button" disabled={busy} type="submit">
-                Save changes
-              </button>
-            </div>
-          </form>
+
+      <StudentContractOverview contract={contract} createdByYou={createdByYou} />
+      <StudentContractActionBar
+        contract={contract}
+        currentUserId={user?.userId}
+        busy={busy}
+        onSign={() => void action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
+        onReject={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
+        onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
+      />
+
+      {contract.status === 'PENDING' && createdByYou && (
+        <section className="student-panel student-contract-section">
+          <h2 className="student-contract-panel-heading">
+            <Icon name="contract" size={16} /> Chỉnh sửa điều khoản hợp đồng
+          </h2>
+          <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
         </section>
       )}
       {contract.status === 'ACTIVE' && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Payment installments</h2>
-          {installments.length ? (
-            <div className="student-list">
-              {installments.map((item) => (
-                <div className="student-list-row" key={item.id}>
-                  <div>
-                    <h3>Installment {item.sequenceNumber}</h3>
-                    <p>
-                      {item.dueDate} · {formatMoney(item.amount)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className={`student-status ${item.status.toLowerCase()}`}>{label(item.status)}</span>
-                    {item.status === 'PENDING' && (
-                      <button
-                        className="student-button"
-                        style={{ marginTop: 8 }}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void pay(item.id)}
-                      >
-                        Pay with VNPay
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="student-muted">No installments are available.</p>
-          )}
-        </section>
+        <StudentPaymentInstallments installments={installments} loading={busy} onPay={(id) => void pay(id)} />
       )}
       {contract.status === 'ACTIVE' && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Renew this contract</h2>
-          <form className="student-form-grid" onSubmit={(event) => void renew(event)}>
-            <label>
-              Price
-              <input name="price" type="number" min="0" defaultValue={contract.price} required />
-            </label>
-            <label>
-              Total lessons
-              <input name="totalLessons" type="number" min="1" defaultValue={contract.totalLessons} required />
-            </label>
-            <label>
-              Start date
-              <input name="startDate" type="date" required />
-            </label>
-            <label>
-              End date
-              <input name="endDate" type="date" required />
-            </label>
-            <label className="student-field-full">
-              Preferred schedule
-              <input name="preferredSchedule" defaultValue={contract.preferredSchedule} required />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button" disabled={busy} type="submit">
-                Propose renewal
-              </button>
-            </div>
-          </form>
-        </section>
+        <StudentContractRenewalForm contract={contract} loading={busy} onSubmit={proposeRenewal} />
       )}
     </>
   );
-}
-function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
-}
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
 }
