@@ -1,53 +1,35 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError } from '../../services/httpClient';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorDashboard } from '../../hooks/useTutorWorkspace';
-import {
-  submitTutorStudyingRequestProposal,
-  type StudyingRequestSearchResponse
-} from '../../services/studyingRequestApi';
 import { useAuth } from '../../auth/useAuth';
 
 export function TutorDashboardPage() {
   const { user } = useAuth();
-  const requestQuery = useStudyingRequests({ page: 0, size: 30 });
+  const [search, setSearch] = useState('');
+  const [mode, setMode] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
+  const [sort, setSort] = useState<'NEWEST' | 'BUDGET'>('NEWEST');
+  const [page, setPage] = useState(0);
+  const requestQuery = useStudyingRequests({ page, size: 50, ...(mode === 'ALL' ? {} : { learningMode: mode }) });
   const dashboardQuery = useTutorDashboard();
-  const requests = requestQuery.data?.content ?? [];
-  const totalRequests = requestQuery.error ? '—' : (requestQuery.data?.totalElements ?? 0);
   const contracts = dashboardQuery.data?.contracts ?? [];
   const upcomingLessons = dashboardQuery.data?.upcomingLessons ?? [];
-  const [activeRequest, setActiveRequest] = useState<string | null>(null);
-  const [notice, setNotice] = useState('');
-  const [sending, setSending] = useState(false);
-
-  const submitProposal = async (event: FormEvent<HTMLFormElement>, request: StudyingRequestSearchResponse) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    setSending(true);
-    setNotice('');
-    try {
-      await submitTutorStudyingRequestProposal(request.id, {
-        gradeId: request.gradeId,
-        proposedPrice: Number(values.get('proposedPrice')),
-        teachingMode: String(values.get('teachingMode')) as 'ONLINE' | 'OFFLINE',
-        preferredSchedule: String(values.get('preferredSchedule') ?? ''),
-        message: String(values.get('message') ?? '')
-      });
-      setActiveRequest(null);
-      setNotice('Your teaching proposal was sent.');
-    } catch (caught) {
-      setNotice(
-        caught instanceof ApiError && caught.status === 409
-          ? 'You already have a pending proposal for this request.'
-          : caught instanceof Error
-            ? caught.message
-            : 'Could not send your proposal.'
+  const requests = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase();
+    return [...(requestQuery.data?.content ?? [])]
+      .filter(
+        (request) =>
+          !term ||
+          [request.title, request.subjectName, request.gradeName, request.districtName, request.description].some(
+            (value) => value?.toLocaleLowerCase().includes(term)
+          )
+      )
+      .sort((a, b) =>
+        sort === 'NEWEST'
+          ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          : (b.maxPrice ?? b.minPrice ?? 0) - (a.maxPrice ?? a.minPrice ?? 0)
       );
-    } finally {
-      setSending(false);
-    }
-  };
+  }, [requestQuery.data, search, sort]);
 
   return (
     <>
@@ -67,34 +49,20 @@ export function TutorDashboardPage() {
         </div>
       </section>
       <section className="tutor-dashboard-stats" aria-label="Teaching overview">
-        <article className="tutor-stat-card">
-          <span className="tutor-stat-icon violet">▤</span>
-          <div>
-            <small>Active contracts</small>
-            <strong>{contracts.filter((contract) => contract.status === 'ACTIVE').length}</strong>
-          </div>
-        </article>
-        <article className="tutor-stat-card">
-          <span className="tutor-stat-icon orange">◷</span>
-          <div>
-            <small>Lessons next 7 days</small>
-            <strong>{upcomingLessons.length}</strong>
-          </div>
-        </article>
-        <article className="tutor-stat-card">
-          <span className="tutor-stat-icon green">✧</span>
-          <div>
-            <small>Open student requests</small>
-            <strong>{totalRequests}</strong>
-          </div>
-        </article>
-        <article className="tutor-stat-card">
-          <span className="tutor-stat-icon blue">↗</span>
-          <div>
-            <small>Pending contracts</small>
-            <strong>{contracts.filter((contract) => contract.status === 'PENDING').length}</strong>
-          </div>
-        </article>
+        <Stat
+          icon="¤"
+          tone="violet"
+          label="Active contracts"
+          value={contracts.filter((c) => c.status === 'ACTIVE').length}
+        />
+        <Stat icon="◷" tone="orange" label="Lessons next 7 days" value={upcomingLessons.length} />
+        <Stat icon="✧" tone="green" label="Open student requests" value={requestQuery.data?.totalElements ?? '—'} />
+        <Stat
+          icon="↗"
+          tone="blue"
+          label="Pending contracts"
+          value={contracts.filter((c) => c.status === 'PENDING').length}
+        />
       </section>
       {dashboardQuery.error && (
         <div className="tutor-error" role="alert">
@@ -142,125 +110,135 @@ export function TutorDashboardPage() {
           </div>
         )}
       </section>
-      <div className="tutor-section-heading">
-        <div id="marketplace">
-          <span className="tutor-eyebrow">STUDENT MARKETPLACE</span>
-          <h2>Open learning requests</h2>
+      <section id="marketplace" className="tutor-marketplace">
+        <div className="tutor-section-heading">
+          <div>
+            <span className="tutor-eyebrow">STUDENT MARKETPLACE</span>
+            <h2>Open learning requests</h2>
+          </div>
+          <span className="tutor-count">{requestQuery.data?.totalElements ?? 0} available</span>
         </div>
-        <span className="tutor-count">{totalRequests} available</span>
-      </div>
-      {notice && (
-        <div className="tutor-notice" role="status">
-          {notice}
+        <div className="tutor-marketplace-toolbar">
+          <label className="tutor-search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(0);
+              }}
+              placeholder="Search subject, grade, area..."
+              aria-label="Search requests"
+            />
+          </label>
+          <label>
+            Learning mode
+            <select
+              value={mode}
+              onChange={(event) => {
+                setMode(event.target.value as typeof mode);
+                setPage(0);
+              }}
+            >
+              <option value="ALL">All modes</option>
+              <option value="ONLINE">Online</option>
+              <option value="OFFLINE">In person</option>
+            </select>
+          </label>
+          <label>
+            Sort by
+            <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
+              <option value="NEWEST">Newest</option>
+              <option value="BUDGET">Highest budget</option>
+            </select>
+          </label>
         </div>
-      )}
-      {requestQuery.error && (
-        <div className="tutor-error" role="alert">
-          {requestQuery.error}
-        </div>
-      )}
-      {requestQuery.error ? null : requestQuery.isLoading ? (
-        <div className="tutor-request-grid">
-          {[0, 1, 2].map((item) => (
-            <div className="tutor-skeleton" key={item} />
-          ))}
-        </div>
-      ) : requests.length === 0 ? (
-        <div className="tutor-empty">
-          <span>✧</span>
-          <h3>No open requests yet</h3>
-          <p>New student requests will appear here when they are available.</p>
-        </div>
-      ) : (
-        <div className="tutor-request-grid">
-          {requests.map((request) => (
-            <article className="tutor-request-card" key={request.id}>
-              <div className="tutor-card-top">
-                <span className="tutor-subject-tag">{request.subjectName}</span>
-                <span>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'}</span>
-              </div>
-              <h3>{request.title || `${request.subjectName} tutoring`}</h3>
-              <p className="tutor-request-meta">
-                {request.gradeName} <span>·</span> One tutor match
-                {request.districtName ? ` · ${request.districtName}` : ''}
-              </p>
-              <p className="tutor-request-description">
-                {request.description ||
-                  request.learningGoals ||
-                  'The student is looking for a tutor. Send a proposal to discuss the learning plan.'}
-              </p>
-              <Link className="tutor-detail-link" to={`/tutor/studying-requests/${request.id}`}>
-                View request details ↗
-              </Link>
-              <div className="tutor-request-details">
-                <span>
-                  <small>Budget</small>
-                  <strong>{formatBudget(request.minPrice, request.maxPrice)}</strong>
-                </span>
-                <span>
-                  <small>Schedule</small>
-                  <strong>{request.preferredSchedule || 'Flexible'}</strong>
-                </span>
-              </div>
-              {activeRequest === request.id ? (
-                <form className="tutor-proposal-form" onSubmit={(event) => void submitProposal(event, request)}>
-                  <label>
-                    Proposed price (VND)
-                    <input
-                      name="proposedPrice"
-                      type="number"
-                      min="0"
-                      defaultValue={request.maxPrice ?? request.minPrice ?? ''}
-                      required
-                    />
-                  </label>
-                  <div className="tutor-form-row">
-                    <label>
-                      Teaching mode
-                      <select name="teachingMode" defaultValue={request.learningMode}>
-                        <option value="ONLINE">Online</option>
-                        <option value="OFFLINE">In person</option>
-                      </select>
-                    </label>
-                    <label>
-                      Schedule
-                      <input
-                        name="preferredSchedule"
-                        defaultValue={request.preferredSchedule ?? ''}
-                        placeholder="e.g. Weekday evenings"
-                      />
-                    </label>
-                  </div>
-                  <label>
-                    Message
-                    <textarea name="message" rows={3} placeholder="Introduce yourself and how you can help." />
-                  </label>
-                  <div className="tutor-form-actions">
-                    <button className="tutor-button secondary" type="button" onClick={() => setActiveRequest(null)}>
-                      Cancel
-                    </button>
-                    <button className="tutor-button" type="submit" disabled={sending}>
-                      {sending ? 'Sending…' : 'Send proposal'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <button
-                  className="tutor-button tutor-propose-button"
-                  type="button"
-                  onClick={() => setActiveRequest(request.id)}
+        {requestQuery.error ? (
+          <div className="tutor-error" role="alert">
+            {requestQuery.error}
+          </div>
+        ) : requestQuery.isLoading ? (
+          <div className="tutor-request-grid">
+            {[0, 1, 2].map((i) => (
+              <div className="tutor-skeleton" key={i} />
+            ))}
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="tutor-empty">
+            <span>✧</span>
+            <h3>{search ? 'No matching requests' : 'No open requests yet'}</h3>
+            <p>Try changing your search or filters.</p>
+          </div>
+        ) : (
+          <div className="tutor-request-grid">
+            {requests.map((request) => (
+              <article className="tutor-request-card" key={request.id}>
+                <div className="tutor-card-top">
+                  <span className="tutor-subject-tag">{request.subjectName || 'Tutoring'}</span>
+                  <span>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'}</span>
+                </div>
+                <h3>{request.title || `${request.subjectName} tutoring`}</h3>
+                <p className="tutor-request-meta">
+                  {request.gradeName} · {request.districtName || 'Location flexible'}
+                </p>
+                <p className="tutor-request-description">
+                  {request.description ||
+                    request.learningGoals ||
+                    'The student is looking for a tutor. Open the request to see more details.'}
+                </p>
+                <div className="tutor-request-details">
+                  <span>
+                    <small>Budget</small>
+                    <strong>{formatBudget(request.minPrice, request.maxPrice)}</strong>
+                  </span>
+                  <span>
+                    <small>Schedule</small>
+                    <strong>{request.preferredSchedule || 'Flexible'}</strong>
+                  </span>
+                </div>
+                <Link
+                  className="tutor-button tutor-propose-button tutor-marketplace-open"
+                  to={`/tutor/studying-requests/${request.id}`}
                 >
-                  Send a proposal <span>→</span>
-                </button>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
+                  View details <span>→</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
+        {!!requestQuery.data?.totalPages && requestQuery.data.totalPages > 1 && (
+          <div className="tutor-marketplace-pagination">
+            <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>
+              ← Previous
+            </button>
+            <span>
+              Page {page + 1} of {requestQuery.data.totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page + 1 >= requestQuery.data.totalPages}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </section>
     </>
   );
 }
 
+function Stat({ icon, tone, label, value }: { icon: string; tone: string; label: string; value: string | number }) {
+  return (
+    <article className="tutor-stat-card">
+      <span className={`tutor-stat-icon ${tone}`}>{icon}</span>
+      <div>
+        <small>{label}</small>
+        <strong>{value}</strong>
+      </div>
+    </article>
+  );
+}
 function formatBudget(min: number | null, max: number | null) {
   const format = (value: number) => new Intl.NumberFormat('vi-VN').format(value);
   if (min === null && max === null) return 'Negotiable';

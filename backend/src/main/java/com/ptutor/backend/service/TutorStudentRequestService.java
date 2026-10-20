@@ -28,6 +28,7 @@ import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -40,6 +41,7 @@ public class TutorStudentRequestService {
     private final StudyingRequestRepository studyingRequestRepository;
     private final TutorRepository tutorRepository;
     private final GradeRepository gradeRepository;
+    private final DistrictRepository districtRepository;
     private final StudentRepository studentRepository;
     private final TutorStudentRequestMapper tutorStudentRequestMapper;
     private final ApplicationEventPublisher eventPublisher;
@@ -50,6 +52,7 @@ public class TutorStudentRequestService {
             StudyingRequestRepository studyingRequestRepository,
             TutorRepository tutorRepository,
             GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
             StudentRepository studentRepository,
             TutorStudentRequestMapper tutorStudentRequestMapper,
             ApplicationEventPublisher eventPublisher) {
@@ -57,6 +60,7 @@ public class TutorStudentRequestService {
         this.studyingRequestRepository = studyingRequestRepository;
         this.tutorRepository = tutorRepository;
         this.gradeRepository = gradeRepository;
+        this.districtRepository = districtRepository;
         this.studentRepository = studentRepository;
         this.tutorStudentRequestMapper = tutorStudentRequestMapper;
         this.eventPublisher = eventPublisher;
@@ -67,10 +71,11 @@ public class TutorStudentRequestService {
             StudyingRequestRepository studyingRequestRepository,
             TutorRepository tutorRepository,
             GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
             StudentRepository studentRepository,
             TutorStudentRequestMapper tutorStudentRequestMapper) {
         this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
-                studentRepository, tutorStudentRequestMapper, event -> { });
+                districtRepository, studentRepository, tutorStudentRequestMapper, event -> { });
     }
 
     @Transactional
@@ -82,6 +87,7 @@ public class TutorStudentRequestService {
                 .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
+        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
 
         if (tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
                 tutor.getId(), studyingRequestId, ApplicationStatus.PENDING)) {
@@ -96,6 +102,8 @@ public class TutorStudentRequestService {
                 .proposedPrice(source.proposedPrice())
                 .teachingMode(source.teachingMode())
                 .preferredSchedule(normalize(source.preferredSchedule()))
+                .preferredProvince(preferredLocation.province())
+                .preferredDistrict(preferredLocation.district())
                 .message(normalize(source.message()))
                 .status(ApplicationStatus.PENDING)
                 .build();
@@ -132,6 +140,31 @@ public class TutorStudentRequestService {
         }
 
         request.setStatus(ApplicationStatus.CANCELLED);
+        return tutorStudentRequestMapper.toResponse(tutorStudentRequestRepository.saveAndFlush(request));
+    }
+
+    @Transactional
+    public TutorStudentRequestResponse update(UUID userId, UUID requestId, TutorStudentRequestCreateRequest source) {
+        Tutor tutor = findTutorByUserId(userId);
+        TutorStudentRequest request = tutorStudentRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> requestNotFound(requestId));
+        if (request.getStatus() != ApplicationStatus.PENDING) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_TUTOR_STUDENT_REQUEST_STATUS_TRANSITION",
+                    "Only PENDING teaching proposals can be updated");
+        }
+
+        Grade grade = gradeRepository.findById(source.gradeId())
+                .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
+        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
+        request.setGrade(grade);
+        request.setProposedPrice(source.proposedPrice());
+        request.setTeachingMode(source.teachingMode());
+        request.setPreferredSchedule(normalize(source.preferredSchedule()));
+        request.setPreferredProvince(preferredLocation.province());
+        request.setPreferredDistrict(preferredLocation.district());
+        request.setMessage(normalize(source.message()));
         return tutorStudentRequestMapper.toResponse(tutorStudentRequestRepository.saveAndFlush(request));
     }
 
@@ -288,4 +321,28 @@ public class TutorStudentRequestService {
         String normalized = value.strip();
         return normalized.isEmpty() ? null : normalized;
     }
+
+    private PreferredLocation resolvePreferredLocation(
+            TutorStudentRequestCreateRequest source, com.ptutor.backend.entity.enums.TeachingMode teachingMode) {
+        if (teachingMode != com.ptutor.backend.entity.enums.TeachingMode.OFFLINE) {
+            return new PreferredLocation(null, null);
+        }
+        if (source.preferredProvinceId() == null || source.preferredDistrictId() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Province and district are required for in-person proposals");
+        }
+
+        var district = districtRepository.findById(source.preferredDistrictId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                        "Selected district was not found"));
+        var province = district.getProvince();
+        if (province == null || !province.getId().equals(source.preferredProvinceId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Selected district does not belong to the selected province");
+        }
+        return new PreferredLocation(province, district);
+    }
+
+    private record PreferredLocation(com.ptutor.backend.entity.Province province,
+                                     com.ptutor.backend.entity.District district) { }
 }

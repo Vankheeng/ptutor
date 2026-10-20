@@ -182,7 +182,9 @@ ALTER TABLE recommendation_click_logs DROP CONSTRAINT IF EXISTS ck_recommendatio
 ALTER TABLE recommendation_click_logs ADD CONSTRAINT ck_recommendation_click_logs_action
     CHECK (action IN ('VIEWED', 'CLICKED', 'FAVORITED', 'CONTACTED', 'DISMISSED'));
 
--- ===== 13. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có từ V22, rồi thêm loại mới) =====
+-- ===== 13. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có, rồi thêm loại mới) =====
+-- Danh sách lấy theo V30 (migration mới nhất của dev định nghĩa lại ràng buộc này) cộng loại mới của tính năng đề
+-- xuất. Migration nào tạo lại ràng buộc sau này cũng phải giữ đủ các giá trị dưới đây.
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_event_type;
 ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
     event_type IS NULL OR event_type IN (
@@ -192,9 +194,14 @@ ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
         'CONTRACT_SIGNATURE_REQUIRED', 'CONTRACT_SIGNED', 'CONTRACT_REJECTED',
         'CONTRACT_CANCELLED', 'CONTRACT_RENEWAL_PROPOSED',
         'CERTIFICATE_REVIEW_REQUIRED', 'CERTIFICATE_APPROVED', 'CERTIFICATE_REJECTED',
+        'TUTOR_PROFILE_APPROVED', 'TUTOR_PROFILE_REJECTED',
         'TEACHING_REQUEST_REVIEW_REQUIRED',
         'TEACHING_REQUEST_APPROVED', 'TEACHING_REQUEST_REJECTED',
+        'STUDYING_REQUEST_REVIEW_REQUIRED',
+        'STUDYING_REQUEST_APPROVED', 'STUDYING_REQUEST_REJECTED',
         'COMPLAINT_EVIDENCE_REQUESTED', 'COMPLAINT_RESOLVED', 'COMPLAINT_REJECTED',
+        'COMPLAINT_RECEIVED_AGAINST_YOU', 'COMPLAINT_AGAINST_YOU_RESOLVED',
+        'COMPLAINT_AGAINST_YOU_REJECTED',
         'ACCOUNT_SUSPENDED', 'ACCOUNT_REACTIVATED',
         'LESSON_MARKED_TAUGHT', 'LESSON_CANCELLED',
         'WITHDRAWAL_REVIEW_REQUIRED',

@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,6 +50,15 @@ public class TutorStudentRequestController {
                 tutorStudentRequestService.create(
                         currentUserProvider.getCurrentUserId(), studyingRequestId, request),
                 "/api/v1/tutors/me/studying-requests/" + studyingRequestId + "/tutor-student-requests"));
+    }
+
+    @PutMapping("/tutor-student-requests/{requestId}")
+    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> update(
+            @PathVariable UUID requestId,
+            @Valid @RequestBody TutorStudentRequestCreateRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                tutorStudentRequestService.update(currentUserProvider.getCurrentUserId(), requestId, request),
+                BASE_PATH + "/" + requestId));
     }
 
     @GetMapping("/tutor-student-requests")

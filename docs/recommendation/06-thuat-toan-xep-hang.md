@@ -88,7 +88,7 @@ WHERE tr.deleted_at IS NULL
                          OR (s.status = 'REJECTED' AND s.updated_at > CURRENT_TIMESTAMP - INTERVAL '30 days')));
 ```
 
-Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V27); câu
+Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V31); câu
 truy vấn trả thêm `1 − (tr.embedding <=> :queryVector)` để gộp pha 1 và pha 2 trong một lần đọc.
 
 ## 6.3. Pha 2 — Lấy ứng viên theo vector
@@ -373,8 +373,7 @@ Công thức hiện tại (`TutorRecommendationScoreService`, `v1`, thang 100):
 | **Phạt khiếu nại có lỗi (mới, `v2`)** | **−20** | Dưới đây |
 
 **Phạt khiếu nại có lỗi.** Dựa trên kết luận có cấu trúc của tính năng xử lý khiếu nại
-(`complaints.fault_party`, `category`; nhánh `feat/complaint-structured-resolution`, migration `V28` của nhánh
-đó). Bên bị khiếu nại là bên còn lại của hợp đồng (`ComplaintParties.respondentOf`).
+(`complaints.fault_party`, `category`; migration `V28` của `dev`, đã merge vào nhánh đề xuất ngày 20/10/2026). Bên bị khiếu nại là bên còn lại của hợp đồng (`ComplaintParties.respondentOf`).
 
 ```
 Khiếu nại c được tính cho gia sư T khi:

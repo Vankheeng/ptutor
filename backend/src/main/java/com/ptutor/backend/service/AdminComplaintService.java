@@ -25,6 +25,8 @@ import com.ptutor.backend.entity.Evidence;
 import com.ptutor.backend.entity.Lesson;
 import com.ptutor.backend.entity.Payment;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
@@ -58,10 +60,15 @@ public class AdminComplaintService {
 
     @Transactional(readOnly = true)
     public PageResponse<AdminComplaintSummaryResponse> findAll(
-            ComplaintStatus status, UUID contractId, String keyword, Pageable pageable) {
+            ComplaintStatus status,
+            UUID contractId,
+            ComplaintCategory category,
+            ComplaintFaultParty faultParty,
+            String keyword,
+            Pageable pageable) {
         String normalizedKeyword = keyword == null ? "" : keyword.strip();
         Page<Complaint> complaints = complaintRepository.findAllForReview(
-                status, contractId, normalizedKeyword, pageable);
+                status, contractId, category, faultParty, normalizedKeyword, pageable);
         return PageResponse.from(complaints, complaints.getContent().stream()
                 .map(this::toSummary)
                 .toList());
@@ -84,7 +91,10 @@ public class AdminComplaintService {
         complaint.setStatus(ComplaintStatus.IN_REVIEW);
         complaint.setResolution(null);
         complaint.setResolvedAt(null);
-        return toDetail(complaintRepository.saveAndFlush(complaint));
+        Complaint saved = complaintRepository.saveAndFlush(complaint);
+        publishNotification(ComplaintParties.respondentOf(saved), saved,
+                NotificationEventType.COMPLAINT_RECEIVED_AGAINST_YOU, Map.of());
+        return toDetail(saved);
     }
 
     @Transactional
@@ -95,7 +105,8 @@ public class AdminComplaintService {
         complaint.setStatus(ComplaintStatus.AWAITING_EVIDENCE);
         complaint.setResolution(normalizedMessage);
         Complaint saved = complaintRepository.saveAndFlush(complaint);
-        publishNotification(saved, NotificationEventType.COMPLAINT_EVIDENCE_REQUESTED, normalizedMessage);
+        publishNotification(saved.getUser(), saved, NotificationEventType.COMPLAINT_EVIDENCE_REQUESTED,
+                Map.of("reason", normalizedMessage));
         return toDetail(saved);
     }
 
@@ -141,16 +152,18 @@ public class AdminComplaintService {
 
     @Transactional
     public AdminComplaintDetailResponse accept(
-            UUID reviewerUserId, UUID complaintId, String resolution) {
-        return complete(reviewerUserId, complaintId, resolution,
-                ComplaintStatus.RESOLVED, NotificationEventType.COMPLAINT_RESOLVED);
+            UUID reviewerUserId, UUID complaintId, String resolution, ComplaintFaultParty faultParty) {
+        if (faultParty == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "FAULT_PARTY_REQUIRED",
+                    "A fault party is required to resolve a complaint");
+        }
+        return complete(reviewerUserId, complaintId, resolution, ComplaintStatus.RESOLVED, faultParty);
     }
 
     @Transactional
     public AdminComplaintDetailResponse reject(
             UUID reviewerUserId, UUID complaintId, String resolution) {
-        return complete(reviewerUserId, complaintId, resolution,
-                ComplaintStatus.REJECTED, NotificationEventType.COMPLAINT_REJECTED);
+        return complete(reviewerUserId, complaintId, resolution, ComplaintStatus.REJECTED, null);
     }
 
     private AdminComplaintDetailResponse complete(
@@ -158,14 +171,26 @@ public class AdminComplaintService {
             UUID complaintId,
             String resolution,
             ComplaintStatus finalStatus,
-            NotificationEventType eventType) {
+            ComplaintFaultParty faultParty) {
         Complaint complaint = findAssignedInReview(reviewerUserId, complaintId);
         String normalizedResolution = normalizeRequired(resolution, "INVALID_COMPLAINT_RESOLUTION");
         complaint.setStatus(finalStatus);
         complaint.setResolution(normalizedResolution);
+        complaint.setFaultParty(faultParty);
         complaint.setResolvedAt(LocalDateTime.now(clock));
         Complaint saved = complaintRepository.saveAndFlush(complaint);
-        publishNotification(saved, eventType, normalizedResolution);
+
+        boolean resolved = finalStatus == ComplaintStatus.RESOLVED;
+        publishNotification(saved.getUser(), saved,
+                resolved ? NotificationEventType.COMPLAINT_RESOLVED : NotificationEventType.COMPLAINT_REJECTED,
+                Map.of("reason", normalizedResolution));
+        publishNotification(ComplaintParties.respondentOf(saved), saved,
+                resolved
+                        ? NotificationEventType.COMPLAINT_AGAINST_YOU_RESOLVED
+                        : NotificationEventType.COMPLAINT_AGAINST_YOU_REJECTED,
+                resolved
+                        ? Map.of("reason", normalizedResolution, "faultParty", faultParty.name())
+                        : Map.of("reason", normalizedResolution));
         return toDetail(saved);
     }
 
@@ -213,10 +238,10 @@ public class AdminComplaintService {
         return normalized;
     }
 
-    private void publishNotification(Complaint complaint, NotificationEventType eventType, String reason) {
+    private void publishNotification(
+            User recipient, Complaint complaint, NotificationEventType eventType, Map<String, String> data) {
         eventPublisher.publishEvent(NotificationDomainEvent.of(
-                complaint.getUser().getId(), eventType, NotificationReferenceType.COMPLAINT,
-                complaint.getId(), Map.of("reason", reason)));
+                recipient.getId(), eventType, NotificationReferenceType.COMPLAINT, complaint.getId(), data));
     }
 
     private AdminComplaintSummaryResponse toSummary(Complaint complaint) {
@@ -225,7 +250,8 @@ public class AdminComplaintService {
         return new AdminComplaintSummaryResponse(
                 complaint.getId(), complainant.getId(), fullName(complainant), complainant.getEmail(),
                 complainantRole(complaint), complaint.getContract().getId(), complaint.getTitle(),
-                complaint.getStatus(), reviewer == null ? null : reviewer.getId(),
+                complaint.getCategory(), complaint.getStatus(), complaint.getFaultParty(),
+                reviewer == null ? null : reviewer.getId(),
                 reviewer == null ? null : fullName(reviewer.getUser()),
                 complaint.getCreatedAt(), complaint.getUpdatedAt());
     }
@@ -240,12 +266,18 @@ public class AdminComplaintService {
         List<Payment> payments = paymentRepository.findAllForContract(contract.getId(), ReferenceType.CONTRACT);
         Employee reviewer = complaint.getEmployee();
         User complainant = complaint.getUser();
+        User respondent = ComplaintParties.respondentOf(complaint);
+        UserRole complainantRole = complainantRole(complaint);
 
         return new AdminComplaintDetailResponse(
-                complaint.getId(), complaint.getTitle(), complaint.getContent(), complaint.getStatus(),
-                complaint.getResolution(), complaint.getResolvedAt(),
+                complaint.getId(), complaint.getTitle(), complaint.getContent(), complaint.getCategory(),
+                complaint.getStatus(), complaint.getResolution(), complaint.getFaultParty(), complaint.getResolvedAt(),
                 new AdminComplaintDetailResponse.Complainant(
-                        complainant.getId(), fullName(complainant), complainant.getEmail(), complainantRole(complaint)),
+                        complainant.getId(), fullName(complainant), complainant.getEmail(), complainantRole),
+                new AdminComplaintDetailResponse.Respondent(
+                        respondent.getId(), fullName(respondent), respondent.getEmail(),
+                        complainantRole == UserRole.STUDENT ? UserRole.TUTOR : UserRole.STUDENT,
+                        complaint.getRespondentResponse(), complaint.getRespondentRespondedAt()),
                 reviewer == null ? null : new AdminComplaintDetailResponse.Reviewer(
                         reviewer.getId(), reviewer.getUser().getId(), fullName(reviewer.getUser())),
                 toContractDetail(contract),
@@ -267,7 +299,9 @@ public class AdminComplaintService {
 
     private AdminComplaintDetailResponse.EvidenceDetail toEvidenceDetail(Evidence evidence) {
         return new AdminComplaintDetailResponse.EvidenceDetail(
-                evidence.getId(), evidence.getFileUrl(), evidence.getFileType(), evidence.getCreatedAt());
+                evidence.getId(), evidence.getFileUrl(), evidence.getFileType(),
+                evidence.getUploadedBy() == null ? null : evidence.getUploadedBy().getId(),
+                evidence.getCreatedAt());
     }
 
     private AdminComplaintDetailResponse.LessonDetail toLessonDetail(Lesson lesson) {

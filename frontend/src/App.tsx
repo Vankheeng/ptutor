@@ -24,9 +24,18 @@ import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequ
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentContractsPage } from './pages/student/StudentContractsPage';
 import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
-import { StudentNotificationsPage } from './pages/student/StudentNotificationsPage';
-import { StudentWalletPage } from './pages/student/StudentWalletPage';
+import { NotificationsPage } from './pages/common-user/NotificationsPage';
+import { WalletPage } from './pages/common-user/WalletPage';
 import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminTutorProfilesPage } from './pages/admin/AdminTutorProfilesPage';
+import { AdminCertificateQueuePage } from './pages/admin/AdminCertificateQueuePage';
+import { AdminTutorDetailLayout } from './pages/admin/AdminTutorDetailLayout';
+import { AdminTutorReviewPage } from './pages/admin/AdminTutorReviewPage';
+import { AdminTutorContractsPage } from './pages/admin/AdminTutorContractsPage';
+import { AdminTutorRatingsPage } from './pages/admin/AdminTutorRatingsPage';
+import { AdminTutorTeachingHistoryPage } from './pages/admin/AdminTutorTeachingHistoryPage';
+import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
 
 export default function App() {
   return (
@@ -36,6 +45,20 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/public" element={<HomeLanding />} />
           <Route element={<ProtectedRoute />}>
+            <Route element={<RoleGuard roles={['ADMIN', 'EMPLOYEE']} />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Navigate replace to="tutor-profiles" />} />
+                <Route path="tutor-profiles" element={<AdminTutorProfilesPage />} />
+                <Route path="tutor-profiles/certificates" element={<AdminCertificateQueuePage />} />
+                <Route path="tutor-profiles/:userId" element={<AdminTutorDetailLayout />}>
+                  <Route index element={<AdminTutorReviewPage />} />
+                  <Route path="contracts" element={<AdminTutorContractsPage />} />
+                  <Route path="ratings" element={<AdminTutorRatingsPage />} />
+                  <Route path="teaching-history" element={<AdminTutorTeachingHistoryPage />} />
+                  <Route path="score" element={<AdminTutorScorePage />} />
+                </Route>
+              </Route>
+            </Route>
             <Route element={<RoleGuard roles={['TUTOR']} />}>
               <Route path="/tutor" element={<TutorLayout />}>
                 <Route index element={<TutorDashboardPage />} />
@@ -44,6 +67,8 @@ export default function App() {
                 <Route path="certificates" element={<TutorCertificatesPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="wallet" element={<WalletPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
               </Route>
             </Route>
@@ -59,8 +84,8 @@ export default function App() {
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="contracts" element={<StudentContractsPage />} />
                 <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />
-                <Route path="notifications" element={<StudentNotificationsPage />} />
-                <Route path="wallet" element={<StudentWalletPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="wallet" element={<WalletPage />} />
                 <Route path="profile" element={<StudentProfilePage />} />
               </Route>
             </Route>

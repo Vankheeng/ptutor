@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,10 +34,14 @@ import com.ptutor.backend.entity.StudyingRequestAvailability;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
@@ -71,6 +76,7 @@ public class StudyingRequestService {
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
     private final DistrictRepository districtRepository;
+    private final EmployeeRepository employeeRepository;
     private final Clock clock;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -285,6 +291,9 @@ public class StudyingRequestService {
         // A subject outside the catalogue has to be reviewed before the posting goes live.
         studyingRequest.setStatus(requiresReview(studyingRequest) ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+        if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
+            publishReviewRequired(saved);
+        }
         if (saved.getStatus() == RequestStatus.OPEN) {
             // The posting is live from now on: tags and vector are computed for it.
             eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
@@ -295,6 +304,18 @@ public class StudyingRequestService {
 
     private boolean requiresReview(StudyingRequest request) {
         return request.getSubject() == null && request.getNote() != null && !request.getNote().isBlank();
+    }
+
+    private void publishReviewRequired(StudyingRequest request) {
+        String name = request.getTitle() == null ? "Studying request" : request.getTitle();
+        Map<String, String> data = Map.of("name", name);
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.STUDYING_REQUEST_REVIEW_REQUIRED,
+                        NotificationReferenceType.STUDYING_REQUEST,
+                        request.getId(),
+                        data)));
     }
 
     private Student findStudentByUserId(UUID userId) {

@@ -31,7 +31,12 @@ export interface StudyingRequestSearchResponse {
   preferredSchedule: string | null;
   status: StudyingRequestStatus;
   availabilities: { dayOfWeek: number; startTime: string; endTime: string }[];
+  studentFirstName: string | null;
+  studentLastName: string | null;
   createdAt: string;
+  note: string | null;
+  detailAddress: string | null;
+  provinceName: string | null;
 }
 
 export interface PageResponse<T> {
@@ -49,6 +54,8 @@ export interface TutorStudyingRequestProposal {
   proposedPrice: number;
   teachingMode: LearningMode;
   preferredSchedule?: string;
+  preferredProvinceId?: string | null;
+  preferredDistrictId?: string | null;
   message?: string;
 }
 

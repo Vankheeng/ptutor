@@ -108,6 +108,19 @@ public class StudyingRequest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    @NonFinal
+    private Employee reviewedBy;
+
+    @Column(name = "reviewed_at")
+    @NonFinal
+    private java.time.LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    @NonFinal
+    private String rejectionReason;
+
     @OneToMany(mappedBy = "studyingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayOfWeek ASC, startTime ASC")
     @Builder.Default

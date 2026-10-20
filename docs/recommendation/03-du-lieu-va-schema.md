@@ -1,8 +1,8 @@
 # 3. Dữ liệu và schema bổ sung
 
-> 💡 **File này nói về gì:** Thuật toán đọc những dữ liệu nào, văn bản nào được biến thành vector, và các bảng / cột mới phải thêm vào database. "Schema" là cấu trúc database; "migration" là file SQL có đánh số (V27, V28…) mà công cụ **Flyway** chạy lần lượt để thay đổi cấu trúc đó. Đọc khi cần biết dữ liệu nằm ở bảng nào.
+> 💡 **File này nói về gì:** Thuật toán đọc những dữ liệu nào, văn bản nào được biến thành vector, và các bảng / cột mới phải thêm vào database. "Schema" là cấu trúc database; "migration" là file SQL có đánh số (V31, V32…) mà công cụ **Flyway** chạy lần lượt để thay đổi cấu trúc đó. Đọc khi cần biết dữ liệu nằm ở bảng nào.
 
-Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V27` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V28` (dữ liệu cho đề xuất, mục 3.4); `V30` (dự kiến — học trọng số L1, mục 3.6) thiết kế ngày 13/10/2026, chưa tạo file.
+Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V31` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V32` (dữ liệu cho đề xuất, mục 3.4), rồi `V33` (mốc xoá lịch sử); `V34` (dự kiến — học trọng số L1, mục 3.6) thiết kế ngày 13/10/2026, chưa tạo file. Số hiện tại là sau lần đổi số thứ ba (20/10/2026, xem ghi chú bên dưới).
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
@@ -15,15 +15,20 @@ Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `d
 > Nội dung ba file không đổi; chúng không đụng tới cột hay ràng buộc mà `V25`, `V26` của `dev` sửa, nên thứ tự
 > áp dụng không ảnh hưởng kết quả.
 >
-> **Cần đổi số lần ba (ghi nhận 15/10/2026).** `dev` nay đã có `V27__add_studying_request_review.sql` (PR #51), trùng
-> số với `V27` của nhánh này; nhánh `feat/complaint-structured-resolution` dùng `V28__add_structured_complaint_resolution.sql`.
-> Khi merge, ba migration của nhánh này phải lấy số **sau số lớn nhất của `dev` lúc đó** (ví dụ `V29`–`V31` nếu
-> khiếu nại vào `dev` trước), và `V30` dự kiến của L1 đổi theo. **Ràng buộc `ck_notifications_event_type`:** cả
-> `V27` của `dev`, `V28` của nhánh khiếu nại và migration dữ liệu đề xuất của nhánh này đều xoá rồi tạo lại ràng buộc
-> này với danh sách đầy đủ. Migration chạy **sau cùng** phải chứa **hợp** của mọi danh sách (thêm
-> `STUDYING_REQUEST_REVIEW_REQUIRED`, `STUDYING_REQUEST_APPROVED`, `STUDYING_REQUEST_REJECTED`,
-> `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` cùng
-> `RECOMMENDATION_MATCH_FOUND`), nếu không thông báo của tính năng khác sẽ bị database từ chối.
+> **Đổi số lần ba (20/10/2026, khi merge `dev` lần hai).** `dev` đã có `V27` (duyệt tin học), `V28` (kết luận khiếu
+> nại có cấu trúc), `V29` (địa điểm của đề nghị gia sư theo danh mục), `V30` (thông báo duyệt hồ sơ gia sư). Ba
+> migration của nhánh này đổi tên thành **`V31`** (điều kiện tiên quyết), **`V32`** (dữ liệu đề xuất), **`V33`**
+> (mốc xoá lịch sử); `V34` là số dự kiến của L1. Nội dung `V31`, `V33` không đổi. **`V32` có sửa một chỗ:** ràng buộc
+> `ck_notifications_event_type`. `V27`, `V28`, `V30` của `dev` và `V32` đều xoá rồi tạo lại ràng buộc này với danh sách
+> đầy đủ, và migration chạy sau cùng quyết định danh sách cuối. Danh sách cũ của `V32` thiếu các loại thông báo mới
+> của `dev`, nên nay là **danh sách của `V30` cộng `RECOMMENDATION_MATCH_FOUND`** (36 giá trị). Test
+> `NotificationEventTypeConstraintIntegrationTest` kiểm tra mọi giá trị của `NotificationEventType` đều được ràng
+> buộc chấp nhận. Các ràng buộc khác: hai bên không tạo lại ràng buộc nào chung.
+>
+> 💡 Ràng buộc này là một danh sách "các loại thông báo được phép". Ai thêm loại thông báo mới đều phải viết lại cả
+> danh sách, nên migration chạy sau cùng mà quên loại của người khác thì thông báo đó sẽ bị database từ chối. Từ nay,
+> migration nào tạo lại ràng buộc này phải chép đủ danh sách hiện tại rồi mới thêm loại mới; test nói trên sẽ báo lỗi
+> nếu quên.
 
 ## 3.1. Dữ liệu đầu vào
 
@@ -69,7 +74,7 @@ dùng khi người tìm không có tiêu chí văn bản nào.
 Quy tắc chung: bỏ trường rỗng; cắt ≤ 512 token; không đưa họ tên, SĐT, email, địa chỉ chi tiết,
 ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash` để chỉ embed lại khi đổi.
 
-## 3.3. Migration V27 — điều kiện tiên quyết P2, P5
+## 3.3. Migration V31 — điều kiện tiên quyết P2, P5
 
 > 💡 Hai thay đổi nhỏ: gắn mỗi đánh giá với đúng một hợp đồng (để mỗi hợp đồng chỉ được đánh giá một lần) và thêm cột `responded_at` ghi lúc phía kia trả lời đơn (để đo tốc độ phản hồi chính xác). Lưu ý số migration đã phải đổi mấy lần vì nhánh khác dùng trùng số (xem khung ghi chú đầu file).
 
@@ -85,7 +90,7 @@ ALTER TABLE student_tutor_requests ADD COLUMN responded_at timestamp;
 ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
 ```
 
-## 3.4. Migration V28 — dữ liệu cho đề xuất
+## 3.4. Migration V32 — dữ liệu cho đề xuất
 
 > 💡 Toàn bộ bảng mới cho tính năng, đánh số từ 1 đến 13 trong file SQL: cột vector cho tin đăng (1024 số mỗi vector, theo mô hình `bge-m3`), bộ từ vựng **tag** (mã chuẩn như `kien_nhan`, `hinh_hoc_phang`), hàng đợi job nền, bộ nhớ đệm điểm rerank, tìm kiếm đã lưu, thông báo đã gửi, hồ sơ sở thích, thống kê lượt hiển thị, và các cột thêm vào bảng nhật ký. Không cần đọc hết SQL; mỗi khối có dòng chú thích `-- =====` nói nó là gì.
 
@@ -243,7 +248,7 @@ CREATE TABLE recommendation_user_profiles (
 );
 
 -- ===== 11. Thống kê hiển thị (R6) =====
--- Bổ sung 13/10/2026 (migration V29): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
+-- Bổ sung 13/10/2026 (migration V33): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
 ALTER TABLE recommendation_user_profiles ADD COLUMN history_reset_at timestamp;
 
 CREATE TABLE recommendation_exposure_stats (
@@ -277,7 +282,9 @@ ALTER TABLE recommendation_click_logs DROP CONSTRAINT IF EXISTS ck_recommendatio
 ALTER TABLE recommendation_click_logs ADD CONSTRAINT ck_recommendation_click_logs_action
     CHECK (action IN ('VIEWED', 'CLICKED', 'FAVORITED', 'CONTACTED', 'DISMISSED'));
 
--- ===== 13. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có từ V22, rồi thêm loại mới) =====
+-- ===== 13. Loại thông báo mới cho C7 (khai báo lại ĐỦ danh sách hiện có, rồi thêm loại mới) =====
+-- Danh sách lấy theo V30 (migration mới nhất của dev định nghĩa lại ràng buộc này) cộng loại mới của tính năng đề
+-- xuất. Migration nào tạo lại ràng buộc sau này cũng phải giữ đủ các giá trị dưới đây.
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ck_notifications_event_type;
 ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
     event_type IS NULL OR event_type IN (
@@ -287,9 +294,14 @@ ALTER TABLE notifications ADD CONSTRAINT ck_notifications_event_type CHECK (
         'CONTRACT_SIGNATURE_REQUIRED', 'CONTRACT_SIGNED', 'CONTRACT_REJECTED',
         'CONTRACT_CANCELLED', 'CONTRACT_RENEWAL_PROPOSED',
         'CERTIFICATE_REVIEW_REQUIRED', 'CERTIFICATE_APPROVED', 'CERTIFICATE_REJECTED',
+        'TUTOR_PROFILE_APPROVED', 'TUTOR_PROFILE_REJECTED',
         'TEACHING_REQUEST_REVIEW_REQUIRED',
         'TEACHING_REQUEST_APPROVED', 'TEACHING_REQUEST_REJECTED',
+        'STUDYING_REQUEST_REVIEW_REQUIRED',
+        'STUDYING_REQUEST_APPROVED', 'STUDYING_REQUEST_REJECTED',
         'COMPLAINT_EVIDENCE_REQUESTED', 'COMPLAINT_RESOLVED', 'COMPLAINT_REJECTED',
+        'COMPLAINT_RECEIVED_AGAINST_YOU', 'COMPLAINT_AGAINST_YOU_RESOLVED',
+        'COMPLAINT_AGAINST_YOU_REJECTED',
         'ACCOUNT_SUSPENDED', 'ACCOUNT_REACTIVATED',
         'LESSON_MARKED_TAUGHT', 'LESSON_CANCELLED',
         'WITHDRAWAL_REVIEW_REQUIRED',
@@ -365,7 +377,7 @@ trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (
 quyết định đơn nào (`LEAST` của PostgreSQL bỏ qua `NULL` nên phải bọc `CASE`, nếu không sẽ thành 9999,99).
 Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) được tính là 0 nhờ `GREATEST(…, 0)`.
 
-## 3.6. Migration V30 — học trọng số (L1)
+## 3.6. Migration V34 — học trọng số (L1)
 
 > 💡 Phần **đang thiết kế**: hai bảng cho việc tự học trọng số — một bảng lưu các phiên bản trọng số đã học, một bảng lưu "ảnh chụp" các con số tại lúc đơn được tạo (để sau này biết lúc đó hệ thống đã ước lượng gì).
 

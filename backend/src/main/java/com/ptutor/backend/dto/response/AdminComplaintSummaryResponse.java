@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ptutor.backend.dto.enums.UserRole;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 
 public record AdminComplaintSummaryResponse(
@@ -14,7 +16,9 @@ public record AdminComplaintSummaryResponse(
         UserRole complainantRole,
         UUID contractId,
         String title,
+        ComplaintCategory category,
         ComplaintStatus status,
+        ComplaintFaultParty faultParty,
         UUID assignedEmployeeId,
         String assignedEmployeeName,
         LocalDateTime createdAt,

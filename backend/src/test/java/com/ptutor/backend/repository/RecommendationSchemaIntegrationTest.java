@@ -50,7 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Round-trips every table added or changed by V28 through its entity against PostgreSQL.
+ * Round-trips every table added or changed by V32 through its entity against PostgreSQL.
  * Everything happens inside the test transaction and is rolled back.
  */
 @SpringBootTest

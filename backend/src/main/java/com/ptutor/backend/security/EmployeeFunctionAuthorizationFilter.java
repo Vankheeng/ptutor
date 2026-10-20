@@ -1,9 +1,12 @@
 package com.ptutor.backend.security;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -38,8 +41,8 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-        EmployeeJobFunction requiredFunction = requiredFunction(request.getRequestURI());
-        if (requiredFunction == null) {
+        Set<EmployeeJobFunction> allowedFunctions = allowedFunctions(request);
+        if (allowedFunctions.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -63,7 +66,7 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
         try {
             UUID userId = UUID.fromString(jwt.getToken().getSubject());
             Employee employee = employeeRepository.findByUser_Id(userId).orElse(null);
-            if (employee != null && employee.getJobFunction() == requiredFunction) {
+            if (employee != null && allowedFunctions.contains(employee.getJobFunction())) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -79,12 +82,13 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
                 Map.of(), request.getRequestURI()));
     }
 
-    private EmployeeJobFunction requiredFunction(String path) {
+    private Set<EmployeeJobFunction> allowedFunctions(HttpServletRequest request) {
+        String path = request.getRequestURI();
         if (path.startsWith("/api/v1/admin/notifications")) {
-            return EmployeeJobFunction.GENERAL_OPERATIONS;
+            return EnumSet.of(EmployeeJobFunction.GENERAL_OPERATIONS);
         }
         if (path.startsWith("/api/v1/admin/complaints")) {
-            return EmployeeJobFunction.COMPLAINT_HANDLER;
+            return EnumSet.of(EmployeeJobFunction.COMPLAINT_HANDLER);
         }
         if (path.startsWith("/api/v1/admin/certificates")
                 || path.startsWith("/api/v1/admin/teaching-requests")
@@ -92,11 +96,15 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/admin/subjects")
                 || path.startsWith("/api/v1/admin/recommendation-tags")
                 || path.startsWith("/api/v1/admin/grades")) {
-            return EmployeeJobFunction.CONTENT_REVIEWER;
+            return EnumSet.of(EmployeeJobFunction.CONTENT_REVIEWER);
+        }
+        if (path.startsWith("/api/v1/admin/tutors") && HttpMethod.GET.matches(request.getMethod())) {
+            // Content reviewers must read a tutor's profile and certificates to review it.
+            return EnumSet.of(EmployeeJobFunction.USER_SUPPORT, EmployeeJobFunction.CONTENT_REVIEWER);
         }
         if (path.startsWith("/api/v1/admin/users") || path.startsWith("/api/v1/admin/tutors")) {
-            return EmployeeJobFunction.USER_SUPPORT;
+            return EnumSet.of(EmployeeJobFunction.USER_SUPPORT);
         }
-        return null;
+        return EnumSet.noneOf(EmployeeJobFunction.class);
     }
 }

@@ -56,6 +56,7 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | 12/10/2026 | **Người tìm không cần có tin đăng**; học sinh tìm → ứng viên là tin dạy `OPEN`; gia sư tìm → ứng viên là tin học `OPEN`. **Bộ lọc là đầu vào chính**. **Khu vực do người tìm chọn** (nhiều quận / cả tỉnh / không giới hạn). Thêm **H1** và **lưu tìm kiếm**. Dùng **trọng số khởi đầu lạnh**; mô hình học từ dữ liệu là hướng phát triển. |
 | 12/10/2026 | (1) **Đổi số migration**: điều kiện tiên quyết P2, P5 là `V27` (làm trước), dữ liệu đề xuất là `V28`, vì Flyway không bật `out-of-order`. (2) Hợp đồng `COMPLETED` (bulk update): lấy danh sách gia sư bị ảnh hưởng của lần cập nhật rồi phát sự kiện tính lại điểm sau commit, không chỉ dựa vào job hằng đêm. (3) Vị trí code **theo cấu trúc tầng sẵn có** của repo (02, mục 2.4). (4) P7 (`day_of_week` ISO) làm cùng bước tìm gia sư V2-a. |
 | 12/10/2026 | Khi lập trình: (1) `REQUIRES_NEW` đặt ở listener tính lại điểm; (2) 6 cột tổng hợp làm mới cả hằng đêm và theo sự kiện; (3) API đánh giá `POST /students/me/contracts/{id}/review`, không gửi thông báo; (4) model embedding lấy từ `Xenova/bge-m3` (int8); (5) phân trang kết quả tìm kiếm bằng `logId`; (6) **đặc trưng thiếu tính là trung tính 0,5** khi gộp a (06, mục 6.5) thay vì chỉ chuẩn hoá lại; (7) chỉ gia sư `VERIFIED` được tìm học viên; (8) LLM: **OpenAI `gpt-6-luna`** (04, mục 4.9). |
+| 20/10/2026 | Merge `dev` đến PR #58: migration của nhánh đổi số thành `V31`–`V33` (L1 dự kiến `V34`); ràng buộc loại thông báo trong `V32` là danh sách của `V30` cộng `RECOMMENDATION_MATCH_FOUND` (03, đầu file). Tin học được duyệt (`OPEN`) thì tính tag và vector. P8 đã đáp ứng. |
 
 ## 1.3. Giả định
 
@@ -97,4 +98,4 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 | P5 | Thêm `responded_at` cho hai bảng đơn | Tính thời gian phản hồi chính xác |
 | P6 | Đổi số chiều vector sang 1024 | Do dùng `bge-m3`; an toàn vì chưa có dữ liệu |
 | P7 | Chốt quy ước `day_of_week` ISO | Cập nhật OpenAPI + validation |
-| P8 | Kết luận khiếu nại có cấu trúc | `complaints.fault_party`, `category` (nhánh `feat/complaint-structured-resolution`). Phải vào `dev` và được merge vào nhánh đề xuất trước khi code phạt khiếu nại trong Q (06, mục 6.8) |
+| P8 | Kết luận khiếu nại có cấu trúc | `complaints.fault_party`, `category`. **Đã đáp ứng (20/10/2026):** có trong `dev` (migration `V28`, PR #52) và đã merge vào nhánh đề xuất; phạt khiếu nại trong Q (06, mục 6.8) code được |

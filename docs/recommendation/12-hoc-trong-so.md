@@ -305,7 +305,7 @@ Với mỗi mô hình có chế độ ≠ OFF:
 - Bản mới tệ hơn prior trên dữ liệu kiểm tra → **không** kích hoạt, bản đang dùng giữ nguyên.
 - Mọi lần tìm ghi version trọng số đã dùng → truy được kết quả nào xếp bằng bộ trọng số nào.
 
-## 12.8. Lưu trữ — migration V30
+## 12.8. Lưu trữ — migration V34
 
 > 💡 Hai bảng mới: một bảng lưu các phiên bản trọng số (kèm A, c và cờ đang dùng), một bảng lưu ảnh chụp thành phần b lúc tạo đơn; cộng các trường thêm vào nhật ký tìm kiếm.
 

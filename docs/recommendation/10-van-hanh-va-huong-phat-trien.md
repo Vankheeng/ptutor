@@ -156,8 +156,8 @@ tuyển dụng (11, mục 11.4).
 
 > 💡 Thứ tự làm từng phần, mỗi bước chạy được và đo được trước khi sang bước sau: điều kiện tiên quyết → dữ liệu và AI service → bản tìm kiếm cơ bản (V2-a) → chuẩn hóa bằng LLM → hai chiều + chống dồn → rerank → cá nhân hóa, khám phá, nới tiêu chí → thông báo chủ động → tách câu → đánh giá → học trọng số.
 
-1. Điều kiện tiên quyết P1–P7 (01, mục 1.5). Migration **`V27`** (P2, P5; 03, mục 3.3) làm trước; P7 làm cùng bước tìm gia sư (3).
-2. Migration **`V28`** (03, mục 3.4; áp dụng sau `V27`, Flyway không bật `out-of-order`); AI service (`/embed`); `EmbeddingWorker`.
+1. Điều kiện tiên quyết P1–P7 (01, mục 1.5). Migration **`V31`** (P2, P5; 03, mục 3.3) làm trước; P7 làm cùng bước tìm gia sư (3).
+2. Migration **`V32`** (03, mục 3.4; áp dụng sau `V31`, Flyway không bật `out-of-order`); AI service (`/embed`); `EmbeddingWorker`.
 3. Bộ lọc + `QueryContextBuilder` + pha 1–3 với a, Q, G → **V2-a** chạy được, ghi log.
 4. A1 (`/enrich`, seed bộ từ vựng tag, API quản trị tag và gợi ý tag bằng LLM — 04 mục 4.11).
 5. b + chống dồn → **V2-RC**.
@@ -169,4 +169,8 @@ tuyển dụng (11, mục 11.4).
 11. L1 (12): (a) chuyển hằng số viết cứng vào `RecommendationSettings` + `WeightProvider` trả prior — kết quả
     không đổi; (b) migration bảng trọng số và snapshot, ghi snapshot khi tạo đơn, bổ sung log;
     (c) `LinearBayesModel` + `WeightLearningJob` + chế độ `SHADOW`/`ACTIVE`; (d) thí nghiệm học trên mô
-    phỏng (09, mục 9.9); (e) API quản trị (tuỳ chọn).
+    phỏng (09, mục 9.9); (e) API quản trị (tuỳ chọn). Migration của L1 là `V34` (03, mục 3.6).
+
+Trạng thái (20/10/2026): bước 1–9 đã lập trình (Bước 0–15 trong nhật ký) cùng giao diện học sinh tìm gia sư;
+đã merge `dev` đến PR #58 (duyệt tin học, kết luận khiếu nại có cấu trúc — P8, duyệt hồ sơ gia sư). Còn lại: phạt
+khiếu nại trong Q (06, mục 6.8), bước 10, bước 11 và giao diện phía gia sư, tìm kiếm đã lưu.

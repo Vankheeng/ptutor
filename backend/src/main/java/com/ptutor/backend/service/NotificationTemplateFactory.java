@@ -51,10 +51,26 @@ class NotificationTemplateFactory {
                     "Certificate approved", "Your certificate \"" + name + "\" has been approved.");
             case CERTIFICATE_REJECTED -> content(NotificationType.SYSTEM,
                     "Certificate rejected", "Your certificate \"" + name + "\" was rejected. Reason: " + reason);
+            case TUTOR_PROFILE_APPROVED -> content(NotificationType.SYSTEM,
+                    "Tutor profile approved",
+                    "Your tutor profile has been approved. Students can now find you in recommendations.");
+            case TUTOR_PROFILE_REJECTED -> content(NotificationType.SYSTEM,
+                    "Tutor profile rejected", "Your tutor profile was rejected. Reason: " + sentence(reason)
+                            + " Update your teaching profile to submit it for review again.");
             case TEACHING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
                     "Teaching request approved", "Your teaching request \"" + name + "\" has been approved.");
             case TEACHING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
                     "Teaching request rejected", "Your teaching request \"" + name
+                            + "\" was rejected. Reason: " + reason
+                            + ". The posting fee of " + data.getOrDefault("amount", "")
+                            + " has been refunded to your wallet balance.");
+            case STUDYING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,
+                    "Studying request review required",
+                    "A studying request \"" + name + "\" is waiting for approval.");
+            case STUDYING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
+                    "Studying request approved", "Your studying request \"" + name + "\" has been approved.");
+            case STUDYING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
+                    "Studying request rejected", "Your studying request \"" + name
                             + "\" was rejected. Reason: " + reason
                             + ". The posting fee of " + data.getOrDefault("amount", "")
                             + " has been refunded to your wallet balance.");
@@ -64,6 +80,15 @@ class NotificationTemplateFactory {
                     "Complaint accepted", "Your complaint has been accepted. Resolution: " + reason);
             case COMPLAINT_REJECTED -> content(NotificationType.COMPLAINT,
                     "Complaint rejected", "Your complaint has been rejected. Reason: " + reason);
+            case COMPLAINT_RECEIVED_AGAINST_YOU -> content(NotificationType.COMPLAINT,
+                    "Complaint received about you",
+                    "A complaint about your contract is now under review. You can submit one response with evidence.");
+            case COMPLAINT_AGAINST_YOU_RESOLVED -> content(NotificationType.COMPLAINT,
+                    "Complaint about you resolved",
+                    "A complaint about you has been resolved. Party at fault: "
+                            + data.getOrDefault("faultParty", "") + ". Resolution: " + reason);
+            case COMPLAINT_AGAINST_YOU_REJECTED -> content(NotificationType.COMPLAINT,
+                    "Complaint about you rejected", "A complaint about you has been rejected. Reason: " + reason);
             case ACCOUNT_SUSPENDED -> {
                 String until = data.getOrDefault("until", "");
                 String duration = "TEMPORARY".equals(data.get("type"))
@@ -100,6 +125,12 @@ class NotificationTemplateFactory {
                     "Withdrawal review required",
                     "A withdrawal request of " + amount + " VND is waiting for approval.");
         };
+    }
+
+    /** Reviewers often end their reason with a full stop; avoid doubling it. */
+    private String sentence(String text) {
+        String value = text.strip();
+        return value.isEmpty() || value.matches(".*[.!?]$") ? value : value + ".";
     }
 
     private NotificationContent content(NotificationType type, String title, String text) {

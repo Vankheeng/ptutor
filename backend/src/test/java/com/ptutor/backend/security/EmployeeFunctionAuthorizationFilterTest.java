@@ -144,6 +144,58 @@ class EmployeeFunctionAuthorizationFilterTest {
     }
 
     @Test
+    void allowsContentReviewerToReadTutorProfilesUnderReview() throws Exception {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "GET", "/api/v1/admin/tutors/00000000-0000-0000-0000-000000000001/certificates");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void blocksContentReviewerFromChangingTutors() throws Exception {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(new MockHttpServletRequest(
+                "PATCH", "/api/v1/admin/tutors/00000000-0000-0000-0000-000000000001"), response, filterChain);
+
+        verify(filterChain, never()).doFilter(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        org.assertj.core.api.Assertions.assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void blocksContentReviewerFromReadingUserAccounts() throws Exception {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(new MockHttpServletRequest("GET", "/api/v1/admin/users"), response, filterChain);
+
+        verify(filterChain, never()).doFilter(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        org.assertj.core.api.Assertions.assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+    @Test
     void blocksEmployeeWithDifferentFunction() throws Exception {
         UUID userId = authenticate("EMPLOYEE");
         Employee employee = Employee.builder()

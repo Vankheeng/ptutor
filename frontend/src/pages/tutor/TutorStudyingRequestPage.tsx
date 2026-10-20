@@ -1,32 +1,61 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
-import { useStudyingRequest } from '../../hooks/useStudyingRequests';
+import { useStudyingRequest, useStudyingRequests } from '../../hooks/useStudyingRequests';
+import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
+import { updateTutorProposal } from '../../services/tutorApi';
+import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
+
+const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function TutorStudyingRequestPage() {
+  const navigate = useNavigate();
   const { requestId = '' } = useParams();
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
+  const relatedQuery = useStudyingRequests({ page: 0, size: 30 });
+  const [proposalRevision, setProposalRevision] = useState(0);
+  const proposalsQuery = useTutorProposals(undefined, proposalRevision);
+  const myProposal = proposalsQuery.data?.find((proposal) => proposal.studyingRequestId === requestId);
+  const [showApply, setShowApply] = useState(false);
+  const [editingProposal, setEditingProposal] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const propose = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const recommendations = useMemo(
+    () =>
+      (relatedQuery.data?.content ?? [])
+        .filter((item) => item.id !== requestId)
+        .sort((a, b) => Number(b.subjectId === request?.subjectId) - Number(a.subjectId === request?.subjectId))
+        .slice(0, 3),
+    [relatedQuery.data, requestId, request?.subjectId]
+  );
+
+  const propose = async (values: TutorApplicationValues) => {
     if (!request) return;
-    const data = new FormData(event.currentTarget);
     setSending(true);
     setError('');
     setNotice('');
     try {
-      await submitTutorStudyingRequestProposal(request.id, {
-        gradeId: request.gradeId,
-        proposedPrice: Number(data.get('proposedPrice')),
-        teachingMode: String(data.get('teachingMode')) as 'ONLINE' | 'OFFLINE',
-        preferredSchedule: String(data.get('preferredSchedule') ?? ''),
-        message: String(data.get('message') ?? '')
-      });
-      setNotice('Your proposal was sent to the student.');
+      const payload = {
+        ...values,
+        gradeId: request.gradeId
+      };
+      if (editingProposal && myProposal) {
+        await updateTutorProposal(myProposal.id, payload);
+        setNotice('Your application has been updated.');
+      } else {
+        await submitTutorStudyingRequestProposal(request.id, payload);
+        setNotice(
+          myProposal?.status === 'CANCELLED'
+            ? 'Your application was sent again.'
+            : 'Your proposal was sent to the student.'
+        );
+      }
+      setShowApply(false);
+      setEditingProposal(false);
+      setProposalRevision((value) => value + 1);
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.status === 409
@@ -40,142 +69,304 @@ export function TutorStudyingRequestPage() {
     }
   };
 
+  const openApplication = (edit: boolean) => {
+    setError('');
+    setEditingProposal(edit);
+    setShowApply(true);
+  };
+
   if (loading) return <div className="tutor-empty">Loading request…</div>;
   if (!request)
     return (
       <>
-        <Link className="tutor-detail-link" to="/tutor/dashboard">
-          ← Back to dashboard
-        </Link>
+        <button
+          className="tutor-button secondary tutor-navigation-button"
+          type="button"
+          onClick={() => navigate('/tutor/dashboard#marketplace')}
+        >
+          ← Back to requests
+        </button>
         <div className="tutor-error" role="alert">
-          {error || requestError || 'This request is no longer available.'}
+          {requestError || 'This request is no longer available.'}
         </div>
       </>
     );
 
   return (
     <>
-      <Link className="tutor-detail-link tutor-back-link" to="/tutor/dashboard">
-        ← Back to dashboard
-      </Link>
-      <div className="tutor-page-heading">
-        <div>
-          <span className="tutor-eyebrow">STUDENT REQUEST</span>
-          <h1>{request.title || `${request.subjectName} tutoring`}</h1>
-          <p>
-            {request.subjectName} · {request.gradeName} · {request.learningMode === 'ONLINE' ? 'Online' : 'In person'}
-          </p>
-        </div>
-        <span className="tutor-profile-badge">Open request</span>
-      </div>
+      <button
+        className="tutor-button secondary tutor-navigation-button tutor-back-link"
+        type="button"
+        onClick={() => navigate('/tutor/dashboard#marketplace')}
+      >
+        ← Back to requests
+      </button>
       {notice && (
         <div className="tutor-notice" role="status">
-          {notice}
+          {notice}{' '}
+          <button
+            className="tutor-button secondary tutor-navigation-compact"
+            type="button"
+            onClick={() => navigate('/tutor/proposals')}
+          >
+            View my proposals →
+          </button>
         </div>
       )}
-      {error && (
+      {error && !showApply && (
         <div className="tutor-error" role="alert">
           {error}
         </div>
       )}
-      <div className="tutor-request-detail-layout">
-        <section className="tutor-panel tutor-form-panel">
-          <span className="tutor-eyebrow">LEARNING GOALS</span>
-          <h2 className="tutor-detail-title">What the student needs</h2>
-          <p className="tutor-detail-copy">
-            {request.description || request.learningGoals || 'The student has not added more details yet.'}
+      <div className="tutor-request-detail-layout tutor-market-detail">
+        <article className="tutor-panel tutor-detail-main">
+          <div className="tutor-card-top">
+            <span className="tutor-subject-tag">{request.subjectName || 'Tutoring'}</span>
+            <span>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'} · Open request</span>
+          </div>
+          <h1 className="tutor-detail-heading">{request.title || `${request.subjectName} tutoring`}</h1>
+          <p className="tutor-detail-subtitle">{request.gradeName}</p>
+          <p className="tutor-request-author">
+            <span>
+              Posted by{' '}
+              <strong>
+                {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Student'}
+              </strong>
+            </span>
+            <span>Posted {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
           </p>
-          {request.learningGoals && request.description && (
-            <>
-              <h3 className="tutor-small-heading">Goals</h3>
-              <p className="tutor-detail-copy">{request.learningGoals}</p>
-            </>
-          )}
           <div className="tutor-detail-facts">
             <span>
               <small>Budget</small>
               <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
             </span>
             <span>
-              <small>Location</small>
-              <strong>
-                {request.districtName || (request.learningMode === 'ONLINE' ? 'Online' : 'Not specified')}
-              </strong>
+              <small>Learning mode</small>
+              <strong>{request.learningMode === 'ONLINE' ? 'Online' : 'In person'}</strong>
             </span>
+            {request.learningMode === 'OFFLINE' && (
+              <span>
+                <small className="tutor-detail-fact-tag">Teaching address</small>
+                <strong>
+                  {[request.detailAddress, request.districtName, request.provinceName].filter(Boolean).join(', ') ||
+                    'Not specified'}
+                </strong>
+              </span>
+            )}
             <span>
               <small>Preferred schedule</small>
               <strong>{request.preferredSchedule || 'Flexible'}</strong>
             </span>
+            <span>
+              <small>Request date</small>
+              <strong>{new Date(request.createdAt).toLocaleDateString()}</strong>
+            </span>
           </div>
+          {request.note?.trim() && (
+            <div className="tutor-application-note">
+              <span className="tutor-application-note-tag">Note</span>
+              <p>{request.note}</p>
+            </div>
+          )}
+          <section className="tutor-detail-section">
+            <span className="tutor-eyebrow">LEARNING GOALS</span>
+            <h2 className="tutor-detail-title">What the student needs</h2>
+            {request.description?.trim() && (
+              <>
+                <h3 className="tutor-small-heading">Request details</h3>
+                <p className="tutor-detail-copy">{request.description}</p>
+              </>
+            )}
+            {request.learningGoals?.trim() && (
+              <>
+                <h3 className="tutor-small-heading">Goals</h3>
+                <p className="tutor-detail-copy">{request.learningGoals}</p>
+              </>
+            )}
+            {!request.description?.trim() && !request.learningGoals?.trim() && (
+              <p className="tutor-detail-copy">The student has not added more details yet.</p>
+            )}
+          </section>
           {request.availabilities.length > 0 && (
-            <>
-              <h3 className="tutor-small-heading">Availability</h3>
+            <section className="tutor-detail-section">
+              <h2 className="tutor-detail-title">Student availability</h2>
               <div className="tutor-availability-list">
                 {request.availabilities.map((slot, index) => (
                   <span key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}>
-                    {weekday(slot.dayOfWeek)} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+                    {weekdays[slot.dayOfWeek % 7]} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
                   </span>
                 ))}
               </div>
+            </section>
+          )}
+          <section className="tutor-recommendations">
+            <div className="tutor-section-heading">
+              <div>
+                <span className="tutor-eyebrow">KEEP EXPLORING</span>
+                <h2>Similar requests</h2>
+              </div>
+              <button
+                className="tutor-button secondary tutor-navigation-compact"
+                type="button"
+                onClick={() => navigate('/tutor/dashboard#marketplace')}
+              >
+                See all →
+              </button>
+            </div>
+            {recommendations.length ? (
+              <div className="tutor-recommendation-list">
+                {recommendations.map((item) => (
+                  <button
+                    className="tutor-recommendation-card"
+                    type="button"
+                    onClick={() => navigate(`/tutor/studying-requests/${item.id}`)}
+                    key={item.id}
+                  >
+                    <span className="tutor-subject-tag">{item.subjectName || 'Tutoring'}</span>
+                    <strong>{item.title || `${item.subjectName} tutoring`}</strong>
+                    <small>
+                      {item.gradeName} · {item.districtName || 'Flexible location'}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="tutor-muted">More requests will appear here as students post them.</p>
+            )}
+          </section>
+        </article>
+        <aside className="tutor-panel tutor-apply-sidebar">
+          {proposalsQuery.isLoading ? (
+            <>
+              <div className="tutor-application-panel-heading">
+                <span className="tutor-proposal-application-icon" aria-hidden="true">
+                  ↗
+                </span>
+                <div>
+                  <span className="tutor-eyebrow">MY APPLICATION</span>
+                  <h2>Loading application…</h2>
+                </div>
+              </div>
+            </>
+          ) : myProposal ? (
+            <>
+              <div className="tutor-application-panel-heading">
+                <span className="tutor-proposal-application-icon" aria-hidden="true">
+                  ↗
+                </span>
+                <div>
+                  <span className="tutor-eyebrow">MY APPLICATION</span>
+                  <h2>Your proposal</h2>
+                </div>
+                <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
+                  {myProposal.status.toLowerCase()}
+                </span>
+              </div>
+              <div className="tutor-apply-summary">
+                <small>My proposed price</small>
+                <strong className="tutor-proposed-price-value">
+                  {new Intl.NumberFormat('vi-VN').format(myProposal.proposedPrice)} VND
+                </strong>
+                <small>Available time</small>
+                <strong className="tutor-application-time">
+                  {myProposal.preferredSchedule || 'Flexible schedule'}
+                </strong>
+                <small>Teaching mode</small>
+                <strong>{myProposal.teachingMode === 'ONLINE' ? 'Online' : 'In person'}</strong>
+                {myProposal.teachingMode === 'OFFLINE' &&
+                  (myProposal.preferredProvinceName || myProposal.preferredDistrictName) && (
+                    <>
+                      <small className="tutor-application-address-label">Teaching address</small>
+                      <strong className="tutor-application-address-value">
+                        {[myProposal.preferredDistrictName, myProposal.preferredProvinceName]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </strong>
+                    </>
+                  )}
+                {myProposal.message?.trim() && (
+                  <>
+                    <small>Note</small>
+                    <strong>{myProposal.message}</strong>
+                  </>
+                )}
+              </div>
+              {myProposal.status === 'PENDING' ? (
+                <div className="tutor-my-application-actions">
+                  <button
+                    className="tutor-button tutor-apply-button"
+                    type="button"
+                    onClick={() => openApplication(true)}
+                  >
+                    Edit application <span>↗</span>
+                  </button>
+                  <button
+                    className="tutor-button secondary tutor-navigation-compact"
+                    type="button"
+                    onClick={() => navigate('/tutor/proposals')}
+                  >
+                    View all applications →
+                  </button>
+                </div>
+              ) : myProposal.status === 'CANCELLED' ? (
+                <button
+                  className="tutor-button tutor-apply-button"
+                  type="button"
+                  onClick={() => openApplication(false)}
+                >
+                  Apply again <span>→</span>
+                </button>
+              ) : (
+                <button
+                  className="tutor-button tutor-apply-button"
+                  type="button"
+                  onClick={() => navigate('/tutor/proposals')}
+                >
+                  View my applications <span>→</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="tutor-eyebrow">INTERESTED IN THIS STUDENT?</span>
+              <h2>Send a proposal</h2>
+              <p>Introduce yourself and suggest a time that works for you.</p>
+              <div className="tutor-apply-summary">
+                <small>Student budget</small>
+                <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
+                <small>Availability</small>
+                <strong>{request.preferredSchedule || 'Flexible schedule'}</strong>
+              </div>
+              <button className="tutor-button tutor-apply-button" type="button" onClick={() => openApplication(false)}>
+                Apply for this request <span>→</span>
+              </button>
+              <button
+                className="tutor-button secondary tutor-save-button"
+                type="button"
+                onClick={() => navigate('/tutor/proposals')}
+              >
+                My applications
+              </button>
             </>
           )}
-        </section>
-        <section className="tutor-panel tutor-form-panel">
-          <div className="tutor-panel-heading">
-            <span>↗</span>
-            <div>
-              <h2>Send a teaching proposal</h2>
-              <p>Introduce yourself and include your proposed price.</p>
-            </div>
-          </div>
-          {notice ? (
-            <div className="tutor-empty compact">
-              <span>✓</span>
-              <h3>Proposal sent</h3>
-              <p>You can follow it from “My requests to teach”.</p>
-              <Link className="tutor-detail-link" to="/tutor/proposals">
-                View my proposals →
-              </Link>
-            </div>
-          ) : (
-            <form className="tutor-proposal-form" onSubmit={(event) => void propose(event)}>
-              <label>
-                Proposed price (VND)
-                <input
-                  name="proposedPrice"
-                  type="number"
-                  min="0"
-                  defaultValue={request.maxPrice ?? request.minPrice ?? ''}
-                  required
-                />
-              </label>
-              <label>
-                Teaching mode
-                <select name="teachingMode" defaultValue={request.learningMode}>
-                  <option value="ONLINE">Online</option>
-                  <option value="OFFLINE">In person</option>
-                </select>
-              </label>
-              <label>
-                Preferred schedule
-                <input name="preferredSchedule" defaultValue={request.preferredSchedule ?? ''} maxLength={500} />
-              </label>
-              <label>
-                Message to student
-                <textarea
-                  name="message"
-                  rows={5}
-                  maxLength={10000}
-                  placeholder="Share your experience and how you would help."
-                />
-              </label>
-              <button className="tutor-button" type="submit" disabled={sending}>
-                {sending ? 'Sending…' : 'Send proposal'}
-              </button>
-            </form>
-          )}
-        </section>
+        </aside>
       </div>
+      {showApply && (
+        <TutorApplicationForm
+          key={`${editingProposal ? 'edit' : 'apply'}-${myProposal?.id ?? request.id}`}
+          subjectName={request.subjectName}
+          requestMode={request.learningMode}
+          proposal={myProposal}
+          editing={editingProposal}
+          sending={sending}
+          error={error}
+          onClose={() => {
+            setShowApply(false);
+            setEditingProposal(false);
+          }}
+          onSubmit={(values) => void propose(values)}
+        />
+      )}
     </>
   );
 }
@@ -184,8 +375,4 @@ function formatPrice(min: number | null, max: number | null) {
   const format = (amount: number) => new Intl.NumberFormat('vi-VN').format(amount);
   if (min === null && max === null) return 'Negotiable';
   return min !== null && max !== null ? `${format(min)}–${format(max)} VND` : `${format(min ?? max ?? 0)} VND`;
-}
-
-function weekday(dayOfWeek: number) {
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek % 7];
 }
