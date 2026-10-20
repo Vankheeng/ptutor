@@ -13,10 +13,12 @@ import org.springframework.stereotype.Component;
 import com.ptutor.backend.dto.recommendation.AreaScope;
 import com.ptutor.backend.dto.recommendation.FeatureVector;
 import com.ptutor.backend.dto.recommendation.History;
+import com.ptutor.backend.dto.recommendation.ModelWeights;
 import com.ptutor.backend.dto.recommendation.ScoredStudyingCandidate;
 import com.ptutor.backend.dto.recommendation.StudyingCandidate;
 import com.ptutor.backend.dto.recommendation.StudyingCandidate.PastProposal;
 import com.ptutor.backend.dto.recommendation.SupplyContext;
+import com.ptutor.backend.dto.recommendation.WeightModel;
 import com.ptutor.backend.dto.recommendation.Willingness;
 import com.ptutor.backend.entity.enums.LearningMode;
 
@@ -31,14 +33,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TutorSideRanker {
 
-    static final double FIT_WEIGHT_QUALITY = 0.4;
-    static final double FIT_WEIGHT_STYLE = 0.3;
-    static final double FIT_WEIGHT_PRICE = 0.3;
-    /** Value of a part of b'_fit, or of a similarity, when the data for it is missing. */
-    static final double NEUTRAL = 0.5;
-    static final double TUTOR_PRICE_TOLERANCE = 0.3;
-    static final double STUDENT_PRICE_TOLERANCE = 0.5;
-
     private static final Comparator<ScoredStudyingCandidate> ORDER = Comparator
             .comparingDouble(ScoredStudyingCandidate::score).reversed()
             .thenComparing(scored -> scored.candidate().createdAt(), Comparator.nullsLast(Comparator.reverseOrder()))
@@ -46,6 +40,7 @@ public class TutorSideRanker {
 
     private final FeatureCalculator featureCalculator;
     private final RecommendationSettings settings;
+    private final WeightProvider weightProvider;
 
     /** @param platformRate share of tutor proposals that students accept, platform-wide */
     public List<ScoredStudyingCandidate> rank(
@@ -112,32 +107,22 @@ public class TutorSideRanker {
         Integer overlap = featureCalculator.overlapMinutes(context.availabilities(), candidate.availabilities());
         Double sched = overlap == null ? null : Math.min(1.0, overlap / (double) Math.min(
                 featureCalculator.overlapMinutes(context.availabilities(), context.availabilities()),
-                FeatureCalculator.SCHEDULE_NEED_CAP_MINUTES));
+                settings.getScheduleNeedCapMinutes()));
         Double area = area(context, candidate);
 
-        double weighted = 0;
-        double confidence = 0;
-        double[][] parts = {
-            { settings.getTutorWeightSem(), value(sem) }, { settings.getTutorWeightPrice(), value(price) },
-            { settings.getTutorWeightNeed(), value(need) }, { settings.getTutorWeightSegment(), value(segment) },
-            { settings.getTutorWeightSched(), value(sched) }, { settings.getTutorWeightArea(), value(area) }
-        };
-        for (double[] part : parts) {
-            if (!Double.isNaN(part[1])) {
-                weighted += part[0] * part[1];
-                confidence += part[0];
-            }
-        }
-        double suitability = weighted + (1 - confidence) * settings.getConfidencePrior();
+        // In the order of WeightModel.A_T2S.
+        Double[] features = { sem, price, need, segment, sched, area };
+        double[] suitability = featureCalculator.suitability(weightProvider.weights(WeightModel.A_T2S), features);
         return new FeatureVector(sem, rerank, need, null, segment, price, sched, area, hist,
-                hist == null ? 0 : histWeight, FeatureCalculator.blend(suitability, hist, histWeight), confidence,
-                overlap != null && overlap == 0);
+                hist == null ? 0 : histWeight, FeatureCalculator.blend(suitability[0], hist, histWeight),
+                suitability[1], overlap != null && overlap == 0);
     }
 
     /** b': the student's side. */
     Willingness willingness(SupplyContext context, StudyingCandidate candidate, double platformRate) {
         double history = history(context, candidate, platformRate);
-        double fit = fit(context, candidate);
+        ModelWeights weights = weightProvider.weights(WeightModel.B_T2S);
+        double fit = WillingnessCalculator.fit(weights, fitParts(context, candidate));
         double remaining = Math.max(1, candidate.remainingSlots());
         double capacity = settings.isCongestionEnabled()
                 ? remaining / (remaining + settings.getCongestionLambda() * Math.max(0, candidate.pendingProposals()))
@@ -145,7 +130,9 @@ public class TutorSideRanker {
         if (candidate.studentAppliedToTutor()) {
             return new Willingness(1.0, history, fit, capacity, true);
         }
-        return new Willingness((0.5 * history + 0.5 * fit) * capacity, history, fit, capacity, false);
+        // Flattened form (design 12, 12.2): with the prior weights, 0.5 x b'_hist + 0.5 x b'_fit.
+        return new Willingness((weights.get(0) * history + WillingnessCalculator.fitShare(weights) * fit) * capacity,
+                history, fit, capacity, false);
     }
 
     /** Acceptance rate of the student's past decisions, weighted by how similar the proposing tutor was. */
@@ -155,12 +142,14 @@ public class TutorSideRanker {
         for (PastProposal proposal : candidate.studentDecisions()) {
             double priceSimilarity = context.expectedPrice() == null || proposal.proposedPrice() == null
                     || proposal.proposedPrice().signum() <= 0
-                    ? NEUTRAL
+                    ? settings.getTutorWillingnessNeutral()
                     : 1 - Math.min(1, Math.abs(context.expectedPrice().doubleValue()
                             - proposal.proposedPrice().doubleValue()) / proposal.proposedPrice().doubleValue());
             double qualitySimilarity = proposal.tutorQuality() == null
-                    ? NEUTRAL : 1 - Math.abs(context.quality() - proposal.tutorQuality());
-            double similarity = 0.5 * priceSimilarity + 0.5 * qualitySimilarity;
+                    ? settings.getTutorWillingnessNeutral()
+                    : 1 - Math.abs(context.quality() - proposal.tutorQuality());
+            double similarity = settings.getTutorWillingnessKernelPrice() * priceSimilarity
+                    + settings.getTutorWillingnessKernelQuality() * qualitySimilarity;
             total += similarity;
             if (proposal.accepted()) {
                 accepted += similarity;
@@ -170,13 +159,20 @@ public class TutorSideRanker {
         return (accepted + alpha * platformRate) / (total + alpha);
     }
 
-    /** What the student sees in the tutor: quality, teaching style and price. */
-    double fit(SupplyContext context, StudyingCandidate candidate) {
+    /**
+     * What the student sees in the tutor, in the order of {@link WeightModel#B_T2S}: quality, teaching style and
+     * price. A part without data is neutral (0.5), unlike b_fit, so the ranking stays as it was (design 12, 12.2).
+     */
+    double[] fitParts(SupplyContext context, StudyingCandidate candidate) {
         Double style = style(candidate.preferredStyleCodes(), context.offeredStyleCodes());
         Double price = priceFromStudentView(context.expectedPrice(), candidate.maxPrice());
-        return FIT_WEIGHT_QUALITY * context.quality()
-                + FIT_WEIGHT_STYLE * (style == null ? NEUTRAL : style)
-                + FIT_WEIGHT_PRICE * (price == null ? NEUTRAL : price);
+        double neutral = settings.getTutorWillingnessNeutral();
+        return new double[] { context.quality(), style == null ? neutral : style, price == null ? neutral : price };
+    }
+
+    /** b'_fit: the weighted mean of {@link #fitParts}. */
+    double fit(SupplyContext context, StudyingCandidate candidate) {
+        return WillingnessCalculator.fit(weightProvider.weights(WeightModel.B_T2S), fitParts(context, candidate));
     }
 
     /** Full marks when the student's budget covers the price the tutor hopes for. */
@@ -186,7 +182,7 @@ public class TutorSideRanker {
         }
         double hi = budget.doubleValue();
         double p = expectedPrice.doubleValue();
-        return hi >= p ? 1.0 : Math.max(0, 1 - (p - hi) / (TUTOR_PRICE_TOLERANCE * p));
+        return hi >= p ? 1.0 : Math.max(0, 1 - (p - hi) / (settings.getTutorPriceTolerance() * p));
     }
 
     Double priceFromStudentView(BigDecimal expectedPrice, BigDecimal budget) {
@@ -195,7 +191,7 @@ public class TutorSideRanker {
         }
         double hi = budget.doubleValue();
         double p = expectedPrice.doubleValue();
-        return p <= hi ? 1.0 : Math.max(0, 1 - (p - hi) / (STUDENT_PRICE_TOLERANCE * hi));
+        return p <= hi ? 1.0 : Math.max(0, 1 - (p - hi) / (settings.getPriceOverBudgetRange() * hi));
     }
 
     private Double style(Set<String> wanted, Set<String> offered) {
@@ -203,7 +199,7 @@ public class TutorSideRanker {
             return null;
         }
         if (offered.isEmpty()) {
-            return FeatureCalculator.STYLE_WITHOUT_TUTOR_TAGS;
+            return settings.getStyleWithoutTutorTags();
         }
         return wanted.stream().filter(offered::contains).count() / (double) wanted.size();
     }
@@ -228,9 +224,5 @@ public class TutorSideRanker {
         }
         return referenceProvince != null && referenceProvince.equals(candidate.district().provinceId())
                 ? settings.getAreaSameProvince() : settings.getAreaOtherProvince();
-    }
-
-    private double value(Double feature) {
-        return feature == null ? Double.NaN : feature;
     }
 }

@@ -47,8 +47,8 @@ class MatchReasonBuilderTest {
 
     private final RecommendationSettings settings = new RecommendationSettings();
     private final Ranker ranker =
-            new Ranker(new FeatureCalculator(settings), new WillingnessCalculator(settings), settings);
-    private final TutorSideRanker tutorSideRanker = new TutorSideRanker(new FeatureCalculator(settings), settings);
+            new Ranker(new FeatureCalculator(settings, new WeightProvider(settings)), new WillingnessCalculator(settings, new WeightProvider(settings)), settings);
+    private final TutorSideRanker tutorSideRanker = new TutorSideRanker(new FeatureCalculator(settings, new WeightProvider(settings)), settings, new WeightProvider(settings));
     private final MatchReasonBuilder builder = new MatchReasonBuilder(settings);
 
     // ---- a student looks at a teaching posting

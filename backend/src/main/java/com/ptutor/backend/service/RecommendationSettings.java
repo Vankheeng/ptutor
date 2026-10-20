@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -322,4 +324,137 @@ public class RecommendationSettings {
     /** Both parties at fault: the complaint counts for this share. */
     @Value("${app.recommendation.complaint.both-factor:0.5}")
     private double complaintBothFactor = 0.5;
+
+    // ---- Values that used to be written in the calculators (design 12, section 12.2). The history shares and
+    // fit weights of b / b' are, with the a / a' weights above, the priors of the learned weights; the rest
+    // stays fixed and is only varied by the sensitivity analysis.
+
+    /** need: a need tag matched through its parent tag (or the other way round). */
+    @Value("${app.recommendation.features.need.parent-match:0.6}")
+    private double needParentMatch = 0.6;
+
+    /** need: the student has needs but the tutor declared no strengths. */
+    @Value("${app.recommendation.features.need.without-tutor-tags:0.4}")
+    private double needWithoutTutorTags = 0.4;
+
+    /** style: the student wants a style but the tutor declared none. */
+    @Value("${app.recommendation.features.style.without-tutor-tags:0.5}")
+    private double styleWithoutTutorTags = 0.5;
+
+    @Value("${app.recommendation.features.segment.adjacent:0.5}")
+    private double segmentAdjacent = 0.5;
+
+    @Value("${app.recommendation.features.segment.outside:0.1}")
+    private double segmentOutside = 0.1;
+
+    /** segment: the tutor declared no target level. */
+    @Value("${app.recommendation.features.segment.without-target:0.5}")
+    private double segmentWithoutTarget = 0.5;
+
+    /** sched: overlap is measured against at most this much of the searcher's week. */
+    @Value("${app.recommendation.features.schedule.need-cap-minutes:180}")
+    private int scheduleNeedCapMinutes = 180;
+
+    /** price (student's view): full marks within budget, 0 at budget × (1 + this). */
+    @Value("${app.recommendation.features.price.over-budget-range:0.5}")
+    private double priceOverBudgetRange = 0.5;
+
+    /** The share of b_hist in b; the rest is b_fit (design 06, 6.6). */
+    @Value("${app.recommendation.willingness.history-share:0.5}")
+    private double willingnessHistoryShare = 0.5;
+
+    /** Relative weights of the parts of b_fit (equal: b_fit is their mean). */
+    @Value("${app.recommendation.willingness.fit-weights.segment:1}")
+    private double willingnessFitSegment = 1;
+
+    @Value("${app.recommendation.willingness.fit-weights.sched:1}")
+    private double willingnessFitSched = 1;
+
+    @Value("${app.recommendation.willingness.fit-weights.price:1}")
+    private double willingnessFitPrice = 1;
+
+    /** Kernel of b_hist: how similar a past decision's student was to this one. */
+    @Value("${app.recommendation.willingness.kernel.grade:0.5}")
+    private double willingnessKernelGrade = 0.5;
+
+    @Value("${app.recommendation.willingness.kernel.price:0.3}")
+    private double willingnessKernelPrice = 0.3;
+
+    @Value("${app.recommendation.willingness.kernel.mode:0.2}")
+    private double willingnessKernelMode = 0.2;
+
+    /** Similarity of a kernel part when one of the two values is unknown, and of grades one level apart. */
+    @Value("${app.recommendation.willingness.kernel.unknown-similarity:0.5}")
+    private double willingnessKernelUnknown = 0.5;
+
+    @Value("${app.recommendation.willingness.kernel.grade-adjacent:0.5}")
+    private double willingnessKernelGradeAdjacent = 0.5;
+
+    /** A tutor is unlikely to go more than this share below the asking price (b_fit, a' price). */
+    @Value("${app.recommendation.willingness.tutor-price-tolerance:0.3}")
+    private double tutorPriceTolerance = 0.3;
+
+    /** The share of b'_hist in b'; the rest is b'_fit (design 06, 6.12). */
+    @Value("${app.recommendation.tutor-willingness.history-share:0.5}")
+    private double tutorWillingnessHistoryShare = 0.5;
+
+    @Value("${app.recommendation.tutor-willingness.fit-weights.quality:0.4}")
+    private double tutorWillingnessFitQuality = 0.4;
+
+    @Value("${app.recommendation.tutor-willingness.fit-weights.style:0.3}")
+    private double tutorWillingnessFitStyle = 0.3;
+
+    @Value("${app.recommendation.tutor-willingness.fit-weights.price:0.3}")
+    private double tutorWillingnessFitPrice = 0.3;
+
+    /** Value of a missing part of b'_fit and of an unknown similarity in b'_hist. */
+    @Value("${app.recommendation.tutor-willingness.neutral:0.5}")
+    private double tutorWillingnessNeutral = 0.5;
+
+    @Value("${app.recommendation.tutor-willingness.kernel.price:0.5}")
+    private double tutorWillingnessKernelPrice = 0.5;
+
+    @Value("${app.recommendation.tutor-willingness.kernel.quality:0.5}")
+    private double tutorWillingnessKernelQuality = 0.5;
+
+    /** f_hist = cosine-share × s(cos) + tag-share × tag affinity (design 06, 6.4). */
+    @Value("${app.recommendation.history.cosine-share:0.6}")
+    private double historyCosineShare = 0.6;
+
+    @Value("${app.recommendation.history.tag-share:0.4}")
+    private double historyTagShare = 0.4;
+
+    /** Vector part of f_hist for a posting that has no vector yet. */
+    @Value("${app.recommendation.history.without-vector:0.5}")
+    private double historyWithoutVector = 0.5;
+
+    /** How much each kind of behaviour counts in the preference profile (design 07, 7.4). */
+    @Value("${app.recommendation.history.signal-weights.viewed:1}")
+    private double historySignalViewed = 1;
+
+    @Value("${app.recommendation.history.signal-weights.clicked:1}")
+    private double historySignalClicked = 1;
+
+    @Value("${app.recommendation.history.signal-weights.favorited:2}")
+    private double historySignalFavorited = 2;
+
+    @Value("${app.recommendation.history.signal-weights.contacted:3}")
+    private double historySignalContacted = 3;
+
+    @Value("${app.recommendation.history.signal-weights.requested:3}")
+    private double historySignalRequested = 3;
+
+    @Value("${app.recommendation.history.signal-weights.accepted:4}")
+    private double historySignalAccepted = 4;
+
+    @Value("${app.recommendation.history.signal-weights.dismissed:-2}")
+    private double historySignalDismissed = -2;
+
+    /** Weight of each kind of signal, keyed like the signals of {@code PreferenceSignalRepository}. */
+    public Map<String, Double> getHistorySignalWeights() {
+        return Map.of("VIEWED", historySignalViewed, "CLICKED", historySignalClicked,
+                "FAVORITED", historySignalFavorited, "CONTACTED", historySignalContacted,
+                "REQUESTED", historySignalRequested, "ACCEPTED", historySignalAccepted,
+                "DISMISSED", historySignalDismissed);
+    }
 }

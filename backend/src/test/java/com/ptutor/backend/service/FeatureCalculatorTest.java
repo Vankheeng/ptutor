@@ -32,7 +32,8 @@ class FeatureCalculatorTest {
     private static final UUID OTHER_DISTRICT_SAME_PROVINCE = UUID.randomUUID();
     private static final UUID OTHER_PROVINCE = UUID.randomUUID();
 
-    private final FeatureCalculator calculator = new FeatureCalculator(new RecommendationSettings());
+    private final RecommendationSettings settings = new RecommendationSettings();
+    private final FeatureCalculator calculator = new FeatureCalculator(settings, new WeightProvider(settings));
 
     // ---- f_sem
 

@@ -12,11 +12,13 @@ import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.AreaScope;
 import com.ptutor.backend.dto.recommendation.FeatureVector;
+import com.ptutor.backend.dto.recommendation.ModelWeights;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.QueryContext.TimeSlot;
 import com.ptutor.backend.dto.recommendation.QueryContext.WeightedTag;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.CandidateTag;
+import com.ptutor.backend.dto.recommendation.WeightModel;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 import lombok.RequiredArgsConstructor;
@@ -29,19 +31,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FeatureCalculator {
 
-    static final double NEED_PARENT_MATCH = 0.6;
-    static final double NEED_WITHOUT_TUTOR_TAGS = 0.4;
-    static final double STYLE_WITHOUT_TUTOR_TAGS = 0.5;
-    static final double SEGMENT_ADJACENT = 0.5;
-    static final double SEGMENT_OUTSIDE = 0.1;
-    static final double SEGMENT_WITHOUT_TARGET = 0.5;
-    static final int SCHEDULE_NEED_CAP_MINUTES = 180;
-
     /** Levels in order; "can_kem_cap" is treated as the lowest one. */
     private static final Map<String, Integer> LEVEL_ORDER = Map.of(
             "mat_goc", 0, "can_kem_cap", 0, "trung_binh", 1, "kha", 2, "gioi", 3);
 
     private final RecommendationSettings settings;
+    private final WeightProvider weightProvider;
 
     public FeatureVector calculate(QueryContext context, TeachingCandidate candidate) {
         return calculate(context, candidate, null);
@@ -66,30 +61,39 @@ public class FeatureCalculator {
         Integer overlap = overlapMinutes(context.availabilities(), candidate.availabilities());
         Double sched = overlap == null ? null
                 : Math.min(1.0, overlap / (double) Math.min(totalMinutes(context.availabilities()),
-                        SCHEDULE_NEED_CAP_MINUTES));
+                        settings.getScheduleNeedCapMinutes()));
         Double area = area(context, candidate);
 
-        double weighted = 0;
+        // In the order of WeightModel.A_S2T.
+        Double[] features = { sem, need, price, style, sched, area, segment };
+        double[] suitability = suitability(weightProvider.weights(WeightModel.A_S2T), features);
+        return new FeatureVector(sem, rerank, need, style, segment, price, sched, area, hist,
+                hist == null ? 0 : histWeight, blend(suitability[0], hist, histWeight), suitability[1],
+                overlap != null && overlap == 0);
+    }
+
+    /**
+     * {@code a_base = Σ w_k × x_k}, where a feature we could not compute counts as the neutral prior instead of
+     * being ignored: a posting known only by one perfect feature must not outrank one that is good on
+     * everything (design 06, 6.5; 12, 12.2). With weights summing to 1 this is
+     * {@code c_a × (weighted mean of known features) + (1 - c_a) × prior}.
+     *
+     * @param features in the order of the model's features, null when unknown
+     * @return {a_base, c_a}: the suitability and the share of the weight on known features
+     */
+    double[] suitability(ModelWeights weights, Double[] features) {
+        double suitability = 0;
         double confidence = 0;
-        double[][] parts = {
-            { settings.getWeightSem(), value(sem) }, { settings.getWeightNeed(), value(need) },
-            { settings.getWeightPrice(), value(price) }, { settings.getWeightStyle(), value(style) },
-            { settings.getWeightSched(), value(sched) }, { settings.getWeightArea(), value(area) },
-            { settings.getWeightSegment(), value(segment) }
-        };
-        for (double[] part : parts) {
-            if (!Double.isNaN(part[1])) {
-                weighted += part[0] * part[1];
-                confidence += part[0];
+        for (int i = 0; i < features.length; i++) {
+            double weight = weights.get(i);
+            if (features[i] == null) {
+                suitability += weight * settings.getConfidencePrior();
+            } else {
+                suitability += weight * features[i];
+                confidence += weight;
             }
         }
-        // Features we could not compute count as neutral instead of being ignored: a posting known only
-        // by one perfect feature must not outrank one that is good on everything.
-        // Same as  c_a * (weighted mean of known features) + (1 - c_a) * prior.
-        double suitability = weighted + (1 - confidence) * settings.getConfidencePrior();
-        return new FeatureVector(sem, rerank, need, style, segment, price, sched, area, hist,
-                hist == null ? 0 : histWeight, blend(suitability, hist, histWeight), confidence,
-                overlap != null && overlap == 0);
+        return new double[] { suitability, confidence };
     }
 
     /**
@@ -127,7 +131,7 @@ public class FeatureCalculator {
             return null;
         }
         if (strengthTags.isEmpty()) {
-            return NEED_WITHOUT_TUTOR_TAGS;
+            return settings.getNeedWithoutTutorTags();
         }
         Set<UUID> strengthIds = strengthTags.stream().map(CandidateTag::tagId).collect(Collectors.toSet());
         Set<UUID> strengthParentIds = strengthTags.stream()
@@ -140,7 +144,7 @@ public class FeatureCalculator {
                 match = 1.0;
             } else if ((tag.parentId() != null && strengthIds.contains(tag.parentId()))
                     || strengthParentIds.contains(tag.tagId())) {
-                match = NEED_PARENT_MATCH;
+                match = settings.getNeedParentMatch();
             } else {
                 match = 0;
             }
@@ -155,7 +159,7 @@ public class FeatureCalculator {
             return null;
         }
         if (offered.isEmpty()) {
-            return STYLE_WITHOUT_TUTOR_TAGS;
+            return settings.getStyleWithoutTutorTags();
         }
         long shared = wanted.stream().map(WeightedTag::code).distinct().filter(offered::contains).count();
         return shared / (double) wanted.stream().map(WeightedTag::code).distinct().count();
@@ -169,20 +173,20 @@ public class FeatureCalculator {
         List<Integer> targets = targetSegments.stream()
                 .map(LEVEL_ORDER::get).filter(value -> value != null).toList();
         if (targets.isEmpty()) {
-            return SEGMENT_WITHOUT_TARGET;
+            return settings.getSegmentWithoutTarget();
         }
         int distance = targets.stream().mapToInt(target -> Math.abs(target - level)).min().orElseThrow();
-        return distance == 0 ? 1.0 : distance == 1 ? SEGMENT_ADJACENT : SEGMENT_OUTSIDE;
+        return distance == 0 ? 1.0 : distance == 1 ? settings.getSegmentAdjacent() : settings.getSegmentOutside();
     }
 
-    /** Full marks within budget, then a linear drop to 0 at 1.5 x budget. */
+    /** Full marks within budget, then a linear drop to 0 at (1 + over-budget-range) x budget. */
     Double price(BigDecimal expectedPrice, BigDecimal budget) {
         if (expectedPrice == null || budget == null || budget.signum() <= 0) {
             return null;
         }
         double p = expectedPrice.doubleValue();
         double hi = budget.doubleValue();
-        return p <= hi ? 1.0 : Math.max(0, 1 - (p - hi) / (0.5 * hi));
+        return p <= hi ? 1.0 : Math.max(0, 1 - (p - hi) / (settings.getPriceOverBudgetRange() * hi));
     }
 
     /** Shared minutes per week; null when either side gave no schedule. */
@@ -249,10 +253,6 @@ public class FeatureCalculator {
             }
         }
         return minutes;
-    }
-
-    private double value(Double feature) {
-        return feature == null ? Double.NaN : feature;
     }
 
     private double clip(double value) {

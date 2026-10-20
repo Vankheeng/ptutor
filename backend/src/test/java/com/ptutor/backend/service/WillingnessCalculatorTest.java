@@ -30,8 +30,8 @@ class WillingnessCalculatorTest {
     private static final double P0 = 0.6;
 
     private final RecommendationSettings settings = new RecommendationSettings();
-    private final FeatureCalculator features = new FeatureCalculator(settings);
-    private final WillingnessCalculator calculator = new WillingnessCalculator(settings);
+    private final FeatureCalculator features = new FeatureCalculator(settings, new WeightProvider(settings));
+    private final WillingnessCalculator calculator = new WillingnessCalculator(settings, new WeightProvider(settings));
 
     // ---- b_cap
 

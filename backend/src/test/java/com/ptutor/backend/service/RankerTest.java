@@ -30,7 +30,7 @@ class RankerTest {
 
     private final RecommendationSettings settings = new RecommendationSettings();
     private final Ranker ranker = new Ranker(
-            new FeatureCalculator(settings), new WillingnessCalculator(settings), settings);
+            new FeatureCalculator(settings, new WeightProvider(settings)), new WillingnessCalculator(settings, new WeightProvider(settings)), settings);
 
     /** The tests of the one-sided score (V2-a) switch the reciprocal part off. */
     @BeforeEach

@@ -36,7 +36,7 @@ class TutorSideRankerTest {
     private static final UUID HOME_PROVINCE = UUID.randomUUID();
 
     private final RecommendationSettings settings = new RecommendationSettings();
-    private final TutorSideRanker ranker = new TutorSideRanker(new FeatureCalculator(settings), settings);
+    private final TutorSideRanker ranker = new TutorSideRanker(new FeatureCalculator(settings, new WeightProvider(settings)), settings, new WeightProvider(settings));
 
     // ---- a'
 

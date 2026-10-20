@@ -1,16 +1,15 @@
 package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.FeatureVector;
 import com.ptutor.backend.dto.recommendation.ModePreference;
+import com.ptutor.backend.dto.recommendation.ModelWeights;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
+import com.ptutor.backend.dto.recommendation.WeightModel;
 import com.ptutor.backend.dto.recommendation.Willingness;
 import com.ptutor.backend.entity.enums.LearningMode;
 
@@ -25,14 +24,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WillingnessCalculator {
 
-    static final double WEIGHT_GRADE = 0.5;
-    static final double WEIGHT_PRICE = 0.3;
-    static final double WEIGHT_MODE = 0.2;
-    /** Used for a similarity component when one of the two values is unknown. */
-    static final double UNKNOWN_SIMILARITY = 0.5;
-    static final double TUTOR_PRICE_TOLERANCE = 0.3;
-
     private final RecommendationSettings settings;
+    private final WeightProvider weightProvider;
 
     /**
      * @param features    suitability features of the same pair (the level and schedule parts are reused)
@@ -41,13 +34,17 @@ public class WillingnessCalculator {
     public Willingness calculate(
             QueryContext context, TeachingCandidate candidate, FeatureVector features, double platformRate) {
         double history = history(context, candidate, platformRate);
-        double fit = fit(context, candidate, features, platformRate);
+        ModelWeights weights = weightProvider.weights(WeightModel.B_S2T);
+        double fit = fit(weights, fitParts(context, candidate, features, platformRate));
         double capacity = settings.isCongestionEnabled()
                 ? capacity(candidate.remainingSlots(), candidate.pendingApplications()) : 1.0;
         if (candidate.tutorInvitedStudent()) {
             return new Willingness(1.0, history, fit, capacity, true);
         }
-        return new Willingness((0.5 * history + 0.5 * fit) * capacity, history, fit, capacity, false);
+        // Flattened form (design 12, 12.2): w_hist x b_hist + Σ w_i x fit_i, which with the prior weights is
+        // 0.5 x b_hist + 0.5 x the mean of the fit parts.
+        return new Willingness((weights.get(0) * history + fitShare(weights) * fit) * capacity,
+                history, fit, capacity, false);
     }
 
     /**
@@ -60,9 +57,11 @@ public class WillingnessCalculator {
         double accepted = 0;
         double total = 0;
         for (PastDecision decision : candidate.tutorDecisions()) {
-            double similarity = WEIGHT_GRADE * gradeSimilarity(context.gradeLevel(), decision.gradeLevel())
-                    + WEIGHT_PRICE * priceSimilarity(price, decision.proposedPrice())
-                    + WEIGHT_MODE * modeSimilarity(context.learningMode(), decision.learningMode());
+            double similarity = settings.getWillingnessKernelGrade()
+                            * gradeSimilarity(context.gradeLevel(), decision.gradeLevel())
+                    + settings.getWillingnessKernelPrice() * priceSimilarity(price, decision.proposedPrice())
+                    + settings.getWillingnessKernelMode()
+                            * modeSimilarity(context.learningMode(), decision.learningMode());
             total += similarity;
             if (decision.accepted()) {
                 accepted += similarity;
@@ -72,21 +71,57 @@ public class WillingnessCalculator {
         return (accepted + alpha * platformRate) / (total + alpha);
     }
 
-    /** Mean of the parts we have data for; the platform rate when we have none. */
+    /** b_fit: the weighted mean of {@link #fitParts}. */
     double fit(QueryContext context, TeachingCandidate candidate, FeatureVector features, double platformRate) {
-        List<Double> parts = new ArrayList<>();
-        if (features.segment() != null) {
-            parts.add(features.segment());
+        return fit(weightProvider.weights(WeightModel.B_S2T), fitParts(context, candidate, features, platformRate));
+    }
+
+    /**
+     * Weighted mean of the fit parts; the parts follow the history weight in the model. Without any weight on
+     * them (they then do not count in b) it is their plain mean, so the logged value stays meaningful.
+     */
+    static double fit(ModelWeights weights, double[] parts) {
+        double sum = 0;
+        double plain = 0;
+        for (int i = 0; i < parts.length; i++) {
+            sum += weights.get(i + 1) * parts[i];
+            plain += parts[i];
         }
-        if (features.sched() != null) {
-            parts.add(features.sched());
+        double share = fitShare(weights);
+        return share > 0 ? sum / share : plain / parts.length;
+    }
+
+    /** The total weight of the fit parts, everything but the history weight. */
+    static double fitShare(ModelWeights weights) {
+        double total = 0;
+        for (int i = 1; i < weights.model().features().size(); i++) {
+            total += weights.get(i);
         }
-        Double price = priceFromTutorView(context.maxPrice(), candidate.expectedPrice());
-        if (price != null) {
-            parts.add(price);
+        return total;
+    }
+
+    /**
+     * The parts of b_fit in the order of {@link WeightModel#B_S2T} (segment, sched, price). A part we have no
+     * data for takes the mean of the parts we have, or the platform rate when we have none (design 12, 12.2):
+     * with equal weights the weighted sum is then the mean of the known parts, as b_fit always was.
+     */
+    double[] fitParts(QueryContext context, TeachingCandidate candidate, FeatureVector features, double platformRate) {
+        Double[] parts = { features.segment(), features.sched(),
+                priceFromTutorView(context.maxPrice(), candidate.expectedPrice()) };
+        double known = 0;
+        int count = 0;
+        for (Double part : parts) {
+            if (part != null) {
+                known += part;
+                count++;
+            }
         }
-        return parts.isEmpty() ? platformRate
-                : parts.stream().mapToDouble(Double::doubleValue).average().orElseThrow();
+        double missing = count == 0 ? platformRate : known / count;
+        double[] values = new double[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            values[i] = parts[i] == null ? missing : parts[i];
+        }
+        return values;
     }
 
     /** The more applications already wait for the few remaining places, the lower the chance. */
@@ -102,20 +137,20 @@ public class WillingnessCalculator {
         }
         double hi = budget.doubleValue();
         double p = askingPrice.doubleValue();
-        return hi >= p ? 1.0 : Math.max(0, 1 - (p - hi) / (TUTOR_PRICE_TOLERANCE * p));
+        return hi >= p ? 1.0 : Math.max(0, 1 - (p - hi) / (settings.getTutorPriceTolerance() * p));
     }
 
     private double gradeSimilarity(Integer level, Integer pastLevel) {
         if (level == null || pastLevel == null) {
-            return UNKNOWN_SIMILARITY;
+            return settings.getWillingnessKernelUnknown();
         }
         int distance = Math.abs(level - pastLevel);
-        return distance == 0 ? 1.0 : distance == 1 ? 0.5 : 0.0;
+        return distance == 0 ? 1.0 : distance == 1 ? settings.getWillingnessKernelGradeAdjacent() : 0.0;
     }
 
     private double priceSimilarity(BigDecimal price, BigDecimal pastPrice) {
         if (price == null || pastPrice == null || pastPrice.signum() <= 0) {
-            return UNKNOWN_SIMILARITY;
+            return settings.getWillingnessKernelUnknown();
         }
         double past = pastPrice.doubleValue();
         return 1 - Math.min(1, Math.abs(price.doubleValue() - past) / past);

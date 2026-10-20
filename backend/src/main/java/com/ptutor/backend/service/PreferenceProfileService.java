@@ -41,14 +41,6 @@ import tools.jackson.databind.node.ObjectNode;
 public class PreferenceProfileService {
 
     static final String DISMISSED = "DISMISSED";
-    /** How much each kind of behaviour counts. */
-    static final Map<String, Double> WEIGHTS = Map.of(
-            "VIEWED", 1.0, "CLICKED", 1.0, "FAVORITED", 2.0, "CONTACTED", 3.0, "REQUESTED", 3.0, "ACCEPTED", 4.0,
-            DISMISSED, -2.0);
-    static final double COSINE_SHARE = 0.6;
-    static final double TAG_SHARE = 0.4;
-    /** Value of the vector part of f_hist for a posting that has no vector yet. */
-    static final double NEUTRAL = 0.5;
 
     private final PreferenceSignalRepository signalRepository;
     private final RecommendationUserProfileRepository profileRepository;
@@ -80,8 +72,10 @@ public class PreferenceProfileService {
         boolean student = role == RecommendationProfileRole.STUDENT;
         RecommendationCandidateType type = student
                 ? RecommendationCandidateType.TEACHING_REQUEST : RecommendationCandidateType.STUDYING_REQUEST;
+        Map<String, Double> signalWeights = settings.getHistorySignalWeights();
         List<Signal> signals = strongestPerPosting(
-                student ? signalRepository.ofStudent(entityId, since) : signalRepository.ofTutor(entityId, since));
+                student ? signalRepository.ofStudent(entityId, since) : signalRepository.ofTutor(entityId, since),
+                signalWeights);
         if (signals.isEmpty() && profile == null) {
             return true;
         }
@@ -96,7 +90,7 @@ public class PreferenceProfileService {
         double totalWeight = 0;
         int positive = 0;
         for (Signal signal : signals) {
-            double weight = WEIGHTS.getOrDefault(signal.kind(), 0.0);
+            double weight = signalWeights.getOrDefault(signal.kind(), 0.0);
             double decayed = weight * decay(Duration.between(signal.happenedAt(), now).toHours() / 24.0);
             if (weight > 0) {
                 positive++;
@@ -133,7 +127,8 @@ public class PreferenceProfileService {
 
     /**
      * f_hist of each candidate for this user (design 06, 6.4):
-     * {@code 0.6 x s(cos(v_pref, posting)) + 0.4 x (affinity of the posting's tags / max(1, all affinity))}.
+     * {@code 0.6 x s(cos(v_pref, posting)) + 0.4 x (affinity of the posting's tags / max(1, all affinity))}
+     * (shares {@code history.cosine-share}, {@code history.tag-share}).
      *
      * @param candidateTagCodes the candidates of the search with the codes of their tags
      */
@@ -158,10 +153,11 @@ public class PreferenceProfileService {
         Map<UUID, Double> byCandidate = new HashMap<>();
         candidateTagCodes.forEach((candidateId, codes) -> {
             Double cosine = cosines.get(candidateId);
-            double vectorPart = cosine == null ? NEUTRAL : Math.max(0, Math.min(1,
+            double vectorPart = cosine == null ? settings.getHistoryWithoutVector() : Math.max(0, Math.min(1,
                     (cosine - settings.getCosLow()) / (settings.getCosHigh() - settings.getCosLow())));
             double tagPart = codes.stream().mapToDouble(code -> affinity.getOrDefault(code, 0.0)).sum() / allAffinity;
-            byCandidate.put(candidateId, COSINE_SHARE * vectorPart + TAG_SHARE * Math.min(1.0, tagPart));
+            byCandidate.put(candidateId, settings.getHistoryCosineShare() * vectorPart
+                    + settings.getHistoryTagShare() * Math.min(1.0, tagPart));
         });
         return new History(weight, byCandidate);
     }
@@ -204,17 +200,19 @@ public class PreferenceProfileService {
     /**
      * One signal per posting: the strongest thing the user did with it (opening and then applying is
      * one sign of interest, not two). A dismissal wins over everything when it came last.
+     *
+     * @param weights how much each kind of signal counts ({@code history.signal-weights})
      */
-    static List<Signal> strongestPerPosting(List<Signal> signals) {
+    static List<Signal> strongestPerPosting(List<Signal> signals, Map<String, Double> weights) {
         Map<UUID, Signal> best = new java.util.LinkedHashMap<>();
         Map<UUID, Signal> dismissed = new HashMap<>();
         for (Signal signal : signals) {
             if (DISMISSED.equals(signal.kind())) {
                 dismissed.merge(signal.candidateId(), signal,
                         (old, fresh) -> fresh.happenedAt().isAfter(old.happenedAt()) ? fresh : old);
-            } else if (WEIGHTS.containsKey(signal.kind())) {
+            } else if (weights.containsKey(signal.kind())) {
                 best.merge(signal.candidateId(), signal, (old, fresh) ->
-                        WEIGHTS.get(fresh.kind()) > WEIGHTS.get(old.kind()) ? fresh : old);
+                        weights.get(fresh.kind()) > weights.get(old.kind()) ? fresh : old);
             }
         }
         dismissed.forEach((posting, signal) -> {

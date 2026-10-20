@@ -120,7 +120,7 @@ class PreferenceProfileServiceTest {
                 new Signal(changedMind, "FAVORITED", now.minusDays(2)),
                 new Signal(changedMind, "DISMISSED", now.minusDays(1)),
                 new Signal(cameBack, "DISMISSED", now.minusDays(2)),
-                new Signal(cameBack, "VIEWED", now.minusDays(1))));
+                new Signal(cameBack, "VIEWED", now.minusDays(1))), new RecommendationSettings().getHistorySignalWeights());
 
         assertThat(kept).extracting(Signal::candidateId, Signal::kind).containsExactlyInAnyOrder(
                 org.assertj.core.groups.Tuple.tuple(applied, "ACCEPTED"),
