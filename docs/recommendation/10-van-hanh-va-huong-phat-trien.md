@@ -29,7 +29,7 @@
 | `reciprocal.enabled` / `willingness.congestion-enabled` | true / true | 06, 6.6–6.7 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |
 | `complaint.window-days` / `prior-contracts` / `penalty-scale` / `max-penalty` | 365 / 5 / 40 / 20 | 06, 6.8 |
-| `complaint.category-weights` ABSENCE / LATE_OR_SHORT / TEACHING_QUALITY / MISCONDUCT / SERIOUS_MISCONDUCT / OTHER; `both-factor` | 1,0 / 0,5 / 0,5 / 1,5 / 3,0 / 1,0; 0,5 | 06, 6.8 |
+| `complaint.category-weights.absence` / `late-or-short` / `teaching-quality` / `misconduct` / `serious-misconduct` / `other` (cả khiếu nại chưa có loại); `both-factor`; `complainant-weight` | 1,0 / 0,5 / 0,5 / 1,5 / 3,0 / 1,0; 0,5; 1,0 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
 | `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 20 / 4 000 / 4 | 06, 6.9 |
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
@@ -179,5 +179,5 @@ tuyển dụng (11, mục 11.4).
     phỏng (09, mục 9.9); (e) API quản trị (tuỳ chọn). Migration của L1 là `V34` (03, mục 3.6).
 
 Trạng thái (20/10/2026): bước 1–9 đã lập trình (Bước 0–15 trong nhật ký) cùng giao diện học sinh tìm gia sư;
-đã merge `dev` đến PR #58 (duyệt tin học, kết luận khiếu nại có cấu trúc — P8, duyệt hồ sơ gia sư). Còn lại: phạt
-khiếu nại trong Q (06, mục 6.8), bước 10, bước 11 và giao diện phía gia sư, tìm kiếm đã lưu.
+đã merge `dev` đến PR #58 (duyệt tin học, kết luận khiếu nại có cấu trúc — P8, duyệt hồ sơ gia sư) và có phạt
+khiếu nại trong Q (06, mục 6.8). Còn lại: bước 10, bước 11 và giao diện phía gia sư, tìm kiếm đã lưu.

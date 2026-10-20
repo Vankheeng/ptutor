@@ -357,9 +357,9 @@ Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ n�
 
 ### Điểm chất lượng `recommendation_score` và khiếu nại có lỗi (bổ sung 15/10/2026)
 
-> 💡 Cách tính điểm uy tín gia sư (thang 100): đánh giá sao, hợp đồng hoàn thành, tỉ lệ nhận đơn, tốc độ phản hồi, kinh nghiệm, xác minh hồ sơ, trừ điểm nếu từng bị khóa. Phần mới (**đang thiết kế**, phiên bản `v2`, code hiện vẫn là `v1`) trừ thêm tối đa 20 điểm khi **nhân viên đã kết luận gia sư có lỗi** trong khiếu nại; mức trừ nhẹ dần khi gia sư có nhiều hợp đồng ("làm trơn" với 5 hợp đồng sạch giả định). Ví dụ 1 lần vắng mặt: gia sư mới bị trừ 8 điểm, gia sư đã có 20 hợp đồng chỉ bị trừ 1,6. Khiếu nại chưa kết luận hay vô căn cứ không bị tính.
+> 💡 Cách tính điểm uy tín gia sư (thang 100): đánh giá sao, hợp đồng hoàn thành, tỉ lệ nhận đơn, tốc độ phản hồi, kinh nghiệm, xác minh hồ sơ, trừ điểm nếu từng bị khóa. Phần mới (phiên bản `v2`, đã lập trình ngày 20/10/2026) trừ thêm tối đa 20 điểm khi **nhân viên đã kết luận gia sư có lỗi** trong khiếu nại; mức trừ nhẹ dần khi gia sư có nhiều hợp đồng ("làm trơn" với 5 hợp đồng sạch giả định). Ví dụ 1 lần vắng mặt: gia sư mới bị trừ 8 điểm, gia sư đã có 20 hợp đồng chỉ bị trừ 1,6. Khiếu nại chưa kết luận hay vô căn cứ không bị tính.
 
-Công thức hiện tại (`TutorRecommendationScoreService`, `v1`, thang 100):
+Công thức (`TutorRecommendationScoreService`, `v2`, thang 100):
 
 | Thành phần | Điểm tối đa | Cách tính |
 |---|---|---|
@@ -370,7 +370,7 @@ Công thức hiện tại (`TutorRecommendationScoreService`, `v1`, thang 100):
 | Kinh nghiệm | 10 | min(số học sinh đã dạy, 20) / 2 |
 | Xác minh | 10 | Hồ sơ `VERIFIED` 5 + có chứng chỉ được duyệt 5 |
 | Phạt bị khoá tài khoản | −15 | −5 mỗi lần bị khoá, tối đa −15 |
-| **Phạt khiếu nại có lỗi (mới, `v2`)** | **−20** | Dưới đây |
+| **Phạt khiếu nại có lỗi (`v2`)** | **−20** | Dưới đây |
 
 **Phạt khiếu nại có lỗi.** Dựa trên kết luận có cấu trúc của tính năng xử lý khiếu nại
 (`complaints.fault_party`, `category`; migration `V28` của `dev`, đã merge vào nhánh đề xuất ngày 20/10/2026). Bên bị khiếu nại là bên còn lại của hợp đồng (`ComplaintParties.respondentOf`).
@@ -422,6 +422,23 @@ Nguyên tắc:
 - Truy vấn đếm đặt ở phía đề xuất (SQL riêng trong service / repository của tính năng đề xuất), không sửa
   `ComplaintRepository` của tính năng khiếu nại.
 - Học sinh có lỗi: chưa có điểm chất lượng cho học sinh (chiều T→S không có Q) — để hướng phát triển (10).
+
+**Ghi chú triển khai (20/10/2026).**
+
+> 💡 Những chỗ lúc lập trình phải chọn cụ thể mà thiết kế chưa nói: khiếu nại đã bị xoá không tính; "gia sư là bên bị khiếu nại" xác định đúng như tính năng khiếu nại (người gửi là học sinh của hợp đồng); điểm phạt làm tròn 2 chữ số. Một gia sư không có khiếu nại nào thì điểm `v2` bằng đúng điểm `v1`.
+
+- Truy vấn ở `TutorComplaintPenaltyRepository` (SQL riêng của tính năng đề xuất). Gia sư là bên bị khiếu nại khi
+  người gửi là học sinh của hợp đồng (`complaints.user_id = students.user_id`), là người gửi khi
+  `complaints.user_id = tutors.user_id` — cùng quy tắc với `ComplaintParties.respondentOf`. Khiếu nại có
+  `deleted_at` không tính; hợp đồng đã xoá không vào n.
+- Cửa sổ tính theo `resolved_at ≥ hiện tại − window-days`.
+- Chỉ đếm n khi có ít nhất một khiếu nại có lỗi. `phạt_K` làm tròn 2 chữ số rồi trừ vào tổng như phạt khoá.
+- Mức của khiếu nại do gia sư gửi mà có lỗi là tham số `complaint.complainant-weight` (1,0).
+- `score_breakdown` có thêm `complaintPenalty`, `faultComplaints`, `complaintWeight`; không có API nào cho học sinh
+  trả về `score_breakdown` (chỉ API quản trị `TutorRecommendationScoreResponse`), lý do khớp không đọc nó.
+- Tính lại ngay: `COMPLAINT_RESOLVED` và `COMPLAINT_AGAINST_YOU_RESOLVED` nằm trong nhóm "người nhận là gia sư";
+  `…_REJECTED` và `COMPLAINT_RECEIVED_AGAINST_YOU` không kích hoạt. Job đêm (`TutorRecommendationScoreScheduler`)
+  tính lại mọi gia sư nên lỗi ra khỏi cửa sổ 365 ngày tự hết tác dụng.
 
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
 

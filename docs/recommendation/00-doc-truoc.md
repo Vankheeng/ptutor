@@ -196,7 +196,7 @@ một công trình kinh điển về **gợi ý hai chiều** (reciprocal recomm
 - **Q** = điểm uy tín của gia sư (0–100, chia 100), tính từ đánh giá sao, số hợp đồng đã hoàn thành, tỉ lệ nhận đơn,
   tốc độ phản hồi, kinh nghiệm, xác minh hồ sơ, và trừ điểm nếu từng bị khóa tài khoản. Điểm cuối nhân với
   `(0,7 + 0,3·Q)`, tức Q chỉ **dịch điểm trong khoảng ±15%** quanh mức giữa: uy tín được cộng thêm, nhưng gia sư mới
-  không bị đè bẹp. Bản thiết kế 15/10/2026 bổ sung trừ điểm khi **nhân viên đã kết luận gia sư có lỗi** trong khiếu nại
+  không bị đè bẹp. Từ 20/10/2026 điểm này trừ thêm khi **nhân viên đã kết luận gia sư có lỗi** trong khiếu nại
   (khiếu nại chưa kết luận hay vô căn cứ không bị tính).
 - **G** là hai "phanh" phạt nhẹ thay vì loại hẳn: lịch hai bên **không trùng chút nào** → nhân 0,4; gia sư **đã từng từ
   chối** chính học sinh này trong 90 ngày → nhân 0,5. Tin vẫn hiện, nhưng xuống thấp.
