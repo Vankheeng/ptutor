@@ -189,6 +189,9 @@ hưởng người đang tìm.
 - Mỗi nguồn chạy trong transaction riêng: một tìm kiếm đã lưu không còn chạy được (môn bị tắt…) không chặn
   các nguồn khác. Cờ tắt: `proactive.enabled=false`.
 - `RerankPrefetchJob` nay chấm sẵn cả cho tìm kiếm đã lưu của hai chiều (việc còn mở từ bước rerank).
+- **Giao diện (20/10/2026):** trên trang Thông báo, bấm một thông báo `RECOMMENDATION_MATCH_FOUND` sẽ mở đúng tin:
+  học sinh → trang "Tìm gia sư" với `?posting=<id>` (khung tin dạy được gợi ý kèm form đăng ký học); gia sư → trang
+  chi tiết tin tìm gia sư có sẵn (`/tutor/studying-requests/<id>`).
 
 ## 7.4. H1 — Hồ sơ sở thích dài hạn (gợi ý theo lịch sử hành vi)
 
@@ -256,7 +259,8 @@ Lưu vào `recommendation_user_profiles` (`preference_embedding`, `tag_affinity`
 
 > 💡 Người dùng xóa được hồ sơ sở thích bất cứ lúc nào, và lý do khớp nói rõ khi một kết quả được đẩy lên nhờ lịch sử.
 
-- Nút **"Xoá lịch sử gợi ý"**: xoá hồ sơ sở thích, `w_hist` về 0.
+- Nút **"Xoá lịch sử gợi ý"**: xoá hồ sơ sở thích, `w_hist` về 0. Giao diện (20/10/2026): dòng cuối của menu
+  "Đã lưu" trên hàng công cụ của hai trang tìm, có bước xác nhận ngay tại chỗ.
 - Lý do khớp nói rõ khi kết quả được đẩy lên nhờ lịch sử ("Giống các gia sư bạn đã quan tâm…").
 
 ### Vì sao không phải collaborative filtering

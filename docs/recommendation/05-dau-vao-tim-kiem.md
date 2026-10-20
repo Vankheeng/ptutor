@@ -189,6 +189,12 @@ Người dùng có thể bấm **"Lưu tìm kiếm và nhận thông báo"**: `Q
 `recommendation_saved_searches` (tối đa 5 mỗi người). Khi có tin đăng mới khớp tốt, hệ thống gửi
 thông báo (07, mục 7.3). Tính năng này giúp người **chưa có tin đăng** vẫn được thông báo chủ động.
 
+**Giao diện (20/10/2026):** thanh bộ lọc chỉ có bộ lọc. Ở đầu cột kết quả có một hàng công cụ: số kết quả, nút
+biểu tượng 🔖 "Lưu tìm kiếm này" (chú thích hiện khi rê chuột; tô đầy khi đã lưu; tắt khi chưa đủ môn, lớp hoặc đã đủ
+5) và nút "Đã lưu (n) ▾" mở menu: danh sách tìm kiếm đã lưu (bấm tên để tìm lại — gửi `savedSearchId`, bộ lọc trên màn
+hình được thay bằng tiêu chí đã lưu; đổi tên; bật / tắt "Báo tin mới"; xoá) và "Xoá lịch sử gợi ý" ở cuối menu. Lưu thì
+tên tự đặt theo môn và lớp (ví dụ "Toán – Lớp 9") và bật thông báo.
+
 ## 5.7. Ghi log
 
 > 💡 Mỗi lần tìm lưu câu gõ (đã lọc thông tin cá nhân), kết quả tách câu và tiêu chí cuối cùng vào bảng nhật ký `recommendation_logs`, để sau này đo độ chính xác và phân tích.
