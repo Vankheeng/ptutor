@@ -23,6 +23,7 @@ import com.ptutor.backend.entity.RecommendationLearnedWeights;
 import com.ptutor.backend.entity.enums.WeightLearningMode;
 import com.ptutor.backend.event.LearnedWeightsUpdatedEvent;
 import com.ptutor.backend.repository.RecommendationLearnedWeightsRepository;
+import com.ptutor.backend.repository.RecommendationLearningModeOverrideRepository;
 
 import tools.jackson.databind.JsonNode;
 
@@ -33,6 +34,8 @@ import tools.jackson.databind.JsonNode;
  * <ul>
  *   <li>The active learned version of each model is loaded at start-up and again on
  *       {@link LearnedWeightsUpdatedEvent}, and kept in memory: a search never reads the database for weights.</li>
+ *   <li>The mode of a model is the one an administrator set (stored, loaded with the versions), otherwise the
+ *       configured one.</li>
  *   <li>A model is served from its active version only in mode {@code ACTIVE}. {@code OFF}, {@code SHADOW}, no
  *       active version, L1 switched off or a failed load all serve the prior: the hand-set weights.</li>
  *   <li>In {@code ACTIVE}, the suitability side of a search (a, a') gets a Thompson sample around μ, the same for
@@ -56,23 +59,32 @@ public class WeightProvider {
 
     private final RecommendationSettings settings;
     private final RecommendationLearnedWeightsRepository repository;
+    private final RecommendationLearningModeOverrideRepository modeRepository;
     private final Clock clock;
     private final AtomicReference<Map<WeightModel, Active>> active = new AtomicReference<>(Map.of());
+    private final AtomicReference<Map<WeightModel, WeightLearningMode>> modeOverrides = new AtomicReference<>(Map.of());
     private final Map<String, ModelWeights> samples = new ConcurrentHashMap<>();
     /** Set while background work runs: see {@link #withMeanWeights}. */
     private static final ThreadLocal<Boolean> MEAN_ONLY = ThreadLocal.withInitial(() -> false);
 
     @Autowired
     public WeightProvider(RecommendationSettings settings, RecommendationLearnedWeightsRepository repository,
-            Clock clock) {
+            RecommendationLearningModeOverrideRepository modeRepository, Clock clock) {
         this.settings = settings;
         this.repository = repository;
+        this.modeRepository = modeRepository;
         this.clock = clock;
+    }
+
+    /** Learned versions, without modes set by an administrator. */
+    public WeightProvider(RecommendationSettings settings, RecommendationLearnedWeightsRepository repository,
+            Clock clock) {
+        this(settings, repository, null, clock);
     }
 
     /** Without learned weights: always the prior (unit tests of the calculators). */
     public WeightProvider(RecommendationSettings settings) {
-        this(settings, null, Clock.systemUTC());
+        this(settings, null, null, Clock.systemUTC());
     }
 
     /** μ (or the prior): the willingness side, and anything that is not a user's search. */
@@ -87,7 +99,7 @@ public class WeightProvider {
 
     /** @param userId the searcher, or null for μ */
     public Served served(WeightModel model, UUID userId) {
-        WeightLearningMode mode = settings.isLearningEnabled() ? settings.getLearningMode(model) : WeightLearningMode.OFF;
+        WeightLearningMode mode = mode(model);
         Active version = mode == WeightLearningMode.ACTIVE ? active.get().get(model) : null;
         if (version == null) {
             return new Served(prior(model), null, mode, false);
@@ -104,6 +116,19 @@ public class WeightProvider {
         }
         ModelWeights sampled = samples.computeIfAbsent(key, ignored -> sample(model, version, userId, day));
         return new Served(sampled, version.version(), mode, true);
+    }
+
+    /** The mode in force: OFF when L1 is switched off, else the administrator's choice, else the configuration. */
+    public WeightLearningMode mode(WeightModel model) {
+        if (!settings.isLearningEnabled()) {
+            return WeightLearningMode.OFF;
+        }
+        return modeOverrides.get().getOrDefault(model, settings.getLearningMode(model));
+    }
+
+    /** The mode an administrator set, or null when the configuration decides. */
+    public WeightLearningMode modeOverride(WeightModel model) {
+        return modeOverrides.get().get(model);
     }
 
     /**
@@ -147,8 +172,21 @@ public class WeightProvider {
         reload();
     }
 
-    /** Loads the active version of every model. On failure every model serves its prior until the next load. */
+    /**
+     * Loads the active version and the administrator's mode of every model. On failure every model serves its prior
+     * until the next load.
+     */
     public void reload() {
+        if (modeRepository != null) {
+            try {
+                Map<WeightModel, WeightLearningMode> modes = new EnumMap<>(WeightModel.class);
+                modeRepository.findAll().forEach(row -> modes.put(row.getModelKey(), row.getMode()));
+                modeOverrides.set(Map.copyOf(modes));
+            } catch (RuntimeException exception) {
+                log.warn("Unable to load the modes set for the learned weights; using the configured ones", exception);
+                modeOverrides.set(Map.of());
+            }
+        }
         if (repository == null) {
             return;
         }

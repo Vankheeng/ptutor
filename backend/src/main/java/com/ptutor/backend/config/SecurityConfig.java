@@ -50,6 +50,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_STUDYING_REQUEST
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_TAG_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_WEIGHT_API;
 import static com.ptutor.backend.config.SecurityConstants.RECOMMENDATION_INTERACTION_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
@@ -168,6 +169,7 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
+                        .requestMatchers(ADMIN_RECOMMENDATION_WEIGHT_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")

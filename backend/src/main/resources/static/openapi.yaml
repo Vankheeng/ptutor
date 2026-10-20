@@ -3277,6 +3277,90 @@ paths:
         '503':
           description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
 
+  /api/v1/admin/recommendations/weights:
+    get:
+      tags: [Admin Recommendation Weights]
+      summary: Learned ranking weights of every model
+      description: >-
+        For each of the four L1 models (A_S2T, A_T2S, B_S2T, B_T2S): the hand-set prior, the configured mode, the
+        mode set by an administrator (null when the configuration decides), the mode in force, the active version
+        and every version, newest first, with its weights and its comparison with the prior. ADMIN only.
+      operationId: getRecommendationWeights
+      responses:
+        '200':
+          description: All models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRecommendationWeightsResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/recommendations/weights/{model}/activate/{version}:
+    post:
+      tags: [Admin Recommendation Weights]
+      summary: Activate a version of a model
+      description: >-
+        Makes the version the active one, for example to roll back; the previous active version is kept,
+        inactive. It is served only while the model's mode is ACTIVE. ADMIN only.
+      operationId: activateRecommendationWeights
+      parameters:
+        - $ref: '#/components/parameters/WeightModelPath'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The model after the change (code LEARNED_WEIGHTS_ACTIVATED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRecommendationWeightModelEnvelope'
+        '400':
+          description: Unknown model
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: LEARNED_WEIGHTS_VERSION_NOT_FOUND
+
+  /api/v1/admin/recommendations/weights/{model}/mode:
+    put:
+      tags: [Admin Recommendation Weights]
+      summary: Set the mode of a model
+      description: >-
+        OFF serves the prior and stops learning; SHADOW learns but serves the prior; ACTIVE serves the active
+        version. The mode is stored and wins over the configuration until it is changed again. ADMIN only.
+      operationId: setRecommendationWeightMode
+      parameters:
+        - $ref: '#/components/parameters/WeightModelPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
+      responses:
+        '200':
+          description: The model after the change (code LEARNED_WEIGHTS_MODE_UPDATED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRecommendationWeightModelEnvelope'
+        '400':
+          description: Unknown model or missing mode
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /api/v1/recommendations/parse-query:
     post:
       tags: [Recommendations]
@@ -4717,6 +4801,12 @@ components:
       bearerFormat: JWT
 
   parameters:
+    WeightModelPath:
+      name: model
+      in: path
+      required: true
+      schema: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
+
     UserId:
       name: userId
       in: path
@@ -8391,6 +8481,62 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/RecommendationTagResponse'
+
+    AdminRecommendationWeightVersion:
+      type: object
+      properties:
+        version: { type: integer }
+        active: { type: boolean }
+        sampleCount: { type: integer }
+        trainedUntil: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        weights:
+          type: object
+          additionalProperties: { type: number }
+          description: Clamped and normalised weights by feature, as served
+        evaluation:
+          type: object
+          description: >-
+            Comparison with the prior on held-out data: metric (ndcg10 or logloss), learned, prior, n, newSamples,
+            searches, enoughData, clamped
+
+    AdminRecommendationWeightModel:
+      type: object
+      properties:
+        model: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
+        features: { type: array, items: { type: string } }
+        prior:
+          type: object
+          additionalProperties: { type: number }
+        configuredMode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
+        overrideMode: { type: string, enum: [OFF, SHADOW, ACTIVE], nullable: true }
+        mode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
+        activeVersion: { type: integer, nullable: true }
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminRecommendationWeightVersion'
+
+    AdminRecommendationWeightsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                models:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AdminRecommendationWeightModel'
+
+    AdminRecommendationWeightModelEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AdminRecommendationWeightModel'
 
     RecommendationTagSuggestionResponseEnvelope:
       allOf:

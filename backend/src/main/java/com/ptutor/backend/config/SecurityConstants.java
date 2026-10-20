@@ -88,6 +88,11 @@ public final class SecurityConstants {
             "/api/v1/admin/recommendation-tags/**"
     };
 
+    public static final String[] ADMIN_RECOMMENDATION_WEIGHT_API = {
+            "/api/v1/admin/recommendations/weights",
+            "/api/v1/admin/recommendations/weights/**"
+    };
+
     public static final String[] ADMIN_GRADE_API = {
             "/api/v1/admin/grades"
     };

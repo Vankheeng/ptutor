@@ -16,5 +16,7 @@ public interface RecommendationLearnedWeightsRepository extends JpaRepository<Re
 
     Optional<RecommendationLearnedWeights> findFirstByModelKeyOrderByVersionDesc(WeightModel modelKey);
 
+    Optional<RecommendationLearnedWeights> findByModelKeyAndVersion(WeightModel modelKey, Integer version);
+
     List<RecommendationLearnedWeights> findAllByModelKeyOrderByVersionDesc(WeightModel modelKey);
 }

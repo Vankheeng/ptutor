@@ -111,7 +111,7 @@ public class WeightLearningService {
             return outcomes;
         }
         for (WeightModel model : WeightModel.values()) {
-            if (settings.getLearningMode(model) == WeightLearningMode.OFF) {
+            if (weightProvider.mode(model) == WeightLearningMode.OFF) {
                 continue;
             }
             try {
