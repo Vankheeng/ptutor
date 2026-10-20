@@ -577,6 +577,18 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.min-samples-b:300}")
     private int learningMinSamplesB = 300;
 
+    /** The most recent days of data are held out of each update to compare the new weights with the prior. */
+    @Value("${app.recommendation.learning.evaluation-days:7}")
+    private int learningEvaluationDays = 7;
+
+    /** Observations of a suitability model must also come from at least this many searches with an interaction. */
+    @Value("${app.recommendation.learning.min-searches-a:300}")
+    private int learningMinSearchesA = 300;
+
+    /** A weight clamped this many nights in a row is reported (design 10, 10.4). */
+    @Value("${app.recommendation.learning.clamp-warning-nights:3}")
+    private int learningClampWarningNights = 3;
+
     /** Activate a new version by itself once it qualifies; otherwise an admin does. */
     @Value("${app.recommendation.learning.auto-activate:true}")
     private boolean learningAutoActivate = true;
