@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -12,9 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CertificateRepository;
+import com.ptutor.backend.repository.TutorComplaintPenaltyRepository;
+import com.ptutor.backend.repository.TutorComplaintPenaltyRepository.FaultComplaint;
 import com.ptutor.backend.repository.TutorRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -25,13 +29,16 @@ import tools.jackson.databind.node.ObjectNode;
 @RequiredArgsConstructor
 public class TutorRecommendationScoreService {
 
-    public static final String FORMULA_VERSION = "v1";
+    /** v2: complaints the tutor was found at fault for lower the score (design 06, section 6.8). */
+    public static final String FORMULA_VERSION = "v2";
 
     private static final BigDecimal MAX_SCORE = new BigDecimal("100.00");
     private static final BigDecimal MIN_SCORE = BigDecimal.ZERO.setScale(2);
 
     private final TutorRepository tutorRepository;
     private final CertificateRepository certificateRepository;
+    private final TutorComplaintPenaltyRepository complaintPenaltyRepository;
+    private final RecommendationSettings settings;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -54,6 +61,7 @@ public class TutorRecommendationScoreService {
         BigDecimal verification = verificationScore(tutor, verifiedCertificates);
         BigDecimal violationPenalty = BigDecimal.valueOf(Math.min(
                 15, Math.max(0, valueOrZero(tutor.getUser().getSuspensionCount())) * 5L));
+        ComplaintPenalty complaints = complaintPenalty(tutor.getId());
 
         BigDecimal score = rating
                 .add(completion)
@@ -61,7 +69,8 @@ public class TutorRecommendationScoreService {
                 .add(response)
                 .add(experience)
                 .add(verification)
-                .subtract(violationPenalty);
+                .subtract(violationPenalty)
+                .subtract(complaints.penalty());
         score = score.max(MIN_SCORE).min(MAX_SCORE).setScale(2, RoundingMode.HALF_UP);
 
         ObjectNode breakdown = objectMapper.createObjectNode();
@@ -73,12 +82,58 @@ public class TutorRecommendationScoreService {
         breakdown.put("verification", verification);
         breakdown.put("violationPenalty", violationPenalty);
         breakdown.put("verifiedCertificates", verifiedCertificates);
+        breakdown.put("complaintPenalty", complaints.penalty());
+        breakdown.put("faultComplaints", complaints.count());
+        breakdown.put("complaintWeight", complaints.weight());
 
         tutor.setRecommendationScore(score);
         tutor.setScoreFormulaVersion(FORMULA_VERSION);
         tutor.setScoreUpdatedAt(LocalDateTime.now(clock));
         tutor.setScoreBreakdown(breakdown);
         return tutorRepository.save(tutor);
+    }
+
+    /**
+     * Complaints concluded with the tutor at fault in the window, as a smoothed rate over signed contracts:
+     * min(max, scale × W / (n + prior)). W adds up one weight per complaint.
+     */
+    private ComplaintPenalty complaintPenalty(UUID tutorId) {
+        List<FaultComplaint> complaints = complaintPenaltyRepository.findFaultComplaints(
+                tutorId, LocalDateTime.now(clock).minusDays(settings.getComplaintWindowDays()));
+        double weight = complaints.stream().mapToDouble(this::complaintWeight).sum();
+        BigDecimal roundedWeight = BigDecimal.valueOf(weight).setScale(2, RoundingMode.HALF_UP);
+        if (complaints.isEmpty()) {
+            return new ComplaintPenalty(MIN_SCORE, 0, roundedWeight);
+        }
+        long contracts = complaintPenaltyRepository.countSignedContracts(tutorId);
+        double penalty = Math.min(settings.getComplaintMaxPenalty(),
+                settings.getComplaintPenaltyScale() * weight / (contracts + settings.getComplaintPriorContracts()));
+        return new ComplaintPenalty(
+                BigDecimal.valueOf(penalty).setScale(2, RoundingMode.HALF_UP), complaints.size(), roundedWeight);
+    }
+
+    private double complaintWeight(FaultComplaint complaint) {
+        double weight = complaint.sentByTutor()
+                ? settings.getComplaintComplainantWeight()
+                : categoryWeight(complaint);
+        return complaint.faultParty() == ComplaintFaultParty.BOTH ? weight * settings.getComplaintBothFactor() : weight;
+    }
+
+    private double categoryWeight(FaultComplaint complaint) {
+        if (complaint.category() == null) {
+            return settings.getComplaintWeightOther();
+        }
+        return switch (complaint.category()) {
+            case ABSENCE -> settings.getComplaintWeightAbsence();
+            case LATE_OR_SHORT -> settings.getComplaintWeightLateOrShort();
+            case TEACHING_QUALITY -> settings.getComplaintWeightTeachingQuality();
+            case MISCONDUCT -> settings.getComplaintWeightMisconduct();
+            case SERIOUS_MISCONDUCT -> settings.getComplaintWeightSeriousMisconduct();
+            case OTHER -> settings.getComplaintWeightOther();
+        };
+    }
+
+    private record ComplaintPenalty(BigDecimal penalty, int count, BigDecimal weight) {
     }
 
     private BigDecimal ratingScore(Tutor tutor) {

@@ -30,7 +30,10 @@ public class TutorRecommendationScoreEventListener {
             NotificationEventType.CERTIFICATE_APPROVED,
             NotificationEventType.CERTIFICATE_REJECTED,
             NotificationEventType.ACCOUNT_SUSPENDED,
-            NotificationEventType.ACCOUNT_REACTIVATED);
+            NotificationEventType.ACCOUNT_REACTIVATED,
+            // A concluded complaint may put the tutor at fault, whether they sent it or received it.
+            NotificationEventType.COMPLAINT_RESOLVED,
+            NotificationEventType.COMPLAINT_AGAINST_YOU_RESOLVED);
 
     private static final Set<NotificationEventType> CONTRACT_EVENTS = EnumSet.of(
             NotificationEventType.CONTRACT_SIGNED,

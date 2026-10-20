@@ -280,4 +280,46 @@ public class RecommendationSettings {
 
     @Value("${app.recommendation.query-embedding.cache-size:500}")
     private int queryEmbeddingCacheSize = 500;
+
+    /** Complaints concluded more than this long ago no longer lower the quality score. */
+    @Value("${app.recommendation.complaint.window-days:365}")
+    private int complaintWindowDays = 365;
+
+    /** Bayesian smoothing: every tutor starts with this many clean signed contracts. */
+    @Value("${app.recommendation.complaint.prior-contracts:5}")
+    private double complaintPriorContracts = 5;
+
+    @Value("${app.recommendation.complaint.penalty-scale:40}")
+    private double complaintPenaltyScale = 40;
+
+    @Value("${app.recommendation.complaint.max-penalty:20}")
+    private double complaintMaxPenalty = 20;
+
+    /** Weight of a complaint against the tutor, by the category the complainant chose. */
+    @Value("${app.recommendation.complaint.category-weights.absence:1.0}")
+    private double complaintWeightAbsence = 1.0;
+
+    @Value("${app.recommendation.complaint.category-weights.late-or-short:0.5}")
+    private double complaintWeightLateOrShort = 0.5;
+
+    @Value("${app.recommendation.complaint.category-weights.teaching-quality:0.5}")
+    private double complaintWeightTeachingQuality = 0.5;
+
+    @Value("${app.recommendation.complaint.category-weights.misconduct:1.5}")
+    private double complaintWeightMisconduct = 1.5;
+
+    @Value("${app.recommendation.complaint.category-weights.serious-misconduct:3.0}")
+    private double complaintWeightSeriousMisconduct = 3.0;
+
+    /** OTHER, and complaints concluded before categories existed. */
+    @Value("${app.recommendation.complaint.category-weights.other:1.0}")
+    private double complaintWeightOther = 1.0;
+
+    /** A complaint the tutor sent and was found at fault for: its category describes the student, not the tutor. */
+    @Value("${app.recommendation.complaint.complainant-weight:1.0}")
+    private double complaintComplainantWeight = 1.0;
+
+    /** Both parties at fault: the complaint counts for this share. */
+    @Value("${app.recommendation.complaint.both-factor:0.5}")
+    private double complaintBothFactor = 0.5;
 }

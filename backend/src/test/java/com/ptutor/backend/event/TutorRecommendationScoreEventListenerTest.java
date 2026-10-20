@@ -102,6 +102,31 @@ class TutorRecommendationScoreEventListenerTest {
         verify(scoreService).recalculateByTutorId(tutorId);
     }
 
+    @ParameterizedTest
+    @EnumSource(value = NotificationEventType.class,
+            names = { "COMPLAINT_RESOLVED", "COMPLAINT_AGAINST_YOU_RESOLVED" })
+    void recalculatesTutorWhoReceivesAComplaintConclusion(NotificationEventType eventType) {
+        UUID tutorUserId = UUID.randomUUID();
+        Tutor tutor = new Tutor();
+        tutor.setId(UUID.randomUUID());
+        when(tutorRepository.findByUser_Id(tutorUserId)).thenReturn(Optional.of(tutor));
+
+        listener.handle(NotificationDomainEvent.of(
+                tutorUserId, eventType, NotificationReferenceType.COMPLAINT, UUID.randomUUID(), Map.of()));
+
+        verify(scoreService).recalculateByTutorId(tutor.getId());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = NotificationEventType.class,
+            names = { "COMPLAINT_REJECTED", "COMPLAINT_AGAINST_YOU_REJECTED", "COMPLAINT_RECEIVED_AGAINST_YOU" })
+    void ignoresComplaintEventsWithoutAFaultConclusion(NotificationEventType eventType) {
+        listener.handle(NotificationDomainEvent.of(
+                UUID.randomUUID(), eventType, NotificationReferenceType.COMPLAINT, UUID.randomUUID(), Map.of()));
+
+        verifyNoInteractions(tutorRepository, scoreService, aggregateRefreshJob, transactionManager);
+    }
+
     @Test
     void skipsRecipientEventWhenRecipientIsNotTutor() {
         UUID userId = UUID.randomUUID();
