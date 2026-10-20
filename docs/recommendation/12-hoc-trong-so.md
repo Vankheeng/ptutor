@@ -245,6 +245,20 @@ Phần thưởng phía a **chỉ gồm hành động của người tìm** — �
    `P` ước lượng từ tỉ lệ tương tác theo vị trí trên slot khám phá; cắt trên ở 10 để tránh phương sai lớn.
    Bật bằng `learning.ipw.enabled`.
 
+**Ghi chú triển khai (20/10/2026) — dữ liệu học phía a.**
+
+> 💡 `LearningDataRepository.searchFeedback` đọc các lần tìm trong một khoảng thời gian, gom mọi việc người tìm đã làm với từng tin trong 7 ngày sau lần tìm, rồi chỉ giữ phần danh sách họ có khả năng đã đọc. Mỗi tin cho một quan sát (đặc trưng x lấy đúng từ log, điểm thưởng r, trọng số mẫu s).
+
+- Nguồn: `recommendation_logs` (chiều theo mô hình) + `recommendation_click_logs` của log đó + đơn / đề nghị người
+  tìm gửi vào đúng tin đó trong cửa sổ `reward-window-days`. Một đơn có thể được tính cho nhiều lần tìm trước nó
+  trong cửa sổ.
+- Chỉ dùng các tín hiệu **"Bắt buộc"** của bảng phần thưởng 12.4; các cờ tuỳ chọn (`rewards.repeat-view`,
+  `unfavorite`, `alert-click`, `bounce`) và IPW (`ipw.enabled`) đã có tham số nhưng **chưa được dùng**.
+- Lớp 1 và 2 ở trên đã làm: lần tìm không có tương tác nào (kể cả "bỏ qua") bị bỏ; lấy ứng viên tới hạng tương tác
+  thấp nhất + `viewed-depth-margin`; ứng viên `isExploration` có `s = exploration-sample-weight`.
+- Đặc trưng thiếu trong log (null) = `confidence-prior` 0,5, như khi tính a. Chỉ những ứng viên được log giữ đủ đặc
+  trưng (`log-candidate-limit`) mới có mặt.
+
 ## 12.6. Phía b: hồi quy Bayes trên quyết định nhận / từ chối
 
 > 💡 Đáp án là quyết định thật trong bảng đơn: nhận = 1, từ chối = 0. Thêm vài loại mẫu phụ với trọng số nhỏ hơn, ví dụ gia sư **chủ động mời** một học sinh cũng là dấu hiệu sẵn lòng dạy kiểu học sinh đó; đơn chờ quá 14 ngày coi như từ chối ngầm. Vì các con số thay đổi theo thời gian, lúc tạo đơn hệ thống chụp lại (**snapshot**) các thành phần b tại thời điểm đó. Phía b dùng thẳng μ, không thử ngẫu nhiên.
@@ -283,6 +297,15 @@ thứ tự hiển thị, và thử nghiệm trên b sẽ ảnh hưởng tới ph
 
 `b_cap` vẫn nhân sau cùng, không học (12.2).
 
+**Ghi chú triển khai (20/10/2026) — dữ liệu học phía b.** `LearningDataRepository.decisionSamples(model, from, to)`
+nối ảnh chụp với bảng đơn; mẫu được tính vào khoảng thời gian theo **thời điểm nhãn được biết**: lúc trả lời
+(`responded_at`, không có thì `updated_at`), mốc tạo + 14 ngày với từ chối ngầm, lúc tạo đơn với mẫu chủ động. Đơn bị
+xoá bị bỏ.
+
+> 💡 Phát hiện khi code: hiện khi một tin đã ghép với người khác, các đơn đang chờ vào tin đó **không** bị hệ thống chuyển `CANCELLED` mà vẫn `PENDING` (hệ thống chỉ huỷ đề nghị khi học sinh tự huỷ tin học). Vì vậy loại "bị hệ thống huỷ vì tin đã ghép" gần như không xuất hiện; các đơn đó vẫn thành từ chối ngầm sau 14 ngày chờ, nên không mất dữ liệu.
+
+Quy tắc đã cài cho `CANCELLED`: tính là từ chối ngầm khi tin đăng của đơn đang `MATCHED`; huỷ khi tin còn mở (người
+gửi tự rút lại, hoặc chủ tin huỷ tin) không cho nhãn.
 **Ghi chú triển khai (20/10/2026).**
 
 > 💡 Ảnh chụp được tính **trước** khi lưu đơn (nên đơn vừa gửi không tự tính vào số đơn đang chờ) và ghi **sau** khi lưu, đều trong cùng transaction tạo đơn. Mỗi phần chạy sau một "điểm lưu" (savepoint) của PostgreSQL: nếu lỗi thì quay lại điểm lưu, ghi log cảnh báo, đơn vẫn được tạo bình thường. Phía "chủ động" khi người gửi không có tin đăng ở chiều kia được dựng từ chính đơn và hồ sơ của họ.
