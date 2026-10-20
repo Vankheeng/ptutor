@@ -443,8 +443,9 @@ CREATE TABLE recommendation_decision_snapshots (
 ```
 
 Chế độ của từng mô hình (`OFF` / `SHADOW` / `ACTIVE`) nằm trong cấu hình (`learning.models.<key>.mode`) để
-đổi được khi khởi động; admin có thể ghi đè lúc chạy (12.9) — giá trị ghi đè lưu trong bảng cấu hình hệ
-thống sẵn có hoặc một dòng riêng, quyết định khi code.
+đổi được khi khởi động; admin có thể ghi đè lúc chạy (12.9). **Quyết định (20/10/2026, người dùng chọn):** dự án
+không có bảng cấu hình hệ thống, nên giá trị ghi đè lưu trong bảng mới `recommendation_learning_modes` (migration
+`V35`: `model_key` khoá chính, `mode`, `updated_by`, `updated_at`). Mô hình không có dòng nào dùng chế độ của cấu hình.
 
 **Bổ sung vào log tìm kiếm** (`recommendation_logs`):
 - `query_context.weights`: `{"A": {"model":"A_S2T","version":14,"mode":"ACTIVE","sampled":true,
@@ -485,7 +486,7 @@ recommendation_decision_snapshots + bảng đơn (phía b) ◄── DecisionSna
 | `WeightLearningJob` | Job đêm ở 12.7 |
 | `LearningDataRepository` | SQL dựng dữ liệu học: nối log với click log (7 ngày) cho phía a; nối snapshot với bảng đơn cho phía b |
 | `DecisionSnapshotRecorder` | Gọi trong service tạo đơn / đề nghị (hoặc listener của sự kiện tạo), ghi snapshot |
-| Admin API (tuỳ chọn) | `GET /api/admin/recommendation/weights` (prior, bản active, lịch sử version, đánh giá); `POST …/weights/{model}/activate/{version}`; `PUT …/weights/{model}/mode` |
+| Admin API (tuỳ chọn) | `GET /api/v1/admin/recommendations/weights` (prior, bản active, lịch sử version, đánh giá); `POST …/weights/{model}/activate/{version}`; `PUT …/weights/{model}/mode` — đã làm 20/10/2026 (`AdminRecommendationWeightController`, `AdminRecommendationWeightService`), chỉ ADMIN |
 
 Các calculator **không đọc trọng số trực tiếp từ `RecommendationSettings` nữa** mà hỏi `WeightProvider`.
 Khi L1 tắt, `WeightProvider` trả đúng giá trị của `RecommendationSettings` → kết quả không đổi so với
@@ -501,7 +502,10 @@ chặn ở đầu). Trọng số của một mô hình là `ModelWeights` (bất
 theo thứ tự đặc trưng của `WeightModel`: `A_S2T` sem, need, price, style, sched, area, segment; `A_T2S` sem, price,
 need, segment, sched, area; `B_S2T` hist, fitSegment, fitSched, fitPrice; `B_T2S` hist, fitQuality, fitStyle,
 fitPrice. a và a′ tính ở dạng `Σ w_k·x_k` (đặc trưng thiếu = `confidence-prior`), b và b′ ở dạng dàn phẳng;
-`willingness.fit` trong log vẫn là `b_fit` (trung bình có trọng số các phần fit). Nạp bản học được, chế độ và mẫu
+`willingness.fit` trong log vẫn là `b_fit` (trung bình có trọng số các phần fit). Chế độ đang áp dụng của một mô hình
+= `OFF` nếu tắt L1, nếu không thì chế độ admin đặt (nạp cùng lúc với các phiên bản), nếu không thì cấu hình; job đêm
+cũng bỏ qua mô hình theo chế độ này. Kích hoạt một phiên bản hoặc đổi chế độ qua API quản trị: ghi trong transaction
+riêng, rồi phát `LearnedWeightsUpdatedEvent` để `WeightProvider` nạp lại. Nạp bản học được, chế độ và mẫu
 Thompson làm ở bước sau.
 
 ## 12.10. Tham số `app.recommendation.learning.*`

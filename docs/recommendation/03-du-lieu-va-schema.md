@@ -385,3 +385,4 @@ Hai bảng mới: `recommendation_learned_weights` (mỗi lần cập nhật m�
 cờ `is_active`) và `recommendation_decision_snapshots` (ảnh chụp thành phần b khi đơn / đề nghị được tạo).
 SQL đầy đủ và các trường bổ sung vào `recommendation_logs` ở 12, mục 12.8. File:
 `V34__add_recommendation_weight_learning.sql` (`dev` dừng ở `V30` khi tạo, kiểm tra ngày 20/10/2026).
+`V35__add_recommendation_learning_modes.sql`: chế độ admin đặt cho từng mô hình (12, mục 12.8).
