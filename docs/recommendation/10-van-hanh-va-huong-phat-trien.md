@@ -192,5 +192,6 @@ tuyển dụng (11, mục 11.4).
 Trạng thái (20/10/2026): bước 1–9 đã lập trình (Bước 0–15 trong nhật ký) cùng giao diện học sinh tìm gia sư;
 đã merge `dev` đến PR #58 (duyệt tin học, kết luận khiếu nại có cấu trúc — P8, duyệt hồ sơ gia sư) và có phạt
 khiếu nại trong Q (06, mục 6.8), L1 phần code (bước 11 a–c, e) và giao diện gia sư tìm học viên
-(`/tutor/student-recommendations`), giao diện tìm kiếm đã lưu, xoá lịch sử, thông báo ghép đôi. Còn lại: bước 10,
+(`/tutor/student-recommendations`), giao diện tìm kiếm đã lưu, xoá lịch sử, thông báo ghép đôi; khu học sinh và
+khu gia sư hiển thị tiếng Việt (khu quản trị chưa). Còn lại: bước 10,
 thí nghiệm L1 (11 d).
