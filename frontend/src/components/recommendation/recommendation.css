@@ -372,3 +372,22 @@
     max-height: none;
   }
 }
+
+/* The tutor workspace: its panels have no padding of their own. */
+.tutor-panel.rec-filters,
+.tutor-panel.rec-card,
+.tutor-panel.rec-relaxations {
+  padding: 21px;
+}
+.rec-relaxation .tutor-button {
+  min-height: 30px;
+  color: #6736d6;
+  border-color: #d9ccfb;
+  white-space: nowrap;
+}
+.tutor-empty .tutor-button {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  text-decoration: none;
+}

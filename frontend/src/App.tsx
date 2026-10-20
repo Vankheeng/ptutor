@@ -13,6 +13,7 @@ import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
+import { TutorStudentRecommendationsPage } from './pages/tutor/TutorStudentRecommendationsPage';
 import { HomeLanding } from './components/home/HomeLanding';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
@@ -67,6 +68,7 @@ export default function App() {
                 <Route path="certificates" element={<TutorCertificatesPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
+                <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />

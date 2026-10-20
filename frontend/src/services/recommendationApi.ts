@@ -145,3 +145,77 @@ export function getRecommendationTags(group: TagGroup, subjectId?: string): Prom
   tagRequests.set(key, request);
   return request;
 }
+
+// ---- A tutor's search for students (design 05, 5.3; 08, 8.4)
+
+/** Filters of a tutor's search for students; missing ones are filled by the server from the profile. */
+export interface StudentSearchFilters {
+  subjectId?: string;
+  gradeIds?: string[];
+  learningMode?: ModePreference;
+  area?: AreaFilter;
+  expectedPrice?: number | null;
+  availabilities?: Availability[];
+  targetSegmentCodes?: string[];
+}
+
+export interface StudentSearchRequest {
+  filters?: StudentSearchFilters;
+  useTeachingRequestId?: string;
+  savedSearchId?: string;
+}
+
+/** What a tutor may see of a student in the list: no full name, contact or exact address. */
+export interface RecommendedStudent {
+  displayName: string;
+  district: string | null;
+}
+
+export interface StudentRecommendationItem {
+  rank: number;
+  studyingRequestId: string;
+  student: RecommendedStudent;
+  title: string | null;
+  learningGoals: string | null;
+  priceRange: { min: number | null; max: number | null } | null;
+  learningMode: TeachingMode;
+  score: number;
+  isExploration: boolean;
+  reasons: string[];
+  caution: string | null;
+}
+
+export interface StudentRecommendationResponse {
+  logId: string | null;
+  algorithmVersion: string;
+  queryContext: unknown;
+  needsInput: string[];
+  lowConfidence: boolean;
+  items: StudentRecommendationItem[];
+  relaxations: Relaxation[];
+  page: number;
+  size: number;
+  totalElements: number;
+}
+
+/** A new search; 403 TUTOR_PROFILE_NOT_VERIFIED while the tutor's profile is not approved. */
+export function searchStudents(request: StudentSearchRequest, size = 20, signal?: AbortSignal) {
+  return post<StudentRecommendationResponse>(`/api/v1/tutors/me/student-recommendations?page=0&size=${size}`, request, {
+    signal
+  });
+}
+
+export function getStudentPage(logId: string, page: number, size = 20, signal?: AbortSignal) {
+  return post<StudentRecommendationResponse>(
+    `/api/v1/tutors/me/student-recommendations?logId=${encodeURIComponent(logId)}&page=${page}&size=${size}`,
+    undefined,
+    { signal }
+  );
+}
+
+/** Scores again what the tutor has not seen yet, using what they opened or dismissed so far. */
+export function refineStudents(logId: string, seenUpToRank: number) {
+  return post<StudentRecommendationResponse>(`/api/v1/recommendations/${encodeURIComponent(logId)}/refine`, {
+    seenUpToRank
+  });
+}

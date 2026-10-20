@@ -1,4 +1,5 @@
 import { del, get, patch, post, put } from './httpClient';
+import type { TeachingRequest } from '../types/api';
 
 export interface TutorAddress {
   detailAddress: string | null;
@@ -198,4 +199,10 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
   return get<PageResponse<TutorLesson>>(`/api/v1/tutors/me/contracts/${contractId}/lessons?page=0&size=100`, {
     signal
   });
+}
+
+/** The tutor's own teaching postings, for example the OPEN ones to search with. */
+export function getMyTeachingRequests(status?: 'OPEN' | 'MATCHED' | 'CLOSED' | 'DRAFT', signal?: AbortSignal) {
+  const query = status ? `?status=${status}` : '';
+  return get<TeachingRequest[]>(`/api/v1/tutors/me/teaching-requests${query}`, { signal });
 }

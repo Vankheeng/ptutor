@@ -8,6 +8,7 @@ import './tutor-layout.css';
 const navigation = [
   { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Dashboard', icon: '⌂' },
   { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'My Teaching Requests', icon: '▤' },
+  { section: 'TEACHING', to: '/tutor/student-recommendations', label: 'Gợi ý học viên', icon: '✦' },
   { section: 'TEACHING', to: '/tutor/proposals', label: 'My requests to teach', icon: '↗' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Contracts', icon: '▣' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Calendar', icon: '▦' },
