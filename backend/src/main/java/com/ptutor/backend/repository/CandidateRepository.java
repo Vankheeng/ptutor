@@ -165,25 +165,7 @@ public class CandidateRepository {
                         .addValue("since", Timestamp.valueOf(LocalDateTime.now().minusDays(RECENT_REJECTION_DAYS))),
                 (row, index) -> row.getObject("tutor_id", UUID.class)));
 
-        Map<UUID, List<PastDecision>> decisions = new HashMap<>();
-        jdbc.query("""
-                SELECT tr.tutor_id, g.level, s.proposed_price, s.learning_mode, s.status
-                FROM student_tutor_requests s
-                JOIN teaching_requests tr ON tr.id = s.teaching_request_id
-                LEFT JOIN grades g ON g.id = s.grade_id
-                WHERE s.deleted_at IS NULL AND s.status IN ('ACCEPTED', 'REJECTED')
-                  AND COALESCE(s.responded_at, s.updated_at) > :since
-                  AND tr.tutor_id IN (:tutorIds)
-                """, new MapSqlParameterSource()
-                        .addValue("tutorIds", tutorIds)
-                        .addValue("since", Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))),
-                row -> {
-                    decisions.computeIfAbsent(row.getObject("tutor_id", UUID.class), key -> new ArrayList<>())
-                            .add(new PastDecision(
-                                    (Integer) row.getObject("level"), row.getBigDecimal("proposed_price"),
-                                    LearningMode.valueOf(row.getString("learning_mode")),
-                                    row.getString("status").equals("ACCEPTED")));
-                });
+        Map<UUID, List<PastDecision>> decisions = tutorDecisions(tutorIds, historyDays);
         Set<UUID> inviting = new HashSet<>(jdbc.query("""
                 SELECT DISTINCT p.tutor_id
                 FROM tutor_student_requests p
@@ -294,6 +276,33 @@ public class CandidateRepository {
 
     private String uuidArrayLiteral(List<UUID> ids) {
         return ids.stream().map(UUID::toString).collect(Collectors.joining(",", "{", "}"));
+    }
+
+    /** What each tutor decided about student applications in the last {@code historyDays} (input of b_hist). */
+    public Map<UUID, List<PastDecision>> tutorDecisions(Collection<UUID> tutorIds, int historyDays) {
+        Map<UUID, List<PastDecision>> decisions = new HashMap<>();
+        if (tutorIds.isEmpty()) {
+            return decisions;
+        }
+        jdbc.query("""
+                SELECT tr.tutor_id, g.level, s.proposed_price, s.learning_mode, s.status
+                FROM student_tutor_requests s
+                JOIN teaching_requests tr ON tr.id = s.teaching_request_id
+                LEFT JOIN grades g ON g.id = s.grade_id
+                WHERE s.deleted_at IS NULL AND s.status IN ('ACCEPTED', 'REJECTED')
+                  AND COALESCE(s.responded_at, s.updated_at) > :since
+                  AND tr.tutor_id IN (:tutorIds)
+                """, new MapSqlParameterSource()
+                        .addValue("tutorIds", tutorIds)
+                        .addValue("since", Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))),
+                row -> {
+                    decisions.computeIfAbsent(row.getObject("tutor_id", UUID.class), key -> new ArrayList<>())
+                            .add(new PastDecision(
+                                    (Integer) row.getObject("level"), row.getBigDecimal("proposed_price"),
+                                    LearningMode.valueOf(row.getString("learning_mode")),
+                                    row.getString("status").equals("ACCEPTED")));
+                });
+        return decisions;
     }
 
     public record Hit(UUID teachingRequestId, LocalDateTime createdAt, Double cosine) {

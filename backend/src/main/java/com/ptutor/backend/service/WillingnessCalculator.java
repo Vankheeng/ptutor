@@ -1,6 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.FeatureVector;
@@ -35,16 +38,17 @@ public class WillingnessCalculator {
             QueryContext context, TeachingCandidate candidate, FeatureVector features, double platformRate) {
         double history = history(context, candidate, platformRate);
         ModelWeights weights = weightProvider.weights(WeightModel.B_S2T);
-        double fit = fit(weights, fitParts(context, candidate, features, platformRate));
+        double[] parts = fitParts(context, candidate, features, platformRate);
+        double fit = fit(weights, parts);
         double capacity = settings.isCongestionEnabled()
                 ? capacity(candidate.remainingSlots(), candidate.pendingApplications()) : 1.0;
         if (candidate.tutorInvitedStudent()) {
-            return new Willingness(1.0, history, fit, capacity, true);
+            return new Willingness(1.0, history, fit, capacity, true, asList(parts));
         }
         // Flattened form (design 12, 12.2): w_hist x b_hist + Σ w_i x fit_i, which with the prior weights is
         // 0.5 x b_hist + 0.5 x the mean of the fit parts.
         return new Willingness((weights.get(0) * history + fitShare(weights) * fit) * capacity,
-                history, fit, capacity, false);
+                history, fit, capacity, false, asList(parts));
     }
 
     /**
@@ -89,6 +93,10 @@ public class WillingnessCalculator {
         }
         double share = fitShare(weights);
         return share > 0 ? sum / share : plain / parts.length;
+    }
+
+    static List<Double> asList(double[] values) {
+        return Arrays.stream(values).boxed().toList();
     }
 
     /** The total weight of the fit parts, everything but the history weight. */

@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -161,25 +162,7 @@ public class StudyingCandidateRepository {
                         LocalDateTime.now().minusDays(CandidateRepository.RECENT_REJECTION_DAYS))),
                 (row, index) -> row.getObject("student_id", UUID.class)));
 
-        Map<UUID, List<PastProposal>> decisions = new HashMap<>();
-        jdbc.query("""
-                SELECT sr.student_id, p.proposed_price, t.recommendation_score, p.status
-                FROM tutor_student_requests p
-                JOIN studying_requests sr ON sr.id = p.studying_request_id
-                JOIN tutors t ON t.id = p.tutor_id
-                WHERE p.deleted_at IS NULL AND p.status IN ('ACCEPTED', 'REJECTED')
-                  AND COALESCE(p.responded_at, p.updated_at) > :historySince
-                  AND sr.student_id IN (:studentIds)
-                """, new MapSqlParameterSource()
-                        .addValue("studentIds", studentIds)
-                        .addValue("historySince", Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))),
-                row -> {
-                    BigDecimal score = row.getBigDecimal("recommendation_score");
-                    decisions.computeIfAbsent(row.getObject("student_id", UUID.class), key -> new ArrayList<>())
-                            .add(new PastProposal(row.getBigDecimal("proposed_price"),
-                                    score == null ? null : score.doubleValue() / 100.0,
-                                    row.getString("status").equals("ACCEPTED")));
-                });
+        Map<UUID, List<PastProposal>> decisions = studentDecisions(studentIds, historyDays);
 
         Set<UUID> applied = new HashSet<>(jdbc.query("""
                 SELECT DISTINCT s.student_id
@@ -232,6 +215,33 @@ public class StudyingCandidateRepository {
     }
 
     /** Share of tutor proposals that students accepted, over the whole platform. */
+    /** What each student decided about tutor proposals in the last {@code historyDays} (input of b'_hist). */
+    public Map<UUID, List<PastProposal>> studentDecisions(Collection<UUID> studentIds, int historyDays) {
+        Map<UUID, List<PastProposal>> decisions = new HashMap<>();
+        if (studentIds.isEmpty()) {
+            return decisions;
+        }
+        jdbc.query("""
+                SELECT sr.student_id, p.proposed_price, t.recommendation_score, p.status
+                FROM tutor_student_requests p
+                JOIN studying_requests sr ON sr.id = p.studying_request_id
+                JOIN tutors t ON t.id = p.tutor_id
+                WHERE p.deleted_at IS NULL AND p.status IN ('ACCEPTED', 'REJECTED')
+                  AND COALESCE(p.responded_at, p.updated_at) > :historySince
+                  AND sr.student_id IN (:studentIds)
+                """, new MapSqlParameterSource()
+                        .addValue("studentIds", studentIds)
+                        .addValue("historySince", Timestamp.valueOf(LocalDateTime.now().minusDays(historyDays))),
+                row -> {
+                    BigDecimal score = row.getBigDecimal("recommendation_score");
+                    decisions.computeIfAbsent(row.getObject("student_id", UUID.class), key -> new ArrayList<>())
+                            .add(new PastProposal(row.getBigDecimal("proposed_price"),
+                                    score == null ? null : score.doubleValue() / 100.0,
+                                    row.getString("status").equals("ACCEPTED")));
+                });
+        return decisions;
+    }
+
     public double platformAcceptanceRate(int historyDays, int minDecisions, double defaultRate) {
         Map<String, Object> row = jdbc.queryForMap("""
                 SELECT count(*) FILTER (WHERE status = 'ACCEPTED') AS accepted, count(*) AS decided

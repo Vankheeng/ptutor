@@ -50,6 +50,7 @@ class StudentTutorRequestServiceTest {
     @Mock GradeRepository gradeRepository;
     @Mock GradeTeachingRequestRepository gradeTeachingRequestRepository;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock DecisionSnapshotRecorder snapshotRecorder;
 
     private StudentTutorRequestService service;
     private UUID userId;
@@ -67,7 +68,8 @@ class StudentTutorRequestServiceTest {
                 studentRepository,
                 gradeRepository,
                 gradeTeachingRequestRepository,
-                eventPublisher);
+                eventPublisher,
+                snapshotRecorder);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         teachingRequestId = UUID.randomUUID();

@@ -122,17 +122,18 @@ public class TutorSideRanker {
     Willingness willingness(SupplyContext context, StudyingCandidate candidate, double platformRate) {
         double history = history(context, candidate, platformRate);
         ModelWeights weights = weightProvider.weights(WeightModel.B_T2S);
-        double fit = WillingnessCalculator.fit(weights, fitParts(context, candidate));
+        double[] parts = fitParts(context, candidate);
+        double fit = WillingnessCalculator.fit(weights, parts);
         double remaining = Math.max(1, candidate.remainingSlots());
         double capacity = settings.isCongestionEnabled()
                 ? remaining / (remaining + settings.getCongestionLambda() * Math.max(0, candidate.pendingProposals()))
                 : 1.0;
         if (candidate.studentAppliedToTutor()) {
-            return new Willingness(1.0, history, fit, capacity, true);
+            return new Willingness(1.0, history, fit, capacity, true, WillingnessCalculator.asList(parts));
         }
         // Flattened form (design 12, 12.2): with the prior weights, 0.5 x b'_hist + 0.5 x b'_fit.
         return new Willingness((weights.get(0) * history + WillingnessCalculator.fitShare(weights) * fit) * capacity,
-                history, fit, capacity, false);
+                history, fit, capacity, false, WillingnessCalculator.asList(parts));
     }
 
     /** Acceptance rate of the student's past decisions, weighted by how similar the proposing tutor was. */

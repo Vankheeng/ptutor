@@ -36,6 +36,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
+import com.ptutor.backend.entity.enums.DecisionRequestType;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
@@ -60,6 +61,7 @@ class TutorStudentRequestServiceTest {
     @Mock DistrictRepository districtRepository;
     @Mock StudentRepository studentRepository;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock DecisionSnapshotRecorder snapshotRecorder;
 
     private TutorStudentRequestService service;
     private UUID tutorUserId;
@@ -80,7 +82,8 @@ class TutorStudentRequestServiceTest {
                 districtRepository,
                 studentRepository,
                 Mappers.getMapper(TutorStudentRequestMapper.class),
-                eventPublisher);
+                eventPublisher,
+                snapshotRecorder);
 
         tutorUserId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
@@ -120,6 +123,30 @@ class TutorStudentRequestServiceTest {
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().recipientUserId()).isEqualTo(studentUserId);
         assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.TUTOR_REQUEST_RECEIVED);
+    }
+
+    @Test
+    void snapshotsTheWillingnessBeforeSavingAndRecordsItForTheSavedProposal() {
+        when(studyingRequestRepository.findById(studyingRequestId))
+                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
+                .thenAnswer(invocation -> {
+                    TutorStudentRequest value = invocation.getArgument(0);
+                    value.setId(requestId);
+                    return value;
+                });
+        DecisionSnapshotRecorder.Prepared prepared =
+                new DecisionSnapshotRecorder.Prepared(DecisionRequestType.TUTOR_STUDENT_REQUEST, java.util.List.of());
+        when(snapshotRecorder.prepareTutorProposal(any(), any(), any(), any(), any())).thenReturn(prepared);
+
+        service.create(tutorUserId, studyingRequestId, createRequest());
+
+        // Computed before the proposal exists, so it does not count among the student's pending proposals.
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(snapshotRecorder, tutorStudentRequestRepository);
+        order.verify(snapshotRecorder).prepareTutorProposal(any(), any(), any(), any(), any());
+        order.verify(tutorStudentRequestRepository).saveAndFlush(any(TutorStudentRequest.class));
+        order.verify(snapshotRecorder).record(prepared, requestId);
     }
 
     @Test

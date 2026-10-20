@@ -10,10 +10,12 @@ import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.FeatureVector;
 import com.ptutor.backend.dto.recommendation.MatchReasons;
+import com.ptutor.backend.dto.recommendation.ModelWeights;
 import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.ScoredStudyingCandidate;
 import com.ptutor.backend.dto.recommendation.SupplyContext;
+import com.ptutor.backend.dto.recommendation.WeightModel;
 import com.ptutor.backend.dto.recommendation.Willingness;
 import com.ptutor.backend.dto.response.RelaxationSuggestion;
 import com.ptutor.backend.entity.RecommendationLog;
@@ -45,6 +47,7 @@ public class RecommendationLogger {
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
     private final EmbeddingTextBuilder textBuilder;
+    private final WeightProvider weightProvider;
 
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
@@ -55,6 +58,7 @@ public class RecommendationLogger {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
         storedContext.put("rerankStatus", rerankStatus.name());
+        storedContext.set("weights", weightsJson(WeightModel.A_S2T, WeightModel.B_S2T));
         return logRepository.save(RecommendationLog.builder()
                 .searcherStudent(student)
                 .sourceStudyingRequest(context.sourceStudyingRequestId() == null ? null
@@ -79,6 +83,7 @@ public class RecommendationLogger {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
+        storedContext.set("weights", weightsJson(WeightModel.A_T2S, WeightModel.B_T2S));
         ArrayNode candidates = objectMapper.createArrayNode();
         int rank = 1;
         for (ScoredStudyingCandidate scored : ranked) {
@@ -88,7 +93,7 @@ public class RecommendationLogger {
             node.put("rank", rank++);
             node.put("score", round(scored.score()));
             node.put("a", round(scored.a()));
-            putWillingness(node, scored.willingness());
+            putWillingness(node, scored.willingness(), WeightModel.B_T2S);
             node.put("r", round(scored.r()));
             node.putNull("q");
             node.put("g", round(scored.g()));
@@ -183,7 +188,7 @@ public class RecommendationLogger {
             node.put("rank", rank++);
             node.put("score", round(scored.score()));
             node.put("a", round(scored.a()));
-            putWillingness(node, scored.willingness());
+            putWillingness(node, scored.willingness(), WeightModel.B_S2T);
             node.put("r", round(scored.r()));
             node.put("q", round(scored.q()));
             node.put("g", round(scored.g()));
@@ -235,17 +240,47 @@ public class RecommendationLogger {
         return relaxations;
     }
 
-    private void putWillingness(ObjectNode node, Willingness willingness) {
+    /**
+     * The weights the ranking used for this search (design 08, 8.7; 12, 12.8). L1 does not serve learned weights
+     * yet, so these are the prior and {@code version} is null.
+     */
+    private ObjectNode weightsJson(WeightModel suitability, WeightModel willingness) {
+        ObjectNode json = objectMapper.createObjectNode();
+        json.set("A", modelWeightsJson(weightProvider.weights(suitability)));
+        json.set("B", modelWeightsJson(weightProvider.weights(willingness)));
+        return json;
+    }
+
+    private ObjectNode modelWeightsJson(ModelWeights weights) {
+        ObjectNode json = objectMapper.createObjectNode();
+        json.put("model", weights.model().name());
+        json.putNull("version");
+        json.put("mode", "PRIOR");
+        json.put("sampled", false);
+        ObjectNode values = json.putObject("values");
+        List<String> features = weights.model().features();
+        for (int i = 0; i < features.size(); i++) {
+            values.put(features.get(i), weights.get(i));
+        }
+        return json;
+    }
+
+    /** @param model the willingness model, which names the fit parts */
+    private void putWillingness(ObjectNode node, Willingness willingness, WeightModel model) {
         if (willingness == null) {
             node.putNull("b");
             return;
         }
         node.put("b", round(willingness.b()));
-        node.putObject("willingness")
+        ObjectNode parts = node.putObject("willingness")
                 .put("hist", round(willingness.history()))
                 .put("fit", round(willingness.fit()))
                 .put("cap", round(willingness.capacity()))
                 .put("invited", willingness.invited());
+        List<String> names = model.features().subList(1, model.features().size());
+        for (int i = 0; i < names.size() && i < willingness.fitParts().size(); i++) {
+            parts.put(names.get(i), round(willingness.fitParts().get(i)));
+        }
     }
 
     private void putFeatures(ObjectNode node, FeatureVector features) {

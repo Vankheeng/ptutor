@@ -168,6 +168,25 @@ class StudentRecommendationIntegrationTest {
     }
 
     @Test
+    void theLogKeepsTheWeightsUsedAndThePartsOfTheStudentsWillingness() {
+        UUID posting = request(student(), new Request());
+
+        StudentRecommendationResponse response = search(anywhere());
+
+        entityManager.flush();
+        entityManager.clear();
+        JsonNode weights = logRepository.findById(response.logId()).orElseThrow().getQueryContext().path("weights");
+        assertThat(weights.path("A").path("model").asString()).isEqualTo("A_T2S");
+        assertThat(weights.path("A").path("values").path("price").asDouble()).isEqualTo(0.25);
+        assertThat(weights.path("B").path("model").asString()).isEqualTo("B_T2S");
+        assertThat(weights.path("B").path("values").path("fitQuality").asDouble()).isCloseTo(0.20, within(1e-12));
+        JsonNode willingness = of(log(response.logId()), posting).path("willingness");
+        assertThat(willingness.path("fitQuality").asDouble()).isEqualTo(0.8);
+        assertThat(willingness.has("fitStyle")).isTrue();
+        assertThat(willingness.has("fitPrice")).isTrue();
+    }
+
+    @Test
     void aTutorWithoutAnyTeachingPostingCanSearch() {
         UUID posting = request(student(), new Request());
 

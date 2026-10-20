@@ -370,6 +370,28 @@ class TutorRecommendationIntegrationTest {
     }
 
     @Test
+    void theLogKeepsTheWeightsUsedAndThePartsOfTheTutorsWillingness() {
+        ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
+        UUID posting = posting(tutor(), new Posting().cosine(0.70));
+
+        TutorRecommendationResponse response = search(anywhere());
+
+        entityManager.flush();
+        entityManager.clear();
+        tools.jackson.databind.JsonNode weights =
+                logRepository.findById(response.logId()).orElseThrow().getQueryContext().path("weights");
+        assertThat(weights.path("A").path("model").asString()).isEqualTo("A_S2T");
+        assertThat(weights.path("A").path("values").path("sem").asDouble()).isEqualTo(0.30);
+        assertThat(weights.path("B").path("model").asString()).isEqualTo("B_S2T");
+        assertThat(weights.path("B").path("values").path("hist").asDouble()).isEqualTo(0.5);
+        assertThat(weights.path("B").path("version").isNull()).isTrue();
+        tools.jackson.databind.JsonNode willingness = log(response.logId()).of(posting).path("willingness");
+        assertThat(willingness.has("fitSegment")).isTrue();
+        assertThat(willingness.has("fitSched")).isTrue();
+        assertThat(willingness.has("fitPrice")).isTrue();
+    }
+
+    @Test
     void scheduleThatNeverOverlapsAndARecentRejectionPushAPostingDown() {
         UUID overlapping = posting(tutor(), new Posting().cosine(0.60).slot(2, "19:00", "21:00"));
         UUID clashing = posting(tutor(), new Posting().cosine(0.80).slot(5, "08:00", "10:00"));
