@@ -234,7 +234,7 @@ Ghi chú triển khai (13/10/2026):
 | `direction`, `algorithm_version` | `STUDENT_TO_TUTOR`, `v2.2-rcx` … |
 | `query_text`, `parsed_query`, `query_context` | Câu gốc (đã lọc PII), kết quả A2, tiêu chí cuối cùng |
 | `returned_candidate_ids` | ≤ 50 phần tử: `{candidateId, candidateUserId, rank, score, a, b, willingness:{hist, fit, cap, invited}, q, g, wHist, confidence, features:{sem, need, style, segment, price, sched, area, hist}, rerank, isExploration}`; L1 thêm `willingness.fitSegment`, `fitSched`, `fitPrice` (chiều T→S: `fitQuality`, `fitStyle`, `fitPrice`) |
-| `query_context.weights` (L1) | `{"A": {model, version, mode, sampled, values}, "B": {…}}` — trọng số **thực sự đã dùng** cho lần tìm. Từ 20/10/2026 luôn được ghi; khi chưa phục vụ bản học được: `version` = null, `mode` = `"PRIOR"`, `sampled` = false |
+| `query_context.weights` (L1) | `{"A": {model, version, mode, sampled, values}, "B": {…}}` — trọng số **thực sự đã dùng** cho lần tìm. Từ 20/10/2026 luôn được ghi: `mode` là chế độ cấu hình của mô hình (`OFF` / `SHADOW` / `ACTIVE`); khi phục vụ prior thì `version` = null, `sampled` = false |
 | `relaxation_suggestions`, `latency_ms` | |
 
 Lưu đủ đặc trưng từng ứng viên để: phân trang và `/refine` không phải tính lại; giải thích "vì sao

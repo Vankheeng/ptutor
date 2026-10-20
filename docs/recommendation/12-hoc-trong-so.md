@@ -154,6 +154,12 @@ c  = c₀ + Σ_i s_i · r_i · x_i
 Kẹp quanh prior nghĩa là trọng số tự đặt vẫn quyết định **vùng hợp lệ**: không đặc trưng nào bị mô hình
 "tắt hẳn" hay chiếm toàn bộ điểm. Biên `[0,5×; 2×]` là tham số (`learning.min-ratio`, `max-ratio`).
 
+**Ghi chú triển khai (20/10/2026):** `LinearBayesModel` (lớp toán thuần, không Spring): `fromPrior`,
+`fromStatistics` (tiếp tục từ A, c đã lưu), `forget(γ)`, `update(x, r, s)`, `mean()` = giải A μ = c bằng phân rã
+Cholesky viết tay, `sample(random, ρ, ν)` = μ + ρ·ν·L⁻ᵀz với A = L Lᵀ, z ~ N(0, I) (hiệp phương sai ρ²ν²A⁻¹),
+`project(θ, prior, previous, …)` theo đúng bốn bước trên. Vì chuẩn hoá làm sau giới hạn bước, một trọng số sau cùng
+có thể lệch bản trước hơn `max-step` một chút (tổng trước chuẩn hoá nằm trong 1 ± số đặc trưng × `max-step`).
+
 ## 12.4. Phía a: Linear Thompson Sampling
 
 > 💡 Phía a phải chủ động thử, vì tin không được hiển thị thì không bao giờ có phản hồi. Mỗi lần tìm, hệ thống **rút ngẫu nhiên** một bộ trọng số quanh μ (θ̃ ~ N(μ, ρ²Σ): phân phối chuẩn, càng chưa chắc thì rút càng xa), qua bốn bước an toàn, rồi xếp hạng bằng bộ đó. **ρ** chỉnh mức thử; ρ = 0 là luôn dùng μ (tham lam). Cùng một người trong cùng một ngày nhận cùng bộ trọng số, để tìm lại không bị đảo lộn.
@@ -179,6 +185,18 @@ Mỗi lần tìm (khi mô hình ở chế độ ACTIVE):
 - Các luồng nền (thông báo chủ động C7, `RerankPrefetchJob`, nới tiêu chí C6) dùng **μ**, không rút mẫu.
 - Phân biệt với slot khám phá R6: R6 khám phá **ứng viên** (công bằng hiển thị); L1 khám phá **trọng số**.
   Hai cơ chế độc lập, cùng dựa trên Thompson sampling.
+
+**Ghi chú triển khai (20/10/2026).**
+
+> 💡 Mẫu Thompson được rút một lần cho mỗi (người dùng, ngày, mô hình, phiên bản) và giữ trong bộ nhớ, nên mọi ứng viên của một lần tìm — và cả log — dùng đúng một bộ trọng số. Các luồng nền được đánh dấu "dùng μ" ngay tại điểm vào, không phải sửa từng calculator.
+
+- `WeightProvider.weightsFor(model, userId)`: phía a hỏi theo người tìm (`QueryContext.studentUserId`,
+  `SupplyContext.tutorUserId`); phía b luôn `weights(model)` = μ. Hạt giống = băm (người dùng, ngày theo `Clock` của
+  ứng dụng, mô hình). Mẫu qua `project` với "bản trước" là μ của phiên bản đang phục vụ.
+- Luồng nền: `WeightProvider.withMeanWeights(…)` (phạm vi theo luồng xử lý, kiểu `LocaleContextHolder`) bọc
+  `MatchAlertService` (C7, `matchPosition`), `RerankPrefetchJob` và lượt xếp hạng lại của `RelaxationService` (C6).
+- Log: `query_context.weights.A` ghi đúng bộ đã dùng (`sampled = true` khi là mẫu), `version` của phiên bản đang
+  phục vụ, `mode` là chế độ cấu hình (`OFF` / `SHADOW` / `ACTIVE`).
 
 ### Phần thưởng phía a
 
@@ -392,7 +410,7 @@ thống sẵn có hoặc một dòng riêng, quyết định khi code.
 **Ghi chú triển khai (20/10/2026):** đã tạo `V34__add_recommendation_weight_learning.sql` đúng hai bảng trên, thêm
 ràng buộc `ck_decision_snapshot_request_type` và chỉ mục `(request_type, request_id)` để đọc ảnh chụp theo đơn khi
 dựng dữ liệu học. Entity `RecommendationLearnedWeights`, `RecommendationDecisionSnapshot` và repository tương ứng.
-Log tìm kiếm đã có `query_context.weights` (hiện `mode = "PRIOR"`, `version = null`) và `fitSegment`, `fitSched`,
+Log tìm kiếm đã có `query_context.weights` (`version = null` khi phục vụ prior) và `fitSegment`, `fitSched`,
 `fitPrice` (chiều học sinh tìm) / `fitQuality`, `fitStyle`, `fitPrice` (chiều gia sư tìm) trong `willingness` của
 từng ứng viên.
 
@@ -428,7 +446,12 @@ Khi L1 tắt, `WeightProvider` trả đúng giá trị của `RecommendationSett
 hiện tại (có test khẳng định điều này).
 
 **Trạng thái (20/10/2026):** `WeightProvider` đã có và các calculator (`FeatureCalculator`, `TutorSideRanker`,
-`WillingnessCalculator`) đã hỏi nó; hiện nó **chỉ trả prior**. Trọng số của một mô hình là `ModelWeights` (bất biến)
+`WillingnessCalculator`) đã hỏi nó. Bước 21: nạp bản `is_active` của từng mô hình lúc khởi động
+(`ApplicationReadyEvent`) và khi có `LearnedWeightsUpdatedEvent`, giữ trong `AtomicReference` một `Map` bất biến;
+chế độ `OFF` / `SHADOW` / `ACTIVE` theo `learning.models.<key>.mode` (`learning.enabled = false` → mọi mô hình về
+`OFF`); lỗi khi nạp → mọi mô hình phục vụ prior tới lần nạp sau. Bảng `recommendation_learned_weights` lưu `weights`
+dạng đối tượng `{tên đặc trưng: giá trị}` (không có hệ số chặn), `stats_a` mảng hai chiều, `stats_c` mảng (có hệ số
+chặn ở đầu). Trọng số của một mô hình là `ModelWeights` (bất biến)
 theo thứ tự đặc trưng của `WeightModel`: `A_S2T` sem, need, price, style, sched, area, segment; `A_T2S` sem, price,
 need, segment, sched, area; `B_S2T` hist, fitSegment, fitSched, fitPrice; `B_T2S` hist, fitQuality, fitStyle,
 fitPrice. a và a′ tính ở dạng `Σ w_k·x_k` (đặc trưng thiếu = `confidence-prior`), b và b′ ở dạng dàn phẳng;
