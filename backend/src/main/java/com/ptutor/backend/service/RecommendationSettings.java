@@ -5,6 +5,9 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.ptutor.backend.dto.recommendation.WeightModel;
+import com.ptutor.backend.entity.enums.WeightLearningMode;
+
 import lombok.Getter;
 
 /**
@@ -456,5 +459,135 @@ public class RecommendationSettings {
                 "FAVORITED", historySignalFavorited, "CONTACTED", historySignalContacted,
                 "REQUESTED", historySignalRequested, "ACCEPTED", historySignalAccepted,
                 "DISMISSED", historySignalDismissed);
+    }
+
+    // ---- L1: learned ranking weights (design 12, section 12.10)
+
+    /** Off: every model serves its prior and nothing is learned. */
+    @Value("${app.recommendation.learning.enabled:true}")
+    private boolean learningEnabled = true;
+
+    @Value("${app.recommendation.learning.models.A_S2T.mode:SHADOW}")
+    private WeightLearningMode learningModeAS2T = WeightLearningMode.SHADOW;
+
+    @Value("${app.recommendation.learning.models.A_T2S.mode:SHADOW}")
+    private WeightLearningMode learningModeAT2S = WeightLearningMode.SHADOW;
+
+    @Value("${app.recommendation.learning.models.B_S2T.mode:SHADOW}")
+    private WeightLearningMode learningModeBS2T = WeightLearningMode.SHADOW;
+
+    @Value("${app.recommendation.learning.models.B_T2S.mode:SHADOW}")
+    private WeightLearningMode learningModeBT2S = WeightLearningMode.SHADOW;
+
+    /** κ: how many observations the prior is worth. */
+    @Value("${app.recommendation.learning.prior-strength:200}")
+    private double learningPriorStrength = 200;
+
+    /** ν: assumed noise of the feedback; the posterior covariance is ν² A⁻¹. */
+    @Value("${app.recommendation.learning.noise:0.3}")
+    private double learningNoise = 0.3;
+
+    /** ρ: Thompson exploration of the suitability side; 0 always serves μ. */
+    @Value("${app.recommendation.learning.exploration-scale:1.0}")
+    private double learningExplorationScale = 1.0;
+
+    /** Learned weights are clamped to [min-ratio, max-ratio] × prior. */
+    @Value("${app.recommendation.learning.min-ratio:0.5}")
+    private double learningMinRatio = 0.5;
+
+    @Value("${app.recommendation.learning.max-ratio:2.0}")
+    private double learningMaxRatio = 2.0;
+
+    /** Largest change of one weight in one update. */
+    @Value("${app.recommendation.learning.max-step:0.05}")
+    private double learningMaxStep = 0.05;
+
+    /** γ: forgetting factor applied before each update; 1 = never forget. */
+    @Value("${app.recommendation.learning.forgetting:1.0}")
+    private double learningForgetting = 1.0;
+
+    /** Days a search waits before its reward is final. */
+    @Value("${app.recommendation.learning.reward-window-days:7}")
+    private int learningRewardWindowDays = 7;
+
+    @Value("${app.recommendation.learning.rewards.view:0.3}")
+    private double learningRewardView = 0.3;
+
+    @Value("${app.recommendation.learning.rewards.favorite:0.6}")
+    private double learningRewardFavorite = 0.6;
+
+    @Value("${app.recommendation.learning.rewards.contact:0.8}")
+    private double learningRewardContact = 0.8;
+
+    @Value("${app.recommendation.learning.rewards.request:1.0}")
+    private double learningRewardRequest = 1.0;
+
+    @Value("${app.recommendation.learning.rewards.dismissed:-0.2}")
+    private double learningRewardDismissed = -0.2;
+
+    @Value("${app.recommendation.learning.rewards.repeat-view:true}")
+    private boolean learningRewardRepeatView = true;
+
+    @Value("${app.recommendation.learning.rewards.unfavorite:true}")
+    private boolean learningRewardUnfavorite = true;
+
+    @Value("${app.recommendation.learning.rewards.alert-click:false}")
+    private boolean learningRewardAlertClick = false;
+
+    @Value("${app.recommendation.learning.rewards.bounce:false}")
+    private boolean learningRewardBounce = false;
+
+    /** Accepted within this many hours: a stronger positive sample of b. */
+    @Value("${app.recommendation.learning.b-samples.fast-accept-hours:24}")
+    private int learningFastAcceptHours = 24;
+
+    @Value("${app.recommendation.learning.b-samples.fast-accept-weight:1.5}")
+    private double learningFastAcceptWeight = 1.5;
+
+    /** Weight of the positive sample of the side that reached out. */
+    @Value("${app.recommendation.learning.b-samples.initiative-weight:0.5}")
+    private double learningInitiativeWeight = 0.5;
+
+    /** A request still PENDING after this many days counts as an implicit rejection. */
+    @Value("${app.recommendation.learning.b-samples.implicit-reject-days:14}")
+    private int learningImplicitRejectDays = 14;
+
+    @Value("${app.recommendation.learning.b-samples.implicit-reject-weight:0.5}")
+    private double learningImplicitRejectWeight = 0.5;
+
+    /** Candidates are used down to the lowest position the searcher interacted with, plus this many. */
+    @Value("${app.recommendation.learning.viewed-depth-margin:2}")
+    private int learningViewedDepthMargin = 2;
+
+    /** Sample weight of a candidate shown in an exploration slot. */
+    @Value("${app.recommendation.learning.exploration-sample-weight:2}")
+    private double learningExplorationSampleWeight = 2;
+
+    @Value("${app.recommendation.learning.ipw.enabled:false}")
+    private boolean learningIpwEnabled = false;
+
+    @Value("${app.recommendation.learning.ipw.max-weight:10}")
+    private double learningIpwMaxWeight = 10;
+
+    /** Observations needed before a suitability model may be activated. */
+    @Value("${app.recommendation.learning.min-samples-a:2000}")
+    private int learningMinSamplesA = 2000;
+
+    /** Decisions needed before a willingness model may be activated. */
+    @Value("${app.recommendation.learning.min-samples-b:300}")
+    private int learningMinSamplesB = 300;
+
+    /** Activate a new version by itself once it qualifies; otherwise an admin does. */
+    @Value("${app.recommendation.learning.auto-activate:true}")
+    private boolean learningAutoActivate = true;
+
+    /** The mode configured for a model. */
+    public WeightLearningMode getLearningMode(WeightModel model) {
+        return switch (model) {
+            case A_S2T -> learningModeAS2T;
+            case A_T2S -> learningModeAT2S;
+            case B_S2T -> learningModeBS2T;
+            case B_T2S -> learningModeBT2S;
+        };
     }
 }

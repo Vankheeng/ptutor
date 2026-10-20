@@ -164,12 +164,15 @@ public class MatchAlertService {
             TutorRecommendationRequest request = source.type() == RecommendationMatchSourceType.SAVED_SEARCH
                     ? savedSearchService.studentRequest(source.userId(), source.id())
                     : new TutorRecommendationRequest(null, null, null, source.id());
-            found = recommendationService.matchPosition(source.userId(), request, postingId);
+            // Background work ranks with μ, not with the searcher's Thompson sample (design 12, 12.4).
+            found = WeightProvider.withMeanWeights(
+                    () -> recommendationService.matchPosition(source.userId(), request, postingId));
         } else {
             StudentRecommendationRequest request = source.type() == RecommendationMatchSourceType.SAVED_SEARCH
                     ? savedSearchService.tutorRequest(source.userId(), source.id())
                     : new StudentRecommendationRequest(null, source.id());
-            found = studentRecommendationService.matchPosition(source.userId(), request, postingId);
+            found = WeightProvider.withMeanWeights(
+                    () -> studentRecommendationService.matchPosition(source.userId(), request, postingId));
         }
         if (found.isEmpty() || found.get().rank() > settings.getAlertTopRank()
                 || found.get().score() < settings.getAlertNotifyThreshold()) {

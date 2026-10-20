@@ -17,6 +17,7 @@ import com.ptutor.backend.service.RecommendationService;
 import com.ptutor.backend.service.RecommendationSettings;
 import com.ptutor.backend.service.RerankService;
 import com.ptutor.backend.service.StudentRecommendationService;
+import com.ptutor.backend.service.WeightProvider;
 
 import lombok.RequiredArgsConstructor;
 
@@ -81,7 +82,9 @@ public class RerankPrefetchJob {
         for (Map<String, Object> source : sources) {
             totals[0]++;
             try {
-                totals[1] += prefetch.apply((UUID) source.get("user_id"), (UUID) source.get("source_id"));
+                // Background work ranks with μ, not with the user's Thompson sample (design 12, 12.4).
+                totals[1] += WeightProvider.withMeanWeights(
+                        () -> prefetch.apply((UUID) source.get("user_id"), (UUID) source.get("source_id")));
             } catch (RuntimeException exception) {
                 // One source that cannot be searched from must not stop the others.
                 totals[2]++;

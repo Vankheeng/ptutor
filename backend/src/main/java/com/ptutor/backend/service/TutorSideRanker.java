@@ -112,7 +112,8 @@ public class TutorSideRanker {
 
         // In the order of WeightModel.A_T2S.
         Double[] features = { sem, price, need, segment, sched, area };
-        double[] suitability = featureCalculator.suitability(weightProvider.weights(WeightModel.A_T2S), features);
+        double[] suitability = featureCalculator.suitability(
+                weightProvider.weightsFor(WeightModel.A_T2S, context.tutorUserId()), features);
         return new FeatureVector(sem, rerank, need, null, segment, price, sched, area, hist,
                 hist == null ? 0 : histWeight, FeatureCalculator.blend(suitability[0], hist, histWeight),
                 suitability[1], overlap != null && overlap == 0);

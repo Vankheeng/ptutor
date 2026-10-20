@@ -58,7 +58,7 @@ public class RecommendationLogger {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
         storedContext.put("rerankStatus", rerankStatus.name());
-        storedContext.set("weights", weightsJson(WeightModel.A_S2T, WeightModel.B_S2T));
+        storedContext.set("weights", weightsJson(WeightModel.A_S2T, WeightModel.B_S2T, context.studentUserId()));
         return logRepository.save(RecommendationLog.builder()
                 .searcherStudent(student)
                 .sourceStudyingRequest(context.sourceStudyingRequestId() == null ? null
@@ -83,7 +83,7 @@ public class RecommendationLogger {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
-        storedContext.set("weights", weightsJson(WeightModel.A_T2S, WeightModel.B_T2S));
+        storedContext.set("weights", weightsJson(WeightModel.A_T2S, WeightModel.B_T2S, context.tutorUserId()));
         ArrayNode candidates = objectMapper.createArrayNode();
         int rank = 1;
         for (ScoredStudyingCandidate scored : ranked) {
@@ -241,22 +241,27 @@ public class RecommendationLogger {
     }
 
     /**
-     * The weights the ranking used for this search (design 08, 8.7; 12, 12.8). L1 does not serve learned weights
-     * yet, so these are the prior and {@code version} is null.
+     * The weights the ranking used for this search (design 08, 8.7; 12, 12.8): the same the calculators got, a
+     * Thompson sample of the searcher's day for an active suitability model. {@code version} is null for the prior.
      */
-    private ObjectNode weightsJson(WeightModel suitability, WeightModel willingness) {
+    private ObjectNode weightsJson(WeightModel suitability, WeightModel willingness, UUID searcherUserId) {
         ObjectNode json = objectMapper.createObjectNode();
-        json.set("A", modelWeightsJson(weightProvider.weights(suitability)));
-        json.set("B", modelWeightsJson(weightProvider.weights(willingness)));
+        json.set("A", modelWeightsJson(weightProvider.served(suitability, searcherUserId)));
+        json.set("B", modelWeightsJson(weightProvider.served(willingness, null)));
         return json;
     }
 
-    private ObjectNode modelWeightsJson(ModelWeights weights) {
+    private ObjectNode modelWeightsJson(WeightProvider.Served served) {
+        ModelWeights weights = served.weights();
         ObjectNode json = objectMapper.createObjectNode();
         json.put("model", weights.model().name());
-        json.putNull("version");
-        json.put("mode", "PRIOR");
-        json.put("sampled", false);
+        if (served.version() == null) {
+            json.putNull("version");
+        } else {
+            json.put("version", served.version());
+        }
+        json.put("mode", served.mode().name());
+        json.put("sampled", served.sampled());
         ObjectNode values = json.putObject("values");
         List<String> features = weights.model().features();
         for (int i = 0; i < features.size(); i++) {

@@ -66,7 +66,8 @@ public class FeatureCalculator {
 
         // In the order of WeightModel.A_S2T.
         Double[] features = { sem, need, price, style, sched, area, segment };
-        double[] suitability = suitability(weightProvider.weights(WeightModel.A_S2T), features);
+        double[] suitability = suitability(
+                weightProvider.weightsFor(WeightModel.A_S2T, context.studentUserId()), features);
         return new FeatureVector(sem, rerank, need, style, segment, price, sched, area, hist,
                 hist == null ? 0 : histWeight, blend(suitability[0], hist, histWeight), suitability[1],
                 overlap != null && overlap == 0);

@@ -105,7 +105,8 @@ public class RelaxationService {
             }
             List<S> gained;
             try {
-                gained = ranking.apply(variant.context()).stream()
+                // Ranked with μ, like other background work (design 12, 12.4).
+                gained = WeightProvider.withMeanWeights(() -> ranking.apply(variant.context())).stream()
                         .filter(result -> !known.contains(person.apply(result)))
                         .filter(result -> score.applyAsDouble(result) >= settings.getRelaxationGoodThreshold())
                         .toList();

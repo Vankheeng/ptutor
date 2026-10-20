@@ -1,0 +1,166 @@
+package com.ptutor.backend.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
+
+import java.util.Arrays;
+import java.util.Random;
+
+import org.junit.jupiter.api.Test;
+
+class LinearBayesModelTest {
+
+    private static final double[] PRIOR = { 0.30, 0.20, 0.20, 0.10, 0.10, 0.05, 0.05 };
+
+    @Test
+    void withoutDataTheMeanIsThePriorAndTheInterceptIsZero() {
+        double[] mean = LinearBayesModel.fromPrior(PRIOR, 200).mean();
+
+        assertThat(mean[0]).isCloseTo(0, within(1e-12));
+        assertThat(Arrays.copyOfRange(mean, 1, mean.length)).containsExactly(PRIOR, within(1e-12));
+    }
+
+    @Test
+    void theMeanMovesToTheWeightsThatProducedTheData() {
+        double[] truth = { 0.10, 0.40, 0.10, 0.05, 0.25, 0.05, 0.05 };
+        double intercept = 0.08;
+        Random random = new Random(7);
+        LinearBayesModel model = LinearBayesModel.fromPrior(PRIOR, 5);
+
+        for (int i = 0; i < 20_000; i++) {
+            double[] x = new double[truth.length];
+            double r = intercept;
+            for (int k = 0; k < x.length; k++) {
+                x[k] = random.nextDouble();
+                r += truth[k] * x[k];
+            }
+            model.update(x, r + 0.05 * random.nextGaussian(), 1);
+        }
+
+        double[] mean = model.mean();
+        assertThat(mean[0]).isCloseTo(intercept, within(0.01));
+        assertThat(Arrays.copyOfRange(mean, 1, mean.length)).containsExactly(truth, within(0.01));
+    }
+
+    @Test
+    void theStrongerThePriorTheLessAFewObservationsMoveTheMean() {
+        double[] x = { 1, 0, 0, 0, 0, 0, 0 };
+        LinearBayesModel weak = LinearBayesModel.fromPrior(PRIOR, 1);
+        LinearBayesModel strong = LinearBayesModel.fromPrior(PRIOR, 1_000);
+        for (int i = 0; i < 50; i++) {
+            weak.update(x, 1.0, 1);
+            strong.update(x, 1.0, 1);
+        }
+
+        double weakShift = Math.abs(weak.mean()[1] - PRIOR[0]);
+        double strongShift = Math.abs(strong.mean()[1] - PRIOR[0]);
+        assertThat(strongShift).isLessThan(weakShift / 5);
+    }
+
+    @Test
+    void aSampleWeightCountsLikeRepeatingTheObservation() {
+        double[] x = { 0.5, 1, 0, 0.2, 0, 1, 0.3 };
+        LinearBayesModel weighted = LinearBayesModel.fromPrior(PRIOR, 10);
+        LinearBayesModel repeated = LinearBayesModel.fromPrior(PRIOR, 10);
+
+        weighted.update(x, 0.8, 3);
+        for (int i = 0; i < 3; i++) {
+            repeated.update(x, 0.8, 1);
+        }
+
+        assertThat(weighted.mean()).containsExactly(repeated.mean(), within(1e-12));
+    }
+
+    @Test
+    void forgettingWithFactorOneChangesNothingAndWithZeroReturnsToThePrior() {
+        LinearBayesModel model = LinearBayesModel.fromPrior(PRIOR, 10);
+        model.update(new double[] { 1, 1, 0, 0, 0, 0, 0 }, 1, 5);
+        double[] learned = model.mean();
+
+        model.forget(1.0);
+        assertThat(model.mean()).containsExactly(learned, within(1e-12));
+
+        model.forget(0.0);
+        assertThat(model.mean()).containsExactly(LinearBayesModel.fromPrior(PRIOR, 10).mean(), within(1e-12));
+    }
+
+    @Test
+    void statisticsRoundTripToTheSameModel() {
+        LinearBayesModel model = LinearBayesModel.fromPrior(PRIOR, 10);
+        model.update(new double[] { 0.2, 0.4, 0.6, 0.8, 1, 0, 0.5 }, 0.6, 2);
+
+        LinearBayesModel restored = LinearBayesModel.fromStatistics(PRIOR, 10, model.statsA(), model.statsC());
+
+        assertThat(restored.mean()).containsExactly(model.mean(), within(1e-12));
+        assertThatThrownBy(() -> LinearBayesModel.fromStatistics(PRIOR, 10, new double[2][2], new double[2]))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void choleskyReconstructsTheMatrix() {
+        double[][] matrix = { { 4, 2, 0.6 }, { 2, 5, 1 }, { 0.6, 1, 3 } };
+
+        double[][] l = LinearBayesModel.cholesky(matrix);
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                double sum = 0;
+                for (int k = 0; k < 3; k++) {
+                    sum += l[i][k] * l[j][k];
+                }
+                assertThat(sum).isCloseTo(matrix[i][j], within(1e-12));
+            }
+        }
+        assertThatThrownBy(() -> LinearBayesModel.cholesky(new double[][] { { 1, 2 }, { 2, 1 } }))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void theSameSeedGivesTheSameSampleAndSamplesSpreadAroundTheMean() {
+        LinearBayesModel model = LinearBayesModel.fromPrior(PRIOR, 50);
+
+        assertThat(model.sample(new Random(42), 1.0, 0.3)).containsExactly(model.sample(new Random(42), 1.0, 0.3));
+        assertThat(model.sample(new Random(42), 1.0, 0.3)).isNotEqualTo(model.sample(new Random(43), 1.0, 0.3));
+        assertThat(model.sample(new Random(42), 0.0, 0.3)).containsExactly(model.mean(), within(1e-12));
+
+        // Σ = ν² A⁻¹ = 0.09 / 50 on each axis: the sample mean and variance of the first weight.
+        Random random = new Random(1);
+        int count = 20_000;
+        double sum = 0;
+        double squares = 0;
+        for (int i = 0; i < count; i++) {
+            double value = model.sample(random, 1.0, 0.3)[1];
+            sum += value;
+            squares += value * value;
+        }
+        double mean = sum / count;
+        assertThat(mean).isCloseTo(PRIOR[0], within(0.002));
+        assertThat(squares / count - mean * mean).isCloseTo(0.09 / 50, within(0.0002));
+    }
+
+    @Test
+    void projectionClampsAroundThePriorLimitsTheStepAndSumsToOne() {
+        double[] prior = { 0.20, 0.20, 0.60 };
+        // Intercept, then far above 2 × prior, negative, and within range.
+        double[] theta = { 0.7, 0.55, -0.3, 0.60 };
+
+        double[] unlimited = LinearBayesModel.project(theta, prior, prior, 0.5, 2.0, 1.0);
+        // Clamped to 0.40, 0.10 and 0.60, then normalised by 1.10.
+        assertThat(unlimited).containsExactly(new double[] { 0.40 / 1.10, 0.10 / 1.10, 0.60 / 1.10 }, within(1e-12));
+
+        double[] limited = LinearBayesModel.project(theta, prior, prior, 0.5, 2.0, 0.05);
+        // At most 0.05 away from the previous weights: 0.25, 0.15, 0.60, then normalised by 1.00.
+        assertThat(limited).containsExactly(new double[] { 0.25, 0.15, 0.60 }, within(1e-12));
+        assertThat(Arrays.stream(limited).sum()).isCloseTo(1.0, within(1e-12));
+    }
+
+    @Test
+    void projectionNeverSwitchesAFeatureOff() {
+        double[] prior = { 0.01, 0.99 };
+
+        double[] weights = LinearBayesModel.project(new double[] { 0, -5, 0.99 }, prior, prior, 0.5, 2.0, 1.0);
+
+        assertThat(weights[0]).isGreaterThan(0);
+    }
+}
