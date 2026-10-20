@@ -378,6 +378,29 @@ Với mỗi mô hình có chế độ ≠ OFF:
 - Bản mới tệ hơn prior trên dữ liệu kiểm tra → **không** kích hoạt, bản đang dùng giữ nguyên.
 - Mọi lần tìm ghi version trọng số đã dùng → truy được kết quả nào xếp bằng bộ trọng số nào.
 
+### Ghi chú triển khai (20/10/2026)
+
+> 💡 Job đêm đã có: mỗi mô hình (trừ `OFF`) đọc dữ liệu mới từ mốc của bản trước, giữ riêng 7 ngày mới nhất để so với prior, học phần còn lại rồi lưu thành phiên bản mới. Đủ dữ liệu và không tệ hơn prior thì đánh dấu "đang dùng"; nhưng người dùng chỉ thật sự nhận bản học được khi chế độ cấu hình là `ACTIVE`.
+
+- `WeightLearningJob` (lịch `learning.job-cron`) gọi `WeightLearningService.learnAll(now)`; mỗi mô hình một
+  transaction riêng, lỗi của một mô hình không chặn mô hình khác (log `WARN`).
+- **Khoảng dữ liệu:** "có thể dùng tới" = `now − reward-window-days` với phía a, `now` với phía b. Học trên
+  `(trained_until, có thể dùng tới − evaluation-days]`; **giữ riêng** `evaluation-days` (7) ngày cuối để đánh giá —
+  đúng nghĩa "dữ liệu gần nhất chưa dùng để học"; đêm sau các ngày đó được học. `trained_until` của bản mới = mốc
+  cuối của khoảng học. Mô hình chưa có bản nào bắt đầu từ 01/01/2000.
+- **Không có quan sát mới → không tạo phiên bản** (chỉ ghi log), để không sinh version rỗng mỗi đêm.
+- "Bản trước" của bước giới hạn = trọng số của phiên bản mới nhất (hoặc prior).
+- **Đánh giá:** phía a — NDCG@10 trung bình trên các lần tìm giữ riêng có ít nhất một thưởng dương, xếp theo Σ w·x,
+  điểm thưởng âm tính là 0; phía b — log-loss có trọng số mẫu của Σ w·x (b trước `b_cap`), kẹp xác suất trong
+  [10⁻⁶; 1 − 10⁻⁶]. "Không tệ hơn" cần ít nhất một mẫu giữ riêng.
+- **Kích hoạt:** `auto-activate` và đủ dữ liệu (phía a: `min-samples-a` quan sát **và** `min-searches-a` lần tìm có
+  tương tác, tính cộng dồn; phía b: `min-samples-b`) và không tệ hơn prior → bỏ đánh dấu bản cũ rồi chèn bản mới với
+  `is_active = true` (chỉ mục duy nhất một bản active mỗi mô hình). Kích hoạt **không đổi chế độ**: ở `SHADOW`
+  người dùng vẫn nhận prior (đúng "SHADOW không đổi trọng số phục vụ"). Có bản được kích hoạt → phát
+  `LearnedWeightsUpdatedEvent` sau khi các transaction đã commit.
+- `evaluation` lưu `metric`, `learned`, `prior`, `n` (số mẫu giữ riêng), `newSamples`, `searches` (cộng dồn),
+  `enoughData`, `clamped` (các đặc trưng có μ nằm ngoài biên kẹp).
+
 ## 12.8. Lưu trữ — migration V34
 
 > 💡 Hai bảng mới: một bảng lưu các phiên bản trọng số (kèm A, c và cờ đang dùng), một bảng lưu ảnh chụp thành phần b lúc tạo đơn; cộng các trường thêm vào nhật ký tìm kiếm.
@@ -507,6 +530,9 @@ Thompson làm ở bước sau.
 | `min-samples-a` / `min-samples-b` | 2 000 / 300 | Điều kiện kích hoạt |
 | `auto-activate` | `true` | Tự kích hoạt khi đủ điều kiện |
 | `job-cron` | `0 30 20 * * *` (UTC) | Lịch `WeightLearningJob` |
+| `evaluation-days` | 7 | Số ngày mới nhất giữ riêng để so bản mới với prior (thêm khi code, 20/10/2026) |
+| `min-searches-a` | 300 | Số lần tìm có tương tác tối thiểu (cộng dồn) để kích hoạt phía a — điều kiện "từ ≥ 300 lần tìm" của 12.7 (thêm khi code) |
+| `clamp-warning-nights` | 3 | Một trọng số bị kẹp chừng này đêm liền thì log `WARN` (10, mục 10.4; thêm khi code) |
 
 ## 12.11. Chứng minh trong đồ án
 

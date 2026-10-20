@@ -117,7 +117,10 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 - Màn hình admin (tuỳ chọn): xem một lần tìm với đủ a, b, Q, G, `f_hist` của từng ứng viên.
 - L1: sau mỗi lần chạy `WeightLearningJob` ghi log số mẫu mới, trọng số trước / sau, khoảng cách tới prior,
   kết quả đánh giá so với prior và việc có kích hoạt hay không; mức `WARN` khi một trọng số chạm biên kẹp
-  nhiều đêm liền (dấu hiệu prior lệch xa hoặc dữ liệu bất thường) hoặc khi job lỗi.
+  nhiều đêm liền (dấu hiệu prior lệch xa hoặc dữ liệu bất thường) hoặc khi job lỗi. **Đã làm (20/10/2026):** mỗi mô
+  hình một dòng `INFO` (số mẫu mới / cộng dồn, trọng số trước → sau, tổng |w − prior|, chỉ số đánh giá của bản học
+  và prior, số mẫu giữ riêng, có kích hoạt không và lý do); `WARN` khi một đặc trưng bị kẹp
+  `learning.clamp-warning-nights` (3) đêm liền hoặc khi một mô hình lỗi.
 
 ## 10.5. Hướng phát triển
 
