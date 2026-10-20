@@ -379,9 +379,9 @@ Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) đư�
 
 ## 3.6. Migration V34 — học trọng số (L1)
 
-> 💡 Phần **đang thiết kế**: hai bảng cho việc tự học trọng số — một bảng lưu các phiên bản trọng số đã học, một bảng lưu "ảnh chụp" các con số tại lúc đơn được tạo (để sau này biết lúc đó hệ thống đã ước lượng gì).
+> 💡 Hai bảng cho việc tự học trọng số — một bảng lưu các phiên bản trọng số đã học, một bảng lưu "ảnh chụp" các con số tại lúc đơn được tạo (để sau này biết lúc đó hệ thống đã ước lượng gì). File migration đã tạo ngày 20/10/2026.
 
 Hai bảng mới: `recommendation_learned_weights` (mỗi lần cập nhật một dòng, có version, thống kê A, c và
 cờ `is_active`) và `recommendation_decision_snapshots` (ảnh chụp thành phần b khi đơn / đề nghị được tạo).
-SQL đầy đủ và các trường bổ sung vào `recommendation_logs` ở 12, mục 12.8. Số migration kiểm tra lại với
-`dev` trước khi tạo file.
+SQL đầy đủ và các trường bổ sung vào `recommendation_logs` ở 12, mục 12.8. File:
+`V34__add_recommendation_weight_learning.sql` (`dev` dừng ở `V30` khi tạo, kiểm tra ngày 20/10/2026).

@@ -265,6 +265,27 @@ thứ tự hiển thị, và thử nghiệm trên b sẽ ảnh hưởng tới ph
 
 `b_cap` vẫn nhân sau cùng, không học (12.2).
 
+**Ghi chú triển khai (20/10/2026).**
+
+> 💡 Ảnh chụp được tính **trước** khi lưu đơn (nên đơn vừa gửi không tự tính vào số đơn đang chờ) và ghi **sau** khi lưu, đều trong cùng transaction tạo đơn. Mỗi phần chạy sau một "điểm lưu" (savepoint) của PostgreSQL: nếu lỗi thì quay lại điểm lưu, ghi log cảnh báo, đơn vẫn được tạo bình thường. Phía "chủ động" khi người gửi không có tin đăng ở chiều kia được dựng từ chính đơn và hồ sơ của họ.
+
+- `DecisionSnapshotRecorder` (gọi trong `StudentTutorRequestService.createForStudent` và
+  `TutorStudentRequestService.create`): `prepare…` trước `saveAndFlush`, `record` sau. Lỗi ở bất kỳ bước nào → quay
+  về savepoint, log cảnh báo, không có ảnh chụp, đơn vẫn được tạo (quyết định của người dùng: savepoint trong cùng
+  transaction, không ghi sau commit). Ghi bằng SQL thuần, không qua Hibernate, để một lần ghi lỗi không để lại thực
+  thể hỏng trong phiên. Giới hạn: nếu chính **truy vấn đọc qua JPA** (dựng tiêu chí) gặp lỗi SQL, Spring vẫn đánh
+  dấu transaction phải rollback — trường hợp này coi như lỗi của database, không xử lý riêng.
+- **Đơn của học sinh** vào tin dạy T: `B_S2T` / DECISION dựng tiêu chí của học sinh như một lần tìm (lớp, giá
+  `proposedPrice` làm ngân sách, hình thức lấy từ đơn; phần còn lại từ hồ sơ, 05 mục 5.5) và tin T như ứng viên.
+  `B_T2S` / INITIATIVE: phía gia sư lấy từ tin T (`useTeachingRequestId`), học sinh được dựng thành "ứng viên tin học"
+  từ chính tiêu chí đó và lịch sử trả lời đề nghị của học sinh (quyết định của người dùng: dựng từ đơn + hồ sơ).
+- **Đề nghị của gia sư** vào tin học S: `B_T2S` / DECISION dựng tiêu chí gia sư từ đề nghị (lớp, giá, hình thức) và
+  hồ sơ, tin S là ứng viên. `B_S2T` / INITIATIVE: phía học sinh lấy từ tin S, gia sư được dựng thành "ứng viên tin
+  dạy" từ tiêu chí của gia sư và lịch sử trả lời đơn của gia sư.
+- `features` = `{"hist", các phần fit theo tên của mô hình, "cap", "pending", "reachedOut", "p0"}`; phần fit là giá
+  trị b thực sự dùng (phần thiếu đã được thay theo 12.2). `reachedOut` = phía kia đã chủ động trước (với mẫu
+  INITIATIVE luôn true). `weights_version` để trống cho tới khi có bản học được.
+
 ## 12.7. Vòng đời và cơ chế an toàn
 
 > 💡 Mỗi mô hình có ba chế độ và điều kiện chuyển chế độ, job chạy mỗi đêm, và lưới an toàn để quay về trọng số nhóm đặt bất cứ lúc nào.
@@ -367,6 +388,13 @@ thống sẵn có hoặc một dòng riêng, quyết định khi code.
 - Mỗi ứng viên trong `returned_candidate_ids`: thêm các thành phần fit (`fitSegment`, `fitSched`,
   `fitPrice`) bên cạnh `willingness.hist/fit/cap` đang có — để phân tích và tái hiện điểm.
 - `log-candidate-limit` giữ 50 khi chạy thật; khi chạy thí nghiệm mô phỏng nâng lên 200.
+
+**Ghi chú triển khai (20/10/2026):** đã tạo `V34__add_recommendation_weight_learning.sql` đúng hai bảng trên, thêm
+ràng buộc `ck_decision_snapshot_request_type` và chỉ mục `(request_type, request_id)` để đọc ảnh chụp theo đơn khi
+dựng dữ liệu học. Entity `RecommendationLearnedWeights`, `RecommendationDecisionSnapshot` và repository tương ứng.
+Log tìm kiếm đã có `query_context.weights` (hiện `mode = "PRIOR"`, `version = null`) và `fitSegment`, `fitSched`,
+`fitPrice` (chiều học sinh tìm) / `fitQuality`, `fitStyle`, `fitPrice` (chiều gia sư tìm) trong `willingness` của
+từng ứng viên.
 
 ## 12.9. Thành phần và luồng
 
