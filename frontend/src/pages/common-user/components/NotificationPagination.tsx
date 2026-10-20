@@ -12,13 +12,13 @@ export function NotificationPagination({ page, totalPages, first, last, onPageCh
   return (
     <div className="student-pagination">
       <button type="button" disabled={first} onClick={() => onPageChange(page - 1)}>
-        Previous
+        Trang trước
       </button>
       <span>
-        Page {page + 1} of {totalPages}
+        Trang {page + 1} / {totalPages}
       </span>
       <button type="button" disabled={last} onClick={() => onPageChange(page + 1)}>
-        Next
+        Trang sau
       </button>
     </div>
   );

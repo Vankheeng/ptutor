@@ -5,13 +5,15 @@ interface NotificationListProps {
   isLoading: boolean;
   error: string | null;
   onRead: (notification: Notification) => void;
+  /** The notification leads to a page: clicking it opens that page. */
+  canOpen?: (notification: Notification) => boolean;
 }
 
-export function NotificationList({ notifications, isLoading, error, onRead }: NotificationListProps) {
+export function NotificationList({ notifications, isLoading, error, onRead, canOpen }: NotificationListProps) {
   if (isLoading) {
     return (
       <div className="student-empty">
-        <h3>Loading notifications…</h3>
+        <h3>Đang tải thông báo…</h3>
       </div>
     );
   }
@@ -26,8 +28,8 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
   if (!notifications?.length) {
     return (
       <div className="student-empty">
-        <h3>No notifications</h3>
-        <p>You are all caught up.</p>
+        <h3>Chưa có thông báo</h3>
+        <p>Bạn đã xem hết thông báo.</p>
       </div>
     );
   }
@@ -40,7 +42,7 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
           style={{
             textAlign: 'left',
             border: item.isRead ? undefined : '1px solid #c7b4ff',
-            cursor: item.isRead ? 'default' : 'pointer'
+            cursor: item.isRead && !canOpen?.(item) ? 'default' : 'pointer'
           }}
           key={item.id}
           type="button"
@@ -51,11 +53,17 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
             <p>
               {item.content}
               <br />
-              <span className="student-muted">{new Date(item.createdAt).toLocaleString('en-US')}</span>
+              <span className="student-muted">{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
+              {canOpen?.(item) && (
+                <>
+                  {' · '}
+                  <span className="student-muted">Bấm để xem</span>
+                </>
+              )}
             </p>
           </div>
           <span className={`student-status ${item.isRead ? 'completed' : 'unread'}`}>
-            {item.isRead ? 'Read' : 'Unread'}
+            {item.isRead ? 'Đã đọc' : 'Chưa đọc'}
           </span>
         </button>
       ))}

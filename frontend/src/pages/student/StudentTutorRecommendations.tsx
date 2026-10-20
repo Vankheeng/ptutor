@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AreaPicker } from '../../components/recommendation/AreaPicker';
 import { AvailabilityEditor } from '../../components/recommendation/AvailabilityEditor';
+import { SavedSearchControls } from '../../components/recommendation/SavedSearches';
 import { hasInvalidSlot } from '../../components/recommendation/availability';
 import { TagChips } from '../../components/recommendation/TagChips';
 import '../../components/recommendation/recommendation.css';
 import { getGrades } from '../../services/gradeApi';
-import { ApiError } from '../../services/httpClient';
+import { errorMessage } from '../../services/errorMessages';
 import {
   getRecommendationTags,
   getTutorPage,
@@ -17,6 +18,7 @@ import {
   type RecommendationAction,
   type RecommendationTag,
   type Relaxation,
+  type SavedSearch,
   type TutorRecommendationItem,
   type TutorRecommendationResponse,
   type TutorSearchFilters
@@ -125,8 +127,9 @@ export function StudentTutorRecommendations() {
     });
   }, []);
 
+  /** @param savedSearchId run a saved search: the server uses its saved criteria */
   const run = useCallback(
-    async (searchFilters: TutorSearchFilters) => {
+    async (searchFilters: TutorSearchFilters, savedSearchId?: string, savedSentence?: string | null) => {
       if (hasInvalidSlot(searchFilters.availabilities ?? [])) {
         setError('Khung giờ rảnh chưa hợp lệ: giờ kết thúc phải sau giờ bắt đầu.');
         return;
@@ -138,9 +141,10 @@ export function StudentTutorRecommendations() {
         const response = await searchTutors(
           {
             filters: searchFilters,
-            semanticText: parsedSentence ?? undefined,
-            queryText: parsedSentence ?? undefined,
-            useStudyingRequestId: useRequestId || undefined
+            semanticText: (savedSearchId ? savedSentence : parsedSentence) ?? undefined,
+            queryText: (savedSearchId ? savedSentence : parsedSentence) ?? undefined,
+            useStudyingRequestId: useRequestId || undefined,
+            savedSearchId
           },
           PAGE_SIZE
         );
@@ -154,7 +158,7 @@ export function StudentTutorRecommendations() {
         setHasNewSignal(false);
         setActive(null);
       } catch (caught) {
-        setError(messageOf(caught, 'Không tìm được gợi ý. Vui lòng thử lại.'));
+        setError(errorMessage(caught, 'Không tìm được gợi ý. Vui lòng thử lại.'));
       } finally {
         setIsSearching(false);
       }
@@ -174,7 +178,7 @@ export function StudentTutorRecommendations() {
       setNotes(parsed.notes);
       setParsedSentence(parsed.semanticText ?? text);
     } catch (caught) {
-      setError(messageOf(caught, 'Chưa phân tích được câu. Bạn có thể chọn bộ lọc bằng tay.'));
+      setError(errorMessage(caught, 'Chưa phân tích được câu. Bạn có thể chọn bộ lọc bằng tay.'));
     } finally {
       setIsParsing(false);
     }
@@ -224,10 +228,20 @@ export function StudentTutorRecommendations() {
         setAllLoaded(items.length + next.items.length >= next.totalElements || next.items.length === 0);
       }
     } catch (caught) {
-      setError(messageOf(caught, 'Không tải thêm được kết quả.'));
+      setError(errorMessage(caught, 'Không tải thêm được kết quả.'));
     } finally {
       setIsLoadingMore(false);
     }
+  };
+
+  const runSaved = (search: SavedSearch) => {
+    setFilters(search.filters as TutorSearchFilters);
+    setFromSentence(new Set());
+    setNotes([]);
+    setParsedSentence(search.semanticText);
+    setSentence(search.semanticText ?? '');
+    setUseRequestId('');
+    void run(search.filters as TutorSearchFilters, search.id, search.semanticText);
   };
 
   const applyRelaxation = (relaxation: Relaxation) => {
@@ -254,7 +268,7 @@ export function StudentTutorRecommendations() {
       setNotice(`Đã gửi đơn đăng ký tới ${active.tutor.displayName}.`);
       setActive(null);
     } catch (caught) {
-      setError(messageOf(caught, 'Chưa gửi được đơn đăng ký.'));
+      setError(errorMessage(caught, 'Chưa gửi được đơn đăng ký.'));
     }
   };
 
@@ -453,6 +467,25 @@ export function StudentTutorRecommendations() {
       </form>
 
       <section className="rec-results" aria-live="polite">
+        <div className="rec-toolbar">
+          <strong>
+            {result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}
+          </strong>
+          <SavedSearchControls
+            direction="STUDENT_TO_TUTOR"
+            filters={filters}
+            semanticText={parsedSentence}
+            suggestedName={[
+              subjects.find((subject) => subject.id === filters.subjectId)?.name,
+              grades.find((grade) => grade.id === filters.gradeId)?.name
+            ]
+              .filter(Boolean)
+              .join(' – ')}
+            canSave={Boolean(result && result.needsInput.length === 0)}
+            onRun={runSaved}
+            variant="student"
+          />
+        </div>
         {notice && (
           <div className="student-notice" role="status">
             {notice}
@@ -481,7 +514,6 @@ export function StudentTutorRecommendations() {
         {result && result.needsInput.length === 0 && (
           <>
             <div className="rec-summary">
-              <strong>{result.totalElements} gia sư phù hợp</strong>
               {result.lowConfidence && (
                 <span className="rec-low-confidence">
                   Hệ thống còn ít thông tin để so khớp. Thêm tiêu chí để gợi ý chính xác hơn.
@@ -649,8 +681,4 @@ function priceOf(min: number | string | null | undefined, max: number | string |
   const low = min === '' || min === null || min === undefined ? null : Number(min);
   const high = max === '' || max === null || max === undefined ? null : Number(max);
   return low === null && high === null ? undefined : { min: low, max: high };
-}
-
-function messageOf(caught: unknown, fallback: string): string {
-  return caught instanceof ApiError || caught instanceof Error ? caught.message || fallback : fallback;
 }

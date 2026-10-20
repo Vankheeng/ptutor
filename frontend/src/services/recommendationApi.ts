@@ -1,4 +1,4 @@
-import { get, post } from './httpClient';
+import { del, get, post, put } from './httpClient';
 import type { Availability, TeachingMode } from '../types/api';
 
 export type ModePreference = 'ONLINE' | 'OFFLINE' | 'ANY';
@@ -218,4 +218,49 @@ export function refineStudents(logId: string, seenUpToRank: number) {
   return post<StudentRecommendationResponse>(`/api/v1/recommendations/${encodeURIComponent(logId)}/refine`, {
     seenUpToRank
   });
+}
+
+// ---- Saved searches (design 05, 5.6; 08, 8.6) and the history behind the suggestions (07, 7.4)
+
+export interface SavedSearch {
+  id: string;
+  direction: RecommendationDirection;
+  name: string | null;
+  /** The filters as they were saved: those of the tutor search or of the student search. */
+  filters: TutorSearchFilters | StudentSearchFilters;
+  semanticText: string | null;
+  notifyEnabled: boolean;
+  lastNotifiedAt: string | null;
+  createdAt: string;
+}
+
+export interface SavedSearchCreate {
+  direction: RecommendationDirection;
+  name?: string;
+  filters: TutorSearchFilters | StudentSearchFilters;
+  semanticText?: string;
+  notifyEnabled?: boolean;
+}
+
+export function getSavedSearches(signal?: AbortSignal) {
+  return get<SavedSearch[]>('/api/v1/users/me/saved-searches', { signal });
+}
+
+/** 409 SAVED_SEARCH_LIMIT_REACHED when 5 are already saved. */
+export function createSavedSearch(request: SavedSearchCreate) {
+  return post<SavedSearch>('/api/v1/users/me/saved-searches', request);
+}
+
+/** Only the name and the notification switch can change; other criteria mean a new saved search. */
+export function updateSavedSearch(id: string, changes: { name?: string; notifyEnabled?: boolean }) {
+  return put<SavedSearch>(`/api/v1/users/me/saved-searches/${encodeURIComponent(id)}`, changes);
+}
+
+export function deleteSavedSearch(id: string) {
+  return del<null>(`/api/v1/users/me/saved-searches/${encodeURIComponent(id)}`);
+}
+
+/** Forgets what the user opened, liked and dismissed: suggestions stop using their history. */
+export function deleteRecommendationHistory() {
+  return del<null>('/api/v1/users/me/recommendation-profile');
 }

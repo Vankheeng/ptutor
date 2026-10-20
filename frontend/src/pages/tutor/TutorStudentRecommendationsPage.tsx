@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AreaPicker } from '../../components/recommendation/AreaPicker';
 import { AvailabilityEditor } from '../../components/recommendation/AvailabilityEditor';
+import { SavedSearchControls } from '../../components/recommendation/SavedSearches';
 import { hasInvalidSlot } from '../../components/recommendation/availability';
 import { TagChips } from '../../components/recommendation/TagChips';
 import '../../components/recommendation/recommendation.css';
 import { getGrades } from '../../services/gradeApi';
+import { errorMessage } from '../../services/errorMessages';
 import { ApiError } from '../../services/httpClient';
 import {
   getRecommendationTags,
@@ -18,6 +20,7 @@ import {
   type RecommendationAction,
   type RecommendationTag,
   type Relaxation,
+  type SavedSearch,
   type StudentRecommendationItem,
   type StudentRecommendationResponse,
   type StudentSearchFilters
@@ -92,8 +95,9 @@ export function TutorStudentRecommendationsPage() {
     });
   }, []);
 
+  /** @param savedSearchId run a saved search: the server uses its saved criteria */
   const run = useCallback(
-    async (searchFilters: StudentSearchFilters) => {
+    async (searchFilters: StudentSearchFilters, savedSearchId?: string) => {
       if (hasInvalidSlot(searchFilters.availabilities ?? [])) {
         setError('Khung giờ rảnh chưa hợp lệ: giờ kết thúc phải sau giờ bắt đầu.');
         return;
@@ -102,7 +106,7 @@ export function TutorStudentRecommendationsPage() {
       setIsSearching(true);
       try {
         const response = await searchStudents(
-          { filters: searchFilters, useTeachingRequestId: usePostingId || undefined },
+          { filters: searchFilters, useTeachingRequestId: usePostingId || undefined, savedSearchId },
           PAGE_SIZE
         );
         setNotVerified(false);
@@ -118,7 +122,7 @@ export function TutorStudentRecommendationsPage() {
           setNotVerified(true);
           setResult(null);
         } else {
-          setError(messageOf(caught, 'Không tìm được gợi ý. Vui lòng thử lại.'));
+          setError(errorMessage(caught, 'Không tìm được gợi ý. Vui lòng thử lại.'));
         }
       } finally {
         setIsSearching(false);
@@ -139,7 +143,7 @@ export function TutorStudentRecommendationsPage() {
       setFromSentence(new Set(Object.keys(parsedFilters)));
       setNotes(parsed.notes);
     } catch (caught) {
-      setError(messageOf(caught, 'Chưa phân tích được câu. Bạn có thể chọn bộ lọc bằng tay.'));
+      setError(errorMessage(caught, 'Chưa phân tích được câu. Bạn có thể chọn bộ lọc bằng tay.'));
     } finally {
       setIsParsing(false);
     }
@@ -186,10 +190,18 @@ export function TutorStudentRecommendationsPage() {
         setAllLoaded(items.length + next.items.length >= next.totalElements || next.items.length === 0);
       }
     } catch (caught) {
-      setError(messageOf(caught, 'Không tải thêm được kết quả.'));
+      setError(errorMessage(caught, 'Không tải thêm được kết quả.'));
     } finally {
       setIsLoadingMore(false);
     }
+  };
+
+  const runSaved = (search: SavedSearch) => {
+    setFilters(search.filters as StudentSearchFilters);
+    setFromSentence(new Set());
+    setNotes([]);
+    setUsePostingId('');
+    void run(search.filters as StudentSearchFilters, search.id);
   };
 
   const applyRelaxation = (relaxation: Relaxation) => {
@@ -378,6 +390,27 @@ export function TutorStudentRecommendationsPage() {
         </form>
 
         <section className="rec-results" aria-live="polite">
+          <div className="rec-toolbar">
+            <strong>
+              {result && result.needsInput.length === 0 ? `${result.totalElements} học viên phù hợp` : ''}
+            </strong>
+            <SavedSearchControls
+              direction="TUTOR_TO_STUDENT"
+              filters={filters}
+              suggestedName={[
+                subjects.find((subject) => subject.id === filters.subjectId)?.name,
+                grades
+                  .filter((grade) => (filters.gradeIds ?? []).includes(grade.id))
+                  .map((grade) => grade.name)
+                  .join(', ')
+              ]
+                .filter(Boolean)
+                .join(' – ')}
+              canSave={Boolean(result && result.needsInput.length === 0)}
+              onRun={runSaved}
+              variant="tutor"
+            />
+          </div>
           {error && (
             <div className="tutor-error" role="alert">
               {error}
@@ -409,7 +442,6 @@ export function TutorStudentRecommendationsPage() {
           {result && result.needsInput.length === 0 && (
             <>
               <div className="rec-summary">
-                <strong>{result.totalElements} học viên phù hợp</strong>
                 {result.lowConfidence && (
                   <span className="rec-low-confidence">Còn ít thông tin để so khớp. Thêm tiêu chí để gợi ý sát hơn.</span>
                 )}
@@ -516,8 +548,4 @@ function priceText(range: StudentRecommendationItem['priceRange']) {
   if (!range || (range.min === null && range.max === null)) return 'Học phí thoả thuận';
   if (range.min !== null && range.max !== null) return `${formatCurrency(range.min)} – ${formatCurrency(range.max)} / buổi`;
   return `${range.max !== null ? 'Đến' : 'Từ'} ${formatCurrency((range.max ?? range.min) as number)} / buổi`;
-}
-
-function messageOf(caught: unknown, fallback: string): string {
-  return caught instanceof ApiError || caught instanceof Error ? caught.message || fallback : fallback;
 }

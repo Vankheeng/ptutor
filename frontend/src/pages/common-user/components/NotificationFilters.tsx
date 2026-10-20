@@ -17,11 +17,11 @@ export function NotificationFilters({ activeFilter, unreadCount, onChange }: Not
             type="button"
             onClick={() => onChange(filter)}
           >
-            {filter === 'ALL' ? 'All' : filter.toLowerCase()}
+            {filter === 'ALL' ? 'Tất cả' : filter === 'UNREAD' ? 'Chưa đọc' : 'Đã đọc'}
           </button>
         ))}
       </div>
-      <span className="student-count">{unreadCount ?? '—'} unread</span>
+      <span className="student-count">{unreadCount ?? '—'} chưa đọc</span>
     </div>
   );
 }

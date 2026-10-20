@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
-import { ApiError } from '../../services/httpClient';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/useAuth';
+import { errorMessage } from '../../services/errorMessages';
 import {
   getNotifications,
   getUnreadCount,
@@ -13,7 +15,21 @@ import { NotificationList } from './components/NotificationList';
 import { NotificationPagination } from './components/NotificationPagination';
 import '../student/student.css';
 
+/** Where a notification leads, when it points to something the user can open. */
+function targetOf(notification: Notification, role: string | undefined): string | null {
+  if (notification.eventType !== 'RECOMMENDATION_MATCH_FOUND' || !notification.referenceId) return null;
+  if (role === 'STUDENT' && notification.referenceType === 'TEACHING_REQUEST') {
+    return `/student/teaching-requests?posting=${encodeURIComponent(notification.referenceId)}`;
+  }
+  if (role === 'TUTOR' && notification.referenceType === 'STUDYING_REQUEST') {
+    return `/tutor/studying-requests/${encodeURIComponent(notification.referenceId)}`;
+  }
+  return null;
+}
+
 export function NotificationsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -31,8 +47,10 @@ export function NotificationsPage() {
       if (!notification.isRead) await markNotificationRead(notification.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not update this notification.');
+      setError(errorMessage(caught, 'Chưa cập nhật được thông báo này.'));
     }
+    const target = targetOf(notification, user?.role);
+    if (target) navigate(target);
   };
   const readAll = async () => {
     setError('');
@@ -40,19 +58,19 @@ export function NotificationsPage() {
       await markAllNotificationsRead();
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not mark notifications as read.');
+      setError(errorMessage(caught, 'Chưa đánh dấu được các thông báo là đã đọc.'));
     }
   };
   return (
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">STAY UPDATED</span>
-          <h1>Notifications</h1>
-          <p>Updates about your requests, contracts, payments, and account.</p>
+          <span className="student-eyebrow">CẬP NHẬT</span>
+          <h1>Thông báo</h1>
+          <p>Tin về đơn, hợp đồng, thanh toán, tài khoản và các gợi ý mới phù hợp với bạn.</p>
         </div>
         <button className="student-button secondary" type="button" onClick={() => void readAll()}>
-          Mark all as read
+          Đánh dấu tất cả đã đọc
         </button>
       </div>
       {error && (
@@ -73,6 +91,7 @@ export function NotificationsPage() {
         isLoading={query.isLoading}
         error={query.error}
         onRead={(notification) => void read(notification)}
+        canOpen={(notification) => targetOf(notification, user?.role) !== null}
       />
       {query.data && (
         <NotificationPagination

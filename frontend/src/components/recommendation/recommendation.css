@@ -391,3 +391,170 @@
   margin-top: 10px;
   text-decoration: none;
 }
+
+/* The toolbar above the results: the count, the save icon and the "Đã lưu" menu. */
+.rec-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  margin-bottom: 10px;
+  color: #20243a;
+  font-size: 13px;
+}
+.rec-saved-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.rec-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6736d6;
+  cursor: pointer;
+}
+.rec-icon-button:hover:not(:disabled) {
+  border-color: #cdbdf7;
+  background: #faf8ff;
+}
+.rec-icon-button:disabled {
+  color: #b8bccb;
+  cursor: default;
+}
+.rec-icon-button.active:disabled {
+  color: #6736d6;
+}
+/* The hint shows on hover and keyboard focus, even when the button is disabled. */
+.rec-icon-button[data-tooltip]:hover::after,
+.rec-icon-button[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #20243a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  pointer-events: none;
+}
+.rec-menu-button {
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #4f5468;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rec-menu-button:hover,
+.rec-menu-button.open {
+  border-color: #cdbdf7;
+  color: #6736d6;
+}
+.rec-saved-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, 90vw);
+  padding: 14px;
+  border: 1px solid #eceef4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px #27335f22;
+  color: #20243a;
+  font-size: 11px;
+}
+.rec-saved-flash {
+  font-size: 11px;
+}
+.rec-saved-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.rec-saved-head small {
+  color: #8a8fa3;
+}
+.rec-saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-saved-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  border: 1px solid #eceef4;
+  border-radius: 9px;
+}
+.rec-saved-name {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6736d6;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.rec-saved-notify {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4f5468;
+}
+.rec-saved-actions {
+  display: inline-flex;
+  gap: 10px;
+}
+.rec-saved-edit,
+.rec-saved-forget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rec-saved-edit input {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  font: inherit;
+}
+.rec-saved-message {
+  color: #217450;
+}
+.rec-saved-error {
+  color: #ab4039;
+}
