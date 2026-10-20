@@ -12,15 +12,17 @@
 
 | Tham số | Giá trị khởi đầu | Tài liệu |
 |---|---|---|
-| `candidate-limit` | 200 (180 theo vector + 20 chưa embed) | 06, 6.3 |
+| `candidate-limit` / `candidate-unembedded-quota` | 200 / 20 (180 theo vector + 20 chưa embed) | 06, 6.3 |
+| `log-candidate-limit` | 50 (số ứng viên lưu đủ đặc trưng trong log) | 08, 8.7 |
 | `semantic.cos-low` / `cos-high` / `rerank-weight` | 0,30 / 0,80 / 0,7 | 06, 6.4 |
 | Trọng số a (S→T): sem / need / price / style / sched / area / segment | 0,30 / 0,20 / 0,20 / 0,10 / 0,10 / 0,05 / 0,05 | 06, 6.4 |
 | Trọng số a′ (T→S): sem / price / need / segment / sched / area | 0,30 / 0,25 / 0,20 / 0,10 / 0,10 / 0,05 | 06, 6.12 |
 | `tutor-weights.*` (a′): sem / price / need / segment / sched / area | 0,30 / 0,25 / 0,20 / 0,10 / 0,10 / 0,05 | 06, 6.12 |
 | `area.same-province` / `area.other-province` | 0,6 / 0,2 | 06, 6.4 |
-| `history.max-weight` / `history.full-signals` | 0,15 / 10 | 06, 6.4 |
+| `history.max-weight` / `history.full-weight-signals` | 0,15 / 10 | 06, 6.4 |
 | `history.half-life-days` / `window-days` | 30 / 180 | 07, 7.4 |
-| `history.signal-weights` view / favorite / contact / accepted / dismissed | 1 / 2 / 3 / 4 / −2 | 07, 7.4 |
+| Thang tín hiệu H1: view / favorite / contact / accepted / dismissed (hằng số trong `PreferenceProfileService`, không cấu hình được) | 1 / 2 / 3 / 4 / −2 | 07, 7.4 |
+| `history.worker-interval-ms` / `worker-batch-size` | 10 000 / 20 | 07, 7.4 |
 | `low-confidence-threshold` / `confidence-prior` | 0,4 / 0,5 | 06, 6.5 |
 | `price.hard-factor` | 1,5 | 06, 6.2 |
 | `willingness.alpha` / `p0-default` / `p0-min-decisions` / `history-days` / `congestion-lambda` | 2 / 0,6 / 20 / 180 / 0,5 | 06, 6.6 |
@@ -37,13 +39,18 @@
 | `refine.enabled` / `positive-weight` / `negative-weight` / `skipped-weight` / `original-share` | true / 0,6 / 0,3 / 0,5 / 0,5 | 07, 7.2 |
 | `relaxation.enabled` / `good-threshold` / `budget-ms` / `max-suggestions` | true / 0,50 / 400 / 3 | 07, 7.1 |
 | `relaxation.min-good` / `min-results` / `min-gain` / `best-score-margin` | 5 / 10 / 2 / 0,10 | 07, 7.1 |
-| `refine.alpha` / `beta` / `gamma` | 1,0 / 0,6 / 0,3 | 07, 7.2 |
 | `proactive.enabled` / `notify-threshold` / `top-k` / `cooldown-hours` | true / 0,65 / 3 / 24 | 07, 7.3 |
+| `proactive.worker-interval-ms` / `worker-batch-size` / `max-attempts` | 30 000 / 5 / 3 | 07, 7.3 |
 | `saved-search.max-per-user` | 5 | 05, 5.6 |
 | `parse-query.enabled` / `timeout-ms` / `cache-hours` / `cache-size` | true / 3 000 / 24 / 500 | 05, 5.4 |
 | `enrichment.min-confidence` / `max-attempts` / `timeout-ms` / `batch-size` / `worker-interval-ms` | 0,6 / 5 / 25 000 / 5 / 30 000 | 04 |
+| `tags.suggestion-timeout-ms` (LLM gợi ý tag cho quản trị) | 30 000 | 04 |
+| `embedding.enabled` / `batch-size` / `timeout-ms` / `max-attempts` / `worker-interval-ms` / `backfill-interval-ms` | true / 20 / 5 000 / 5 / 10 000 / 21 600 000 | 02, 03 |
+| `query-embedding.timeout-ms` / `cache-size` | 1 000 / 500 | 06, 6.3 |
+| `jobs.retention-days` / `cleanup-interval-ms` (dọn job đã xong trong `ai_enrichment_jobs`) | 7 / 21 600 000 | 02 |
+| `app.ai-service.base-url` / `connect-timeout-ms` / `embed-timeout-ms` / `health-timeout-ms` / `internal-token` | `http://127.0.0.1:8000` / 500 / 1 000 / 500 / (bí mật) | 10, 10.2 |
 | `learning.enabled` / `models.<key>.mode` / `prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` | true / `SHADOW` / 200 / 1,0 / 0,5 / 2,0 / 0,05 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng và mẫu phía b) |
-| `algorithm-version` | `v2.1-rc` (trước Bước 8: `v2.1-a`) | Ghi vào log |
+| `algorithm-version` | `v2.2-rcx` (trước Bước 8: `v2.1-a`; Bước 8–10: `v2.1-rc`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,
 `proactive`, `learning`. Dùng để chạy ablation (09) và tắt nhanh khi demo gặp sự cố.

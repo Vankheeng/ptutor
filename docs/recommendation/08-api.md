@@ -90,7 +90,7 @@ email), không do LLM viết lại — xem 05 mục 5.4. Response có thêm `und
 ```json
 {
   "logId": "…",
-  "algorithmVersion": "v2.1",
+  "algorithmVersion": "v2.2-rcx",
   "queryContext": { "...": "tiêu chí cuối cùng sau khi gộp, kèm nguồn của từng tiêu chí (FILTER / STUDYING_REQUEST / PROFILE)" },
   "needsInput": [],
   "lowConfidence": false,
@@ -231,7 +231,7 @@ Ghi chú triển khai (13/10/2026):
 | `searcher_student_id` / `searcher_tutor_id` | Người tìm |
 | `source_studying_request_id` / `source_teaching_request_id` | Tin đăng của người tìm, **chỉ khi** họ chọn dùng làm tiêu chí (thường để trống) |
 | `saved_search_id` | Nếu mở từ tìm kiếm đã lưu |
-| `direction`, `algorithm_version` | `STUDENT_TO_TUTOR`, `v2.1` … |
+| `direction`, `algorithm_version` | `STUDENT_TO_TUTOR`, `v2.2-rcx` … |
 | `query_text`, `parsed_query`, `query_context` | Câu gốc (đã lọc PII), kết quả A2, tiêu chí cuối cùng |
 | `returned_candidate_ids` | ≤ 50 phần tử: `{candidateId, candidateUserId, rank, score, a, b, willingness:{hist, fit, cap, invited}, q, g, wHist, confidence, features:{sem, need, style, segment, price, sched, area, hist}, rerank, isExploration}`; L1 thêm `willingness.fitSegment`, `fitSched`, `fitPrice` (chiều T→S: `fitQuality`, `fitStyle`, `fitPrice`) |
 | `query_context.weights` (L1) | `{"A": {model, version, mode, sampled, values}, "B": {…}}` — trọng số **thực sự đã dùng** cho lần tìm |
