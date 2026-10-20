@@ -67,12 +67,10 @@ export function StudentStudyingRequestsPage() {
       if (action === 'open' || action === 'close') {
         await updateStudyingRequestStatus(id, action.toUpperCase() as RequestStatus);
       }
-      setNotice(action === 'cancel' ? 'Studying request cancelled.' : `Request ${action}d.`);
+      setNotice(action === 'cancel' ? 'Đã huỷ tin.' : action === 'close' ? 'Đã đóng tin.' : 'Đã mở lại tin.');
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(
-        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this request.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Chưa cập nhật được tin này.');
     } finally {
       setBusy(null);
     }
@@ -82,12 +80,12 @@ export function StudentStudyingRequestsPage() {
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR LEARNING NEEDS</span>
-          <h1>My Studying Requests</h1>
-          <p>Manage the requests you send to tutors.</p>
+          <span className="student-eyebrow">NHU CẦU HỌC CỦA BẠN</span>
+          <h1>Tin tìm gia sư của tôi</h1>
+          <p>Quản lý các tin bạn đăng để tìm gia sư.</p>
         </div>
         <Link className="student-button draft" to="/student/studying-requests/new">
-          Create request
+          Đăng tin mới
         </Link>
       </div>
       {notice && (
@@ -151,8 +149,8 @@ export function StudentStudyingRequestsPage() {
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No requests in this view</h3>
-          <p>Try another status or create a new studying request.</p>
+          <h3>Không có tin nào ở mục này</h3>
+          <p>Thử trạng thái khác hoặc đăng tin mới.</p>
         </div>
       )}
     </>

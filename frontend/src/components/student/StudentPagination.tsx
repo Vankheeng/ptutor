@@ -13,13 +13,13 @@ export function StudentPagination({ page, totalPages, first, last, onPrevious, o
   return (
     <div className="student-pagination">
       <button type="button" disabled={first} onClick={onPrevious}>
-        Previous
+        Trang trước
       </button>
       <span>
-        Page {page + 1} of {totalPages}
+        Trang {page + 1} / {totalPages}
       </span>
       <button type="button" disabled={last} onClick={onNext}>
-        Next
+        Trang sau
       </button>
     </div>
   );

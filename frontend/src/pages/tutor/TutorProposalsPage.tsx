@@ -5,6 +5,7 @@ import { getStudyingRequest, type StudyingRequestSearchResponse } from '../../se
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { TutorProposalCard } from './components/TutorProposalCard';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
+import { statusLabel } from '../../utils/labels';
 
 const filters = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'] as const;
 type ProposalFilter = (typeof filters)[number];
@@ -72,7 +73,7 @@ export function TutorProposalsPage() {
       await cancelTutorProposal(proposal.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not cancel this proposal.');
+      setError(caught instanceof Error ? caught.message : 'Chưa rút được đề nghị này.');
     } finally {
       setCancelling(null);
     }
@@ -82,7 +83,7 @@ export function TutorProposalsPage() {
     if (!editingProposal) return;
     const request = requestDetails[editingProposal.studyingRequestId];
     if (!request) {
-      setEditError('Request details are still loading. Please try again.');
+      setEditError('Đang tải thông tin tin, hãy thử lại.');
       return;
     }
     setSavingEdit(true);
@@ -92,7 +93,7 @@ export function TutorProposalsPage() {
       setEditingProposal(null);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setEditError(caught instanceof Error ? caught.message : 'Could not update this application.');
+      setEditError(caught instanceof Error ? caught.message : 'Chưa cập nhật được đề nghị.');
     } finally {
       setSavingEdit(false);
     }
@@ -102,12 +103,12 @@ export function TutorProposalsPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">YOUR TEACHING PIPELINE</span>
-          <h1>My requests to teach</h1>
-          <p>Compare each student request with the proposal you sent.</p>
+          <span className="tutor-eyebrow">ĐỀ NGHỊ DẠY</span>
+          <h1>Đề nghị dạy của tôi</h1>
+          <p>Đối chiếu tin của học viên với đề nghị bạn đã gửi.</p>
         </div>
         <Link className="tutor-button tutor-heading-button" to="/tutor/dashboard">
-          Browse requests
+          Xem tin tìm gia sư
         </Link>
       </div>
       {(error || proposalQuery.error) && (
@@ -121,11 +122,11 @@ export function TutorProposalsPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search subject, schedule, price, or address"
-            aria-label="Search my proposals"
+            placeholder="Tìm môn, lịch, học phí hoặc địa chỉ"
+            aria-label="Tìm đề nghị"
           />
         </label>
-        <div className="tutor-filter-tabs" role="tablist" aria-label="Filter proposals">
+        <div className="tutor-filter-tabs" role="tablist" aria-label="Lọc đề nghị">
           {filters.map((item) => (
             <button
               className={filter === item ? 'active' : ''}
@@ -135,22 +136,18 @@ export function TutorProposalsPage() {
               key={item}
               onClick={() => setFilter(item)}
             >
-              {item === 'ALL' ? 'All' : label(item)}
+              {item === 'ALL' ? 'Tất cả' : label(item)}
             </button>
           ))}
         </div>
       </div>
       {proposalQuery.isLoading ? (
-        <div className="tutor-empty">Loading proposals…</div>
+        <div className="tutor-empty">Đang tải đề nghị…</div>
       ) : visibleProposals.length === 0 ? (
         <div className="tutor-empty">
           <span>↗</span>
-          <h3>{search ? 'No matching proposals' : 'No proposals in this view'}</h3>
-          <p>
-            {search
-              ? 'Try another search term or status.'
-              : 'Browse open student requests and send your first teaching proposal.'}
-          </p>
+          <h3>{search ? 'Không có đề nghị phù hợp' : 'Không có đề nghị nào ở mục này'}</h3>
+          <p>{search ? 'Thử từ khoá hoặc trạng thái khác.' : 'Xem tin tìm gia sư để gửi đề nghị đầu tiên.'}</p>
         </div>
       ) : (
         <div className="tutor-proposal-list">
@@ -191,5 +188,5 @@ export function TutorProposalsPage() {
 }
 
 function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+  return statusLabel(value, 'application');
 }

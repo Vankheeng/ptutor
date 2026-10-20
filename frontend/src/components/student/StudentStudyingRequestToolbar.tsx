@@ -12,9 +12,9 @@ export function StudentStudyingRequestToolbar({ status, sort, onStatusChange, on
   return (
     <div className="student-toolbar">
       <label>
-        Status
+        Trạng thái
         <select value={status} onChange={(event) => onStatusChange(event.target.value as 'ALL' | RequestStatus)}>
-          <option value="ALL">All statuses</option>
+          <option value="ALL">Tất cả trạng thái</option>
           {studyingRequestStatuses.slice(1).map((item) => (
             <option key={item} value={item}>
               {statusLabel(item)}
@@ -23,10 +23,10 @@ export function StudentStudyingRequestToolbar({ status, sort, onStatusChange, on
         </select>
       </label>
       <label>
-        Sort by
+        Sắp xếp
         <select value={sort} onChange={(event) => onSortChange(event.target.value as 'ASC' | 'DESC')}>
-          <option value="DESC">Newest first</option>
-          <option value="ASC">Oldest first</option>
+          <option value="DESC">Mới nhất trước</option>
+          <option value="ASC">Cũ nhất trước</option>
         </select>
       </label>
     </div>

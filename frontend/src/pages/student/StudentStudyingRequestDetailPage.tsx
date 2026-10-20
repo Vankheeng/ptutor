@@ -33,10 +33,12 @@ export function StudentStudyingRequestDetailPage() {
     setError('');
     try {
       await (action === 'accept' ? acceptTutorOffer(requestId, offer.id) : rejectTutorOffer(requestId, offer.id));
-      setNotice(`Offer ${action}ed.`);
+      setNotice(action === 'accept' ? 'Đã nhận đề nghị.' : 'Đã từ chối đề nghị.');
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this offer.');
+      setError(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Chưa cập nhật được đề nghị này.'
+      );
     } finally {
       setBusy(null);
     }
@@ -51,23 +53,23 @@ export function StudentStudyingRequestDetailPage() {
   if (!request)
     return (
       <div className="student-empty">
-        <h3>Loading request…</h3>
+        <h3>Đang tải tin…</h3>
       </div>
     );
 
   return (
     <>
       <Link className="student-link" to="/student/studying-requests">
-        ← Back to studying requests
+        ← Quay lại danh sách tin
       </Link>
       <div className="student-detail-actions student-detail-page-actions">
         {['DRAFT', 'OPEN'].includes(request.status) && (
           <Link className="student-button warning" to={`/student/studying-requests/${request.id}/edit`}>
-            Edit
+            Sửa
           </Link>
         )}
         <Link className="student-button back-to-list" to="/student/studying-requests">
-          Back to list
+          Về danh sách
         </Link>
       </div>
       {notice && (

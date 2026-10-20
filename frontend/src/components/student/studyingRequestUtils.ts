@@ -1,4 +1,5 @@
 import type { RequestStatus } from '../../services/studentApi';
+import { dateTimeLabel, moneyLabel, statusLabel as labelOf, weekdayLabel, type StatusKind } from '../../utils/labels';
 
 export const studyingRequestStatuses: Array<'ALL' | RequestStatus> = [
   'ALL',
@@ -11,20 +12,16 @@ export const studyingRequestStatuses: Array<'ALL' | RequestStatus> = [
   'REJECTED'
 ];
 
-export function statusLabel(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+export function statusLabel(value: string, kind?: StatusKind) {
+  return labelOf(value, kind);
 }
 
 export function formatStudyingRequestDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return dateTimeLabel(value);
 }
 
 export function formatStudyingRequestMoney(value: number | null) {
-  return value === null ? 'Negotiable' : `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return moneyLabel(value);
 }
 
-export function weekdayLabel(dayOfWeek: number) {
-  return (
-    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][dayOfWeek - 1] ?? `Day ${dayOfWeek}`
-  );
-}
+export { weekdayLabel };

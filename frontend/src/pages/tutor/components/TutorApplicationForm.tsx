@@ -3,7 +3,9 @@ import { getDistricts, getProvinces } from '../../../services/locationApi';
 import type { District, Province } from '../../../types/api';
 import type { TutorTeachingProposal } from '../../../services/tutorApi';
 
-const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const weekdays = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
+// Proposals sent before the Vietnamese copy stored English day names in the schedule text.
+const englishWeekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const times = Array.from(
   { length: 48 },
   (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
@@ -88,11 +90,11 @@ export function TutorApplicationForm({
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     if (availableTimes.some((slot) => slot.start >= slot.end)) {
-      setValidationError('Each end time must be later than its start time.');
+      setValidationError('Giờ kết thúc phải sau giờ bắt đầu.');
       return;
     }
     if (teachingMode === 'OFFLINE' && (!provinceId || !districtId)) {
-      setValidationError('Choose a province and district for in-person teaching.');
+      setValidationError('Hãy chọn tỉnh / thành và quận / huyện để dạy trực tiếp.');
       return;
     }
     setValidationError('');
@@ -108,7 +110,7 @@ export function TutorApplicationForm({
 
   const addDay = () =>
     setAvailableTimes((current) => {
-      const nextDay = weekdays.find((day) => !current.some((slot) => slot.day === day)) || 'Monday';
+      const nextDay = weekdays.find((day) => !current.some((slot) => slot.day === day)) || weekdays[0];
       return [...current, { day: nextDay, start: '16:00', end: '17:00' }];
     });
 
@@ -127,14 +129,11 @@ export function TutorApplicationForm({
       }}
     >
       <section className="tutor-apply-modal" role="dialog" aria-modal="true" aria-labelledby="tutor-apply-title">
-        <button className="tutor-modal-close" type="button" aria-label="Close" onClick={onClose}>
+        <button className="tutor-modal-close" type="button" aria-label="Đóng" onClick={onClose}>
           ×
         </button>
-        <span className="tutor-eyebrow">YOUR APPLICATION</span>
-        <h2 id="tutor-apply-title">
-          {editing ? 'Edit your application' : `Apply to teach ${subjectName || 'this subject'}`}
-        </h2>
-        <p className="tutor-modal-intro">Share your proposed rate and available times with the student.</p>
+        <span className="tutor-eyebrow">ĐỀ NGHỊ DẠY</span>
+        <h2 id="tutor-apply-title">{editing ? 'Sửa đề nghị' : `Đề nghị dạy ${subjectName || 'môn này'}`}</h2>
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}
@@ -142,11 +141,11 @@ export function TutorApplicationForm({
         )}
         <form className="tutor-proposal-form" onSubmit={submit}>
           <label>
-            Proposed price (VND)
+            Học phí đề nghị (đồng)
             <input name="proposedPrice" type="number" min="0" defaultValue={proposal?.proposedPrice ?? ''} required />
           </label>
           <label>
-            Teaching mode
+            Hình thức dạy
             <select
               name="teachingMode"
               value={teachingMode}
@@ -157,25 +156,25 @@ export function TutorApplicationForm({
               }}
             >
               <option value="ONLINE">Online</option>
-              <option value="OFFLINE">In person</option>
+              <option value="OFFLINE">Trực tiếp</option>
             </select>
           </label>
           <div className="tutor-availability-editor">
             <div className="tutor-availability-editor-heading">
-              <strong>Available times</strong>
+              <strong>Thời gian có thể dạy</strong>
               <button
                 className="tutor-detail-link"
                 type="button"
                 disabled={availableTimes.length >= weekdays.length}
                 onClick={addDay}
               >
-                + Add another day
+                + Thêm ngày
               </button>
             </div>
             {availableTimes.map((slot, index) => (
               <div className="tutor-availability-row" key={index}>
                 <label>
-                  Day
+                  Thứ
                   <select value={slot.day} onChange={(event) => updateTime(index, 'day', event.target.value)}>
                     {weekdays.map((day) => (
                       <option
@@ -189,7 +188,7 @@ export function TutorApplicationForm({
                   </select>
                 </label>
                 <label>
-                  From
+                  Từ
                   <select value={slot.start} onChange={(event) => updateTime(index, 'start', event.target.value)}>
                     {times.map((time) => (
                       <option key={time}>{time}</option>
@@ -197,7 +196,7 @@ export function TutorApplicationForm({
                   </select>
                 </label>
                 <label>
-                  To
+                  Đến
                   <select value={slot.end} onChange={(event) => updateTime(index, 'end', event.target.value)}>
                     {times.map((time) => (
                       <option key={time}>{time}</option>
@@ -207,7 +206,7 @@ export function TutorApplicationForm({
                 <button
                   className="tutor-availability-remove"
                   type="button"
-                  aria-label={`Remove ${slot.day}`}
+                  aria-label={`Bỏ ${slot.day}`}
                   disabled={availableTimes.length === 1}
                   onClick={() => setAvailableTimes((current) => current.filter((_, slotIndex) => slotIndex !== index))}
                 >
@@ -218,10 +217,10 @@ export function TutorApplicationForm({
           </div>
           {teachingMode === 'OFFLINE' && (
             <div className="tutor-offline-location">
-              <strong>Teaching location</strong>
+              <strong>Khu vực dạy</strong>
               <div className="tutor-location-fields">
                 <label>
-                  Province
+                  Tỉnh / thành
                   <select
                     value={provinceId}
                     onChange={(event) => {
@@ -231,7 +230,7 @@ export function TutorApplicationForm({
                     }}
                     required
                   >
-                    <option value="">{locationLoading ? 'Loading provinces…' : 'Select province'}</option>
+                    <option value="">{locationLoading ? 'Đang tải…' : 'Chọn tỉnh / thành'}</option>
                     {provinces.map((province) => (
                       <option key={province.id} value={province.id}>
                         {province.name}
@@ -240,14 +239,14 @@ export function TutorApplicationForm({
                   </select>
                 </label>
                 <label>
-                  District
+                  Quận / huyện
                   <select
                     value={districtId}
                     onChange={(event) => setDistrictId(event.target.value)}
                     disabled={!provinceId || districts.length === 0}
                     required
                   >
-                    <option value="">{provinceId ? 'Select district' : 'Choose province first'}</option>
+                    <option value="">{provinceId ? 'Chọn quận / huyện' : 'Chọn tỉnh / thành trước'}</option>
                     {districts.map((district) => (
                       <option key={district.id} value={district.id}>
                         {district.name}
@@ -259,27 +258,27 @@ export function TutorApplicationForm({
             </div>
           )}
           <label>
-            Message to student
+            Lời nhắn cho học viên
             <textarea
               name="message"
               rows={4}
               maxLength={10000}
               defaultValue={proposal?.message ?? ''}
-              placeholder="Share your experience and how you would help."
+              placeholder="Kinh nghiệm của bạn và cách bạn sẽ giúp học viên."
             />
           </label>
           <div className="tutor-form-actions">
             <button className="tutor-button secondary" type="button" onClick={onClose}>
-              Cancel
+              Huỷ
             </button>
             <button className="tutor-button" type="submit" disabled={sending}>
               {sending
-                ? 'Saving…'
+                ? 'Đang lưu…'
                 : editing
-                  ? 'Save changes'
+                  ? 'Lưu thay đổi'
                   : proposal?.status === 'CANCELLED'
-                    ? 'Send again'
-                    : 'Send application'}
+                    ? 'Gửi lại'
+                    : 'Gửi đề nghị'}
             </button>
           </div>
         </form>
@@ -289,12 +288,18 @@ export function TutorApplicationForm({
 }
 
 function parseAvailableTimes(schedule?: string | null): AvailableTime[] {
-  const pattern =
-    /(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\s*,?\s*(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/gi;
+  const days = [...weekdays, ...englishWeekdays].join('|');
+  const pattern = new RegExp(`(${days})\\s*,?\\s*(\\d{2}:\\d{2})\\s*[–-]\\s*(\\d{2}:\\d{2})`, 'gi');
   const parsed = [...(schedule ?? '').matchAll(pattern)].map((match) => ({
-    day: match[1],
+    day: weekdayName(match[1]),
     start: match[2],
     end: match[3]
   }));
-  return parsed.length ? parsed : [{ day: 'Monday', start: '16:00', end: '17:00' }];
+  return parsed.length ? parsed : [{ day: weekdays[0], start: '16:00', end: '17:00' }];
+}
+
+function weekdayName(value: string) {
+  const lower = value.toLocaleLowerCase('vi');
+  const english = englishWeekdays.indexOf(lower);
+  return english >= 0 ? weekdays[english] : (weekdays.find((day) => day.toLocaleLowerCase('vi') === lower) ?? value);
 }

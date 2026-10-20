@@ -13,8 +13,8 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
     <section className="student-panel">
       <div className="student-section-heading" style={{ margin: 0 }}>
         <div>
-          <span className="student-eyebrow">TUTOR OFFERS</span>
-          <h2>Offers received</h2>
+          <span className="student-eyebrow">ĐỀ NGHỊ TỪ GIA SƯ</span>
+          <h2>Đề nghị đã nhận</h2>
         </div>
         <span className="student-count">{offers.length}</span>
       </div>
@@ -23,18 +23,20 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
           {offers.map((offer) => (
             <article className="student-list-row" key={offer.id}>
               <div>
-                <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Tutor'}</h3>
+                <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'}</h3>
                 <p>
                   {offer.tutorEmail}
                   <br />
                   {formatStudyingRequestMoney(offer.proposedPrice)} ·{' '}
-                  {offer.teachingMode === 'ONLINE' ? 'Online' : 'In person'}
+                  {offer.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}
                   <br />
-                  {offer.message || 'No message included.'}
+                  {offer.message || 'Không có lời nhắn.'}
                 </p>
               </div>
               <div>
-                <span className={`student-status ${offer.status.toLowerCase()}`}>{statusLabel(offer.status)}</span>
+                <span className={`student-status ${offer.status.toLowerCase()}`}>
+                  {statusLabel(offer.status, 'application')}
+                </span>
                 {offer.status === 'PENDING' && requestStatus === 'OPEN' && (
                   <div className="student-form-actions">
                     <button
@@ -43,7 +45,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                       disabled={busyOfferId === offer.id}
                       onClick={() => onAction(offer, 'accept')}
                     >
-                      Accept
+                      Nhận
                     </button>
                     <button
                       className="student-button secondary"
@@ -51,7 +53,7 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
                       disabled={busyOfferId === offer.id}
                       onClick={() => onAction(offer, 'reject')}
                     >
-                      Reject
+                      Từ chối
                     </button>
                   </div>
                 )}
@@ -61,8 +63,8 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No offers yet</h3>
-          <p>Tutor proposals will appear here.</p>
+          <h3>Chưa có đề nghị nào</h3>
+          <p>Đề nghị dạy của gia sư sẽ hiện ở đây.</p>
         </div>
       )}
     </section>

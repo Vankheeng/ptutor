@@ -90,7 +90,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
         }
       })
       .catch((caught: unknown) => {
-        if (active) setCatalogError(message(caught, 'Could not load form options.'));
+        if (active) setCatalogError(message(caught, 'Không tải được các lựa chọn của biểu mẫu.'));
       });
     if (mode === 'create' && !initializedProfile.current) {
       getStudentProfile()
@@ -121,7 +121,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
         if (active) setDistrictCatalog({ provinceId: state.provinceId, items });
       })
       .catch((caught: unknown) => {
-        if (active) setCatalogError(message(caught, 'Could not load districts.'));
+        if (active) setCatalogError(message(caught, 'Không tải được danh sách quận / huyện.'));
       });
     return () => {
       active = false;
@@ -137,13 +137,13 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
     const action = submitter?.value === 'pay' ? 'pay' : 'draft';
     const selectedSubject = state.subjectId;
     if (selectedSubject === 'OTHER' && !state.note.trim()) {
-      setError('Enter the custom subject in the Note field.');
+      setError('Hãy nhập tên môn học vào ô "Môn học khác".');
       return;
     }
     const minPrice = numberValue(state.minPrice);
     const maxPrice = numberValue(state.maxPrice);
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
-      setError('Minimum price must not exceed maximum price.');
+      setError('Giá tối thiểu không được lớn hơn giá tối đa.');
       return;
     }
     const enteredSlots = state.availabilities.filter((slot) => slot.dayOfWeek || slot.startTime || slot.endTime);
@@ -151,7 +151,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
       (slot) => !slot.dayOfWeek || !slot.startTime || !slot.endTime || slot.endTime <= slot.startTime
     );
     if (invalidSlot) {
-      setError('Each availability slot needs a weekday, start time, and an end time after the start time.');
+      setError('Mỗi khung giờ rảnh cần có thứ, giờ bắt đầu và giờ kết thúc sau giờ bắt đầu.');
       return;
     }
     setError('');
@@ -176,7 +176,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
         action
       );
     } catch (caught) {
-      setError(message(caught, 'Could not save this studying request.'));
+      setError(message(caught, 'Chưa lưu được tin tìm gia sư.'));
     } finally {
       setLoading(false);
     }
@@ -201,15 +201,15 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
       )}
       <form className="student-form-grid" onSubmit={(event) => void submit(event)}>
         <label className="student-field-full">
-          Title
+          Tiêu đề
           <input value={state.title} onChange={(event) => set('title', event.target.value)} maxLength={255} required />
         </label>
         <label className="student-field-full">
-          Description
+          Mô tả
           <textarea value={state.description} onChange={(event) => set('description', event.target.value)} rows={3} />
         </label>
         <label>
-          Subject
+          Môn học
           <select
             value={state.subjectId}
             onChange={(event) => {
@@ -220,29 +220,29 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           >
             {mode === 'create' && (
               <option value="" disabled>
-                Select a subject
+                Chọn môn học
               </option>
             )}
-            {mode === 'edit' && !initial?.subjectId && <option value="OTHER">Other / custom subject</option>}
+            {mode === 'edit' && !initial?.subjectId && <option value="OTHER">Môn khác (tự nhập)</option>}
             {activeSubjects.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-            {mode === 'create' && <option value="OTHER">Other</option>}
+            {mode === 'create' && <option value="OTHER">Môn khác</option>}
           </select>
         </label>
         {showCustomNote && (
           <label>
-            {mode === 'create' ? 'Custom subject' : 'Custom subject / note'}
+            {mode === 'create' ? 'Môn học khác' : 'Môn học khác / ghi chú'}
             <input value={state.note} onChange={(event) => set('note', event.target.value)} maxLength={255} required />
           </label>
         )}
         <label>
-          Grade
+          Lớp
           <select value={state.gradeId} onChange={(event) => set('gradeId', event.target.value)} required>
             <option value="" disabled>
-              Select your grade
+              Chọn lớp
             </option>
             {activeGrades.map((item) => (
               <option key={item.id} value={item.id}>
@@ -252,24 +252,24 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           </select>
         </label>
         <label>
-          Learning mode
+          Hình thức học
           <select
             value={state.learningMode}
             onChange={(event) => set('learningMode', event.target.value as LearningMode)}
           >
             <option value="ONLINE">Online</option>
-            <option value="OFFLINE">In person</option>
+            <option value="OFFLINE">Trực tiếp</option>
           </select>
         </label>
         <label>
-          Province
+          Tỉnh / thành
           <select
             value={state.provinceId}
             onChange={(event) =>
               setState((current) => ({ ...current, provinceId: event.target.value, districtId: '' }))
             }
           >
-            <option value="">Select a province</option>
+            <option value="">Chọn tỉnh / thành</option>
             {provinces.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -278,13 +278,13 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           </select>
         </label>
         <label>
-          District
+          Quận / huyện
           <select
             value={state.districtId}
             onChange={(event) => set('districtId', event.target.value)}
             disabled={!state.provinceId}
           >
-            <option value="">Select a district</option>
+            <option value="">Chọn quận / huyện</option>
             {districts.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -293,7 +293,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           </select>
         </label>
         <label className="student-field-full">
-          Detail address
+          Địa chỉ chi tiết
           <input
             value={state.detailAddress}
             onChange={(event) => set('detailAddress', event.target.value)}
@@ -301,7 +301,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           />
         </label>
         <label>
-          Minimum price (VND)
+          Học phí tối thiểu (đồng)
           <input
             value={state.minPrice}
             onChange={(event) => set('minPrice', event.target.value)}
@@ -311,7 +311,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           />
         </label>
         <label>
-          Maximum price (VND)
+          Học phí tối đa (đồng)
           <input
             value={state.maxPrice}
             onChange={(event) => set('maxPrice', event.target.value)}
@@ -321,7 +321,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           />
         </label>
         <label className="student-field-full">
-          Learning goals
+          Mục tiêu học
           <textarea
             value={state.learningGoals}
             onChange={(event) => set('learningGoals', event.target.value)}
@@ -329,7 +329,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           />
         </label>
         <label className="student-field-full">
-          Preferred schedule
+          Lịch học mong muốn
           <input value={state.preferredSchedule} onChange={(event) => set('preferredSchedule', event.target.value)} />
         </label>
         <StudentAvailabilityEditor
@@ -338,14 +338,14 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
         />
         <div className="student-form-actions">
           <button className="student-button danger" type="button" onClick={onCancel} disabled={loading}>
-            Cancel
+            Huỷ
           </button>
           <button className="student-button draft" name="action" value="draft" type="submit" disabled={loading}>
-            {mode === 'create' ? 'Create draft' : 'Save changes'}
+            {mode === 'create' ? 'Lưu bản nháp' : 'Lưu thay đổi'}
           </button>
           {mode === 'create' && (
             <button className="student-button payment" name="action" value="pay" type="submit" disabled={loading}>
-              Create & pay
+              Lưu và thanh toán
             </button>
           )}
         </div>

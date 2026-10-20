@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { ApiError } from '../../services/httpClient';
 import { cancelStudentApplication, getStudentApplications, type ApplicationStatus } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
+import { moneyLabel, statusLabel } from '../../utils/labels';
 
 const filters: Array<'ALL' | ApplicationStatus> = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'];
 
@@ -21,16 +22,16 @@ export function StudentApplicationsPage() {
       await cancelStudentApplication(id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not cancel this application.');
+      setError(caught instanceof ApiError ? caught.message : 'Chưa rút được đơn này.');
     }
   };
   return (
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR APPLICATIONS</span>
-          <h1>My requests to studying</h1>
-          <p>Track the requests you sent to tutors.</p>
+          <span className="student-eyebrow">ĐƠN CỦA BẠN</span>
+          <h1>Đơn đăng ký học</h1>
+          <p>Theo dõi các đơn bạn đã gửi tới gia sư.</p>
         </div>
       </div>
       {(error || query.error) && (
@@ -49,24 +50,24 @@ export function StudentApplicationsPage() {
               setPage(0);
             }}
           >
-            {item === 'ALL' ? 'All' : label(item)}
+            {item === 'ALL' ? 'Tất cả' : label(item)}
           </button>
         ))}
       </div>
       {query.isLoading ? (
         <div className="student-empty">
-          <h3>Loading applications…</h3>
+          <h3>Đang tải đơn…</h3>
         </div>
       ) : query.data?.content.length ? (
         <div className="student-list">
           {query.data.content.map((item) => (
             <article className="student-list-row" key={item.id}>
               <div>
-                <h3>{item.teachingRequestTitle || item.subjectName || item.customSubjectName || 'Teaching request'}</h3>
+                <h3>{item.teachingRequestTitle || item.subjectName || item.customSubjectName || 'Tin dạy'}</h3>
                 <p>
-                  {[item.tutorFirstName, item.tutorLastName].filter(Boolean).join(' ') || 'Tutor'} · {item.gradeName}
+                  {[item.tutorFirstName, item.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'} · {item.gradeName}
                   <br />
-                  {formatMoney(item.proposedPrice)} · {item.learningMode === 'ONLINE' ? 'Online' : 'In person'}
+                  {formatMoney(item.proposedPrice)} · {item.learningMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}
                 </p>
               </div>
               <div>
@@ -78,7 +79,7 @@ export function StudentApplicationsPage() {
                     style={{ marginTop: 8 }}
                     onClick={() => void cancel(item.id)}
                   >
-                    Cancel
+                    Rút đơn
                   </button>
                 )}
               </div>
@@ -87,20 +88,20 @@ export function StudentApplicationsPage() {
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No applications in this view</h3>
-          <p>Browse teaching requests to send your first application.</p>
+          <h3>Không có đơn nào ở mục này</h3>
+          <p>Vào "Tìm gia sư" để gửi đơn đầu tiên.</p>
         </div>
       )}
       {query.data && query.data.totalPages > 1 && (
         <div className="student-pagination">
           <button type="button" disabled={query.data.first} onClick={() => setPage((value) => value - 1)}>
-            Previous
+            Trang trước
           </button>
           <span>
-            Page {query.data.page + 1} of {query.data.totalPages}
+            Trang {query.data.page + 1} / {query.data.totalPages}
           </span>
           <button type="button" disabled={query.data.last} onClick={() => setPage((value) => value + 1)}>
-            Next
+            Trang sau
           </button>
         </div>
       )}
@@ -108,8 +109,8 @@ export function StudentApplicationsPage() {
   );
 }
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return moneyLabel(value);
 }
 function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+  return statusLabel(value, 'application');
 }

@@ -1,6 +1,7 @@
 import type { ApiResponse } from '../types/api';
 import type { AuthTokenResponse } from '../types/auth';
 import { clearStoredTokens, getStoredTokens, storeTokens } from '../auth/authStorage';
+import { fieldMessage, MESSAGES, messageForStatus } from './errorCodes';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -8,13 +9,22 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly fieldErrors: Record<string, string>;
+  /** The server's own (English) message, kept for debugging; {@link message} is the Vietnamese one. */
+  readonly serverMessage: string | null;
 
-  constructor(message: string, status = 0, code = 'REQUEST_FAILED', fieldErrors: Record<string, string> = {}) {
+  constructor(
+    message: string,
+    status = 0,
+    code = 'REQUEST_FAILED',
+    fieldErrors: Record<string, string> = {},
+    serverMessage: string | null = null
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.fieldErrors = fieldErrors;
+    this.serverMessage = serverMessage;
   }
 }
 
@@ -69,11 +79,17 @@ export async function request<T>(path: string, options: HttpRequestOptions = {},
   }
 
   if (!response.ok || !payload?.success) {
+    // The server writes English; what reaches the pages is Vietnamese.
+    const code = payload?.code ?? 'REQUEST_FAILED';
+    const fieldErrors = Object.fromEntries(
+      Object.entries(payload?.errors ?? {}).map(([field, message]) => [field, fieldMessage(String(message))])
+    );
     throw new ApiError(
-      payload?.message ?? 'Không thể xử lý yêu cầu. Vui lòng thử lại.',
+      MESSAGES[code] ?? messageForStatus(response.status),
       response.status,
-      payload?.code ?? 'REQUEST_FAILED',
-      payload?.errors ?? {}
+      code,
+      fieldErrors,
+      payload?.message ?? null
     );
   }
 

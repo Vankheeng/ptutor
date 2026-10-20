@@ -20,16 +20,16 @@ export function WalletPage() {
       const payment = await createWalletTopUp(Number(amount));
       window.open(payment.paymentUrl, '_blank', 'noopener,noreferrer');
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not create the payment.');
+      setError(caught instanceof ApiError ? caught.message : 'Chưa tạo được giao dịch thanh toán.');
     }
   };
   return (
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">MONEY & PAYMENTS</span>
-          <h1>Wallet & Payments</h1>
-          <p>Review your balance and financial activity.</p>
+          <span className="student-eyebrow">TIỀN VÀ THANH TOÁN</span>
+          <h1>Ví và thanh toán</h1>
+          <p>Xem số dư và lịch sử giao dịch.</p>
         </div>
       </div>
       {error && (
@@ -43,8 +43,8 @@ export function WalletPage() {
       </div>
       <div className="student-section-heading">
         <div>
-          <span className="student-eyebrow">RECENT ACTIVITY</span>
-          <h2>Transactions</h2>
+          <span className="student-eyebrow">HOẠT ĐỘNG GẦN ĐÂY</span>
+          <h2>Giao dịch</h2>
         </div>
       </div>
       <FinancialTransactionList

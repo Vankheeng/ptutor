@@ -1,4 +1,5 @@
 import type { WalletBalance } from '../../../services/studentApi';
+import { moneyLabel } from '../../../utils/labels';
 
 interface WalletBalanceCardProps {
   balance: WalletBalance | null;
@@ -8,15 +9,13 @@ interface WalletBalanceCardProps {
 export function WalletBalanceCard({ balance, isLoading }: WalletBalanceCardProps) {
   return (
     <section className="student-balance">
-      <small>Available balance</small>
-      <strong>{isLoading ? '—' : balance ? formatMoney(balance.balance) : 'Unavailable'}</strong>
-      <small>
-        {balance?.currency || 'VND'} · Pending {balance ? formatMoney(balance.pendingBalance) : '—'}
-      </small>
+      <small>Số dư khả dụng</small>
+      <strong>{isLoading ? '—' : balance ? formatMoney(balance.balance) : 'Không có dữ liệu'}</strong>
+      <small>Đang chờ: {balance ? formatMoney(balance.pendingBalance) : '—'}</small>
     </section>
   );
 }
 
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return moneyLabel(value);
 }

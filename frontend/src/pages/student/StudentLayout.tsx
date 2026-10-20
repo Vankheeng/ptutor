@@ -6,21 +6,23 @@ import './student-layout.css';
 import './student.css';
 
 const navigation = [
-  { section: 'WORKSPACE', to: '/student/dashboard', label: 'Dashboard', icon: '⌂' },
-  { section: 'LEARNING', to: '/student/studying-requests', label: 'My Studying Requests', icon: '▤' },
-  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Browse Teaching Requests', icon: '⌕' },
-  { section: 'LEARNING', to: '/student/applications', label: 'My requests to studying', icon: '↗' },
-  { section: 'LEARNING', to: '/student/contracts', label: 'Contracts', icon: '▣' },
-  { section: 'ACCOUNT', to: '/student/notifications', label: 'Notifications', icon: 'bell' },
-  { section: 'ACCOUNT', to: '/student/wallet', label: 'Wallet & Payments', icon: '◈' },
-  { section: 'ACCOUNT', to: '/student/profile', label: 'My Profile', icon: '◎' }
+  { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: '⌂' },
+  { section: 'LEARNING', to: '/student/studying-requests', label: 'Tin tìm gia sư của tôi', icon: '▤' },
+  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm gia sư', icon: '⌕' },
+  { section: 'LEARNING', to: '/student/applications', label: 'Đơn đăng ký học', icon: '↗' },
+  { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
+  { section: 'ACCOUNT', to: '/student/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/student/wallet', label: 'Ví và thanh toán', icon: '◈' },
+  { section: 'ACCOUNT', to: '/student/profile', label: 'Hồ sơ của tôi', icon: '◎' }
 ];
+
+const SECTION_LABELS = { WORKSPACE: 'CHUNG', LEARNING: 'HỌC TẬP', ACCOUNT: 'TÀI KHOẢN' } as const;
 
 export function StudentLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fullName =
-    [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Student';
+    [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Học sinh';
   const initials = fullName
     .split(/\s+/)
     .map((part) => part[0])
@@ -31,7 +33,7 @@ export function StudentLayout() {
   return (
     <div className="student-shell">
       <aside className="student-sidebar">
-        <NavLink className="student-brand" to="/student/dashboard" aria-label="Ptutor student dashboard">
+        <NavLink className="student-brand" to="/student/dashboard" aria-label="Trang tổng quan học sinh Ptutor">
           <img src={logo} alt="Ptutor" />
         </NavLink>
         <div className="student-identity">
@@ -40,13 +42,13 @@ export function StudentLayout() {
           </span>
           <span>
             <strong>{fullName}</strong>
-            <small>Student</small>
+            <small>Học sinh</small>
           </span>
         </div>
-        <nav className="student-nav" aria-label="Student workspace">
+        <nav className="student-nav" aria-label="Khu học sinh">
           {(['WORKSPACE', 'LEARNING', 'ACCOUNT'] as const).map((section) => (
             <div className="student-nav-group" key={section}>
-              <span className="student-nav-label">{section}</span>
+              <span className="student-nav-label">{SECTION_LABELS[section]}</span>
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (
@@ -64,7 +66,7 @@ export function StudentLayout() {
         </nav>
         <div className="student-sidebar-bottom">
           <NavLink className="student-nav-link" to="/public">
-            <span aria-hidden="true">↗</span>Public home
+            <span aria-hidden="true">↗</span>Trang chủ
           </NavLink>
           <button
             className="student-nav-link student-logout"
@@ -74,18 +76,18 @@ export function StudentLayout() {
               navigate('/');
             }}
           >
-            <span aria-hidden="true">⇥</span>Sign out
+            <span aria-hidden="true">⇥</span>Đăng xuất
           </button>
         </div>
       </aside>
       <main className="student-main">
         <header className="student-topbar">
           <div>
-            <span className="student-topbar-kicker">PTUTOR / STUDENT WORKSPACE</span>
+            <span className="student-topbar-kicker">PTUTOR / KHU HỌC SINH</span>
             <strong>{fullName}</strong>
           </div>
           <span className="student-topbar-status">
-            <i /> Account active
+            <i /> Tài khoản đang hoạt động
           </span>
         </header>
         <div className="student-content">

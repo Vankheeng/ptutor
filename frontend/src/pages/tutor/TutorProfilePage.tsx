@@ -10,9 +10,9 @@ import { TutorPersonalInformationSection } from './components/TutorPersonalInfor
 import { TutorTeachingProfileSection } from './components/TutorTeachingProfileSection';
 
 const PROFILE_STATUS_LABELS: Record<TutorProfileStatus, string> = {
-  PENDING: 'Waiting for review',
-  VERIFIED: 'Verified profile',
-  REJECTED: 'Not approved'
+  PENDING: 'Chờ duyệt',
+  VERIFIED: 'Đã duyệt',
+  REJECTED: 'Không được duyệt'
 };
 
 export function TutorProfilePage() {
@@ -54,7 +54,7 @@ export function TutorProfilePage() {
     const selectedProvince = String(form.get('provinceId') ?? '');
     const selectedDistrict = String(form.get('districtId') ?? '');
     if (Boolean(selectedProvince) !== Boolean(selectedDistrict)) {
-      setError('Select both a province and district, or leave both blank.');
+      setError('Hãy chọn cả tỉnh / thành và quận / huyện, hoặc bỏ trống cả hai.');
       return;
     }
     setSaving(true);
@@ -84,25 +84,25 @@ export function TutorProfilePage() {
       setPhotoReference(null);
       setPhotoPreview(null);
       setRevision((value) => value + 1);
-      setNotice('Your profile has been saved.');
+      setNotice('Đã lưu hồ sơ.');
     } catch (caught) {
       setError(
         caught instanceof ApiError
           ? Object.values(caught.fieldErrors).join(' ') || caught.message
           : caught instanceof Error
             ? caught.message
-            : 'Could not save your profile.'
+            : 'Chưa lưu được hồ sơ.'
       );
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="tutor-empty">Loading your profile…</div>;
+  if (loading) return <div className="tutor-empty">Đang tải hồ sơ…</div>;
   if (!profile)
     return (
       <div className="tutor-error" role="alert">
-        {error || loadError || 'Your tutor profile could not be found.'}
+        {error || loadError || 'Không tìm thấy hồ sơ gia sư.'}
       </div>
     );
   const initials =
@@ -114,7 +114,7 @@ export function TutorProfilePage() {
   const uploadPhoto = async (file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      setError('Choose a JPG or PNG image.');
+      setError('Hãy chọn ảnh JPG hoặc PNG.');
       return;
     }
     setUploadingPhoto(true);
@@ -123,9 +123,9 @@ export function TutorProfilePage() {
       const { certificateUrl, previewUrl } = await uploadCertificateFile(file);
       setPhotoReference(certificateUrl);
       setPhotoPreview(previewUrl);
-      setNotice('Photo uploaded. Save your profile to apply it.');
+      setNotice('Đã tải ảnh lên. Lưu hồ sơ để áp dụng.');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not upload your photo.');
+      setError(caught instanceof Error ? caught.message : 'Chưa tải được ảnh lên.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -135,9 +135,9 @@ export function TutorProfilePage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">YOUR PUBLIC PRESENCE</span>
-          <h1>Edit user profile</h1>
-          <p>Help students understand your experience and how you teach.</p>
+          <span className="tutor-eyebrow">HỒ SƠ CÔNG KHAI</span>
+          <h1>Hồ sơ gia sư</h1>
+          <p>Giúp học viên hiểu kinh nghiệm và cách dạy của bạn.</p>
         </div>
         <span className={`tutor-profile-badge status-${profile.profileStatus.toLowerCase()}`}>
           {PROFILE_STATUS_LABELS[profile.profileStatus]}
@@ -145,14 +145,14 @@ export function TutorProfilePage() {
       </div>
       {profile.profileStatus === 'REJECTED' && (
         <div className="tutor-error" role="status">
-          <strong>Your profile was not approved.</strong>{' '}
-          {profile.profileRejectionReason && <>Reason: {profile.profileRejectionReason}. </>}
-          Update your teaching details and save to send it for review again.
+          <strong>Hồ sơ chưa được duyệt.</strong>{' '}
+          {profile.profileRejectionReason && <>Lý do: {profile.profileRejectionReason}. </>}
+          Sửa thông tin dạy học rồi lưu để gửi duyệt lại.
         </div>
       )}
       {profile.profileStatus === 'PENDING' && (
         <div className="tutor-notice tutor-review-pending" role="status">
-          Your profile is waiting for review. Students can find you once it is approved.
+          Hồ sơ đang chờ duyệt. Học viên sẽ tìm thấy bạn sau khi hồ sơ được duyệt.
         </div>
       )}
       {notice && (
@@ -188,9 +188,9 @@ export function TutorProfilePage() {
           <TutorTeachingProfileSection profile={profile} />
         </div>
         <div className="tutor-profile-footer">
-          <span>Changes to professional details may be reviewed by Ptutor.</span>
+          <span />
           <button className="tutor-button" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save profile'}
+            {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
           </button>
         </div>
       </form>

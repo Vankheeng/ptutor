@@ -20,30 +20,30 @@ export function StudentStudyingRequestEditPage() {
   if (!request)
     return (
       <div className="student-empty">
-        <h3>Loading request…</h3>
+        <h3>Đang tải tin…</h3>
       </div>
     );
   if (!['DRAFT', 'OPEN'].includes(request.status))
     return (
       <div className="student-error" role="alert">
-        This request can no longer be edited.
+        Tin này không còn sửa được.
       </div>
     );
   const submit = async (values: StudyingRequestInput) => {
     await updateStudyingRequest(request.id, values);
     setRevision((value) => value + 1);
-    navigate(`/student/studying-requests/${request.id}`, { state: { notice: 'Studying request updated.' } });
+    navigate(`/student/studying-requests/${request.id}`, { state: { notice: 'Đã cập nhật tin.' } });
   };
   return (
     <>
       <Link className="student-link" to={`/student/studying-requests/${request.id}`}>
-        ← Back to request detail
+        ← Quay lại chi tiết tin
       </Link>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">STUDYING REQUEST</span>
-          <h1>Edit studying request</h1>
-          <p>Update the request while it is still editable.</p>
+          <span className="student-eyebrow">TIN TÌM GIA SƯ</span>
+          <h1>Sửa tin tìm gia sư</h1>
+          <p>Bạn sửa được tin khi tin còn là bản nháp hoặc đang mở.</p>
         </div>
       </div>
       <StudentStudyingRequestForm

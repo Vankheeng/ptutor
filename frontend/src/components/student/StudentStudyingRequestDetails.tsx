@@ -15,29 +15,29 @@ export function StudentStudyingRequestDetails({ request }: Props) {
   return (
     <section className="student-panel">
       <div className="student-detail-table">
-        <DetailRow label="Title" value={request.title} />
+        <DetailRow label="Tiêu đề" value={request.title} />
         <DetailRow
-          label="Status"
+          label="Trạng thái"
           value={
             <span className={`student-status ${request.status.toLowerCase()}`}>{statusLabel(request.status)}</span>
           }
         />
-        <DetailRow label="Description" value={request.description || 'No description provided.'} multiline />
-        <DetailRow label="Subject" value={request.subjectName || request.note || 'Custom subject'} />
-        <DetailRow label="Grade" value={request.gradeName} />
-        <DetailRow label="Mode" value={request.learningMode === 'ONLINE' ? 'Online' : 'In person'} />
+        <DetailRow label="Mô tả" value={request.description || 'Chưa có mô tả.'} multiline />
+        <DetailRow label="Môn học" value={request.subjectName || request.note || 'Môn khác'} />
+        <DetailRow label="Lớp" value={request.gradeName} />
+        <DetailRow label="Hình thức" value={request.learningMode === 'ONLINE' ? 'Online' : 'Trực tiếp'} />
         <DetailRow
-          label="Budget"
+          label="Ngân sách"
           value={`${formatStudyingRequestMoney(request.minPrice)} – ${formatStudyingRequestMoney(request.maxPrice)}`}
         />
-        <DetailRow label="Preferred schedule" value={request.preferredSchedule || 'Flexible'} />
+        <DetailRow label="Lịch học mong muốn" value={request.preferredSchedule || 'Linh hoạt'} />
         <DetailRow
-          label="Address"
-          value={[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
+          label="Địa chỉ"
+          value={[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Chưa nêu'}
         />
-        <DetailRow label="Learning goals" value={request.learningGoals || 'Not specified'} multiline />
+        <DetailRow label="Mục tiêu học" value={request.learningGoals || 'Chưa nêu'} multiline />
         <DetailRow
-          label="Availability"
+          label="Lịch rảnh"
           value={
             request.availabilities.length ? (
               <div className="student-detail-availability">
@@ -48,13 +48,13 @@ export function StudentStudyingRequestDetails({ request }: Props) {
                 ))}
               </div>
             ) : (
-              'Flexible'
+              'Linh hoạt'
             )
           }
           multiline
         />
-        <DetailRow label="Created" value={formatStudyingRequestDate(request.createdAt)} />
-        <DetailRow label="Updated" value={formatStudyingRequestDate(request.updatedAt)} />
+        <DetailRow label="Ngày tạo" value={formatStudyingRequestDate(request.createdAt)} />
+        <DetailRow label="Cập nhật" value={formatStudyingRequestDate(request.updatedAt)} />
       </div>
     </section>
   );

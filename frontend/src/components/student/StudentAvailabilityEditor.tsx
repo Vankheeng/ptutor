@@ -16,36 +16,36 @@ export function StudentAvailabilityEditor({ values, onChange }: Props) {
 
   return (
     <div className="student-field-full student-availability-editor">
-      <span>Availability (optional)</span>
-      <p className="student-muted">Add one or more preferred time slots, or leave this section empty.</p>
+      <span>Lịch rảnh (không bắt buộc)</span>
+      <p className="student-muted">Thêm một hoặc vài khung giờ bạn học được, hoặc để trống.</p>
       {slots.map((slot, index) => (
         <div className="student-availability-row" key={index}>
           <select
-            aria-label={`Weekday ${index + 1}`}
+            aria-label={`Thứ của khung giờ ${index + 1}`}
             value={slot.dayOfWeek || ''}
             onChange={(event) => update(index, 'dayOfWeek', event.target.value)}
           >
-            <option value="">Select a weekday</option>
-            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, dayIndex) => (
+            <option value="">Chọn thứ</option>
+            {['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'].map((day, dayIndex) => (
               <option key={day} value={dayIndex + 1}>
                 {day}
               </option>
             ))}
           </select>
           <input
-            aria-label={`Start time ${index + 1}`}
+            aria-label={`Giờ bắt đầu ${index + 1}`}
             value={slot.startTime}
             onChange={(event) => update(index, 'startTime', event.target.value)}
             type="time"
           />
           <input
-            aria-label={`End time ${index + 1}`}
+            aria-label={`Giờ kết thúc ${index + 1}`}
             value={slot.endTime}
             onChange={(event) => update(index, 'endTime', event.target.value)}
             type="time"
           />
           <button className="student-button secondary" type="button" onClick={() => remove(index)}>
-            Remove
+            Xoá
           </button>
         </div>
       ))}
@@ -54,7 +54,7 @@ export function StudentAvailabilityEditor({ values, onChange }: Props) {
         type="button"
         onClick={() => onChange([...slots, { dayOfWeek: 0, startTime: '', endTime: '' }])}
       >
-        Add availability
+        Thêm khung giờ
       </button>
     </div>
   );

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getContracts, type ContractStatus } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
+import { dateLabel, moneyLabel, paymentPeriodLabel, statusLabel } from '../../utils/labels';
 
 const filters: Array<'ALL' | ContractStatus> = ['ALL', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
 export function StudentContractsPage() {
@@ -16,9 +17,9 @@ export function StudentContractsPage() {
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR AGREEMENTS</span>
-          <h1>Contracts</h1>
-          <p>Review your learning agreements and next steps.</p>
+          <span className="student-eyebrow">THOẢ THUẬN HỌC</span>
+          <h1>Hợp đồng</h1>
+          <p>Xem các hợp đồng học và việc cần làm tiếp theo.</p>
         </div>
       </div>
       {query.error && (
@@ -37,13 +38,13 @@ export function StudentContractsPage() {
               setPage(0);
             }}
           >
-            {item === 'ALL' ? 'All' : label(item)}
+            {item === 'ALL' ? 'Tất cả' : label(item)}
           </button>
         ))}
       </div>
       {query.isLoading ? (
         <div className="student-empty">
-          <h3>Loading contracts…</h3>
+          <h3>Đang tải hợp đồng…</h3>
         </div>
       ) : query.data?.content.length ? (
         <div className="student-list">
@@ -54,17 +55,17 @@ export function StudentContractsPage() {
                   {contract.subjectName} · {contract.gradeName}
                 </h3>
                 <p>
-                  {[contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Tutor'} ·{' '}
-                  {contract.paymentPeriod}
+                  {[contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'} ·{' '}
+                  {paymentPeriodLabel(contract.paymentPeriod)}
                   <br />
-                  {formatMoney(contract.price)} · {contract.startDate} to {contract.endDate}
+                  {formatMoney(contract.price)} · {dateLabel(contract.startDate)} đến {dateLabel(contract.endDate)}
                 </p>
               </div>
               <div>
                 <span className={`student-status ${contract.status.toLowerCase()}`}>{label(contract.status)}</span>
                 <br />
                 <Link className="student-link" to={`/student/contracts/${contract.id}`}>
-                  View contract →
+                  Xem hợp đồng →
                 </Link>
               </div>
             </article>
@@ -72,20 +73,20 @@ export function StudentContractsPage() {
         </div>
       ) : (
         <div className="student-empty">
-          <h3>No contracts in this view</h3>
-          <p>Accepted tutor offers can become contracts.</p>
+          <h3>Không có hợp đồng nào ở mục này</h3>
+          <p>Đơn hoặc đề nghị được nhận sẽ thành hợp đồng.</p>
         </div>
       )}
       {query.data && query.data.totalPages > 1 && (
         <div className="student-pagination">
           <button type="button" disabled={query.data.first} onClick={() => setPage((value) => value - 1)}>
-            Previous
+            Trang trước
           </button>
           <span>
-            Page {query.data.page + 1} of {query.data.totalPages}
+            Trang {query.data.page + 1} / {query.data.totalPages}
           </span>
           <button type="button" disabled={query.data.last} onClick={() => setPage((value) => value + 1)}>
-            Next
+            Trang sau
           </button>
         </div>
       )}
@@ -93,8 +94,8 @@ export function StudentContractsPage() {
   );
 }
 function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+  return statusLabel(value, 'contract');
 }
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return moneyLabel(value);
 }

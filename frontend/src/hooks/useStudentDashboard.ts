@@ -40,7 +40,7 @@ export function useStudentDashboard() {
       wallet: value<WalletBalance>(4),
       errors: results
         .filter((result) => result.status === 'rejected')
-        .map(() => 'Some dashboard data could not be loaded.')
+        .map(() => 'Một phần dữ liệu tổng quan chưa tải được.')
     };
   }, []);
   return useResource<StudentDashboardData>(load);

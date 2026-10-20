@@ -7,10 +7,10 @@ interface WalletTopUpFormProps {
 export function WalletTopUpForm({ amount, onAmountChange, onSubmit }: WalletTopUpFormProps) {
   return (
     <section className="student-panel">
-      <h2>Top up wallet</h2>
+      <h2>Nạp tiền vào ví</h2>
       <div className="student-form-grid">
         <label>
-          Amount (VND)
+          Số tiền (đồng)
           <input
             type="number"
             min="10000"
@@ -22,7 +22,7 @@ export function WalletTopUpForm({ amount, onAmountChange, onSubmit }: WalletTopU
         </label>
         <div className="student-form-actions">
           <button className="student-button" type="button" disabled={!amount} onClick={onSubmit}>
-            Open VNPay
+            Thanh toán qua VNPay
           </button>
         </div>
       </div>

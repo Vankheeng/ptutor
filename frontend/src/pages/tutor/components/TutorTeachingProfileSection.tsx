@@ -6,54 +6,53 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
       <div className="tutor-panel-heading">
         <span>02</span>
         <div>
-          <h2>Teaching profile</h2>
-          <p>Share what makes your classes a good fit.</p>
+          <h2>Hồ sơ dạy học</h2>
         </div>
       </div>
       <div className="tutor-form-grid">
         <label className="tutor-field-full">
-          Bio / introduction
+          Giới thiệu
           <textarea
             name="introduction"
             rows={5}
             defaultValue={profile.introduction ?? ''}
-            placeholder="Tell students about your background and teaching approach."
+            placeholder="Kể về bản thân và cách bạn dạy."
           />
         </label>
         <label>
-          Years of experience
+          Số năm kinh nghiệm
           <input name="experienceYears" type="number" min="0" defaultValue={profile.experienceYears ?? ''} />
         </label>
         <label>
-          Education
+          Học vấn
           <input name="education" defaultValue={profile.education ?? ''} />
         </label>
         <label className="tutor-field-full">
-          Subjects you teach
+          Môn dạy tốt
           <input
             name="strengthSubjects"
             defaultValue={profile.strengthSubjects ?? ''}
-            placeholder="Mathematics, Physics, IELTS…"
+            placeholder="Toán, Vật lý, IELTS…"
           />
         </label>
         <label className="tutor-field-full">
-          Teaching style tags
+          Phong cách dạy
           <input
             name="teachingStyleTags"
             defaultValue={profile.teachingStyleTags ?? ''}
-            placeholder="Patient, practical, exam focused…"
+            placeholder="Kiên nhẫn, thực tế, tập trung luyện thi…"
           />
         </label>
         <label className="tutor-field-full">
-          Teaching methodology
+          Phương pháp dạy
           <textarea name="teachingMethodology" rows={3} defaultValue={profile.teachingMethodology ?? ''} />
         </label>
         <label className="tutor-field-full">
-          Students you work best with
+          Đối tượng học viên phù hợp
           <input
             name="targetStudentType"
             defaultValue={profile.targetStudentType ?? ''}
-            placeholder="Primary school, exam preparation…"
+            placeholder="Tiểu học, luyện thi…"
           />
         </label>
       </div>
