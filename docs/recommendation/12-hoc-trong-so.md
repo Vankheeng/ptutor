@@ -69,9 +69,13 @@ b′ = (0,5·b′_hist + 0,5·(0,4·Q + 0,3·f_style + 0,3·f_price)) × b′_ca
    = (0,5·b′_hist + 0,20·Q + 0,15·f_style + 0,15·f_price) × b′_cap
 ```
 
-Thành phần fit bị thiếu được thay bằng **trung bình các thành phần có mặt** (không có thành phần nào →
-`p0`). Với cách thay này, dạng dàn phẳng với trọng số prior cho **đúng** giá trị `b_fit` hiện tại — nên
-khi chưa học gì, kết quả không đổi.
+Thành phần fit bị thiếu được thay theo đúng cách công thức hiện tại đang làm, để dạng dàn phẳng với trọng
+số prior cho **đúng** giá trị hiện tại — khi chưa học gì, kết quả không đổi:
+- **b (`B_S2T`)**: thay bằng **trung bình các thành phần có mặt** (không có thành phần nào → `p0`), vì `b_fit`
+  hiện là trung bình các thành phần có dữ liệu.
+- **b′ (`B_T2S`)**: `Q` luôn có; `f_style`, `f_price` thiếu được thay bằng **giá trị trung tính 0,5**
+  (`tutor-willingness.neutral`), vì `b′_fit` hiện vẫn dùng 0,5 cho phần thiếu. (Quyết định 20/10/2026: giữ khác
+  b để kết quả không đổi.)
 
 Phía a dùng đúng quy tắc thiếu dữ liệu ở 06, mục 6.5: đặc trưng thiếu nhận giá trị trung tính 0,5, nên
 `a_cơ_sở = Σ_k w_k·x_k` với `x_k = f_k` hoặc 0,5. Đây cũng chính là vector đặc trưng đưa vào mô hình học.
@@ -91,10 +95,17 @@ Phía a dùng đúng quy tắc thiếu dữ liệu ở 06, mục 6.5: đặc tr�
 | Điểm thành phần trong đặc trưng (khớp tag cha 0,6, cùng tỉnh 0,6…), α, p0 | Định nghĩa miền / tham số thống kê; kiểm chứng bằng phân tích độ nhạy |
 | Ngưỡng vận hành (lọc giá 1,5×, slot 5 và 12, nới tiêu chí, thông báo…) | Quyết định sản phẩm và hiệu năng, không phải trọng số xếp hạng |
 
-**Việc cần làm trước (tái cấu trúc, không đổi kết quả):** chuyển các hằng số đang viết cứng vào
-`RecommendationSettings` — `0,5·hist + 0,5·fit` (`WillingnessCalculator`, `TutorSideRanker`), `b′_fit`
-0,4 / 0,3 / 0,3, kernel 0,5 / 0,3 / 0,2, `f_hist` 0,6 / 0,4, trọng số tín hiệu H1, các điểm thành phần
-trong `FeatureCalculator`. Đây cũng là điều kiện để chạy phân tích độ nhạy.
+**Việc cần làm trước (tái cấu trúc, không đổi kết quả) — đã làm 20/10/2026:** chuyển các hằng số đang viết
+cứng vào `RecommendationSettings` — `0,5·hist + 0,5·fit` (`willingness.history-share`,
+`tutor-willingness.history-share`), `b′_fit` 0,4 / 0,3 / 0,3 (`tutor-willingness.fit-weights.*`), kernel
+0,5 / 0,3 / 0,2 (`willingness.kernel.*`) và 0,5 / 0,5 (`tutor-willingness.kernel.*`), `f_hist` 0,6 / 0,4
+(`history.cosine-share`, `tag-share`), trọng số tín hiệu H1 (`history.signal-weights.*`), các điểm thành phần
+trong `FeatureCalculator` (`features.*`). Bảng đầy đủ ở 10, mục 10.1. Đây cũng là điều kiện để chạy phân tích độ
+nhạy.
+
+> 💡 Bước tái cấu trúc này không đổi kết quả nào: test `RankingRegressionTest` chấm 600 cặp ngẫu nhiên (có hạt giống
+> cố định, đủ các trường hợp thiếu dữ liệu) bằng code **trước** khi sửa, lưu điểm vào file, rồi kiểm tra code sau
+> khi sửa cho đúng các điểm đó với sai số ≤ 10⁻⁹.
 
 ## 12.3. Mô hình toán
 
@@ -387,6 +398,14 @@ recommendation_decision_snapshots + bảng đơn (phía b) ◄── DecisionSna
 Các calculator **không đọc trọng số trực tiếp từ `RecommendationSettings` nữa** mà hỏi `WeightProvider`.
 Khi L1 tắt, `WeightProvider` trả đúng giá trị của `RecommendationSettings` → kết quả không đổi so với
 hiện tại (có test khẳng định điều này).
+
+**Trạng thái (20/10/2026):** `WeightProvider` đã có và các calculator (`FeatureCalculator`, `TutorSideRanker`,
+`WillingnessCalculator`) đã hỏi nó; hiện nó **chỉ trả prior**. Trọng số của một mô hình là `ModelWeights` (bất biến)
+theo thứ tự đặc trưng của `WeightModel`: `A_S2T` sem, need, price, style, sched, area, segment; `A_T2S` sem, price,
+need, segment, sched, area; `B_S2T` hist, fitSegment, fitSched, fitPrice; `B_T2S` hist, fitQuality, fitStyle,
+fitPrice. a và a′ tính ở dạng `Σ w_k·x_k` (đặc trưng thiếu = `confidence-prior`), b và b′ ở dạng dàn phẳng;
+`willingness.fit` trong log vẫn là `b_fit` (trung bình có trọng số các phần fit). Nạp bản học được, chế độ và mẫu
+Thompson làm ở bước sau.
 
 ## 12.10. Tham số `app.recommendation.learning.*`
 

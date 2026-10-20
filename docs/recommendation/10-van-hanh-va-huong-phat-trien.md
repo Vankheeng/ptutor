@@ -21,11 +21,19 @@
 | `area.same-province` / `area.other-province` | 0,6 / 0,2 | 06, 6.4 |
 | `history.max-weight` / `history.full-weight-signals` | 0,15 / 10 | 06, 6.4 |
 | `history.half-life-days` / `window-days` | 30 / 180 | 07, 7.4 |
-| Thang tín hiệu H1: view / favorite / contact / accepted / dismissed (hằng số trong `PreferenceProfileService`, không cấu hình được) | 1 / 2 / 3 / 4 / −2 | 07, 7.4 |
+| `history.signal-weights.viewed` / `clicked` / `favorited` / `contacted` / `requested` / `accepted` / `dismissed` | 1 / 1 / 2 / 3 / 3 / 4 / −2 | 07, 7.4 |
+| `history.cosine-share` / `tag-share` / `without-vector` (f_hist; phần vector khi tin chưa có vector) | 0,6 / 0,4 / 0,5 | 06, 6.4 |
 | `history.worker-interval-ms` / `worker-batch-size` | 10 000 / 20 | 07, 7.4 |
 | `low-confidence-threshold` / `confidence-prior` | 0,4 / 0,5 | 06, 6.5 |
 | `price.hard-factor` | 1,5 | 06, 6.2 |
+| `features.need.parent-match` / `need.without-tutor-tags` / `style.without-tutor-tags` | 0,6 / 0,4 / 0,5 | 06, 6.4 |
+| `features.segment.adjacent` / `outside` / `without-target` | 0,5 / 0,1 / 0,5 | 06, 6.4 |
+| `features.schedule.need-cap-minutes` / `features.price.over-budget-range` (giá về 0 ở ngân sách × 1,5) | 180 / 0,5 | 06, 6.4 |
 | `willingness.alpha` / `p0-default` / `p0-min-decisions` / `history-days` / `congestion-lambda` | 2 / 0,6 / 20 / 180 / 0,5 | 06, 6.6 |
+| `willingness.history-share` / `fit-weights.segment` / `sched` / `price` (tương đối) — prior của `B_S2T` | 0,5 / 1 / 1 / 1 | 06, 6.6 · 12, 12.2 |
+| `willingness.kernel.grade` / `price` / `mode` / `unknown-similarity` / `grade-adjacent`; `tutor-price-tolerance` | 0,5 / 0,3 / 0,2 / 0,5 / 0,5; 0,3 | 06, 6.6 |
+| `tutor-willingness.history-share` / `fit-weights.quality` / `style` / `price` — prior của `B_T2S` | 0,5 / 0,4 / 0,3 / 0,3 | 06, 6.12 · 12, 12.2 |
+| `tutor-willingness.neutral` / `kernel.price` / `kernel.quality` | 0,5 / 0,5 / 0,5 | 06, 6.12 |
 | `reciprocal.enabled` / `willingness.congestion-enabled` | true / true | 06, 6.6–6.7 |
 | `quality.base` / `weight` | 0,7 / 0,3 | 06, 6.8 |
 | `complaint.window-days` / `prior-contracts` / `penalty-scale` / `max-penalty` | 365 / 5 / 40 / 20 | 06, 6.8 |
