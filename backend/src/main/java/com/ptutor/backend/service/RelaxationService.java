@@ -99,10 +99,15 @@ public class RelaxationService {
         List<Variant<C>> ordered = variants.stream()
                 .sorted(Comparator.comparingInt((Variant<C> variant) -> LIGHTEST_FIRST.indexOf(variant.code())))
                 .toList();
+        int tried = 0;
         for (Variant<C> variant : ordered) {
             if (System.nanoTime() >= deadline) {
+                log.debug("Relaxation budget of {} ms used up after {} of {} loosenings",
+                        settings.getRelaxationBudgetMs(), tried, ordered.size());
                 break;
             }
+            tried++;
+            long variantStarted = System.nanoTime();
             List<S> gained;
             try {
                 // Ranked with μ, like other background work (design 12, 12.4).
@@ -116,6 +121,8 @@ public class RelaxationService {
                 continue;
             }
             double best = gained.stream().mapToDouble(score).max().orElse(0);
+            log.debug("Relaxation {}: {} ms, {} new good results, best {}", variant.code(),
+                    (System.nanoTime() - variantStarted) / 1_000_000, gained.size(), best);
             if (gained.size() >= settings.getRelaxationMinGain()
                     || (!gained.isEmpty() && best >= currentBest + settings.getRelaxationBestScoreMargin())) {
                 kept.add(new Evaluated(LIGHTEST_FIRST.indexOf(variant.code()), new RelaxationSuggestion(

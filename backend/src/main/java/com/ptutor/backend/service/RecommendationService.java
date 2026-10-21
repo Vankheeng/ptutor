@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,8 @@ import tools.jackson.databind.JsonNode;
  */
 @Service
 public class RecommendationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RecommendationService.class);
 
     public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 50;
@@ -128,6 +132,7 @@ public class RecommendationService {
         }
 
         long started = System.nanoTime();
+        PhaseTimer timer = new PhaseTimer();
         TutorRecommendationRequest received = request == null
                 ? new TutorRecommendationRequest(null, null, null, null) : request;
         // Opening a saved search: its criteria are the search, whatever else the body contains.
@@ -142,10 +147,14 @@ public class RecommendationService {
 
         MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
                 tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
+        timer.mark("context");
         float[] queryVector = queryVector(student, context);
+        timer.mark("vector");
         Ranking ranking = rank(student.getId(), context, queryVector, tagNames);
+        timer.mark("rank");
         RerankService.Result rerank = rerankService.forSearch(
                 context.demandText(), RecommendationCandidateType.TEACHING_REQUEST, ids(ranking.ranked()));
+        timer.mark("rerank");
         List<ScoredCandidate> all = ranker
                 .applyRerank(context, ranking.ranked(), rerank.scores(), ranking.platformRate());
         ExplorationService.Result<ScoredCandidate> explored = explorationService.apply(
@@ -160,10 +169,12 @@ public class RecommendationService {
                 matchReasonBuilder.forStudent(context, scored, tagNames,
                         explored.explored().contains(scored.candidate().teachingRequestId()),
                         likedTags(tagCodes(scored.candidate(), tagNames), affinity, tagNames))));
+        timer.mark("explore+reasons");
         List<RelaxationSuggestion> relaxations = relaxationService.suggest(
                 all, relaxationService.forStudent(context),
                 relaxed -> rank(student.getId(), relaxed, queryVector, tagNames).ranked(),
                 scored -> scored.candidate().tutorId(), ScoredCandidate::score, relaxationService::studentMessage);
+        timer.mark("relax");
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
@@ -172,6 +183,8 @@ public class RecommendationService {
                 // What the sentence was understood as, next to what was finally searched (design 05, 5.7).
                 effective.queryText() == null ? null : queryParseService.recall(context.homeProvinceId(),
                         effective.queryText(), RecommendationDirection.STUDENT_TO_TUTOR).orElse(null));
+        timer.mark("log");
+        LOGGER.debug("Student search {} phases (ms): {}", log.getId(), timer);
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());

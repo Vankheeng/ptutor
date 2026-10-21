@@ -386,6 +386,9 @@ class EnrichmentJobIntegrationTest {
 
     @Test
     void seedingTheVocabularyTwiceAddsNothingAndLinksTopicsToTheirParent() throws Exception {
+        // First run here: on an empty test database the subjects of the topics only exist from this test on.
+        seeder.run(new DefaultApplicationArguments());
+        entityManager.flush();
         long before = tagRepository.count();
 
         seeder.run(new DefaultApplicationArguments());

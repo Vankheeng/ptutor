@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +51,8 @@ import tools.jackson.databind.node.ObjectNode;
 @RequiredArgsConstructor
 public class StudentRecommendationService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(StudentRecommendationService.class);
+
     private final TutorRepository tutorRepository;
     private final StudyingCandidateRepository candidateRepository;
     private final RecommendationLogRepository logRepository;
@@ -89,6 +93,7 @@ public class StudentRecommendationService {
         }
 
         long started = System.nanoTime();
+        PhaseTimer timer = new PhaseTimer();
         StudentRecommendationRequest received = request == null
                 ? new StudentRecommendationRequest(null, null) : request;
         // Opening a saved search: its criteria are the search, whatever else the body contains.
@@ -101,8 +106,10 @@ public class StudentRecommendationService {
                     context.needsInput(), false, List.of(), List.of(), safePage, safeSize, 0);
         }
 
+        timer.mark("context");
         float[] queryVector = queryEmbeddingService.embed(context.supplyText())
                 .orElse(tutor.getProfileEmbedding());
+        timer.mark("vector");
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
                 settings.getWillingnessDefaultRate());
@@ -110,9 +117,11 @@ public class StudentRecommendationService {
                 tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
         History[] history = new History[1];
         List<ScoredStudyingCandidate> ranked = rank(tutor.getId(), context, queryVector, platformRate, history);
+        timer.mark("rank");
         RerankService.Result rerank = rerankService.forSearch(
                 context.supplyText(), RecommendationCandidateType.STUDYING_REQUEST,
                 ranked.stream().map(scored -> scored.candidate().studyingRequestId()).toList());
+        timer.mark("rerank");
         List<ScoredStudyingCandidate> all = ranker.applyRerank(context, ranked, rerank.scores(), platformRate);
         ExplorationService.Result<ScoredStudyingCandidate> explored = explorationService.apply(
                 all, RecommendationCandidateType.STUDYING_REQUEST,
@@ -127,16 +136,20 @@ public class StudentRecommendationService {
                 matchReasonBuilder.forTutor(context, scored, tagNames,
                         explored.explored().contains(scored.candidate().studyingRequestId()),
                         RecommendationService.likedTags(tagCodes(scored.candidate()), affinity, tagNames))));
+        timer.mark("explore+reasons");
         List<RelaxationSuggestion> relaxations = relaxationService.suggest(
                 all, relaxationService.forTutor(context),
                 relaxed -> rank(tutor.getId(), relaxed, queryVector, platformRate, new History[1]),
                 scored -> scored.candidate().studentId(), ScoredStudyingCandidate::score,
                 relaxationService::tutorMessage);
+        timer.mark("relax");
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logTutorSearch(
                 tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status(), reasons,
                 relaxations, explored.explored(), effective.savedSearchId());
+        timer.mark("log");
+        LOGGER.debug("Tutor search {} phases (ms): {}", log.getId(), timer);
 
         List<Item> items = new ArrayList<>();
         int from = Math.min(safePage * safeSize, kept.size());
