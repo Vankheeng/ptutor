@@ -180,7 +180,7 @@ tuyển dụng (11, mục 11.4).
 4. A1 (`/enrich`, seed bộ từ vựng tag, API quản trị tag và gợi ý tag bằng LLM — 04 mục 4.11).
 5. b + chống dồn → **V2-RC**.
 6. Rerank + cache + `RerankPrefetchJob` → **V2-RCX**.
-7. H1 (`ProfileUpdater`, `f_hist`), B5, slot khám phá, nới tiêu chí.
+7. H1 (`ProfileUpdateWorker`, `f_hist`), B5, slot khám phá, nới tiêu chí.
 8. Lưu tìm kiếm + C7 (`MatchAlertWorker`).
 9. A2 (`/parse-query`, tự điền bộ lọc).
 10. Dữ liệu mô phỏng và đánh giá (có thể bắt đầu song song từ bước 3).

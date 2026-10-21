@@ -1,8 +1,10 @@
 # 12. Học trọng số trực tuyến (L1)
 
-> 💡 **File này nói về gì:** Thiết kế (chưa lập trình) cho việc hệ thống **tự chỉnh dần các trọng số** — mức quan trọng của nội dung, giá, lịch… khi tính điểm — từ phản hồi của người dùng, thay vì dùng mãi con số nhóm tự đặt. Đây là phần nặng toán nhất; giải thích trực giác trước ở [00](./00-doc-truoc.md) mục 4.9.
+> 💡 **File này nói về gì:** Thiết kế (đã lập trình 20/10/2026) cho việc hệ thống **tự chỉnh dần các trọng số** — mức quan trọng của nội dung, giá, lịch… khi tính điểm — từ phản hồi của người dùng, thay vì dùng mãi con số nhóm tự đặt. Đây là phần nặng toán nhất; giải thích trực giác trước ở [00](./00-doc-truoc.md) mục 4.9.
 
-> Trạng thái: **bản thiết kế**, chưa triển khai. Viết ngày 13/10/2026.
+> Trạng thái: viết ngày 13/10/2026; **đã lập trình** 20/10/2026 (Bước 19–23: `WeightProvider`, `LinearBayesModel`,
+> `WeightLearningJob`, API quản trị), mặc định chế độ `SHADOW`. Thí nghiệm học trên dữ liệu mô phỏng: 09, mục 9.9 và
+> `ket-qua/`.
 
 ## 12.1. Mục tiêu và ý tưởng
 

@@ -232,8 +232,8 @@ Lưu vào `recommendation_user_profiles` (`preference_embedding`, `tag_affinity`
 
 > 💡 Hồ sơ được tính lại khi có hành vi mới, và tính lại toàn bộ mỗi đêm để áp dụng độ mờ theo thời gian.
 
-- Listener sự kiện (sau commit, transaction riêng `REQUIRES_NEW`) khi có click/tym/đơn/đổi trạng
-  thái đơn → tính lại hồ sơ của người đó từ dữ liệu 180 ngày (vài chục đến vài trăm dòng, rẻ).
+- Khi có click/tym/đơn/đổi trạng thái đơn, listener (sau commit) xếp một job `PROFILE_UPDATE` vào hàng đợi;
+  `ProfileUpdateWorker` tính lại hồ sơ của người đó từ dữ liệu 180 ngày (vài chục đến vài trăm dòng, rẻ).
 - Job hằng đêm tính lại toàn bộ để áp dụng giảm theo thời gian.
 
 ### Ghi chú triển khai (13/10/2026)

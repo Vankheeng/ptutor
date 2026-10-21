@@ -71,19 +71,19 @@ Không phải chatbot: LLM chỉ được gọi một lượt cho mỗi tác v�
 
 ## 1.4. Hiện trạng code liên quan (đã rà soát, cập nhật 09/10/2026)
 
-> 💡 Ảnh chụp code **trước khi** bắt đầu làm tính năng (09/10/2026): cái gì đã có, cái gì còn thiếu. Nhiều dòng "chưa có" ở đây nay đã được làm; xem nhật ký phát triển và các mục "Ghi chú triển khai" trong 02–07 để biết trạng thái mới.
+> 💡 Ảnh chụp code **trước khi** bắt đầu làm tính năng (09/10/2026): cái gì đã có, cái gì còn thiếu. Cột cuối ghi trạng thái hiện tại (20/10/2026) để khỏi phải tra nhật ký.
 
-| Thành phần | Hiện trạng |
-|---|---|
-| Cột embedding + metadata trên `students`, `tutors` | Có, `vector(1536)`, **chưa có code ghi** |
-| Cột tổng hợp trên `tutors` (`average_rating`, `total_reviews`, `completed_contracts_count`, `total_students_taught`, `acceptance_rate`, `avg_response_time_hours`) | Có, **không có code cập nhật** |
-| `tutors.recommendation_score` (v1, thang 100) | Có. Công thức tốt nhưng đầu vào không đổi → thực tế chỉ 3 mức: 37 / 42 / 47 |
-| Bảng lịch rảnh `*_request_availabilities` | Có, API nhận `dayOfWeek` 1–7 |
-| `recommendation_logs`, `recommendation_click_logs`, `favorite_tutors` | Có bảng + entity, **chưa có code ghi** |
-| API đánh giá gia sư | **Chưa có** |
-| Tìm tin học `GET /api/v1/studying-requests`, tin dạy `GET /api/v1/teaching-requests` | Có: lọc + sắp theo thời gian, **không cá nhân hoá**. Endpoint đề xuất bổ sung, không thay thế |
-| Endpoint đề xuất, pipeline embedding | **Chưa có** |
-| Listener tính lại điểm | `AFTER_COMMIT` gọi hàm `@Transactional` mặc định → **nguy cơ không lưu** |
+| Thành phần | Hiện trạng 09/10/2026 | Nay (20/10/2026) |
+|---|---|---|
+| Cột embedding + metadata trên `students`, `tutors` | Có, `vector(1536)`, **chưa có code ghi** | `vector(1024)` (P6); `EmbeddingWorker` ghi cho hồ sơ và tin đăng |
+| Cột tổng hợp trên `tutors` (`average_rating`, `total_reviews`, `completed_contracts_count`, `total_students_taught`, `acceptance_rate`, `avg_response_time_hours`) | Có, **không có code cập nhật** | `AggregateRefreshJob` làm mới (P1) |
+| `tutors.recommendation_score` (thang 100) | Có (v1). Công thức tốt nhưng đầu vào không đổi → thực tế chỉ 3 mức: 37 / 42 / 47 | Đầu vào đã cập nhật; công thức `v2` có phạt khiếu nại (06, mục 6.8) |
+| Bảng lịch rảnh `*_request_availabilities` | Có, API nhận `dayOfWeek` 1–7 | Quy ước ISO (P7); thêm cột `source` (USER / LLM) |
+| `recommendation_logs`, `recommendation_click_logs`, `favorite_tutors` | Có bảng + entity, **chưa có code ghi** | `RecommendationLogger` ghi mỗi lần tìm; sự kiện ghi qua `/recommendations/{logId}/events` |
+| API đánh giá gia sư | **Chưa có** | Có (P2) |
+| Tìm tin học `GET /api/v1/studying-requests`, tin dạy `GET /api/v1/teaching-requests` | Có: lọc + sắp theo thời gian, **không cá nhân hoá**. Endpoint đề xuất bổ sung, không thay thế | Không đổi; endpoint đề xuất ở 08 |
+| Endpoint đề xuất, pipeline embedding | **Chưa có** | Có cả hai chiều (08) và AI service (`/embed`, `/rerank`, `/enrich`, `/parse-query`) |
+| Listener tính lại điểm | `AFTER_COMMIT` gọi hàm `@Transactional` mặc định → **nguy cơ không lưu** | Đã sửa (P3) |
 
 ## 1.5. Điều kiện tiên quyết (làm trước khi xây tính năng)
 

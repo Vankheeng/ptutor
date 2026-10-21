@@ -180,6 +180,9 @@ mà NDCG giảm không đáng kể.
   do nhóm thiết kế.
 - Cơ chế học trọng số (L1) chỉ được chứng minh trên mô phỏng; chưa có kết quả học từ người dùng thật.
 - Nhãn LLM chỉ là bổ sung; kết luận chính dựa trên đáp án từ thuộc tính ẩn.
+- Văn bản hồ sơ và tin đăng viết theo mẫu (9.10), đều đặn hơn văn người thật: phần đọc chữ (embedding,
+  rerank, A1) có thể được đánh giá cao hơn thực tế. Bộ nhãn LLM đóng vai học sinh (9.3) và bộ kiểm tra A1/A2 tự gán
+  nhãn (9.5) chưa làm.
 
 ## 9.9. Trọng số: phân tích độ nhạy và thí nghiệm học (L1)
 
@@ -259,3 +262,48 @@ khi prior lệch nhiều.
 
 Hạn chế riêng: `w*`, `β` và mô hình click do nhóm đặt; nếu `w*` nằm ngoài biên kẹp quanh prior thì L1 chỉ
 tới được biên — điều này được trình bày như một **đánh đổi có chủ đích** giữa an toàn và tốc độ học.
+
+## 9.10. Ghi chú triển khai (21/10/2026)
+
+> 💡 Bộ đánh giá đã được lập trình trong `scripts/recommendation_eval/` (Python, seed cố định, chạy lại được) và kết quả nằm ở `ket-qua/`. Mục này ghi những chỗ cách làm thực tế khác hoặc cụ thể hơn thiết kế ở trên, để khi viết báo cáo không nói quá điều đã làm.
+
+**Các file và thứ tự chạy:**
+
+| Bước | Lệnh | Việc |
+|---|---|---|
+| 26a | `world.py` | Sinh thuộc tính ẩn và văn bản → `out/world.json` |
+| 26a | `load.py` | Nạp vào database dev (email `eval.*@ptutor.local`), kèm 4 tuần lịch sử; `--disable` để ẩn lại |
+| 26a | `run.py prepare` | Chạy backend thật: embedding, A1, điểm Q; rồi mô phỏng duyệt danh sách (H1) qua API |
+| 26b | `run.py search all` | Chạy backend theo từng cấu hình 9.4 bằng thuộc tính cấu hình, tìm qua API thật → `out/runs/` |
+| 26b | `evaluate.py` | Chỉ số 9.5, Wilcoxon + bootstrap 9.6, bảng 9.7, biểu đồ |
+| 26c | `sensitivity.py` | Độ nhạy 9.9.1 (tornado) |
+| 26c | `learning.py` | Thí nghiệm học 9.9.3–9.9.4; `linear_bayes.py --fixture` + `LinearBayesParityTest` đối chiếu bản Python với bản Java |
+
+**Khác hoặc cụ thể hơn thiết kế:**
+- **Văn bản hiển thị viết theo mẫu**, không do LLM viết (người dùng chọn 20/10/2026, để không tốn phí): mỗi tag có
+  nhiều cách diễn đạt, có viết tắt, lỗi chính tả, khoảng 15% gia sư hồ sơ sơ sài. Văn mẫu đều đặn hơn văn người viết
+  nên phần đọc chữ (embedding, rerank, A1) có thể được điểm **cao hơn thực tế** — nêu trong 9.8. A1 vẫn chạy thật
+  (LLM) trên văn bản này.
+- **Nạp bằng SQL, không qua API:** một tin chỉ mở được sau phí VNPay và bước duyệt của admin, script không đi qua được.
+  Tài khoản, hồ sơ, tin đăng và 4 tuần lịch sử (đơn, quyết định, hợp đồng, đánh giá, khiếu nại) chèn bằng SQL; mọi
+  phần phía sau chạy đúng luồng thật (worker embedding và A1, job tổng hợp và điểm Q, tìm kiếm và sự kiện qua API).
+- **Dữ liệu nằm chung database dev** (người dùng chọn): kết quả chỉ tính trên ứng viên của thị trường mô phỏng; ứng
+  viên khác (demo, dữ liệu thật) bị bỏ khỏi danh sách trước khi chấm. Sao lưu trước khi nạp:
+  `D:\DATN\_backup\ptutor_before_eval_20261020.dump`.
+- **Quy mô:** 120 gia sư, 202 tin dạy, 60 học sinh, 32 tin học; 2–4 truy vấn mỗi học sinh, 1–2 mỗi gia sư (332 truy
+  vấn), chia đôi hiệu chỉnh / kiểm tra. Không dùng câu tự nhiên qua A2 (tránh thêm phí LLM): truy vấn "câu" chỉ đưa
+  `semanticText`.
+- **Cấu hình bật/tắt bằng thuộc tính sẵn có** (`reciprocal.enabled`, `willingness.congestion-enabled`,
+  `rerank.enabled`, `exploration.enabled`, `history.enabled`) và một cờ mới `enrichment.use-llm-tags` cho "− A1" (bỏ
+  tag do LLM gắn khi xếp hạng; văn bản embedding và rerank vẫn chứa tag). Mọi cấu hình dùng trọng số prior
+  (`learning.enabled = false`) và ghi 200 ứng viên mỗi log.
+- **V1 dựng lại từ mô tả** (bộ tài liệu cũ không có trong repo): tổng tuyến tính 7 đặc trưng phù hợp (thiếu = 0) và
+  Q (0,85 / 0,15), không cổng, không b, xếp lại trên các ứng viên mà V2-a đã ghi log. Không dùng embedding hồ sơ cũ.
+- **Mô phỏng thị trường** dùng truy vấn "đủ tiêu chí" của học sinh trên nửa kiểm tra, 200 lần lặp thứ tự ngẫu nhiên.
+  MS@10 tính theo kỳ vọng (`rel ≥ 2` × P(nhận)) thay vì rút thăm, cho đỡ nhiễu.
+- **Độ nhạy chạy offline** trên đặc trưng trong log (`scoring.py` tính lại đúng công thức 06). Các tham số không nằm
+  trong log — kernel của đặc trưng, tham số phạt khiếu nại bên trong Q — cần chạy lại backend nên không có trong
+  tornado.
+- **Thí nghiệm học:** chỉ học a (`A_S2T`) và b (`B_S2T`) phía học sinh tìm gia sư. Phần thưởng theo mức hành động
+  (xem 0,3 / tym 0,6 / gửi đơn 1,0), mẫu lấy tới vị trí tương tác thấp nhất + 2 như `LearningDataRepository`; mỗi
+  100 lần tìm cập nhật một lần, mẫu Thompson theo (người tìm, "ngày" = lô 100).

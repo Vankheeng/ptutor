@@ -19,7 +19,7 @@ Theo quy ước của dự án: tiền tố `/api/v1`, cần access token, respo
 | `GET` / `POST` | `/api/v1/users/me/saved-searches` | STUDENT, TUTOR | Xem / lưu tìm kiếm (tối đa 5) |
 | `PUT` / `DELETE` | `/api/v1/users/me/saved-searches/{id}` | STUDENT, TUTOR | Sửa (đổi tên, bật/tắt thông báo) / xoá |
 | `DELETE` | `/api/v1/users/me/recommendation-profile` | STUDENT, TUTOR | Xoá lịch sử gợi ý (H1) |
-| `GET` | `/api/v1/admin/recommendations/logs` | ADMIN | Tra cứu log để phân tích |
+| `GET` | `/api/v1/admin/recommendations/logs` | ADMIN | Tra cứu log để phân tích. **Chưa làm** — hiện đọc thẳng bảng `recommendation_logs` (bộ đánh giá cũng vậy) |
 | `GET` | `/api/v1/admin/recommendations/weights` | ADMIN | Trọng số L1: prior, chế độ (cấu hình / admin đặt / đang áp dụng), bản đang dùng, lịch sử version kèm đánh giá (12, mục 12.9). Đã làm 20/10/2026 |
 | `POST` | `/api/v1/admin/recommendations/weights/{model}/activate/{version}` | ADMIN | Kích hoạt một version (quay lui); `404 LEARNED_WEIGHTS_VERSION_NOT_FOUND` |
 | `PUT` | `/api/v1/admin/recommendations/weights/{model}/mode` | ADMIN | Đổi chế độ `OFF` / `SHADOW` / `ACTIVE` của một mô hình (`{"mode": "ACTIVE"}`); lưu bền, thắng cấu hình |

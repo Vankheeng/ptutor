@@ -15,18 +15,18 @@ flowchart LR
     end
 
     subgraph BE["Spring Boot backend — tính năng recommendation"]
-        API["RecommendationController<br/>SavedSearchController"]
+        API["StudentRecommendationController<br/>TutorStudentRecommendationController<br/>RecommendationInteractionController<br/>SavedSearchController"]
         ORC["RecommendationService<br/>(dựng QueryContext, điều phối)"]
         CAND["CandidateRepository<br/>(SQL lọc cứng + vector)"]
         FEAT["FeatureCalculator (a, gồm f_hist)"]
         WILL["WillingnessCalculator (b)"]
         RANK["Ranker (R, Q, G)"]
-        EXP["ExplorationSelector (R6)"]
+        EXP["ExplorationService (R6)"]
         RELAX["RelaxationService (C6)"]
-        REF["SessionRefineService (B5)"]
-        EXPL["ExplanationBuilder"]
+        REF["RefineService (B5)"]
+        EXPL["MatchReasonBuilder"]
         LOG["RecommendationLogger<br/>(kèm trọng số đã dùng)"]
-        JOBS["Job nền:<br/>EnrichmentWorker (A1) · EmbeddingWorker<br/>MatchAlertWorker (C7) · RerankPrefetchJob<br/>ProfileUpdater (H1) · AggregateRefreshJob (P1)<br/>ExposureStatsJob (R6)"]
+        JOBS["Job nền:<br/>EnrichmentWorker (A1) · EmbeddingWorker<br/>MatchAlertWorker (C7) · RerankPrefetchJob<br/>ProfileUpdateWorker (H1) · AggregateRefreshJob (P1)<br/>ExposureStatsJob (R6)"]
         subgraph L1["Học trọng số (L1)"]
             WP["WeightProvider<br/>(trọng số đang dùng, giữ trong bộ nhớ,<br/>chưa có bản học → prior)"]
             LEARN["WeightLearningJob<br/>(mỗi đêm: LinearBayesModel)"]
@@ -85,7 +85,7 @@ Nguyên tắc:
 | `EnrichmentWorker` (mỗi 30 s) | Gọi `/enrich` → kiểm tra, ghi tag, lịch suy ra → tạo lại job `EMBED` (văn bản embedding chứa tên tag) |
 | `EmbeddingWorker` | Ghép văn bản, gọi `/embed`, ghi vector của tin đăng / hồ sơ |
 | Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
-| Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdater`: cập nhật hồ sơ sở thích (H1) |
+| Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdateWorker`: cập nhật hồ sơ sở thích (H1) |
 | Khiếu nại được kết luận (`COMPLAINT_RESOLVED`, `COMPLAINT_AGAINST_YOU_RESOLVED`) | `TutorRecommendationScoreEventListener` tính lại `recommendation_score` nếu người nhận là gia sư (phạt khiếu nại có lỗi — 06, mục 6.8) |
 | Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian); 20:30 UTC: `WeightLearningJob` cập nhật trọng số học được (L1, 12) |
 | Tạo đơn / đề nghị | `DecisionSnapshotRecorder` ghi ảnh chụp các thành phần b của cặp (L1, 12.6) |
@@ -198,13 +198,14 @@ Code đề xuất đặt **theo cấu trúc tầng sẵn có của repo** (quy�
 
 ```
 backend/src/main/java/com/ptutor/backend/
-  controller/  RecommendationController, SavedSearchController
+  controller/  StudentRecommendationController, TutorStudentRecommendationController,
+               RecommendationInteractionController, SavedSearchController
   service/     RecommendationService, QueryContextBuilder, FeatureCalculator, WillingnessCalculator,
-               Ranker, ExplorationSelector, RelaxationService, SessionRefineService,
-               ExplanationBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService,
+               Ranker, ExplorationService, RelaxationService, RefineService,
+               MatchReasonBuilder, RecommendationLogger, SavedSearchService, PreferenceProfileService,
                WeightProvider, LinearBayesModel, DecisionSnapshotRecorder (L1)
   scheduler/   EnrichmentWorker, EmbeddingWorker, MatchAlertWorker, RerankPrefetchJob,
-               ProfileUpdater, AggregateRefreshJob, ExposureStatsJob, WeightLearningJob (L1)
+               ProfileUpdateWorker, AggregateRefreshJob, ExposureStatsJob, WeightLearningJob (L1)
   client/      AiServiceClient (gói mới nếu repo chưa có chỗ phù hợp)
   repository/  CandidateRepository (native SQL), LearningDataRepository (L1), …
   entity/      các bảng mới (03, mục 3.4 và 3.6)

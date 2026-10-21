@@ -189,13 +189,13 @@ Quy tắc ghi:
 
 ## 4.8. Lỗi và dự phòng
 
-> 💡 LLM lỗi hay quá giờ thì thử lại theo lịch giãn dần, quá 5 lần thì đánh dấu thất bại. Chưa có kết quả chuẩn hóa thì thuật toán vẫn chạy với dữ liệu đang có. (Theo quyết định 12/10/2026, tiêu chí thiếu dữ liệu được tính là trung tính 0,5 — xem 06 mục 6.5 — thay cho cách "chia lại trọng số" ghi ở bảng dưới.)
+> 💡 LLM lỗi hay quá giờ thì thử lại theo lịch giãn dần, quá 5 lần thì đánh dấu thất bại. Chưa có kết quả chuẩn hóa thì thuật toán vẫn chạy với dữ liệu đang có. (Theo quyết định 12/10/2026, tiêu chí thiếu dữ liệu được tính là trung tính 0,5 — xem 06 mục 6.5.)
 
 | Tình huống | Xử lý |
 |---|---|
 | LLM lỗi / timeout (20 s) | Tăng `attempts`, thử lại sau 1, 5, 15, 60 phút; quá 5 lần → `FAILED` |
 | JSON sai schema | Thử lại 1 lần với lời nhắc sửa lỗi; vẫn sai → `FAILED` |
-| Chưa có kết quả A1 | Thuật toán vẫn chạy: các thành phần thiếu dữ liệu bị bỏ và chia lại trọng số (06, mục 6.5) |
+| Chưa có kết quả A1 | Thuật toán vẫn chạy: thành phần thiếu dữ liệu được tính là trung tính 0,5 (06, mục 6.5) |
 
 ## 4.9. Ghi chú triển khai (12/10/2026)
 

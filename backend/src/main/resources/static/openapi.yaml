@@ -6565,7 +6565,7 @@ components:
       type: object
       properties:
         logId: { type: string, format: uuid, nullable: true }
-        algorithmVersion: { type: string, example: v2.1-rc }
+        algorithmVersion: { type: string, example: v2.2-rcx }
         queryContext:
           type: object
           description: Final criteria after merging, with the source of each one (FILTER, STUDYING_REQUEST, PROFILE, DEFAULT).
@@ -6681,7 +6681,7 @@ components:
       type: object
       properties:
         logId: { type: string, format: uuid, nullable: true }
-        algorithmVersion: { type: string, example: v2.1-rc }
+        algorithmVersion: { type: string, example: v2.2-rcx }
         queryContext: { type: object }
         needsInput:
           type: array

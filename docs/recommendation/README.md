@@ -8,12 +8,14 @@
 
 > Bộ tài liệu này thay thế bộ `docs/01–08` cũ (nằm ngoài repo, tại `D:\DATN\AI_Tutor_Recommendation\docs`),
 > vốn phân tích file `Đồ án .sql` và không còn khớp schema thật. Mọi tên bảng, cột, enum dưới đây lấy theo
-> migration Flyway V1–V24 trên nhánh `dev`.
+> migration Flyway trên nhánh `dev` (V1–V30) và của nhánh tính năng (V31–V35).
 >
 > Lịch sử thay đổi và việc còn mở: `NHAT-KY.md` cùng thư mục (chỉ có trên máy, không đưa lên Git).
 >
-> Trạng thái: **bản thiết kế**, chưa triển khai. Trọng số và ngưỡng là giá trị khởi đầu, hiệu chỉnh ở
-> bước đánh giá (09).
+> Trạng thái (20/10/2026): **đã lập trình** trên nhánh `feat/tutor-recommendation` — hai chiều tìm kiếm, A1/A2,
+> rerank, lịch sử, khám phá, tìm kiếm đã lưu và thông báo, phạt khiếu nại trong Q, học trọng số L1 (mặc định
+> `SHADOW`), giao diện học sinh và gia sư; bộ đánh giá mô phỏng ở `scripts/recommendation_eval/`, kết quả ở
+> `ket-qua/`. Trọng số và ngưỡng là giá trị khởi đầu, xem kết quả đánh giá (09).
 
 ## Tóm tắt
 
