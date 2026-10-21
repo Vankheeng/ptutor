@@ -39,7 +39,7 @@
 | `complaint.window-days` / `prior-contracts` / `penalty-scale` / `max-penalty` | 365 / 5 / 40 / 20 | 06, 6.8 |
 | `complaint.category-weights.absence` / `late-or-short` / `teaching-quality` / `misconduct` / `serious-misconduct` / `other` (cả khiếu nại chưa có loại); `both-factor`; `complainant-weight` | 1,0 / 0,5 / 0,5 / 1,5 / 3,0 / 1,0; 0,5; 1,0 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
-| `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 20 / 4 000 / 4 | 06, 6.9 |
+| `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 10 / 1 500 / 4 (20 / 4 000 cho tới 21/10/2026) | 06, 6.9 |
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
 | `rerank.model-version` (backend) · `AI_RERANK_MAX_TOKENS` (AI service, mỗi bên) | `bge-reranker-v2-m3-int8` · 256 | 06, 6.9 |
 | `exploration.enabled` / `page-size` / `slots` / `min-score-ratio` / `stats-cron` | true / 20 / 5,12 / 0,8 / `0 0 20 * * *` (UTC) | 06, 6.11 |
@@ -91,6 +91,10 @@ hoặc dùng model nhỏ hơn.
 ngắn) – 3,5 s (tin điển hình) – 11,8 s (tin dài 256 token), tức vượt ngưỡng 1 s. Đã chọn giữ model và
 `top-k`, nâng ngân sách lên 4 000 ms và chấm theo lô nhỏ (06 mục 6.9). Trên VPS yếu hơn cần đo lại;
 các núm chỉnh theo thứ tự nên thử: `AI_RERANK_MAX_TOKENS` 256 → 128, `rerank.top-k` 20 → 10.
+
+**Đổi 21/10/2026 (theo đánh giá mô phỏng, `ket-qua/`):** với 4 000 ms, pha rerank chiếm gần hết thời gian tìm
+(chiều học sinh p50 3,8 s, p95 4,0 s = trần; 86 lần hết giờ trong 332 lần tìm) mà NDCG@10 không tăng có ý nghĩa
+(V2-RC → V2-RCX: −0,005, p = 0,26). Người dùng chọn `top-k` 10 và `timeout-ms` 1 500.
 AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 
 ## 10.3. Quyền riêng tư

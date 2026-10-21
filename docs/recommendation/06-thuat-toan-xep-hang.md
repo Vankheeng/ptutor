@@ -442,16 +442,17 @@ Nguyên tắc:
 
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
 
-> 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô; **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên chính xác hơn nhưng chậm. Vì vậy chỉ chấm 20 tin đầu, theo lô 4 cặp, giới hạn tổng 4 giây; điểm chấm được lưu vào **cache** (bộ nhớ đệm) để lần sau dùng lại. Hết giờ thì giữ điểm đã có, không báo lỗi. "Logit → sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
+> 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô; **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên chính xác hơn nhưng chậm. Vì vậy chỉ chấm 10 tin đầu, theo lô 4 cặp, giới hạn tổng 1,5 giây; điểm chấm được lưu vào **cache** (bộ nhớ đệm) để lần sau dùng lại. Hết giờ thì giữ điểm đã có, không báo lỗi. "Logit → sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
 
-1. Sau pha 3, lấy **top-20**.
+1. Sau pha 3, lấy **top-10** (`rerank.top-k`; 20 cho tới 21/10/2026).
 2. Tra `recommendation_rerank_cache` theo (mã băm văn bản nhu cầu, ứng viên, mã băm nội dung ứng
    viên, phiên bản model).
-3. Cặp chưa có → gọi `/rerank` **theo lô nhỏ (4 cặp), hạng cao trước, trong ngân sách 4 000 ms**.
+3. Cặp chưa có → gọi `/rerank` **theo lô nhỏ (4 cặp), hạng cao trước, trong ngân sách 1 500 ms** (4 000 ms cho tới
+   21/10/2026 — đánh giá mô phỏng: chạm trần ở p95, không tăng NDCG có ý nghĩa; 09 mục 9.10).
    Đầu vào: (văn bản nhu cầu, văn bản cung cấp), mỗi bên ≤ 256 token. Model `bge-reranker-v2-m3`
    ONNX int8; logit → sigmoid.
-4. Tính lại `f_sem`, a, R, `score` cho những tin **có điểm rerank**, sắp lại **trong nhóm top-20**;
-   từ hạng 21 giữ nguyên.
+4. Tính lại `f_sem`, a, R, `score` cho những tin **có điểm rerank**, sắp lại **trong nhóm top-k**;
+   phía sau giữ nguyên.
 5. Hết ngân sách / lỗi → dừng gọi, dùng những điểm đã có (log `rerankStatus = TIMEOUT`); tin chưa
    kịp chấm giữ `f_sem = s`. Mọi điểm chấm được đều ghi vào cache, nên lần tìm sau chấm tiếp phần
    còn lại.

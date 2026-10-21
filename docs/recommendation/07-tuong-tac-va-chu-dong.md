@@ -25,7 +25,6 @@ Mỗi phép nới thử **độc lập** trên `QueryContext` hiện tại:
 | `AREA_ANY` | Phạm vi → "Không giới hạn" | Đang chọn `DISTRICTS` hoặc `PROVINCE` |
 | `MODE_ANY` | Hình thức → "Cả hai" | Đang chọn riêng Online hoặc Offline |
 | `PRICE_15` / `PRICE_30` | Học sinh: ngân sách tối đa × 1,15 / × 1,30. Gia sư: giá mong muốn × 0,9 / × 0,8 | Có giá |
-| `SCHEDULE_FLEX` | Bỏ lịch rảnh khỏi tiêu chí (`f_sched` thiếu, `g_sched = 1`) | Có lịch |
 
 ### Đánh giá một phép nới
 
@@ -36,7 +35,7 @@ Mỗi phép nới thử **độc lập** trên `QueryContext` hiện tại:
 2. `gain` = số ứng viên **mới** có `score ≥ τ_good`; `bestScore` = điểm cao nhất trong số đó.
 3. Giữ nếu `gain ≥ 2` hoặc `bestScore` cao hơn điểm tốt nhất hiện tại ≥ 0,10.
 4. Sắp theo `gain`; bằng nhau thì ưu tiên phép nới nhẹ hơn
-   (`SCHEDULE_FLEX` < `PRICE_15` < `AREA_PROVINCE` < `MODE_ANY` < `AREA_ANY` < `PRICE_30`). Trả tối đa 3.
+   (`PRICE_15` < `AREA_PROVINCE` < `MODE_ANY` < `AREA_ANY` < `PRICE_30`). Trả tối đa 3.
 
 Chạy song song, ngân sách 400 ms. Không có ứng viên nào qua lọc cứng → trả danh sách rỗng kèm gợi ý.
 
@@ -50,7 +49,6 @@ Chạy song song, ngân sách 400 ms. Không có ứng viên nào qua lọc cứ
 | `AREA_ANY` | "Bỏ giới hạn khu vực: thêm {gain} gia sư phù hợp" |
 | `MODE_ANY` | "Nhận cả học online: thêm {gain} gia sư, trong đó {k} người đánh giá trên 4,5" |
 | `PRICE_*` | "Nếu ngân sách {giá mới}: thêm {gain} gia sư phù hợp" |
-| `SCHEDULE_FLEX` | "Nếu linh hoạt lịch học: thêm {gain} gia sư phù hợp" |
 
 ### Ghi chú triển khai (12/10/2026)
 
@@ -67,10 +65,10 @@ Chạy song song, ngân sách 400 ms. Không có ứng viên nào qua lọc cứ
 - `AREA_PROVINCE` lấy tỉnh của quận đã chọn (nếu không có thì tỉnh nơi ở).
 - `MODE_ANY` khi đang chọn riêng Online: phần gặp trực tiếp cần khu vực, lấy quận nơi ở (như lần tìm không
   chọn khu vực); `apply` ghi rõ cả `learningMode` và `area` để bấm áp dụng ra đúng kết quả đã đếm.
-- `SCHEDULE_FLEX`: `apply` là `{"availabilities": []}` — danh sách rỗng nghĩa là "không xét lịch" (khác với
-  không gửi trường này: khi đó lịch lấy từ tin học / tin dạy).
+- **Không có phép nới lịch** (bỏ `SCHEDULE_FLEX` ngày 21/10/2026): lịch chỉ là cổng nhân điểm (G, × 0,4), không
+  loại ai khỏi danh sách, nên bỏ lịch không bao giờ thêm được người *mới* — đánh giá mô phỏng: 0/228 lần có gợi ý.
 - Mẫu câu chiều gia sư: thay "gia sư" bằng "học viên"; giá: "Nếu nhận mức {giá mới} mỗi buổi: thêm {gain}
-  học viên phù hợp"; lịch: "Nếu linh hoạt lịch dạy: …"; hình thức: "Nhận cả dạy online / trực tiếp: …".
+  học viên phù hợp"; hình thức: "Nhận cả dạy online / trực tiếp: …".
 - Gợi ý được lưu vào `recommendation_logs.relaxation_suggestions` và trả lại ở các trang sau.
 - Phép nới lỗi khi đánh giá thì bị bỏ qua, không làm hỏng lần tìm. Cờ tắt: `relaxation.enabled=false`.
 

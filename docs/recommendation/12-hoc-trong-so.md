@@ -142,16 +142,25 @@ c  = c₀ + Σ_i s_i · r_i · x_i
 
 ### Từ θ sang trọng số dùng được
 
-> 💡 Trọng số học ra có thể âm, lệch thang hoặc đổi quá nhanh, nên qua bốn bước an toàn: bỏ hệ số chặn; **kẹp** trong khoảng 0,5–2 lần giá trị nhóm đặt; mỗi lần đổi tối đa 0,05; **chuẩn hóa** cho tổng bằng 1. Ví dụ prior của giá là 0,20, mô hình học ra 0,55 → kẹp còn 0,40; nếu bản trước là 0,20 thì lần này chỉ được lên 0,25 (trước bước chuẩn hóa).
+> 💡 Trọng số học ra có thể âm, lệch thang hoặc đổi quá nhanh, nên qua các bước an toàn: bỏ hệ số chặn, đưa về **cùng thang** với trọng số (phần âm tính là 0, chia cho tổng); rồi chọn bộ trọng số **gần nhất** với kết quả đó mà vẫn có tổng bằng 1, mỗi trọng số trong khoảng 0,5–2 lần giá trị nhóm đặt và đổi tối đa 0,05 so với bản trước. Ví dụ prior của giá là 0,20, mô hình muốn 0,45 → không quá 0,40; nếu bản trước là 0,20 thì lần này chỉ được lên 0,25 — các giới hạn này đúng trên **trọng số cuối cùng**.
 
 θ học được có thể âm, lệch thang hoặc thay đổi quá nhanh. Trước khi dùng:
 
 ```
-1. Bỏ hệ số chặn θ₀.
-2. Kẹp: w_k ← clip(θ_k, max(0,01; 0,5·w_prior_k), 2·w_prior_k)
-3. Giới hạn bước: |w_k − w_k(bản trước)| ≤ max-step (0,05)
-4. Chuẩn hoá: w ← w / Σ w          (giữ a, b trong [0, 1] để trung bình điều hoà có nghĩa)
+1. Bỏ hệ số chặn θ₀; đưa về thang trọng số: v_k = max(0, θ_k) / Σ max(0, θ_j)
+2. Khoảng cho phép: L_k = max(max(0,01; 0,5·w_prior_k), w_k(bản trước) − max-step)
+                    U_k = min(2·w_prior_k,            w_k(bản trước) + max-step)
+3. w = điểm gần v nhất có Σ w = 1 và L ≤ w ≤ U:  w_k = clip(v_k + t, L_k, U_k), t chọn sao cho Σ w = 1
+   (tổng tăng theo t, tìm bằng chia đôi). Không thoả được với giới hạn bước thì bỏ giới hạn bước;
+   vẫn không được (prior quá lệch) thì kẹp rồi chia cho tổng.
 ```
+
+Tổng bằng 1 giữ a, b trong [0, 1] để trung bình điều hoà có nghĩa.
+
+**Sửa 21/10/2026:** bản đầu kẹp θ **thô** rồi mới chuẩn hoá. θ của hồi quy không cùng thang với trọng số nên
+biên kẹp bị chạm ở mọi lần cập nhật, và bước chuẩn hoá phá giới hạn bước (bước thật tới 0,085). Thí nghiệm học
+mô phỏng (09 mục 9.9, `ket-qua/`) phát hiện; người dùng chọn chuẩn hoá trước rồi mới kẹp. Chỉ báo `clamped` của
+`WeightLearningService` cũng so biên trên θ đã đưa về thang trọng số.
 
 Kẹp quanh prior nghĩa là trọng số tự đặt vẫn quyết định **vùng hợp lệ**: không đặc trưng nào bị mô hình
 "tắt hẳn" hay chiếm toàn bộ điểm. Biên `[0,5×; 2×]` là tham số (`learning.min-ratio`, `max-ratio`).
