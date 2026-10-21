@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.ptutor.backend.entity.enums.RecommendationCandidateType;
+import com.ptutor.backend.service.RecommendationSettings;
 
 import lombok.RequiredArgsConstructor;
 
@@ -64,6 +65,7 @@ public class PreferenceSignalRepository {
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final RecommendationSettings settings;
 
     /** @param kind VIEWED, CLICKED, FAVORITED, CONTACTED, DISMISSED, REQUESTED or ACCEPTED */
     public record Signal(UUID candidateId, String kind, LocalDateTime happenedAt) {
@@ -113,6 +115,7 @@ public class PreferenceSignalRepository {
                 + "(et.entity_type = '" + type.name() + "' AND et.entity_id = p.id) OR "
                 + (teaching ? "(et.entity_type = 'TUTOR' AND et.entity_id = p.tutor_id)"
                         : "(et.entity_type = 'STUDENT' AND et.entity_id = p.student_id)")
+                + (settings.isLlmTagsEnabled() ? "" : " AND et.source <> 'LLM'")
                 + ") JOIN recommendation_tags t ON t.id = et.tag_id AND t.status = 'ACTIVE'"
                 + " WHERE p.id IN (:ids)";
         jdbc.query(sql, new MapSqlParameterSource("ids", ids), row -> {

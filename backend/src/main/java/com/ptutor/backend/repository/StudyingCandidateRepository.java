@@ -27,6 +27,7 @@ import com.ptutor.backend.dto.recommendation.SupplyContext;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.District;
 import com.ptutor.backend.entity.enums.LearningMode;
 import com.ptutor.backend.repository.CandidateRepository.Hit;
+import com.ptutor.backend.service.RecommendationSettings;
 
 import lombok.RequiredArgsConstructor;
 
@@ -72,6 +73,7 @@ public class StudyingCandidateRepository {
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final RecommendationSettings settings;
 
     /** Studying postings that pass every hard filter, with their cosine to the supply vector. */
     public List<Hit> findHits(SupplyContext context, float[] queryVector, double priceHardFactor) {
@@ -144,7 +146,7 @@ public class StudyingCandidateRepository {
                 WHERE et.deleted_at IS NULL AND tag.status = 'ACTIVE'
                   AND ((et.entity_type = 'STUDYING_REQUEST' AND et.entity_id IN (:ids))
                     OR (et.entity_type = 'STUDENT' AND et.entity_id IN (:studentIds)))
-                """, byStudents, row -> {
+                """ + llmTagFilter(), byStudents, row -> {
             tags.computeIfAbsent(row.getObject("entity_id", UUID.class), key -> new ArrayList<>())
                     .add(new TagRow(row.getString("role"), row.getObject("id", UUID.class),
                             row.getObject("parent_id", UUID.class), row.getString("code"),
@@ -261,6 +263,11 @@ public class StudyingCandidateRepository {
                 FROM teaching_requests
                 WHERE tutor_id = :tutorId AND deleted_at IS NULL AND expected_price IS NOT NULL
                 """, new MapSqlParameterSource("tutorId", tutorId), BigDecimal.class));
+    }
+
+    /** Extra condition on {@code et} that drops LLM tags while they are switched off. */
+    private String llmTagFilter() {
+        return settings.isLlmTagsEnabled() ? "" : " AND et.source <> 'LLM'";
     }
 
     private String vectorLiteral(float[] vector) {

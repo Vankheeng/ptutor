@@ -31,6 +31,7 @@ import com.ptutor.backend.entity.StudyingRequest;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.RecommendationDataSource;
 import com.ptutor.backend.entity.enums.RecommendationEntityType;
 import com.ptutor.backend.entity.enums.RecommendationTagGroup;
 import com.ptutor.backend.entity.enums.RecommendationTagRole;
@@ -64,6 +65,7 @@ public class QueryContextBuilder {
     private final RecommendationTagRepository tagRepository;
     private final RecommendationEntityTagRepository entityTagRepository;
     private final EmbeddingTextBuilder textBuilder;
+    private final RecommendationSettings settings;
 
     /** {@code student} must have its user and home district loaded. Call inside a transaction. */
     public QueryContext forStudent(Student student, TutorRecommendationRequest request) {
@@ -74,10 +76,10 @@ public class QueryContextBuilder {
                 .findByIdAndStudent_Id(request.useStudyingRequestId(), student.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STUDYING_REQUEST_NOT_FOUND",
                         "Studying request not found: " + request.useStudyingRequestId()));
-        List<RecommendationEntityTag> profileTags = entityTagRepository
-                .findAllByEntityTypeAndEntityId(RecommendationEntityType.STUDENT, student.getId());
-        List<RecommendationEntityTag> postingTags = own == null ? List.of() : entityTagRepository
-                .findAllByEntityTypeAndEntityId(RecommendationEntityType.STUDYING_REQUEST, own.getId());
+        List<RecommendationEntityTag> profileTags = usable(entityTagRepository
+                .findAllByEntityTypeAndEntityId(RecommendationEntityType.STUDENT, student.getId()));
+        List<RecommendationEntityTag> postingTags = own == null ? List.of() : usable(entityTagRepository
+                .findAllByEntityTypeAndEntityId(RecommendationEntityType.STUDYING_REQUEST, own.getId()));
 
         Subject subject = subject(filters, own, sources);
         Grade grade = grade(filters, own, sources);
@@ -340,6 +342,12 @@ public class QueryContextBuilder {
             }
         }
         return String.join(". ", kept);
+    }
+
+    /** Leaves out the tags A1 extracted while they are switched off for the evaluation. */
+    private List<RecommendationEntityTag> usable(List<RecommendationEntityTag> tags) {
+        return settings.isLlmTagsEnabled() ? tags
+                : tags.stream().filter(tag -> tag.getSource() != RecommendationDataSource.LLM).toList();
     }
 
     private ApiException badRequest(String code, String message) {

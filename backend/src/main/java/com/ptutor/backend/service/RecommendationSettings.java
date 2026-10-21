@@ -168,6 +168,13 @@ public class RecommendationSettings {
     @Value("${app.recommendation.history.enabled:true}")
     private boolean historyEnabled = true;
 
+    /**
+     * Off: tags that A1 extracted with the LLM are ignored when ranking, on both sides and in the
+     * preference profile. Only for the ablation "V2-full - A1" of the evaluation (design 09, 9.4).
+     */
+    @Value("${app.recommendation.enrichment.use-llm-tags:true}")
+    private boolean llmTagsEnabled = true;
+
     /** Largest share of f_hist in the suitability. */
     @Value("${app.recommendation.history.max-weight:0.15}")
     private double historyMaxWeight = 0.15;

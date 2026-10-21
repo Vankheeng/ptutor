@@ -26,6 +26,7 @@ import com.ptutor.backend.dto.recommendation.TeachingCandidate.District;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
 import com.ptutor.backend.entity.enums.LearningMode;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.service.RecommendationSettings;
 
 import lombok.RequiredArgsConstructor;
 
@@ -79,6 +80,7 @@ public class CandidateRepository {
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final RecommendationSettings settings;
 
     /** Postings that pass every hard filter, each with its cosine similarity to the query (may be null). */
     public List<Hit> findHits(QueryContext context, float[] queryVector, double priceHardFactor) {
@@ -237,7 +239,7 @@ public class CandidateRepository {
                 WHERE et.deleted_at IS NULL AND tag.status = 'ACTIVE'
                   AND ((et.entity_type = 'TEACHING_REQUEST' AND et.entity_id IN (:teachingRequestIds))
                     OR (et.entity_type = 'TUTOR' AND et.entity_id IN (:tutorIds)))
-                """, new MapSqlParameterSource()
+                """ + llmTagFilter(), new MapSqlParameterSource()
                         .addValue("teachingRequestIds", teachingRequestIds)
                         .addValue("tutorIds", tutorIds),
                 row -> {
@@ -247,6 +249,11 @@ public class CandidateRepository {
                                     row.getString("tag_group")));
                 });
         return tags;
+    }
+
+    /** Extra condition on {@code et} that drops LLM tags while they are switched off. */
+    private String llmTagFilter() {
+        return settings.isLlmTagsEnabled() ? "" : " AND et.source <> 'LLM'";
     }
 
     private Set<String> codes(List<TagRow> tags, String role, String group) {
