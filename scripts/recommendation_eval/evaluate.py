@@ -17,12 +17,15 @@ import numpy as np
 from scipy import stats
 
 from common import OUT, RESULTS, SEED, read_json, uid, write_json
-from scoring import Params, v1_rerank
+import baselines
 from world import p_accept, p_student_accepts, rel
 
-ORDER = ["V1", "V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "V2-full-A1"]
-LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1"}
-PAIRS = [("V1", "V2-a"), ("V2-a", "V2-R"), ("V2-R", "V2-RC"), ("V2-RC", "V2-RCX"), ("V2-RCX", "V2-full"),
+# Reference rankings computed offline from the candidates of the V2-a run (baselines.py), then the backend runs.
+OFFLINE = ["Random", "Popularity", "Semantic", "V1-old", "V2-linear"]
+ORDER = OFFLINE + ["V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "V2-full-A1"]
+LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1", "V1-old": "V1 (thiết kế cũ)"}
+PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"), ("V1-old", "V2-full"),
+         ("V2-linear", "V2-a"), ("V2-a", "V2-R"), ("V2-R", "V2-RC"), ("V2-RC", "V2-RCX"), ("V2-RCX", "V2-full"),
          ("V2-full-H1", "V2-full"), ("V2-full-A1", "V2-full")]
 METRICS = ["ndcg10", "p5", "mrr", "ea10", "ms10"]
 
@@ -86,12 +89,20 @@ def query_metrics(judge: Judge, query: dict, ranking: list) -> dict | None:
     }
 
 
-def rankings(run: dict, query_id: str, config: str, side: str) -> list:
-    """Top 20 as shown to the user; V1 is reordered offline from the candidates logged by V2-a."""
-    result = run["results"][query_id]
-    if config == "V1":
-        return v1_rerank(result["candidates"] or [], side, Params())[:20]
-    return [item["id"] for item in result["items"]]
+def rankings(run: dict, query: dict, config: str, judge: "Judge", v1_old) -> list | None:
+    """Top 20 as shown to the user; the offline references reorder the candidates logged by V2-a. None when a
+    reference does not apply (the old design only had the student side)."""
+    if config == "Random":
+        return baselines.random_ranking(run, query, SEED)
+    if config == "Popularity":
+        return baselines.popularity_ranking(run, query)
+    if config == "Semantic":
+        return baselines.semantic_ranking(run, query)
+    if config == "V2-linear":
+        return baselines.linear_ranking(run, query)
+    if config == "V1-old":
+        return v1_old.ranking(run, query, judge.students[query["owner"]]) if query["side"] == "S2T" else None
+    return [item["id"] for item in run["results"][query["id"]]["items"]]
 
 
 def market(judge: Judge, ranked: dict, rng: random.Random, repeats: int = 200) -> dict:
@@ -147,8 +158,11 @@ def main() -> int:
     world = read_json(OUT / "world.json")
     judge = Judge(world)
     runs = {path.stem: read_json(path) for path in (OUT / "runs").glob("*.json")}
+    v1_old = None
     if "V2-a" in runs:
-        runs["V1"] = runs["V2-a"]
+        for name in OFFLINE:
+            runs[name] = runs["V2-a"]
+        v1_old = baselines.V1Old()
     configs = [name for name in ORDER if name in runs]
     test = [query for query in world["queries"] if query["split"] == "test"]
     # The market is one shared pool: every student's "full" search takes part, from both halves.
@@ -161,13 +175,16 @@ def main() -> int:
         run = runs[config]
         ranked = {}
         for query in test:
-            ranking = rankings(run, query["id"], config, query["side"])
+            ranking = rankings(run, query, config, judge, v1_old)
+            if ranking is None:
+                continue
             ranked[query["id"]] = (query, ranking)
             values = query_metrics(judge, query, ranking)
             if values:
                 per_query[config][query["id"]] = values
-        s2t = {query["id"]: (query, rankings(run, query["id"], config, "S2T")) for query in market_queries}
-        latencies = [run["results"][q["id"]]["latencyMs"] for q in test if run["results"][q["id"]].get("latencyMs")]
+        s2t = {query["id"]: (query, rankings(run, query, config, judge, v1_old)) for query in market_queries}
+        latencies = [] if config in OFFLINE else [run["results"][q["id"]]["latencyMs"] for q in test
+                                                   if run["results"][q["id"]].get("latencyMs")]
         sides = {query["id"]: query["side"] for query in test}
         # Main table: a student looks for tutors. The tutor side is too thin (32 studying postings) and is
         # reported apart.
@@ -178,8 +195,8 @@ def main() -> int:
         row["t2s_queries"] = len(other)
         row.update(market(judge, s2t, rng))
         row.update(exposure(judge, {qid: pair for qid, pair in ranked.items() if pair[0]["side"] == "S2T"}))
-        row["p50_ms"] = float(np.percentile(latencies, 50)) if config != "V1" else None
-        row["p95_ms"] = float(np.percentile(latencies, 95)) if config != "V1" else None
+        row["p50_ms"] = float(np.percentile(latencies, 50)) if latencies else None
+        row["p95_ms"] = float(np.percentile(latencies, 95)) if latencies else None
         row["queries"] = len(main)
         summary[config] = row
 

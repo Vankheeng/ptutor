@@ -1,16 +1,30 @@
 """Shared helpers of the evaluation scripts: paths, ids, database access and the HTTP client."""
 
 import json
+import os
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
 from urllib import error, request
 
+
+def _scenario() -> str:
+    """--scenario NAME anywhere on the command line (removed from sys.argv), else EVAL_SCENARIO, else base."""
+    if "--scenario" in sys.argv:
+        index = sys.argv.index("--scenario")
+        name = sys.argv[index + 1]
+        del sys.argv[index:index + 2]
+        return name
+    return os.environ.get("EVAL_SCENARIO", "base")
+
+
+SCENARIO = _scenario()
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "out"
+OUT = ROOT / "out" / SCENARIO
 REPO = ROOT.parents[1]
-RESULTS = REPO / "docs" / "recommendation" / "ket-qua"
+RESULTS = REPO / "docs" / "recommendation" / "ket-qua" / SCENARIO
 
 SEED = 20261020
 NAMESPACE = uuid.UUID("3f1c9a52-8d47-4b6e-a0c1-5e2f7d9b4a63")
@@ -20,7 +34,9 @@ PASSWORD = "Demo@2026"
 PASSWORD_HASH = "$2a$10$fjSLBzDSp9Gab9SvT.noDORVdO5Q09vznhQVeOncz1Cx6pLGOCAaG"
 
 CONTAINER = "ptutor-postgres"
-DATABASE = "ptutor"
+# Every scenario runs in its own database, rebuilt by run.py setup; the dev database is never touched.
+DATABASE = os.environ.get("EVAL_DB", "ptutor_eval")
+DB_URL = f"jdbc:postgresql://localhost:5433/{DATABASE}"
 API = "http://localhost:8080"
 
 

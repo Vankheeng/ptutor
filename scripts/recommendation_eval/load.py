@@ -1,4 +1,4 @@
-"""26a: puts the simulated market of out/world.json into the dev database, with 4 weeks of history.
+"""26a: puts the simulated market of out/<scenario>/world.json into the evaluation database, with history.
 
     python scripts/recommendation_eval/load.py             # insert (running it twice changes nothing)
     python scripts/recommendation_eval/load.py --print     # only print the SQL
@@ -263,7 +263,12 @@ def main() -> int:
     if args.disable:
         print("Eval postings closed and eval accounts deactivated.")
         return 0
-    counts = psql(f"""
+    print(f"Loaded. applications|contracts|complaints = {counts()}. Password of eval.* accounts: {PASSWORD}")
+    return 0
+
+
+def counts() -> str:
+    return psql(f"""
         SELECT (SELECT count(*) FROM student_tutor_requests r JOIN students s ON s.id = r.student_id
                 JOIN users u ON u.id = s.user_id WHERE u.email LIKE 'eval.%'),
                (SELECT count(*) FROM contracts c JOIN tutors t ON t.id = c.tutor_id JOIN users u ON u.id = t.user_id
@@ -271,8 +276,6 @@ def main() -> int:
                (SELECT count(*) FROM complaints c JOIN contracts ct ON ct.id = c.contract_id
                 JOIN tutors t ON t.id = ct.tutor_id JOIN users u ON u.id = t.user_id WHERE u.email LIKE 'eval.%');
         """).strip()
-    print(f"Loaded. applications|contracts|complaints = {counts}. Password of eval.* accounts: {PASSWORD}")
-    return 0
 
 
 if __name__ == "__main__":

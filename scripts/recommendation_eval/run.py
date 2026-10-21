@@ -1,8 +1,12 @@
 """26a/26b: runs the backend in each configuration of design 09, 9.4 and searches through the real API.
 
-    python scripts/recommendation_eval/run.py prepare          # embed + enrich + score Q, then browsing history
-    python scripts/recommendation_eval/run.py search V2-full   # one configuration -> out/runs/V2-full.json
-    python scripts/recommendation_eval/run.py search all       # every configuration
+    python scripts/recommendation_eval/run.py setup --scenario base          # rebuild ptutor_eval and fill it
+    python scripts/recommendation_eval/run.py search V2-full --scenario base # one configuration
+    python scripts/recommendation_eval/run.py search all --scenario base     # every configuration
+
+setup drops and recreates the evaluation database (ptutor_eval, never the dev database), lets the backend create
+the schema and the catalog, loads out/<scenario>/world.json (load.py), waits for the embedding, A1 and the score Q,
+then simulates the browsing history for H1. Results go to out/<scenario>/runs/.
 
 The configurations are switched with the backend's own properties (no special code path), on the jar in
 backend/target. Every run uses the prior weights (L1 off, design 09, 9.4) and logs up to 200 candidates per
@@ -17,11 +21,12 @@ import sys
 import time
 from pathlib import Path
 
-from common import OUT, REPO, SEED, Api, query_json, read_json, uid, wait_for_api, write_json
+from common import DATABASE, DB_URL, OUT, REPO, SEED, Api, psql, query_json, read_json, uid, wait_for_api, write_json
 from world import rel
 
 JAR = REPO / "backend" / "target" / "backend-0.0.1-SNAPSHOT.jar"
 BASE = {
+    "spring.datasource.url": DB_URL,
     "app.recommendation.log-candidate-limit": "200",
     "app.recommendation.learning.enabled": "false",
     "app.recommendation.proactive.enabled": "false",
@@ -238,11 +243,25 @@ def browse(world: dict, sessions_per_student: int = 4) -> None:
         time.sleep(15)  # let ProfileUpdateWorker (every 10 s) fold the round into the profiles
 
 
-def prepare(world: dict) -> None:
+def reset_database() -> None:
+    if DATABASE in ("ptutor", "ptutor_test"):
+        raise SystemExit(f"refusing to drop {DATABASE}")
+    psql(f"DROP DATABASE IF EXISTS {DATABASE} WITH (FORCE);", database="postgres")
+    psql(f"CREATE DATABASE {DATABASE};", database="postgres")
+
+
+def setup(world: dict) -> None:
+    import load
+
+    reset_database()
     properties = config_properties("V2-full")
     properties["app.tutor-recommendation.recalculation-cron"] = "0 * * * * *"
-    process = start_backend(properties, "prepare")
+    # Queue the embedding and enrichment of the new rows soon after loading them.
+    properties["app.recommendation.embedding.backfill-initial-delay-ms"] = "60000"
+    process = start_backend(properties, "setup")
     try:
+        psql(load.build_sql(world))
+        print("loaded", load.counts(), flush=True)
         wait_for_pipeline()
         browse(world)
         time.sleep(30)
@@ -256,11 +275,11 @@ def prepare(world: dict) -> None:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     world = read_json(OUT / "world.json")
-    if len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "search"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("setup", "search"):
         print(__doc__)
         return 1
-    if sys.argv[1] == "prepare":
-        prepare(world)
+    if sys.argv[1] == "setup":
+        setup(world)
         return 0
     names = list(CONFIGS) if len(sys.argv) < 3 or sys.argv[2] == "all" else sys.argv[2:]
     for name in names:
