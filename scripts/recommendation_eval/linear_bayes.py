@@ -52,14 +52,31 @@ class LinearBayesModel:
 
 
 def project(theta, prior, previous, min_ratio: float, max_ratio: float, max_step: float) -> np.ndarray:
-    """Drop the intercept, clamp around the prior, limit the step, normalise to 1 (same order as Java)."""
+    """Same steps as LinearBayesModel.project in Java: theta on the scale of the weights (no intercept, negatives
+    as 0, sum 1), then the closest weights summing to 1 within the band around the prior and the step limit."""
     prior = np.asarray(prior, dtype=float)
     previous = np.asarray(previous, dtype=float)
+    target = np.maximum(0.0, np.asarray(theta, dtype=float)[1:])
+    target = target / target.sum() if target.sum() > 0 else previous.copy()
     low = np.maximum(0.01, min_ratio * prior)
     high = np.maximum(low, max_ratio * prior)
-    value = np.minimum(high, np.maximum(low, np.asarray(theta, dtype=float)[1:]))
-    value = np.minimum(previous + max_step, np.maximum(previous - max_step, value))
-    return value / value.sum()
+    lower = np.maximum(low, previous - max_step)
+    upper = np.minimum(high, previous + max_step)
+    outside = lower > upper
+    lower[outside] = upper[outside] = np.minimum(high, np.maximum(low, previous))[outside]
+    if lower.sum() > 1 or upper.sum() < 1:
+        lower, upper = low, high
+    if lower.sum() > 1 or upper.sum() < 1:
+        clipped = np.minimum(high, np.maximum(low, target))
+        return clipped / clipped.sum()
+    start, stop = float(np.min(lower - target)), float(np.max(upper - target))
+    for _ in range(100):
+        middle = (start + stop) / 2
+        if np.minimum(upper, np.maximum(lower, target + middle)).sum() < 1:
+            start = middle
+        else:
+            stop = middle
+    return np.minimum(upper, np.maximum(lower, target + (start + stop) / 2))
 
 
 def make_fixture() -> dict:

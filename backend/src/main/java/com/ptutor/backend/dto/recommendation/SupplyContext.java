@@ -58,10 +58,6 @@ public record SupplyContext(
         return copy(teachingMode, areaScope, districtIds, provinceId, price, availabilities);
     }
 
-    public SupplyContext withoutSchedule() {
-        return copy(teachingMode, areaScope, districtIds, provinceId, expectedPrice, List.of());
-    }
-
     private SupplyContext copy(ModePreference mode, AreaScope scope, List<UUID> districts, UUID province,
             BigDecimal price, List<TimeSlot> slots) {
         return new SupplyContext(tutorId, tutorUserId, subjectId, gradeIds, mode, scope, districts, province,

@@ -6626,7 +6626,7 @@ components:
       properties:
         code:
           type: string
-          enum: [SCHEDULE_FLEX, PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30]
+          enum: [PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30]
         message: { type: string, description: Sentence to show next to the apply button }
         gain: { type: integer, description: How many more people would score 0.50 or more }
         apply:

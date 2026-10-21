@@ -65,16 +65,15 @@ class RelaxationServiceTest {
                 "PRICE_30", List.of(result(0.70), result(0.60)),
                 "MODE_ANY", List.of(result(0.80), result(0.70), result(0.60)),
                 // a single newcomer, but far better than anything found so far
-                "SCHEDULE_FLEX", List.of(result(0.66)),
+                "AREA_PROVINCE", List.of(result(0.66)),
                 // a single newcomer that is not better enough
-                "PRICE_15", List.of(result(0.60)),
-                "AREA_PROVINCE", List.of());
+                "PRICE_15", List.of(result(0.60)));
         ReflectionTestUtils.setField(settings, "relaxationMaxSuggestions", 10);
 
         List<RelaxationSuggestion> all = suggest(current, outcome);
 
         assertThat(all).extracting(RelaxationSuggestion::code)
-                .containsExactly("MODE_ANY", "AREA_ANY", "PRICE_30", "SCHEDULE_FLEX");
+                .containsExactly("MODE_ANY", "AREA_ANY", "PRICE_30", "AREA_PROVINCE");
         assertThat(all).extracting(RelaxationSuggestion::gain).containsExactly(3, 2, 2, 1);
         assertThat(all.get(0).message()).isEqualTo("MODE_ANY brings 3");
         assertThat(all.get(1).apply().path("code").asString()).isEqualTo("AREA_ANY");
@@ -97,11 +96,11 @@ class RelaxationServiceTest {
     @Test
     void stopsWhenTheTimeBudgetIsUsedUpAndSurvivesALooseningThatFails() {
         Map<String, List<Result>> outcome = Map.of(
-                "SCHEDULE_FLEX", List.of(result(0.7), result(0.7)), "AREA_ANY", List.of(result(0.7), result(0.7)));
+                "PRICE_15", List.of(result(0.7), result(0.7)), "AREA_ANY", List.of(result(0.7), result(0.7)));
         List<String> evaluated = new ArrayList<>();
         Function<String, List<Result>> ranking = code -> {
             evaluated.add(code);
-            if (code.equals("SCHEDULE_FLEX")) {
+            if (code.equals("PRICE_15")) {
                 throw new IllegalStateException("database hiccup");
             }
             return outcome.get(code);
@@ -110,7 +109,7 @@ class RelaxationServiceTest {
         List<RelaxationSuggestion> suggestions = service.suggest(List.of(), variants(outcome), ranking,
                 Result::person, Result::score, (variant, gained) -> variant.code());
 
-        assertThat(evaluated).containsExactly("SCHEDULE_FLEX", "AREA_ANY");
+        assertThat(evaluated).containsExactly("PRICE_15", "AREA_ANY");
         assertThat(suggestions).extracting(RelaxationSuggestion::code).containsExactly("AREA_ANY");
 
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 0L);
@@ -138,10 +137,8 @@ class RelaxationServiceTest {
 
         Map<String, Variant<QueryContext>> variants = byCode(service.forStudent(context));
 
-        assertThat(variants).containsOnlyKeys(
-                "SCHEDULE_FLEX", "PRICE_15", "PRICE_30", "AREA_PROVINCE", "AREA_ANY", "MODE_ANY");
-        assertThat(variants.get("SCHEDULE_FLEX").context().availabilities()).isEmpty();
-        assertThat(variants.get("SCHEDULE_FLEX").apply().path("availabilities").isEmpty()).isTrue();
+        assertThat(variants).as("a schedule only gates the score, so it is never loosened")
+                .containsOnlyKeys("PRICE_15", "PRICE_30", "AREA_PROVINCE", "AREA_ANY", "MODE_ANY");
         assertThat(variants.get("PRICE_15").context().maxPrice()).isEqualByComparingTo("230000");
         assertThat(variants.get("PRICE_30").context().maxPrice()).isEqualByComparingTo("260000");
         assertThat(variants.get("PRICE_30").apply().path("price").path("max").decimalValue())
@@ -162,8 +159,6 @@ class RelaxationServiceTest {
                 .isEqualTo("Mở rộng ra toàn Hà Nội: thêm 0 gia sư phù hợp");
         assertThat(service.studentMessage(variants.get("PRICE_15"), List.of()))
                 .isEqualTo("Nếu ngân sách 230.000đ: thêm 0 gia sư phù hợp");
-        assertThat(service.studentMessage(variants.get("SCHEDULE_FLEX"), List.of()))
-                .isEqualTo("Nếu linh hoạt lịch học: thêm 0 gia sư phù hợp");
         assertThat(service.studentMessage(variants.get("MODE_ANY"), List.of()))
                 .isEqualTo("Nhận cả học online: thêm 0 gia sư phù hợp");
     }

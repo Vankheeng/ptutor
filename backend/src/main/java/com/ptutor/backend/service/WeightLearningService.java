@@ -296,12 +296,18 @@ public class WeightLearningService {
     }
 
     /** Features whose μ fell outside the clamp around the prior (design 12, 12.3). */
+    /** Features whose μ, on the scale of the weights (as {@link LinearBayesModel#project} sees it), is out of band. */
     private List<String> clamped(WeightModel model, double[] mean, double[] prior) {
         List<String> clamped = new ArrayList<>();
+        double total = 0;
+        for (int k = 0; k < prior.length; k++) {
+            total += Math.max(0, mean[k + 1]);
+        }
         for (int k = 0; k < prior.length; k++) {
             double low = Math.max(0.01, settings.getLearningMinRatio() * prior[k]);
             double high = Math.max(low, settings.getLearningMaxRatio() * prior[k]);
-            if (mean[k + 1] < low || mean[k + 1] > high) {
+            double scaled = total > 0 ? Math.max(0, mean[k + 1]) / total : prior[k];
+            if (scaled < low || scaled > high) {
                 clamped.add(model.features().get(k));
             }
         }

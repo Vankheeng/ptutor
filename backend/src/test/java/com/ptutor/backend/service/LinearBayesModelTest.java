@@ -146,13 +146,37 @@ class LinearBayesModelTest {
         double[] theta = { 0.7, 0.55, -0.3, 0.60 };
 
         double[] unlimited = LinearBayesModel.project(theta, prior, prior, 0.5, 2.0, 1.0);
-        // Clamped to 0.40, 0.10 and 0.60, then normalised by 1.10.
-        assertThat(unlimited).containsExactly(new double[] { 0.40 / 1.10, 0.10 / 1.10, 0.60 / 1.10 }, within(1e-12));
+        // On the scale of the weights θ is (0.55, 0, 0.60) / 1.15; the closest weights summing to 1 within
+        // [0.1, 0.4] x [0.1, 0.4] x [0.3, 1.2] are 0.40, 0.10, 0.50: the band holds after normalising.
+        assertThat(unlimited).containsExactly(new double[] { 0.40, 0.10, 0.50 }, within(1e-9));
 
         double[] limited = LinearBayesModel.project(theta, prior, prior, 0.5, 2.0, 0.05);
-        // At most 0.05 away from the previous weights: 0.25, 0.15, 0.60, then normalised by 1.00.
-        assertThat(limited).containsExactly(new double[] { 0.25, 0.15, 0.60 }, within(1e-12));
+        // At most 0.05 away from the previous weights, still after normalising.
+        assertThat(limited).containsExactly(new double[] { 0.25, 0.15, 0.60 }, within(1e-9));
         assertThat(Arrays.stream(limited).sum()).isCloseTo(1.0, within(1e-12));
+    }
+
+    @Test
+    void bandAndStepHoldOnTheFinalWeightsWhateverTheScaleOfTheta() {
+        double[] prior = PRIOR;
+        Random random = new Random(11);
+        for (int round = 0; round < 500; round++) {
+            double[] theta = new double[prior.length + 1];
+            double scale = 0.1 + 10 * random.nextDouble();
+            for (int k = 0; k < theta.length; k++) {
+                theta[k] = scale * (random.nextDouble() - 0.2);
+            }
+            double[] previous = LinearBayesModel.project(theta, prior, prior, 0.5, 2.0, 1.0);
+
+            double[] weights = LinearBayesModel.project(
+                    new double[] { 0, 0.05, 0.6, 0.05, 0.1, 0.1, 0.05, 0.05 }, prior, previous, 0.5, 2.0, 0.05);
+
+            assertThat(Arrays.stream(weights).sum()).isCloseTo(1.0, within(1e-9));
+            for (int k = 0; k < prior.length; k++) {
+                assertThat(weights[k]).isBetween(Math.max(0.01, 0.5 * prior[k]) - 1e-9, 2 * prior[k] + 1e-9);
+                assertThat(Math.abs(weights[k] - previous[k])).isLessThanOrEqualTo(0.05 + 1e-9);
+            }
+        }
     }
 
     @Test

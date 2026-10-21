@@ -126,9 +126,12 @@ public final class LinearBayesModel {
     }
 
     /**
-     * From θ to weights the ranking can use (design 12, 12.3): drop the intercept; clamp each weight to
-     * [max(0.01, min-ratio × prior), max-ratio × prior]; move it at most {@code maxStep} away from the previous
-     * weight; normalise to a sum of 1.
+     * From θ to weights the ranking can use (design 12, 12.3). θ is first put on the scale of the weights: the
+     * intercept is dropped, a negative coefficient counts as 0 and the rest is normalised to a sum of 1. The
+     * result is then the point closest to it whose weights sum to 1, each within
+     * [max(0.01, min-ratio × prior), max-ratio × prior] and at most {@code maxStep} away from the previous weight.
+     * Both limits hold on the final weights; until 21/10/2026 they were applied to the raw θ and then broken by
+     * the normalisation (evaluation, design 09, 9.10).
      *
      * @param theta    with the intercept first
      * @param previous the weights served until now (the prior when nothing was learned yet)
@@ -138,20 +141,82 @@ public final class LinearBayesModel {
         if (theta.length != prior.length + 1 || previous.length != prior.length) {
             throw new IllegalArgumentException("θ needs one more element than the prior and the previous weights");
         }
-        double[] weights = new double[prior.length];
+        int size = prior.length;
+        double[] target = new double[size];
+        double total = 0;
+        for (int k = 0; k < size; k++) {
+            target[k] = Math.max(0, theta[k + 1]);
+            total += target[k];
+        }
+        for (int k = 0; k < size; k++) {
+            target[k] = total > 0 ? target[k] / total : previous[k];
+        }
+
+        double[] low = new double[size];
+        double[] high = new double[size];
+        double[] lower = new double[size];
+        double[] upper = new double[size];
+        for (int k = 0; k < size; k++) {
+            low[k] = Math.max(0.01, minRatio * prior[k]);
+            high[k] = Math.max(low[k], maxRatio * prior[k]);
+            lower[k] = Math.max(low[k], previous[k] - maxStep);
+            upper[k] = Math.min(high[k], previous[k] + maxStep);
+            if (lower[k] > upper[k]) {
+                // The previous weight lies outside the band (the band changed): head for the band.
+                lower[k] = upper[k] = Math.min(high[k], Math.max(low[k], previous[k]));
+            }
+        }
+        if (Arrays.stream(lower).sum() > 1 || Arrays.stream(upper).sum() < 1) {
+            // The step limit alone cannot reach a sum of 1: keep only the band around the prior.
+            lower = low;
+            upper = high;
+        }
+        if (Arrays.stream(lower).sum() > 1 || Arrays.stream(upper).sum() < 1) {
+            // Not even the band can (a prior far from a sum of 1): clip and normalise.
+            double[] clipped = new double[size];
+            for (int k = 0; k < size; k++) {
+                clipped[k] = Math.min(high[k], Math.max(low[k], target[k]));
+            }
+            double sum = Arrays.stream(clipped).sum();
+            return Arrays.stream(clipped).map(value -> value / sum).toArray();
+        }
+        return closestWithSumOne(target, lower, upper);
+    }
+
+    /**
+     * The point of the box [lower, upper] with a sum of 1 closest to {@code target}: clip(target + t) for the shift
+     * t that makes the sum 1, found by bisection (the sum grows with t).
+     */
+    private static double[] closestWithSumOne(double[] target, double[] lower, double[] upper) {
+        double from = Double.POSITIVE_INFINITY;
+        double to = Double.NEGATIVE_INFINITY;
+        for (int k = 0; k < target.length; k++) {
+            from = Math.min(from, lower[k] - target[k]);
+            to = Math.max(to, upper[k] - target[k]);
+        }
+        for (int i = 0; i < 100; i++) {
+            double middle = (from + to) / 2;
+            if (shifted(target, lower, upper, middle, null) < 1) {
+                from = middle;
+            } else {
+                to = middle;
+            }
+        }
+        double[] weights = new double[target.length];
+        shifted(target, lower, upper, (from + to) / 2, weights);
+        return weights;
+    }
+
+    private static double shifted(double[] target, double[] lower, double[] upper, double shift, double[] out) {
         double sum = 0;
-        for (int k = 0; k < prior.length; k++) {
-            double low = Math.max(0.01, minRatio * prior[k]);
-            double high = Math.max(low, maxRatio * prior[k]);
-            double value = Math.min(high, Math.max(low, theta[k + 1]));
-            value = Math.min(previous[k] + maxStep, Math.max(previous[k] - maxStep, value));
-            weights[k] = value;
+        for (int k = 0; k < target.length; k++) {
+            double value = Math.min(upper[k], Math.max(lower[k], target[k] + shift));
+            if (out != null) {
+                out[k] = value;
+            }
             sum += value;
         }
-        for (int k = 0; k < weights.length; k++) {
-            weights[k] /= sum;
-        }
-        return weights;
+        return sum;
     }
 
     /** Lower triangular L with A = L Lᵀ; A must be symmetric positive definite. */

@@ -43,16 +43,18 @@ public class RelaxationService {
 
     private static final Logger log = LoggerFactory.getLogger(RelaxationService.class);
 
-    public static final String SCHEDULE_FLEX = "SCHEDULE_FLEX";
     public static final String PRICE_15 = "PRICE_15";
     public static final String AREA_PROVINCE = "AREA_PROVINCE";
     public static final String MODE_ANY = "MODE_ANY";
     public static final String AREA_ANY = "AREA_ANY";
     public static final String PRICE_30 = "PRICE_30";
 
-    /** Tried in this order while the time budget lasts, and preferred in this order when gains are equal. */
-    static final List<String> LIGHTEST_FIRST =
-            List.of(SCHEDULE_FLEX, PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30);
+    /**
+     * Tried in this order while the time budget lasts, and preferred in this order when gains are equal. There is
+     * no loosening of the schedule: the schedule only gates the score (G), it filters nobody out, so dropping it
+     * never brings anyone new (evaluation of 21/10/2026, design 07, 7.1).
+     */
+    static final List<String> LIGHTEST_FIRST = List.of(PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30);
 
     static final BigDecimal RATING_WORTH_MENTIONING = new BigDecimal("4.5");
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
@@ -140,11 +142,6 @@ public class RelaxationService {
 
     public List<Variant<QueryContext>> forStudent(QueryContext context) {
         List<Variant<QueryContext>> variants = new ArrayList<>();
-        if (!context.availabilities().isEmpty()) {
-            ObjectNode apply = objectMapper.createObjectNode();
-            apply.putArray("availabilities");
-            variants.add(new Variant<>(SCHEDULE_FLEX, context.withoutSchedule(), apply, null));
-        }
         if (context.maxPrice() != null && context.maxPrice().signum() > 0) {
             for (String code : List.of(PRICE_15, PRICE_30)) {
                 BigDecimal raised = context.maxPrice().multiply(new BigDecimal(code.equals(PRICE_15) ? "1.15" : "1.30"))
@@ -199,7 +196,6 @@ public class RelaxationService {
                 yield "Nhận cả học " + variant.detail() + ": " + more
                         + (wellRated > 0 ? ", trong đó " + wellRated + " người đánh giá trên 4,5" : " phù hợp");
             }
-            case SCHEDULE_FLEX -> "Nếu linh hoạt lịch học: " + more + " phù hợp";
             default -> "Nếu ngân sách " + variant.detail() + ": " + more + " phù hợp";
         };
     }
@@ -208,11 +204,6 @@ public class RelaxationService {
 
     public List<Variant<SupplyContext>> forTutor(SupplyContext context) {
         List<Variant<SupplyContext>> variants = new ArrayList<>();
-        if (!context.availabilities().isEmpty()) {
-            ObjectNode apply = objectMapper.createObjectNode();
-            apply.putArray("availabilities");
-            variants.add(new Variant<>(SCHEDULE_FLEX, context.withoutSchedule(), apply, null));
-        }
         if (context.expectedPrice() != null && context.expectedPrice().signum() > 0) {
             for (String code : List.of(PRICE_15, PRICE_30)) {
                 BigDecimal lowered = context.expectedPrice()
@@ -261,7 +252,6 @@ public class RelaxationService {
             case AREA_PROVINCE -> "Mở rộng ra toàn " + variant.detail() + ": " + more;
             case AREA_ANY -> "Bỏ giới hạn khu vực: " + more;
             case MODE_ANY -> "Nhận cả dạy " + variant.detail() + ": " + more;
-            case SCHEDULE_FLEX -> "Nếu linh hoạt lịch dạy: " + more;
             default -> "Nếu nhận mức " + variant.detail() + " mỗi buổi: " + more;
         };
     }

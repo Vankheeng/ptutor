@@ -62,10 +62,6 @@ public record QueryContext(
         return copy(learningMode, areaScope, districtIds, provinceId, price, availabilities);
     }
 
-    public QueryContext withoutSchedule() {
-        return copy(learningMode, areaScope, districtIds, provinceId, maxPrice, List.of());
-    }
-
     private QueryContext copy(ModePreference mode, AreaScope scope, List<UUID> districts, UUID province,
             BigDecimal price, List<TimeSlot> slots) {
         return new QueryContext(studentId, studentUserId, subjectId, gradeId, gradeLevel, mode, scope, districts,

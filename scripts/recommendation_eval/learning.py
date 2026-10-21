@@ -148,7 +148,9 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                 history["max_step_seen"] = max(history["max_step_seen"], float(np.max(np.abs(new - served))))
                 low = np.maximum(0.01, MIN_RATIO * prior)
                 high = np.maximum(low, MAX_RATIO * prior)
-                history["clamped"] += int(np.any((model.mean()[1:] < low) | (model.mean()[1:] > high)))
+                positive = np.maximum(0.0, model.mean()[1:])
+                scaled = positive / positive.sum() if positive.sum() > 0 else prior
+                history["clamped"] += int(np.any((scaled < low) | (scaled > high)))
                 served = new
                 if pending_b:
                     z, y = map(np.array, zip(*pending_b))

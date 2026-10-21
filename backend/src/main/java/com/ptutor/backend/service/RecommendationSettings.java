@@ -70,12 +70,16 @@ public class RecommendationSettings {
     @Value("${app.recommendation.rerank.enabled:true}")
     private boolean rerankEnabled = true;
 
-    @Value("${app.recommendation.rerank.top-k:20}")
-    private int rerankTopK = 20;
+    /** 10 since 21/10/2026 (was 20): the evaluation found no quality gain worth a wait of ~4 s. */
+    @Value("${app.recommendation.rerank.top-k:10}")
+    private int rerankTopK = 10;
 
-    /** How long a search may wait for pairs that are not cached yet; what is scored by then is used. */
-    @Value("${app.recommendation.rerank.timeout-ms:4000}")
-    private long rerankTimeoutMs = 4000;
+    /**
+     * How long a search may wait for pairs that are not cached yet; what is scored by then is used. 1 500 ms since
+     * 21/10/2026 (was 4 000): pairs not scored in time are scored by later searches and the nightly prefetch.
+     */
+    @Value("${app.recommendation.rerank.timeout-ms:1500}")
+    private long rerankTimeoutMs = 1500;
 
     /** Pairs per call to the AI service: small, so that little work is lost when time runs out. */
     @Value("${app.recommendation.rerank.chunk-size:4}")
