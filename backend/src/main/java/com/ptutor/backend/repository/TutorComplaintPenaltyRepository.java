@@ -61,12 +61,15 @@ public class TutorComplaintPenaltyRepository {
                         rs.getBoolean("sent_by_tutor")));
     }
 
-    /** Contracts the tutor signed: ACTIVE, COMPLETED or CANCELLED, not deleted. */
+    /**
+     * Contracts that were signed, not deleted. Counted by {@code signed_at}, not by status: a contract rejected or
+     * expired before signing also ends up CANCELLED.
+     */
     public long countSignedContracts(UUID tutorId) {
         Long count = jdbc.queryForObject("""
                 SELECT count(*) FROM contracts
                 WHERE tutor_id = :tutorId
-                  AND status IN ('ACTIVE', 'COMPLETED', 'CANCELLED')
+                  AND signed_at IS NOT NULL
                   AND deleted_at IS NULL
                 """, new MapSqlParameterSource("tutorId", tutorId), Long.class);
         return count == null ? 0 : count;

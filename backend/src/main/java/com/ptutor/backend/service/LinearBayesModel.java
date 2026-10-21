@@ -8,45 +8,58 @@ import java.util.Random;
  * Spring: the nightly job updates it, the weight provider samples from it.
  *
  * <pre>
- * r ≈ θ₀ + θ · x + noise            prior θ ~ N(θ_prior, (1/κ) I), θ_prior = (0, w_prior)
- * A₀ = κ I     c₀ = κ θ_prior
+ * r ≈ θ₀ + θ · x + noise            prior θ ~ N(θ_prior, A₀⁻¹),  θ_prior = (0, β·w_prior)
+ * A₀ = diag(κ₀, κ, …, κ)            c₀ = A₀ θ_prior               (κ₀ small: the base rate is learned freely)
  * A  = A₀ + Σ s_i x_i x_iᵀ          c = c₀ + Σ s_i r_i x_i        (x with the intercept x₀ = 1)
  * μ  = A⁻¹ c                         Σ = ν² A⁻¹
  * </pre>
+ *
+ * β puts the prior on the scale of the rewards: the weights sum to 1 while a reward averages about 0.1, so the
+ * prior keeps the direction of the weights the team set and takes its size from the data ({@link #priorScale}).
  *
  * Vectors with the intercept have one more element than the features; {@link #project} drops it. Matrices are
  * at most 8 × 8, so the Cholesky decomposition is written by hand.
  */
 public final class LinearBayesModel {
 
-    private final double kappa;
+    /** The prior precision of each coefficient, intercept first: the diagonal of A₀. */
+    private final double[] priorPrecision;
     private final double[] priorTheta;
     private final double[][] a;
     private final double[] c;
 
-    private LinearBayesModel(double kappa, double[] priorTheta, double[][] a, double[] c) {
-        this.kappa = kappa;
+    private LinearBayesModel(double[] priorPrecision, double[] priorTheta, double[][] a, double[] c) {
+        this.priorPrecision = priorPrecision;
         this.priorTheta = priorTheta;
         this.a = a;
         this.c = c;
     }
 
-    /** No observation yet: μ is the prior, with an intercept of 0. */
-    public static LinearBayesModel fromPrior(double[] priorWeights, double kappa) {
-        double[] theta = withIntercept(priorWeights);
+    /**
+     * No observation yet: μ is the prior (0, β·w).
+     *
+     * @param kappa          κ, the strength of the prior on the weights
+     * @param interceptKappa κ₀, the strength of the prior on the intercept
+     * @param priorScale     β, see {@link #priorScale}
+     */
+    public static LinearBayesModel fromPrior(double[] priorWeights, double kappa, double interceptKappa,
+            double priorScale) {
+        double[] theta = scaledPrior(priorWeights, priorScale);
+        double[] precision = precision(theta.length, kappa, interceptKappa);
         int size = theta.length;
         double[][] a = new double[size][size];
         double[] c = new double[size];
         for (int i = 0; i < size; i++) {
-            a[i][i] = kappa;
-            c[i] = kappa * theta[i];
+            a[i][i] = precision[i];
+            c[i] = precision[i] * theta[i];
         }
-        return new LinearBayesModel(kappa, theta, a, c);
+        return new LinearBayesModel(precision, theta, a, c);
     }
 
-    /** Continues from stored statistics. */
-    public static LinearBayesModel fromStatistics(double[] priorWeights, double kappa, double[][] a, double[] c) {
-        double[] theta = withIntercept(priorWeights);
+    /** Continues from stored statistics, with the prior they were built from. */
+    public static LinearBayesModel fromStatistics(double[] priorWeights, double kappa, double interceptKappa,
+            double priorScale, double[][] a, double[] c) {
+        double[] theta = scaledPrior(priorWeights, priorScale);
         if (a.length != theta.length || c.length != theta.length) {
             throw new IllegalArgumentException("Statistics of size " + a.length + " for " + theta.length + " weights");
         }
@@ -57,17 +70,49 @@ public final class LinearBayesModel {
             }
             copy[i] = a[i].clone();
         }
-        return new LinearBayesModel(kappa, theta, copy, c.clone());
+        return new LinearBayesModel(precision(theta.length, kappa, interceptKappa), theta, copy, c.clone());
+    }
+
+    /**
+     * β: how much the reward grows when the prior score w·x grows by 1, from a one-variable regression on the first
+     * batch of data, β = Cov(r, w·x) / Var(w·x) (weighted by the sample weights), at least 0.01. Without spread in
+     * w·x there is nothing to measure and β is 1, the scale of the weights themselves.
+     */
+    public static double priorScale(double[] priorWeights, double[][] features, double[] rewards, double[] weights) {
+        double total = 0;
+        double meanScore = 0;
+        double meanReward = 0;
+        double[] scores = new double[features.length];
+        for (int i = 0; i < features.length; i++) {
+            for (int k = 0; k < priorWeights.length; k++) {
+                scores[i] += priorWeights[k] * features[i][k];
+            }
+            total += weights[i];
+            meanScore += weights[i] * scores[i];
+            meanReward += weights[i] * rewards[i];
+        }
+        if (total <= 0) {
+            return 1;
+        }
+        meanScore /= total;
+        meanReward /= total;
+        double covariance = 0;
+        double variance = 0;
+        for (int i = 0; i < features.length; i++) {
+            covariance += weights[i] * (scores[i] - meanScore) * (rewards[i] - meanReward);
+            variance += weights[i] * (scores[i] - meanScore) * (scores[i] - meanScore);
+        }
+        return variance <= 1e-12 ? 1 : Math.max(0.01, covariance / variance);
     }
 
     /** {@code A ← A₀ + γ (A − A₀)}, {@code c ← c₀ + γ (c − c₀)}: old observations count γ times less. */
     public void forget(double gamma) {
         for (int i = 0; i < a.length; i++) {
             for (int j = 0; j < a.length; j++) {
-                double prior = i == j ? kappa : 0;
+                double prior = i == j ? priorPrecision[i] : 0;
                 a[i][j] = prior + gamma * (a[i][j] - prior);
             }
-            double prior = kappa * priorTheta[i];
+            double prior = priorPrecision[i] * priorTheta[i];
             c[i] = prior + gamma * (c[i] - prior);
         }
     }
@@ -268,11 +313,20 @@ public final class LinearBayesModel {
         return x;
     }
 
-    /** (0, w): the prior of the intercept is 0. */
-    private static double[] withIntercept(double[] weights) {
+    /** (0, β·w): the prior of the intercept is 0. */
+    private static double[] scaledPrior(double[] weights, double scale) {
         double[] theta = new double[weights.length + 1];
-        System.arraycopy(weights, 0, theta, 1, weights.length);
+        for (int k = 0; k < weights.length; k++) {
+            theta[k + 1] = scale * weights[k];
+        }
         return theta;
+    }
+
+    private static double[] precision(int size, double kappa, double interceptKappa) {
+        double[] precision = new double[size];
+        Arrays.fill(precision, kappa);
+        precision[0] = interceptKappa;
+        return precision;
     }
 
     /** (1, x): the intercept feature is always 1. */
@@ -285,6 +339,6 @@ public final class LinearBayesModel {
 
     @Override
     public String toString() {
-        return "LinearBayesModel[κ=" + kappa + ", μ=" + Arrays.toString(mean()) + "]";
+        return "LinearBayesModel[A₀=" + Arrays.toString(priorPrecision) + ", μ=" + Arrays.toString(mean()) + "]";
     }
 }

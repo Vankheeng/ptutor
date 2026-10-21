@@ -17,18 +17,18 @@ FIXTURE = REPO / "backend" / "src" / "test" / "resources" / "recommendation" / "
 
 
 class LinearBayesModel:
-    """r ~ theta0 + theta . x; prior theta ~ N((0, w_prior), I / kappa); kept as A and c."""
+    """r ~ theta0 + theta . x; prior theta ~ N((0, beta w_prior), A0^-1), A0 = diag(kappa0, kappa, ...)."""
 
-    def __init__(self, prior_weights, kappa: float):
-        self.kappa = kappa
-        self.prior_theta = np.concatenate([[0.0], np.asarray(prior_weights, dtype=float)])
-        size = len(self.prior_theta)
-        self.a = np.eye(size) * kappa
-        self.c = kappa * self.prior_theta.copy()
+    def __init__(self, prior_weights, kappa: float, intercept_kappa: float = 1.0, prior_scale: float = 1.0):
+        self.prior_theta = np.concatenate([[0.0], prior_scale * np.asarray(prior_weights, dtype=float)])
+        self.precision = np.full(len(self.prior_theta), float(kappa))
+        self.precision[0] = intercept_kappa
+        self.a = np.diag(self.precision)
+        self.c = self.precision * self.prior_theta
 
     def forget(self, gamma: float) -> None:
-        a0 = np.eye(len(self.c)) * self.kappa
-        c0 = self.kappa * self.prior_theta
+        a0 = np.diag(self.precision)
+        c0 = self.precision * self.prior_theta
         self.a = a0 + gamma * (self.a - a0)
         self.c = c0 + gamma * (self.c - c0)
 
@@ -49,6 +49,21 @@ class LinearBayesModel:
         lower = np.linalg.cholesky(self.a)
         deviation = np.linalg.solve(lower.T, rng.standard_normal(len(self.c)))
         return self.mean() + scale * noise * deviation
+
+
+def prior_scale(prior_weights, features, rewards, weights) -> float:
+    """beta = Cov(r, w.x) / Var(w.x), weighted, at least 0.01; 1 without spread (LinearBayesModel.priorScale)."""
+    scores = np.asarray(features, dtype=float) @ np.asarray(prior_weights, dtype=float)
+    rewards = np.asarray(rewards, dtype=float)
+    weights = np.asarray(weights, dtype=float)
+    total = weights.sum()
+    if total <= 0:
+        return 1.0
+    mean_score = (weights * scores).sum() / total
+    mean_reward = (weights * rewards).sum() / total
+    covariance = (weights * (scores - mean_score) * (rewards - mean_reward)).sum()
+    variance = (weights * (scores - mean_score) ** 2).sum()
+    return 1.0 if variance <= 1e-12 else max(0.01, covariance / variance)
 
 
 def project(theta, prior, previous, min_ratio: float, max_ratio: float, max_step: float) -> np.ndarray:
@@ -87,10 +102,13 @@ def make_fixture() -> dict:
         total = sum(prior)
         prior = [value / total for value in prior]
         kappa = rng.choice([50.0, 200.0, 800.0])
+        intercept_kappa = rng.choice([1.0, kappa])
         observations = [{"x": [round(rng.random(), 4) for _ in prior], "r": round(rng.uniform(-0.2, 1.0), 3),
                          "s": rng.choice([0.5, 1.0, 1.5, 2.0])} for _ in range(rng.randint(5, 400))]
         gamma = rng.choice([1.0, 0.9, 0.5])
-        model = LinearBayesModel(prior, kappa)
+        scale = prior_scale(prior, [o["x"] for o in observations], [o["r"] for o in observations],
+                            [o["s"] for o in observations])
+        model = LinearBayesModel(prior, kappa, intercept_kappa, scale)
         for observation in observations:
             model.update(observation["x"], observation["r"], observation["s"])
         model.forget(gamma)
@@ -98,7 +116,8 @@ def make_fixture() -> dict:
         previous = [value * rng.uniform(0.8, 1.2) for value in prior]
         min_ratio, max_ratio, max_step = 0.5, 2.0, rng.choice([0.05, 0.02, 1.0])
         cases.append({
-            "name": f"case-{number}", "prior": prior, "kappa": kappa, "observations": observations,
+            "name": f"case-{number}", "prior": prior, "kappa": kappa, "interceptKappa": intercept_kappa,
+            "expectedPriorScale": scale, "observations": observations,
             "forgetting": gamma, "expectedMean": mu.tolist(), "previous": previous,
             "minRatio": min_ratio, "maxRatio": max_ratio, "maxStep": max_step,
             "expectedProjected": project(mu, prior, previous, min_ratio, max_ratio, max_step).tolist(),

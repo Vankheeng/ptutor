@@ -212,6 +212,21 @@ class WeightProviderTest {
         assertThat(learned.weights(WeightModel.B_S2T).values()).containsExactly(LEARNED_B);
     }
 
+    @Test
+    void thePeriodicReloadPicksUpAVersionActivatedByAnotherProcess() {
+        mode(WeightModel.B_S2T, WeightLearningMode.ACTIVE);
+        when(repository.findByModelKeyAndActiveTrue(WeightModel.B_S2T)).thenReturn(Optional.empty());
+        WeightProvider learned = new WeightProvider(settings, repository, DAY_ONE);
+        learned.reload();
+        assertThat(learned.weights(WeightModel.B_S2T)).isEqualTo(learned.prior(WeightModel.B_S2T));
+
+        // Activated elsewhere: no event reaches this process.
+        when(repository.findByModelKeyAndActiveTrue(WeightModel.B_S2T)).thenReturn(Optional.of(row(WeightModel.B_S2T, 4, LEARNED_B)));
+        learned.reloadPeriodically();
+
+        assertThat(learned.weights(WeightModel.B_S2T).values()).containsExactly(LEARNED_B);
+    }
+
     private WeightProvider learned(Clock clock) {
         when(repository.findByModelKeyAndActiveTrue(WeightModel.A_S2T)).thenReturn(Optional.of(row(WeightModel.A_S2T, 5, LEARNED_A)));
         when(repository.findByModelKeyAndActiveTrue(WeightModel.B_S2T)).thenReturn(Optional.of(row(WeightModel.B_S2T, 3, LEARNED_B)));
@@ -232,7 +247,7 @@ class WeightProviderTest {
     /** A stored version whose statistics come from a few observations, so samples spread around the mean. */
     private static RecommendationLearnedWeights row(WeightModel model, int version, double[] weights) {
         JsonMapper json = JsonMapper.builder().build();
-        LinearBayesModel bayes = LinearBayesModel.fromPrior(weights, 20);
+        LinearBayesModel bayes = LinearBayesModel.fromPrior(weights, 20, 20, 1);
         ObjectNode values = json.createObjectNode();
         for (int i = 0; i < weights.length; i++) {
             values.put(model.features().get(i), weights[i]);

@@ -494,6 +494,10 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.prior-strength:200}")
     private double learningPriorStrength = 200;
 
+    /** κ₀: the prior on the intercept (the base rate of feedback) is weak, so the weights do not have to explain it. */
+    @Value("${app.recommendation.learning.intercept-prior-strength:1}")
+    private double learningInterceptPriorStrength = 1;
+
     /** ν: assumed noise of the feedback; the posterior covariance is ν² A⁻¹. */
     @Value("${app.recommendation.learning.noise:0.3}")
     private double learningNoise = 0.3;

@@ -19,7 +19,7 @@ import sys
 import numpy as np
 
 from common import OUT, RESULTS, SEED, read_json
-from linear_bayes import LinearBayesModel, project
+from linear_bayes import LinearBayesModel, prior_scale, project
 from scoring import A_S2T, B_S2T, Params
 
 PRIOR_A = np.array([0.30, 0.20, 0.20, 0.10, 0.10, 0.05, 0.05])
@@ -33,6 +33,7 @@ EXAMINE = 0.85
 SHOWN = 10
 BATCH = 100
 MIN_RATIO, MAX_RATIO, MAX_STEP, NOISE = 0.5, 2.0, 0.05, 0.3
+INTERCEPT_KAPPA = 1.0  # learning.intercept-prior-strength
 
 
 def load_searches() -> list:
@@ -90,12 +91,21 @@ def p_accept(search: dict, index: np.ndarray) -> np.ndarray:
 
 
 def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: float = 1.0,
-             ipw: bool = False) -> dict:
+             ipw: bool = False, intercept_kappa: float = INTERCEPT_KAPPA, scaled_prior: bool = True) -> dict:
+    """intercept_kappa = kappa and scaled_prior = False reproduce the model before 21/10/2026 (design 12, 12.3)."""
     rng = np.random.default_rng(seed)
     searches = load_searches.cache
     prior = BAD_PRIOR if strategy == "LinTS-bad" else PRIOR_A
-    model = LinearBayesModel(prior, kappa)
-    model_b = LinearBayesModel(PRIOR_B, kappa)
+
+    def new_model(weights, batch):
+        # Like WeightLearningService: beta is measured on the first batch.
+        x, r, s = batch
+        scale = prior_scale(weights, x, r, s) if scaled_prior else 1.0
+        return LinearBayesModel(weights, kappa, intercept_kappa, scale)
+
+    model = LinearBayesModel(prior, kappa, intercept_kappa)  # until the first batch: the prior itself
+    model_b = None
+    first_a = True
     served = prior.copy()
     served_b = PRIOR_B.copy()
     w_star = W_STAR / W_STAR.sum()
@@ -143,6 +153,8 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
             if strategy not in ("Fixed", "Oracle"):
                 if pending_a:
                     x, r, s = map(np.array, zip(*pending_a))
+                    if first_a:
+                        model, first_a = new_model(prior, (x, r, s)), False
                     model.update_batch(x, r, s)
                 new = project(model.mean(), prior, served, MIN_RATIO, MAX_RATIO, MAX_STEP)
                 history["max_step_seen"] = max(history["max_step_seen"], float(np.max(np.abs(new - served))))
@@ -154,6 +166,8 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                 served = new
                 if pending_b:
                     z, y = map(np.array, zip(*pending_b))
+                    if model_b is None:
+                        model_b = new_model(PRIOR_B, (z, y, np.ones(len(y))))
                     model_b.update_batch(z, y, np.ones(len(y)))
                     served_b = project(model_b.mean(), PRIOR_B, served_b, MIN_RATIO, MAX_RATIO, MAX_STEP)
             history["b_logloss"].append(b_quality(model_b, pending_b)[0])
@@ -175,7 +189,7 @@ def b_quality(model: LinearBayesModel, pending: list):
     if len(pending) < 5:
         return math.nan, math.nan
     z, y = map(np.array, zip(*pending))
-    theta = model.mean()
+    theta = model.mean() if model is not None else np.concatenate([[0.0], PRIOR_B])
     p = np.clip(theta[0] + z @ theta[1:], 0.01, 0.99)
     logloss = float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
     positives, negatives = p[y == 1], p[y == 0]
@@ -200,6 +214,9 @@ def main() -> int:
     print(f"{len(load_searches.cache)} searches with at least {SHOWN} logged candidates", flush=True)
     strategies = ["Fixed", "LinTS-prior", "LinTS-bad", "Greedy", "Oracle"]
     runs = {name: [simulate(name, SEED + seed, steps) for seed in range(seeds)] for name in strategies}
+    # The model before 21/10/2026, for comparison: same strength on the intercept, prior on the scale of the weights.
+    runs["LinTS-prior (κ₀=κ, β=1)"] = [simulate("LinTS-prior", SEED + seed, steps, intercept_kappa=200.0,
+                                                 scaled_prior=False) for seed in range(seeds)]
     RESULTS.mkdir(parents=True, exist_ok=True)
     rows = []
     for name, histories in runs.items():

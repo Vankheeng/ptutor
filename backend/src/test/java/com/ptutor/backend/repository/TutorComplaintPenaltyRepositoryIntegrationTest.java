@@ -50,7 +50,7 @@ class TutorComplaintPenaltyRepositoryIntegrationTest {
         studentUserId = insertUser();
         studentId = UUID.randomUUID();
         jdbc.update("INSERT INTO students (id, user_id) VALUES (?, ?)", studentId, studentUserId);
-        contractId = insertContract(tutorId, "ACTIVE", false);
+        contractId = insertContract(tutorId, "ACTIVE", false, true);
     }
 
     @Test
@@ -92,7 +92,7 @@ class TutorComplaintPenaltyRepositoryIntegrationTest {
     void ignoresComplaintsOnAnotherTutorsContracts() {
         UUID otherTutorId = UUID.randomUUID();
         jdbc.update("INSERT INTO tutors (id, user_id) VALUES (?, ?)", otherTutorId, insertUser());
-        contractId = insertContract(otherTutorId, "ACTIVE", false);
+        contractId = insertContract(otherTutorId, "ACTIVE", false, true);
         insertComplaint(studentUserId, "RESOLVED", "ABSENCE", "RESPONDENT", NOW.minusDays(5), false);
 
         assertThat(repository.findFaultComplaints(tutorId, SINCE)).isEmpty();
@@ -101,12 +101,15 @@ class TutorComplaintPenaltyRepositoryIntegrationTest {
 
     @Test
     void countsSignedContractsOnly() {
-        insertContract(tutorId, "COMPLETED", false);
-        insertContract(tutorId, "CANCELLED", false);
-        insertContract(tutorId, "PENDING", false);
-        insertContract(tutorId, "COMPLETED", true);
+        insertContract(tutorId, "COMPLETED", false, true);
+        // Signed, then ended early.
+        insertContract(tutorId, "CANCELLED", false, true);
+        // Rejected or expired before anyone signed: also CANCELLED, but never signed.
+        insertContract(tutorId, "CANCELLED", false, false);
+        insertContract(tutorId, "PENDING", false, false);
+        insertContract(tutorId, "COMPLETED", true, true);
 
-        // The ACTIVE one from setUp, COMPLETED and CANCELLED.
+        // The ACTIVE one from setUp, COMPLETED and the CANCELLED one that was signed.
         assertThat(repository.countSignedContracts(tutorId)).isEqualTo(3);
     }
 
@@ -119,17 +122,17 @@ class TutorComplaintPenaltyRepositoryIntegrationTest {
         return id;
     }
 
-    private UUID insertContract(UUID tutor, String status, boolean deleted) {
+    private UUID insertContract(UUID tutor, String status, boolean deleted, boolean signed) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO contracts
                     (id, student_id, tutor_id, subject_id, grade_id, teaching_mode, price, payment_period,
                      total_lession, start_date, end_date, status, created_by_user_id, preferred_schedule, deleted_at,
-                     student_tutor_request_id)
+                     student_tutor_request_id, signed_at, signed_by_user_id)
                 VALUES (?, ?, ?, ?, ?, 'ONLINE', 100000, 'MONTHLY', 8, DATE '2026-06-01', DATE '2026-08-01',
-                        ?, ?, 'Monday evening', ?, ?)
+                        ?, ?, 'Monday evening', ?, ?, ?, ?)
                 """, id, studentId, tutor, subjectId, gradeId, status, studentUserId, deleted ? NOW : null,
-                insertApplication(tutor));
+                insertApplication(tutor), signed ? NOW.minusDays(100) : null, signed ? tutorUserId : null);
         return id;
     }
 

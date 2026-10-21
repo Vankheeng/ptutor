@@ -133,9 +133,7 @@ public class WeightLearningService {
         Optional<RecommendationLearnedWeights> latest = weightsRepository.findFirstByModelKeyOrderByVersionDesc(model);
         double[] prior = weightProvider.prior(model).values();
         double kappa = settings.getLearningPriorStrength();
-        LinearBayesModel bayes = latest
-                .map(row -> LinearBayesModel.fromStatistics(prior, kappa, matrix(row.getStatsA()), vector(row.getStatsC())))
-                .orElseGet(() -> LinearBayesModel.fromPrior(prior, kappa));
+        double interceptKappa = settings.getLearningInterceptPriorStrength();
         LocalDateTime trainedUntil = latest.map(RecommendationLearnedWeights::getTrainedUntil).orElse(BEGINNING);
         // Suitability rewards are final only once the reward window has passed.
         LocalDateTime available = suitability ? now.minusDays(settings.getLearningRewardWindowDays()) : now;
@@ -149,6 +147,15 @@ public class WeightLearningService {
             log.info("Weight learning {}: no new observation in ({}, {}]", model, trainedUntil, trainingEnd);
             return new Outcome(model, null, 0, false, "no new observation");
         }
+        // β is measured once, on the first batch, and kept by every later version (design 12, 12.3).
+        double priorScale = latest.map(WeightLearningService::priorScale).orElseGet(() -> LinearBayesModel.priorScale(
+                prior, training.observations().stream().map(Observation::features).toArray(double[][]::new),
+                training.observations().stream().mapToDouble(Observation::reward).toArray(),
+                training.observations().stream().mapToDouble(Observation::weight).toArray()));
+        LinearBayesModel bayes = latest
+                .map(row -> LinearBayesModel.fromStatistics(prior, kappa, interceptKappa, priorScale,
+                        matrix(row.getStatsA()), vector(row.getStatsC())))
+                .orElseGet(() -> LinearBayesModel.fromPrior(prior, kappa, interceptKappa, priorScale));
         if (settings.getLearningForgetting() < 1) {
             bayes.forget(settings.getLearningForgetting());
         }
@@ -179,7 +186,8 @@ public class WeightLearningService {
                 .put("n", evaluation.n())
                 .put("newSamples", training.observations().size())
                 .put("searches", searches)
-                .put("enoughData", enoughData);
+                .put("enoughData", enoughData)
+                .put("priorScale", priorScale);
         ArrayNode clampedJson = evaluationJson.putArray("clamped");
         clamped.forEach(clampedJson::add);
 
@@ -296,6 +304,15 @@ public class WeightLearningService {
     }
 
     /** Features whose μ fell outside the clamp around the prior (design 12, 12.3). */
+    /**
+     * β of a stored version. Versions written before it existed were built with the prior on the scale of the
+     * weights, which is β = 1.
+     */
+    static double priorScale(RecommendationLearnedWeights row) {
+        JsonNode value = row.getEvaluation() == null ? null : row.getEvaluation().get("priorScale");
+        return value != null && value.isNumber() ? value.asDouble() : 1;
+    }
+
     /** Features whose μ, on the scale of the weights (as {@link LinearBayesModel#project} sees it), is out of band. */
     private List<String> clamped(WeightModel model, double[] mean, double[] prior) {
         List<String> clamped = new ArrayList<>();

@@ -144,6 +144,9 @@ class WeightLearningServiceIntegrationTest {
     void theNextNightContinuesFromTheLatestVersionAndAddsOnlyNewData() {
         tutorsAcceptStudentsWithAHighHistory(TRAINING, 20);
         learningService.learnAll(NOW);
+        double priorScale = weightsRepository.findFirstByModelKeyOrderByVersionDesc(WeightModel.B_S2T).orElseThrow()
+                .getEvaluation().path("priorScale").asDouble();
+        assertThat(priorScale).as("β measured on the first batch").isGreaterThanOrEqualTo(0.01);
 
         // Nothing new: no new version.
         assertThat(learningService.learnAll(NOW)).filteredOn(outcome -> outcome.model() == WeightModel.B_S2T)
@@ -156,6 +159,8 @@ class WeightLearningServiceIntegrationTest {
                 .orElseThrow();
         assertThat(second.getVersion()).isEqualTo(2);
         assertThat(second.getSampleCount()).isEqualTo(46);
+        assertThat(second.getEvaluation().path("priorScale").asDouble()).as("β kept by later versions")
+                .isEqualTo(priorScale);
     }
 
     @Test

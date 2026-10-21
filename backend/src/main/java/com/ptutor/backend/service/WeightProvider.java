@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.ModelWeights;
@@ -53,8 +54,8 @@ public class WeightProvider {
     public record Served(ModelWeights weights, Integer version, WeightLearningMode mode, boolean sampled) {
     }
 
-    /** An active learned version: its projected μ and the statistics to sample from. */
-    private record Active(int version, ModelWeights mean, double[][] statsA, double[] statsC) {
+    /** An active learned version: its projected μ and the statistics (with their prior scale β) to sample from. */
+    private record Active(int version, ModelWeights mean, double[][] statsA, double[] statsC, double priorScale) {
     }
 
     private final RecommendationSettings settings;
@@ -173,6 +174,17 @@ public class WeightProvider {
     }
 
     /**
+     * Safety net: the event only reaches the process that published it, so with several backends (or an
+     * administrator's change handled by another one) the others would keep old weights. Every ten minutes by
+     * default; the event stays the fast path (design 12, 12.9).
+     */
+    @Scheduled(initialDelayString = "${app.recommendation.learning.reload-interval-ms:600000}",
+            fixedDelayString = "${app.recommendation.learning.reload-interval-ms:600000}")
+    public void reloadPeriodically() {
+        reload();
+    }
+
+    /**
      * Loads the active version and the administrator's mode of every model. On failure every model serves its prior
      * until the next load.
      */
@@ -206,7 +218,7 @@ public class WeightProvider {
     private ModelWeights sample(WeightModel model, Active version, UUID userId, LocalDate day) {
         double[] prior = prior(model).values();
         LinearBayesModel bayes = LinearBayesModel.fromStatistics(prior, settings.getLearningPriorStrength(),
-                version.statsA(), version.statsC());
+                settings.getLearningInterceptPriorStrength(), version.priorScale(), version.statsA(), version.statsC());
         double[] theta = bayes.sample(new Random(seed(model, userId, day)), settings.getLearningExplorationScale(),
                 settings.getLearningNoise());
         return new ModelWeights(model, LinearBayesModel.project(theta, prior, version.mean().values(),
@@ -234,7 +246,8 @@ public class WeightProvider {
         for (int i = 0; i < a.length; i++) {
             a[i] = numbers(statsA.get(i));
         }
-        return new Active(row.getVersion(), new ModelWeights(model, weights), a, numbers(row.getStatsC()));
+        return new Active(row.getVersion(), new ModelWeights(model, weights), a, numbers(row.getStatsC()),
+                WeightLearningService.priorScale(row));
     }
 
     private static double[] numbers(JsonNode array) {

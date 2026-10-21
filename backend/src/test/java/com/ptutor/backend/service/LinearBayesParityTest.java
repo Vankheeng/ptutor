@@ -36,10 +36,22 @@ class LinearBayesParityTest {
     @MethodSource("cases")
     void javaGivesTheSameMeanAndWeightsAsThePythonPort(JsonNode fixture) {
         double[] prior = doubles(fixture.path("prior"));
-        LinearBayesModel model = LinearBayesModel.fromPrior(prior, fixture.path("kappa").asDouble());
-        for (JsonNode observation : fixture.path("observations")) {
-            model.update(doubles(observation.path("x")), observation.path("r").asDouble(),
-                    observation.path("s").asDouble());
+        JsonNode observations = fixture.path("observations");
+        double[][] x = new double[observations.size()][];
+        double[] r = new double[x.length];
+        double[] s = new double[x.length];
+        for (int i = 0; i < x.length; i++) {
+            x[i] = doubles(observations.get(i).path("x"));
+            r[i] = observations.get(i).path("r").asDouble();
+            s[i] = observations.get(i).path("s").asDouble();
+        }
+        double scale = LinearBayesModel.priorScale(prior, x, r, s);
+        assertThat(scale).isCloseTo(fixture.path("expectedPriorScale").asDouble(), within(1e-9));
+
+        LinearBayesModel model = LinearBayesModel.fromPrior(prior, fixture.path("kappa").asDouble(),
+                fixture.path("interceptKappa").asDouble(), scale);
+        for (int i = 0; i < x.length; i++) {
+            model.update(x[i], r[i], s[i]);
         }
         model.forget(fixture.path("forgetting").asDouble());
 
