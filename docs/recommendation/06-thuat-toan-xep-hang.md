@@ -387,7 +387,8 @@ mức(c) = trọng số loại × (0,5 nếu BOTH, 1 nếu không)
   khi T là người gửi mà có lỗi: 1,0 (loại do T chọn mô tả học sinh, không mô tả lỗi của T)
 
 W       = Σ mức(c)
-n       = số hợp đồng đã ký của T (ACTIVE, COMPLETED, CANCELLED; không tính PENDING, đã xoá)
+n       = số hợp đồng đã ký của T (`signed_at` có giá trị, chưa xoá — theo chữ ký, không theo trạng thái:
+          hợp đồng bị từ chối / hết hạn khi chưa ký cũng thành CANCELLED; sửa 21/10/2026)
 phạt_K  = min(20, 40 × W / (n + 5))
 score   = clamp(… − phạt_khoá − phạt_K, 0, 100)
 ```

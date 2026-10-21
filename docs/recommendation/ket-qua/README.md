@@ -65,26 +65,33 @@ Mọi tham số: |ΔNDCG@10| ≤ 0,009, Kendall τ của top-10 ≥ 0,88. Nhạy
 
 ## Thí nghiệm học L1 — 9.9.3, 9.9.4 (3 000 lần tìm × 10 seed)
 
-Chạy với `project` đã sửa (21/10/2026, 12 mục 12.3). Kết quả của bản `project` cũ ghi ở cuối mục.
+Mô hình theo 12.3 bản 21/10/2026: `project` chuẩn hoá trước rồi kẹp; hệ số chặn có prior yếu (κ₀ = 1); prior đưa về
+thang phần thưởng θ_prior = (0, β·w), β đo trên lô đầu. Đặc trưng xuất từ lượt V2-full với rerank `top-k` 10 (khác lượt
+đầu, nên số không so trực tiếp với các bảng trước). Dòng cuối là mô hình **trước** sửa hệ số chặn, chạy trên cùng dữ liệu.
 
-| Cấu hình | Regret cuối (± sd) | ‖w − w*‖₁ cuối | Trọng số cuối (sem, need, price, style, sched, area, segment) |
-|---|---|---|---|
-| Fixed | 1 280 (± 9) | 0,300 | 0,30 0,20 0,20 0,10 0,10 0,05 0,05 |
-| LinTS-prior | 954 (± 14) | 0,218 | 0,15 0,28 0,32 0,06 0,09 0,03 0,08 |
-| LinTS-bad | 1 032 (± 26) | 0,342 | 0,07 0,29 0,29 0,07 0,12 0,07 0,10 |
-| Greedy | 955 (± 20) | 0,217 | 0,15 0,28 0,32 0,05 0,09 0,03 0,08 |
-| Oracle | 0 | 0 | 0,15 0,20 0,35 0,10 0,10 0,05 0,05 (w*) |
+| Cấu hình | Regret cuối (± sd) | ‖w − w*‖₁ cuối | Bước lớn nhất | Trọng số cuối (sem, need, price, style, sched, area, segment) |
+|---|---|---|---|---|
+| Fixed | 1 128 (± 13) | 0,300 | — | 0,30 0,20 0,20 0,10 0,10 0,05 0,05 |
+| LinTS-prior | 1 144 (± 26) | 0,229 | 0,022 | 0,22 0,20 0,26 0,08 0,11 0,06 0,08 |
+| LinTS-bad | 1 260 (± 30) | 0,313 | 0,020 | 0,12 0,19 0,24 0,09 0,13 0,13 0,10 |
+| Greedy | 1 134 (± 16) | 0,213 | 0,016 | 0,22 0,20 0,27 0,08 0,11 0,05 0,08 |
+| Oracle | 0 | 0 | — | 0,15 0,20 0,35 0,10 0,10 0,05 0,05 (w*) |
+| LinTS-prior, κ₀ = κ, β = 1 (trước sửa) | 805 (± 17) | 0,224 | 0,050 | 0,15 0,29 0,32 0,06 … |
 
-- **L1 giảm regret 25% so với trọng số cố định**; `sem` về đúng biên dưới 0,15 (= w*), `price` lên 0,32 (w* = 0,35).
-- **Chưa hội tụ hẳn về w*** (sai số 0,22; không seed nào dưới 0,05): `need` bị đẩy lên 0,28 thay vì giữ 0,20 — mô hình
-  tuyến tính trên phần thưởng phi tuyến (hấp dẫn dạng sigmoid × mức hành động) và chỉ có mẫu ở top-10 nên hệ số lệch.
-- **Greedy ≈ LinTS-prior**: với 106 truy vấn lặp lại, khám phá Thompson không thêm lợi ích; LinTS-bad thu hẹp khoảng
-  cách nhưng chưa bắt kịp trong 3 000 lần tìm.
-- **An toàn:** bước lớn nhất 0,050 (= `max-step`), mọi trọng số trong biên `[0,5; 2] × prior` — đúng trên trọng số cuối.
-- **Phía b:** AUC dự đoán nhận 0,68–0,70 (Oracle 0,77).
-- **Độ nhạy L1** (κ ∈ {50, 200, 800}, ρ ∈ {0; 0,5; 1; 2}, có / không IPW): `9.9.4-do-nhay-L1.csv`; biểu đồ
-  `9.9.4-regret-va-sai-so.png`.
-- **Đối chiếu Python ↔ Java:** `LinearBayesParityTest` (6 trường hợp, sai lệch ≤ 1e-9) qua.
+**Đọc kết quả (ghi trung thực):**
+- **Sửa hệ số chặn và thang prior không làm kết quả mô phỏng tốt lên.** Trọng số học ra **đúng hướng hơn** (`need` giữ
+  0,20 như w* thay vì bị đẩy lên 0,29; sai số tương đương 0,21–0,23), nhưng **học chậm hơn nhiều** (bước lớn nhất 0,02
+  so với 0,05) nên regret không còn thấp hơn Fixed (1 144 so với 1 128).
+- **Nguyên nhân:** β đo được ≈ 2,2 — trong top-10, điểm prior w·x ít biến thiên (độ lệch chuẩn 0,09) nên phần thưởng
+  tăng dốc theo nó. Khi prior đã đúng thang, κ = 200 giữ trọng số sát hướng prior. Bản cũ "học nhanh" một phần vì prior
+  sai thang (yếu hơn thực tế) và hệ số chặn bị ép về 0 — nhanh nhưng lệch (`need` 0,29).
+- **κ quyết định tốc độ:** với κ = 50, sai số trọng số xuống **0,15** (thấp nhất trong mọi lượt chạy) và regret ~1 060
+  (−6% so với Fixed); κ = 800 gần như không học (`9.9.4-do-nhay-L1.csv`). Đổi κ mặc định là quyết định của nhóm.
+- **Greedy ≈ LinTS-prior**: với 106 truy vấn lặp lại, khám phá Thompson không thêm lợi ích.
+- **An toàn:** mọi trọng số trong biên `[0,5; 2] × prior`, bước ≤ 0,05 trên trọng số cuối.
+- **Phía b:** AUC dự đoán nhận 0,64–0,69 (Oracle 0,77).
+- **Đối chiếu Python ↔ Java:** `LinearBayesParityTest` (6 trường hợp, gồm β và κ₀, sai lệch ≤ 1e-9) qua.
 
-**Bản `project` cũ (trước 21/10/2026)** kẹp θ thô rồi chuẩn hoá: regret LinTS-prior 934, LinTS-bad 1 137, sai số
-0,289 / 0,409; biên kẹp chạm ở mọi lần cập nhật và bước thật tới 0,085 > `max-step`. Đây là phát hiện dẫn tới việc sửa.
+**Các lượt trước (dữ liệu rerank `top-k` 20):** bản `project` cũ (kẹp θ thô rồi chuẩn hoá) — regret LinTS-prior 934,
+LinTS-bad 1 137, sai số 0,289 / 0,409, biên kẹp chạm ở mọi lần cập nhật, bước thật tới 0,085 > `max-step`; sau khi
+sửa `project` — LinTS-prior 954, sai số 0,218.

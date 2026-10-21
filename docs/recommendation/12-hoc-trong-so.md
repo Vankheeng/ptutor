@@ -117,13 +117,20 @@ Mỗi mô hình là **hồi quy tuyến tính Bayes** trên vector đặc trưng
 
 ```
 phản hồi r ≈ θ₀ + θ · x + nhiễu,          nhiễu ~ N(0, ν²)
-prior      θ ~ N(θ_prior, (1/κ)·I)         θ_prior = (0, w_prior)    — hệ số chặn có prior 0, rất yếu
+prior      θ ~ N(θ_prior, A₀⁻¹)            θ_prior = (0, β·w_prior)  — hệ số chặn có prior 0, rất yếu
 ```
+
+- **Hệ số chặn** là mức phản hồi nền (dù ứng viên thế nào vẫn có một xác suất bấm nhỏ). Prior của nó rất yếu:
+  độ mạnh riêng `κ₀ = learning.intercept-prior-strength` (mặc định 1), để các trọng số không phải "gánh" mức nền.
+- **β đưa prior về thang phần thưởng:** w có tổng 1 còn phần thưởng có thang riêng. β = Cov(r, w·x) / Var(w·x)
+  (có trọng số mẫu, tối thiểu 0,01; không có biến thiên thì 1) đo một lần trên lô dữ liệu đầu tiên, lưu ở
+  `evaluation.priorScale` của version đầu và mọi version sau dùng lại. Hướng của prior vẫn là trọng số nhóm đặt.
+  Version lưu trước 21/10/2026 không có trường này: coi β = 1, đúng cách chúng đã được tính.
 
 Viết ở dạng "thống kê đủ" để cập nhật dần và lưu được:
 
 ```
-A₀ = κ·I                  c₀ = κ·θ_prior
+A₀ = diag(κ₀, κ, …, κ)    c₀ = A₀·θ_prior
 A  = A₀ + Σ_i s_i · x_i x_iᵀ
 c  = c₀ + Σ_i s_i · r_i · x_i
 μ  = A⁻¹ c                (trung bình hậu nghiệm)
@@ -492,7 +499,7 @@ recommendation_decision_snapshots + bảng đơn (phía b) ◄── DecisionSna
 
 | Thành phần | Việc làm |
 |---|---|
-| `WeightProvider` | Giữ bản trọng số hiện hành của 4 mô hình trong bộ nhớ (`AtomicReference` tới một đối tượng bất biến). **Nạp lúc khởi động** và **nạp lại khi nhận `LearnedWeightsUpdatedEvent`** — không có thời hạn cache, không truy vấn database khi tìm. Phía a: trả mẫu Thompson theo hạt giống (người dùng, ngày) hoặc μ; phía b: trả μ. Chế độ `OFF`, chưa có bản active, hay lỗi đọc → trả prior |
+| `WeightProvider` | Giữ bản trọng số hiện hành của 4 mô hình trong bộ nhớ (`AtomicReference` tới một đối tượng bất biến). **Nạp lúc khởi động** và **nạp lại khi nhận `LearnedWeightsUpdatedEvent`**; thêm **nạp lại định kỳ 10 phút** làm lưới an toàn (`learning.reload-interval-ms`, thêm 21/10/2026: event chỉ tới tiến trình phát ra nó, nên khi chạy nhiều backend hoặc admin đổi chế độ ở tiến trình khác, các tiến trình còn lại vẫn cập nhật trong tối đa 10 phút). Không truy vấn database khi tìm. Phía a: trả mẫu Thompson theo hạt giống (người dùng, ngày) hoặc μ; phía b: trả μ. Chế độ `OFF`, chưa có bản active, hay lỗi đọc → trả prior |
 | `LinearBayesModel` | Lớp toán thuần (không Spring): cập nhật A, c; tính μ; rút mẫu (Cholesky); `project`. Có test đối chiếu với bản Python dùng trong thí nghiệm |
 | `WeightLearningJob` | Job đêm ở 12.7 |
 | `LearningDataRepository` | SQL dựng dữ liệu học: nối log với click log (7 ngày) cho phía a; nối snapshot với bảng đơn cho phía b |
@@ -528,6 +535,8 @@ Thompson làm ở bước sau.
 | `enabled` | `true` | Tắt toàn bộ L1 (mọi mô hình về prior) |
 | `models.<key>.mode` | `SHADOW` | `OFF` / `SHADOW` / `ACTIVE` cho từng mô hình |
 | `prior-strength` (κ) | 200 | Prior đáng giá bao nhiêu quan sát |
+| `intercept-prior-strength` (κ₀) | 1 | Độ mạnh prior của hệ số chặn (thêm 21/10/2026) |
+| `reload-interval-ms` | 600 000 | Nạp lại trọng số định kỳ, lưới an toàn cho event (thêm 21/10/2026) |
 | `noise` (ν) | 0,3 | Độ nhiễu giả định của phản hồi |
 | `exploration-scale` (ρ) | 1,0 | Mức khám phá Thompson phía a; 0 = tham lam |
 | `min-ratio` / `max-ratio` | 0,5 / 2,0 | Biên kẹp quanh prior |
