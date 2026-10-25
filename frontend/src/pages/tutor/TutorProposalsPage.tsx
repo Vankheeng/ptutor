@@ -72,7 +72,7 @@ export function TutorProposalsPage() {
       await cancelTutorProposal(proposal.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not cancel this proposal.');
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy đề xuất này.');
     } finally {
       setCancelling(null);
     }
@@ -82,7 +82,7 @@ export function TutorProposalsPage() {
     if (!editingProposal) return;
     const request = requestDetails[editingProposal.studyingRequestId];
     if (!request) {
-      setEditError('Request details are still loading. Please try again.');
+      setEditError('Đang tải chi tiết yêu cầu học. Vui lòng thử lại.');
       return;
     }
     setSavingEdit(true);
@@ -92,7 +92,7 @@ export function TutorProposalsPage() {
       setEditingProposal(null);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setEditError(caught instanceof Error ? caught.message : 'Could not update this application.');
+      setEditError(caught instanceof Error ? caught.message : 'Không thể cập nhật đề xuất.');
     } finally {
       setSavingEdit(false);
     }
@@ -102,12 +102,12 @@ export function TutorProposalsPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">YOUR TEACHING PIPELINE</span>
-          <h1>My requests to teach</h1>
-          <p>Compare each student request with the proposal you sent.</p>
+          <span className="tutor-eyebrow">HÀNH TRÌNH GIẢNG DẠY</span>
+          <h1>Đề xuất giảng dạy của tôi</h1>
+          <p>Theo dõi yêu cầu học và đề xuất bạn đã gửi cho học viên.</p>
         </div>
         <Link className="tutor-button tutor-heading-button" to="/tutor/dashboard">
-          Browse requests
+          Tìm yêu cầu học
         </Link>
       </div>
       {(error || proposalQuery.error) && (
@@ -121,11 +121,11 @@ export function TutorProposalsPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search subject, schedule, price, or address"
-            aria-label="Search my proposals"
+            placeholder="Tìm môn học, lịch dạy, giá hoặc địa chỉ"
+            aria-label="Tìm đề xuất của tôi"
           />
         </label>
-        <div className="tutor-filter-tabs" role="tablist" aria-label="Filter proposals">
+        <div className="tutor-filter-tabs" role="tablist" aria-label="Lọc đề xuất">
           {filters.map((item) => (
             <button
               className={filter === item ? 'active' : ''}
@@ -135,21 +135,21 @@ export function TutorProposalsPage() {
               key={item}
               onClick={() => setFilter(item)}
             >
-              {item === 'ALL' ? 'All' : label(item)}
+              {item === 'ALL' ? 'Tất cả' : label(item)}
             </button>
           ))}
         </div>
       </div>
       {proposalQuery.isLoading ? (
-        <div className="tutor-empty">Loading proposals…</div>
+        <div className="tutor-empty">Đang tải đề xuất…</div>
       ) : visibleProposals.length === 0 ? (
         <div className="tutor-empty">
           <span>↗</span>
-          <h3>{search ? 'No matching proposals' : 'No proposals in this view'}</h3>
+          <h3>{search ? 'Không tìm thấy đề xuất phù hợp' : 'Chưa có đề xuất trong mục này'}</h3>
           <p>
             {search
-              ? 'Try another search term or status.'
-              : 'Browse open student requests and send your first teaching proposal.'}
+              ? 'Thử từ khóa hoặc trạng thái khác.'
+              : 'Tìm yêu cầu học đang mở và gửi đề xuất giảng dạy đầu tiên của bạn.'}
           </p>
         </div>
       ) : (
@@ -191,5 +191,11 @@ export function TutorProposalsPage() {
 }
 
 function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
+  const labels: Record<string, string> = {
+    PENDING: 'Đang chờ',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Bị từ chối',
+    CANCELLED: 'Đã hủy'
+  };
+  return labels[value] ?? value;
 }
