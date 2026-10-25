@@ -50,8 +50,126 @@
   background: #ddd9e8;
 }
 
+.tutor-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.tutor-sidebar-toggle {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7049c8;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tutor-sidebar-toggle:hover { background: #f1edff; }
+.tutor-sidebar-toggle > span:first-child { color: #7049c8; font-size: 20px; line-height: 1; }
+.tutor-shell-collapsed { grid-template-columns: 108px minmax(0, 1fr); }
+.tutor-shell-collapsed .tutor-sidebar { padding-inline: 4px; }
+.tutor-shell-collapsed .tutor-sidebar-head { gap: 0; }
+.tutor-shell-collapsed .tutor-brand { justify-content: flex-start; width: 72px; margin-left: 0; }
+.tutor-shell-collapsed .tutor-brand img { width: 72px; max-width: none; object-position: left center; }
+.tutor-shell-collapsed .tutor-identity { justify-content: center; padding: 5px 0; border: 0; background: transparent; }
+.tutor-shell-collapsed .tutor-identity > span:last-child { display: none; }
+.tutor-shell-collapsed .tutor-nav-label,
+.tutor-shell-collapsed .tutor-nav-link { font-size: 0; }
+.tutor-shell-collapsed .tutor-nav-link { justify-content: center; gap: 0; padding: 0; }
+.tutor-shell-collapsed .tutor-nav-link > span { font-size: 17px; }
+.tutor-shell-collapsed .tutor-sidebar-bottom .tutor-nav-link { font-size: 0; }
+
+@media (max-width: 700px) {
+  .tutor-shell-collapsed { display: block; }
+  .tutor-shell-collapsed .tutor-sidebar { padding: 9px 12px; }
+  .tutor-shell-collapsed .tutor-brand { justify-content: flex-start; width: auto; margin: 0 5px; }
+  .tutor-shell-collapsed .tutor-brand img { width: 104px; }
+  .tutor-shell-collapsed .tutor-identity { justify-content: flex-end; }
+  .tutor-shell-collapsed .tutor-identity > span:last-child { display: grid; }
+  .tutor-shell-collapsed .tutor-nav-link { width: auto; padding: 0 10px; font-size: 10px; }
+}
+
 @media (max-width: 1100px) {
-  .tutor-shell {
+  .tutor-shell:not(.tutor-shell-collapsed) {
     grid-template-columns: 226px minmax(0, 1fr);
   }
 }
+
+/* Keep the workspace identity across the full header; navigation starts below it. */
+.tutor-shell{grid-template-columns:248px minmax(0,1fr);grid-template-rows:70px minmax(0,1fr)}
+.tutor-topbar{grid-column:1/-1;grid-row:1;display:grid;grid-template-columns:248px minmax(0,1fr) auto;justify-content:initial;gap:0;padding:0 20px;box-sizing:border-box}
+.tutor-topbar-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.tutor-brand{height:42px;margin:0}
+.tutor-brand img{width:104px;height:30px}
+.tutor-topbar-workspace{display:grid;gap:4px;align-content:center}
+.tutor-sidebar{grid-column:1;grid-row:2;top:70px;height:calc(100vh - 70px);padding-top:16px}
+.tutor-main{grid-column:2;grid-row:2;min-width:0}
+.tutor-shell-collapsed{grid-template-columns:108px minmax(0,1fr);grid-template-rows:70px minmax(0,1fr)}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:108px minmax(0,1fr) auto}
+.tutor-shell-collapsed .tutor-brand{width:72px;height:42px;margin:0}
+.tutor-shell-collapsed .tutor-brand img{width:72px;height:30px;max-width:none}
+.tutor-shell-collapsed .tutor-sidebar{top:70px;height:calc(100vh - 70px)}
+@media(max-width:1100px){.tutor-shell{grid-template-columns:210px minmax(0,1fr)}.tutor-topbar{grid-template-columns:210px minmax(0,1fr) auto}}
+@media(max-width:700px){.tutor-topbar{min-height:56px;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:0 12px}.tutor-topbar-brand{gap:2px}.tutor-brand{height:34px;margin:0}.tutor-brand img{width:74px;height:27px}.tutor-topbar-workspace{gap:2px}.tutor-topbar-kicker{font-size:7px}.tutor-topbar-workspace strong{font-size:10px}.tutor-sidebar{top:56px;height:auto;padding-top:9px}.tutor-shell-collapsed{display:block}.tutor-shell-collapsed .tutor-topbar{grid-template-columns:auto minmax(0,1fr) auto}.tutor-shell-collapsed .tutor-brand{width:auto;height:34px;margin:0}.tutor-shell-collapsed .tutor-brand img{width:74px;height:27px}.tutor-shell-collapsed .tutor-sidebar{height:auto;top:56px}}
+
+/* Keep the brand and collapse control on one row without resizing the logo. */
+.tutor-topbar-brand{flex-wrap:nowrap}
+.tutor-brand{flex:0 0 104px;width:104px}
+.tutor-brand img{width:104px;height:30px}
+.tutor-sidebar-toggle{flex:0 0 26px}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:155px minmax(0,1fr) auto}
+.tutor-shell-collapsed .tutor-brand{flex:0 0 104px;width:104px;height:42px}
+.tutor-shell-collapsed .tutor-brand img{width:104px;height:30px}
+@media(max-width:700px){.tutor-brand{flex-basis:74px;width:74px}.tutor-brand img{width:74px;height:27px}.tutor-shell-collapsed .tutor-topbar{grid-template-columns:auto minmax(0,1fr) auto}.tutor-shell-collapsed .tutor-brand{flex-basis:74px;width:74px;height:34px}.tutor-shell-collapsed .tutor-brand img{width:74px;height:27px}}
+
+.tutor-sidebar-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tutor-sidebar-toggle>span{display:none}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:108px minmax(0,1fr) auto}
+.tutor-shell-collapsed .tutor-topbar-brand{gap:4px}
+.tutor-shell-collapsed .tutor-brand{flex:0 0 64px;width:64px;height:42px}
+.tutor-shell-collapsed .tutor-brand img{width:64px;height:auto}
+@media(max-width:700px){.tutor-shell-collapsed .tutor-topbar{grid-template-columns:auto minmax(0,1fr) auto}.tutor-shell-collapsed .tutor-brand{flex-basis:74px;width:74px;height:34px}.tutor-shell-collapsed .tutor-brand img{width:74px;height:27px}}
+
+/* Use the same compact logo width in expanded and collapsed states. */
+.tutor-topbar-brand{gap:4px}
+.tutor-brand{flex:0 0 72px;width:72px}
+.tutor-brand img{width:72px;height:auto}
+.tutor-shell-collapsed .tutor-brand{flex:0 0 72px;width:72px}
+.tutor-shell-collapsed .tutor-brand img{width:72px;height:auto}
+@media(max-width:700px){.tutor-brand{flex-basis:72px;width:72px}.tutor-brand img{width:72px;height:auto}.tutor-shell-collapsed .tutor-brand{flex-basis:72px;width:72px}.tutor-shell-collapsed .tutor-brand img{width:72px;height:auto}}
+
+/* Larger fixed wordmark; put the collapse control below the navigation links. */
+.tutor-brand{flex:0 0 104px;width:104px}
+.tutor-brand img{width:104px;height:30px}
+.tutor-topbar-brand{gap:0}
+.tutor-sidebar-toggle{margin:8px 0 0 auto}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:128px minmax(0,1fr) auto;padding-inline:8px}
+.tutor-shell-collapsed .tutor-brand{flex:0 0 104px;width:104px;height:42px}
+.tutor-shell-collapsed .tutor-brand img{width:104px;height:30px}
+.tutor-shell-collapsed .tutor-sidebar-toggle{margin:8px auto 0}
+@media(max-width:700px){.tutor-brand{flex-basis:104px;width:104px}.tutor-brand img{width:104px;height:30px}.tutor-shell-collapsed .tutor-topbar{grid-template-columns:auto minmax(0,1fr) auto;padding-inline:12px}.tutor-shell-collapsed .tutor-brand{flex-basis:104px;width:104px;height:34px}.tutor-shell-collapsed .tutor-brand img{width:104px;height:30px}.tutor-sidebar-toggle{margin:0 auto}}
+
+/* The collapse control sits beside the logo, immediately before workspace text. */
+.tutor-topbar-brand{gap:4px}
+.tutor-topbar-brand .tutor-sidebar-toggle{margin:0;flex:0 0 26px}
+.tutor-sidebar .tutor-sidebar-toggle{display:none}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:142px minmax(0,1fr) auto;padding-inline:8px}
+@media(max-width:700px){.tutor-shell-collapsed .tutor-topbar{grid-template-columns:auto minmax(0,1fr) auto;padding-inline:12px}}
+
+/* Place collapse between the workspace header and tutor identity in the sidebar. */
+.tutor-topbar-brand .tutor-sidebar-toggle{display:none}
+.tutor-sidebar>.tutor-sidebar-toggle{display:grid;align-self:flex-end;margin:0 0 8px}
+.tutor-shell-collapsed .tutor-sidebar>.tutor-sidebar-toggle{align-self:center;margin:0 0 8px}
+.tutor-shell-collapsed .tutor-topbar{grid-template-columns:120px minmax(0,1fr) auto;padding-inline:8px}
+
+/* Once the workspace header scrolls away, keep navigation flush with the viewport top. */
+.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:0;height:100vh}
+@media(max-width:700px){.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:56px;height:auto}}

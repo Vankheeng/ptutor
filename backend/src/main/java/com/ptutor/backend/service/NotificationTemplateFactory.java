@@ -51,6 +51,12 @@ class NotificationTemplateFactory {
                     "Certificate approved", "Your certificate \"" + name + "\" has been approved.");
             case CERTIFICATE_REJECTED -> content(NotificationType.SYSTEM,
                     "Certificate rejected", "Your certificate \"" + name + "\" was rejected. Reason: " + reason);
+            case TUTOR_PROFILE_APPROVED -> content(NotificationType.SYSTEM,
+                    "Tutor profile approved",
+                    "Your tutor profile has been approved. Students can now find you in recommendations.");
+            case TUTOR_PROFILE_REJECTED -> content(NotificationType.SYSTEM,
+                    "Tutor profile rejected", "Your tutor profile was rejected. Reason: " + sentence(reason)
+                            + " Update your teaching profile to submit it for review again.");
             case TEACHING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
                     "Teaching request approved", "Your teaching request \"" + name + "\" has been approved.");
             case TEACHING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
@@ -105,6 +111,12 @@ class NotificationTemplateFactory {
                     "Withdrawal review required",
                     "A withdrawal request of " + amount + " VND is waiting for approval.");
         };
+    }
+
+    /** Reviewers often end their reason with a full stop; avoid doubling it. */
+    private String sentence(String text) {
+        String value = text.strip();
+        return value.isEmpty() || value.matches(".*[.!?]$") ? value : value + ".";
     }
 
     private NotificationContent content(NotificationType type, String title, String text) {

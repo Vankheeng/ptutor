@@ -2428,6 +2428,10 @@ paths:
       parameters:
         - { name: status, in: query, schema: { type: string, default: PENDING, enum: [PENDING, VERIFIED, REJECTED, EXPIRED] } }
         - { name: keyword, in: query, schema: { type: string } }
+        - name: excludePendingProfiles
+          in: query
+          description: Leave out certificates whose tutor profile is still PENDING; those are reviewed with the profile.
+          schema: { type: boolean, default: false }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
@@ -6504,6 +6508,16 @@ components:
               nullable: true
             address:
               $ref: '#/components/schemas/AddressResponse'
+            profileStatus:
+              type: string
+              enum: [PENDING, VERIFIED, REJECTED]
+            profileReviewedAt:
+              type: string
+              format: date-time
+              nullable: true
+            profileRejectionReason:
+              type: string
+              nullable: true
 
     CertificateResponse:
       type: object
@@ -6738,6 +6752,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         tutorId: { type: string, format: uuid }
+        tutorUserId: { type: string, format: uuid, description: "Tutor's users.id, used by /api/v1/admin/tutors/{userId}" }
         tutorName: { type: string }
         tutorEmail: { type: string, format: email }
         name: { type: string }
@@ -7697,6 +7712,8 @@ components:
             - CERTIFICATE_REVIEW_REQUIRED
             - CERTIFICATE_APPROVED
             - CERTIFICATE_REJECTED
+            - TUTOR_PROFILE_APPROVED
+            - TUTOR_PROFILE_REJECTED
             - TEACHING_REQUEST_APPROVED
             - TEACHING_REQUEST_REJECTED
             - COMPLAINT_EVIDENCE_REQUESTED
