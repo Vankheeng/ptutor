@@ -265,7 +265,11 @@ gợi ý chính xác hơn".
 
 ## 6.6. Khả năng gia sư nhận học sinh — b (R1 + B4)
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** `b_cap` sẽ chỉ phạt khi số đơn chờ n ≥ số chỗ còn lại r: `b_cap = 1` khi n < r, `r / (r + λ·(n − r + 1))` khi n ≥ r; λ chốt trên kịch bản thị trường đông — vì công thức hiện tại phạt cả khi chưa dồn và làm số lần bị từ chối tăng 0,22 → 0,27 trên kịch bản base. Lý do và bằng chứng: [13, mục 13.4](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** `b_cap` chỉ phạt khi số đơn chờ n ≥ số chỗ còn lại r (công thức `ON_SHORTAGE`, λ = 0,5),
+> vì công thức cũ phạt cả khi chưa dồn và làm số lần bị từ chối tăng 0,22 → 0,27 trên kịch bản base. Trên kịch bản thị
+> trường đông, hai công thức chặn dồn đơn tốt như nhau; công thức mới ghép được người hợp hơn, gia sư mới được thấy nhiều
+> hơn, đổi lại Gini cao hơn ~0,04. **Còn phải đo lại trên base ở Bước 40**; nếu không cải thiện thì quay về công thức cũ.
+> Bằng chứng: [13, mục 13.4](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 b ước lượng gia sư có nhận học sinh này không: một nửa từ **lịch sử nhận / từ chối** của gia sư (`b_hist`), một nửa từ mức học sinh **hợp tiêu chí công khai** của gia sư (`b_fit`), rồi nhân với hệ số **chống dồn đơn** (`b_cap`). Gia sư đã chủ động mời học sinh này thì b = 1. Ba mục con giải thích từng phần.
 
@@ -315,35 +319,50 @@ nhìn gia sư (`1` nếu `hi ≥ p`, nếu không `max(0, 1 − (p − hi)/(0.3�
 
 ### `b_cap` — chống dồn đơn (B4)
 
-> 💡 r = số chỗ còn trống của tin, n = số đơn đang chờ. Tin càng nhiều người chờ thì b càng giảm, để không đẩy thêm học sinh vào chỗ gần như chắc chắn bị từ chối. Ví dụ còn 1 chỗ, 3 người chờ → 1 / (1 + 0,5·3) = 0,4. Bảng dưới có thêm ví dụ.
+> 💡 r = số chỗ còn trống của tin, n = số đơn đang chờ. Khi số người chờ còn ít hơn số chỗ, ai nộp cũng còn chỗ nên
+> không phạt. Chỉ khi người chờ đã đủ hoặc vượt số chỗ thì b mới giảm, để không đẩy thêm học sinh vào chỗ gần như chắc
+> chắn bị từ chối. Ví dụ còn 1 chỗ, 3 người chờ → 1 / (1 + 0,5·3) = 0,4; còn 3 chỗ, 2 người chờ → 1 (không phạt).
 
 ```
 r     = quantity − số đơn ACCEPTED vào tr        (≥ 1 vì tr đang OPEN; quantity rỗng → 1)
 n     = số đơn PENDING vào tr
-b_cap = r / (r + 0.5·n)
+b_cap = 1                              khi n < r     (willingness.congestion-formula = ON_SHORTAGE, mặc định)
+b_cap = r / (r + λ·(n − r + 1))        khi n ≥ r     (λ = willingness.congestion-lambda = 0,5)
 ```
 
-| Còn chỗ r | Đang chờ n | b_cap |
-|---|---|---|
-| 1 | 0 | 1,00 |
-| 1 | 2 | 0,50 |
-| 1 | 6 | 0,25 |
-| 3 | 2 | 0,75 |
+| Còn chỗ r | Đang chờ n | b_cap (mới) | b_cap cũ `r / (r + 0,5·n)` |
+|---|---|---|---|
+| 1 | 0 | 1,00 | 1,00 |
+| 1 | 2 | 0,50 | 0,50 |
+| 1 | 6 | 0,25 | 0,25 |
+| 3 | 1 | **1,00** | 0,86 |
+| 3 | 2 | **1,00** | 0,75 |
+| 3 | 3 | 0,86 | 0,67 |
+
+Công thức cũ giữ để so sánh: `willingness.congestion-formula = EVERY_APPLICATION`.
 
 Hai cờ phục vụ so sánh các cấu hình (09, mục 9.4): `reciprocal.enabled = false` → chỉ dùng a (V2-a);
 `willingness.congestion-enabled = false` → `b_cap = 1` (V2-R); cả hai bật → V2-RC (mặc định).
 
 ## 6.7. Điểm reciprocal (R1)
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Sẽ đổi sang trung bình nhân có trọng số `R = a^α · b^(1−α)` (α chốt trên kịch bản thị trường đông, quét 0,5 / 0,65 / 0,8) — vì b là ước lượng thô mà đang được cho vai trò ngang a, làm MS@10 giảm 0,024 (p < 0,001). Lý do và bằng chứng: [13, mục 13.5](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** trung bình nhân có trọng số `R = a^α · b^(1−α)`, **α = 0,65** chốt trên kịch bản thị trường
+> đông (quét 0,5 / 0,65 / 0,8): danh sách hợp hơn trung bình điều hoà cũ (NDCG +0,026, p < 0,001) mà số lần bị từ chối
+> không tăng có ý nghĩa; α 0,8 làm từ chối tăng, α 0,5 không cải thiện thứ tự. Bằng chứng: [13, mục 13.5](./13-tinh-chinh-sau-danh-gia.md).
 
-> 💡 **Reciprocal** = hai chiều. R là **trung bình điều hòa** của a và b: luôn gần số **nhỏ hơn**, nên muốn R cao thì cả hai phải cao. Ví dụ a = 0,9, b = 0,2: trung bình cộng là 0,55, còn R = 2·0,9·0,2 / 1,1 ≈ 0,33. Cách gộp này theo mô hình RECON (11 mục 11.2).
+> 💡 **Reciprocal** = hai chiều: a = "người tìm có thích ứng viên này không", b = "ứng viên có khả năng đồng ý không".
+> R gộp hai phía bằng **trung bình nhân có trọng số**: b = 0 thì R = 0 (không đề xuất người chắc chắn từ chối), và α
+> cho biết tin a bao nhiêu so với b. b là ước lượng thô (nhiều gia sư ít lịch sử), nên a nặng hơn: α = 0,65. Ví dụ
+> a = 0,9, b = 0,2 → R = 0,9^0,65 · 0,2^0,35 ≈ 0,52 (trung bình điều hoà cũ cho 0,33). Ý tưởng hai chiều theo mô hình
+> RECON (11 mục 11.2).
 
 ```
-R = 2·a·b / (a + b)          (R = 0 nếu a + b = 0)
+R = a^α · b^(1−α)            (R = 0 nếu a = 0 hoặc b = 0; α = reciprocal.alpha = 0,65; reciprocal.mode = GEOMETRIC)
 ```
 
-Trung bình điều hoà bị kéo về giá trị nhỏ: a = 0,9, b = 0,2 → R ≈ 0,33. Phải hợp **cả hai phía**.
+Trung bình điều hoà cũ `R = 2·a·b / (a + b)` giữ để so sánh: `reciprocal.mode = HARMONIC`. Reciprocal không tự biết
+gia sư đã hết chỗ (b học từ lịch sử nhận đơn, nên còn đẩy học sinh vào gia sư nổi tiếng); phần đó là việc của `b_cap`,
+vì vậy hai phần luôn bật cùng nhau (13 mục 13.5).
 
 ## 6.8. Điểm cuối (R2)
 
@@ -611,7 +630,8 @@ b′      = (0.5·b′_hist + 0.5·b′_fit) × b′_cap
 b′_fit  = 0.4·Q + 0.3·f_style + 0.3·f_price (góc học sinh: giá mong muốn so với sr.max_price)
 b′_hist = lịch sử học sinh nhận/từ chối đề nghị (tutor_student_requests),
           k = 0.5·price_sim + 0.5·(1 − |Q_x − Q_d|),  α = 2,  p0 = tỉ lệ chung
-b′_cap  = 1 / (1 + 0.5·n);  n = đề nghị PENDING vào sr   (mỗi tin học nhận đúng một gia sư, xem ghi chú 13/10/2026)
+b′_cap  = 1 / (1 + 0.5·n);  n = đề nghị PENDING vào sr   (mỗi tin học nhận đúng một gia sư, xem ghi chú 13/10/2026;
+          cùng công thức b_cap của 6.6 với r = 1, nên công thức mới và cũ cho cùng giá trị)
 ```
 
 Ngoại lệ: học sinh đã gửi đơn `PENDING` vào một tin dạy `OPEN` của chính gia sư này → `b′ = 1`.
@@ -619,7 +639,7 @@ Ngoại lệ: học sinh đã gửi đơn `PENDING` vào một tin dạy `OPEN` 
 Từ L1: trọng số a′ (mô hình `A_T2S`) và dạng dàn phẳng của b′ — `0,5·b′_hist + 0,20·Q + 0,15·f_style +
 0,15·f_price` (mô hình `B_T2S`) — là prior và được học như chiều S→T ([12](./12-hoc-trong-so.md)).
 
-**Điểm cuối:** `score′ = R′ × G′` (không có hệ số chất lượng cho học sinh). Rerank, gộp (theo học
+**Điểm cuối:** `score′ = R′ × G′`, `R′ = a′^α · b′^(1−α)` như 6.7 (không có hệ số chất lượng cho học sinh). Rerank, gộp (theo học
 sinh), slot khám phá dùng lại y nguyên.
 
 Ghi chú triển khai (12/10/2026):

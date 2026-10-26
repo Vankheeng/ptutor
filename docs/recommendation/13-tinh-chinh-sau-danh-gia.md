@@ -394,6 +394,57 @@ Quét λ ∈ {0,25; 0,5; 1} trên crowded.
 Trên crowded, so V2-R / V2-RC cũ / V2-RC mới: **số lần bị từ chối và số vòng chờ giảm**, Gini lượt hiển thị giảm,
 NDCG không giảm quá 0,01. Chọn λ theo điểm cân bằng của các chỉ số này.
 
+### Kết quả thật (26/10/2026)
+
+Kịch bản `crowded`, 26/10/2026 (19:10–23:02). Tìm kiếm: 1 380 truy vấn mỗi cấu hình, kiểm định trên 597 truy vấn
+S2T nửa kiểm tra. Thị trường 8 vòng qua API thật, **cùng số ngẫu nhiên giữa các cấu hình** (quyết định nhận của gia sư
+rút theo (học sinh, tin, vòng)), nên số lần bị từ chối và số vòng chờ được so **theo từng học sinh** (400 HS, Wilcoxon,
+KTC 95 % bootstrap). Theo yêu cầu: quét λ cùng reciprocal cũ (điều hoà), quét α cùng chống dồn cũ, rồi một cấu hình tổ
+hợp. Kết quả `ket-qua/crowded/t39-quet.csv`, `t39-kiem-dinh-thi-truong.csv`, `9.6-kiem-dinh.csv`, `market-t39.csv`.
+
+| Cấu hình | NDCG@10 | MS@10 | EA@10 | NDCG T2S | Bị từ chối / HS | Vòng chờ | Gini | Gia sư mới | rel khi ghép |
+|---|---|---|---|---|---|---|---|---|---|
+| V2-a | 0,661 | 0,418 | 0,557 | 0,770 | 2,23 | 1,53 | 0,596 | 0,193 | 2,26 |
+| V2-R (điều hoà) | 0,599 | 0,424 | 0,585 | 0,674 | 2,70 | 1,66 | 0,675 | 0,155 | 2,13 |
+| V2-RC cũ (đối chứng: phạt từ đơn đầu, λ 0,5, điều hoà) | 0,599 | 0,424 | 0,584 | 0,674 | 0,81 | 1,11 | **0,448** | 0,280 | 1,99 |
+| λ 0,25 mới, điều hoà | 0,599 | 0,424 | 0,585 | 0,674 | 0,87 | 1,12 | 0,528 | 0,286 | 2,10 |
+| λ 0,5 mới, điều hoà | 0,599 | 0,424 | 0,585 | 0,674 | 0,81 | 1,10 | 0,501 | 0,302 | 2,02 |
+| λ 1 mới, điều hoà | 0,599 | 0,424 | 0,585 | 0,674 | 0,81 | 1,11 | 0,493 | 0,333 | 1,95 |
+| α 0,5, chống dồn cũ | 0,597 | 0,424 | 0,583 | 0,689 | **0,74** | **1,08** | 0,445 | 0,299 | 2,06 |
+| α 0,65, chống dồn cũ | 0,625 | 0,428 | 0,583 | 0,735 | 0,92 | 1,12 | 0,472 | 0,285 | 2,10 |
+| α 0,8, chống dồn cũ | **0,643** | 0,426 | 0,576 | **0,763** | 1,08 | 1,17 | 0,495 | 0,252 | 2,17 |
+| **Tổ hợp: λ 0,5 mới + α 0,65** | 0,624 | **0,428** | 0,583 | 0,735 | 0,85 | 1,13 | 0,513 | 0,297 | 2,14 |
+
+Kiểm định thị trường (theo học sinh): V2-R → V2-RC cũ: bị từ chối −1,90 [−2,13; −1,66], vòng chờ −0,55 (p < 0,001).
+V2-RC cũ → công thức mới λ 0,25 / 0,5 / 1: bị từ chối +0,06 [−0,08; +0,21] / 0,00 [−0,14; +0,14] / 0,00 [−0,15; +0,15],
+vòng chờ ±0,01 — **không khác**. Tìm kiếm tĩnh: các λ cho đúng cùng thứ tự (lúc tìm chưa có đơn đang chờ).
+
+Đối chiếu tiêu chí: so với V2-R, mọi cấu hình chống dồn giảm mạnh từ chối, vòng chờ và Gini — đạt. So với công thức
+cũ: từ chối và vòng chờ **tương đương** (không kém, cũng không hơn); Gini **cao hơn** 0,05–0,08; gia sư mới được thấy
+nhiều hơn (0,29–0,33 so với 0,28); λ 0,25 / 0,5 ghép được người phù hợp hơn (rel 2,10 / 2,02 so với 1,99), λ 1 kém hơn
+(1,95); NDCG không đổi. Như vậy công thức mới **không kém** công thức cũ về mục đích chính, nhưng cũng không hơn trên
+kịch bản này; lợi thế của nó (không phạt khi còn thừa chỗ) chỉ thấy được ở thị trường thừa chỗ như `base` (13.4, "Thấy
+gì"), mà `base` hiện không còn database để đo lại.
+
+> 💡 Nói bằng lời thường: ở thị trường đông, công thức cũ và mới chặn dồn đơn tốt như nhau. Công thức mới chỉ khác ở
+> chỗ không phạt những tin còn dư chỗ, nên ở thị trường đông nó để vài gia sư được xem nhiều hơn một chút (Gini cao
+> hơn), đổi lại ghép được người hợp hơn.
+
+**Quyết định (người dùng, 26/10/2026): công thức mới `ON_SHORTAGE`, λ = 0,5** (mặc định). Lý do: không kém công thức
+cũ ở mục đích chính (tổ hợp với α 0,65: bị từ chối 0,85 so với 0,92 khi α 0,65 đi với công thức cũ), ghép được người hợp
+hơn và cho gia sư mới hiện ra nhiều hơn (0,30); lý do đổi công thức ban đầu là lỗi "phạt cả khi còn thừa chỗ" ở `base`,
+công thức cũ chắc chắn còn lỗi đó. Gini cao hơn ~0,04 là cái giá chấp nhận được; slot khám phá vẫn lo phần công bằng hiển
+thị. λ 0,5 là điểm cân bằng: λ 0,25 từ chối nhỉnh hơn, λ 1 ghép người kém hợp hơn.
+
+**Điều kiện kiểm tra lại (Bước 40).** Lý do chính để chọn công thức mới chưa được đo lại vì database `base` đã mất.
+Bước 40 phải dựng lại `base` để tách Q và các cổng chặn; khi đó chạy thêm cặp **công thức cũ / mới trên `base`**. Nếu
+công thức mới không cải thiện được tình trạng ở `base` (từ chối tăng, NDCG giảm như lần trước) thì quay về công thức cũ
+và ghi lý do vào đây. Như vậy quyết định có bằng chứng ở cả hai loại thị trường: thừa chỗ và cạnh tranh.
+
+**Lưu ý cho báo cáo.** λ (và α ở 13.5) được chọn trên chính thế giới `crowded` này; báo cáo kết quả trên cùng thế giới
+đó sẽ hơi lạc quan vì tham số đã được chỉnh cho vừa với nó. Ở lượt chạy tổng kết (Bước 43 đề xuất), dựng `crowded` với
+**hạt giống ngẫu nhiên khác** (cùng công thức, người dùng và tin đăng khác) rồi mới lấy số. Chưa cần làm ngay.
+
 ## 13.5. T5 — Reciprocal có trọng số, a nặng hơn b
 
 > 💡 **Reciprocal** gộp hai góc nhìn: a = "người tìm có thích ứng viên này không", b = "ứng viên có khả năng đồng ý
@@ -430,6 +481,33 @@ Quét α ∈ {0,5; 0,65; 0,8} trên crowded; giữ trung bình điều hoà làm
 ### Làm sao biết đã đúng
 
 Trên crowded: α được chọn cho số lần bị từ chối thấp hơn V2-a mà MS@10 không kém V2-a; ghi bảng đầy đủ các α.
+
+### Kết quả thật (26/10/2026)
+
+Cùng lượt chạy và bảng ở 13.4 (các dòng α và tổ hợp). Kiểm định: V2-a → α 0,5 / 0,65 / 0,8: bị từ chối −1,49 / −1,32 /
+−1,15 mỗi học sinh (p < 0,001), MS@10 +0,006 (p = 0,14) / +0,010 (p = 0,002) / +0,008 (p = 0,004). Công thức cũ (điều
+hoà) → α 0,5 / 0,65 / 0,8: NDCG −0,002 / **+0,026** / +0,044 (hai sau p < 0,001); MS@10 +0,000 / +0,004 (p = 0,02) /
++0,002; bị từ chối −0,06 (p = 0,65) / +0,11 (p = 0,15) / **+0,28 (p < 0,001)**. Tổ hợp λ 0,5 mới + α 0,65: so với V2-a
+bị từ chối −1,38, MS@10 +0,010 (p = 0,002); so với công thức cũ NDCG +0,026, MS@10 +0,004 (p = 0,03), bị từ chối +0,05
+[−0,12; +0,22], vòng chờ +0,02 — không khác.
+
+Đối chiếu tiêu chí: mọi α đều cho số lần bị từ chối thấp hơn V2-a và MS@10 không kém V2-a — đạt. α càng lớn (tin a
+hơn), thứ tự càng sát độ phù hợp (NDCG tăng) nhưng học sinh dồn trở lại vào người khó nhận (bị từ chối tăng); α 0,8
+đã kém công thức cũ có ý nghĩa về từ chối.
+
+**Vì sao reciprocal đứng một mình làm từ chối tăng (V2-a 2,23 → V2-R 2,70, mốc 13.3 cũng vậy).** b học từ lịch sử
+nhận đơn, mà gia sư nổi tiếng có tỉ lệ nhận cao trong lịch sử, nên b đẩy học sinh dồn thêm vào họ. Reciprocal không tự
+biết người đó đã hết chỗ; phần đó là việc của chống dồn — đúng điểm Su và cộng sự (2022) nêu. Vì vậy reciprocal chỉ
+được đánh giá cùng chống dồn đang bật.
+
+> 💡 Nói bằng lời thường: α là "tin vào độ hợp bao nhiêu so với khả năng được nhận". Tin quá nhiều vào độ hợp thì ai
+> cũng nộp vào người giỏi nhất và bị từ chối; tin quá nhiều vào khả năng được nhận thì danh sách kém hợp hơn. α 0,65 là
+> điểm giữa: danh sách hợp hơn rõ so với cách cũ mà số lần bị từ chối không tăng có ý nghĩa.
+
+**Quyết định (người dùng, 26/10/2026): `reciprocal.mode = GEOMETRIC`, α = 0,65** (mặc định) — điểm cân bằng tốt nhất:
+danh sách hợp hơn hẳn cách cũ (NDCG +0,026, có ý nghĩa) mà số lần bị từ chối không tăng có ý nghĩa; α 0,5 và 0,8 lệch
+về một phía. Cùng lưu ý như 13.4: α được chọn trên chính thế giới `crowded` này → số báo cáo lấy ở lượt tổng kết với
+hạt giống khác.
 
 ## 13.6. T2 — Sửa prompt trích lịch và tách câu (A1, A2)
 
@@ -615,7 +693,7 @@ và ghi lại vào file này.
 | 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
 | 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | **Đã làm 26/10/2026.** `restore()` / `clone()`; crowded dựng lại (β0 −3,1, `rel` và đánh giá theo `quality`, 400 HS, A1 prompt mới); mọi kiểm tra bộ mô phỏng đạt; mốc 6 cấu hình (thị trường 8 vòng + tìm kiếm) |
-| 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | Đã quyết, chưa code — chốt tham số trên crowded |
+| 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | **Đã làm 26/10/2026.** Mặc định: `ON_SHORTAGE` λ 0,5, `GEOMETRIC` α 0,65. Còn: so công thức chống dồn cũ / mới trên `base` ở Bước 40; lấy số báo cáo trên `crowded` hạt giống khác (Bước 43) |
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | Đã quyết, chưa code |
 | 6 | Tách Q và các cổng chặn | 13.8 | Đã quyết, chưa code |
 
@@ -625,8 +703,8 @@ và ghi lại vào file này.
 |---|---|---|
 | Vì sao không bỏ rerank khi nó gần như không giúp? | (sửa 26/10/2026) Đã tắt mặc định: chấm đủ mọi cặp thì không giúp (NDCG −0,001, KTC chứa 0); mức +0,013 lúc trước là do dùng nhầm vector hồ sơ. Giữ code chạy nền (không bắt người dùng chờ) và chỉ bật lại khi chứng minh được trên click thật | 13.2 |
 | Sao lần đo trước lại ra "+0,013 có ý nghĩa"? | AI service quá tải vì các lô rerank bị bỏ dở, embed câu truy vấn quá hạn, backend lặng lẽ dùng vector hồ sơ (54 % lần tìm). Từ nay log ghi `queryVector` và bộ đánh giá loại các lần đó; ở `base` loại ra thì không kết luận nào đổi | 13.0, 13.2 |
-| Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Vì công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ, và kiểm tra trên thị trường có cạnh tranh | 13.1, 13.4 |
+| Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Ở `base` (thừa chỗ) công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ. Trên thị trường đông, chống dồn giảm số lần bị từ chối từ 2,70 xuống ~0,8 mỗi học sinh | 13.1, 13.4 |
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
-| Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α để chỉnh mức tin b | 13.5 |
+| Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α (0,65) để chỉnh mức tin b. Reciprocal một mình còn làm từ chối tăng vì b đẩy học sinh vào gia sư có lịch sử nhận cao mà không biết họ đã hết chỗ — nên luôn đi cùng chống dồn (Su và cộng sự, 2022) | 13.5 |
 | Trọng số tự học (L1) có thật sự học được không? | Với prior quá mạnh thì không; chọn κ bằng thí nghiệm, và cơ chế luôn ở trong biên an toàn quanh trọng số nhóm đặt | 13.7 |
 | Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp do Claude soạn (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |

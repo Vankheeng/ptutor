@@ -6,7 +6,8 @@
 
 > 📌 **Đã làm 26/10/2026:** `rerank.mode` (mặc định `OFF`: rerank không có lợi ích đo được; `ASYNC` khi bật) và các
 > tham số của worker chấm nền (bảng dưới; 06 mục 6.9; lý do và điều kiện bật lại ở 13 mục 13.2).
-> **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `reciprocal.alpha`, ý nghĩa mới của `willingness.congestion-lambda` (chỉ phạt khi n ≥ r), `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
+> Cũng đã làm 26/10/2026: `reciprocal.mode` / `reciprocal.alpha` (0,65), `willingness.congestion-formula` (chỉ phạt khi n ≥ r).
+> **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Các con số đặt trong file cấu hình (tiền tố `app.recommendation.`), đổi được mà không sửa code. Mỗi dòng ghi giá trị khởi đầu và mục tài liệu giải thích nó. Các "cờ bật / tắt" (`…enabled`) cho phép tắt từng thành phần — dùng để so sánh khi đánh giá, hoặc tắt nhanh khi demo gặp sự cố. Cron (ví dụ `0 0 19 * * *`) là cách ghi lịch chạy định kỳ; UTC chậm hơn giờ Việt Nam 7 tiếng.
 
@@ -34,6 +35,8 @@
 | `features.segment.adjacent` / `outside` / `without-target` | 0,5 / 0,1 / 0,5 | 06, 6.4 |
 | `features.schedule.need-cap-minutes` / `features.price.over-budget-range` (giá về 0 ở ngân sách × 1,5) | 180 / 0,5 | 06, 6.4 |
 | `willingness.alpha` / `p0-default` / `p0-min-decisions` / `history-days` / `congestion-lambda` | 2 / 0,6 / 20 / 180 / 0,5 | 06, 6.6 |
+| `willingness.congestion-formula` | `ON_SHORTAGE` (từ 26/10/2026; `EVERY_APPLICATION` = công thức cũ) | 06, 6.6 · 13, 13.4 |
+| `reciprocal.mode` / `reciprocal.alpha` | `GEOMETRIC` / 0,65 (từ 26/10/2026; `HARMONIC` = trung bình điều hoà cũ) | 06, 6.7 · 13, 13.5 |
 | `willingness.history-share` / `fit-weights.segment` / `sched` / `price` (tương đối) — prior của `B_S2T` | 0,5 / 1 / 1 / 1 | 06, 6.6 · 12, 12.2 |
 | `willingness.kernel.grade` / `price` / `mode` / `unknown-similarity` / `grade-adjacent`; `tutor-price-tolerance` | 0,5 / 0,3 / 0,2 / 0,5 / 0,5; 0,3 | 06, 6.6 |
 | `tutor-willingness.history-share` / `fit-weights.quality` / `style` / `price` — prior của `B_T2S` | 0,5 / 0,4 / 0,3 / 0,3 | 06, 6.12 · 12, 12.2 |
