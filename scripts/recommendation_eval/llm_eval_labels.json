@@ -1,5 +1,5 @@
 {
- "note": "Nhãn nháp do Claude soạn 22/10/2026 theo 09 mục 9.5 — nhóm cần đọc và sửa trước khi đưa số vào báo cáo.",
+ "note": "Nhãn nháp do Claude soạn 22/10/2026 theo 09 mục 9.5; 26/10/2026 sửa 4 nhãn theo bảng quy ước 13.6 (L2, L3, T4) và 3 nhãn sau khi duyệt mẫu (#23, #30, #35). Đã duyệt mẫu 40/196 (13.6).",
  "a1_tags": [
   {
    "entityType": "STUDYING_REQUEST",
@@ -146,7 +146,8 @@
    "text": "Con phát âm sai nhiều, ngại giao tiếp với người nước ngoài.",
    "expected": [
     "TOPIC:phat_am",
-    "STYLE:giao_tiep"
+    "STYLE:giao_tiep",
+    "TOPIC:noi"
    ]
   },
   {
@@ -350,8 +351,7 @@
    "grade": 10,
    "text": "Sinh viên Bách khoa, dạy lý cấp 3 cho các bạn mất gốc, giải thích bằng thí nghiệm",
    "expected": [
-    "SEGMENT:mat_goc",
-    "STYLE:giai_thich_ky"
+    "SEGMENT:mat_goc"
    ]
   },
   {
@@ -977,27 +977,27 @@
     [
      1,
      "21:00",
-     "22:30"
+     "22:00"
     ],
     [
      2,
      "21:00",
-     "22:30"
+     "22:00"
     ],
     [
      3,
      "21:00",
-     "22:30"
+     "22:00"
     ],
     [
      4,
      "21:00",
-     "22:30"
+     "22:00"
     ],
     [
      5,
      "21:00",
-     "22:30"
+     "22:00"
     ]
    ]
   },
@@ -1022,7 +1022,7 @@
     [
      5,
      "14:30",
-     "17:00"
+     "16:30"
     ]
    ]
   },
@@ -1758,6 +1758,9 @@
     ],
     "segmentTags": [
      "kha"
+    ],
+    "goalTags": [
+     "cai_thien_diem"
     ]
    }
   },
@@ -2145,8 +2148,8 @@
     "goalTags": [
      "thi_dai_hoc"
     ],
-    "price_min": 250000,
-    "price_max": 250000
+    "price_min": 200000,
+    "price_max": 300000
    }
   },
   {
@@ -2257,8 +2260,8 @@
      8
     ],
     "mode": "ONLINE",
-    "price_min": 150000,
-    "price_max": 150000
+    "price_min": 120000,
+    "price_max": 180000
    }
   },
   {

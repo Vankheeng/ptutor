@@ -7,8 +7,11 @@ write on the platform: no template, abbreviations, missing accents here and ther
 
 Conventions of the labels follow the prompts of the AI service (ai-service/app/llm.py): "tối" without an hour is
 19:00-21:00, "chiều" 14:00-17:00, "sáng" 08:00-11:00, "cuối tuần" is days 6 and 7, days are ISO (1 = Monday). A tag is
-labelled only when the text says it plainly. A single price ("mức 250k") is both the minimum and the maximum; a time
-with no end ("lúc 20h", "từ 18h") is labelled as two hours.
+labelled only when the text says it plainly. A single price ("mức 250k") is read like "khoảng X" (0.8X-1.2X); a time
+with no end ("lúc 20h", "từ 18h", "sau 9h tối") is labelled as two hours, ending at 22:00 at the latest.
+
+26/10/2026: the team settled the conventions in design 13, 13.6 ("Bảng quy ước nhãn") and 05, 5.4. Where a draft
+label below disagrees with them (listed there), the table wins.
 """
 
 # (entity type, subject, grade, text, expected tags as "GROUP:code")
@@ -40,7 +43,7 @@ A1_TAGS = [
     ("STUDYING_REQUEST", "Toán", 10, "điểm toán trên lớp đang 5 phẩy, muốn lên 7. yếu hình học không gian",
      ["GOAL:cai_thien_diem", "TOPIC:hinh_hoc_khong_gian"]),
     ("STUDYING_REQUEST", "Tiếng Anh", 8, "Con phát âm sai nhiều, ngại giao tiếp với người nước ngoài.",
-     ["TOPIC:phat_am", "STYLE:giao_tiep"]),
+     ["TOPIC:phat_am", "STYLE:giao_tiep", "TOPIC:noi"]),  # duyệt mẫu #23
     ("STUDYING_REQUEST", "Vật lý", 9, "Phần điện con không hiểu gì, mạch nối tiếp song song toàn sai. Muốn thi vào 10 chuyên lý.",
      ["TOPIC:dien_hoc", "GOAL:thi_chuyen"]),
     ("STUDYING_REQUEST", "Toán", 7, "Cần cô dạy chậm mà chắc, con hổng kiến thức lớp 6", ["STYLE:cham_chac", "SEGMENT:mat_goc"]),
@@ -73,7 +76,7 @@ A1_TAGS = [
     ("TEACHING_REQUEST", "Toán", 12, "Thạc sĩ toán, luyện thi đại học, chuyên giải tích và hàm số. Phương pháp rèn tư duy, nhiều bài khó.",
      ["GOAL:thi_dai_hoc", "TOPIC:giai_tich", "TOPIC:ham_so_do_thi", "STYLE:tu_duy"]),
     ("TEACHING_REQUEST", "Vật lý", 10, "Sinh viên Bách khoa, dạy lý cấp 3 cho các bạn mất gốc, giải thích bằng thí nghiệm",
-     ["SEGMENT:mat_goc", "STYLE:giai_thich_ky"]),
+     ["SEGMENT:mat_goc"]),  # duyệt mẫu #30: "giải thích bằng thí nghiệm" không phải giai_thich_ky
     ("TEACHING_REQUEST", "Tiếng Anh", 6, "Cô giáo trẻ, dạy tiếng Anh thiếu nhi qua trò chơi, bài hát, vui vẻ năng động",
      ["STYLE:vui_ve"]),
     ("TEACHING_REQUEST", "Toán", 8, "Kèm 1-1, nghiêm khắc, có kế hoạch học từng tuần và bài kiểm tra định kỳ",
@@ -137,9 +140,9 @@ A1_SCHEDULE = [
     ("16h-18h chiều thứ 4", [(3, "16:00", "18:00")]),
     ("Tối chủ nhật", [(7, "19:00", "21:00")]),
     ("Thứ 7, CN buổi sáng", [(6, "08:00", "11:00"), (7, "08:00", "11:00")]),
-    ("Sau 9h tối các ngày thường", [(d, "21:00", "22:30") for d in range(1, 6)]),
+    ("Sau 9h tối các ngày thường", [(d, "21:00", "22:00") for d in range(1, 6)]),  # 13.6 L2 (was 22:30)
     ("Thứ hai, thứ tư: 19:00 – 20:30", [(1, "19:00", "20:30"), (3, "19:00", "20:30")]),
-    ("chiều t6 từ 2 rưỡi", [(5, "14:30", "17:00")]),
+    ("chiều t6 từ 2 rưỡi", [(5, "14:30", "16:30")]),  # 13.6 L3 (was 17:00)
     ("Tối thứ ba, năm, bảy", [(2, "19:00", "21:00"), (4, "19:00", "21:00"), (6, "19:00", "21:00")]),
     ("Sáng thứ 2 (con học ca chiều)", [(1, "08:00", "11:00")]),
     ("bất kỳ tối nào trừ thứ 6", [(d, "19:00", "21:00") for d in (1, 2, 3, 4, 6, 7)]),
@@ -205,7 +208,7 @@ A2_QUERIES = [
      {"subject": "Toán", "grades": [8], "mode": "OFFLINE", "districts": ["Hoàng Mai"], "days": [1, 3, 5], "price_max": 180000}),
     ("S", "tiếng anh lớp 9 ôn vào 10 online qua zoom",
      {"subject": "Tiếng Anh", "grades": [9], "mode": "ONLINE", "goalTags": ["thi_vao_10"]}),
-    ("S", "toán cho học sinh khá lớp 7 muốn lên giỏi", {"subject": "Toán", "grades": [7], "segmentTags": ["kha"]}),
+    ("S", "toán cho học sinh khá lớp 7 muốn lên giỏi", {"subject": "Toán", "grades": [7], "segmentTags": ["kha"], "goalTags": ["cai_thien_diem"]}),  # duyệt mẫu #35
     ("S", "Gia sư lý 11 toàn Hà Nội", {"subject": "Vật lý", "grades": [11], "scope": "PROVINCE"}),
     ("S", "con lớp 12 cần ôn đại học môn toán, có lộ trình rõ ràng",
      {"subject": "Toán", "grades": [12], "goalTags": ["thi_dai_hoc"], "styleTags": ["ke_hoach_ro"]}),
@@ -245,7 +248,7 @@ A2_QUERIES = [
     ("T", "nhận dạy tiếng Anh online cho học sinh lớp 6 đến 8",
      {"subject": "Tiếng Anh", "grades": [6, 7, 8], "mode": "ONLINE"}),
     ("T", "Tôi dạy lý 12 luyện thi đại học, mức 250k một buổi",
-     {"subject": "Vật lý", "grades": [12], "goalTags": ["thi_dai_hoc"], "price_min": 250000, "price_max": 250000}),
+     {"subject": "Vật lý", "grades": [12], "goalTags": ["thi_dai_hoc"], "price_min": 200000, "price_max": 300000}),  # 13.6 T4 (was 250k-250k)
     ("T", "tìm học viên toán mất gốc lớp 7 ở Hoàng Mai, tối các ngày trong tuần",
      {"subject": "Toán", "grades": [7], "segmentTags": ["mat_goc"], "mode": "OFFLINE", "districts": ["Hoàng Mai"], "days": [1, 2, 3, 4, 5]}),
     ("T", "Nhận học sinh IELTS", {"subject": "Tiếng Anh", "goalTags": ["chung_chi_ngoai_ngu"]}),
@@ -255,7 +258,7 @@ A2_QUERIES = [
     ("T", "nhận kèm lý 10 cho bạn học trung bình, chiều thứ 7, Đống Đa",
      {"subject": "Vật lý", "grades": [10], "segmentTags": ["trung_binh"], "days": [6], "mode": "OFFLINE", "districts": ["Đống Đa"]}),
     ("T", "Tìm học viên tiếng Anh lớp 9 ôn chuyên", {"subject": "Tiếng Anh", "grades": [9], "goalTags": ["thi_chuyen"]}),
-    ("T", "dạy toán 8 online, giá 150k", {"subject": "Toán", "grades": [8], "mode": "ONLINE", "price_min": 150000, "price_max": 150000}),
+    ("T", "dạy toán 8 online, giá 150k", {"subject": "Toán", "grades": [8], "mode": "ONLINE", "price_min": 120000, "price_max": 180000}),  # 13.6 T4
     ("S", "con nhà tôi lớp 10 yếu hình học không gian, cần gia sư ở Long Biên",
      {"subject": "Toán", "grades": [10], "mode": "OFFLINE", "districts": ["Long Biên"]}),
     ("S", "anh văn lớp 7 luyện từ vựng ngữ pháp, nhiều bài tập", {"subject": "Tiếng Anh", "grades": [7], "styleTags": ["luyen_tap_nhieu"]}),
