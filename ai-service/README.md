@@ -73,8 +73,9 @@ AI service tắt hoặc chậm thì backend không lỗi: `AiServiceClient` tr�
 | `AI_AUTO_DOWNLOAD` | `false` (Docker: `true`) | Tự tải model khi thiếu |
 | `AI_EMBED_MAX_TOKENS` / `AI_EMBED_MAX_BATCH` / `AI_EMBED_MAX_CHARS` | 512 / 32 / 8000 | Giới hạn đầu vào |
 | `AI_THREADS` | 0 (tự chọn) | Số luồng ONNX Runtime |
-| `AI_RERANK_ENABLED` | `true` | `false` để không nạp model rerank (tiết kiệm ~1 GB RAM) |
-| `AI_RERANK_MAX_TOKENS` / `AI_RERANK_MAX_DOCUMENTS` / `AI_RERANK_MAX_CHARS` / `AI_RERANK_BATCH_SIZE` | 256 / 40 / 8000 / 4 | Giới hạn mỗi bên của một cặp, số văn bản mỗi lần gọi, độ dài, cỡ lô suy luận |
+| `AI_RERANK_THREADS` | 2 | Số luồng ONNX của model rerank. `/rerank` chạy từng yêu cầu một trên một luồng riêng; để lại lõi trống cho `/embed` (lần tìm phải chờ embed, không chờ rerank) |
+| `AI_RERANK_ENABLED` | `true` (code) · `false` (`docker-compose.yml`, từ 26/10/2026) | `false` để không nạp model rerank (tiết kiệm ~1 GB RAM). Compose tắt theo backend (`app.recommendation.rerank.mode=OFF`); bật lại cùng lúc với `mode=ASYNC` |
+| `AI_RERANK_MAX_TOKENS` / `AI_RERANK_MAX_DOCUMENTS` / `AI_RERANK_MAX_CHARS` / `AI_RERANK_BATCH_SIZE` | 256 / 40 / 8000 / 1 | Giới hạn mỗi bên của một cặp, số văn bản mỗi lần gọi, độ dài, cỡ lô suy luận |
 | `OPENAI_API_KEY` | (trống) | Khoá OpenAI cho `/enrich`. Trống thì `/enrich` tắt, `/health` báo `"llm": "disabled"`, embedding vẫn chạy |
 | `AI_LLM_MODEL` | `gpt-6-luna` | Model dùng cho `/enrich` |
 | `AI_PARSE_REASONING_EFFORT` / `AI_PARSE_TIMEOUT_SECONDS` | `none` / 6 | Mức suy luận và thời gian chờ riêng cho `/parse-query` (người dùng đang chờ) |

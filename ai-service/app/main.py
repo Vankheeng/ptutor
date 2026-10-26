@@ -1,11 +1,13 @@
 """Stateless AI service: text in, vectors, relevance scores or extracted tags out. Only the backend calls it, over the internal network."""
 
+import asyncio
 import hmac
 import logging
 import threading
-from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager, contextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
 from .config import EMBED_MODEL_VERSION, RERANK_MODEL_VERSION, Settings, load_settings
 from .model_store import download_embed_files, download_rerank_files, missing_embed_files, missing_rerank_files
@@ -25,6 +27,50 @@ from .schemas import (
 )
 
 log = logging.getLogger("ai-service")
+
+
+class EmbedFirst:
+    """A search waits for its embedding, not for reranking: a rerank waits before each batch while an embedding
+    runs. Both models are large and slow each other down even on separate cores (design 13, 13.2)."""
+
+    def __init__(self, max_wait_seconds: float = 10.0):
+        self._condition = threading.Condition()
+        self._running = 0
+        self._max_wait = max_wait_seconds
+
+    @contextmanager
+    def embedding(self):
+        with self._condition:
+            self._running += 1
+        try:
+            yield
+        finally:
+            with self._condition:
+                self._running -= 1
+                self._condition.notify_all()
+
+    def wait_turn(self) -> None:
+        # Bounded, so that a stream of embeddings slows reranking down but never stops it.
+        with self._condition:
+            self._condition.wait_for(lambda: self._running == 0, self._max_wait)
+
+
+class Abandoned(Exception):
+    """The caller went away before its work started."""
+
+
+async def run_unless_abandoned(executor, work, is_disconnected, poll_seconds: float = 0.2):
+    """Runs `work` on `executor`. While it still waits for its turn, it is dropped if the caller has gone: a
+    search that stopped waiting for its rerank must not leave the work behind for every later request (on
+    22/10/2026 such leftovers made the query embeddings time out, design 13, 13.2). Work already running finishes."""
+    future = executor.submit(work)
+    waiting = asyncio.wrap_future(future)
+    while True:
+        done, _ = await asyncio.wait({waiting}, timeout=poll_seconds)
+        if done:
+            return waiting.result()
+        if await is_disconnected() and future.cancel():
+            raise Abandoned()
 
 
 class ModelState:
@@ -85,7 +131,7 @@ def _load_models(settings: Settings, state: ModelState) -> None:
         from .rerank import Reranker
 
         state.reranker = Reranker(
-            settings.rerank_dir, settings.rerank_max_tokens, settings.threads, settings.rerank_batch_size
+            settings.rerank_dir, settings.rerank_max_tokens, settings.rerank_threads, settings.rerank_batch_size
         )
         log.info("Reranking model %s is ready", RERANK_MODEL_VERSION)
     except Exception as exception:
@@ -117,12 +163,18 @@ def create_app(
     if llm is None:
         log.warning("OPENAI_API_KEY is not set: /enrich is disabled, embedding still works")
 
+    # One request is reranked at a time, on a thread of its own: the others wait in this queue instead of
+    # sharing the CPU, and they never hold the threads that /embed and the other endpoints run on.
+    rerank_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rerank")
+    embed_first = EmbedFirst()
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         if state.embedder is None:
             # Loading takes a few seconds; do it in the background so /health answers "loading".
             threading.Thread(target=_load_models, args=(settings, state), daemon=True).start()
         yield
+        rerank_executor.shutdown(wait=False, cancel_futures=True)
 
     app = FastAPI(title="PTutor AI service", lifespan=lifespan)
     app.state.models = state
@@ -157,7 +209,8 @@ def create_app(
             raise HTTPException(
                 status_code=422, detail=f"Each text must be at most {settings.embed_max_chars} characters"
             )
-        vectors = state.embedder.embed(request.texts)
+        with embed_first.embedding():
+            vectors = state.embedder.embed(request.texts)
         return EmbedResponse(
             model=state.embedder.model_version,
             dimensions=state.embedder.dimensions,
@@ -165,7 +218,7 @@ def create_app(
         )
 
     @app.post("/rerank", response_model=RerankResponse, dependencies=[Depends(require_token)])
-    def rerank(request: RerankRequest) -> RerankResponse:
+    async def rerank(request: RerankRequest, http_request: Request) -> RerankResponse:
         if state.reranker is None:
             raise HTTPException(status_code=503, detail=f"Reranking model is {state.rerank_status}")
         if len(request.documents) > settings.rerank_max_documents:
@@ -179,8 +232,18 @@ def create_app(
             raise HTTPException(
                 status_code=422, detail=f"Each text must be at most {settings.rerank_max_chars} characters"
             )
-        scores = state.reranker.score(request.query, request.documents)
-        return RerankResponse(model=state.reranker.model_version, scores=scores)
+        reranker = state.reranker
+        try:
+            scores = await run_unless_abandoned(
+                rerank_executor,
+                lambda: reranker.score(request.query, request.documents, embed_first.wait_turn),
+                http_request.is_disconnected,
+            )
+        except Abandoned:
+            log.info("Rerank of %d documents dropped: the caller stopped waiting", len(request.documents))
+            # Nobody reads this answer; 499 is the usual "client closed the request".
+            raise HTTPException(status_code=499, detail="The caller stopped waiting")
+        return RerankResponse(model=reranker.model_version, scores=scores)
 
     @app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(require_token)])
     def enrich_entity(request: EnrichRequest) -> EnrichResponse:

@@ -22,8 +22,11 @@ services:
       AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
       AI_AUTO_DOWNLOAD: ${AI_AUTO_DOWNLOAD:-true}
       AI_THREADS: ${AI_THREADS:-0}
-      # Cross-encoder for /rerank (another ~590 MB model and ~1 GB of RAM); embedding works without it.
-      AI_RERANK_ENABLED: ${AI_RERANK_ENABLED:-true}
+      AI_RERANK_THREADS: ${AI_RERANK_THREADS:-2}
+      AI_RERANK_BATCH_SIZE: ${AI_RERANK_BATCH_SIZE:-1}
+      # Cross-encoder for /rerank (another ~590 MB model and ~1 GB of RAM); embedding works without it. Off since
+      # 26/10/2026 like the backend's app.recommendation.rerank.mode; set true together with mode ASYNC.
+      AI_RERANK_ENABLED: ${AI_RERANK_ENABLED:-false}
       # LLM for /enrich; without a key that endpoint is disabled and embedding still works.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AI_LLM_MODEL: ${AI_LLM_MODEL:-gpt-6-luna}

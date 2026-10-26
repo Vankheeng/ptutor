@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +27,7 @@ class FakeReranker:
     def __init__(self):
         self.calls = []
 
-    def score(self, query, documents):
+    def score(self, query, documents, wait_turn=None):
         self.calls.append((query, documents))
         return [1.0 if "Toán" in document else 0.25 for document in documents]
 
@@ -119,3 +120,148 @@ def test_sigmoid_maps_logits_into_zero_one():
     values = sigmoid(np.array([-20.0, 0.0, 20.0], dtype=np.float32))
 
     assert values[0] < 1e-6 and values[1] == pytest.approx(0.5) and values[2] > 1 - 1e-6
+
+
+class BlockingReranker:
+    """Holds every call until released, and remembers how many ran at the same time."""
+
+    model_version = "fake-reranker"
+
+    def __init__(self):
+        import threading
+
+        self.release = threading.Event()
+        self.started = threading.Event()
+        self._lock = threading.Lock()
+        self.running = 0
+        self.most_at_once = 0
+
+    def score(self, query, documents, wait_turn=None):
+        with self._lock:
+            self.running += 1
+            self.most_at_once = max(self.most_at_once, self.running)
+        self.started.set()
+        self.release.wait(5)
+        with self._lock:
+            self.running -= 1
+        return [0.5 for _ in documents]
+
+
+class QuickEmbedder:
+    model_version = "fake"
+    dimensions = 2
+
+    def embed(self, texts):
+        return np.ones((len(texts), 2), dtype=np.float32)
+
+
+def test_reranks_one_request_at_a_time_without_holding_up_embedding():
+    from concurrent.futures import ThreadPoolExecutor
+
+    reranker = BlockingReranker()
+    with TestClient(create_app(settings(), embedder=QuickEmbedder(), reranker=reranker)) as client:
+        with ThreadPoolExecutor(3) as pool:
+            pending = [pool.submit(client.post, "/rerank", json={"query": "a", "documents": ["b"]}, headers=HEADERS)
+                       for _ in range(3)]
+            assert reranker.started.wait(5)
+
+            embedded = client.post("/embed", json={"texts": ["Cần gia sư Toán"]}, headers=HEADERS)
+
+            assert embedded.status_code == 200, "embedding answers while a rerank is running"
+            reranker.release.set()
+            assert [future.result().status_code for future in pending] == [200, 200, 200]
+    assert reranker.most_at_once == 1
+
+
+def test_a_rerank_batch_waits_while_an_embedding_runs():
+    import threading
+    import time
+
+    from app.main import EmbedFirst
+
+    gate = EmbedFirst(max_wait_seconds=5)
+    order = []
+    with gate.embedding():
+        waiting = threading.Thread(target=lambda: (gate.wait_turn(), order.append("rerank")))
+        waiting.start()
+        time.sleep(0.2)
+        order.append("embedding done")
+    waiting.join(5)
+
+    assert order == ["embedding done", "rerank"]
+
+
+def test_the_wait_for_embeddings_is_bounded():
+    import time
+
+    from app.main import EmbedFirst
+
+    gate = EmbedFirst(max_wait_seconds=0.2)
+    with gate.embedding():
+        started = time.perf_counter()
+        gate.wait_turn()
+        assert time.perf_counter() - started < 2
+
+
+def test_the_endpoint_hands_the_reranker_its_turn_keeper():
+    seen = []
+
+    class Recording(FakeReranker):
+        def score(self, query, documents, wait_turn=None):
+            seen.append(wait_turn)
+            wait_turn()
+            return super().score(query, documents)
+
+    with TestClient(create_app(settings(), embedder=FakeEmbedder(), reranker=Recording())) as client:
+        assert client.post("/rerank", json={"query": "a", "documents": ["b"]}, headers=HEADERS).status_code == 200
+    assert callable(seen[0])
+
+
+def test_work_still_waiting_when_its_caller_leaves_is_dropped():
+    import asyncio
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app.main import Abandoned, run_unless_abandoned
+
+    release = threading.Event()
+    ran = []
+    executor = ThreadPoolExecutor(max_workers=1)
+    executor.submit(release.wait, 5)  # the one thread is busy
+
+    async def caller_gone():
+        return True
+
+    async def scenario():
+        with pytest.raises(Abandoned):
+            await run_unless_abandoned(executor, lambda: ran.append("left behind"), caller_gone, poll_seconds=0.01)
+
+    asyncio.run(scenario())
+    release.set()
+    executor.shutdown(wait=True)
+    assert ran == []
+
+
+def test_work_that_already_runs_finishes_even_if_its_caller_leaves():
+    import asyncio
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app.main import run_unless_abandoned
+
+    started = threading.Event()
+    executor = ThreadPoolExecutor(max_workers=1)
+
+    def work():
+        started.set()
+        time.sleep(0.1)
+        return "scored"
+
+    async def caller_gone():
+        return started.is_set()
+
+    async def scenario():
+        return await run_unless_abandoned(executor, work, caller_gone, poll_seconds=0.01)
+
+    assert asyncio.run(scenario()) == "scored"
+    executor.shutdown(wait=True)

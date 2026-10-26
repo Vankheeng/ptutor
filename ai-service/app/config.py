@@ -64,7 +64,11 @@ class Settings:
     rerank_max_tokens: int = 256
     rerank_max_documents: int = 40
     rerank_max_chars: int = 8000
-    rerank_batch_size: int = 4
+    # One pair per model run (was 4): an embedding waits at most for one pair, not for four (design 13, 13.2).
+    rerank_batch_size: int = 1
+    # CPU threads of the reranking model. Reranking runs one request at a time in the background; leaving cores
+    # free keeps /embed, which a search waits for, fast meanwhile (design 13, 13.2).
+    rerank_threads: int = 2
 
     @property
     def embed_dir(self) -> Path:
@@ -97,5 +101,6 @@ def load_settings() -> Settings:
         rerank_max_tokens=int(os.getenv("AI_RERANK_MAX_TOKENS", "256")),
         rerank_max_documents=int(os.getenv("AI_RERANK_MAX_DOCUMENTS", "40")),
         rerank_max_chars=int(os.getenv("AI_RERANK_MAX_CHARS", "8000")),
-        rerank_batch_size=int(os.getenv("AI_RERANK_BATCH_SIZE", "4")),
+        rerank_batch_size=int(os.getenv("AI_RERANK_BATCH_SIZE", "1")),
+        rerank_threads=int(os.getenv("AI_RERANK_THREADS", "2")),
     )

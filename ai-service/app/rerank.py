@@ -42,8 +42,10 @@ class Reranker:
         )
         self._input_names = {i.name for i in self._session.get_inputs()}
 
-    def score(self, query: str, documents: list[str]) -> list[float]:
-        """Relevance of each document to the query in [0, 1], in the same order as `documents`."""
+    def score(self, query: str, documents: list[str], wait_turn=None) -> list[float]:
+        """Relevance of each document to the query in [0, 1], in the same order as `documents`.
+
+        `wait_turn` is called before each batch: it lets something more urgent (an embedding) go first."""
         query_ids = self._tokenizer.encode(query, add_special_tokens=False).ids
         pairs = [
             build_pair(query_ids, encoding.ids, self._max_tokens)
@@ -54,6 +56,8 @@ class Reranker:
         order = sorted(range(len(pairs)), key=lambda index: len(pairs[index]))
         for start in range(0, len(order), self._batch_size):
             batch = order[start:start + self._batch_size]
+            if wait_turn is not None:
+                wait_turn()
             width = max(len(pairs[index]) for index in batch)
             input_ids = np.full((len(batch), width), PAD_ID, dtype=np.int64)
             attention_mask = np.zeros((len(batch), width), dtype=np.int64)
