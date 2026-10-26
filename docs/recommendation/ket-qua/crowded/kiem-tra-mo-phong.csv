@@ -1,0 +1,13 @@
+kiem_tra,gia_tri,muc_tieu
+median_candidates_s2t,171.000,≥ 50
+median_candidates_t2s,61.000,≥ 50
+mean_p_accept_top50,0.519,"0,4–0,6"
+random_ea10,0.475,"0,4–0,6"
+corr_q_rel,0.203,"0,2–0,4"
+popularity_vs_random_ndcg,0.182,> 0
+popularity_rejections_highest,có,có
+
+cau_hinh,queries,ndcg10,ea10,ms10,match_rate,rejections,match_rel
+Random,597,0.3094,0.4749,0.1966,0.8092,1.0712,1.3377
+Popularity,597,0.4910,0.4661,0.3556,0.1938,2.6483,1.7174
+V2-a,597,0.6608,0.5575,0.4184,0.7247,1.3679,2.3246
