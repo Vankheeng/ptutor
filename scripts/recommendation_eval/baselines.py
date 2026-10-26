@@ -4,6 +4,7 @@ All of them reorder the candidates that passed the hard filters in the V2-a run 
 
     Random       random order                                              floor
     Popularity   tutors.recommendation_score (logged as q)                 "best tutors first"
+                 tutor side: offers the studying posting already received  "most wanted students first"
     Semantic     cosine of the search text and the posting only (f_sem)    plain semantic search
     V1-old       the earlier design (D:\\DATN\\AI_Tutor_Recommendation\\docs\\04): a linear sum of 8 parts with the
                  PROFILE embeddings of student and tutor (not the postings)
@@ -19,7 +20,7 @@ import random
 
 import numpy as np
 
-from common import query_json, uid
+from common import DATABASE, query_json, uid
 from scoring import Params, v1_rerank
 
 V1_OLD_WEIGHTS = {"semantic": 0.30, "quality": 0.20, "style": 0.15, "price": 0.10, "location": 0.10,
@@ -37,10 +38,35 @@ def random_ranking(run: dict, query: dict, seed: int) -> list:
     return ids[:20]
 
 
-def popularity_ranking(run: dict, query: dict) -> list:
+def popularity_ranking(run: dict, query: dict, offers: dict | None = None) -> list:
+    """Most wanted first. A student looking for tutors: by the tutor's score Q. A tutor looking for students:
+    students have no Q (every logged q is null, so this reference used to repeat the V2-a order exactly); by the
+    number of offers tutors already sent to the studying posting, the observable sign that it is sought after
+    (design 13, 13.4-13.5, 26/10/2026). Ties keep the logged order."""
     candidates = run["results"][query["id"]].get("candidates") or []
-    ordered = sorted(enumerate(candidates), key=lambda pair: (-(pair[1].get("q") or 0), pair[0]))
-    return [candidate["candidateId"] for _, candidate in ordered][:20]
+    if query["side"] == "T2S":
+        offers = tutor_offers() if offers is None else offers
+        key = lambda pair: (-offers.get(pair[1]["candidateId"], 0), pair[0])
+    else:
+        key = lambda pair: (-(pair[1].get("q") or 0), pair[0])
+    return [candidate["candidateId"] for _, candidate in sorted(enumerate(candidates), key=key)][:20]
+
+
+_OFFERS: dict | None = None
+
+
+def tutor_offers() -> dict:
+    """Offers per studying posting in the seed copy (the state every run starts from), read once."""
+    global _OFFERS
+    if _OFFERS is None:
+        rows = query_json("SELECT studying_request_id AS id, count(*) AS n FROM tutor_student_requests GROUP BY 1",
+                          database=f"{DATABASE}_seed" if seed_exists() else DATABASE)
+        _OFFERS = {row["id"]: row["n"] for row in rows}
+    return _OFFERS
+
+
+def seed_exists() -> bool:
+    return bool(query_json(f"SELECT 1 AS x FROM pg_database WHERE datname = '{DATABASE}_seed'"))
 
 
 def semantic_ranking(run: dict, query: dict) -> list:

@@ -65,6 +65,24 @@ CONFIGS = {
     # latency.py, warm pass: pairs waiting over a minute are scored between the searches (worst case of 13.2).
     "V2-full-busy": {**WITH_RERANK, "rerank.worker-max-wait-ms": "60000"},
 }
+# Step 39 (design 13, 13.4-13.5), crowded: the sweep runs the way the system will run, both parts on. λ is swept with
+# the reciprocal of before (harmonic), α with the congestion factor of before; the formulas of before are the controls.
+# Not part of "all".
+OLD_CONGESTION = {"willingness.congestion-formula": "EVERY_APPLICATION", "willingness.congestion-lambda": "0.5"}
+HARMONIC = {"reciprocal.mode": "HARMONIC"}
+SWEEP = {
+    "V2-R-harm": {**CONFIGS["V2-R"], **HARMONIC},
+    "V2-RC-old": {**CONFIGS["V2-RC"], **OLD_CONGESTION, **HARMONIC},
+    **{f"V2-RC-s{lam}": {**CONFIGS["V2-RC"], "willingness.congestion-formula": "ON_SHORTAGE",
+                         "willingness.congestion-lambda": lam, **HARMONIC} for lam in ("0.25", "0.5", "1")},
+    **{f"V2-RC-g{alpha}": {**CONFIGS["V2-RC"], **OLD_CONGESTION, "reciprocal.mode": "GEOMETRIC",
+                           "reciprocal.alpha": alpha} for alpha in ("0.5", "0.65", "0.8")},
+    # The best λ and α of the two sweeps together, to confirm them (the way the system would run).
+    "V2-RC-s0.5-g0.65": {**CONFIGS["V2-RC"], "willingness.congestion-formula": "ON_SHORTAGE",
+                         "willingness.congestion-lambda": "0.5", "reciprocal.mode": "GEOMETRIC",
+                         "reciprocal.alpha": "0.65"},
+}
+CONFIGS.update(SWEEP)
 # Text-only scenario (2.3): cosine only against rerank, a sweep of the rerank weight and of the weight of f_sem.
 # Exploration and history are off so that only the reading of the text changes. Not part of "all".
 QUIET = {"exploration.enabled": OFF, "history.enabled": OFF}
@@ -388,7 +406,7 @@ def main() -> int:
         del sys.argv[position:position + 2]
     flags = {flag for flag in ("--keep-cache", "--drain") if flag in sys.argv}
     sys.argv = [argument for argument in sys.argv if argument not in flags]
-    every = [name for name in CONFIGS if name != "V2-full-busy"]
+    every = [name for name in CONFIGS if name != "V2-full-busy" and name not in SWEEP]
     names = every if len(sys.argv) < 3 or sys.argv[2] == "all" else sys.argv[2:]
     for name in names:
         run_config(name, world, side, run_name, keep_cache="--keep-cache" in flags, drain="--drain" in flags)

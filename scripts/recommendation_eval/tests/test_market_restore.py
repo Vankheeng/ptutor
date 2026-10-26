@@ -68,3 +68,9 @@ def test_random_reference_shuffles_the_logged_candidates(monkeypatch):
     shuffled = market.random_order({"logId": "x"}, random.Random(3))
     assert sorted(shuffled) == ["a", "b", "c"]
     assert shuffled == market.random_order({"logId": "x"}, random.Random(3)), "same seed, same order"
+
+
+def test_a_decision_draws_the_same_coin_in_every_configuration():
+    assert market.coin("decision", "s001", "p1", 1) == market.coin("decision", "s001", "p1", 1)
+    assert market.coin("decision", "s001", "p1", 1) != market.coin("decision", "s001", "p1", 2)
+    assert 0 <= market.coin("decision", "s002", "p9", 3) < 1

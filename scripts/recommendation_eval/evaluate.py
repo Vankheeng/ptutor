@@ -24,7 +24,9 @@ from world import p_accept, p_student_accepts, rel
 
 # Reference rankings computed offline from the candidates of the V2-a run (baselines.py), then the backend runs.
 OFFLINE = ["Random", "Popularity", "Semantic", "V1-old", "V2-linear"]
-ORDER = OFFLINE + ["V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "V2-full-A1"]
+ORDER = OFFLINE + ["V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "V2-full-A1", "V2-R-harm", "V2-RC-old",
+                   "V2-RC-s0.25", "V2-RC-s0.5", "V2-RC-s1", "V2-RC-g0.5", "V2-RC-g0.65", "V2-RC-g0.8",
+                   "V2-RC-s0.5-g0.65"]
 LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1", "V1-old": "V1 (thiết kế cũ)"}
 PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"), ("V1-old", "V2-full"),
          ("V2-linear", "V2-a"), ("V2-a", "V2-R"), ("V2-R", "V2-RC"), ("V2-RC", "V2-RCX"), ("V2-RCX", "V2-full"),
@@ -37,7 +39,12 @@ PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"),
          # 26/10/2026 (design 13, 13.2): the first pass of ASYNC ranks by the cosine part; the second reads the
          # scores the worker computed after it, like ONLINE does once its cache is full.
          ("cosine-only", "rerank-online"), ("cosine-only", "rerank-async"), ("cosine-only", "rerank-async-2"),
-         ("rerank-online-2", "rerank-async-2")]
+         ("rerank-online-2", "rerank-async-2"),
+         # step 39, crowded (13.4-13.5)
+         ("V2-R-harm", "V2-RC-old"), ("V2-RC-old", "V2-RC-s0.25"), ("V2-RC-old", "V2-RC-s0.5"),
+         ("V2-RC-old", "V2-RC-s1"), ("V2-a", "V2-RC-g0.5"), ("V2-a", "V2-RC-g0.65"), ("V2-a", "V2-RC-g0.8"),
+         ("V2-RC-old", "V2-RC-g0.5"), ("V2-RC-old", "V2-RC-g0.65"), ("V2-RC-old", "V2-RC-g0.8"),
+         ("V2-a", "V2-RC-s0.5-g0.65"), ("V2-RC-old", "V2-RC-s0.5-g0.65"), ("V2-RC-g0.65", "V2-RC-s0.5-g0.65")]
 TEXT_ORDER = ["cosine-only", "rerank-w0.3", "rerank-w0.5", "rerank-w0.7", "rerank-w0.9", "cosine-only-sem0.45",
               "rerank-w0.7-sem0.45", "rerank-w0.7-t4000", "rerank-online", "rerank-async", "rerank-async-2",
               "rerank-online-2"]

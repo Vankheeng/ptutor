@@ -4,7 +4,8 @@ The features in recommendation_logs do not depend on the weights, so a ranking c
     a_base = sum_k w_k x_k  (a missing feature counts as the neutral prior 0.5)
     a      = (1 - wHist) a_base + wHist hist
     b      = (w_hist history + sum_k w_k fit_k) x cap      (1 when the other side reached out first)
-    score  = 2ab / (a + b) x (base + weight q) x G         (score = a x ... when b is off)
+    R      = a^alpha b^(1 - alpha)  (GEOMETRIC, since 26/10/2026)  or  2ab / (a + b)  (HARMONIC)
+    score  = R x (base + weight q) x G                     (score = a x ... when b is off)
 """
 
 from dataclasses import dataclass, field, replace
@@ -29,6 +30,8 @@ class Params:
     quality_base: float = 0.7
     quality_weight: float = 0.3
     reciprocal: bool = True
+    reciprocal_mode: str = "GEOMETRIC"  # reciprocal.mode (design 13, 13.5)
+    reciprocal_alpha: float = 0.65
 
     def with_weight(self, group: str, name: str, factor: float) -> "Params":
         """One weight times factor, then the group normalised back to a sum of 1."""
@@ -58,10 +61,17 @@ def b_value(candidate: dict, weights: dict):
     return value * parts["cap"]
 
 
+def combine(a: float, b: float, params: Params) -> float:
+    """R as in Ranker.reciprocal."""
+    if params.reciprocal_mode == "HARMONIC":
+        return 0 if a + b == 0 else 2 * a * b / (a + b)
+    return 0 if a <= 0 or b <= 0 else a ** params.reciprocal_alpha * b ** (1 - params.reciprocal_alpha)
+
+
 def score(candidate: dict, side: str, params: Params) -> float:
     a = a_value(candidate, params.a_s2t if side == "S2T" else params.a_t2s, params)
     b = b_value(candidate, params.b_s2t if side == "S2T" else params.b_t2s) if params.reciprocal else None
-    r = a if b is None else (0 if a + b == 0 else 2 * a * b / (a + b))
+    r = a if b is None else combine(a, b, params)
     q = candidate.get("q")
     quality = params.quality_base + params.quality_weight * (0.5 if q is None else q) if side == "S2T" else 1.0
     return r * quality * (candidate.get("g") or 1.0)

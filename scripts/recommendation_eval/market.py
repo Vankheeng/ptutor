@@ -76,8 +76,8 @@ def random_order(result: dict, rng: random.Random) -> list:
     return ids
 
 
-def simulate(config: str, world: dict) -> dict:
-    rng = random.Random(f"{SEED}/{config}")
+def simulate(config: str, world: dict, run_name: str | None = None) -> dict:
+    rng = random.Random(f"{SEED}/market")  # same waiting order and picks as far as the rankings allow
     backend_config = "V2-a" if config in REFERENCES else config
     restore()
     properties = config_properties(backend_config)
@@ -140,7 +140,7 @@ def simulate(config: str, world: dict) -> dict:
                     continue
                 if tutor["key"] not in tutor_sessions:
                     tutor_sessions[tutor["key"]] = Api().login(f"eval.{tutor['key']}@ptutor.local")
-                accept = rng.random() < p_accept(student, posting, tutor)
+                accept = coin("decision", student_key, candidate, round_number) < p_accept(student, posting, tutor)
                 try:
                     tutor_sessions[tutor["key"]].call(
                         "PATCH", f"/api/v1/tutors/me/teaching-requests/{candidate}/student-requests/{application}/status",
@@ -176,11 +176,18 @@ def simulate(config: str, world: dict) -> dict:
             "new_tutor_posting_share": sum(bool(t.get("new")) for _, t in postings.values()) / len(postings),
             "matched_rel": float(np.mean(matched_rel)) if matched_rel else None,
         }
-        write_json(OUT / "market" / f"{config}.json", {"summary": summary, "matched_round": matched_round,
+        folder = OUT / (f"market-{run_name}" if run_name else "market")
+        write_json(folder / f"{config}.json", {"summary": summary, "matched_round": matched_round,
                                                        "rejections": rejections, "exposures": exposures})
         return summary
     finally:
         stop_backend(process)
+
+
+def coin(*parts) -> float:
+    """The same draw for the same (student, posting, round) in every configuration (common random numbers): a
+    difference between two configurations then comes from the rankings, not from luck (step 39, 26/10/2026)."""
+    return random.Random("/".join(str(part) for part in (SEED, *parts))).random()
 
 
 def pick(choices: list, count: int, rng: random.Random) -> list:
@@ -201,13 +208,19 @@ def pick(choices: list, count: int, rng: random.Random) -> list:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     world = read_json(OUT / "world.json")
+    # --as NAME: a separate table (market-NAME.csv) and folder, e.g. for the step 39 sweep with common random numbers.
+    run_name = None
+    if "--as" in sys.argv:
+        position = sys.argv.index("--as")
+        run_name = sys.argv[position + 1]
+        del sys.argv[position:position + 2]
     names = sys.argv[1:] or ["Popularity", "V2-a", "V2-R", "V2-RC", "V2-full"]
     unknown = [name for name in names if name not in REFERENCES and name not in CONFIGS]
     if unknown:
         raise SystemExit(f"unknown configurations: {unknown}")
-    rows = [simulate(name, world) for name in names]
+    rows = [simulate(name, world, run_name) for name in names]
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / "market.csv"
+    path = RESULTS / (f"market-{run_name}.csv" if run_name else "market.csv")
     existing = {}
     if path.exists():
         with path.open(encoding="utf-8") as handle:

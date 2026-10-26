@@ -109,9 +109,9 @@ def clone(source: str, target: str, attempts: int = 3, pause: float = 5.0, sql=N
             sleep(pause)
 
 
-def query_json(sql: str):
+def query_json(sql: str, database: str = DATABASE):
     """Rows of a SELECT as a list of dicts (the query is wrapped in json_agg)."""
-    text = psql(f"SELECT COALESCE(json_agg(t), '[]'::json) FROM ({sql}) t;").strip()
+    text = psql(f"SELECT COALESCE(json_agg(t), '[]'::json) FROM ({sql}) t;", database).strip()
     return json.loads(text or "[]")
 
 
