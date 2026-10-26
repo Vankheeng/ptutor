@@ -55,7 +55,26 @@ P(nhận) = sigmoid(β0 + β1·[lớp trong khoảng ưa thích] + β2·[giá �
                   + β3·[đối tượng ưa thích] + β4·tỉ lệ trùng lịch)
 ```
 
-không vượt số chỗ còn lại (ai nộp trước được xét trước).
+không vượt số chỗ còn lại (ai nộp trước được xét trước). β = (β0, β1…β4) = (−1; 1,6; 1,2; 1,0; 1,2) ở `base` và
+`text-only`.
+
+**Kịch bản thị trường đông (`crowded`) — hiệu chỉnh 26/10/2026** (lý do: 13 mục 13.1, 13.3; tham số chọn bằng
+`calibrate_crowded.py`, đo lại trên database dựng mới):
+
+> 💡 Ba chỉnh sửa để bài kiểm tra có cạnh tranh thật: gia sư khó tính hơn (chỉ khoảng một nửa số đơn được nhận),
+> gia sư giỏi vừa được đánh giá cao vừa hợp hơn với học sinh, và nhiều học sinh hơn để gia sư cũng có đủ người để
+> chọn. Chỉ áp dụng cho kịch bản này; `base` và `text-only` sinh ra đúng thế giới cũ (có test).
+
+| Thành phần | Công thức |
+|---|---|
+| Quyết định của gia sư | như trên, **β0 = −3,1** → P(nhận) trung bình của ứng viên ≈ 0,5 (với β0 = −1 là 0,86) |
+| Độ phù hợp thật | `rel` như trên, rồi: `quality ≥ 0,75` → +1 mức (tối đa 3); `quality < 0,6` → −1 mức (tối thiểu 1); `rel = 0` giữ nguyên |
+| Đánh giá sau hợp đồng | gia sư nổi tiếng: 5 sao; còn lại `round(1 + 4·quality + N(0; 0,6))`, trừ 1 sao nếu gia sư kém tin cậy, kẹp trong 1–5 (trước: tin cậy 4–5, kém tin cậy 2–4, không theo `quality`) |
+| Quy mô | 600 gia sư (15 % nổi tiếng, 1–2 chỗ; 20 % mới), **400 học sinh** (trước 300), 4 quận Hà Nội, 2 môn |
+
+`quality` ẩn của gia sư = `min(1; 0,45 + 0,04·số năm kinh nghiệm + U(−0,1; 0,15))`; gia sư nổi tiếng `U(0,9; 1)`.
+Vì Q của nền tảng tính từ đánh giá và khiếu nại, đánh giá theo `quality` làm Q phản ánh chất lượng thật; `rel` theo
+`quality` làm chất lượng đó liên quan tới độ phù hợp — tương quan mục tiêu 0,2–0,4.
 
 **Hành vi duyệt danh sách** (để tạo tín hiệu cho H1, B5): mô hình click theo vị trí —
 `P(click) = P(nhìn tới vị trí k) × P(hấp dẫn | rel, sở thích ẩn)`, với `P(nhìn tới vị trí k)` giảm dần
@@ -265,7 +284,7 @@ tới được biên — điều này được trình bày như một **đánh �
 
 ## 9.10. Ghi chú triển khai (21/10/2026)
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Các lượt chạy 21–22/10 (kịch bản base, text-only, đánh giá LLM) dùng để tinh chỉnh kiến trúc, chưa phải số cho báo cáo. Kịch bản base thiếu cạnh tranh chỗ và Q không gắn với độ phù hợp, nên kịch bản thị trường đông sẽ được hiệu chỉnh (P(nhận) trung bình 0,4–0,6, Q tương quan 0,2–0,4 với độ phù hợp) trước khi kết luận về reciprocal, chống dồn, slot khám phá. Lý do và bằng chứng: [13, mục 13.1, 13.3](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** các lượt chạy 21–22/10 (base, text-only, đánh giá LLM) dùng để tinh chỉnh kiến trúc, chưa phải số cho báo cáo. Kịch bản thị trường đông đã được hiệu chỉnh và dựng lại (công thức ở mục 9.3; P(nhận) trung bình 0,52, tương quan Q–rel 0,20, trung vị ứng viên 171 / 61) và đã chạy mốc 6 cấu hình trước khi kết luận về reciprocal, chống dồn, slot khám phá. Kết quả và lý do: [13, mục 13.1, 13.3](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Bộ đánh giá đã được lập trình trong `scripts/recommendation_eval/` (Python, seed cố định, chạy lại được) và kết quả nằm ở `ket-qua/`. Mục này ghi những chỗ cách làm thực tế khác hoặc cụ thể hơn thiết kế ở trên, để khi viết báo cáo không nói quá điều đã làm.
 

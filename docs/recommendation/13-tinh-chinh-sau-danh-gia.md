@@ -259,6 +259,92 @@ mới chỉnh thuật toán.
 - Xếp theo Q có số lần bị từ chối **cao nhất** (dồn vào người giỏi) — hiện tượng mà reciprocal và chống dồn sinh ra để
   xử lý.
 
+### Đã làm (26/10/2026)
+
+**`restore()`.** Chạy lại hôm nay thì thành công; lỗi 22/10 xảy ra khi hai backend phụ của `workers.py` còn chạy trên
+database và RAM trống 0,75–0,9 GB, `psql` thoát lỗi mà không có thông báo (dấu hiệu bị hệ điều hành dừng, không phải
+lỗi SQL). Sửa: một hàm `clone()` dùng chung cho `restore()` và bước chép `_seed` cuối `setup` — ngắt kết nối vào cả
+hai database, thử lại 3 lần, kiểm tra database mới tồn tại; `restore()` từ chối khi còn backend ở cổng 8080 / 8091 /
+8092 (backend phụ sẽ ghi vào database đang mô phỏng); lỗi `psql` ghi kèm mã thoát. Có test.
+
+**Khác giả định ban đầu, người dùng quyết 26/10/2026:**
+
+1. Mô hình ẩn được dùng cả khi **nạp lịch sử** (`load.py`: đơn 28 ngày, quyết định, hợp đồng, đánh giá). Chỉ đổi `b0`
+   thì b học từ lịch sử không khớp "sự thật" lúc mô phỏng → **dựng lại toàn bộ** kịch bản (A1 chạy bằng prompt mới
+   của 13.6, gộp việc "chạy lại A1" của bước T2).
+2. Q của nền tảng tính từ **đánh giá và khiếu nại**, không từ `quality` ẩn → đánh giá sinh theo `quality`, và `rel`
+   theo `quality`. Chỉ cộng một mức cho gia sư giỏi cho tương quan ước lượng 0,18; cộng và trừ hai phía cho 0,28.
+3. Chiều gia sư → học viên chỉ có trung vị 42 ứng viên (270 tin học) → **400 học sinh** (360 tin học).
+
+Công thức đã chọn ghi ở 09 mục 9.3. Kiểm tra trên dữ liệu cũ (lượt V2-a, 1 074 lần tìm) và ước lượng trước khi dựng
+lại (`calibrate_crowded.py`, xấp xỉ ứng viên bằng điều kiện lọc cứng):
+
+| Kiểm tra | Dữ liệu cũ (đo) | Thế giới mới (ước lượng) | Mục tiêu |
+|---|---|---|---|
+| Trung vị ứng viên S2T / T2S | 171 / 42 | 193 / 74 | ≥ 50 |
+| P(nhận) trung bình · EA@10 Random | 0,857 · 0,827 | 0,495 · 0,480 | 0,4–0,6 |
+| Tương quan Q–rel | −0,06 | 0,28 | 0,2–0,4 |
+| NDCG Popularity / Random | 0,258 / 0,245 | — | Popularity nhỉnh hơn |
+
+Dữ liệu cũ giữ ở `ptutor_eval_seed_20261022` và `out/crowded/old-20261022/`.
+
+**Kết quả thật trên database dựng lại** (26/10/2026, 14:25–16:31: A1 2 333 lời gọi bằng prompt mới, embedding,
+duyệt danh sách, chép `ptutor_eval_seed`; rồi V2-a 1 380 lần tìm; `crowded_check.py` →
+`ket-qua/crowded/kiem-tra-mo-phong.csv`):
+
+| Kiểm tra | Đo | Mục tiêu | |
+|---|---|---|---|
+| Trung vị ứng viên S2T / T2S | 171 / 61 | ≥ 50 | đạt |
+| P(nhận) trung bình (top-50) | 0,519 | 0,4–0,6 | đạt |
+| EA@10 Random | 0,475 | 0,4–0,6 | đạt |
+| Tương quan Q–rel (top-50) | 0,203 | 0,2–0,4 | đạt, sát cận dưới |
+| NDCG Popularity − Random | +0,182 (0,491 / 0,309) | Popularity nhỉnh hơn | đạt về hướng, **lớn hơn "một chút"** |
+| Popularity bị từ chối nhiều nhất | 2,65 / HS (Random 1,07, V2-a 1,37); tỉ lệ ghép 0,19 | có | đạt |
+
+> 💡 Nói bằng lời thường: thế giới mô phỏng giờ đã có cạnh tranh — chỉ khoảng một nửa số đơn được nhận, và ai cũng
+> dồn vào gia sư được đánh giá cao thì phần lớn bị từ chối (Popularity: 81 % học sinh không được ghép trong một lượt).
+> Đây đúng là hiện tượng mà reciprocal và chống dồn sinh ra để xử lý. Điều chưa như ý: xếp theo Q đã tốt hơn ngẫu
+> nhiên khá nhiều về độ phù hợp (vì gia sư giỏi được +1 mức phù hợp), không chỉ "nhỉnh hơn".
+
+**Quyết định (người dùng, 26/10/2026): chấp nhận** mức chênh của Popularity. Ý của tiêu chí "nhỉnh hơn một chút" là
+Q phải mang tín hiệu thật, không còn kém ngẫu nhiên như ở `base` — đã đạt (tương quan 0,203, Popularity hơn Random).
+Chỉnh lại sẽ tốn thêm ~2 300 lời gọi LLM, có thể làm tương quan rơi dưới 0,2 và không đổi bản chất kịch bản.
+
+**Đặc điểm đã biết của kịch bản (cần nhớ ở Bước 40, T7).** Gia sư nổi tiếng luôn có `quality` ≥ 0,9 nên luôn được +1
+mức phù hợp, lại có 5 sao (Q cao) và chỉ 1–2 chỗ. Vì vậy khi tắt hệ số Q, Q có thể trông có lợi một phần **do cách
+dựng** này. Nếu kết luận về Q phụ thuộc nhiều vào nhóm gia sư nổi tiếng, chạy thêm một phép kiểm tra phụ khi đó (ví
+dụ tính riêng trên các truy vấn không có gia sư nổi tiếng trong top-10). Bây giờ chưa cần.
+
+### Mốc trước khi đổi thuật toán (26/10/2026)
+
+`crowded`, từ `ptutor_eval_seed` mới; tìm kiếm: 1 380 truy vấn mỗi cấu hình (kiểm định trên 597 truy vấn S2T nửa
+kiểm tra, không lần nào dùng vector hồ sơ); thị trường: 8 vòng qua API thật (`market.py`, Random và Popularity tìm
+bằng V2-a rồi xáo / xếp theo Q). V2-full: `rerank.mode = ASYNC` nhưng AI service không nạp model rerank → thực chất
+không rerank. Kết quả: `ket-qua/crowded/` (`market.csv`, `9.7-bang-ket-qua.csv`, `9.6-kiem-dinh.csv`).
+
+**Thị trường 8 vòng:**
+
+| Cấu hình | Ghép | Vòng chờ TB | Bị từ chối / HS | Gini hiển thị | Hiển thị gia sư mới (tỉ lệ tin: 0,228) | rel TB khi ghép |
+|---|---|---|---|---|---|---|
+| Random | 1,000 | 1,30 | 1,61 | 0,406 | 0,252 | 1,74 |
+| Popularity | 1,000 | 2,99 | **6,84** | 0,772 | 0,001 | 1,74 |
+| V2-a | 1,000 | 1,52 | 2,21 | 0,593 | 0,188 | **2,21** |
+| V2-R | 0,998 | 1,70 | 2,79 | 0,672 | 0,152 | 2,08 |
+| V2-RC | 1,000 | **1,10** | **0,76** | **0,455** | 0,283 | 2,01 |
+| V2-full | 1,000 | **1,09** | 0,80 | 0,463 | **0,293** | 2,05 |
+
+**Tìm kiếm (S2T, 597 truy vấn):** NDCG@10 Random 0,309 · Popularity 0,491 · Semantic 0,414 · V1 cũ 0,567 · V2-linear
+0,643 · V2-a 0,661 · V2-R 0,599 · V2-RC 0,599 · V2-full 0,580. Kiểm định: V2-a → V2-R NDCG −0,062 [−0,071; −0,053],
+EA@10 +0,028 [+0,023; +0,033] (p < 0,001), MS@10 +0,006 (p = 0,16); V2-R → V2-RC 0,000 (chống dồn không có tác dụng
+trong tìm kiếm tĩnh vì không có đơn đang chờ); Random → V2-full +0,271, Popularity → V2-full +0,089, V1 cũ → V2-full
++0,013 (p = 0,008). Chiều T2S (93 truy vấn): V2-a 0,770 = Popularity 0,770 = V2-linear 0,770 — tham chiếu Popularity
+phía học viên chưa có Q để xếp, cần xem lại trước khi dùng số này.
+
+> 💡 Đọc nhanh (chưa phải kết luận): trong thị trường, chống dồn (V2-RC) giảm mạnh số lần bị từ chối (2,79 → 0,76 mỗi
+> học sinh), số vòng chờ và độ dồn hiển thị, và cho gia sư mới được thấy nhiều hơn; đổi lại, người được ghép trung
+> bình kém phù hợp hơn một chút (rel 2,21 ở V2-a → 2,01). Reciprocal (V2-R) đứng một mình lại làm số lần bị từ chối
+> **tăng** (2,21 → 2,79) và NDCG giảm 0,062 — đúng loại câu hỏi mà T4 / T5 (13.4, 13.5) sẽ trả lời bằng cách quét λ, α.
+
 ## 13.4. T4 — Chống dồn đơn chỉ phạt khi thật sự dồn
 
 > 💡 **Chống dồn đơn** (`b_cap`): tin dạy có nhiều đơn đang chờ so với số chỗ còn lại thì bị hạ điểm, để học sinh
@@ -528,7 +614,7 @@ và ghi lại vào file này.
 |---|---|---|---|
 | 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
 | 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
-| 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | Đã quyết, chưa code |
+| 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | **Đã làm 26/10/2026.** `restore()` / `clone()`; crowded dựng lại (β0 −3,1, `rel` và đánh giá theo `quality`, 400 HS, A1 prompt mới); mọi kiểm tra bộ mô phỏng đạt; mốc 6 cấu hình (thị trường 8 vòng + tìm kiếm) |
 | 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | Đã quyết, chưa code — chốt tham số trên crowded |
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | Đã quyết, chưa code |
 | 6 | Tách Q và các cổng chặn | 13.8 | Đã quyết, chưa code |
