@@ -1,0 +1,21 @@
+cache,free_ram_gb,side,phase,n,p50_ms,p95_ms,max_ms
+cold,3.73-3.62,Student,context,350,13,18,55
+cold,3.73-3.62,Student,explore+reasons,350,3,6,38
+cold,3.73-3.62,Student,log,350,1,2,14
+cold,3.73-3.62,Student,rank,350,41,52,117
+cold,3.73-3.62,Student,relax,350,0,0,3
+cold,3.73-3.62,Student,rerank,350,122,159,306
+cold,3.73-3.62,Student,total,350,334,453,744
+cold,3.73-3.62,Student,vector,350,152,244,521
+cold,3.73-3.62,both,rerank timeouts,0,,,
+cold,3.73-3.62,both,profile fallbacks,0,,,
+warm,3.59-3.55,Student,context,350,14,20,57
+warm,3.59-3.55,Student,explore+reasons,350,4,6,26
+warm,3.59-3.55,Student,log,350,1,2,11
+warm,3.59-3.55,Student,rank,350,44,57,111
+warm,3.59-3.55,Student,relax,350,0,0,3
+warm,3.59-3.55,Student,rerank,350,133,164,270
+warm,3.59-3.55,Student,total,350,449,705,840
+warm,3.59-3.55,Student,vector,350,248,514,651
+warm,3.59-3.55,both,rerank timeouts,0,,,
+warm,3.59-3.55,both,profile fallbacks,0,,,
