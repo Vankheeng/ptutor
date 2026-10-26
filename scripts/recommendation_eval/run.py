@@ -3,10 +3,16 @@
     python scripts/recommendation_eval/run.py setup --scenario base          # rebuild ptutor_eval and fill it
     python scripts/recommendation_eval/run.py search V2-full --scenario base # one configuration
     python scripts/recommendation_eval/run.py search all --scenario base     # every configuration
+    python scripts/recommendation_eval/run.py search rerank-async --scenario text-only --drain
+    python scripts/recommendation_eval/run.py search rerank-async --scenario text-only --keep-cache --as rerank-async-2
 
 setup drops and recreates the evaluation database (ptutor_eval, never the dev database), lets the backend create
 the schema and the catalog, loads out/<scenario>/world.json (load.py), waits for the embedding, A1 and the score Q,
 then simulates the browsing history for H1. Results go to out/<scenario>/runs/.
+
+Text-only runs empty the rerank cache first unless --keep-cache (a second pass on what the first one scored).
+--drain keeps the backend up after the searches until its background rerank worker has emptied its queue
+(rerank.mode = ASYNC, design 13, 13.2); --as names the output of a pass of the same configuration.
 
 The configurations are switched with the backend's own properties (no special code path), on the jar in
 backend/target. Every run uses the prior weights (L1 off, design 09, 9.4) and logs up to 200 candidates per
@@ -22,6 +28,7 @@ import time
 from pathlib import Path
 
 from common import DATABASE, DB_URL, OUT, SCENARIO, REPO, SEED, Api, psql, query_json, read_json, uid, wait_for_api, write_json
+import fallback
 from world import rel
 
 JAR = REPO / "backend" / "target" / "backend-0.0.1-SNAPSHOT.jar"
@@ -37,34 +44,48 @@ BASE = {
     "logging.level.com.ptutor.backend.service.RecommendationService": "DEBUG",
     "logging.level.com.ptutor.backend.service.StudentRecommendationService": "DEBUG",
     "logging.level.com.ptutor.backend.service.RelaxationService": "DEBUG",
+    # "queue empty" tells --drain when the background reranking is done.
+    "logging.level.com.ptutor.backend.service.RerankQueue": "DEBUG",
 }
 OFF = "false"
+# Reranking is off by default since 26/10/2026 (design 13, 13.2): the configurations that include it say how, and
+# need the AI service started with AI_RERANK_ENABLED=true. ASYNC ranks without waiting; its scores only count once
+# the worker has scored the pairs (run.py search ... --drain, then a second pass with --keep-cache).
+WITH_RERANK = {"rerank.mode": "ASYNC"}
 CONFIGS = {
     "V2-a": {"reciprocal.enabled": OFF, "willingness.congestion-enabled": OFF, "rerank.enabled": OFF,
              "exploration.enabled": OFF, "history.enabled": OFF},
     "V2-R": {"willingness.congestion-enabled": OFF, "rerank.enabled": OFF, "exploration.enabled": OFF,
              "history.enabled": OFF},
     "V2-RC": {"rerank.enabled": OFF, "exploration.enabled": OFF, "history.enabled": OFF},
-    "V2-RCX": {"exploration.enabled": OFF, "history.enabled": OFF},
-    "V2-full": {},
-    "V2-full-H1": {"history.enabled": OFF},
-    "V2-full-A1": {"enrichment.use-llm-tags": OFF},
+    "V2-RCX": {**WITH_RERANK, "exploration.enabled": OFF, "history.enabled": OFF},
+    "V2-full": {**WITH_RERANK},
+    "V2-full-H1": {**WITH_RERANK, "history.enabled": OFF},
+    "V2-full-A1": {**WITH_RERANK, "enrichment.use-llm-tags": OFF},
+    # latency.py, warm pass: pairs waiting over a minute are scored between the searches (worst case of 13.2).
+    "V2-full-busy": {**WITH_RERANK, "rerank.worker-max-wait-ms": "60000"},
 }
 # Text-only scenario (2.3): cosine only against rerank, a sweep of the rerank weight and of the weight of f_sem.
 # Exploration and history are off so that only the reading of the text changes. Not part of "all".
 QUIET = {"exploration.enabled": OFF, "history.enabled": OFF}
+# The runs of 22/10/2026 waited for the model in the search.
+WAITED = {**QUIET, "rerank.mode": "ONLINE"}
 SEM_045 = {"weights.sem": "0.45", "weights.need": "0.1571", "weights.price": "0.1571", "weights.style": "0.0786",
            "weights.sched": "0.0786", "weights.area": "0.0393", "weights.segment": "0.0393"}
 TEXT_CONFIGS = {
     "cosine-only": {**QUIET, "rerank.enabled": OFF},
-    "rerank-w0.3": {**QUIET, "semantic.rerank-weight": "0.3"},
-    "rerank-w0.5": {**QUIET, "semantic.rerank-weight": "0.5"},
-    "rerank-w0.7": {**QUIET, "semantic.rerank-weight": "0.7"},
-    "rerank-w0.9": {**QUIET, "semantic.rerank-weight": "0.9"},
+    "rerank-w0.3": {**WAITED, "semantic.rerank-weight": "0.3"},
+    "rerank-w0.5": {**WAITED, "semantic.rerank-weight": "0.5"},
+    "rerank-w0.7": {**WAITED, "semantic.rerank-weight": "0.7"},
+    "rerank-w0.9": {**WAITED, "semantic.rerank-weight": "0.9"},
     "cosine-only-sem0.45": {**QUIET, "rerank.enabled": OFF, **SEM_045},
-    "rerank-w0.7-sem0.45": {**QUIET, "semantic.rerank-weight": "0.7", **SEM_045},
+    "rerank-w0.7-sem0.45": {**WAITED, "semantic.rerank-weight": "0.7", **SEM_045},
     # The 1.5 s budget cuts many searches short (10 pairs take ~1.75 s): rerank with room to score all ten.
-    "rerank-w0.7-t4000": {**QUIET, "semantic.rerank-weight": "0.7", "rerank.timeout-ms": "4000"},
+    "rerank-w0.7-t4000": {**WAITED, "semantic.rerank-weight": "0.7", "rerank.timeout-ms": "4000"},
+    # 26/10/2026 (design 13, 13.2): waiting for the model in the search, against scoring in the background.
+    # 350 searches queue up to 3 500 pairs at once, more than the default room for 2 000.
+    "rerank-online": {**QUIET, "rerank.mode": "ONLINE", "rerank.queue-capacity": "5000"},
+    "rerank-async": {**QUIET, "rerank.mode": "ASYNC", "rerank.queue-capacity": "5000"},
 }
 PAGE_SIZE = 20
 
@@ -180,11 +201,25 @@ def export_logs(log_ids) -> dict:
     return {row["id"]: row for row in rows}
 
 
-def run_config(name: str, world: dict, side: str | None = None) -> None:
-    if SCENARIO == "text-only" and DATABASE not in ("ptutor", "ptutor_test"):
+def wait_for_rerank_queue(log: Path, timeout: float = 4 * 3600) -> None:
+    """Until the background worker has scored every queued pair; it starts once searches are quiet for 2 s."""
+    time.sleep(5)
+    deadline = time.time() + timeout
+    started = time.time()
+    while not fallback.queue_drained(log.read_text(encoding="utf-8", errors="replace")):
+        if time.time() > deadline:
+            raise SystemExit(f"the rerank queue is still busy after {timeout / 3600:.0f} h")
+        time.sleep(15)
+    print(f"  rerank queue drained after {(time.time() - started) / 60:.0f} min", flush=True)
+
+
+def run_config(name: str, world: dict, side: str | None = None, run_name: str | None = None,
+               keep_cache: bool = False, drain: bool = False) -> None:
+    run_name = run_name or name
+    if SCENARIO == "text-only" and not keep_cache and DATABASE not in ("ptutor", "ptutor_test"):
         # Every rerank setting starts cold: scores cached by the previous one would hide the time budget.
         psql("DELETE FROM recommendation_rerank_cache;")
-    process = start_backend(config_properties(name), name)
+    process = start_backend(config_properties(name), run_name)
     try:
         catalog = Catalog()
         sessions = logins(world)
@@ -201,9 +236,11 @@ def run_config(name: str, world: dict, side: str | None = None) -> None:
             result["latencyMs"] = log.get("latency_ms")
             result["queryContext"] = log.get("query_context")
             result["candidates"] = log.get("returned_candidate_ids")
-        write_json(OUT / "runs" / f"{name}.json", {"config": name, "properties": config_properties(name),
-                                                    "results": results})
-        print(f"{name}: {len(results)} searches -> out/runs/{name}.json", flush=True)
+        write_json(OUT / "runs" / f"{run_name}.json", {"config": name, "properties": config_properties(name),
+                                                        "results": results})
+        print(f"{run_name}: {len(results)} searches -> out/runs/{run_name}.json", flush=True)
+        if drain:
+            wait_for_rerank_queue(OUT / f"backend-{run_name}.log")
     finally:
         stop_backend(process)
 
@@ -342,9 +379,17 @@ def main() -> int:
         position = sys.argv.index("--side")
         side = sys.argv[position + 1]
         del sys.argv[position:position + 2]
-    names = list(CONFIGS) if len(sys.argv) < 3 or sys.argv[2] == "all" else sys.argv[2:]
+    run_name = None
+    if "--as" in sys.argv:
+        position = sys.argv.index("--as")
+        run_name = sys.argv[position + 1]
+        del sys.argv[position:position + 2]
+    flags = {flag for flag in ("--keep-cache", "--drain") if flag in sys.argv}
+    sys.argv = [argument for argument in sys.argv if argument not in flags]
+    every = [name for name in CONFIGS if name != "V2-full-busy"]
+    names = every if len(sys.argv) < 3 or sys.argv[2] == "all" else sys.argv[2:]
     for name in names:
-        run_config(name, world, side)
+        run_config(name, world, side, run_name, keep_cache="--keep-cache" in flags, drain="--drain" in flags)
     return 0
 
 

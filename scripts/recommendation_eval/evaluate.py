@@ -4,7 +4,8 @@
 
 The answer key comes from the hidden layer of out/world.json (rel, P(accept)); the system never saw it.
 Candidates that are not part of the simulated market (demo and real rows of the dev database) are removed
-from each list before scoring, and the list closes up.
+from each list before scoring, and the list closes up. Searches that fell back to the profile vector
+(fallback.py) are counted per configuration and left out of the paired tests.
 """
 
 import csv
@@ -18,6 +19,7 @@ from scipy import stats
 
 from common import OUT, RESULTS, SEED, read_json, uid, write_json
 import baselines
+import fallback
 from world import p_accept, p_student_accepts, rel
 
 # Reference rankings computed offline from the candidates of the V2-a run (baselines.py), then the backend runs.
@@ -31,9 +33,14 @@ PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"),
          ("cosine-only", "rerank-w0.3"), ("cosine-only", "rerank-w0.5"), ("cosine-only", "rerank-w0.7"),
          ("cosine-only", "rerank-w0.9"), ("cosine-only", "cosine-only-sem0.45"),
          ("cosine-only-sem0.45", "rerank-w0.7-sem0.45"), ("cosine-only", "rerank-w0.7-t4000"),
-         ("rerank-w0.7", "rerank-w0.7-t4000")]
+         ("rerank-w0.7", "rerank-w0.7-t4000"),
+         # 26/10/2026 (design 13, 13.2): the first pass of ASYNC ranks by the cosine part; the second reads the
+         # scores the worker computed after it, like ONLINE does once its cache is full.
+         ("cosine-only", "rerank-online"), ("cosine-only", "rerank-async"), ("cosine-only", "rerank-async-2"),
+         ("rerank-online-2", "rerank-async-2")]
 TEXT_ORDER = ["cosine-only", "rerank-w0.3", "rerank-w0.5", "rerank-w0.7", "rerank-w0.9", "cosine-only-sem0.45",
-              "rerank-w0.7-sem0.45", "rerank-w0.7-t4000"]
+              "rerank-w0.7-sem0.45", "rerank-w0.7-t4000", "rerank-online", "rerank-async", "rerank-async-2",
+              "rerank-online-2"]
 METRICS = ["ndcg10", "p5", "mrr", "ea10", "ms10"]
 
 
@@ -171,6 +178,12 @@ def main() -> int:
             runs[name] = runs["V2-a"]
         v1_old = baselines.V1Old()
     configs = [name for name in ORDER + TEXT_ORDER if name in runs]
+    # The offline references reorder the candidates of the V2-a run, so they share its fallbacks.
+    fell_back = {name: fallback.flagged(runs[name]["results"], OUT / f"backend-{name}.log")
+                 for name in configs if name not in OFFLINE}
+    for name in OFFLINE:
+        if name in runs:
+            fell_back[name] = fell_back.get("V2-a", set())
     test = [query for query in world["queries"] if query["split"] == "test"]
     # The market is one shared pool: every student's "full" search takes part, from both halves.
     market_queries = [query for query in world["queries"] if query["side"] == "S2T" and query["kind"] == "full"]
@@ -205,6 +218,7 @@ def main() -> int:
         row["p50_ms"] = float(np.percentile(latencies, 50)) if latencies else None
         row["p95_ms"] = float(np.percentile(latencies, 95)) if latencies else None
         row["queries"] = len(main)
+        row["fallbacks"] = sum(1 for qid in per_query[config] if sides[qid] == "S2T" and qid in fell_back[config])
         summary[config] = row
 
     tests = []
@@ -212,14 +226,16 @@ def main() -> int:
     for left, right in PAIRS:
         if left not in per_query or right not in per_query:
             continue
-        common_ids = sorted(qid for qid in set(per_query[left]) & set(per_query[right])
-                            if next(q for q in test if q["id"] == qid)["side"] == "S2T")
+        both = sorted(qid for qid in set(per_query[left]) & set(per_query[right])
+                      if next(q for q in test if q["id"] == qid)["side"] == "S2T")
+        common_ids = [qid for qid in both if qid not in fell_back[left] and qid not in fell_back[right]]
         for metric in ("ndcg10", "ea10", "ms10"):
             differences = [per_query[right][qid][metric] - per_query[left][qid][metric] for qid in common_ids]
             nonzero = [d for d in differences if abs(d) > 1e-12]
             p_value = float(stats.wilcoxon(nonzero).pvalue) if len(nonzero) >= 10 else float("nan")
             low, high = bootstrap_ci(differences, nrng)
             tests.append({"from": left, "to": right, "metric": metric, "n": len(common_ids),
+                          "excluded_fallback": len(both) - len(common_ids),
                           "mean_diff": float(np.mean(differences)), "ci_low": low, "ci_high": high,
                           "wilcoxon_p": p_value})
 
@@ -233,7 +249,8 @@ def main() -> int:
 
 
 def write_csv(path, summary: dict) -> None:
-    columns = ["queries", *METRICS, "match_rate", "rejections", "match_rel", "gini", "coverage20", "p50_ms", "p95_ms",
+    columns = ["queries", "fallbacks", *METRICS, "match_rate", "rejections", "match_rel", "gini", "coverage20",
+               "p50_ms", "p95_ms",
                "t2s_queries", "t2s_ndcg10"]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -245,10 +262,12 @@ def write_csv(path, summary: dict) -> None:
 def write_tests(path, tests: list) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["from", "to", "metric", "n", "mean_diff", "ci95_low", "ci95_high", "wilcoxon_p"])
+        writer.writerow(["from", "to", "metric", "n", "excluded_fallback", "mean_diff", "ci95_low", "ci95_high",
+                         "wilcoxon_p"])
         for row in tests:
             writer.writerow([LABEL.get(row["from"], row["from"]), LABEL.get(row["to"], row["to"]), row["metric"],
-                             row["n"], fmt(row["mean_diff"]), fmt(row["ci_low"]), fmt(row["ci_high"]),
+                             row["n"], row["excluded_fallback"], fmt(row["mean_diff"]), fmt(row["ci_low"]),
+                             fmt(row["ci_high"]),
                              fmt(row["wilcoxon_p"])])
 
 
@@ -278,14 +297,16 @@ def chart(summary: dict) -> None:
 
 
 def print_table(summary: dict, tests: list) -> None:
-    print("config        n   NDCG10  P@5   MRR   EA10  MS10  match  rej   Gini  Cov20  p95")
+    print("config        n   fb  NDCG10  P@5   MRR   EA10  MS10  match  rej   Gini  Cov20  p95")
     for config, row in summary.items():
         p95 = "" if row["p95_ms"] is None else f"{row['p95_ms']:.0f}"
-        print(f"{LABEL.get(config, config):13s} {row['queries']:3d} {row['ndcg10']:.3f}  {row['p5']:.3f} "
+        print(f"{LABEL.get(config, config):13s} {row['queries']:3d} {row['fallbacks']:3d} {row['ndcg10']:.3f}  "
+              f"{row['p5']:.3f} "
               f"{row['mrr']:.3f} {row['ea10']:.3f} {row['ms10']:.3f} {row['match_rate']:.3f} "
               f"{row['rejections']:.2f}  {row['gini']:.3f} {row['coverage20']:.3f} {p95}")
     for row in tests:
-        print(f"{row['from']:>11s} -> {row['to']:<11s} {row['metric']:6s} diff {row['mean_diff']:+.4f} "
+        print(f"{row['from']:>11s} -> {row['to']:<11s} {row['metric']:6s} n={row['n']} (-{row['excluded_fallback']}) "
+              f"diff {row['mean_diff']:+.4f} "
               f"[{row['ci_low']:+.4f}, {row['ci_high']:+.4f}] p={row['wilcoxon_p']:.4g}")
 
 

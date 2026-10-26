@@ -40,6 +40,24 @@ DB_URL = f"jdbc:postgresql://localhost:5433/{DATABASE}"
 API = "http://localhost:8080"
 
 
+def free_ram_gb() -> float | None:
+    """Free physical memory, noted next to every latency (16 GB machine; design 13, 13.2). Windows only."""
+    if os.name != "nt":
+        return None
+    import ctypes
+
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong), ("total", ctypes.c_ulonglong),
+                    ("available", ctypes.c_ulonglong), ("total_page", ctypes.c_ulonglong),
+                    ("available_page", ctypes.c_ulonglong), ("total_virtual", ctypes.c_ulonglong),
+                    ("available_virtual", ctypes.c_ulonglong), ("available_extended", ctypes.c_ulonglong)]
+
+    status = MemoryStatus()
+    status.length = ctypes.sizeof(MemoryStatus)
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status))
+    return round(status.available / 2 ** 30, 2)
+
+
 def uid(*parts) -> str:
     return str(uuid.uuid5(NAMESPACE, "/".join(str(part) for part in parts)))
 
