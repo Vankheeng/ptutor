@@ -22,6 +22,7 @@ import com.ptutor.backend.dto.recommendation.QueryContext.TimeSlot;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
 import com.ptutor.backend.dto.recommendation.Willingness;
+import com.ptutor.backend.entity.enums.CongestionFormula;
 import com.ptutor.backend.entity.enums.LearningMode;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
@@ -35,10 +36,30 @@ class WillingnessCalculatorTest {
 
     // ---- b_cap
 
+    /** The table of design 13, 13.4 (λ = 0.5): no discount while fewer applications wait than places are left. */
     @ParameterizedTest
-    @CsvSource({ "1, 0, 1.00", "1, 2, 0.50", "1, 6, 0.25", "3, 2, 0.75", "0, 2, 0.50" })
-    void capacityDropsAsApplicationsQueueForTheRemainingPlaces(int remaining, int pending, double expected) {
-        assertThat(calculator.capacity(remaining, pending)).isCloseTo(expected, within(1e-9));
+    @CsvSource({ "3, 1, 1.0", "3, 2, 1.0", "3, 3, 0.857143", "1, 1, 0.666667", "1, 3, 0.4", "1, 0, 1.0", "0, 2, 0.5",
+        "2, 5, 0.5" })
+    void capacityOnlyDropsOnceTheApplicationsReachThePlacesLeft(int remaining, int pending, double expected) {
+        assertThat(calculator.capacity(remaining, pending)).isCloseTo(expected, within(1e-6));
+    }
+
+    /** The formula until 26/10/2026, kept to compare: it discounts from the first application on. */
+    @ParameterizedTest
+    @CsvSource({ "3, 1, 0.857143", "3, 2, 0.75", "3, 3, 0.666667", "1, 1, 0.666667", "1, 3, 0.4", "1, 0, 1.0",
+        "1, 6, 0.25", "0, 2, 0.5" })
+    void theOldFormulaDiscountsFromTheFirstApplication(int remaining, int pending, double expected) {
+        ReflectionTestUtils.setField(settings, "congestionFormula", CongestionFormula.EVERY_APPLICATION);
+
+        assertThat(calculator.capacity(remaining, pending)).isCloseTo(expected, within(1e-6));
+    }
+
+    @Test
+    void lambdaSetsHowFastTheShortageIsPunished() {
+        ReflectionTestUtils.setField(settings, "congestionLambda", 1.0);
+
+        assertThat(calculator.capacity(3, 3)).isCloseTo(0.75, within(1e-9));
+        assertThat(calculator.capacity(3, 2)).isEqualTo(1.0);
     }
 
     // ---- b_hist

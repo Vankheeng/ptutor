@@ -355,7 +355,8 @@ class StudentRecommendationIntegrationTest {
         assertThat(of(log, close).path("a").asDouble()).isCloseTo(0.675, within(0.002));
         assertThat(of(log, close).path("b").asDouble()).isCloseTo(0.61, within(0.002));
         assertThat(of(log, close).path("q").isNull()).as("students have no quality factor").isTrue();
-        assertThat(response.items().get(0).score()).isCloseTo(2 * 0.675 * 0.61 / (0.675 + 0.61), within(0.002));
+        // R' = a'^0.65 * b'^0.35 (design 13, 13.5)
+        assertThat(response.items().get(0).score()).isCloseTo(Math.pow(0.675, 0.65) * Math.pow(0.61, 0.35), within(0.002));
         assertThat(of(log, closeButCrowded).path("willingness").path("cap").asDouble()).isCloseTo(0.25, within(0.001));
     }
 

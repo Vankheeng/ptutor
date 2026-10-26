@@ -89,7 +89,8 @@ public class TutorSideRanker {
                 * (candidate.rejectedTutorRecently() ? settings.getGateRecentReject() : 1.0);
         Willingness willingness = settings.isReciprocalEnabled()
                 ? willingness(context, candidate, platformRate) : null;
-        double r = willingness == null ? a : Ranker.reciprocal(a, willingness.b());
+        double r = willingness == null ? a
+                : Ranker.reciprocal(a, willingness.b(), settings.getReciprocalMode(), settings.getReciprocalAlpha());
         return new ScoredStudyingCandidate(candidate, features, a, willingness, r, g, r * g);
     }
 
@@ -125,9 +126,9 @@ public class TutorSideRanker {
         ModelWeights weights = weightProvider.weights(WeightModel.B_T2S);
         double[] parts = fitParts(context, candidate);
         double fit = WillingnessCalculator.fit(weights, parts);
-        double remaining = Math.max(1, candidate.remainingSlots());
         double capacity = settings.isCongestionEnabled()
-                ? remaining / (remaining + settings.getCongestionLambda() * Math.max(0, candidate.pendingProposals()))
+                ? WillingnessCalculator.congestion(candidate.remainingSlots(), candidate.pendingProposals(),
+                        settings.getCongestionLambda(), settings.getCongestionFormula())
                 : 1.0;
         if (candidate.studentAppliedToTutor()) {
             return new Willingness(1.0, history, fit, capacity, true, WillingnessCalculator.asList(parts));

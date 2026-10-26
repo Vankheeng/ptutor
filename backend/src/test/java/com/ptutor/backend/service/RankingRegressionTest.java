@@ -19,6 +19,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.ptutor.backend.dto.recommendation.AreaScope;
 import com.ptutor.backend.dto.recommendation.ModePreference;
@@ -35,7 +36,9 @@ import com.ptutor.backend.dto.recommendation.TeachingCandidate.CandidateTag;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.District;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
 import com.ptutor.backend.dto.recommendation.Willingness;
+import com.ptutor.backend.entity.enums.CongestionFormula;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.ReciprocalMode;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 /**
@@ -53,7 +56,7 @@ class RankingRegressionTest {
     private static final String[] LEVELS = { "mat_goc", "can_kem_cap", "trung_binh", "kha", "gioi" };
     private static final String[] STYLES = { "kien_nhan", "nghiem_khac", "vui_ve", "tu_duy" };
 
-    private final RecommendationSettings settings = new RecommendationSettings();
+    private final RecommendationSettings settings = oldFormulas();
     private final FeatureCalculator featureCalculator = new FeatureCalculator(settings, new WeightProvider(settings));
     private final Ranker ranker = new Ranker(featureCalculator, new WillingnessCalculator(settings, new WeightProvider(settings)), settings);
     private final TutorSideRanker tutorSideRanker = new TutorSideRanker(featureCalculator, settings, new WeightProvider(settings));
@@ -254,5 +257,16 @@ class RankingRegressionTest {
         private UUID uuid() {
             return new UUID(random.nextLong(), random.nextLong());
         }
+    }
+
+    /**
+     * The golden scores were written with the congestion and reciprocal formulas of that time; this test checks the
+     * weights, so it keeps them (the new formulas of design 13, 13.4-13.5 have tests of their own).
+     */
+    private static RecommendationSettings oldFormulas() {
+        RecommendationSettings settings = new RecommendationSettings();
+        ReflectionTestUtils.setField(settings, "congestionFormula", CongestionFormula.EVERY_APPLICATION);
+        ReflectionTestUtils.setField(settings, "reciprocalMode", ReciprocalMode.HARMONIC);
+        return settings;
     }
 }

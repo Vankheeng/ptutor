@@ -14,6 +14,7 @@ import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.Willingness;
+import com.ptutor.backend.entity.enums.ReciprocalMode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -94,12 +95,20 @@ public class Ranker {
                 * (candidate.rejectedStudentRecently() ? settings.getGateRecentReject() : 1.0);
         Willingness willingness = settings.isReciprocalEnabled()
                 ? willingnessCalculator.calculate(context, candidate, features, platformRate) : null;
-        double r = willingness == null ? a : reciprocal(a, willingness.b());
+        double r = willingness == null ? a
+                : reciprocal(a, willingness.b(), settings.getReciprocalMode(), settings.getReciprocalAlpha());
         double score = r * (settings.getQualityBase() + settings.getQualityWeight() * q) * g;
         return new ScoredCandidate(candidate, features, a, willingness, r, q, g, score);
     }
 
-    static double reciprocal(double a, double b) {
-        return a + b == 0 ? 0 : 2 * a * b / (a + b);
+    /**
+     * R of either direction (design 13, 13.5). GEOMETRIC: a^α · b^(1−α), 0 when either side is 0; HARMONIC:
+     * 2ab / (a + b).
+     */
+    static double reciprocal(double a, double b, ReciprocalMode mode, double alpha) {
+        if (mode == ReciprocalMode.HARMONIC) {
+            return a + b == 0 ? 0 : 2 * a * b / (a + b);
+        }
+        return a <= 0 || b <= 0 ? 0 : Math.pow(a, alpha) * Math.pow(b, 1 - alpha);
     }
 }

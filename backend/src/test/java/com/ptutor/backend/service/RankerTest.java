@@ -19,6 +19,7 @@ import com.ptutor.backend.dto.recommendation.QueryContext;
 import com.ptutor.backend.dto.recommendation.QueryContext.TimeSlot;
 import com.ptutor.backend.dto.recommendation.ScoredCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate;
+import com.ptutor.backend.entity.enums.ReciprocalMode;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 class RankerTest {
@@ -119,8 +120,22 @@ class RankerTest {
     @ParameterizedTest
     @CsvSource({ "0.9, 0.2, 0.3273", "0.5, 0.5, 0.5", "0.871, 0.341, 0.4901", "0.75, 0.80, 0.7742", "0, 0, 0",
         "1, 0, 0" })
-    void reciprocalIsTheHarmonicMeanPulledTowardsTheSmallerSide(double a, double b, double expected) {
-        assertThat(Ranker.reciprocal(a, b)).isCloseTo(expected, within(1e-4));
+    void theOldReciprocalIsTheHarmonicMeanPulledTowardsTheSmallerSide(double a, double b, double expected) {
+        assertThat(Ranker.reciprocal(a, b, ReciprocalMode.HARMONIC, 0.5)).isCloseTo(expected, within(1e-4));
+    }
+
+    /** Design 13, 13.5: R = a^α · b^(1−α). */
+    @ParameterizedTest
+    @CsvSource({ "0.9, 0.2, 0.5, 0.424264", "0.5, 0.5, 0.5, 0.5", "0.9, 0.2, 0.8, 0.666193", "0.9, 0.2, 1.0, 0.9",
+        "0.9, 0.0, 0.8, 0", "0.0, 0.9, 0.5, 0", "1.0, 1.0, 0.65, 1.0" })
+    void reciprocalIsAWeightedGeometricMean(double a, double b, double alpha, double expected) {
+        assertThat(Ranker.reciprocal(a, b, ReciprocalMode.GEOMETRIC, alpha)).isCloseTo(expected, within(1e-5));
+    }
+
+    @Test
+    void nobodyWhoWillSurelySayNoIsRecommendedAndAlphaOneIgnoresTheOtherSide() {
+        assertThat(Ranker.reciprocal(0.95, 0.0, ReciprocalMode.GEOMETRIC, 0.65)).isZero();
+        assertThat(Ranker.reciprocal(0.37, 0.81, ReciprocalMode.GEOMETRIC, 1.0)).isCloseTo(0.37, within(1e-12));
     }
 
     @Test
@@ -130,10 +145,10 @@ class RankerTest {
         ScoredCandidate scored = ranker.score(context().build(),
                 candidate().cosine(0.80).mode(TeachingMode.ONLINE).tutorScore("82.00").capacity(1, 3).build(), P0);
 
-        // b = (0.5 * 0.6 + 0.5 * 0.6) * 1 / (1 + 0.5 * 3) = 0.24
+        // b = (0.5 * 0.6 + 0.5 * 0.6) * 1 / (1 + 0.5 * (3 - 1 + 1)) = 0.24 (three waiting for one place)
         assertThat(scored.willingness().b()).isCloseTo(0.24, within(1e-9));
-        assertThat(scored.r()).isCloseTo(2 * A_SEM_AND_AREA_PERFECT * 0.24 / (A_SEM_AND_AREA_PERFECT + 0.24),
-                within(1e-9));
+        // R = a^0.65 * b^0.35 (design 13, 13.5)
+        assertThat(scored.r()).isCloseTo(Math.pow(A_SEM_AND_AREA_PERFECT, 0.65) * Math.pow(0.24, 0.35), within(1e-9));
         assertThat(scored.score()).isCloseTo(scored.r() * (0.7 + 0.3 * 0.82), within(1e-9));
     }
 

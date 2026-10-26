@@ -495,7 +495,8 @@ class TutorRecommendationIntegrationTest {
         assertThat(log.willingness(crowded, "cap")).isCloseTo(1 / 3.0, within(0.001));
         assertThat(log.willingness(free, "cap")).isEqualTo(1.0);
         assertThat(log.number(free, "b")).isCloseTo(0.6, within(0.001));
-        assertThat(log.number(free, "r")).isCloseTo(2 * 0.615 * 0.6 / (0.615 + 0.6), within(0.002));
+        // R = a^0.65 * b^0.35 (design 13, 13.5)
+        assertThat(log.number(free, "r")).isCloseTo(Math.pow(0.615, 0.65) * Math.pow(0.6, 0.35), within(0.002));
     }
 
     @Test

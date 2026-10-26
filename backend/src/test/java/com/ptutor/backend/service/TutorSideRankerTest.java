@@ -166,7 +166,7 @@ class TutorSideRankerTest {
     // ---- score'
 
     @Test
-    void scoreIsTheHarmonicMeanTimesTheGateWithoutAnyQualityFactorForStudents() {
+    void scoreIsTheReciprocalTimesTheGateWithoutAnyQualityFactorForStudents() {
         Context tutor = new Context();
         tutor.slots = List.of(slot(2, "08:00", "10:00"));
         Candidate student = new Candidate();
@@ -179,7 +179,7 @@ class TutorSideRankerTest {
         // a' = 0.30 * 1 + 0.10 * 0 + 0.60 * 0.5 = 0.6; b' = 0.5 * 0.6 + 0.5 * 0.5 = 0.55; G' = 0.4 * 0.5
         assertThat(scored.a()).isCloseTo(0.6, within(1e-9));
         assertThat(scored.willingness().b()).isCloseTo(0.55, within(1e-9));
-        assertThat(scored.r()).isCloseTo(2 * 0.6 * 0.55 / 1.15, within(1e-9));
+        assertThat(scored.r()).isCloseTo(Math.pow(0.6, 0.65) * Math.pow(0.55, 0.35), within(1e-9));  // a'^α b'^(1-α)
         assertThat(scored.g()).isCloseTo(0.2, within(1e-9));
         assertThat(scored.score()).isCloseTo(scored.r() * 0.2, within(1e-9));
     }

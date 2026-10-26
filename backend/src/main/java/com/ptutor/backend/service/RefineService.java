@@ -151,7 +151,9 @@ public class RefineService {
             double sem = share * initialSem + (1 - share) * fromSession;
             double a = clip(initialA + (1 - node.path("wHist").asDouble(0)) * weightSem * (sem - initialSem));
             JsonNode b = node.path("b");
-            double r = b.isNumber() ? Ranker.reciprocal(a, b.doubleValue()) : a;
+            double r = b.isNumber()
+                    ? Ranker.reciprocal(a, b.doubleValue(), settings.getReciprocalMode(), settings.getReciprocalAlpha())
+                    : a;
             JsonNode q = node.path("q");
             double quality = q.isNumber() ? settings.getQualityBase() + settings.getQualityWeight() * q.doubleValue() : 1.0;
             features.put("sem", round(sem));

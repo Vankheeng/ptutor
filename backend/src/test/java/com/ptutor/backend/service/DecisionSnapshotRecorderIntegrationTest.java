@@ -104,9 +104,9 @@ class DecisionSnapshotRecorderIntegrationTest {
         assertThat(decision.path("fitSegment").asDouble()).isCloseTo(price, within(1e-9));
         assertThat(decision.path("fitSched").asDouble()).isCloseTo(price, within(1e-9));
         assertThat(decision.path("hist").asDouble()).isCloseTo(P0, within(1e-9));
-        // Before this application: one waiting for two places.
+        // Before this application: one waiting for two places, so no shortage yet (design 13, 13.4).
         assertThat(decision.path("pending").asInt()).isEqualTo(1);
-        assertThat(decision.path("cap").asDouble()).isCloseTo(2 / (2 + 0.5), within(1e-9));
+        assertThat(decision.path("cap").asDouble()).isEqualTo(1.0);
         assertThat(decision.path("reachedOut").asBoolean()).isFalse();
 
         JsonNode initiative = snapshots.get(1).getFeatures();

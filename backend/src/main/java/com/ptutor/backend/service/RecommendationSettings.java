@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.WeightModel;
+import com.ptutor.backend.entity.enums.CongestionFormula;
+import com.ptutor.backend.entity.enums.ReciprocalMode;
 import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.entity.enums.WeightLearningMode;
 
@@ -46,6 +48,29 @@ public class RecommendationSettings {
 
     @Value("${app.recommendation.willingness.congestion-lambda:0.5}")
     private double congestionLambda = 0.5;
+
+    /**
+     * ON_SHORTAGE (since 26/10/2026, λ 0.5): b_cap only drops once the applications waiting reach the places left;
+     * the old EVERY_APPLICATION formula dropped from the first one, and on a market with places to spare pushed good
+     * postings down (design 13, 13.4). On the crowded scenario both prevent rejections as well; the base comparison
+     * is still to be run (step 40).
+     */
+    @Value("${app.recommendation.willingness.congestion-formula:ON_SHORTAGE}")
+    private CongestionFormula congestionFormula = CongestionFormula.ON_SHORTAGE;
+
+    /**
+     * GEOMETRIC (since 26/10/2026): R = a^α · b^(1−α); b is a rough estimate, so it should weigh less than a
+     * (design 13, 13.5). HARMONIC: the old 2ab / (a + b), kept to compare.
+     */
+    @Value("${app.recommendation.reciprocal.mode:GEOMETRIC}")
+    private ReciprocalMode reciprocalMode = ReciprocalMode.GEOMETRIC;
+
+    /**
+     * 0.65, chosen on the crowded scenario (13.5): the list fits better than the old mean (NDCG +0.026) while the
+     * rejections do not rise significantly; 0.8 made them rise, 0.5 did not improve the order.
+     */
+    @Value("${app.recommendation.reciprocal.alpha:0.65}")
+    private double reciprocalAlpha = 0.65;
 
     @Value("${app.recommendation.candidate-limit:200}")
     private int candidateLimit = 200;

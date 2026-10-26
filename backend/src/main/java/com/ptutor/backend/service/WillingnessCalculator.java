@@ -14,6 +14,7 @@ import com.ptutor.backend.dto.recommendation.TeachingCandidate;
 import com.ptutor.backend.dto.recommendation.TeachingCandidate.PastDecision;
 import com.ptutor.backend.dto.recommendation.WeightModel;
 import com.ptutor.backend.dto.recommendation.Willingness;
+import com.ptutor.backend.entity.enums.CongestionFormula;
 import com.ptutor.backend.entity.enums.LearningMode;
 
 import lombok.RequiredArgsConstructor;
@@ -134,8 +135,21 @@ public class WillingnessCalculator {
 
     /** The more applications already wait for the few remaining places, the lower the chance. */
     double capacity(int remainingSlots, int pendingApplications) {
+        return congestion(remainingSlots, pendingApplications, settings.getCongestionLambda(),
+                settings.getCongestionFormula());
+    }
+
+    /**
+     * b_cap of either direction (design 13, 13.4). ON_SHORTAGE: 1 while fewer applications wait than places are
+     * left, then r / (r + λ (n − r + 1)); EVERY_APPLICATION: r / (r + λ n). A full posting counts as one place.
+     */
+    static double congestion(int remainingSlots, int pending, double lambda, CongestionFormula formula) {
         double remaining = Math.max(1, remainingSlots);
-        return remaining / (remaining + settings.getCongestionLambda() * Math.max(0, pendingApplications));
+        int waiting = Math.max(0, pending);
+        if (formula == CongestionFormula.EVERY_APPLICATION) {
+            return remaining / (remaining + lambda * waiting);
+        }
+        return waiting < remaining ? 1.0 : remaining / (remaining + lambda * (waiting - remaining + 1));
     }
 
     /** A tutor is happy with a budget at or above the asking price, and unlikely to go 30 % below it. */
