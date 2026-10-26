@@ -1,0 +1,18 @@
+phan,chi_so,gia_tri
+A1 lịch (theo ngày),precision,1.0000
+A1 lịch (theo ngày),recall,0.8485
+A1 lịch (theo ngày),f1,0.9180
+A1 lịch (theo ngày),exact_days,0.7692
+A1 lịch,IoU khung giờ,0.9643
+A2 subject,f1,1.0000
+A2 grades,f1,1.0000
+A2 mode,f1,0.8966
+A2 scope,f1,1.0000
+A2 districts,f1,0.9091
+A2 price_min,f1,0.9000
+A2 price_max,f1,0.9000
+A2 days,f1,0.1429
+A2 styleTags,f1,0.9000
+A2 goalTags,f1,1.0000
+A2 segmentTags,f1,0.7143
+A2,câu đúng toàn bộ,0.3913

@@ -1,0 +1,5490 @@
+{
+ "a1_tags": [
+  {
+   "text": "Con nhà mình học lực trung bình, sắp thi vào 10 mà phần hình học còn yếu lắm, nhất là mấy bài chứng minh.",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "SEGMENT:trung_binh",
+    "TOPIC:chung_minh",
+    "TOPIC:hinh_hoc_phang"
+   ],
+   "got": [
+    "GOAL:thi_vao_10",
+    "SEGMENT:trung_binh",
+    "TOPIC:chung_minh",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "text": "em cần ôn thi đại học khối A, phần hàm số với tích phân em còn mơ hồ",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:giai_tich",
+    "TOPIC:ham_so_do_thi"
+   ],
+   "got": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:giai_tich",
+    "TOPIC:ham_so_do_thi"
+   ]
+  },
+  {
+   "text": "Bé nhà em mất gốc tiếng Anh, ngữ pháp gần như không biết gì. Mong cô kiên nhẫn ạ.",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "STYLE:kien_nhan",
+    "TOPIC:ngu_phap"
+   ],
+   "got": [
+    "SEGMENT:mat_goc",
+    "STYLE:kien_nhan",
+    "TOPIC:ngu_phap"
+   ]
+  },
+  {
+   "text": "Mình muốn luyện IELTS, target 6.5, kỹ năng nói và nghe đang kém nhất.",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:nghe",
+    "TOPIC:noi"
+   ],
+   "got": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:nghe",
+    "TOPIC:noi"
+   ]
+  },
+  {
+   "text": "Con học khá nhưng phần động lực học hay nhầm, cần người giảng kỹ bản chất chứ không học thuộc công thức.",
+   "expected": [
+    "SEGMENT:kha",
+    "STYLE:giai_thich_ky",
+    "TOPIC:co_hoc"
+   ],
+   "got": [
+    "SEGMENT:kha",
+    "STYLE:giai_thich_ky",
+    "TOPIC:co_hoc"
+   ]
+  },
+  {
+   "text": "Bé lớp 6 muốn học trước chương trình lớp 7, bé tiếp thu nhanh",
+   "expected": [
+    "GOAL:hoc_vuot"
+   ],
+   "got": [
+    "GOAL:hoc_vuot"
+   ]
+  },
+  {
+   "text": "Cần gia sư nghiêm khắc, giao nhiều bài tập về nhà, con hay lười làm bài. Yếu phần phương trình.",
+   "expected": [
+    "STYLE:luyen_tap_nhieu",
+    "STYLE:nghiem_khac",
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ],
+   "got": [
+    "STYLE:luyen_tap_nhieu",
+    "STYLE:nghiem_khac",
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ]
+  },
+  {
+   "text": "con thi chuyên Anh, cần luyện đọc hiểu và viết luận nâng cao",
+   "expected": [
+    "GOAL:thi_chuyen",
+    "TOPIC:doc_hieu",
+    "TOPIC:viet"
+   ],
+   "got": [
+    "GOAL:thi_chuyen",
+    "TOPIC:doc_hieu",
+    "TOPIC:viet"
+   ]
+  },
+  {
+   "text": "Ôn thi tốt nghiệp, chỉ cần qua môn, con học yếu, cần người kèm sát từng buổi",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "SEGMENT:can_kem_cap"
+   ],
+   "got": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "SEGMENT:can_kem_cap"
+   ]
+  },
+  {
+   "text": "Em muốn được 8+ lý thi đh, phần dao động cơ và sóng em làm sai nhiều",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:dao_dong_song"
+   ],
+   "got": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:dao_dong_song"
+   ]
+  },
+  {
+   "text": "Muốn con học vui vẻ, có trò chơi, con mới bắt đầu học từ vựng thôi",
+   "expected": [
+    "STYLE:vui_ve",
+    "TOPIC:tu_vung"
+   ],
+   "got": [
+    "STYLE:vui_ve",
+    "TOPIC:tu_vung"
+   ]
+  },
+  {
+   "text": "Con học giỏi, muốn đi thi học sinh giỏi thành phố, cần bài khó rèn tư duy",
+   "expected": [
+    "GOAL:hoc_sinh_gioi",
+    "SEGMENT:gioi",
+    "STYLE:tu_duy"
+   ],
+   "got": [
+    "GOAL:hoc_sinh_gioi",
+    "SEGMENT:gioi",
+    "STYLE:tu_duy"
+   ]
+  },
+  {
+   "text": "điểm toán trên lớp đang 5 phẩy, muốn lên 7. yếu hình học không gian",
+   "expected": [
+    "GOAL:cai_thien_diem",
+    "TOPIC:hinh_hoc_khong_gian"
+   ],
+   "got": [
+    "GOAL:cai_thien_diem",
+    "TOPIC:hinh_hoc_khong_gian"
+   ]
+  },
+  {
+   "text": "Con phát âm sai nhiều, ngại giao tiếp với người nước ngoài.",
+   "expected": [
+    "STYLE:giao_tiep",
+    "TOPIC:noi",
+    "TOPIC:phat_am"
+   ],
+   "got": [
+    "STYLE:giao_tiep",
+    "TOPIC:noi",
+    "TOPIC:phat_am"
+   ]
+  },
+  {
+   "text": "Phần điện con không hiểu gì, mạch nối tiếp song song toàn sai. Muốn thi vào 10 chuyên lý.",
+   "expected": [
+    "GOAL:thi_chuyen",
+    "TOPIC:dien_hoc"
+   ],
+   "got": [
+    "GOAL:thi_chuyen",
+    "TOPIC:dien_hoc"
+   ]
+  },
+  {
+   "text": "Cần cô dạy chậm mà chắc, con hổng kiến thức lớp 6",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "STYLE:cham_chac"
+   ],
+   "got": [
+    "SEGMENT:mat_goc",
+    "STYLE:cham_chac"
+   ]
+  },
+  {
+   "text": "Học online qua zoom, có tài liệu số, cần ôn xác suất thống kê cho kỳ thi tốt nghiệp",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:xac_suat_thong_ke"
+   ],
+   "got": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:xac_suat_thong_ke"
+   ]
+  },
+  {
+   "text": "Cần lộ trình rõ ràng, kiểm tra hàng tháng để theo dõi tiến độ ngữ pháp và từ vựng",
+   "expected": [
+    "STYLE:ke_hoach_ro",
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung"
+   ],
+   "got": [
+    "STYLE:ke_hoach_ro",
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung"
+   ]
+  },
+  {
+   "text": "e cần học lại phần nhiệt và quang, đang học trung bình",
+   "expected": [
+    "SEGMENT:trung_binh",
+    "TOPIC:nhiet_hoc",
+    "TOPIC:quang_hoc"
+   ],
+   "got": [
+    "SEGMENT:trung_binh",
+    "TOPIC:nhiet_hoc",
+    "TOPIC:quang_hoc"
+   ]
+  },
+  {
+   "text": "Nhà ở Cầu Giấy, tìm gia sư cho con. Con học bình thường.",
+   "expected": [],
+   "got": [
+    "SEGMENT:trung_binh"
+   ]
+  },
+  {
+   "text": "Cần đạt chứng chỉ B1 để xét tốt nghiệp đại học sau này, hiện đang mất gốc",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "SEGMENT:mat_goc"
+   ],
+   "got": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "text": "Bạn ấy học khá, muốn học vượt lên lớp 9 để ôn chuyên sớm",
+   "expected": [
+    "GOAL:hoc_vuot",
+    "GOAL:thi_chuyen",
+    "SEGMENT:kha"
+   ],
+   "got": [
+    "GOAL:hoc_vuot",
+    "SEGMENT:kha"
+   ]
+  },
+  {
+   "text": "Con cần người kiên nhẫn, giải thích kỹ, con hay hỏi lại nhiều lần. Phần chuyển động thẳng.",
+   "expected": [
+    "STYLE:giai_thich_ky",
+    "STYLE:kien_nhan",
+    "TOPIC:co_hoc"
+   ],
+   "got": [
+    "STYLE:giai_thich_ky",
+    "STYLE:kien_nhan",
+    "TOPIC:co_hoc"
+   ]
+  },
+  {
+   "text": "luyện nghe nói là chính, con đọc viết ổn rồi",
+   "expected": [
+    "TOPIC:nghe",
+    "TOPIC:noi"
+   ],
+   "got": [
+    "TOPIC:nghe",
+    "TOPIC:noi"
+   ]
+  },
+  {
+   "text": "Chương lượng giác với cấp số con đang yếu, muốn cải thiện điểm kiểm tra giữa kỳ",
+   "expected": [
+    "GOAL:cai_thien_diem"
+   ],
+   "got": [
+    "GOAL:cai_thien_diem"
+   ]
+  },
+  {
+   "text": "Cần gia sư dạy hệ phương trình và bất phương trình, con hay làm ẩu",
+   "expected": [
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ],
+   "got": [
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ]
+  },
+  {
+   "text": "Ôn hạt nhân nguyên tử và sóng ánh sáng cho kỳ thi THPT",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "TOPIC:quang_hoc",
+    "TOPIC:vat_ly_hat_nhan"
+   ],
+   "got": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "TOPIC:quang_hoc",
+    "TOPIC:vat_ly_hat_nhan"
+   ]
+  },
+  {
+   "text": "Ôn thi vào 10, con cần làm nhiều đề",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "STYLE:luyen_tap_nhieu"
+   ],
+   "got": [
+    "GOAL:thi_vao_10",
+    "STYLE:luyen_tap_nhieu"
+   ]
+  },
+  {
+   "text": "Bé lười học, cần thầy cô vui tính tạo hứng thú cho bé",
+   "expected": [
+    "STYLE:vui_ve"
+   ],
+   "got": [
+    "STYLE:vui_ve"
+   ]
+  },
+  {
+   "text": "Đại số con ok, chỉ cần luyện thêm hình. Mục tiêu 9 điểm thi vào 10.",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "TOPIC:hinh_hoc_phang"
+   ],
+   "got": [
+    "GOAL:thi_vao_10",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "text": "Giáo viên THCS 8 năm, chuyên ôn thi vào 10, mạnh phần hình học và chứng minh. Dạy chậm chắc.",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "STYLE:cham_chac",
+    "TOPIC:chung_minh",
+    "TOPIC:hinh_hoc_phang"
+   ],
+   "got": [
+    "GOAL:thi_vao_10",
+    "STYLE:cham_chac",
+    "TOPIC:chung_minh",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "text": "IELTS 8.0, nhận dạy luyện thi IELTS, tập trung speaking và writing",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:noi",
+    "TOPIC:viet"
+   ],
+   "got": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:noi",
+    "TOPIC:viet"
+   ]
+  },
+  {
+   "text": "Thạc sĩ toán, luyện thi đại học, chuyên giải tích và hàm số. Phương pháp rèn tư duy, nhiều bài khó.",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "STYLE:tu_duy",
+    "TOPIC:giai_tich",
+    "TOPIC:ham_so_do_thi"
+   ],
+   "got": [
+    "GOAL:thi_dai_hoc",
+    "STYLE:luyen_tap_nhieu",
+    "STYLE:tu_duy",
+    "TOPIC:giai_tich",
+    "TOPIC:ham_so_do_thi"
+   ]
+  },
+  {
+   "text": "Sinh viên Bách khoa, dạy lý cấp 3 cho các bạn mất gốc, giải thích bằng thí nghiệm",
+   "expected": [
+    "SEGMENT:mat_goc"
+   ],
+   "got": [
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "text": "Cô giáo trẻ, dạy tiếng Anh thiếu nhi qua trò chơi, bài hát, vui vẻ năng động",
+   "expected": [
+    "STYLE:vui_ve"
+   ],
+   "got": [
+    "STYLE:vui_ve"
+   ]
+  },
+  {
+   "text": "Kèm 1-1, nghiêm khắc, có kế hoạch học từng tuần và bài kiểm tra định kỳ",
+   "expected": [
+    "STYLE:ke_hoach_ro",
+    "STYLE:nghiem_khac"
+   ],
+   "got": [
+    "STYLE:ke_hoach_ro",
+    "STYLE:nghiem_khac"
+   ]
+  },
+  {
+   "text": "Bồi dưỡng học sinh giỏi toán cấp tỉnh, chỉ nhận học sinh khá giỏi",
+   "expected": [
+    "GOAL:hoc_sinh_gioi",
+    "SEGMENT:gioi",
+    "SEGMENT:kha"
+   ],
+   "got": [
+    "GOAL:hoc_sinh_gioi",
+    "SEGMENT:gioi",
+    "SEGMENT:kha"
+   ]
+  },
+  {
+   "text": "Luyện thi chuyên Anh, có bộ đề các trường chuyên",
+   "expected": [
+    "GOAL:thi_chuyen"
+   ],
+   "got": [
+    "GOAL:thi_chuyen",
+    "STYLE:luyen_tap_nhieu"
+   ]
+  },
+  {
+   "text": "Dạy online có bảng điện tử, ôn thi tốt nghiệp và đại học môn lý",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:tuong_tac_cong_nghe"
+   ],
+   "got": [
+    "GOAL:thi_dai_hoc",
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:tuong_tac_cong_nghe"
+   ]
+  },
+  {
+   "text": "Nhận kèm các bạn học trung bình, cần kèm sát. Rất kiên nhẫn.",
+   "expected": [
+    "SEGMENT:can_kem_cap",
+    "SEGMENT:trung_binh",
+    "STYLE:kien_nhan"
+   ],
+   "got": [
+    "SEGMENT:can_kem_cap",
+    "SEGMENT:trung_binh",
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "text": "Chuyên ngữ pháp và từ vựng nền tảng, nhiều bài tập",
+   "expected": [
+    "STYLE:luyen_tap_nhieu",
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung"
+   ],
+   "got": [
+    "STYLE:luyen_tap_nhieu",
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung"
+   ]
+  },
+  {
+   "text": "Dạy toán 10 theo sgk, đại số và hình học tọa độ",
+   "expected": [
+    "TOPIC:dai_so"
+   ],
+   "got": [
+    "TOPIC:dai_so",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "text": "Điện từ học, dao động và sóng, giảng bản chất hiện tượng",
+   "expected": [
+    "STYLE:giai_thich_ky",
+    "TOPIC:dao_dong_song",
+    "TOPIC:dien_hoc"
+   ],
+   "got": [
+    "STYLE:giai_thich_ky",
+    "TOPIC:dao_dong_song",
+    "TOPIC:dien_hoc"
+   ]
+  },
+  {
+   "text": "Luyện phát âm chuẩn giọng Mỹ, sửa lỗi từng âm, phù hợp bạn ngại nói",
+   "expected": [
+    "TOPIC:noi",
+    "TOPIC:phat_am"
+   ],
+   "got": [
+    "TOPIC:phat_am"
+   ]
+  },
+  {
+   "text": "Ôn xác suất, tổ hợp cho kỳ thi đánh giá năng lực",
+   "expected": [
+    "TOPIC:xac_suat_thong_ke"
+   ],
+   "got": [
+    "TOPIC:xac_suat_thong_ke"
+   ]
+  },
+  {
+   "text": "Gia sư toán lớp 6, nhẹ nhàng, giúp con lấy lại gốc",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "STYLE:kien_nhan"
+   ],
+   "got": [
+    "SEGMENT:mat_goc",
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "text": "Nhận dạy lý 9, đã có nhiều học sinh đỗ chuyên lý",
+   "expected": [
+    "GOAL:thi_chuyen"
+   ],
+   "got": [
+    "GOAL:thi_chuyen"
+   ]
+  },
+  {
+   "text": "Ôn thi THPT quốc gia môn Anh, cam kết lộ trình rõ, kiểm tra hàng tuần",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:ke_hoach_ro"
+   ],
+   "got": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:ke_hoach_ro"
+   ]
+  },
+  {
+   "text": "Sinh viên sư phạm, dạy toán 9. Liên hệ zalo.",
+   "expected": [],
+   "got": []
+  },
+  {
+   "text": "Hình học không gian là thế mạnh, có phần mềm vẽ hình 3D minh hoạ",
+   "expected": [
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:hinh_hoc_khong_gian"
+   ],
+   "got": [
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:hinh_hoc_khong_gian"
+   ]
+  },
+  {
+   "text": "Em học khá toán, muốn cải thiện điểm hình",
+   "expected": [
+    "GOAL:cai_thien_diem",
+    "SEGMENT:kha",
+    "TOPIC:hinh_hoc_phang"
+   ],
+   "got": [
+    "GOAL:cai_thien_diem",
+    "SEGMENT:kha",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "text": "Mục tiêu IELTS 7.0 trước khi lên 12",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu"
+   ],
+   "got": [
+    "GOAL:chung_chi_ngoai_ngu"
+   ]
+  },
+  {
+   "text": "Yếu cơ học, thích học qua video và mô phỏng",
+   "expected": [
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:co_hoc"
+   ],
+   "got": [
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:co_hoc"
+   ]
+  },
+  {
+   "text": "Em mất gốc toán từ lớp 10, cần ôn lại để thi tốt nghiệp",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "SEGMENT:mat_goc"
+   ],
+   "got": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "text": "Thích học vui, sợ ngữ pháp",
+   "expected": [
+    "STYLE:vui_ve",
+    "TOPIC:ngu_phap"
+   ],
+   "got": [
+    "STYLE:vui_ve",
+    "TOPIC:ngu_phap"
+   ]
+  },
+  {
+   "text": "10 năm dạy toán THPT, luyện thi đại học, phong cách nghiêm khắc",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "STYLE:nghiem_khac"
+   ],
+   "got": [
+    "GOAL:thi_dai_hoc",
+    "STYLE:nghiem_khac"
+   ]
+  },
+  {
+   "text": "Giáo viên tiếng Anh, chuyên luyện thi vào 10 và giao tiếp",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "STYLE:giao_tiep"
+   ],
+   "got": [
+    "GOAL:thi_vao_10",
+    "STYLE:giao_tiep",
+    "TOPIC:noi"
+   ]
+  },
+  {
+   "text": "Kỹ sư điện, dạy thêm vật lý phần điện học cho cấp 3",
+   "expected": [
+    "TOPIC:dien_hoc"
+   ],
+   "got": [
+    "TOPIC:dien_hoc"
+   ]
+  },
+  {
+   "text": "Cô giáo tiểu học chuyển sang dạy toán THCS, kiên nhẫn với các bạn học chậm",
+   "expected": [
+    "STYLE:kien_nhan"
+   ],
+   "got": [
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "text": "Dạy viết luận và đọc hiểu nâng cao cho học sinh giỏi",
+   "expected": [
+    "SEGMENT:gioi",
+    "TOPIC:doc_hieu",
+    "TOPIC:viet"
+   ],
+   "got": [
+    "SEGMENT:gioi",
+    "TOPIC:doc_hieu",
+    "TOPIC:viet"
+   ]
+  }
+ ],
+ "a1_schedule": [
+  {
+   "text": "Tối thứ 2, 4, 6 từ 7h đến 9h",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "chiều thứ 7",
+   "expected": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng chủ nhật 8h-10h",
+   "expected": [
+    [
+     7,
+     "08:00",
+     "10:00"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "08:00",
+     "10:00"
+    ]
+   ]
+  },
+  {
+   "text": "T3, T5 tối",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "cuối tuần cả ngày đều được",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "08:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2 và thứ 5, 18h30 - 20h",
+   "expected": [
+    [
+     1,
+     "18:30",
+     "20:00"
+    ],
+    [
+     4,
+     "18:30",
+     "20:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "18:30",
+     "20:00"
+    ],
+    [
+     4,
+     "18:30",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "tối các ngày trong tuần",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Từ 17h đến 19h thứ 3",
+   "expected": [
+    [
+     2,
+     "17:00",
+     "19:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "17:00",
+     "19:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối T7 + sáng CN",
+   "expected": [
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 4 sau 8h tối",
+   "expected": [
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ 2 4 6 sau 15h",
+   "expected": [
+    [
+     1,
+     "15:00",
+     "17:00"
+    ],
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "15:00",
+     "17:00"
+    ],
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Mỗi tối thứ 6 khoảng 2 tiếng từ 19h30",
+   "expected": [
+    [
+     5,
+     "19:30",
+     "21:30"
+    ]
+   ],
+   "got": [
+    [
+     5,
+     "19:30",
+     "21:30"
+    ]
+   ]
+  },
+  {
+   "text": "thứ bảy 9h sáng đến 11h",
+   "expected": [
+    [
+     6,
+     "09:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "09:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Lịch linh hoạt, trao đổi sau",
+   "expected": [],
+   "got": []
+  },
+  {
+   "text": "Tối thứ 3 hoặc thứ 4 đều ok",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "CN chiều 2h-4h",
+   "expected": [
+    [
+     7,
+     "14:00",
+     "16:00"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "14:00",
+     "16:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 2 đến thứ 6 từ 18h",
+   "expected": [
+    [
+     1,
+     "18:00",
+     "20:00"
+    ],
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     4,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "18:00",
+     "20:00"
+    ],
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     4,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 7 và chiều chủ nhật",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối T2 T4 sau 7h30",
+   "expected": [
+    [
+     1,
+     "19:30",
+     "21:30"
+    ],
+    [
+     3,
+     "19:30",
+     "21:30"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:30",
+     "21:30"
+    ],
+    [
+     3,
+     "19:30",
+     "21:30"
+    ]
+   ]
+  },
+  {
+   "text": "Con rảnh tối thứ 5 thôi ạ",
+   "expected": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 3 thứ 5 thứ 7 lúc 20h",
+   "expected": [
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     4,
+     "20:00",
+     "22:00"
+    ],
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     4,
+     "20:00",
+     "22:00"
+    ],
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Học 2 buổi/tuần vào tối thứ 2 và thứ 6",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "16h-18h chiều thứ 4",
+   "expected": [
+    [
+     3,
+     "16:00",
+     "18:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "16:00",
+     "18:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối chủ nhật",
+   "expected": [
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 7, CN buổi sáng",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sau 9h tối các ngày thường",
+   "expected": [
+    [
+     1,
+     "21:00",
+     "22:00"
+    ],
+    [
+     2,
+     "21:00",
+     "22:00"
+    ],
+    [
+     3,
+     "21:00",
+     "22:00"
+    ],
+    [
+     4,
+     "21:00",
+     "22:00"
+    ],
+    [
+     5,
+     "21:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "21:00",
+     "22:00"
+    ],
+    [
+     2,
+     "21:00",
+     "22:00"
+    ],
+    [
+     3,
+     "21:00",
+     "22:00"
+    ],
+    [
+     4,
+     "21:00",
+     "22:00"
+    ],
+    [
+     5,
+     "21:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ hai, thứ tư: 19:00 – 20:30",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "20:30"
+    ],
+    [
+     3,
+     "19:00",
+     "20:30"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "20:30"
+    ],
+    [
+     3,
+     "19:00",
+     "20:30"
+    ]
+   ]
+  },
+  {
+   "text": "chiều t6 từ 2 rưỡi",
+   "expected": [
+    [
+     5,
+     "14:30",
+     "16:30"
+    ]
+   ],
+   "got": [
+    [
+     5,
+     "14:30",
+     "16:30"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ ba, năm, bảy",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 2 (con học ca chiều)",
+   "expected": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "bất kỳ tối nào trừ thứ 6",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "18:00-19:30 T2, T3",
+   "expected": [
+    [
+     1,
+     "18:00",
+     "19:30"
+    ],
+    [
+     2,
+     "18:00",
+     "19:30"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "18:00",
+     "19:30"
+    ],
+    [
+     2,
+     "18:00",
+     "19:30"
+    ]
+   ]
+  },
+  {
+   "text": "thứ bảy chủ nhật 15h",
+   "expected": [
+    [
+     6,
+     "15:00",
+     "17:00"
+    ],
+    [
+     7,
+     "15:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "15:00",
+     "17:00"
+    ],
+    [
+     7,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối t4 7h",
+   "expected": [
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ năm sau giờ học, khoảng 5h",
+   "expected": [
+    [
+     4,
+     "17:00",
+     "19:00"
+    ]
+   ],
+   "got": [
+    [
+     4,
+     "17:00",
+     "19:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2,3,4 buổi tối 8-10h",
+   "expected": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "sáng cn 9h30",
+   "expected": [
+    [
+     7,
+     "09:30",
+     "11:30"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "09:30",
+     "11:30"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 6 và sáng thứ 7",
+   "expected": [
+    [
+     5,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     5,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Giờ nào cũng được",
+   "expected": [],
+   "got": []
+  },
+  {
+   "text": "thứ 3 7h tối, thứ 5 7h tối",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 4, sáng thứ 6",
+   "expected": [
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "T7 tối từ 19h đến 20h30",
+   "expected": [
+    [
+     6,
+     "19:00",
+     "20:30"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "19:00",
+     "20:30"
+    ]
+   ]
+  },
+  {
+   "text": "cuối tuần buổi chiều",
+   "expected": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2 tối, thứ 7 sáng",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "17h30 thứ 6",
+   "expected": [
+    [
+     5,
+     "17:30",
+     "19:30"
+    ]
+   ],
+   "got": [
+    [
+     5,
+     "17:30",
+     "19:30"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ hai đến thứ năm",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "chủ nhật cả ngày",
+   "expected": [
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 3, 6 từ 6h chiều",
+   "expected": [
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 5 từ 19h-21h và chủ nhật 10h",
+   "expected": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "10:00",
+     "12:00"
+    ]
+   ],
+   "got": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "10:00",
+     "12:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sau 20h tối thứ 2, 4",
+   "expected": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 7 sau 8h",
+   "expected": [
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ 3 và tối thứ 5",
+   "expected": [
+    [
+     2,
+     "14:00",
+     "17:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     2,
+     "14:00",
+     "17:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "T2-T6 buổi sáng",
+   "expected": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ],
+    [
+     2,
+     "08:00",
+     "11:00"
+    ],
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     4,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ],
+    [
+     2,
+     "08:00",
+     "11:00"
+    ],
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     4,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối",
+   "expected": [],
+   "got": []
+  },
+  {
+   "text": "18h-20h thứ 4, 18h-20h thứ 7",
+   "expected": [
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     6,
+     "18:00",
+     "20:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     6,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ sáu 3 giờ chiều",
+   "expected": [
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "sáng t7 8h, tối cn 7h",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "10:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     6,
+     "08:00",
+     "10:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 2, 3, 4, 5, 6 từ 19h",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ],
+   "got": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 4 buổi chiều 15h-17h, thứ 6 buổi chiều 15h-17h",
+   "expected": [
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ],
+   "got": [
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối chủ nhật hàng tuần lúc 20h",
+   "expected": [
+    [
+     7,
+     "20:00",
+     "22:00"
+    ]
+   ],
+   "got": [
+    [
+     7,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  }
+ ],
+ "a2": [
+  {
+   "text": "gia sư toán lớp 9 ôn thi vào 10 ở Cầu Giấy dưới 200k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": 200000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": 200000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm cô dạy tiếng Anh online cho con lớp 6, vui vẻ",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "cần thầy dạy lý 12 luyện thi đại học, tối thứ 3 và thứ 5",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     4
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     4
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Gia sư toán cho bé lớp 7 mất gốc, kiên nhẫn, học tại nhà ở Đống Đa",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "luyện IELTS 6.5 khoảng 300k một buổi",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 240000,
+    "price_max": 360000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 240000,
+    "price_max": 360000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán 11 nâng cao thi học sinh giỏi, học online",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm gia sư Anh văn lớp 8 ở Thanh Xuân hoặc Hà Đông, cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hà Đông",
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hà Đông",
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "cần gia sư toán lớp 10 và 11 cho 2 con",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Gia sư vật lý nghiêm khắc, cho nhiều bài tập, lớp 9 thi chuyên",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu",
+     "nghiem_khac"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu",
+     "nghiem_khac"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Toán 12 ôn tốt nghiệp từ 150k đến 250k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 150000,
+    "price_max": 250000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 150000,
+    "price_max": 250000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư tiếng anh giao tiếp cho học sinh lớp 10, sáng chủ nhật",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm gia sư giỏi",
+   "expected": {
+    "subject": null,
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": null,
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán lớp 6 học vượt, ở đâu cũng được",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy lý lớp 10 cho bạn học trung bình, giải thích kỹ",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "giai_thich_ky"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "giai_thich_ky"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "Cần gia sư toán 8 ở Hoàng Mai, tối thứ 2 4 6, tối đa 180k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": 180000,
+    "days": [
+     1,
+     3,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": 180000,
+    "days": [
+     1,
+     3,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tiếng anh lớp 9 ôn vào 10 online qua zoom",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán cho học sinh khá lớp 7 muốn lên giỏi",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "all_right": false
+  },
+  {
+   "text": "Gia sư lý 11 toàn Hà Nội",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": "PROVINCE",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": "PROVINCE",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "con lớp 12 cần ôn đại học môn toán, có lộ trình rõ ràng",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "ke_hoach_ro"
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "ke_hoach_ro"
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy kèm tiếng Anh lớp 6 7 tại nhà Long Biên trên 120k",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": 120000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": 120000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Môn hoá lớp 10",
+   "expected": {
+    "subject": "Hóa học",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Hóa học",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư toán vui tính cho bé lười học lớp 6",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Ôn thi chuyên toán lớp 9, rèn tư duy, bài khó",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tu_duy"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tu_duy"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm gia sư tiếng Anh dạy online buổi tối, dưới 150 nghìn",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": 150000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": 150000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Lý 12 ôn thi tốt nghiệp, học ở Ba Đình hoặc Hoàn Kiếm",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Hoàn Kiếm"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Hoàn Kiếm"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán 10 cần kèm sát, chiều thứ 7",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "can_kem_cap"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "can_kem_cap"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "cô giáo dạy anh văn lớp 11 nghiêm khắc",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "nghiem_khac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "nghiem_khac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư toán lớp 8 khoảng 200k ở Tây Hồ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Tây Hồ"
+    ],
+    "price_min": 160000,
+    "price_max": 240000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Tây Hồ"
+    ],
+    "price_min": 160000,
+    "price_max": 240000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "vật lý lớp 9, con mất gốc, học tại nhà",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "luyện nói tiếng Anh cho học sinh lớp 8 ngại giao tiếp",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": false
+  },
+  {
+   "text": "Toán lớp 11 cải thiện điểm, thứ 3 thứ 6 tối, Cầu Giấy",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm gia sư lý lớp 10 online có dùng mô phỏng, tài liệu số",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tuong_tac_cong_nghe"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tuong_tac_cong_nghe"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Gia sư toán 9 chậm mà chắc, dưới 170k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": 170000,
+    "days": [],
+    "styleTags": [
+     "cham_chac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": 170000,
+    "days": [],
+    "styleTags": [
+     "cham_chac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tiếng Anh 12 ôn thi THPT quốc gia, 2 buổi cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "cần người dạy toán cho con học giỏi lớp 7 muốn thi hsg",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "lý 11 học tại Hai Bà Trưng, sáng chủ nhật, 200-300k",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hai Bà Trưng"
+    ],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hai Bà Trưng"
+    ],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư toán",
+   "expected": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tiếng anh lớp 10 luyện chứng chỉ, kiên nhẫn",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Dạy toán lớp 12 qua google meet, tối thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Lý 9 thi vào 10, học khá, giải thích kỹ, Đống Đa hoặc Ba Đình",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "giai_thich_ky"
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "giai_thich_ky"
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học sinh toán lớp 9 ôn thi vào 10 ở Cầu Giấy",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "nhận dạy tiếng Anh online cho học sinh lớp 6 đến 8",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7,
+     8
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7,
+     8
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tôi dạy lý 12 luyện thi đại học, mức 250k một buổi",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học viên toán mất gốc lớp 7 ở Hoàng Mai, tối các ngày trong tuần",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "Nhận học sinh IELTS",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy toán lớp 11 12 tại nhà khu Thanh Xuân, cuối tuần",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11,
+     12
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     11,
+     12
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học sinh giỏi toán để bồi dưỡng thi hsg",
+   "expected": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "nhận kèm lý 10 cho bạn học trung bình, chiều thứ 7, Đống Đa",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm học viên tiếng Anh lớp 9 ôn chuyên",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy toán 8 online, giá 150k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": 120000,
+    "price_max": 180000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": 120000,
+    "price_max": 180000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "con nhà tôi lớp 10 yếu hình học không gian, cần gia sư ở Long Biên",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "anh văn lớp 7 luyện từ vựng ngữ pháp, nhiều bài tập",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm gia sư toán tư duy cho lớp 6 học online thứ 2 và thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     3
+    ],
+    "styleTags": [
+     "tu_duy"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": false
+  },
+  {
+   "text": "Gia sư lý lớp 12 dưới 300k, ở đâu cũng được",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán 9 ôn vào 10 kiên nhẫn vui vẻ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan",
+     "vui_ve"
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan",
+     "vui_ve"
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Cần gia sư tiếng Anh cho bé lớp 6 ở Tây Hồ hoặc Ba Đình, chiều thứ 4",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Tây Hồ"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Ba Đình",
+     "Tây Hồ"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "lớp 11 học lý trên 200k",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán 12 cho học sinh trung bình ôn tốt nghiệp, có kế hoạch rõ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "ke_hoach_ro"
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "ke_hoach_ro"
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": [
+     "trung_binh"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "tiếng anh 11 cho học sinh khá, luyện đề nhiều",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ],
+    "goalTags": [],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "Gia sư toán lớp 8 tại nhà Hà Đông, tối thứ 3 thứ 5 thứ 7",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hà Đông"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     4,
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hà Đông"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     2,
+     4,
+     6
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư lý 10 nghiêm khắc cho con hay lười",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "nghiem_khac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "nghiem_khac"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Toán 7 học vượt online sáng chủ nhật",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "cần người dạy anh văn cho con lớp 12 thi đại học khối D",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Gia sư toán lớp 10 khoảng 250k online",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 300000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Dạy lý lớp 9 cho bé học chậm, kiên nhẫn, Cầu Giấy",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm gia sư tiếng Anh phát âm chuẩn lớp 8",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "toán lớp 11 ở Hoàn Kiếm từ 200k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàn Kiếm"
+    ],
+    "price_min": 200000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàn Kiếm"
+    ],
+    "price_min": 200000,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Lý 11 ôn thi học sinh giỏi, học online tối thứ 6",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     5
+    ],
+    "styleTags": [],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "gia sư toán lớp 9 cho học sinh giỏi thi chuyên ở Thanh Xuân",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Thanh Xuân"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "segmentTags": [
+     "gioi"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "tiếng anh cho trẻ lớp 6 vui vẻ, tài liệu số",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tuong_tac_cong_nghe",
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [
+     "tuong_tac_cong_nghe",
+     "vui_ve"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học sinh lý lớp 12 ôn tốt nghiệp online",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Nhận dạy toán lớp 6 cho các bạn mất gốc ở Long Biên dưới 150k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": null,
+    "price_max": 150000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": null,
+    "price_max": 150000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "mat_goc"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học viên tiếng Anh giao tiếp, cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     6,
+     7
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy toán 10 11 ôn đại học, Hai Bà Trưng hoặc Đống Đa",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hai Bà Trưng",
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hai Bà Trưng",
+     "Đống Đa"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "nhận kèm lý 9 cần kèm cặp sát sao",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "can_kem_cap"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": [
+     "can_kem_cap"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "Tìm học sinh lớp 8 học toán buổi tối thứ 2 thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     1,
+     3
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "dạy tiếng Anh lớp 10 12, 200-250k",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10,
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 250000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10,
+     12
+    ],
+    "mode": null,
+    "scope": null,
+    "districts": [],
+    "price_min": 200000,
+    "price_max": 250000,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Nhận học sinh toán ở đâu cũng được",
+   "expected": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Toán",
+    "grades": [],
+    "mode": null,
+    "scope": "ANY",
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  },
+  {
+   "text": "Dạy lý lớp 11 online cho học sinh khá muốn cải thiện điểm",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "got": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "scope": null,
+    "districts": [],
+    "price_min": null,
+    "price_max": null,
+    "days": [],
+    "styleTags": [],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   },
+   "all_right": true
+  },
+  {
+   "text": "tìm học viên anh văn lớp 7 tại Hoàng Mai, chiều chủ nhật",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "got": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "scope": null,
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "price_min": null,
+    "price_max": null,
+    "days": [
+     7
+    ],
+    "styleTags": [],
+    "goalTags": [],
+    "segmentTags": []
+   },
+   "all_right": true
+  }
+ ]
+}
