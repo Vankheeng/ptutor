@@ -11,17 +11,37 @@ the criteria typed into a search; the answer key (rel, P(accept)) is computed fr
 import math
 import random
 
-from common import OUT, SEED, uid, write_json
+from common import OUT, SCENARIO, SEED, uid, write_json
+from textonly import CONTRARY, EXCLUDED_TAGS, NEEDS, adjust
 
 SUBJECTS = ["Toán", "Tiếng Anh", "Vật lý"]
 CITIES = {
     "Hà Nội": ["Cầu Giấy", "Đống Đa", "Ba Đình", "Hà Đông", "Hai Bà Trưng", "Hoàng Mai"],
     "Hồ Chí Minh": ["Bến Thành", "Bình Thạnh", "Bình Tân", "Bàn Cờ", "An Đông", "Bình Tây"],
 }
-N_TUTORS = 120
-N_STUDENTS = 60
 LOW_RELIABILITY_SHARE = 0.12
 UNFOUNDED_COMPLAINT_SHARE = 0.08
+
+# What changes per scenario (plan of 21/10/2026, 2.1). "base" must keep drawing exactly the same world.
+SCENARIOS = {
+    "base": {"subjects": SUBJECTS, "subject_weights": [0.45, 0.35, 0.2], "cities": CITIES, "tutors": 120,
+             "students": 60, "famous": 0.0, "new": 0.0, "t2s_tutors": None,
+             "tutor_modes": [0.35, 0.3, 0.35], "student_modes": [0.35, 0.25, 0.4]},
+    # Many candidates per search and competition for places (2.2): 2 subjects, 1 city, 4 districts; 15% of the
+    # tutors are popular with only 1-2 places, 20% are new (no history, no review).
+    "crowded": {"subjects": ["Toán", "Tiếng Anh"], "subject_weights": [0.55, 0.45],
+                "cities": {"Hà Nội": ["Cầu Giấy", "Đống Đa", "Ba Đình", "Hai Bà Trưng"]}, "tutors": 600,
+                "students": 300, "famous": 0.15, "new": 0.20, "t2s_tutors": 150,
+                # Mostly in person in the same 4 districts, so that both sides compete for the same people.
+                "tutor_modes": [0.7, 0.05, 0.25], "student_modes": [0.6, 0.05, 0.35]},
+    # What a student needs is only in the prose (2.3); enough candidates per search for the order to matter.
+    "text-only": {"subjects": ["Toán", "Tiếng Anh"], "subject_weights": [0.5, 0.5],
+                  "cities": {"Hà Nội": ["Cầu Giấy", "Đống Đa", "Ba Đình", "Hai Bà Trưng"]}, "tutors": 300,
+                  "students": 120, "famous": 0.0, "new": 0.0, "t2s_tutors": 0,
+                  "tutor_modes": [0.7, 0.05, 0.25], "student_modes": [0.6, 0.05, 0.35]},
+}
+TEXT_ONLY = SCENARIO == "text-only"
+S = SCENARIOS.get(SCENARIO, SCENARIOS["base"])
 
 GOALS_BY_GRADE = {
     6: ["cai_thien_diem", "hoc_vuot", "hoc_sinh_gioi"],
@@ -142,9 +162,10 @@ class Writer:
 
 
 def make_tutor(index: int, rng: random.Random, writer: Writer) -> dict:
-    city = rng.choice(list(CITIES))
-    home = rng.choice(CITIES[city])
-    subjects = rng.sample(SUBJECTS, 2 if rng.random() < 0.35 else 1)
+    cities = S["cities"]
+    city = rng.choice(list(cities))
+    home = rng.choice(cities[city])
+    subjects = rng.sample(S["subjects"], 2 if rng.random() < 0.35 else 1)
     # Most tutors teach Toán or Tiếng Anh, like on the real platform.
     level = rng.choice(["thcs", "thpt", "both"])
     teach_lo, teach_hi = {"thcs": (6, 9), "thpt": (10, 12), "both": (6, 12)}[level]
@@ -169,20 +190,64 @@ def make_tutor(index: int, rng: random.Random, writer: Writer) -> dict:
         "topics": {subject: rng.sample(TOPICS[subject], rng.randint(2, 4)) for subject in subjects},
         "styles": rng.sample(STYLES, rng.randint(2, 3)),
         "segments": rng.sample(SEGMENTS, rng.randint(1, 2)),
-        "mode": rng.choices(["OFFLINE", "ONLINE", "BOTH"], [0.35, 0.3, 0.35])[0],
-        "districts": sorted({home, *rng.sample(CITIES[city], rng.randint(2, 4))}),
+        "mode": rng.choices(["OFFLINE", "ONLINE", "BOTH"], S["tutor_modes"])[0],
+        "districts": sorted({home, *rng.sample(cities[city], min(len(cities[city]), rng.randint(2, 4)))}),
         "slots": sorted(slots),
         "capacity": rng.randint(1, 3),
         "reliable": rng.random() >= LOW_RELIABILITY_SHARE,
         "quality": round(min(1.0, 0.45 + experience * 0.04 + rng.uniform(-0.1, 0.15)), 2),
         "sketchy": rng.random() < 0.15,
     }
+    if S["famous"] or S["new"]:
+        kind = rng.random()
+        if kind < S["famous"]:
+            # Popular: everybody wants them, but they only have one or two places.
+            tutor.update(famous=True, experience=rng.randint(10, 15), quality=round(rng.uniform(0.9, 1.0), 2),
+                         capacity=rng.randint(1, 2), styles=rng.sample(STYLES, 3), sketchy=False, reliable=True)
+        elif kind < S["famous"] + S["new"]:
+            # New on the platform: no history, no review.
+            tutor.update(new=True, experience=rng.randint(0, 2))
+    if TEXT_ONLY:
+        strip_excluded(tutor, rng)
+        possible = [need for need in NEEDS if need != "speaking" or "Tiếng Anh" in subjects]
+        tutor["specialties"] = rng.sample(possible, rng.choice([0, 1, 1, 2]))
+        if rng.random() < 0.25:
+            options = [code for code, item in CONTRARY.items() if not item["against"] & set(tutor["specialties"])]
+            tutor["contrary"] = rng.choice(options)
     tutor["profile"] = tutor_profile_text(tutor, writer)
     tutor["postings"] = [make_teaching_posting(tutor, number, subject, rng, writer)
                          for number, subject in enumerate(subjects)]
     if len(subjects) == 1 and rng.random() < 0.4:
         tutor["postings"].append(make_teaching_posting(tutor, 1, subjects[0], rng, writer))
+    if TEXT_ONLY:
+        # The experience is only told in the introduction and in the postings, in varied words.
+        said = [rng.choice(NEEDS[need]["tutor"]) for need in tutor["specialties"]]
+        if tutor.get("contrary"):
+            said.append(rng.choice(CONTRARY[tutor["contrary"]]["tutor"]))
+        if said:
+            tutor["profile"]["introduction"] += " " + writer.roughen(". ".join(said).capitalize() + ".")
+            for posting in tutor["postings"]:
+                posting["description"] += " " + writer.roughen(
+                    ". ".join(rng.choice(NEEDS[need]["tutor"]) for need in tutor["specialties"])
+                    + (". " + rng.choice(CONTRARY[tutor["contrary"]]["tutor"]) if tutor.get("contrary") else "")
+                ).strip(". ").capitalize() + "."
     return tutor
+
+
+def strip_excluded(entity: dict, rng: random.Random) -> None:
+    """No structured attribute may carry a concept of the free-text needs (text-only scenario)."""
+    def keep(codes, pool):
+        kept = [code for code in codes if code not in EXCLUDED_TAGS]
+        return kept or [rng.choice([code for code in pool if code not in EXCLUDED_TAGS])]
+
+    if "goals" in entity:
+        entity["goals"] = keep(entity["goals"], ["cai_thien_diem", "hoc_vuot", "thi_vao_10", "thi_dai_hoc"])
+    if "styles" in entity:
+        entity["styles"] = keep(entity["styles"], STYLES)
+    if "segments" in entity:
+        entity["segments"] = keep(entity["segments"], SEGMENTS)
+    if "topics" in entity and isinstance(entity["topics"], dict):
+        entity["topics"] = {subject: keep(codes, TOPICS[subject]) for subject, codes in entity["topics"].items()}
 
 
 def tutor_profile_text(tutor: dict, writer: Writer) -> dict:
@@ -233,9 +298,10 @@ def make_teaching_posting(tutor: dict, number: int, subject: str, rng: random.Ra
 
 
 def make_student(index: int, rng: random.Random, writer: Writer) -> dict:
-    city = rng.choice(list(CITIES))
+    cities = S["cities"]
+    city = rng.choice(list(cities))
     grade = rng.randint(6, 12)
-    subject = rng.choices(SUBJECTS, [0.45, 0.35, 0.2])[0]
+    subject = rng.choices(S["subjects"], S["subject_weights"])[0]
     stated = rng.sample(STYLES, rng.randint(1, 2))
     taste = rng.choice([style for style in STYLES if style not in stated])
     segment = rng.choices(SEGMENTS, [0.25, 0.3, 0.25, 0.1, 0.1])[0]
@@ -243,7 +309,7 @@ def make_student(index: int, rng: random.Random, writer: Writer) -> dict:
     student = {
         "key": f"s{index:02d}",
         "city": city,
-        "home": rng.choice(CITIES[city]),
+        "home": rng.choice(cities[city]),
         "grade": grade,
         "subject": subject,
         "goal": rng.choice(GOALS_BY_GRADE[grade]),
@@ -252,10 +318,24 @@ def make_student(index: int, rng: random.Random, writer: Writer) -> dict:
         "styles": stated,
         "taste": taste,
         "budget": rng.choice([120_000, 150_000, 180_000, 200_000, 250_000, 300_000]),
-        "mode": rng.choices(["OFFLINE", "ONLINE", "ANY"], [0.35, 0.25, 0.4])[0],
+        "mode": rng.choices(["OFFLINE", "ONLINE", "ANY"], S["student_modes"])[0],
         "slots": slots,
-        "has_posting": index % 4 != 0 and rng.random() < 0.75,
+        "has_posting": (index % 4 != 0 and rng.random() < 0.75) if SCENARIO == "base" else index % 10 != 0,
     }
+    if TEXT_ONLY:
+        # Structured attributes stay clear of the free-text needs; the need itself is only written in words.
+        if student["segment"] in EXCLUDED_TAGS:
+            student["segment"] = segment = rng.choice(["trung_binh", "kha", "gioi"])
+        if student["goal"] in EXCLUDED_TAGS:
+            student["goal"] = rng.choice([g for g in GOALS_BY_GRADE[grade] if g not in EXCLUDED_TAGS])
+        student["topics"] = [code for code in student["topics"] if code not in EXCLUDED_TAGS] or [
+            rng.choice([code for code in TOPICS[subject] if code not in EXCLUDED_TAGS])]
+        student["styles"] = stated = [code for code in stated if code not in EXCLUDED_TAGS] or [
+            rng.choice([code for code in STYLES if code not in EXCLUDED_TAGS])]
+        if student["taste"] in EXCLUDED_TAGS:
+            student["taste"] = rng.choice([code for code in STYLES if code not in EXCLUDED_TAGS + stated])
+        possible = [need for need in NEEDS if need != "speaking" or subject == "Tiếng Anh"]
+        student["need"] = rng.choice(possible) if rng.random() < 0.75 else None
     student["profile"] = {
         "current_level": writer.phrase(segment),
         "weak_points": writer.roughen(", ".join(writer.phrase(topic) for topic in student["topics"])),
@@ -273,6 +353,11 @@ def make_student(index: int, rng: random.Random, writer: Writer) -> dict:
             "learning_goals": writer.roughen(writer.phrase(student["goal"])),
             "schedule_text": writer.schedule(slots),
         }
+    if TEXT_ONLY and student["need"]:
+        student["profile"]["weak_points"] += ". " + writer.roughen(rng.choice(NEEDS[student["need"]]["student"]))
+        if student["has_posting"]:
+            student["posting"]["description"] += " " + writer.roughen(
+                rng.choice(NEEDS[student["need"]]["student"]).capitalize() + ".")
     return student
 
 
@@ -297,7 +382,7 @@ def rel(student: dict, posting: dict, tutor: dict) -> int:
     value = 1 + (need >= 0.35) + (need >= 0.6)
     if posting["price"] > student["budget"]:
         value = max(1, value - 1)
-    return int(value)
+    return adjust(int(value), student, tutor)
 
 
 BETA = {"b0": -1.0, "grade": 1.6, "price": 1.2, "segment": 1.0, "schedule": 1.2}
@@ -328,7 +413,8 @@ def make_queries(students, tutors, rng: random.Random) -> list:
             kinds.append("semantic")
         for kind in kinds:
             queries.append({"id": f"{student['key']}-{kind}", "side": "S2T", "owner": student["key"], "kind": kind})
-    for tutor in tutors:
+    searching = tutors if S["t2s_tutors"] is None else rng.sample(tutors, S["t2s_tutors"])
+    for tutor in searching:
         postings = tutor["postings"][: 1 if rng.random() < 0.5 else 2]
         for posting in postings:
             queries.append({"id": f"{posting['key']}-q", "side": "T2S", "owner": tutor["key"],
@@ -343,14 +429,14 @@ def make_queries(students, tutors, rng: random.Random) -> list:
 def build() -> dict:
     rng = random.Random(SEED)
     writer = Writer(rng)
-    tutors = [make_tutor(index, rng, writer) for index in range(1, N_TUTORS + 1)]
-    students = [make_student(index, rng, writer) for index in range(1, N_STUDENTS + 1)]
-    reliable = [tutor for tutor in tutors if tutor["reliable"]]
+    tutors = [make_tutor(index, rng, writer) for index in range(1, S["tutors"] + 1)]
+    students = [make_student(index, rng, writer) for index in range(1, S["students"] + 1)]
+    reliable = [tutor for tutor in tutors if tutor["reliable"] and not tutor.get("new")]
     for tutor in rng.sample(reliable, int(len(tutors) * UNFOUNDED_COMPLAINT_SHARE)):
         tutor["unfounded_complaint"] = True
     for entity in tutors + students:
         entity["id"] = uid("eval", entity["key"])
-    return {"seed": SEED, "tutors": tutors, "students": students,
+    return {"seed": SEED, "scenario": SCENARIO, "tutors": tutors, "students": students,
             "queries": make_queries(students, tutors, rng), "beta": BETA}
 
 

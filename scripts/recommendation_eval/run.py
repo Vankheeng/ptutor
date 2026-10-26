@@ -21,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 
-from common import DATABASE, DB_URL, OUT, REPO, SEED, Api, psql, query_json, read_json, uid, wait_for_api, write_json
+from common import DATABASE, DB_URL, OUT, SCENARIO, REPO, SEED, Api, psql, query_json, read_json, uid, wait_for_api, write_json
 from world import rel
 
 JAR = REPO / "backend" / "target" / "backend-0.0.1-SNAPSHOT.jar"
@@ -30,6 +30,9 @@ BASE = {
     "app.recommendation.log-candidate-limit": "200",
     "app.recommendation.learning.enabled": "false",
     "app.recommendation.proactive.enabled": "false",
+    # Thousands of postings at once: the default worker (5 jobs every 30 s) needs hours for A1. Calls stay one at a time.
+    "app.recommendation.enrichment.batch-size": "20",
+    "app.recommendation.enrichment.worker-interval-ms": "1000",
     # Phase and relaxation timings for step 27 (design 09, 9.5).
     "logging.level.com.ptutor.backend.service.RecommendationService": "DEBUG",
     "logging.level.com.ptutor.backend.service.StudentRecommendationService": "DEBUG",
@@ -47,10 +50,28 @@ CONFIGS = {
     "V2-full-H1": {"history.enabled": OFF},
     "V2-full-A1": {"enrichment.use-llm-tags": OFF},
 }
+# Text-only scenario (2.3): cosine only against rerank, a sweep of the rerank weight and of the weight of f_sem.
+# Exploration and history are off so that only the reading of the text changes. Not part of "all".
+QUIET = {"exploration.enabled": OFF, "history.enabled": OFF}
+SEM_045 = {"weights.sem": "0.45", "weights.need": "0.1571", "weights.price": "0.1571", "weights.style": "0.0786",
+           "weights.sched": "0.0786", "weights.area": "0.0393", "weights.segment": "0.0393"}
+TEXT_CONFIGS = {
+    "cosine-only": {**QUIET, "rerank.enabled": OFF},
+    "rerank-w0.3": {**QUIET, "semantic.rerank-weight": "0.3"},
+    "rerank-w0.5": {**QUIET, "semantic.rerank-weight": "0.5"},
+    "rerank-w0.7": {**QUIET, "semantic.rerank-weight": "0.7"},
+    "rerank-w0.9": {**QUIET, "semantic.rerank-weight": "0.9"},
+    "cosine-only-sem0.45": {**QUIET, "rerank.enabled": OFF, **SEM_045},
+    "rerank-w0.7-sem0.45": {**QUIET, "semantic.rerank-weight": "0.7", **SEM_045},
+    # The 1.5 s budget cuts many searches short (10 pairs take ~1.75 s): rerank with room to score all ten.
+    "rerank-w0.7-t4000": {**QUIET, "semantic.rerank-weight": "0.7", "rerank.timeout-ms": "4000"},
+}
 PAGE_SIZE = 20
 
 
 def start_backend(properties: dict, log_name: str) -> subprocess.Popen:
+    if not JAR.exists():
+        raise SystemExit(f"{JAR} is missing: run mvnw package -DskipTests in backend first")
     args = ["java", "-Xmx768m", "-jar", str(JAR)] + [f"--{key}={value}" for key, value in properties.items()]
     log = open(OUT / f"backend-{log_name}.log", "w", encoding="utf-8")
     process = subprocess.Popen(args, cwd=REPO / "backend", stdout=log, stderr=subprocess.STDOUT)
@@ -68,7 +89,8 @@ def stop_backend(process: subprocess.Popen) -> None:
 
 def config_properties(name: str) -> dict:
     properties = dict(BASE)
-    properties.update({f"app.recommendation.{key}": value for key, value in CONFIGS[name].items()})
+    settings = CONFIGS[name] if name in CONFIGS else TEXT_CONFIGS[name]
+    properties.update({f"app.recommendation.{key}": value for key, value in settings.items()})
     return properties
 
 
@@ -158,17 +180,21 @@ def export_logs(log_ids) -> dict:
     return {row["id"]: row for row in rows}
 
 
-def run_config(name: str, world: dict) -> None:
+def run_config(name: str, world: dict, side: str | None = None) -> None:
+    if SCENARIO == "text-only" and DATABASE not in ("ptutor", "ptutor_test"):
+        # Every rerank setting starts cold: scores cached by the previous one would hide the time budget.
+        psql("DELETE FROM recommendation_rerank_cache;")
     process = start_backend(config_properties(name), name)
     try:
         catalog = Catalog()
         sessions = logins(world)
         index = index_world(world)
         results = {}
-        for number, query in enumerate(world["queries"], start=1):
+        queries = [query for query in world["queries"] if side is None or query["side"] == side]
+        for number, query in enumerate(queries, start=1):
             results[query["id"]] = search(sessions[query["owner"]], query, index, catalog)
             if number % 50 == 0:
-                print(f"  {name}: {number}/{len(world['queries'])}", flush=True)
+                print(f"  {name}: {number}/{len(queries)}", flush=True)
         logs = export_logs([result["logId"] for result in results.values()])
         for result in results.values():
             log = logs.get(result["logId"], {})
@@ -197,7 +223,7 @@ SELECT
 """
 
 
-def wait_for_pipeline(timeout: float = 3600) -> None:
+def wait_for_pipeline(timeout: float = 6 * 3600) -> None:
     deadline = time.time() + timeout
     while time.time() < deadline:
         state = query_json(PIPELINE_SQL)[0]
@@ -250,18 +276,44 @@ def reset_database() -> None:
     psql(f"CREATE DATABASE {DATABASE};", database="postgres")
 
 
-def setup(world: dict) -> None:
+def wait_for_catalog(timeout: float = 300) -> None:
+    """The web server answers before the start-up runners have created the subjects, grades and tags."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        state = query_json("SELECT (SELECT count(*) FROM grades) AS grades, (SELECT count(*) FROM subjects) AS subjects, "
+                           "(SELECT count(*) FROM recommendation_tags WHERE tag_group = 'TOPIC') AS topics")[0]
+        if state["grades"] >= 12 and state["subjects"] > 0 and state["topics"] > 0:
+            return
+        time.sleep(3)
+    raise TimeoutError("the catalog was not created")
+
+
+def setup(world: dict, resume: bool = False) -> None:
+    """resume: continue on the database a stopped setup left (no reset, no new load, so A1 is not paid twice)."""
     import load
 
-    reset_database()
+    if not resume:
+        reset_database()
     properties = config_properties("V2-full")
     properties["app.tutor-recommendation.recalculation-cron"] = "0 * * * * *"
     # Queue the embedding and enrichment of the new rows soon after loading them.
     properties["app.recommendation.embedding.backfill-initial-delay-ms"] = "60000"
     process = start_backend(properties, "setup")
     try:
-        psql(load.build_sql(world))
-        print("loaded", load.counts(), flush=True)
+        wait_for_catalog()
+        if resume:
+            # Jobs a stopped backend left half done go back to the queue.
+            psql("UPDATE ai_enrichment_jobs SET status = 'PENDING' WHERE status = 'PROCESSING';")
+            print("resuming on the existing database", flush=True)
+        elif SCENARIO == "text-only":
+            # The free-text needs must not be expressible as tags (textonly.py): switch the overlapping ones off
+            # before A1 runs.
+            from textonly import EXCLUDED_TAGS
+            codes = ", ".join(f"'{code}'" for code in EXCLUDED_TAGS)
+            psql(f"UPDATE recommendation_tags SET status = 'INACTIVE' WHERE code IN ({codes});")
+        if not resume:
+            psql(load.build_sql(world))
+            print("loaded", load.counts(), flush=True)
         wait_for_pipeline()
         browse(world)
         time.sleep(30)
@@ -270,6 +322,10 @@ def setup(world: dict) -> None:
         print(f"prepared: {profiles} preference profiles", flush=True)
     finally:
         stop_backend(process)
+    # A frozen copy: market.py starts every configuration from exactly this state.
+    psql(f"DROP DATABASE IF EXISTS {DATABASE}_seed WITH (FORCE);", database="postgres")
+    psql(f"CREATE DATABASE {DATABASE}_seed TEMPLATE {DATABASE};", database="postgres")
+    print(f"copied to {DATABASE}_seed", flush=True)
 
 
 def main() -> int:
@@ -279,11 +335,16 @@ def main() -> int:
         print(__doc__)
         return 1
     if sys.argv[1] == "setup":
-        setup(world)
+        setup(world, resume="--resume" in sys.argv)
         return 0
+    side = None
+    if "--side" in sys.argv:
+        position = sys.argv.index("--side")
+        side = sys.argv[position + 1]
+        del sys.argv[position:position + 2]
     names = list(CONFIGS) if len(sys.argv) < 3 or sys.argv[2] == "all" else sys.argv[2:]
     for name in names:
-        run_config(name, world)
+        run_config(name, world, side)
     return 0
 
 

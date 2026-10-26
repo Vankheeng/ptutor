@@ -25,6 +25,11 @@ from scoring import A_S2T, B_S2T, Params
 PRIOR_A = np.array([0.30, 0.20, 0.20, 0.10, 0.10, 0.05, 0.05])
 W_STAR = np.array([0.15, 0.20, 0.35, 0.10, 0.10, 0.05, 0.05])  # hidden: price up, sem down
 BAD_PRIOR = np.full(7, 1 / 7)
+# The prior turned upside down: the most important feature gets the smallest weight (2.5).
+REVERSED_PRIOR = np.array([0.05, 0.05, 0.10, 0.10, 0.20, 0.20, 0.30])
+# Drift (2.5): from the search DRIFT_AT on, the searchers care about the need more and the price less.
+W_DRIFT = np.array([0.15, 0.35, 0.15, 0.10, 0.10, 0.05, 0.10])
+CURRENT = [None]  # the hidden weights in force at the current step
 PRIOR_B = np.array([0.5, 1 / 6, 1 / 6, 1 / 6])
 BETA_STAR = np.array([-2.0, 2.5, 1.0, 1.5, 1.5])  # intercept, hist, fitSegment, fitSched, fitPrice
 KAPPA_U, CENTER_U, NOISE_U = 12.0, 0.55, 0.05
@@ -66,7 +71,7 @@ def scores(search: dict, weights_a: np.ndarray, weights_b: np.ndarray) -> np.nda
 
 
 def utility(search: dict) -> np.ndarray:
-    return search["x"] @ W_STAR
+    return search["x"] @ (W_STAR if CURRENT[0] is None else CURRENT[0])
 
 
 def attraction(u: np.ndarray) -> np.ndarray:
@@ -91,11 +96,13 @@ def p_accept(search: dict, index: np.ndarray) -> np.ndarray:
 
 
 def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: float = 1.0,
-             ipw: bool = False, intercept_kappa: float = INTERCEPT_KAPPA, scaled_prior: bool = True) -> dict:
-    """intercept_kappa = kappa and scaled_prior = False reproduce the model before 21/10/2026 (design 12, 12.3)."""
+             ipw: bool = False, intercept_kappa: float = INTERCEPT_KAPPA, scaled_prior: bool = True,
+             drift_at: int | None = None, forgetting: float = 1.0) -> dict:
+    """intercept_kappa = kappa and scaled_prior = False reproduce the model before 21/10/2026 (design 12, 12.3).
+    drift_at: the hidden weights become W_DRIFT from that search on; forgetting: γ before every update."""
     rng = np.random.default_rng(seed)
     searches = load_searches.cache
-    prior = BAD_PRIOR if strategy == "LinTS-bad" else PRIOR_A
+    prior = {"LinTS-bad": BAD_PRIOR, "LinTS-reversed": REVERSED_PRIOR}.get(strategy, PRIOR_A)
 
     def new_model(weights, batch):
         # Like WeightLearningService: beta is measured on the first batch.
@@ -112,10 +119,12 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
     pending_a, pending_b = [], []
     samples = {}
     history = {"regret": [], "weight_error": [], "reward": [], "b_logloss": [], "b_auc": [], "clamped": 0,
-               "max_step_seen": 0.0}
+               "max_step_seen": 0.0, "weights": []}
     cumulative = 0.0
     day_weights = {}
     for step in range(steps):
+        CURRENT[0] = W_DRIFT if drift_at is not None and step >= drift_at else W_STAR
+        w_star = CURRENT[0] / CURRENT[0].sum()
         search = searches[rng.integers(len(searches))]
         if strategy == "Oracle":
             order = np.argsort(-utility(search))
@@ -155,6 +164,8 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                     x, r, s = map(np.array, zip(*pending_a))
                     if first_a:
                         model, first_a = new_model(prior, (x, r, s)), False
+                    elif forgetting < 1:
+                        model.forget(forgetting)
                     model.update_batch(x, r, s)
                 new = project(model.mean(), prior, served, MIN_RATIO, MAX_RATIO, MAX_STEP)
                 history["max_step_seen"] = max(history["max_step_seen"], float(np.max(np.abs(new - served))))
@@ -174,13 +185,15 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
             history["b_auc"].append(b_quality(model_b, pending_b)[1])
             pending_a, pending_b = [], []
             day_weights = {}
-            current = PRIOR_A if strategy == "Fixed" else (W_STAR if strategy == "Oracle" else served)
+            current = PRIOR_A if strategy == "Fixed" else (CURRENT[0] if strategy == "Oracle" else served)
             history["weight_error"].append(float(np.abs(current / current.sum() - w_star).sum()))
+            history["weights"].append((current / current.sum()).tolist())
             history["regret"].append(cumulative)
             history["reward"].append(gained)
         samples["final_weights"] = (served if strategy not in ("Fixed", "Oracle") else
-                                    (PRIOR_A if strategy == "Fixed" else W_STAR)).tolist()
+                                    (PRIOR_A if strategy == "Fixed" else CURRENT[0])).tolist()
     history.update(samples)
+    CURRENT[0] = None
     return history
 
 
@@ -212,7 +225,7 @@ def main() -> int:
     steps, seeds = (1000, 3) if quick else (3000, 10)
     load_searches.cache = load_searches()
     print(f"{len(load_searches.cache)} searches with at least {SHOWN} logged candidates", flush=True)
-    strategies = ["Fixed", "LinTS-prior", "LinTS-bad", "Greedy", "Oracle"]
+    strategies = ["Fixed", "LinTS-prior", "LinTS-bad", "LinTS-reversed", "Greedy", "Oracle"]
     runs = {name: [simulate(name, SEED + seed, steps) for seed in range(seeds)] for name in strategies}
     # The model before 21/10/2026, for comparison: same strength on the intercept, prior on the scale of the weights.
     runs["LinTS-prior (κ₀=κ, β=1)"] = [simulate("LinTS-prior", SEED + seed, steps, intercept_kappa=200.0,
@@ -237,6 +250,7 @@ def main() -> int:
         })
     write_rows(RESULTS / "9.9.4-hoc-trong-so.csv", rows)
     plot(runs, steps)
+    plot_trajectories(runs["LinTS-prior"], runs["LinTS-reversed"], steps)
     for row in rows:
         print({key: (round(value, 4) if isinstance(value, float) else value) for key, value in row.items()})
 
@@ -251,8 +265,75 @@ def main() -> int:
                                         "weight_error_final": float(np.mean([h["weight_error"][-1] for h in histories]))})
         write_rows(RESULTS / "9.9.4-do-nhay-L1.csv", sensitivity)
         print("L1 sensitivity:", *sensitivity, sep="\n  ")
+        plot_kappa(sensitivity)
+        drift(steps, seeds)
     print("prior weights", PRIOR_A, "hidden w*", W_STAR, "names", A_S2T)
     return 0
+
+
+def drift(steps: int, seeds: int) -> None:
+    """2.5: the searchers change their mind half way; does forgetting (γ < 1) catch up faster?"""
+    at = steps // 2
+    runs = {
+        "Fixed": [simulate("Fixed", SEED + s, steps, drift_at=at) for s in range(seeds)],
+        "LinTS γ=1": [simulate("LinTS-prior", SEED + s, steps, drift_at=at) for s in range(seeds)],
+        "LinTS γ=0,99": [simulate("LinTS-prior", SEED + s, steps, drift_at=at, forgetting=0.99) for s in range(seeds)],
+        "LinTS γ=0,9": [simulate("LinTS-prior", SEED + s, steps, drift_at=at, forgetting=0.9) for s in range(seeds)],
+        "Oracle": [simulate("Oracle", SEED + s, steps, drift_at=at) for s in range(seeds)],
+    }
+    rows = []
+    for name, histories in runs.items():
+        regret = np.array([h["regret"] for h in histories])
+        error = np.array([h["weight_error"] for h in histories])
+        half = at // BATCH - 1
+        rows.append({"strategy": name, "regret_final": float(regret[:, -1].mean()),
+                     "regret_after_drift": float((regret[:, -1] - regret[:, half]).mean()),
+                     "weight_error_before_drift": float(error[:, half].mean()),
+                     "weight_error_final": float(error[:, -1].mean())})
+    write_rows(RESULTS / "9.9.5-drift.csv", rows)
+    plot(runs, steps, RESULTS / "9.9.5-drift.png", f"đổi w* ở lần tìm {at}")
+    for row in rows:
+        print("drift", {k: (round(v, 4) if isinstance(v, float) else v) for k, v in row.items()})
+
+
+def plot_trajectories(prior_runs: list, reversed_runs: list, steps: int) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    x = np.arange(BATCH, steps + 1, BATCH)
+    figure, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
+    for axis, histories, title in ((axes[0], prior_runs, "LinTS-prior"), (axes[1], reversed_runs, "LinTS-reversed")):
+        weights = np.mean([h["weights"] for h in histories], axis=0)
+        for k, name in enumerate(A_S2T):
+            line = axis.plot(x, weights[:, k], label=name)[0]
+            axis.axhline(W_STAR[k], color=line.get_color(), linestyle="--", linewidth=0.8)
+        axis.set_title(f"Quỹ đạo trọng số — {title} (nét đứt: w*)")
+        axis.set_xlabel("Số lần tìm")
+    axes[0].legend(fontsize=8)
+    figure.tight_layout()
+    figure.savefig(RESULTS / "9.9.4-quy-dao-trong-so.png", dpi=150)
+    plt.close(figure)
+
+
+def plot_kappa(sensitivity: list) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    figure, axis = plt.subplots(figsize=(6, 4))
+    for ipw in (False, True):
+        for rho in (0.0, 1.0):
+            rows = [r for r in sensitivity if r["ipw"] == ipw and r["rho"] == rho]
+            axis.plot([r["kappa"] for r in rows], [r["weight_error_final"] for r in rows], marker="o",
+                      label=f"ρ={rho:g}{', IPW' if ipw else ''}")
+    axis.set_xscale("log")
+    axis.set_xlabel("κ (độ mạnh prior)")
+    axis.set_ylabel("‖w − w*‖₁ sau 3 000 lần tìm")
+    axis.legend(fontsize=8)
+    figure.tight_layout()
+    figure.savefig(RESULTS / "9.9.4-sai-so-theo-kappa.png", dpi=150)
+    plt.close(figure)
 
 
 def write_rows(path, rows: list) -> None:
@@ -263,7 +344,7 @@ def write_rows(path, rows: list) -> None:
             writer.writerow({key: (f"{value:.4f}" if isinstance(value, float) else value) for key, value in row.items()})
 
 
-def plot(runs: dict, steps: int) -> None:
+def plot(runs: dict, steps: int, path=None, note: str = "") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -275,14 +356,14 @@ def plot(runs: dict, steps: int) -> None:
         error = np.mean([h["weight_error"] for h in histories], axis=0)
         axes[0].plot(x, regret, label=name)
         axes[1].plot(x, error, label=name)
-    axes[0].set_title("Regret tích luỹ")
+    axes[0].set_title("Regret tích luỹ" + (f" ({note})" if note else ""))
     axes[1].set_title("Sai số trọng số ‖w − w*‖₁")
     axes[1].axhline(0.05, color="grey", linestyle="--", linewidth=0.8)
     for axis in axes:
         axis.set_xlabel("Số lần tìm")
         axis.legend(fontsize=8)
     figure.tight_layout()
-    figure.savefig(RESULTS / "9.9.4-regret-va-sai-so.png", dpi=150)
+    figure.savefig(path or RESULTS / "9.9.4-regret-va-sai-so.png", dpi=150)
     plt.close(figure)
 
 

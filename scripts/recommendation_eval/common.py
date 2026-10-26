@@ -87,6 +87,7 @@ class Api:
     def __init__(self, base: str = API):
         self.base = base
         self.token = None
+        self.credentials = None
 
     def call(self, method: str, path: str, body=None, retries: int = 3):
         data = None if body is None else json.dumps(body).encode("utf-8")
@@ -101,6 +102,10 @@ class Api:
                     return json.loads(payload) if payload else None
             except error.HTTPError as failure:
                 detail = failure.read().decode("utf-8", errors="replace")
+                if failure.code == 401 and self.credentials and attempt + 1 < retries:
+                    self.login(*self.credentials)  # the access token expired during a long run
+                    headers["Authorization"] = "Bearer " + self.token
+                    continue
                 if failure.code >= 500 and attempt + 1 < retries:
                     time.sleep(2)
                     continue
@@ -113,8 +118,11 @@ class Api:
         return None
 
     def login(self, email: str, password: str = PASSWORD) -> "Api":
+        self.token = None
+        self.credentials = None  # no retry-by-login while logging in
         body = self.call("POST", "/api/v1/auth/login", {"email": email, "password": password})
         self.token = body["data"]["accessToken"]
+        self.credentials = (email, password)
         return self
 
 

@@ -69,6 +69,11 @@ def slots_sql(table: str, column: str, owner: str, slots) -> list:
             f"ON CONFLICT DO NOTHING;" for day, start, end in slots]
 
 
+def student_number(world: dict, number: int) -> int:
+    """Citizen ID number of a student: after every tutor (500 kept for the base world, which has 300 tutors)."""
+    return max(500, len(world["tutors"])) + number
+
+
 def entities_sql(world: dict, rng: random.Random) -> list:
     out = []
     for number, tutor in enumerate(world["tutors"], start=1):
@@ -103,7 +108,7 @@ def entities_sql(world: dict, rng: random.Random) -> list:
     for number, student in enumerate(world["students"], start=1):
         key = student["key"]
         profile = student["profile"]
-        out.append(user_sql(key, 500 + number, student["city"], student["home"], rng))
+        out.append(user_sql(key, student_number(world, number), student["city"], student["home"], rng))
         out.append(
             f"INSERT INTO students (id, user_id, current_level, weak_points, goals_description) VALUES "
             f"({q(student['id'])}, {q(uid('user', key))}, {q(profile['current_level'])}, {q(profile['weak_points'])}, "
@@ -129,7 +134,9 @@ def history_sql(world: dict, rng: random.Random) -> list:
     """Applications and decisions over the last 28 days, then contracts, reviews and complaints."""
     out = []
     tutors = {tutor["key"]: tutor for tutor in world["tutors"]}
-    postings = [(posting, tutor) for tutor in world["tutors"] for posting in tutor["postings"]]
+    # New tutors have no history at all (crowded scenario).
+    postings = [(posting, tutor) for tutor in world["tutors"] for posting in tutor["postings"]
+                if not tutor.get("new")]
     seats = {posting["key"]: posting["quantity"] for posting, _ in postings}
     for student in world["students"]:
         scored = [(rel(student, posting, tutor), posting, tutor) for posting, tutor in postings
@@ -180,6 +187,24 @@ def history_sql(world: dict, rng: random.Random) -> list:
                 f"{q(student['posting']['id'])}, {posting['price']}, {q(posting['mode'])}, 'Tôi có thể dạy em.', "
                 f"{q(status)}, {ts(sent)}, {ts(answered)}, {ts(answered)}) ON CONFLICT DO NOTHING;")
 
+    # Popular tutors (crowded scenario): many finished contracts with good reviews before the 4 weeks.
+    for tutor in world["tutors"]:
+        if not tutor.get("famous"):
+            continue
+        posting = tutor["postings"][0]
+        for number in range(rng.randint(6, 12)):
+            student = rng.choice(world["students"])
+            application = uid("eval-application-famous", tutor["key"], number)
+            sent = NOW - timedelta(days=HISTORY_DAYS + 40 + number * 7)
+            out.append(
+                f"INSERT INTO student_tutor_requests (id, student_id, grade_id, teaching_request_id, proposed_price, "
+                f"learning_mode, status, created_at, updated_at, responded_at) VALUES ({q(application)}, "
+                f"{q(student['id'])}, {grade(posting['grades'][0])}, {q(posting['id'])}, {posting['price']}, "
+                f"{q(posting['mode'])}, 'ACCEPTED', {ts(sent)}, {ts(sent)}, {ts(sent + timedelta(hours=3))}) "
+                f"ON CONFLICT DO NOTHING;")
+            out += contract_sql(student, posting, tutor, application, sent + timedelta(hours=3), rng,
+                                force_complete=True)
+
     # Unfounded complaints need a finished contract of their own.
     for tutor in world["tutors"]:
         if tutor.get("unfounded_complaint"):
@@ -216,7 +241,7 @@ def contract_sql(student, posting, tutor, application, accepted: datetime, rng, 
     if not finished:
         return out
     closed = min(NOW - timedelta(hours=1), datetime.combine(end, datetime.min.time()) + timedelta(hours=20))
-    rating = rng.choice([4, 5, 5]) if tutor["reliable"] else rng.choice([2, 3, 3, 4])
+    rating = 5 if tutor.get("famous") else rng.choice([4, 5, 5]) if tutor["reliable"] else rng.choice([2, 3, 3, 4])
     out.append(f"INSERT INTO reviews (id, student_id, tutor_id, rating, comment, contract_id, created_at) VALUES "
                f"({q(uid('eval-review', contract))}, {q(student['id'])}, {q(tutor['id'])}, {rating}, "
                f"'Nhận xét sau khoá học.', {q(contract)}, {ts(closed)}) ON CONFLICT DO NOTHING;")

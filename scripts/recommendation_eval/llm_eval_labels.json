@@ -1,0 +1,2718 @@
+{
+ "note": "Nhãn nháp do Claude soạn 22/10/2026 theo 09 mục 9.5 — nhóm cần đọc và sửa trước khi đưa số vào báo cáo.",
+ "a1_tags": [
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 9,
+   "text": "Con nhà mình học lực trung bình, sắp thi vào 10 mà phần hình học còn yếu lắm, nhất là mấy bài chứng minh.",
+   "expected": [
+    "SEGMENT:trung_binh",
+    "GOAL:thi_vao_10",
+    "TOPIC:hinh_hoc_phang",
+    "TOPIC:chung_minh"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "em cần ôn thi đại học khối A, phần hàm số với tích phân em còn mơ hồ",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:ham_so_do_thi",
+    "TOPIC:giai_tich"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 7,
+   "text": "Bé nhà em mất gốc tiếng Anh, ngữ pháp gần như không biết gì. Mong cô kiên nhẫn ạ.",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "TOPIC:ngu_phap",
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 11,
+   "text": "Mình muốn luyện IELTS, target 6.5, kỹ năng nói và nghe đang kém nhất.",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:noi",
+    "TOPIC:nghe"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 10,
+   "text": "Con học khá nhưng phần động lực học hay nhầm, cần người giảng kỹ bản chất chứ không học thuộc công thức.",
+   "expected": [
+    "SEGMENT:kha",
+    "TOPIC:co_hoc",
+    "STYLE:giai_thich_ky"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 6,
+   "text": "Bé lớp 6 muốn học trước chương trình lớp 7, bé tiếp thu nhanh",
+   "expected": [
+    "GOAL:hoc_vuot"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 8,
+   "text": "Cần gia sư nghiêm khắc, giao nhiều bài tập về nhà, con hay lười làm bài. Yếu phần phương trình.",
+   "expected": [
+    "STYLE:nghiem_khac",
+    "STYLE:luyen_tap_nhieu",
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 9,
+   "text": "con thi chuyên Anh, cần luyện đọc hiểu và viết luận nâng cao",
+   "expected": [
+    "GOAL:thi_chuyen",
+    "TOPIC:doc_hieu",
+    "TOPIC:viet"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "Ôn thi tốt nghiệp, chỉ cần qua môn, con học yếu, cần người kèm sát từng buổi",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "SEGMENT:can_kem_cap"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 12,
+   "text": "Em muốn được 8+ lý thi đh, phần dao động cơ và sóng em làm sai nhiều",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:dao_dong_song"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 6,
+   "text": "Muốn con học vui vẻ, có trò chơi, con mới bắt đầu học từ vựng thôi",
+   "expected": [
+    "STYLE:vui_ve",
+    "TOPIC:tu_vung"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 11,
+   "text": "Con học giỏi, muốn đi thi học sinh giỏi thành phố, cần bài khó rèn tư duy",
+   "expected": [
+    "SEGMENT:gioi",
+    "GOAL:hoc_sinh_gioi",
+    "STYLE:tu_duy"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 10,
+   "text": "điểm toán trên lớp đang 5 phẩy, muốn lên 7. yếu hình học không gian",
+   "expected": [
+    "GOAL:cai_thien_diem",
+    "TOPIC:hinh_hoc_khong_gian"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 8,
+   "text": "Con phát âm sai nhiều, ngại giao tiếp với người nước ngoài.",
+   "expected": [
+    "TOPIC:phat_am",
+    "STYLE:giao_tiep"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 9,
+   "text": "Phần điện con không hiểu gì, mạch nối tiếp song song toàn sai. Muốn thi vào 10 chuyên lý.",
+   "expected": [
+    "TOPIC:dien_hoc",
+    "GOAL:thi_chuyen"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 7,
+   "text": "Cần cô dạy chậm mà chắc, con hổng kiến thức lớp 6",
+   "expected": [
+    "STYLE:cham_chac",
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "Học online qua zoom, có tài liệu số, cần ôn xác suất thống kê cho kỳ thi tốt nghiệp",
+   "expected": [
+    "STYLE:tuong_tac_cong_nghe",
+    "TOPIC:xac_suat_thong_ke",
+    "GOAL:thi_tot_nghiep_thpt"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 10,
+   "text": "Cần lộ trình rõ ràng, kiểm tra hàng tháng để theo dõi tiến độ ngữ pháp và từ vựng",
+   "expected": [
+    "STYLE:ke_hoach_ro",
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 11,
+   "text": "e cần học lại phần nhiệt và quang, đang học trung bình",
+   "expected": [
+    "TOPIC:nhiet_hoc",
+    "TOPIC:quang_hoc",
+    "SEGMENT:trung_binh"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 9,
+   "text": "Nhà ở Cầu Giấy, tìm gia sư cho con. Con học bình thường.",
+   "expected": []
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 12,
+   "text": "Cần đạt chứng chỉ B1 để xét tốt nghiệp đại học sau này, hiện đang mất gốc",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 8,
+   "text": "Bạn ấy học khá, muốn học vượt lên lớp 9 để ôn chuyên sớm",
+   "expected": [
+    "SEGMENT:kha",
+    "GOAL:hoc_vuot",
+    "GOAL:thi_chuyen"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 10,
+   "text": "Con cần người kiên nhẫn, giải thích kỹ, con hay hỏi lại nhiều lần. Phần chuyển động thẳng.",
+   "expected": [
+    "STYLE:kien_nhan",
+    "STYLE:giai_thich_ky",
+    "TOPIC:co_hoc"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 7,
+   "text": "luyện nghe nói là chính, con đọc viết ổn rồi",
+   "expected": [
+    "TOPIC:nghe",
+    "TOPIC:noi"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 11,
+   "text": "Chương lượng giác với cấp số con đang yếu, muốn cải thiện điểm kiểm tra giữa kỳ",
+   "expected": [
+    "GOAL:cai_thien_diem"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 10,
+   "text": "Cần gia sư dạy hệ phương trình và bất phương trình, con hay làm ẩu",
+   "expected": [
+    "TOPIC:phuong_trinh_he_phuong_trinh"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 12,
+   "text": "Ôn hạt nhân nguyên tử và sóng ánh sáng cho kỳ thi THPT",
+   "expected": [
+    "TOPIC:vat_ly_hat_nhan",
+    "TOPIC:quang_hoc",
+    "GOAL:thi_tot_nghiep_thpt"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 9,
+   "text": "Ôn thi vào 10, con cần làm nhiều đề",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "STYLE:luyen_tap_nhieu"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 6,
+   "text": "Bé lười học, cần thầy cô vui tính tạo hứng thú cho bé",
+   "expected": [
+    "STYLE:vui_ve"
+   ]
+  },
+  {
+   "entityType": "STUDYING_REQUEST",
+   "subject": "Toán",
+   "grade": 9,
+   "text": "Đại số con ok, chỉ cần luyện thêm hình. Mục tiêu 9 điểm thi vào 10.",
+   "expected": [
+    "TOPIC:hinh_hoc_phang",
+    "GOAL:thi_vao_10"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 9,
+   "text": "Giáo viên THCS 8 năm, chuyên ôn thi vào 10, mạnh phần hình học và chứng minh. Dạy chậm chắc.",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "TOPIC:hinh_hoc_phang",
+    "TOPIC:chung_minh",
+    "STYLE:cham_chac"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 11,
+   "text": "IELTS 8.0, nhận dạy luyện thi IELTS, tập trung speaking và writing",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu",
+    "TOPIC:noi",
+    "TOPIC:viet"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "Thạc sĩ toán, luyện thi đại học, chuyên giải tích và hàm số. Phương pháp rèn tư duy, nhiều bài khó.",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "TOPIC:giai_tich",
+    "TOPIC:ham_so_do_thi",
+    "STYLE:tu_duy"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 10,
+   "text": "Sinh viên Bách khoa, dạy lý cấp 3 cho các bạn mất gốc, giải thích bằng thí nghiệm",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "STYLE:giai_thich_ky"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 6,
+   "text": "Cô giáo trẻ, dạy tiếng Anh thiếu nhi qua trò chơi, bài hát, vui vẻ năng động",
+   "expected": [
+    "STYLE:vui_ve"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 8,
+   "text": "Kèm 1-1, nghiêm khắc, có kế hoạch học từng tuần và bài kiểm tra định kỳ",
+   "expected": [
+    "STYLE:nghiem_khac",
+    "STYLE:ke_hoach_ro"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 11,
+   "text": "Bồi dưỡng học sinh giỏi toán cấp tỉnh, chỉ nhận học sinh khá giỏi",
+   "expected": [
+    "GOAL:hoc_sinh_gioi",
+    "SEGMENT:gioi",
+    "SEGMENT:kha"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 9,
+   "text": "Luyện thi chuyên Anh, có bộ đề các trường chuyên",
+   "expected": [
+    "GOAL:thi_chuyen"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 12,
+   "text": "Dạy online có bảng điện tử, ôn thi tốt nghiệp và đại học môn lý",
+   "expected": [
+    "STYLE:tuong_tac_cong_nghe",
+    "GOAL:thi_tot_nghiep_thpt",
+    "GOAL:thi_dai_hoc"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 7,
+   "text": "Nhận kèm các bạn học trung bình, cần kèm sát. Rất kiên nhẫn.",
+   "expected": [
+    "SEGMENT:trung_binh",
+    "SEGMENT:can_kem_cap",
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 8,
+   "text": "Chuyên ngữ pháp và từ vựng nền tảng, nhiều bài tập",
+   "expected": [
+    "TOPIC:ngu_phap",
+    "TOPIC:tu_vung",
+    "STYLE:luyen_tap_nhieu"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 10,
+   "text": "Dạy toán 10 theo sgk, đại số và hình học tọa độ",
+   "expected": [
+    "TOPIC:dai_so"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 11,
+   "text": "Điện từ học, dao động và sóng, giảng bản chất hiện tượng",
+   "expected": [
+    "TOPIC:dien_hoc",
+    "TOPIC:dao_dong_song",
+    "STYLE:giai_thich_ky"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 10,
+   "text": "Luyện phát âm chuẩn giọng Mỹ, sửa lỗi từng âm, phù hợp bạn ngại nói",
+   "expected": [
+    "TOPIC:phat_am",
+    "TOPIC:noi"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "Ôn xác suất, tổ hợp cho kỳ thi đánh giá năng lực",
+   "expected": [
+    "TOPIC:xac_suat_thong_ke"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 6,
+   "text": "Gia sư toán lớp 6, nhẹ nhàng, giúp con lấy lại gốc",
+   "expected": [
+    "STYLE:kien_nhan",
+    "SEGMENT:mat_goc"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Vật lý",
+   "grade": 9,
+   "text": "Nhận dạy lý 9, đã có nhiều học sinh đỗ chuyên lý",
+   "expected": [
+    "GOAL:thi_chuyen"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Tiếng Anh",
+   "grade": 12,
+   "text": "Ôn thi THPT quốc gia môn Anh, cam kết lộ trình rõ, kiểm tra hàng tuần",
+   "expected": [
+    "GOAL:thi_tot_nghiep_thpt",
+    "STYLE:ke_hoach_ro"
+   ]
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 9,
+   "text": "Sinh viên sư phạm, dạy toán 9. Liên hệ zalo.",
+   "expected": []
+  },
+  {
+   "entityType": "TEACHING_REQUEST",
+   "subject": "Toán",
+   "grade": 11,
+   "text": "Hình học không gian là thế mạnh, có phần mềm vẽ hình 3D minh hoạ",
+   "expected": [
+    "TOPIC:hinh_hoc_khong_gian",
+    "STYLE:tuong_tac_cong_nghe"
+   ]
+  },
+  {
+   "entityType": "STUDENT",
+   "subject": "Toán",
+   "grade": 8,
+   "text": "Em học khá toán, muốn cải thiện điểm hình",
+   "expected": [
+    "SEGMENT:kha",
+    "GOAL:cai_thien_diem",
+    "TOPIC:hinh_hoc_phang"
+   ]
+  },
+  {
+   "entityType": "STUDENT",
+   "subject": "Tiếng Anh",
+   "grade": 11,
+   "text": "Mục tiêu IELTS 7.0 trước khi lên 12",
+   "expected": [
+    "GOAL:chung_chi_ngoai_ngu"
+   ]
+  },
+  {
+   "entityType": "STUDENT",
+   "subject": "Vật lý",
+   "grade": 10,
+   "text": "Yếu cơ học, thích học qua video và mô phỏng",
+   "expected": [
+    "TOPIC:co_hoc",
+    "STYLE:tuong_tac_cong_nghe"
+   ]
+  },
+  {
+   "entityType": "STUDENT",
+   "subject": "Toán",
+   "grade": 12,
+   "text": "Em mất gốc toán từ lớp 10, cần ôn lại để thi tốt nghiệp",
+   "expected": [
+    "SEGMENT:mat_goc",
+    "GOAL:thi_tot_nghiep_thpt"
+   ]
+  },
+  {
+   "entityType": "STUDENT",
+   "subject": "Tiếng Anh",
+   "grade": 7,
+   "text": "Thích học vui, sợ ngữ pháp",
+   "expected": [
+    "STYLE:vui_ve",
+    "TOPIC:ngu_phap"
+   ]
+  },
+  {
+   "entityType": "TUTOR",
+   "subject": "Toán",
+   "grade": 10,
+   "text": "10 năm dạy toán THPT, luyện thi đại học, phong cách nghiêm khắc",
+   "expected": [
+    "GOAL:thi_dai_hoc",
+    "STYLE:nghiem_khac"
+   ]
+  },
+  {
+   "entityType": "TUTOR",
+   "subject": "Tiếng Anh",
+   "grade": 9,
+   "text": "Giáo viên tiếng Anh, chuyên luyện thi vào 10 và giao tiếp",
+   "expected": [
+    "GOAL:thi_vao_10",
+    "STYLE:giao_tiep"
+   ]
+  },
+  {
+   "entityType": "TUTOR",
+   "subject": "Vật lý",
+   "grade": 11,
+   "text": "Kỹ sư điện, dạy thêm vật lý phần điện học cho cấp 3",
+   "expected": [
+    "TOPIC:dien_hoc"
+   ]
+  },
+  {
+   "entityType": "TUTOR",
+   "subject": "Toán",
+   "grade": 7,
+   "text": "Cô giáo tiểu học chuyển sang dạy toán THCS, kiên nhẫn với các bạn học chậm",
+   "expected": [
+    "STYLE:kien_nhan"
+   ]
+  },
+  {
+   "entityType": "TUTOR",
+   "subject": "Tiếng Anh",
+   "grade": 12,
+   "text": "Dạy viết luận và đọc hiểu nâng cao cho học sinh giỏi",
+   "expected": [
+    "TOPIC:viet",
+    "TOPIC:doc_hieu",
+    "SEGMENT:gioi"
+   ]
+  }
+ ],
+ "a1_schedule": [
+  {
+   "text": "Tối thứ 2, 4, 6 từ 7h đến 9h",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "chiều thứ 7",
+   "expected": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng chủ nhật 8h-10h",
+   "expected": [
+    [
+     7,
+     "08:00",
+     "10:00"
+    ]
+   ]
+  },
+  {
+   "text": "T3, T5 tối",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "cuối tuần cả ngày đều được",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2 và thứ 5, 18h30 - 20h",
+   "expected": [
+    [
+     1,
+     "18:30",
+     "20:00"
+    ],
+    [
+     4,
+     "18:30",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "tối các ngày trong tuần",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Từ 17h đến 19h thứ 3",
+   "expected": [
+    [
+     2,
+     "17:00",
+     "19:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối T7 + sáng CN",
+   "expected": [
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 4 sau 8h tối",
+   "expected": [
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ 2 4 6 sau 15h",
+   "expected": [
+    [
+     1,
+     "15:00",
+     "17:00"
+    ],
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Mỗi tối thứ 6 khoảng 2 tiếng từ 19h30",
+   "expected": [
+    [
+     5,
+     "19:30",
+     "21:30"
+    ]
+   ]
+  },
+  {
+   "text": "thứ bảy 9h sáng đến 11h",
+   "expected": [
+    [
+     6,
+     "09:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Lịch linh hoạt, trao đổi sau",
+   "expected": []
+  },
+  {
+   "text": "Tối thứ 3 hoặc thứ 4 đều ok",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "CN chiều 2h-4h",
+   "expected": [
+    [
+     7,
+     "14:00",
+     "16:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 2 đến thứ 6 từ 18h",
+   "expected": [
+    [
+     1,
+     "18:00",
+     "20:00"
+    ],
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     4,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 7 và chiều chủ nhật",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối T2 T4 sau 7h30",
+   "expected": [
+    [
+     1,
+     "19:30",
+     "21:30"
+    ],
+    [
+     3,
+     "19:30",
+     "21:30"
+    ]
+   ]
+  },
+  {
+   "text": "Con rảnh tối thứ 5 thôi ạ",
+   "expected": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 3 thứ 5 thứ 7 lúc 20h",
+   "expected": [
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     4,
+     "20:00",
+     "22:00"
+    ],
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Học 2 buổi/tuần vào tối thứ 2 và thứ 6",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "16h-18h chiều thứ 4",
+   "expected": [
+    [
+     3,
+     "16:00",
+     "18:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối chủ nhật",
+   "expected": [
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 7, CN buổi sáng",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "11:00"
+    ],
+    [
+     7,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sau 9h tối các ngày thường",
+   "expected": [
+    [
+     1,
+     "21:00",
+     "22:30"
+    ],
+    [
+     2,
+     "21:00",
+     "22:30"
+    ],
+    [
+     3,
+     "21:00",
+     "22:30"
+    ],
+    [
+     4,
+     "21:00",
+     "22:30"
+    ],
+    [
+     5,
+     "21:00",
+     "22:30"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ hai, thứ tư: 19:00 – 20:30",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "20:30"
+    ],
+    [
+     3,
+     "19:00",
+     "20:30"
+    ]
+   ]
+  },
+  {
+   "text": "chiều t6 từ 2 rưỡi",
+   "expected": [
+    [
+     5,
+     "14:30",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ ba, năm, bảy",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 2 (con học ca chiều)",
+   "expected": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "bất kỳ tối nào trừ thứ 6",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "18:00-19:30 T2, T3",
+   "expected": [
+    [
+     1,
+     "18:00",
+     "19:30"
+    ],
+    [
+     2,
+     "18:00",
+     "19:30"
+    ]
+   ]
+  },
+  {
+   "text": "thứ bảy chủ nhật 15h",
+   "expected": [
+    [
+     6,
+     "15:00",
+     "17:00"
+    ],
+    [
+     7,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối t4 7h",
+   "expected": [
+    [
+     3,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ năm sau giờ học, khoảng 5h",
+   "expected": [
+    [
+     4,
+     "17:00",
+     "19:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2,3,4 buổi tối 8-10h",
+   "expected": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     2,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "sáng cn 9h30",
+   "expected": [
+    [
+     7,
+     "09:30",
+     "11:30"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 6 và sáng thứ 7",
+   "expected": [
+    [
+     5,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Giờ nào cũng được",
+   "expected": []
+  },
+  {
+   "text": "thứ 3 7h tối, thứ 5 7h tối",
+   "expected": [
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sáng thứ 4, sáng thứ 6",
+   "expected": [
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "T7 tối từ 19h đến 20h30",
+   "expected": [
+    [
+     6,
+     "19:00",
+     "20:30"
+    ]
+   ]
+  },
+  {
+   "text": "cuối tuần buổi chiều",
+   "expected": [
+    [
+     6,
+     "14:00",
+     "17:00"
+    ],
+    [
+     7,
+     "14:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 2 tối, thứ 7 sáng",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     6,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "17h30 thứ 6",
+   "expected": [
+    [
+     5,
+     "17:30",
+     "19:30"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ hai đến thứ năm",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "chủ nhật cả ngày",
+   "expected": [
+    [
+     7,
+     "08:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 3, 6 từ 6h chiều",
+   "expected": [
+    [
+     2,
+     "18:00",
+     "20:00"
+    ],
+    [
+     5,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "thứ 5 từ 19h-21h và chủ nhật 10h",
+   "expected": [
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     7,
+     "10:00",
+     "12:00"
+    ]
+   ]
+  },
+  {
+   "text": "Sau 20h tối thứ 2, 4",
+   "expected": [
+    [
+     1,
+     "20:00",
+     "22:00"
+    ],
+    [
+     3,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 7 sau 8h",
+   "expected": [
+    [
+     6,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  },
+  {
+   "text": "Chiều thứ 3 và tối thứ 5",
+   "expected": [
+    [
+     2,
+     "14:00",
+     "17:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "T2-T6 buổi sáng",
+   "expected": [
+    [
+     1,
+     "08:00",
+     "11:00"
+    ],
+    [
+     2,
+     "08:00",
+     "11:00"
+    ],
+    [
+     3,
+     "08:00",
+     "11:00"
+    ],
+    [
+     4,
+     "08:00",
+     "11:00"
+    ],
+    [
+     5,
+     "08:00",
+     "11:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối",
+   "expected": []
+  },
+  {
+   "text": "18h-20h thứ 4, 18h-20h thứ 7",
+   "expected": [
+    [
+     3,
+     "18:00",
+     "20:00"
+    ],
+    [
+     6,
+     "18:00",
+     "20:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ sáu 3 giờ chiều",
+   "expected": [
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "sáng t7 8h, tối cn 7h",
+   "expected": [
+    [
+     6,
+     "08:00",
+     "10:00"
+    ],
+    [
+     7,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối thứ 2, 3, 4, 5, 6 từ 19h",
+   "expected": [
+    [
+     1,
+     "19:00",
+     "21:00"
+    ],
+    [
+     2,
+     "19:00",
+     "21:00"
+    ],
+    [
+     3,
+     "19:00",
+     "21:00"
+    ],
+    [
+     4,
+     "19:00",
+     "21:00"
+    ],
+    [
+     5,
+     "19:00",
+     "21:00"
+    ]
+   ]
+  },
+  {
+   "text": "Thứ 4 buổi chiều 15h-17h, thứ 6 buổi chiều 15h-17h",
+   "expected": [
+    [
+     3,
+     "15:00",
+     "17:00"
+    ],
+    [
+     5,
+     "15:00",
+     "17:00"
+    ]
+   ]
+  },
+  {
+   "text": "Tối chủ nhật hàng tuần lúc 20h",
+   "expected": [
+    [
+     7,
+     "20:00",
+     "22:00"
+    ]
+   ]
+  }
+ ],
+ "a2": [
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư toán lớp 9 ôn thi vào 10 ở Cầu Giấy dưới 200k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Cầu Giấy"
+    ],
+    "price_max": 200000,
+    "goalTags": [
+     "thi_vao_10"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tìm cô dạy tiếng Anh online cho con lớp 6, vui vẻ",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "ONLINE",
+    "styleTags": [
+     "vui_ve"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "cần thầy dạy lý 12 luyện thi đại học, tối thứ 3 và thứ 5",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "days": [
+     2,
+     4
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư toán cho bé lớp 7 mất gốc, kiên nhẫn, học tại nhà ở Đống Đa",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Đống Đa"
+    ],
+    "segmentTags": [
+     "mat_goc"
+    ],
+    "styleTags": [
+     "kien_nhan"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "luyện IELTS 6.5 khoảng 300k một buổi",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "price_min": 240000,
+    "price_max": 360000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán 11 nâng cao thi học sinh giỏi, học online",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tìm gia sư Anh văn lớp 8 ở Thanh Xuân hoặc Hà Đông, cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Thanh Xuân",
+     "Hà Đông"
+    ],
+    "days": [
+     6,
+     7
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "cần gia sư toán lớp 10 và 11 cho 2 con",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư vật lý nghiêm khắc, cho nhiều bài tập, lớp 9 thi chuyên",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "styleTags": [
+     "nghiem_khac",
+     "luyen_tap_nhieu"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Toán 12 ôn tốt nghiệp từ 150k đến 250k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "price_min": 150000,
+    "price_max": 250000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư tiếng anh giao tiếp cho học sinh lớp 10, sáng chủ nhật",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "days": [
+     7
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tìm gia sư giỏi",
+   "expected": {}
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán lớp 6 học vượt, ở đâu cũng được",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "scope": "ANY"
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "dạy lý lớp 10 cho bạn học trung bình, giải thích kỹ",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "segmentTags": [
+     "trung_binh"
+    ],
+    "styleTags": [
+     "giai_thich_ky"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Cần gia sư toán 8 ở Hoàng Mai, tối thứ 2 4 6, tối đa 180k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "days": [
+     1,
+     3,
+     5
+    ],
+    "price_max": 180000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tiếng anh lớp 9 ôn vào 10 online qua zoom",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "mode": "ONLINE",
+    "goalTags": [
+     "thi_vao_10"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán cho học sinh khá lớp 7 muốn lên giỏi",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "segmentTags": [
+     "kha"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư lý 11 toàn Hà Nội",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "scope": "PROVINCE"
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "con lớp 12 cần ôn đại học môn toán, có lộ trình rõ ràng",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "styleTags": [
+     "ke_hoach_ro"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "dạy kèm tiếng Anh lớp 6 7 tại nhà Long Biên trên 120k",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Long Biên"
+    ],
+    "price_min": 120000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Môn hoá lớp 10",
+   "expected": {
+    "subject": "Hóa học",
+    "grades": [
+     10
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư toán vui tính cho bé lười học lớp 6",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "styleTags": [
+     "vui_ve"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Ôn thi chuyên toán lớp 9, rèn tư duy, bài khó",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "styleTags": [
+     "tu_duy"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tìm gia sư tiếng Anh dạy online buổi tối, dưới 150 nghìn",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "mode": "ONLINE",
+    "price_max": 150000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Lý 12 ôn thi tốt nghiệp, học ở Ba Đình hoặc Hoàn Kiếm",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Ba Đình",
+     "Hoàn Kiếm"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán 10 cần kèm sát, chiều thứ 7",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "segmentTags": [
+     "can_kem_cap"
+    ],
+    "days": [
+     6
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "cô giáo dạy anh văn lớp 11 nghiêm khắc",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "styleTags": [
+     "nghiem_khac"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư toán lớp 8 khoảng 200k ở Tây Hồ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Tây Hồ"
+    ],
+    "price_min": 160000,
+    "price_max": 240000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "vật lý lớp 9, con mất gốc, học tại nhà",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "mode": "OFFLINE",
+    "segmentTags": [
+     "mat_goc"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "luyện nói tiếng Anh cho học sinh lớp 8 ngại giao tiếp",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ],
+    "styleTags": [
+     "giao_tiep"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Toán lớp 11 cải thiện điểm, thứ 3 thứ 6 tối, Cầu Giấy",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "goalTags": [
+     "cai_thien_diem"
+    ],
+    "days": [
+     2,
+     5
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Cầu Giấy"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tìm gia sư lý lớp 10 online có dùng mô phỏng, tài liệu số",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "styleTags": [
+     "tuong_tac_cong_nghe"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư toán 9 chậm mà chắc, dưới 170k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "styleTags": [
+     "cham_chac"
+    ],
+    "price_max": 170000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tiếng Anh 12 ôn thi THPT quốc gia, 2 buổi cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "days": [
+     6,
+     7
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "cần người dạy toán cho con học giỏi lớp 7 muốn thi hsg",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "segmentTags": [
+     "gioi"
+    ],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "lý 11 học tại Hai Bà Trưng, sáng chủ nhật, 200-300k",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hai Bà Trưng"
+    ],
+    "days": [
+     7
+    ],
+    "price_min": 200000,
+    "price_max": 300000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư toán",
+   "expected": {
+    "subject": "Toán"
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tiếng anh lớp 10 luyện chứng chỉ, kiên nhẫn",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10
+    ],
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ],
+    "styleTags": [
+     "kien_nhan"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Dạy toán lớp 12 qua google meet, tối thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "mode": "ONLINE",
+    "days": [
+     3
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Lý 9 thi vào 10, học khá, giải thích kỹ, Đống Đa hoặc Ba Đình",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "segmentTags": [
+     "kha"
+    ],
+    "styleTags": [
+     "giai_thich_ky"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Đống Đa",
+     "Ba Đình"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học sinh toán lớp 9 ôn thi vào 10 ở Cầu Giấy",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Cầu Giấy"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "nhận dạy tiếng Anh online cho học sinh lớp 6 đến 8",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6,
+     7,
+     8
+    ],
+    "mode": "ONLINE"
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Tôi dạy lý 12 luyện thi đại học, mức 250k một buổi",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "price_min": 250000,
+    "price_max": 250000
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học viên toán mất gốc lớp 7 ở Hoàng Mai, tối các ngày trong tuần",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "segmentTags": [
+     "mat_goc"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "days": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Nhận học sinh IELTS",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "goalTags": [
+     "chung_chi_ngoai_ngu"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "dạy toán lớp 11 12 tại nhà khu Thanh Xuân, cuối tuần",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11,
+     12
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Thanh Xuân"
+    ],
+    "days": [
+     6,
+     7
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học sinh giỏi toán để bồi dưỡng thi hsg",
+   "expected": {
+    "subject": "Toán",
+    "segmentTags": [
+     "gioi"
+    ],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "nhận kèm lý 10 cho bạn học trung bình, chiều thứ 7, Đống Đa",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "segmentTags": [
+     "trung_binh"
+    ],
+    "days": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Đống Đa"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Tìm học viên tiếng Anh lớp 9 ôn chuyên",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     9
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "dạy toán 8 online, giá 150k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "ONLINE",
+    "price_min": 150000,
+    "price_max": 150000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "con nhà tôi lớp 10 yếu hình học không gian, cần gia sư ở Long Biên",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Long Biên"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "anh văn lớp 7 luyện từ vựng ngữ pháp, nhiều bài tập",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tìm gia sư toán tư duy cho lớp 6 học online thứ 2 và thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "styleTags": [
+     "tu_duy"
+    ],
+    "mode": "ONLINE",
+    "days": [
+     1,
+     3
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư lý lớp 12 dưới 300k, ở đâu cũng được",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "price_max": 300000,
+    "scope": "ANY"
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán 9 ôn vào 10 kiên nhẫn vui vẻ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "goalTags": [
+     "thi_vao_10"
+    ],
+    "styleTags": [
+     "kien_nhan",
+     "vui_ve"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Cần gia sư tiếng Anh cho bé lớp 6 ở Tây Hồ hoặc Ba Đình, chiều thứ 4",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Tây Hồ",
+     "Ba Đình"
+    ],
+    "days": [
+     3
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "lớp 11 học lý trên 200k",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "price_min": 200000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán 12 cho học sinh trung bình ôn tốt nghiệp, có kế hoạch rõ",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     12
+    ],
+    "segmentTags": [
+     "trung_binh"
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "styleTags": [
+     "ke_hoach_ro"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tiếng anh 11 cho học sinh khá, luyện đề nhiều",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     11
+    ],
+    "segmentTags": [
+     "kha"
+    ],
+    "styleTags": [
+     "luyen_tap_nhieu"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư toán lớp 8 tại nhà Hà Đông, tối thứ 3 thứ 5 thứ 7",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hà Đông"
+    ],
+    "days": [
+     2,
+     4,
+     6
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư lý 10 nghiêm khắc cho con hay lười",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     10
+    ],
+    "styleTags": [
+     "nghiem_khac"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Toán 7 học vượt online sáng chủ nhật",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     7
+    ],
+    "goalTags": [
+     "hoc_vuot"
+    ],
+    "mode": "ONLINE",
+    "days": [
+     7
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "cần người dạy anh văn cho con lớp 12 thi đại học khối D",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Gia sư toán lớp 10 khoảng 250k online",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10
+    ],
+    "mode": "ONLINE",
+    "price_min": 200000,
+    "price_max": 300000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Dạy lý lớp 9 cho bé học chậm, kiên nhẫn, Cầu Giấy",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "styleTags": [
+     "kien_nhan"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Cầu Giấy"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Tìm gia sư tiếng Anh phát âm chuẩn lớp 8",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     8
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "toán lớp 11 ở Hoàn Kiếm từ 200k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     11
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hoàn Kiếm"
+    ],
+    "price_min": 200000
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "Lý 11 ôn thi học sinh giỏi, học online tối thứ 6",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "goalTags": [
+     "hoc_sinh_gioi"
+    ],
+    "mode": "ONLINE",
+    "days": [
+     5
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "gia sư toán lớp 9 cho học sinh giỏi thi chuyên ở Thanh Xuân",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     9
+    ],
+    "segmentTags": [
+     "gioi"
+    ],
+    "goalTags": [
+     "thi_chuyen"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Thanh Xuân"
+    ]
+   }
+  },
+  {
+   "direction": "STUDENT_TO_TUTOR",
+   "text": "tiếng anh cho trẻ lớp 6 vui vẻ, tài liệu số",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     6
+    ],
+    "styleTags": [
+     "vui_ve",
+     "tuong_tac_cong_nghe"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học sinh lý lớp 12 ôn tốt nghiệp online",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     12
+    ],
+    "goalTags": [
+     "thi_tot_nghiep_thpt"
+    ],
+    "mode": "ONLINE"
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Nhận dạy toán lớp 6 cho các bạn mất gốc ở Long Biên dưới 150k",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     6
+    ],
+    "segmentTags": [
+     "mat_goc"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Long Biên"
+    ],
+    "price_max": 150000
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học viên tiếng Anh giao tiếp, cuối tuần",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "styleTags": [
+     "giao_tiep"
+    ],
+    "days": [
+     6,
+     7
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "dạy toán 10 11 ôn đại học, Hai Bà Trưng hoặc Đống Đa",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     10,
+     11
+    ],
+    "goalTags": [
+     "thi_dai_hoc"
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hai Bà Trưng",
+     "Đống Đa"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "nhận kèm lý 9 cần kèm cặp sát sao",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     9
+    ],
+    "segmentTags": [
+     "can_kem_cap"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Tìm học sinh lớp 8 học toán buổi tối thứ 2 thứ 4",
+   "expected": {
+    "subject": "Toán",
+    "grades": [
+     8
+    ],
+    "days": [
+     1,
+     3
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "dạy tiếng Anh lớp 10 12, 200-250k",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     10,
+     12
+    ],
+    "price_min": 200000,
+    "price_max": 250000
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Nhận học sinh toán ở đâu cũng được",
+   "expected": {
+    "subject": "Toán",
+    "scope": "ANY"
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "Dạy lý lớp 11 online cho học sinh khá muốn cải thiện điểm",
+   "expected": {
+    "subject": "Vật lý",
+    "grades": [
+     11
+    ],
+    "mode": "ONLINE",
+    "segmentTags": [
+     "kha"
+    ],
+    "goalTags": [
+     "cai_thien_diem"
+    ]
+   }
+  },
+  {
+   "direction": "TUTOR_TO_STUDENT",
+   "text": "tìm học viên anh văn lớp 7 tại Hoàng Mai, chiều chủ nhật",
+   "expected": {
+    "subject": "Tiếng Anh",
+    "grades": [
+     7
+    ],
+    "mode": "OFFLINE",
+    "districts": [
+     "Hoàng Mai"
+    ],
+    "days": [
+     7
+    ]
+   }
+  }
+ ]
+}

@@ -26,7 +26,14 @@ ORDER = OFFLINE + ["V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "
 LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1", "V1-old": "V1 (thiết kế cũ)"}
 PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"), ("V1-old", "V2-full"),
          ("V2-linear", "V2-a"), ("V2-a", "V2-R"), ("V2-R", "V2-RC"), ("V2-RC", "V2-RCX"), ("V2-RCX", "V2-full"),
-         ("V2-full-H1", "V2-full"), ("V2-full-A1", "V2-full")]
+         ("V2-full-H1", "V2-full"), ("V2-full-A1", "V2-full"),
+         # text-only scenario (2.3)
+         ("cosine-only", "rerank-w0.3"), ("cosine-only", "rerank-w0.5"), ("cosine-only", "rerank-w0.7"),
+         ("cosine-only", "rerank-w0.9"), ("cosine-only", "cosine-only-sem0.45"),
+         ("cosine-only-sem0.45", "rerank-w0.7-sem0.45"), ("cosine-only", "rerank-w0.7-t4000"),
+         ("rerank-w0.7", "rerank-w0.7-t4000")]
+TEXT_ORDER = ["cosine-only", "rerank-w0.3", "rerank-w0.5", "rerank-w0.7", "rerank-w0.9", "cosine-only-sem0.45",
+              "rerank-w0.7-sem0.45", "rerank-w0.7-t4000"]
 METRICS = ["ndcg10", "p5", "mrr", "ea10", "ms10"]
 
 
@@ -163,7 +170,7 @@ def main() -> int:
         for name in OFFLINE:
             runs[name] = runs["V2-a"]
         v1_old = baselines.V1Old()
-    configs = [name for name in ORDER if name in runs]
+    configs = [name for name in ORDER + TEXT_ORDER if name in runs]
     test = [query for query in world["queries"] if query["split"] == "test"]
     # The market is one shared pool: every student's "full" search takes part, from both halves.
     market_queries = [query for query in world["queries"] if query["side"] == "S2T" and query["kind"] == "full"]
