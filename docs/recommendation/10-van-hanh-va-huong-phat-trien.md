@@ -4,7 +4,9 @@
 
 ## 10.1. Bảng tham số
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `rerank.mode` (`ASYNC` mặc định), `reciprocal.alpha`, ý nghĩa mới của `willingness.congestion-lambda` (chỉ phạt khi n ≥ r), `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** `rerank.mode` (mặc định `OFF`: rerank không có lợi ích đo được; `ASYNC` khi bật) và các
+> tham số của worker chấm nền (bảng dưới; 06 mục 6.9; lý do và điều kiện bật lại ở 13 mục 13.2).
+> **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `reciprocal.alpha`, ý nghĩa mới của `willingness.congestion-lambda` (chỉ phạt khi n ≥ r), `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Các con số đặt trong file cấu hình (tiền tố `app.recommendation.`), đổi được mà không sửa code. Mỗi dòng ghi giá trị khởi đầu và mục tài liệu giải thích nó. Các "cờ bật / tắt" (`…enabled`) cho phép tắt từng thành phần — dùng để so sánh khi đánh giá, hoặc tắt nhanh khi demo gặp sự cố. Cron (ví dụ `0 0 19 * * *`) là cách ghi lịch chạy định kỳ; UTC chậm hơn giờ Việt Nam 7 tiếng.
 
@@ -41,7 +43,9 @@
 | `complaint.window-days` / `prior-contracts` / `penalty-scale` / `max-penalty` | 365 / 5 / 40 / 20 | 06, 6.8 |
 | `complaint.category-weights.absence` / `late-or-short` / `teaching-quality` / `misconduct` / `serious-misconduct` / `other` (cả khiếu nại chưa có loại); `both-factor`; `complainant-weight` | 1,0 / 0,5 / 0,5 / 1,5 / 3,0 / 1,0; 0,5; 1,0 | 06, 6.8 |
 | `gate.no-schedule-overlap` / `recent-reject` | 0,4 / 0,5 | 06, 6.8 |
-| `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 10 / 1 500 / 4 (20 / 4 000 cho tới 21/10/2026) | 06, 6.9 |
+| `rerank.enabled` / `top-k` / `timeout-ms` / `chunk-size` | true / 10 / 1 500 / 4 (20 / 4 000 cho tới 21/10/2026); `timeout-ms` và `chunk-size` chỉ dùng ở `ONLINE` | 06, 6.9 |
+| `rerank.mode` | `OFF` (từ 26/10/2026; trước đó luôn chờ như `ONLINE`); `ASYNC` khi bật lại; `rerank.enabled=false` luôn là `OFF` | 06, 6.9 · 13, 13.2 |
+| `rerank.queue-capacity` / `worker-chunk-size` / `worker-quiet-ms` / `worker-max-wait-ms` (worker chấm nền) | 2 000 / 2 / 2 000 / 600 000 | 06, 6.9 · 13, 13.2 |
 | `rerank.prefetch-top-k` / `prefetch-timeout-ms` / `prefetch-cron` / `cache-retention-days` | 30 / 120 000 / `0 0 19 * * *` (UTC) / 30 | 06, 6.9 |
 | `rerank.model-version` (backend) · `AI_RERANK_MAX_TOKENS` (AI service, mỗi bên) | `bge-reranker-v2-m3-int8` · 256 | 06, 6.9 |
 | `exploration.enabled` / `page-size` / `slots` / `min-score-ratio` / `stats-cron` | true / 20 / 5,12 / 0,8 / `0 0 20 * * *` (UTC) | 06, 6.11 |
@@ -73,7 +77,7 @@ Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `h
 |---|---|
 | Ngôn ngữ / framework | Python, FastAPI |
 | Embedding | `BAAI/bge-m3` (dense, 1024 chiều), ONNX Runtime int8. File lấy từ bản chuyển đổi `Xenova/bge-m3` (`onnx/model_int8.onnx`, ~586 MB kể cả tokenizer); lấy vector token đầu (CLS) rồi chuẩn hoá độ dài 1. Ghi `embedding_model_version = bge-m3-int8` |
-| Rerank | `BAAI/bge-reranker-v2-m3`, ONNX Runtime int8 |
+| Rerank | `BAAI/bge-reranker-v2-m3`, ONNX Runtime int8. Từ 26/10/2026 compose không nạp (`AI_RERANK_ENABLED=false`, theo `rerank.mode=OFF`); khi bật: executor riêng một luồng, huỷ yêu cầu mà người gọi đã bỏ chờ, `AI_RERANK_THREADS` = 2 luồng ONNX, `AI_RERANK_BATCH_SIZE` = 1 cặp mỗi lần chạy model, nhường `/embed` trước mỗi cặp (06 mục 6.9, 13.2) |
 | LLM | OpenAI `gpt-6-luna` (biến `AI_LLM_MODEL`), đầu ra có schema, `store=False`; không gửi `temperature` |
 | File model | Tải về volume lần chạy đầu, không đóng gói vào image (`ai-service/models`, git bỏ qua) |
 | Bảo mật | Chỉ mạng nội bộ (cổng chỉ mở trên `127.0.0.1`); header `X-Internal-Token`; service không khởi động nếu thiếu token |

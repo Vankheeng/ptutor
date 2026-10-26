@@ -26,7 +26,7 @@ QueryContext (bộ lọc + câu tự nhiên + hồ sơ người tìm [+ tin đă
   │           R  = 2ab / (a + b)                     (6.7, reciprocal R1)
   │           score = R × (0.7 + 0.3·Q) × G          (6.8, cấu trúc nhân R2)
   │           (trọng số gộp của a, b lấy từ WeightProvider — prior hoặc bản học được, L1 — 12)
-  ├─ Pha 4  Rerank top-20 bằng cross-encoder (R3)   (6.9)
+  ├─ Pha 4  Rerank top-10 bằng cross-encoder, chấm nền (R3)   (6.9)
   ├─ Pha 5  Gộp theo người, chèn slot khám phá (R6) (6.10, 6.11)
   └─ Pha 6  Sinh lý do khớp, ghi log                (6.13)
 ```
@@ -449,22 +449,63 @@ Nguyên tắc:
 
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Rerank sẽ chạy nền (`rerank.mode = ASYNC`): luồng tìm chỉ dùng điểm đã có trong cache, cặp chưa có điểm dùng cosine và được xếp hàng chấm sau; sửa trước lỗi cache phía học sinh (lượt ấm vẫn mất 1,5 s) — vì rerank chỉ thêm +0,013 NDCG ở kịch bản văn bản tự do (≈ 0 ở base) trong khi bắt mọi lần tìm chờ tới 1,5 s. Lý do và bằng chứng: [13, mục 13.2](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** có chế độ rerank chạy nền (`rerank.mode = ASYNC`): lần tìm chỉ dùng điểm đã có trong
+> cache, không bao giờ chờ model; cặp thiếu điểm được một worker nền chấm sau. **Mặc định hiện là `OFF`**: đo lại khi
+> đã chấm đủ mọi cặp, rerank không cải thiện thứ tự (NDCG −0,001, KTC chứa 0); mức +0,013 đo ngày 22/10 là do lần tìm
+> dùng nhầm vector hồ sơ khi AI service quá tải. Bật lại `ASYNC` khi chứng minh được lợi ích trên click thật. Bằng
+> chứng, số đo và điều kiện bật lại: [13, mục 13.2](./13-tinh-chinh-sau-danh-gia.md).
 
-> 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô; **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên chính xác hơn nhưng chậm. Vì vậy chỉ chấm 10 tin đầu, theo lô 4 cặp, giới hạn tổng 1,5 giây; điểm chấm được lưu vào **cache** (bộ nhớ đệm) để lần sau dùng lại. Hết giờ thì giữ điểm đã có, không báo lỗi. "Logit → sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
+> 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô;
+> **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên lẽ ra chính xác hơn nhưng chậm
+> (~1 s một cặp trên máy phát triển). Khi bật (`ASYNC`), lần tìm **không chờ** nó: dùng điểm đã chấm từ trước (lưu
+> trong **cache**), tin nào chưa có điểm thì xếp theo vector như bình thường và được đưa vào hàng đợi để chấm "lúc
+> rảnh". Hiện thành phần này **tắt mặc định** vì trên dữ liệu mô phỏng nó không làm kết quả tốt hơn. "Logit →
+> sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
 
 1. Sau pha 3, lấy **top-10** (`rerank.top-k`; 20 cho tới 21/10/2026).
 2. Tra `recommendation_rerank_cache` theo (mã băm văn bản nhu cầu, ứng viên, mã băm nội dung ứng
-   viên, phiên bản model).
-3. Cặp chưa có → gọi `/rerank` **theo lô nhỏ (4 cặp), hạng cao trước, trong ngân sách 1 500 ms** (4 000 ms cho tới
-   21/10/2026 — đánh giá mô phỏng: chạm trần ở p95, không tăng NDCG có ý nghĩa; 09 mục 9.10).
-   Đầu vào: (văn bản nhu cầu, văn bản cung cấp), mỗi bên ≤ 256 token. Model `bge-reranker-v2-m3`
-   ONNX int8; logit → sigmoid.
+   viên, phiên bản model). Văn bản và mã băm nội dung của ứng viên là bản đã lưu khi embed (`embedding_source_text`,
+   `embedding_content_hash`), đọc trong một truy vấn; tin chưa embed thì dựng văn bản như trước (từ 26/10/2026).
+3. Theo `rerank.mode`:
+   - **`OFF`** (mặc định từ 26/10/2026, hoặc `rerank.enabled = false`): không rerank, đúng thứ tự pha 3 (V2-RC);
+     không xếp hàng, job chấm sẵn ban đêm bỏ qua. Log `DISABLED`.
+   - **`ASYNC`**: không gọi model. Cặp có điểm thì dùng; cặp chưa có giữ `f_sem = s` và được
+     xếp vào hàng đợi chấm nền (`RerankQueue`). Log `rerankStatus`: `CACHE` (đủ cả nhóm) · `PARTIAL` (một phần) ·
+     `NONE` (chưa có cặp nào).
+   - **`ONLINE`** (cách cũ, giữ để so sánh): gọi `/rerank` theo lô 4 cặp, hạng cao trước, trong ngân sách 1 500 ms;
+     cặp không kịp chấm cũng được xếp hàng chấm nền thay vì bỏ. Log `ONLINE` / `TIMEOUT` / `CACHE`.
+
+   Đầu vào: (văn bản nhu cầu, văn bản cung cấp), mỗi bên ≤ 256 token. Model `bge-reranker-v2-m3` ONNX int8;
+   logit → sigmoid.
 4. Tính lại `f_sem`, a, R, `score` cho những tin **có điểm rerank**, sắp lại **trong nhóm top-k**;
    phía sau giữ nguyên.
-5. Hết ngân sách / lỗi → dừng gọi, dùng những điểm đã có (log `rerankStatus = TIMEOUT`); tin chưa
-   kịp chấm giữ `f_sem = s`. Mọi điểm chấm được đều ghi vào cache, nên lần tìm sau chấm tiếp phần
-   còn lại.
+
+**Worker chấm nền (`RerankQueue`).**
+
+> 💡 Một "người làm việc" chạy riêng, nhận các cặp mà lần tìm thiếu điểm và chấm dần từng ít một. Trên laptop, model
+> rerank và model tạo vector làm chậm nhau khi chạy cùng lúc (kể cả trên các lõi khác nhau, vì cùng tranh băng thông
+> bộ nhớ), nên worker **nhường** lần tìm: chỉ chấm khi không có ai đang tìm.
+
+| Vấn đề | Cách cài |
+|---|---|
+| Số yêu cầu đồng thời | Một luồng nền, mỗi lần một yêu cầu `/rerank` gồm tối đa `rerank.worker-chunk-size` (2) cặp cùng văn bản nhu cầu |
+| Chống trùng | Một cặp (mã băm nhu cầu, loại, ứng viên, mã băm nội dung) chỉ nằm trong hàng đợi một lần, kể cả khi đang chấm |
+| Nhường lần tìm | Chỉ chấm khi **không có lần tìm nào đang chạy** (bộ đếm tăng khi vào, giảm khi ra) **và đã yên ít nhất** `rerank.worker-quiet-ms` (2 000 ms) |
+| Chống đói việc | Cặp đã chờ quá `rerank.worker-max-wait-ms` (10 phút) thì vẫn được chấm, **từng cặp một**, kể cả khi đang có lần tìm. Job đêm vẫn là lưới an toàn |
+| Sức chứa | `rerank.queue-capacity` (2 000 cặp); đầy thì bỏ phần thừa, lần tìm sau xin lại |
+| Lưu điểm | Cùng bảng cache, làm tròn 4 chữ số, ghi trong transaction riêng |
+| Khởi động lại | Hàng đợi nằm trong bộ nhớ, mất khi tắt backend; lần tìm sau hoặc job đêm xin lại |
+
+**AI service (từ 26/10/2026).** Mặc định không nạp model rerank (`AI_RERANK_ENABLED=false` trong
+`docker-compose.yml`, tiết kiệm ~1,1 GB RAM; bật cùng lúc với `rerank.mode = ASYNC`). Khi bật: `/rerank` chạy trên một
+executor riêng **một luồng** (các yêu cầu khác xếp hàng ở đó, không chiếm luồng của `/embed`); yêu cầu còn đang chờ
+lượt mà người gọi đã bỏ chờ thì bị huỷ; model rerank dùng `AI_RERANK_THREADS` = 2 luồng ONNX và chấm **từng cặp một**
+(`AI_RERANK_BATCH_SIZE` = 1); trước mỗi cặp, nếu đang có `/embed` chạy thì chờ embed xong (tối đa 10 s).
+
+**Ghi nhận khi phải dùng vector hồ sơ.** Nếu câu truy vấn không embed kịp (`query-embedding.timeout-ms`), lần tìm
+dùng vector hồ sơ của người tìm. Từ 26/10/2026 log ghi `query_context.queryVector`: `QUERY` (vector của câu
+truy vấn) · `PROFILE_FALLBACK` (embed lỗi / quá hạn, dùng vector hồ sơ) · `PROFILE` (không có văn bản để embed).
+Bộ đánh giá đếm riêng và loại các lần `PROFILE_FALLBACK` khỏi phép so sánh (09, 13.2).
 
 Các tin học `OPEN` và các tìm kiếm đã lưu được rerank sẵn ở tiến trình nền (07, mục 7.3), nên khi
 học sinh tìm lại với tiêu chí tương tự thường đã có cache.
@@ -481,17 +522,19 @@ bỏ", lần tìm trực tiếp gần như luôn quá giờ và không bao giờ
 
 | Vấn đề | Cách cài |
 |---|---|
-| Trạng thái ghi log (`query_context.rerankStatus`) | `CACHE` (đủ từ cache) · `ONLINE` (có gọi model, đủ cả nhóm) · `TIMEOUT` (thiếu một phần hoặc toàn bộ) · `DISABLED` |
+| Trạng thái ghi log (`query_context.rerankStatus`) | `CACHE` (đủ từ cache) · `ONLINE` (có gọi model, đủ cả nhóm) · `TIMEOUT` (thiếu một phần hoặc toàn bộ) · `PARTIAL` / `NONE` (ASYNC, từ 26/10/2026) · `DISABLED` |
 | Tin có điểm rerank nhưng chưa có vector | `f_sem = rerank` |
 | Văn bản ứng viên | Đúng văn bản dùng để embed tin đó (`EmbeddingTextBuilder`); mã băm nội dung = sha256 của văn bản này. Tin bị sửa → mã băm đổi → chấm lại |
 | Điểm | Làm tròn 4 chữ số như cột lưu, để điểm lấy từ cache và điểm vừa chấm cho cùng thứ hạng |
 | Chiều gia sư tìm học viên | Cùng cơ chế: văn bản cung cấp × tin học, `candidate_type = STUDYING_REQUEST` |
 | Chấm sẵn ban đêm (`RerankPrefetchJob`, 19:00 UTC) | Với mỗi tin học `OPEN`: chạy pha 1–3 như lần tìm chỉ có `useStudyingRequestId`, chấm top-30, ngân sách 120 s mỗi tin. Không ghi log. Tìm kiếm đã lưu nối vào ở bước C6 |
 | Dọn cache | Job đêm xoá dòng cũ hơn 30 ngày |
-| Cờ tắt | `app.recommendation.rerank.enabled=false` → đúng thứ tự pha 3 (bản V2-RC) |
+| Cờ tắt | `app.recommendation.rerank.enabled=false` (hoặc `rerank.mode=OFF`) → đúng thứ tự pha 3 (bản V2-RC) |
 
-Hạn chế đã biết: lần tìm đầu với tiêu chí mới chờ thêm tới 4 giây; cache chỉ trúng khi văn bản nhu
-cầu giống hệt (đổi một bộ lọc là văn bản khác); `/rerank` được gọi bên trong transaction của lần tìm.
+Hạn chế đã biết (cập nhật 26/10/2026): ở `ASYNC`, lần tìm đầu với tiêu chí mới chưa có điểm rerank (xếp theo
+vector), chỉ các lần sau mới có; cache chỉ trúng khi văn bản nhu cầu giống hệt (đổi một bộ lọc là văn bản khác);
+ở `ONLINE`, `/rerank` vẫn được gọi bên trong transaction của lần tìm. Số đo "~175 ms một cặp" ở trên là của tin
+ngắn: với văn bản phía học sinh (600–800 ký tự) đo lại ngày 26/10 là ~0,9 s một cặp (13.2).
 
 ## 6.10. Gộp theo người
 
@@ -500,7 +543,7 @@ cầu giống hệt (đổi một bộ lọc là văn bản khác); `/rerank` đ
 Một gia sư có nhiều tin dạy cùng khớp → chỉ giữ tin có `score` cao nhất.
 
 **Thứ tự thực hiện (quyết định 12/10/2026): gộp ngay sau pha 3, trước rerank.** Lý do: rerank chậm, không
-nên chấm những tin sẽ bị bỏ; và sau khi gộp, cả top-20 (20 *người* khác nhau) đều được chấm. Đổi lại, tin
+nên chấm những tin sẽ bị bỏ; và sau khi gộp, cả top-k (10 *người* khác nhau từ 21/10/2026, trước đó 20) đều được chấm. Đổi lại, tin
 đại diện của mỗi người được chọn theo điểm trước rerank. Chiều gia sư tìm học viên gộp theo học sinh.
 Gợi ý nới tiêu chí (07 mục 7.1) cũng đếm theo người.
 

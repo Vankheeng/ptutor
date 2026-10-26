@@ -5,7 +5,8 @@
 > nó thế nào → đổi gì → vì sao không chọn cách khác → làm sao biết đã đúng**. Mục đích kép: (1) làm cơ sở để trả lời
 > hội đồng khi bị hỏi "vì sao thiết kế thế này", (2) để đọc là hiểu, không cần đọc code.
 >
-> **Trạng thái:** đã thống nhất ngày 26/10/2026, **chưa lập trình**. Khi một thay đổi được lập trình xong, mục tương
+> **Trạng thái:** đã thống nhất ngày 26/10/2026. T1 (13.2) đã lập trình và đo xong ngày 26/10/2026; các mục khác
+> **chưa lập trình** (13.9). Khi một thay đổi được lập trình xong, mục tương
 > ứng ở các file 04, 05, 06, 09, 10, 12 sẽ được sửa nội dung chính; file này giữ lại như biên bản quyết định.
 
 ## 13.0. Nguồn số liệu và cách đọc
@@ -16,6 +17,16 @@
 | `base-dev` | `ket-qua/base-dev/` | Lượt chạy cũ trên database dev; có thí nghiệm học trọng số L1 (`9.9.4-*`) |
 | `text-only` | `ket-qua/text-only/` | 175 truy vấn có nhu cầu **chỉ nằm trong văn bản** (ví dụ "con hay mất tập trung, cần chia nhỏ bài"), không tag hay bộ lọc nào thể hiện |
 | `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); **nhãn do Claude soạn nháp, nhóm chưa duyệt** |
+
+> 📌 **Cập nhật 26/10/2026 — lần tìm dùng nhầm vector hồ sơ:** khi AI service bận (rerank), embed câu truy vấn quá
+> hạn và backend lặng lẽ dùng vector hồ sơ (13.2, "Kết quả thật"). Ở `base`, 7–11 / 79 truy vấn kiểm định của các
+> cấu hình có rerank bị như vậy (V2-a, V2-R, V2-RC: 0). Loại chúng ra, **không kết luận nào của `base` đổi**:
+> Random → V2-full NDCG +0,060 (p = 0,006), Popularity → V2-full +0,073 (p < 0,001), bỏ A1 → V2-full +0,024
+> (p = 0,0015), V2-RC → V2-RCX 0. Ở `text-only` thì khác: 54 % lần tìm có rerank bị như vậy, và đó chính là nguồn
+> của "+0,013" (13.2); đo lại sau khi sửa: rerank không giúp. Từ nay log ghi `queryVector` và `evaluate.py`
+> loại các lần `PROFILE_FALLBACK` khỏi phép kiểm định (cột `excluded_fallback`).
+>
+> 💡 Nói gọn: kết luận về A1 và so với các baseline vẫn đứng được; con số về rerank thì không.
 
 > 💡 **Đọc các chỉ số thế nào:** *NDCG@10* — top-10 có đưa người phù hợp lên đầu không (0 → 1, càng cao càng tốt).
 > *MS@10* — tỉ lệ người trong top-10 vừa phù hợp vừa sẽ nhận học sinh. *EA@10* — trung bình khả năng được nhận của
@@ -50,7 +61,7 @@ Hai bằng chứng cho thấy kịch bản `base` **thiếu** hai hiện tượn
 | Bằng chứng | Số liệu | Nguồn |
 |---|---|---|
 | Kịch bản `base`: rerank gần như không đổi kết quả | V2-RC → V2-RCX: NDCG +0,0001 | `base/9.6-kiem-dinh.csv` |
-| Kịch bản `text-only`: rerank có giúp, nhưng ít | cosine → rerank (trọng số 0,5): NDCG **+0,013**, KTC [+0,008; +0,018], p < 0,001; MS@10 +0,012 | `text-only/9.6-kiem-dinh.csv` |
+| Kịch bản `text-only`: rerank có giúp, nhưng ít | cosine → rerank (trọng số 0,5): NDCG **+0,013**, KTC [+0,008; +0,018], p < 0,001; MS@10 +0,012 — *26/10: mức này là **ảo**, do dùng nhầm vector hồ sơ, không do rerank (xem "Kết quả thật" bên dưới)* | `text-only/9.6-kiem-dinh.csv` |
 | Cho chấm lâu hơn **không** tốt hơn | ngân sách 1,5 s → 4 s: NDCG −0,006 (p = 0,006) | như trên |
 | Không lần nào chấm đủ 10 cặp | 0/350 lần tìm, kể cả với 4 s | nhật ký 22/10 |
 | Độ trễ | phía học sinh: pha rerank p50 1 508 ms (= ngân sách); tổng p50 2,3 s, p95 2,8 s (mục tiêu ≤ 1,5 s); text-only: p95 2,6 s so với 0,33 s khi không rerank (chậm gấp 8 lần) | `base/latency.csv`, `text-only/9.7-bang-ket-qua.csv` |
@@ -100,9 +111,118 @@ Hai bằng chứng cho thấy kịch bản `base` **thiếu** hai hiện tượn
   câu truy vấn mất ~670 ms so với 62–76 ms khi đo riêng).
 - `text-only`, lượt thứ hai trở đi: NDCG của `ASYNC` không kém `ONLINE` (cache đã đầy).
 
-> 💡 **Câu trả lời khi bị hỏi "rerank có tác dụng không":** "Trên văn bản lặp lại thông tin có cấu trúc thì không;
-> trên nhu cầu chỉ diễn đạt bằng lời thì có (+0,013 NDCG, p < 0,001). Vì lợi ích nhỏ còn cái giá là thời gian chờ
-> của mọi lần tìm, nhóm chuyển rerank sang chạy nền: người dùng không phải chờ, các lần xem sau vẫn được hưởng."
+### Kết quả thật khi lập trình (26/10/2026)
+
+**Nguyên nhân cache phía học sinh không trúng.** Kiểm tra trên `ptutor_eval_text` (DB base đã bị ghi đè khi dựng
+crowded) và log các lượt 21–22/10:
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Một lô 4 cặp phía học sinh (văn bản 600–830 ký tự), máy rảnh | **3,4–4,4 s**; 1 cặp 0,86–0,95 s (không phải ~175 ms như đo ngày 12/10 với tin ngắn) |
+| Hệ quả với ngân sách 1,5 s | lô đầu luôn quá hạn → **không cặp nào được lưu**: base phía học sinh 164/167 lần tìm 0 cặp, cả lượt nguội lẫn ấm; text-only `rerank-w0.5` 350/350 lần tìm 0 cặp. Phía gia sư (văn bản ngắn) bình thường |
+| Giả thuyết 2 — khoá cache đổi | **Sai**: `demandText` giống hệt giữa lượt nguội / ấm (167/167) |
+| Giả thuyết 1 — dồn việc ở AI service | **Đúng, và có hại hơn dự kiến**: AI service vẫn chấm lô đã bị bỏ chờ; 3 lô song song mất 8,8–10,3 s mỗi lô; `/embed` một câu trong lúc đó 2,0 s (rảnh ~0,3 s) > giới hạn 1 s của backend |
+| Hệ quả ẩn | embed câu truy vấn quá hạn → backend **lặng lẽ dùng vector hồ sơ**: text-only cosine-only 0 / 350 lần, `rerank-w0.5` **189 / 350**, `rerank-w0.7` 179, `t4000` 57 |
+| Mức "+0,013 NDCG" | ở `rerank-w0.5`, 161/161 truy vấn embed được có top-10 **giống hệt** cosine-only; 185 truy vấn khác đều là lần dùng vector hồ sơ. Loại các lần đó ra: cosine → `rerank-w0.5` NDCG **+0,0000** (n = 82). **Lợi ích thật của rerank chưa từng được đo** |
+
+> 💡 Nói bằng lời thường: rerank chưa bao giờ thật sự chạy trong các lần tìm của học sinh — lô nào cũng quá giờ. Nhưng
+> các lô bỏ dở vẫn làm AI service bận, khiến bước tạo vector cho câu tìm kiếm cũng quá giờ, và hệ thống chuyển sang
+> dùng vector hồ sơ mà không báo. Chính sự chuyển đổi đó (không phải rerank) đã làm điểm khác đi. Vì vậy con số
+> "+0,013" bị rút lại; lập luận "lợi ích nhỏ, cái giá lớn" thì càng đúng hơn.
+
+**Đã làm (đúng hướng ở "Đổi gì", thêm vài điều chỉnh):**
+
+1. `rerank.mode` = `ONLINE` / `ASYNC` / `OFF` (`ASYNC` là mặc định lúc lập trình; sau khi đo, đổi thành `OFF`, xem
+   cuối mục); `rerank.enabled = false` vẫn là `OFF`. Ở `ASYNC` lần tìm
+   chỉ đọc cache (`CACHE` / `PARTIAL` / `NONE`) và xếp hàng cặp thiếu; ở `ONLINE` cặp quá hạn cũng được xếp hàng
+   (thay cho "lưu khi kết quả về muộn": cùng mục đích, không phải giữ kết nối HTTP đã bỏ).
+2. Worker chấm nền `RerankQueue`: một luồng, mỗi lần 2 cặp cùng văn bản nhu cầu, chống trùng, sức chứa 2 000.
+3. AI service: `/rerank` trên executor riêng một luồng; 2 luồng ONNX; chấm từng cặp một; trước mỗi cặp nhường
+   `/embed` đang chạy.
+4. Log ghi `queryVector` (`QUERY` / `PROFILE_FALLBACK` / `PROFILE`); `evaluate.py` đếm và loại `PROFILE_FALLBACK`.
+5. AI service huỷ yêu cầu rerank còn đang chờ lượt khi người gọi đã bỏ chờ (lần đo đầu cho thấy các lô ONLINE bị
+   bỏ vẫn chặn executor một luồng và làm mọi lần gọi của worker quá hạn 120 s).
+6. Pha rerank đọc văn bản và mã băm đã lưu khi embed (`embedding_source_text`, `embedding_content_hash`) trong một
+   truy vấn, thay cho dựng lại văn bản 10 tin mỗi lần tìm (~120 ms); tin chưa embed vẫn dựng như cũ.
+
+**Điều chỉnh so với dự kiến — worker nhường lần tìm.** Đo `/embed` (model thật, máy rảnh p50 ~0,29 s) khi rerank chạy
+liên tục cùng lúc:
+
+| AI service | `/embed` p50 / p95 khi rerank chạy cùng lúc |
+|---|---|
+| Cũ (threadpool chung) | 724 / 1 107 ms |
+| Executor riêng, 2 luồng rerank | 595 / 691 ms |
+| Executor riêng, 1 luồng rerank | 581 / 635 ms |
+| + nhường embed, 2 luồng, 1 cặp mỗi lần | 572 / 1 036 ms |
+
+Kể cả rerank chỉ một luồng, embed vẫn chậm gấp đôi: hai model lớn **tranh băng thông bộ nhớ** của laptop, không chỉ
+tranh lõi CPU; một cặp (~1–1,3 s) không ngắt được giữa chừng. Vì vậy tiêu chí ban đầu "`/embed` < 0,5 s khi rerank
+nền đang chạy" **không đạt được trên máy này** nếu hai việc thật sự chạy cùng lúc. Quyết định (người dùng đồng ý
+26/10/2026): worker **nhường lần tìm** — chỉ chấm khi không có lần tìm nào đang chạy (bộ đếm vào / ra) **và** đã yên
+ít nhất 2 s (`rerank.worker-quiet-ms`); chống đói: cặp đã chờ quá 10 phút (`rerank.worker-max-wait-ms`) vẫn được chấm,
+từng cặp một. Giới hạn này là của laptop: khi triển khai thật, đặt rerank ở tiến trình hoặc máy riêng thì không cần
+nhường nữa.
+
+> 💡 Giống một người dọn dẹp trong cửa hàng: khách vào thì ngừng tay, vắng khách vài giây mới làm tiếp. Nếu khách
+> đông mãi, việc nào đã đợi quá 10 phút vẫn được làm, mỗi lần một việc nhỏ.
+
+**Tiêu chí thay cho "Làm sao biết đã đúng" (người dùng chốt 26/10/2026).** Trong một chuỗi tìm kiếm liên tục khi
+hàng đợi rerank còn việc:
+
+- tỉ lệ lần tìm `PROFILE_FALLBACK` ≤ 1 % — **tiêu chí chính**, vì chính fallback đã làm sai kết quả đánh giá;
+- embed câu truy vấn p50 < 0,5 s, p95 < 0,8 s;
+- lần tìm trùng đúng lúc một cặp đang chấm dở chỉ chậm thêm tối đa ~1,3 s;
+- hai tiêu chí cũ vẫn giữ: lượt ấm pha rerank p50 < 50 ms; `text-only` lượt thứ hai NDCG của `ASYNC` không kém
+  `ONLINE`.
+
+**Số đo sau khi lập trình** (`ptutor_eval_text`, 175 truy vấn × 2 lượt mỗi cấu hình, 26/10/2026; RAM trống 3,3–4,1 GB;
+`ket-qua/text-only/`):
+
+| Lượt | Trạng thái rerank | Lần dùng vector hồ sơ | Pha rerank p50 | Pha vector p50 / p95 | Tổng p95 | NDCG@10 |
+|---|---|---|---|---|---|---|
+| cosine-only | — | 0 | 0 | 150 / 267 ms | 329 ms | 0,5251 |
+| ONLINE, cache nguội | `TIMEOUT` 350/350 | 0 | 1 648 ms | 311 / 528 ms | 2 270 ms | 0,5251 |
+| ASYNC, cache nguội | `NONE` 350/350 | 0 | 119 ms | 151 / 242 ms | 417 ms | 0,5251 |
+| ASYNC, lượt 2 (worker đã chấm 3 500 cặp trong 70 phút) | `CACHE` 350/350 | 0 | 119 ms | 151 / 255 ms | 420 ms | 0,5237 |
+| ONLINE, lượt 2 | `CACHE` 350/350 | 0 | 120 ms | 151 / 238 ms | 450 ms | 0,5237 |
+| V2-full, hàng đợi còn việc, worker chấm chen 60 lần giữa các lần tìm | `NONE` | 0 | 133 ms | 248 / 514 ms (max 651) | 705 ms (max 840) | — |
+
+| Tiêu chí | Kết quả |
+|---|---|
+| Lần dùng vector hồ sơ ≤ 1 % (tiêu chí chính) | **0 / 1 400** — đạt (22/10: 189 / 350) |
+| Embed p50 < 0,5 s, p95 < 0,8 s khi hàng đợi còn việc | 248 / 514 ms — đạt |
+| Trùng cặp đang chấm chỉ chậm thêm ≤ ~1,3 s | pha vector max 651 ms, tổng max 840 ms — đạt |
+| ASYNC tổng p95 < 1 s | 417–705 ms — đạt |
+| Lượt 2: ASYNC không kém ONLINE | bằng nhau (0,0000) — đạt |
+| Lượt ấm pha rerank p50 < 50 ms | 119 ms — **không đạt** lúc đo: mỗi lần tìm dựng lại văn bản 10 tin để lấy mã băm. Đã sửa (đọc `embedding_source_text` / `embedding_content_hash` đã lưu trong một truy vấn; test xác nhận đúng là văn bản rerank chấm); theo người dùng, chỉ kiểm bằng test, chưa đo lại |
+
+**Lợi ích thật của rerank.** Khi đã chấm đủ top-10 mọi truy vấn: cosine-only → ASYNC lượt 2 NDCG **−0,0014**,
+KTC [−0,0039; +0,0011]; MS@10 0,0000. Rerank có đổi thứ tự trong top-10 nhưng **không làm thứ tự tốt hơn**, kể cả ở
+kịch bản mà nhu cầu chỉ nằm trong văn bản.
+
+> 💡 Nói bằng lời thường: lần đầu tiên rerank được chạy đúng cách (chấm đủ mọi cặp, không ai phải chờ, không dùng
+> nhầm vector), và kết quả là nó không giúp gì trên dữ liệu mô phỏng.
+
+**Quyết định (người dùng chọn 26/10/2026): mặc định `rerank.mode = OFF`.** Lý do: không có lợi ích đo được; model
+rerank tốn ~1,1 GB RAM của AI service (đo: 2,26 → 1,16 GB khi tắt) và CPU nền trên máy 16 GB. AI service cũng tắt theo
+(`AI_RERANK_ENABLED=false` trong `docker-compose.yml`); khi `OFF` không xếp hàng, không gọi `/rerank`, job chấm sẵn
+ban đêm bỏ qua (có test). Code `ASYNC` giữ nguyên, bật lại bằng cấu hình.
+
+**Điều kiện bật lại.** Mô phỏng chỉ có sáu loại nhu cầu viết bằng lời và văn bản do nhóm sinh ra; văn bản thật đa
+dạng hơn, nên có thể rerank giúp ở đó. Chỉ bật lại khi có bằng chứng trên dữ liệu thật:
+
+1. Có người dùng thật và log click đủ (đề xuất: ≥ 300 lần tìm có ít nhất một click).
+2. Chạy ở chế độ **ghi log mà không dùng**: bật `ASYNC` để có điểm rerank trong log từng cặp, nhưng xếp hạng vẫn như
+   `OFF`. *(Chế độ "chỉ ghi" này chưa có trong code — cần thêm một giá trị `rerank.mode` khi tới lúc.)*
+3. Ngoại tuyến, so hai thứ tự (có và không có điểm rerank) với các click thật: NDCG theo click, KTC 95 %.
+4. Bật `ASYNC` khi chênh lệch dương và KTC không chứa 0; ghi kết quả vào file này.
+
+
+> 💡 **Câu trả lời khi bị hỏi "rerank có tác dụng không"** (sửa 26/10/2026): "Trên dữ liệu mô phỏng thì không. Lần
+> đo đầu tưởng có +0,013 NDCG, nhưng kiểm tra lại thì đó là do hệ thống dùng nhầm vector hồ sơ khi AI service quá tải
+> — rerank thật ra chưa chấm được cặp nào. Sau khi chuyển rerank sang chạy nền và chấm đủ mọi cặp, chênh lệch là
+> −0,001 (KTC chứa 0). Nhóm giữ cơ chế chạy nền nhưng tắt mặc định, và đặt điều kiện bật lại: chứng minh được lợi ích
+> trên click của người dùng thật."
 
 ## 13.3. T3 — Hiệu chỉnh kịch bản "thị trường đông"
 
@@ -322,7 +442,7 @@ và ghi lại vào file này.
 
 | # | Thay đổi | Mục | Trạng thái |
 |---|---|---|---|
-| 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | Đã quyết, chưa code |
+| 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
 | 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | Đã quyết, chưa code |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | Đã quyết, chưa code |
 | 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | Đã quyết, chưa code — chốt tham số trên crowded |
@@ -333,7 +453,8 @@ và ghi lại vào file này.
 
 | Câu hỏi | Trả lời ngắn | Cơ sở |
 |---|---|---|
-| Vì sao không bỏ rerank khi nó gần như không giúp? | Nó giúp có ý nghĩa khi nhu cầu nằm trong văn bản tự do; cái đắt là bắt người dùng chờ, nên chuyển sang chạy nền thay vì bỏ | 13.2 |
+| Vì sao không bỏ rerank khi nó gần như không giúp? | (sửa 26/10/2026) Đã tắt mặc định: chấm đủ mọi cặp thì không giúp (NDCG −0,001, KTC chứa 0); mức +0,013 lúc trước là do dùng nhầm vector hồ sơ. Giữ code chạy nền (không bắt người dùng chờ) và chỉ bật lại khi chứng minh được trên click thật | 13.2 |
+| Sao lần đo trước lại ra "+0,013 có ý nghĩa"? | AI service quá tải vì các lô rerank bị bỏ dở, embed câu truy vấn quá hạn, backend lặng lẽ dùng vector hồ sơ (54 % lần tìm). Từ nay log ghi `queryVector` và bộ đánh giá loại các lần đó; ở `base` loại ra thì không kết luận nào đổi | 13.0, 13.2 |
 | Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Vì công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ, và kiểm tra trên thị trường có cạnh tranh | 13.1, 13.4 |
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α để chỉnh mức tin b | 13.5 |
