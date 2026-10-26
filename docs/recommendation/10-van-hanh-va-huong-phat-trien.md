@@ -4,6 +4,8 @@
 
 ## 10.1. Bảng tham số
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `rerank.mode` (`ASYNC` mặc định), `reciprocal.alpha`, ý nghĩa mới của `willingness.congestion-lambda` (chỉ phạt khi n ≥ r), `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 Các con số đặt trong file cấu hình (tiền tố `app.recommendation.`), đổi được mà không sửa code. Mỗi dòng ghi giá trị khởi đầu và mục tài liệu giải thích nó. Các "cờ bật / tắt" (`…enabled`) cho phép tắt từng thành phần — dùng để so sánh khi đánh giá, hoặc tắt nhanh khi demo gặp sự cố. Cron (ví dụ `0 0 19 * * *`) là cách ghi lịch chạy định kỳ; UTC chậm hơn giờ Việt Nam 7 tiếng.
 
 Đặt trong cấu hình `app.recommendation.*`. Lưu ý: dự án đang để `application.yml` trong

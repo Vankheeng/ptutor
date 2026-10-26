@@ -265,6 +265,8 @@ tới được biên — điều này được trình bày như một **đánh �
 
 ## 9.10. Ghi chú triển khai (21/10/2026)
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** Các lượt chạy 21–22/10 (kịch bản base, text-only, đánh giá LLM) dùng để tinh chỉnh kiến trúc, chưa phải số cho báo cáo. Kịch bản base thiếu cạnh tranh chỗ và Q không gắn với độ phù hợp, nên kịch bản thị trường đông sẽ được hiệu chỉnh (P(nhận) trung bình 0,4–0,6, Q tương quan 0,2–0,4 với độ phù hợp) trước khi kết luận về reciprocal, chống dồn, slot khám phá. Lý do và bằng chứng: [13, mục 13.1, 13.3](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 Bộ đánh giá đã được lập trình trong `scripts/recommendation_eval/` (Python, seed cố định, chạy lại được) và kết quả nằm ở `ket-qua/`. Mục này ghi những chỗ cách làm thực tế khác hoặc cụ thể hơn thiết kế ở trên, để khi viết báo cáo không nói quá điều đã làm.
 
 **Các file và thứ tự chạy:**

@@ -265,6 +265,8 @@ gợi ý chính xác hơn".
 
 ## 6.6. Khả năng gia sư nhận học sinh — b (R1 + B4)
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** `b_cap` sẽ chỉ phạt khi số đơn chờ n ≥ số chỗ còn lại r: `b_cap = 1` khi n < r, `r / (r + λ·(n − r + 1))` khi n ≥ r; λ chốt trên kịch bản thị trường đông — vì công thức hiện tại phạt cả khi chưa dồn và làm số lần bị từ chối tăng 0,22 → 0,27 trên kịch bản base. Lý do và bằng chứng: [13, mục 13.4](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 b ước lượng gia sư có nhận học sinh này không: một nửa từ **lịch sử nhận / từ chối** của gia sư (`b_hist`), một nửa từ mức học sinh **hợp tiêu chí công khai** của gia sư (`b_fit`), rồi nhân với hệ số **chống dồn đơn** (`b_cap`). Gia sư đã chủ động mời học sinh này thì b = 1. Ba mục con giải thích từng phần.
 
 ```
@@ -333,6 +335,8 @@ Hai cờ phục vụ so sánh các cấu hình (09, mục 9.4): `reciprocal.enab
 
 ## 6.7. Điểm reciprocal (R1)
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** Sẽ đổi sang trung bình nhân có trọng số `R = a^α · b^(1−α)` (α chốt trên kịch bản thị trường đông, quét 0,5 / 0,65 / 0,8) — vì b là ước lượng thô mà đang được cho vai trò ngang a, làm MS@10 giảm 0,024 (p < 0,001). Lý do và bằng chứng: [13, mục 13.5](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 **Reciprocal** = hai chiều. R là **trung bình điều hòa** của a và b: luôn gần số **nhỏ hơn**, nên muốn R cao thì cả hai phải cao. Ví dụ a = 0,9, b = 0,2: trung bình cộng là 0,55, còn R = 2·0,9·0,2 / 1,1 ≈ 0,33. Cách gộp này theo mô hình RECON (11 mục 11.2).
 
 ```
@@ -342,6 +346,8 @@ R = 2·a·b / (a + b)          (R = 0 nếu a + b = 0)
 Trung bình điều hoà bị kéo về giá trị nhỏ: a = 0,9, b = 0,2 → R ≈ 0,33. Phải hợp **cả hai phía**.
 
 ## 6.8. Điểm cuối (R2)
+
+> 📌 **Đã quyết 26/10/2026, chưa code:** Sẽ chạy thêm ba cấu hình tách (tắt hệ số Q, tắt cổng lịch, tắt cổng từ chối); kết luận về Q chỉ dựa trên kịch bản thị trường đông. Lý do và bằng chứng: [13, mục 13.8](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Điểm cuối = R × hệ số uy tín × hệ số phạt. Hệ số uy tín `(0,7 + 0,3·Q)` nằm trong khoảng 0,7–1,0, tức Q (điểm uy tín gia sư, 0–1) chỉ dịch điểm khoảng ±15%. G gồm hai "phanh": lịch hai bên có mà không trùng chút nào → × 0,4; gia sư đã từ chối học sinh này trong 90 ngày → × 0,5. Dùng **phép nhân** để một yếu tố rất tệ kéo cả điểm xuống, không bị yếu tố khác "bù" lại. Ví dụ R = 0,490, Q = 0,82, G = 1 → 0,490 × 0,946 = 0,463.
 
@@ -442,6 +448,8 @@ Nguyên tắc:
   tính lại mọi gia sư nên lỗi ra khỏi cửa sổ 365 ngày tự hết tác dụng.
 
 ## 6.9. Pha 4 — Rerank bằng cross-encoder (R3)
+
+> 📌 **Đã quyết 26/10/2026, chưa code:** Rerank sẽ chạy nền (`rerank.mode = ASYNC`): luồng tìm chỉ dùng điểm đã có trong cache, cặp chưa có điểm dùng cosine và được xếp hàng chấm sau; sửa trước lỗi cache phía học sinh (lượt ấm vẫn mất 1,5 s) — vì rerank chỉ thêm +0,013 NDCG ở kịch bản văn bản tự do (≈ 0 ở base) trong khi bắt mọi lần tìm chờ tới 1,5 s. Lý do và bằng chứng: [13, mục 13.2](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 **Rerank** = chấm lại kỹ nhóm đầu. Mô hình tạo vector (bi-encoder) đọc từng văn bản riêng nên nhanh nhưng thô; **cross-encoder** (`bge-reranker-v2-m3`) đọc cả cặp (nhu cầu, tin đăng) cùng lúc nên chính xác hơn nhưng chậm. Vì vậy chỉ chấm 10 tin đầu, theo lô 4 cặp, giới hạn tổng 1,5 giây; điểm chấm được lưu vào **cache** (bộ nhớ đệm) để lần sau dùng lại. Hết giờ thì giữ điểm đã có, không báo lỗi. "Logit → sigmoid" là bước đổi điểm thô của mô hình về khoảng 0–1.
 

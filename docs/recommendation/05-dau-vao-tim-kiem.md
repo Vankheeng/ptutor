@@ -51,6 +51,8 @@ Gia sư có tin dạy `OPEN` có thể bấm "Dùng tin của tôi làm tiêu ch
 
 ## 5.4. Câu tự nhiên (A2) — tự điền bộ lọc
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** Prompt `/parse-query` sẽ thêm hai quy tắc: "gia sư giỏi" là mong muốn về gia sư (không phải trình độ học sinh); nói buổi mà không nói ngày thì không điền ngày. Lý do và bằng chứng: [13, mục 13.6](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 Người dùng gõ *"Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"*; LLM đọc câu và trả về giá trị cho từng ô (môn = Toán, lớp = 9, học phí tối đa = 200.000…), backend đối chiếu tên với danh mục thật (bỏ dấu, không phân biệt hoa thường) rồi điền vào form. Phần không điền được ô nào (`semanticText`) dùng để so nghĩa. Số điện thoại, email trong câu bị lọc trước (PII = thông tin định danh cá nhân). Kết quả được nhớ 24 giờ (cache).
 
 ```mermaid

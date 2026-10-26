@@ -358,3 +358,4 @@ có thể khác, điều này phải nêu rõ trong báo cáo.
 | Bảng tham số, AI service, quyền riêng tư, hướng phát triển, thứ tự làm | [10](./10-van-hanh-va-huong-phat-trien.md) |
 | Cơ sở lý thuyết và tài liệu tham khảo để viết báo cáo | [11](./11-co-so-ly-thuyet.md) |
 | Học trọng số tự động (L1) | [12](./12-hoc-trong-so.md) |
+| Vì sao kiến trúc được tinh chỉnh sau khi chạy đánh giá | [13](./13-tinh-chinh-sau-danh-gia.md) |

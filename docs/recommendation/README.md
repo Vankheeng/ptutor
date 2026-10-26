@@ -73,6 +73,7 @@ hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: c
 10. [Vận hành, tham số và hướng phát triển](./10-van-hanh-va-huong-phat-trien.md)
 11. [Cơ sở lý thuyết và công trình liên quan](./11-co-so-ly-thuyet.md)
 12. [L1 — Học trọng số trực tuyến](./12-hoc-trong-so.md)
+13. [Tinh chỉnh kiến trúc sau các lượt chạy đánh giá (26/10/2026)](./13-tinh-chinh-sau-danh-gia.md)
 
 ## Thuật ngữ
 

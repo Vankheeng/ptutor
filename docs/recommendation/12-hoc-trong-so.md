@@ -528,6 +528,8 @@ Thompson làm ở bước sau.
 
 ## 12.10. Tham số `app.recommendation.learning.*`
 
+> 📌 **Đã quyết 26/10/2026, chưa code:** `prior-strength` sẽ hạ 200 → 50 và `exploration-scale` 1,0 → 0,5 — vì sau khi đưa prior về thang phần thưởng, κ = 200 làm trọng số gần như đứng yên (regret 1 144, kém trọng số cố định 1 128), còn κ = 50 tốt hơn cố định ~6%; khám phá không hơn Greedy. Lý do và bằng chứng: [13, mục 13.7](./13-tinh-chinh-sau-danh-gia.md).
+
 > 💡 Bảng mọi tham số của cơ chế học, mỗi dòng có ý nghĩa ngắn. Các tham số quan trọng nhất: κ (prior đáng bao nhiêu quan sát), ρ (mức thử), khoảng kẹp 0,5–2, bước tối đa 0,05, ngưỡng dữ liệu để kích hoạt.
 
 | Tham số | Giá trị khởi đầu | Ý nghĩa |
