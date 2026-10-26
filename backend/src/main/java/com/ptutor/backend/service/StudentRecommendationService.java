@@ -77,6 +77,14 @@ public class StudentRecommendationService {
     @Transactional
     public StudentRecommendationResponse recommendStudents(
             UUID userId, StudentRecommendationRequest request, int page, int size, UUID logId) {
+        // While it runs, background reranking waits (design 13, 13.2).
+        try (RerankQueue.Running running = rerankService.searchRunning()) {
+            return searchStudents(userId, request, page, size, logId);
+        }
+    }
+
+    private StudentRecommendationResponse searchStudents(
+            UUID userId, StudentRecommendationRequest request, int page, int size, UUID logId) {
         Tutor tutor = tutorRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND, "TUTOR_PROFILE_NOT_FOUND", "Tutor profile not found"));
@@ -107,8 +115,9 @@ public class StudentRecommendationService {
         }
 
         timer.mark("context");
-        float[] queryVector = queryEmbeddingService.embed(context.supplyText())
-                .orElse(tutor.getProfileEmbedding());
+        QueryEmbeddingService.SearchVector searchVector =
+                queryEmbeddingService.forSearch(context.supplyText(), tutor.getProfileEmbedding());
+        float[] queryVector = searchVector.vector();
         timer.mark("vector");
         double platformRate = candidateRepository.platformAcceptanceRate(
                 settings.getWillingnessHistoryDays(), settings.getWillingnessMinDecisions(),
@@ -146,8 +155,8 @@ public class StudentRecommendationService {
 
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logTutorSearch(
-                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status(), reasons,
-                relaxations, explored.explored(), effective.savedSearchId());
+                tutor, context, kept, settings.getAlgorithmVersion(), latencyMs, rerank.status(),
+                searchVector.source(), reasons, relaxations, explored.explored(), effective.savedSearchId());
         timer.mark("log");
         LOGGER.debug("Tutor search {} phases (ms): {}", log.getId(), timer);
 
@@ -303,6 +312,7 @@ public class StudentRecommendationService {
             ObjectNode copy = ((ObjectNode) context).deepCopy();
             copy.remove("supplyText");
             copy.remove("rerankStatus");
+            copy.remove("queryVector");
             context = copy;
         }
         return new StudentRecommendationResponse(

@@ -38,6 +38,31 @@ public class QueryEmbeddingService {
         });
     }
 
+    /** Where the vector a search ranks with came from; stored in the log as {@code queryVector}. */
+    public enum Source {
+        /** The demand text was embedded. */
+        QUERY,
+        /**
+         * The text could not be embedded in time (AI service down or busy), so the profile vector was used: the
+         * ranking then reads the profile, not this search. Counted apart in the evaluation (design 13, 13.2).
+         */
+        PROFILE_FALLBACK,
+        /** No text to embed: the profile vector is the intended input. */
+        PROFILE
+    }
+
+    public record SearchVector(float[] vector, Source source) {
+    }
+
+    /** The vector of a search: its text, else the searcher's profile vector (which may be null). */
+    public SearchVector forSearch(String text, float[] profileVector) {
+        if (text == null || text.isBlank()) {
+            return new SearchVector(profileVector, Source.PROFILE);
+        }
+        return embed(text).map(vector -> new SearchVector(vector, Source.QUERY))
+                .orElseGet(() -> new SearchVector(profileVector, Source.PROFILE_FALLBACK));
+    }
+
     public Optional<float[]> embed(String text) {
         if (text == null || text.isBlank()) {
             return Optional.empty();

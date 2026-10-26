@@ -1,5 +1,6 @@
 package com.ptutor.backend.scheduler;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -11,12 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.ptutor.backend.client.AiServiceClient;
 import com.ptutor.backend.service.RecommendationService;
+import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.service.RecommendationSettings;
 import com.ptutor.backend.service.RerankService;
 
@@ -32,6 +35,22 @@ class RerankPrefetchJobTest {
     private final RerankPrefetchJob job =
             new RerankPrefetchJob(jdbc, aiServiceClient, recommendationService, studentRecommendationService,
                     rerankService, settings);
+
+    /** Reranking is off by default since 26/10/2026; these tests switch it on as a deployment would. */
+    @BeforeEach
+    void switchRerankingOn() {
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ASYNC);
+    }
+
+    @Test
+    void doesNothingWithTheDefaultModeOff() {
+        RecommendationSettings defaults = new RecommendationSettings();
+        new RerankPrefetchJob(jdbc, aiServiceClient, recommendationService, studentRecommendationService,
+                rerankService, defaults).run();
+
+        assertThat(defaults.getRerankMode()).isEqualTo(RerankMode.OFF);
+        verifyNoInteractions(jdbc, aiServiceClient, recommendationService, studentRecommendationService, rerankService);
+    }
 
     @Test
     void prefetchesEveryOpenStudyingRequestAndKeepsGoingWhenOneFails() {

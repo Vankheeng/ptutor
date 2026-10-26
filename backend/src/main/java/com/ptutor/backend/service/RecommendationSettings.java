@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.recommendation.WeightModel;
+import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.entity.enums.WeightLearningMode;
 
 import lombok.Getter;
@@ -66,9 +67,41 @@ public class RecommendationSettings {
     @Value("${app.recommendation.semantic.rerank-weight:0.7}")
     private double rerankWeight = 0.7;
 
-    /** Off: the order of phase 3 is final (V2-RC). On: the best postings are reranked (V2-RCX). */
+    /** Off: the order of phase 3 is final (V2-RC), whatever {@code rerank.mode} says. On: {@code rerank.mode}. */
     @Value("${app.recommendation.rerank.enabled:true}")
     private boolean rerankEnabled = true;
+
+    /**
+     * How a search gets its rerank scores (design 13, 13.2). ONLINE: waits for the model within
+     * {@code rerank.timeout-ms}. ASYNC: uses the cached scores only and queues the missing pairs for the background
+     * worker, so a search never waits. OFF (the default since 26/10/2026): no reranking, no queue, no prefetch —
+     * with every pair scored, reranking did not improve the order in the evaluation; ASYNC is the mode to switch on
+     * once real data can show a gain.
+     */
+    @Value("${app.recommendation.rerank.mode:OFF}")
+    private RerankMode rerankMode = RerankMode.OFF;
+
+    /** Pairs waiting for the background worker at most; past that, new pairs are dropped until it catches up. */
+    @Value("${app.recommendation.rerank.queue-capacity:2000}")
+    private int rerankQueueCapacity = 2000;
+
+    /**
+     * Pairs per call of the background worker: one pair takes ~0.9 s on a CPU, so a call stays short and a search
+     * that needs the AI service for its query vector never waits long behind it.
+     */
+    @Value("${app.recommendation.rerank.worker-chunk-size:2}")
+    private int rerankWorkerChunkSize = 2;
+
+    /**
+     * The background worker scores only when no search is running and none has ended for this long: on one machine
+     * the reranking model slows the query embedding a search waits for (design 13, 13.2).
+     */
+    @Value("${app.recommendation.rerank.worker-quiet-ms:2000}")
+    private long rerankWorkerQuietMs = 2000;
+
+    /** A pair that has waited this long is scored anyway, one at a time, so that steady traffic cannot starve it. */
+    @Value("${app.recommendation.rerank.worker-max-wait-ms:600000}")
+    private long rerankWorkerMaxWaitMs = 600_000;
 
     /** 10 since 21/10/2026 (was 20): the evaluation found no quality gain worth a wait of ~4 s. */
     @Value("${app.recommendation.rerank.top-k:10}")
@@ -463,6 +496,15 @@ public class RecommendationSettings {
 
     @Value("${app.recommendation.history.signal-weights.dismissed:-2}")
     private double historySignalDismissed = -2;
+
+    /** {@code rerank.enabled=false} keeps its old meaning: no reranking at all. */
+    public RerankMode getRerankMode() {
+        return rerankEnabled ? rerankMode : RerankMode.OFF;
+    }
+
+    public boolean isRerankEnabled() {
+        return getRerankMode() != RerankMode.OFF;
+    }
 
     /** Weight of each kind of signal, keyed like the signals of {@code PreferenceSignalRepository}. */
     public Map<String, Double> getHistorySignalWeights() {

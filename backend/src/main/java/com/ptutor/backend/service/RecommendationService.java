@@ -122,6 +122,14 @@ public class RecommendationService {
     @Transactional
     public TutorRecommendationResponse recommendTutors(
             UUID userId, TutorRecommendationRequest request, int page, int size, UUID logId) {
+        // While it runs, background reranking waits (design 13, 13.2).
+        try (RerankQueue.Running running = rerankService.searchRunning()) {
+            return searchTutors(userId, request, page, size, logId);
+        }
+    }
+
+    private TutorRecommendationResponse searchTutors(
+            UUID userId, TutorRecommendationRequest request, int page, int size, UUID logId) {
         Student student = studentRepository.findProfileByUserId(userId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND, "STUDENT_PROFILE_NOT_FOUND", "Student profile not found"));
@@ -148,7 +156,9 @@ public class RecommendationService {
         MatchReasonBuilder.TagNames tagNames = MatchReasonBuilder.TagNames.of(
                 tagRepository.findAllByStatusOrderByTagGroupAscCodeAsc(RecommendationTagStatus.ACTIVE));
         timer.mark("context");
-        float[] queryVector = queryVector(student, context);
+        QueryEmbeddingService.SearchVector searchVector =
+                queryEmbeddingService.forSearch(context.demandText(), student.getProfileEmbedding());
+        float[] queryVector = searchVector.vector();
         timer.mark("vector");
         Ranking ranking = rank(student.getId(), context, queryVector, tagNames);
         timer.mark("rank");
@@ -179,7 +189,8 @@ public class RecommendationService {
         long latencyMs = (System.nanoTime() - started) / 1_000_000;
         RecommendationLog log = recommendationLogger.logStudentSearch(
                 student, context, effective.queryText(), kept, settings.getAlgorithmVersion(), latencyMs,
-                rerank.status(), reasons, relaxations, explored.explored(), effective.savedSearchId(),
+                rerank.status(), searchVector.source(), reasons, relaxations, explored.explored(),
+                effective.savedSearchId(),
                 // What the sentence was understood as, next to what was finally searched (design 05, 5.7).
                 effective.queryText() == null ? null : queryParseService.recall(context.homeProvinceId(),
                         effective.queryText(), RecommendationDirection.STUDENT_TO_TUTOR).orElse(null));
@@ -423,6 +434,7 @@ public class RecommendationService {
         tools.jackson.databind.node.ObjectNode copy = ((tools.jackson.databind.node.ObjectNode) stored).deepCopy();
         copy.remove("demandText");
         copy.remove("rerankStatus");
+        copy.remove("queryVector");
         return copy;
     }
 

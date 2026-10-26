@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.client.AiServiceClient;
 import com.ptutor.backend.client.AiServiceClient.EmbeddingResult;
+import com.ptutor.backend.entity.enums.RecommendationCandidateType;
 import com.ptutor.backend.entity.enums.RecommendationEntityType;
 import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import com.ptutor.backend.repository.AiEnrichmentJobRepository;
@@ -126,6 +127,50 @@ class EmbeddingJobIntegrationTest {
                 .containsExactlyInAnyOrder(
                         "TUTOR:" + tutorId, "TEACHING_REQUEST:" + teachingRequestId,
                         "STUDENT:" + studentId, "STUDYING_REQUEST:" + studyingRequestId);
+    }
+
+    @Test
+    void theStoredTextAndHashAreWhatTheRerankingWouldBuild() {
+        // Since 26/10/2026 the rerank reads them instead of building the text (design 13, 13.2).
+        UUID goal = tag("GOAL", "Luyện thi vào 10");
+        UUID strength = tag("TOPIC", "Hình học phẳng");
+        entityTag("TEACHING_REQUEST", teachingRequestId, goal, "OFFERED");
+        entityTag("TUTOR", tutorId, strength, "STRENGTH");
+        jdbc.update("UPDATE teaching_requests SET description = 'Dạy kèm 1-1, chữa đề hằng tuần' WHERE id = ?",
+                teachingRequestId);
+        entityManager.clear();
+        queueService.enqueueEmbedding(RecommendationEntityType.TEACHING_REQUEST, teachingRequestId);
+        when(aiServiceClient.embed(any(), any())).thenReturn(embedding(0.5f));
+
+        assertThat(processor.process(claimOne())).isEqualTo(Outcome.DONE);
+        entityManager.flush();
+        entityManager.clear();
+
+        RerankService rerank = new RerankService(null, null, null, entityTagRepository, textBuilder, entityManager,
+                new RecommendationSettings());
+        String built = rerank.builtText(RecommendationCandidateType.TEACHING_REQUEST, teachingRequestId).orElseThrow();
+        Map<String, Object> row = jdbc.queryForMap(
+                "SELECT embedding_source_text, embedding_content_hash FROM teaching_requests WHERE id = ?",
+                teachingRequestId);
+        assertThat(built).contains("Luyện thi vào 10", "Hình học phẳng", "chữa đề");
+        assertThat(row.get("embedding_source_text")).isEqualTo(built);
+        assertThat(row.get("embedding_content_hash")).isEqualTo(textBuilder.hash(built));
+        assertThat(built.length()).as("never cut by the rerank's own limit")
+                .isLessThanOrEqualTo(RerankService.MAX_TEXT_CHARS);
+    }
+
+    private UUID tag(String group, String name) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO recommendation_tags (id, tag_group, code, name) VALUES (?, ?, ?, ?)",
+                id, group, "code_" + id, name);
+        return id;
+    }
+
+    private void entityTag(String entityType, UUID entityId, UUID tagId, String role) {
+        jdbc.update("""
+                INSERT INTO recommendation_entity_tags (id, entity_type, entity_id, tag_id, role, source)
+                VALUES (?, ?, ?, ?, ?, 'USER')
+                """, UUID.randomUUID(), entityType, entityId, tagId, role);
     }
 
     @Test

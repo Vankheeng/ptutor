@@ -3,6 +3,7 @@ package com.ptutor.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,12 +30,14 @@ import com.ptutor.backend.entity.RecommendationRerankCache;
 import com.ptutor.backend.entity.RecommendationRerankCacheId;
 import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.enums.RecommendationCandidateType;
+import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.repository.RecommendationEntityTagRepository;
 import com.ptutor.backend.repository.RecommendationRerankCacheRepository;
 import com.ptutor.backend.service.RerankService.Result;
 import com.ptutor.backend.service.RerankService.Status;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 class RerankServiceTest {
 
@@ -42,18 +45,28 @@ class RerankServiceTest {
     private static final RecommendationCandidateType TYPE = RecommendationCandidateType.TEACHING_REQUEST;
 
     private final AiServiceClient client = mock(AiServiceClient.class);
+    private final RerankQueue queue = mock(RerankQueue.class);
     private final RecommendationRerankCacheRepository cache = mock(RecommendationRerankCacheRepository.class);
     private final RecommendationEntityTagRepository entityTags = mock(RecommendationEntityTagRepository.class);
     private final EmbeddingTextBuilder textBuilder = mock(EmbeddingTextBuilder.class);
     private final EntityManager entityManager = mock(EntityManager.class);
     private final RecommendationSettings settings = new RecommendationSettings();
     private final RerankService service =
-            new RerankService(client, cache, entityTags, textBuilder, entityManager, settings);
+            new RerankService(client, queue, cache, entityTags, textBuilder, entityManager, settings);
 
     private final List<UUID> ids = new ArrayList<>();
+    /** Rows (id, embedding_source_text, embedding_content_hash) of the postings; none embedded unless a test adds. */
+    private final List<Object[]> stored = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
+        // Reranking is off by default since 26/10/2026; these tests switch it on as a deployment would.
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ASYNC);
+        @SuppressWarnings("unchecked")
+        TypedQuery<Object[]> storedTexts = mock(TypedQuery.class);
+        when(entityManager.createQuery(anyString(), eq(Object[].class))).thenReturn(storedTexts);
+        when(storedTexts.setParameter(anyString(), any())).thenReturn(storedTexts);
+        when(storedTexts.getResultList()).thenReturn(stored);
         when(textBuilder.hash(any())).thenAnswer(invocation -> "hash(" + invocation.getArgument(0) + ")");
         when(entityTags.findAllByEntityTypeAndEntityId(any(), any())).thenReturn(List.of());
         for (int index = 0; index < 6; index++) {
@@ -137,6 +150,120 @@ class RerankServiceTest {
         assertThat(noTime.status()).isEqualTo(Status.TIMEOUT);
         assertThat(noTime.scores()).isEmpty();
         verify(client, times(2)).rerank(any(), any(), any());
+
+        ArgumentCaptor<List<RerankQueue.Pair>> queued = ArgumentCaptor.captor();
+        verify(queue, times(2)).enqueue(queued.capture());
+        assertThat(queued.getAllValues().get(0)).as("what was not scored in time is scored in the background")
+                .extracting(RerankQueue.Pair::candidateId).containsExactly(ids.get(2), ids.get(3), ids.get(4), ids.get(5));
+        assertThat(queued.getAllValues().get(1)).hasSize(6);
+    }
+
+    @Test
+    void anAsyncSearchUsesTheCacheAndQueuesTheRestWithoutCallingTheModel() {
+        ReflectionTestUtils.setField(settings, "rerankTopK", 3);
+        when(cache.findScores(any(), any(), any(), anyCollection())).thenReturn(List.of(
+                cached(ids.get(0), "hash(posting 0)", "0.7000")));
+
+        Result result = service.forSearch("Cần gia sư Toán", TYPE, ids);
+
+        assertThat(result.status()).isEqualTo(Status.PARTIAL);
+        assertThat(result.computed()).isZero();
+        assertThat(result.scores()).containsOnlyKeys(ids.get(0));
+        verify(client, never()).rerank(any(), any(), any());
+        ArgumentCaptor<List<RerankQueue.Pair>> queued = ArgumentCaptor.captor();
+        verify(queue).enqueue(queued.capture());
+        assertThat(queued.getValue()).containsExactly(
+                new RerankQueue.Pair("Cần gia sư Toán", "hash(Cần gia sư Toán)", TYPE, ids.get(1), "posting 1",
+                        "hash(posting 1)"),
+                new RerankQueue.Pair("Cần gia sư Toán", "hash(Cần gia sư Toán)", TYPE, ids.get(2), "posting 2",
+                        "hash(posting 2)"));
+    }
+
+    @Test
+    void anAsyncSearchWithNothingCachedRanksByTheCosineAlone() {
+        Result result = service.forSearch("Cần gia sư Toán", TYPE, ids);
+
+        assertThat(result.status()).isEqualTo(Status.NONE);
+        assertThat(result.scores()).isEmpty();
+        verify(client, never()).rerank(any(), any(), any());
+        verify(queue).enqueue(any());
+    }
+
+    @Test
+    void anAsyncSearchWithEverythingCachedQueuesNothing() {
+        ReflectionTestUtils.setField(settings, "rerankTopK", 1);
+        when(cache.findScores(any(), any(), any(), anyCollection())).thenReturn(List.of(
+                cached(ids.get(0), "hash(posting 0)", "0.7000")));
+
+        assertThat(service.forSearch("Cần gia sư Toán", TYPE, ids).status()).isEqualTo(Status.CACHE);
+        verifyNoInteractions(queue);
+    }
+
+    @Test
+    void usesTheTextAndHashTheEmbeddingStoredWithoutBuildingTheTextAgain() {
+        ReflectionTestUtils.setField(settings, "rerankTopK", 2);
+        stored.add(new Object[] {ids.get(0), "posting 0", "stored-hash-0"});
+        stored.add(new Object[] {ids.get(1), "posting 1", "stored-hash-1"});
+        when(cache.findScores(any(), any(), any(), anyCollection())).thenReturn(List.of(
+                cached(ids.get(0), "stored-hash-0", "0.7000"), cached(ids.get(1), "hash(posting 1)", "0.2000")));
+
+        Result result = service.forSearch("Cần gia sư Toán", TYPE, ids);
+
+        assertThat(result.scores()).as("the cache is checked against the stored hash")
+                .containsOnlyKeys(ids.get(0));
+        ArgumentCaptor<List<RerankQueue.Pair>> queued = ArgumentCaptor.captor();
+        verify(queue).enqueue(queued.capture());
+        assertThat(queued.getValue()).singleElement().satisfies(pair -> {
+            assertThat(pair.text()).isEqualTo("posting 1");
+            assertThat(pair.contentHash()).isEqualTo("stored-hash-1");
+        });
+        verify(entityManager, never()).find(eq(TeachingRequest.class), any());
+        verifyNoInteractions(entityTags);
+    }
+
+    @Test
+    void aPostingNeverEmbeddedIsBuiltTheOldWay() {
+        ReflectionTestUtils.setField(settings, "rerankTopK", 2);
+        stored.add(new Object[] {ids.get(0), "posting 0", "stored-hash-0"});
+        stored.add(new Object[] {ids.get(1), null, null});
+
+        service.forSearch("Cần gia sư Toán", TYPE, ids);
+
+        ArgumentCaptor<List<RerankQueue.Pair>> queued = ArgumentCaptor.captor();
+        verify(queue).enqueue(queued.capture());
+        assertThat(queued.getValue()).extracting(RerankQueue.Pair::contentHash)
+                .containsExactly("stored-hash-0", "hash(posting 1)");
+        verify(entityManager, never()).find(TeachingRequest.class, ids.get(0));
+        verify(entityManager).find(TeachingRequest.class, ids.get(1));
+    }
+
+    @Test
+    void rerankingIsOffByDefault() {
+        RecommendationSettings defaults = new RecommendationSettings();
+        RerankService off = new RerankService(client, queue, cache, entityTags, textBuilder, entityManager, defaults);
+
+        assertThat(defaults.getRerankMode()).isEqualTo(RerankMode.OFF);
+        assertThat(off.forSearch("Cần gia sư Toán", TYPE, ids).status()).isEqualTo(Status.DISABLED);
+        assertThat(off.prefetch("Cần gia sư Toán", TYPE, ids).status()).isEqualTo(Status.DISABLED);
+        verifyNoInteractions(client, queue, cache);
+    }
+
+    @Test
+    void theOffModeNeitherCallsTheModelNorQueues() {
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.OFF);
+
+        assertThat(service.forSearch("Cần gia sư Toán", TYPE, ids).status()).isEqualTo(Status.DISABLED);
+        assertThat(service.prefetch("Cần gia sư Toán", TYPE, ids).status()).isEqualTo(Status.DISABLED);
+        verifyNoInteractions(client, cache, queue);
+        assertThat(settings.isRerankEnabled()).as("the nightly prefetch reads this").isFalse();
+    }
+
+    @Test
+    void theOldSwitchStillTurnsRerankingOffWhateverTheMode() {
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ONLINE);
+        ReflectionTestUtils.setField(settings, "rerankEnabled", false);
+
+        assertThat(settings.getRerankMode()).isEqualTo(RerankMode.OFF);
     }
 
     @Test
@@ -153,6 +280,7 @@ class RerankServiceTest {
 
     @Test
     void aSearchUsesTheConfiguredTopGroupAndThePrefetchALargerOne() {
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ONLINE);
         ReflectionTestUtils.setField(settings, "rerankTopK", 2);
         ReflectionTestUtils.setField(settings, "rerankPrefetchTopK", 5);
 

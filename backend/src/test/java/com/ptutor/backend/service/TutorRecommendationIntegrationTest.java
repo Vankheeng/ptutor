@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,7 @@ import com.ptutor.backend.entity.enums.RecommendationEntityType;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.entity.enums.RecommendationAction;
 import com.ptutor.backend.entity.enums.RecommendationProfileRole;
+import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.dto.recommendation.ModePreference;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest;
 import com.ptutor.backend.dto.request.TutorRecommendationRequest.Area;
@@ -103,6 +105,8 @@ class TutorRecommendationIntegrationTest {
 
     private QueryEmbeddingService queryEmbeddingService;
     private AiServiceClient aiServiceClient;
+    private RerankQueue rerankQueue;
+    private final List<Runnable> backgroundWork = new java.util.ArrayList<>();
     private RecommendationService service;
 
     private UUID provinceId;
@@ -127,6 +131,8 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
         ReflectionTestUtils.setField(settings, "rerankEnabled", true);
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.OFF);
+        ReflectionTestUtils.setField(settings, "rerankWorkerQuietMs", 2000L);
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
         ReflectionTestUtils.setField(settings, "relaxationEnabled", true);
         ReflectionTestUtils.setField(settings, "explorationEnabled", true);
@@ -141,9 +147,18 @@ class TutorRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", Integer.MAX_VALUE);
         queryEmbeddingService = mock(QueryEmbeddingService.class);
         when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
+        when(queryEmbeddingService.forSearch(any(), any())).thenCallRealMethod();
         // Without an answer from the AI service nothing is reranked: the order of phase 3 is final.
         aiServiceClient = mock(AiServiceClient.class);
-        RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
+        // The rerank tests check the ONLINE path; the ASYNC one switches the mode itself. Background work waits in
+        // a list until a test runs it, on the test's thread and inside its transaction.
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ONLINE);
+        rerankQueue = new RerankQueue(aiServiceClient, rerankCacheRepository,
+                new org.springframework.transaction.support.TransactionTemplate(transactionManager), settings,
+                backgroundWork::add, System::nanoTime, Thread::sleep);
+        // The worker gives way to searches for 2 s; in a test it may run right after them.
+        ReflectionTestUtils.setField(settings, "rerankWorkerQuietMs", 0L);
+        RerankService rerankService = new RerankService(aiServiceClient, rerankQueue, rerankCacheRepository,
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new RecommendationService(studentRepository, candidateRepository, logRepository,
                 queryContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,
@@ -1162,6 +1177,52 @@ class TutorRecommendationIntegrationTest {
         assertThat(ids(response)).containsExactly(nearestByVector, other);
         assertThat(rerankStatus(response.logId())).isEqualTo("TIMEOUT");
         assertThat(log(response.logId()).of(nearestByVector).path("rerank").isNull()).isTrue();
+    }
+
+    @Test
+    void inAsyncModeASearchDoesNotWaitAndTheNextOneUsesWhatTheWorkerScored() {
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ASYNC);
+        UUID nearestByVector = posting(tutor(), new Posting().cosine(0.75));
+        UUID mostRelevant = posting(tutor(), new Posting().cosine(0.55));
+        title(mostRelevant, "Luyện thi vào 10, mạnh hình học");
+        crossEncoderPrefers("hình học");
+
+        TutorRecommendationResponse first = search(anywhere());
+
+        assertThat(ids(first)).as("the cosine part alone").containsExactly(nearestByVector, mostRelevant);
+        assertThat(rerankStatus(first.logId())).isEqualTo("NONE");
+        verify(aiServiceClient, never()).rerank(any(), any(), any());
+        assertThat(rerankQueue.size()).isEqualTo(2);
+
+        search(anywhere());
+
+        assertThat(rerankQueue.size()).as("a pair is queued once").isEqualTo(2);
+        backgroundWork.forEach(Runnable::run);
+        assertThat(rerankQueue.size()).isZero();
+        verify(aiServiceClient, times(1)).rerank(any(), any(), any());
+
+        TutorRecommendationResponse third = search(anywhere());
+
+        assertThat(ids(third)).containsExactly(mostRelevant, nearestByVector);
+        assertThat(rerankStatus(third.logId())).isEqualTo("CACHE");
+        verify(aiServiceClient, times(1)).rerank(any(), any(), any());
+    }
+
+    @Test
+    void logsWhenTheQueryTextCouldNotBeEmbeddedAndTheProfileVectorWasUsed() {
+        posting(tutor(), new Posting().cosine(0.75));
+
+        TutorRecommendationResponse embedded = search(anywhere());
+        when(queryEmbeddingService.embed(any())).thenReturn(Optional.empty());
+        TutorRecommendationResponse fellBack = search(anywhere());
+
+        assertThat(queryVector(embedded.logId())).isEqualTo("QUERY");
+        assertThat(queryVector(fellBack.logId())).isEqualTo("PROFILE_FALLBACK");
+        assertThat(fellBack.queryContext().has("queryVector")).as("internal, like rerankStatus").isFalse();
+    }
+
+    private String queryVector(UUID logId) {
+        return logRepository.findById(logId).orElseThrow().getQueryContext().path("queryVector").asString();
     }
 
     @Test

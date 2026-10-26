@@ -38,6 +38,7 @@ import com.ptutor.backend.repository.StudyingCandidateRepository;
 import com.ptutor.backend.repository.TutorRepository;
 
 import com.ptutor.backend.client.AiServiceClient;
+import com.ptutor.backend.entity.enums.RerankMode;
 import com.ptutor.backend.dto.response.RelaxationSuggestion;
 
 import jakarta.persistence.EntityManager;
@@ -88,6 +89,8 @@ class StudentRecommendationIntegrationTest {
 
     private QueryEmbeddingService queryEmbeddingService;
     private AiServiceClient aiServiceClient;
+    private RerankQueue rerankQueue;
+    private final List<Runnable> backgroundWork = new java.util.ArrayList<>();
     private StudentRecommendationService service;
 
     private UUID provinceId;
@@ -109,6 +112,8 @@ class StudentRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "reciprocalEnabled", true);
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", 20);
         ReflectionTestUtils.setField(settings, "relaxationBudgetMs", 400L);
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.OFF);
+        ReflectionTestUtils.setField(settings, "rerankWorkerQuietMs", 2000L);
         ReflectionTestUtils.setField(settings, "relaxationGoodThreshold", 0.50);
         ReflectionTestUtils.setField(settings, "alertNotifyThreshold", 0.65);
     }
@@ -119,8 +124,17 @@ class StudentRecommendationIntegrationTest {
         ReflectionTestUtils.setField(settings, "willingnessMinDecisions", Integer.MAX_VALUE);
         queryEmbeddingService = mock(QueryEmbeddingService.class);
         when(queryEmbeddingService.embed(any())).thenReturn(Optional.of(unit(1.0)));
+        when(queryEmbeddingService.forSearch(any(), any())).thenCallRealMethod();
         aiServiceClient = mock(AiServiceClient.class);
-        RerankService rerankService = new RerankService(aiServiceClient, rerankCacheRepository,
+        // The rerank tests check the ONLINE path; the ASYNC one switches the mode itself. Background work waits in
+        // a list until a test runs it, on the test's thread and inside its transaction.
+        ReflectionTestUtils.setField(settings, "rerankMode", RerankMode.ONLINE);
+        rerankQueue = new RerankQueue(aiServiceClient, rerankCacheRepository,
+                new org.springframework.transaction.support.TransactionTemplate(transactionManager), settings,
+                backgroundWork::add, System::nanoTime, Thread::sleep);
+        // The worker gives way to searches for 2 s; in a test it may run right after them.
+        ReflectionTestUtils.setField(settings, "rerankWorkerQuietMs", 0L);
+        RerankService rerankService = new RerankService(aiServiceClient, rerankQueue, rerankCacheRepository,
                 entityTagRepository, textBuilder, entityManager, settings);
         service = new StudentRecommendationService(tutorRepository, candidateRepository, logRepository,
                 supplyContextBuilder, queryEmbeddingService, ranker, rerankService, matchReasonBuilder,

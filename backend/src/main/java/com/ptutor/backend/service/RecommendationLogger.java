@@ -52,12 +52,13 @@ public class RecommendationLogger {
     public RecommendationLog logStudentSearch(
             Student student, QueryContext context, String queryText, List<ScoredCandidate> ranked,
             String algorithmVersion, long latencyMs, RerankService.Status rerankStatus,
-            Map<UUID, MatchReasons> reasons, List<RelaxationSuggestion> relaxations, Set<UUID> explored,
-            UUID savedSearchId, JsonNode parsedQuery) {
+            QueryEmbeddingService.Source vectorSource, Map<UUID, MatchReasons> reasons,
+            List<RelaxationSuggestion> relaxations, Set<UUID> explored, UUID savedSearchId, JsonNode parsedQuery) {
         String scrubbedQuery = textBuilder.scrub(queryText);
         ObjectNode storedContext = contextJson(context);
         storedContext.put("demandText", context.demandText());
         storedContext.put("rerankStatus", rerankStatus.name());
+        storedContext.put("queryVector", vectorSource.name());
         storedContext.set("weights", weightsJson(WeightModel.A_S2T, WeightModel.B_S2T, context.studentUserId()));
         return logRepository.save(RecommendationLog.builder()
                 .searcherStudent(student)
@@ -78,11 +79,13 @@ public class RecommendationLogger {
 
     public RecommendationLog logTutorSearch(
             Tutor tutor, SupplyContext context, List<ScoredStudyingCandidate> ranked, String algorithmVersion,
-            long latencyMs, RerankService.Status rerankStatus, Map<UUID, MatchReasons> reasons,
+            long latencyMs, RerankService.Status rerankStatus, QueryEmbeddingService.Source vectorSource,
+            Map<UUID, MatchReasons> reasons,
             List<RelaxationSuggestion> relaxations, Set<UUID> explored, UUID savedSearchId) {
         ObjectNode storedContext = contextJson(context);
         storedContext.put("supplyText", context.supplyText());
         storedContext.put("rerankStatus", rerankStatus.name());
+        storedContext.put("queryVector", vectorSource.name());
         storedContext.set("weights", weightsJson(WeightModel.A_T2S, WeightModel.B_T2S, context.tutorUserId()));
         ArrayNode candidates = objectMapper.createArrayNode();
         int rank = 1;
