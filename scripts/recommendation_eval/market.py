@@ -1,13 +1,13 @@
 """2.2: market simulation over 8 rounds through the real API (plan of 21/10/2026; design 09, 9.5).
 
-    python scripts/recommendation_eval/market.py --scenario crowded V2-a V2-R V2-RC V2-full Popularity
+    python scripts/recommendation_eval/market.py --scenario crowded V2-a V2-R V2-RC V2-full Popularity Random
 
 Every configuration starts from the same database (the copy run.py setup leaves as <db>_seed). Each round, the
 students without a tutor search, look at the top 10 (position bias, hidden relevance, a pull towards popular tutors)
 and apply to up to 3 postings through the API; then every tutor decides on the pending applications through the API,
 by the hidden acceptance model and within the places of the posting. The next round searches on that history, so
 willingness (b) and the congestion factor work on data the run itself produced. "Popularity" searches with V2-a and
-shows the candidates in order of recommendation_score.
+shows the candidates in order of recommendation_score; "Random" searches with V2-a and shuffles them.
 
 Writes out/<scenario>/market/<config>.json and ket-qua/<scenario>/market.csv.
 """
@@ -15,12 +15,13 @@ Writes out/<scenario>/market/<config>.json and ket-qua/<scenario>/market.csv.
 import csv
 import math
 import random
+import socket
 import sys
 import time
 
 import numpy as np
 
-from common import DATABASE, OUT, RESULTS, SEED, Api, psql, query_json, read_json, uid, write_json
+from common import DATABASE, OUT, RESULTS, SEED, Api, clone, psql, query_json, read_json, uid, write_json
 from evaluate import gini
 from run import CONFIGS, config_properties, search, start_backend, stop_backend, Catalog, index_world
 from world import p_accept, rel
@@ -32,21 +33,52 @@ EXAMINE = 0.85
 POPULAR_PULL = 2.0
 
 
-def restore() -> None:
-    psql(f"DROP DATABASE IF EXISTS {DATABASE} WITH (FORCE);", database="postgres")
-    psql(f"CREATE DATABASE {DATABASE} TEMPLATE {DATABASE}_seed;", database="postgres")
+HELPER_PORTS = (8080, 8091, 8092)
+
+
+def port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.5)
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
+def restore(attempts: int = 3, pause: float = 5.0, sql=None, busy=port_in_use, sleep=time.sleep) -> None:
+    """Rebuilds the evaluation database from its seed copy.
+
+    On 22/10/2026 the copy failed with an empty error while helper backends of workers.py were still running on the
+    database and the machine was short of memory. So: no backend may be up (it would also write into the market
+    run), nobody may be connected to the seed (CREATE DATABASE ... TEMPLATE needs that), a transient failure is
+    retried, and the new database must exist afterwards."""
+    if DATABASE in ("ptutor", "ptutor_test"):
+        raise SystemExit(f"refusing to rebuild {DATABASE}")
+    running = [port for port in HELPER_PORTS if busy(port)]
+    if running:
+        raise SystemExit(f"stop the backends on ports {running} first (workers.py helpers write into {DATABASE})")
+    clone(f"{DATABASE}_seed", DATABASE, attempts, pause, sql, sleep)
+
+
+REFERENCES = ("Popularity", "Random")  # orders of the V2-a candidates, not configurations of the backend
+
+
+def logged_candidates(result: dict) -> list:
+    rows = query_json(f"SELECT returned_candidate_ids AS c FROM recommendation_logs WHERE id = '{result['logId']}'")
+    return rows[0]["c"] if rows else []
 
 
 def popularity_order(result: dict) -> list:
-    rows = query_json(f"SELECT returned_candidate_ids AS c FROM recommendation_logs WHERE id = '{result['logId']}'")
-    candidates = rows[0]["c"] if rows else []
-    ordered = sorted(enumerate(candidates), key=lambda pair: (-(pair[1].get("q") or 0), pair[0]))
+    ordered = sorted(enumerate(logged_candidates(result)), key=lambda pair: (-(pair[1].get("q") or 0), pair[0]))
     return [candidate["candidateId"] for _, candidate in ordered]
+
+
+def random_order(result: dict, rng: random.Random) -> list:
+    ids = [candidate["candidateId"] for candidate in logged_candidates(result)]
+    rng.shuffle(ids)
+    return ids
 
 
 def simulate(config: str, world: dict) -> dict:
     rng = random.Random(f"{SEED}/{config}")
-    backend_config = "V2-a" if config == "Popularity" else config
+    backend_config = "V2-a" if config in REFERENCES else config
     restore()
     properties = config_properties(backend_config)
     properties["app.tutor-recommendation.recalculation-cron"] = "0 * * * * *"
@@ -70,7 +102,8 @@ def simulate(config: str, world: dict) -> dict:
             for student in waiting:
                 query = {"side": "S2T", "owner": student["key"], "kind": "full"}
                 result = search(sessions[student["key"]], query, index, catalog)
-                ranking = popularity_order(result) if config == "Popularity" else [i["id"] for i in result["items"]]
+                ranking = (popularity_order(result) if config == "Popularity" else random_order(result, rng)
+                           if config == "Random" else [i["id"] for i in result["items"]])
                 ranking = [candidate for candidate in ranking if candidate in postings][:LOOK]
                 for candidate in ranking:
                     exposures[candidate] = exposures.get(candidate, 0) + 1
@@ -169,7 +202,7 @@ def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     world = read_json(OUT / "world.json")
     names = sys.argv[1:] or ["Popularity", "V2-a", "V2-R", "V2-RC", "V2-full"]
-    unknown = [name for name in names if name != "Popularity" and name not in CONFIGS]
+    unknown = [name for name in names if name not in REFERENCES and name not in CONFIGS]
     if unknown:
         raise SystemExit(f"unknown configurations: {unknown}")
     rows = [simulate(name, world) for name in names]

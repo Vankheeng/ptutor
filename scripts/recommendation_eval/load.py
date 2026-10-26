@@ -22,7 +22,7 @@ import sys
 from datetime import datetime, timedelta
 
 from common import EMAIL_DOMAIN, OUT, PASSWORD, PASSWORD_HASH, SEED, psql, q, read_json, uid
-from world import p_accept, p_student_accepts, rel
+from world import p_accept, p_student_accepts, rating, rel
 
 LAST_NAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Vũ", "Đặng", "Bùi", "Đỗ", "Ngô", "Dương", "Lý"]
 MIDDLE = ["Văn", "Thị", "Minh", "Thu", "Quang", "Ngọc", "Đức", "Thanh", "Hải", "Bảo"]
@@ -241,9 +241,9 @@ def contract_sql(student, posting, tutor, application, accepted: datetime, rng, 
     if not finished:
         return out
     closed = min(NOW - timedelta(hours=1), datetime.combine(end, datetime.min.time()) + timedelta(hours=20))
-    rating = 5 if tutor.get("famous") else rng.choice([4, 5, 5]) if tutor["reliable"] else rng.choice([2, 3, 3, 4])
+    stars = rating(tutor, rng)
     out.append(f"INSERT INTO reviews (id, student_id, tutor_id, rating, comment, contract_id, created_at) VALUES "
-               f"({q(uid('eval-review', contract))}, {q(student['id'])}, {q(tutor['id'])}, {rating}, "
+               f"({q(uid('eval-review', contract))}, {q(student['id'])}, {q(tutor['id'])}, {stars}, "
                f"'Nhận xét sau khoá học.', {q(contract)}, {ts(closed)}) ON CONFLICT DO NOTHING;")
     founded = not tutor["reliable"] and rng.random() < 0.7
     if founded or unfounded:

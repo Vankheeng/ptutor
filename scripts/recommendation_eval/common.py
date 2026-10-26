@@ -80,8 +80,33 @@ def psql(sql: str, database: str = DATABASE) -> str:
          "-U", "postgres", "-d", database],
         input=sql.encode("utf-8"), capture_output=True)
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.decode("utf-8", errors="replace"))
+        # An empty message with exit code 137 means psql or docker exec was killed (out of memory on 22/10/2026).
+        message = result.stderr.decode("utf-8", errors="replace").strip() or "(no message)"
+        raise RuntimeError(f"psql exited with code {result.returncode}: {message}")
     return result.stdout.decode("utf-8")
+
+
+def clone(source: str, target: str, attempts: int = 3, pause: float = 5.0, sql=None, sleep=time.sleep) -> None:
+    """Replaces database `target` by a copy of `source`. CREATE DATABASE ... TEMPLATE needs nobody connected to the
+    source, so connections to both are closed first; a transient failure is retried (22/10/2026: the copy failed
+    while helper backends were still connected and memory was short), and the copy must exist afterwards."""
+    sql = sql or (lambda statement: psql(statement, database="postgres"))
+    if target in ("ptutor", "ptutor_test"):
+        raise SystemExit(f"refusing to replace {target}")
+    for attempt in range(1, attempts + 1):
+        try:
+            sql(f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('{source}', '{target}') "
+                f"AND pid <> pg_backend_pid();")
+            sql(f"DROP DATABASE IF EXISTS {target} WITH (FORCE);")
+            sql(f"CREATE DATABASE {target} TEMPLATE {source};")
+            if sql(f"SELECT 1 FROM pg_database WHERE datname = '{target}';").strip() == "1":
+                return
+            raise RuntimeError(f"{target} is missing after CREATE DATABASE")
+        except RuntimeError as error:
+            if attempt == attempts:
+                raise
+            print(f"  copy {source} -> {target} failed ({error}); retrying in {pause:.0f} s", flush=True)
+            sleep(pause)
 
 
 def query_json(sql: str):

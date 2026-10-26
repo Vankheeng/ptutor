@@ -27,7 +27,7 @@ import sys
 import time
 from pathlib import Path
 
-from common import DATABASE, DB_URL, OUT, SCENARIO, REPO, SEED, Api, psql, query_json, read_json, uid, wait_for_api, write_json
+from common import DATABASE, DB_URL, OUT, SCENARIO, REPO, SEED, Api, clone, psql, query_json, read_json, uid, wait_for_api, write_json
 import fallback
 from world import rel
 
@@ -332,6 +332,8 @@ def setup(world: dict, resume: bool = False) -> None:
     if not resume:
         reset_database()
     properties = config_properties("V2-full")
+    # The browsing history is drawn with the defaults of the platform: no reranking since 26/10/2026 (13.2).
+    properties["app.recommendation.rerank.mode"] = "OFF"
     properties["app.tutor-recommendation.recalculation-cron"] = "0 * * * * *"
     # Queue the embedding and enrichment of the new rows soon after loading them.
     properties["app.recommendation.embedding.backfill-initial-delay-ms"] = "60000"
@@ -359,9 +361,9 @@ def setup(world: dict, resume: bool = False) -> None:
         print(f"prepared: {profiles} preference profiles", flush=True)
     finally:
         stop_backend(process)
-    # A frozen copy: market.py starts every configuration from exactly this state.
-    psql(f"DROP DATABASE IF EXISTS {DATABASE}_seed WITH (FORCE);", database="postgres")
-    psql(f"CREATE DATABASE {DATABASE}_seed TEMPLATE {DATABASE};", database="postgres")
+    # A frozen copy: market.py starts every configuration from exactly this state. A workers.py helper may still
+    # hold connections; clone() closes them.
+    clone(DATABASE, f"{DATABASE}_seed")
     print(f"copied to {DATABASE}_seed", flush=True)
 
 

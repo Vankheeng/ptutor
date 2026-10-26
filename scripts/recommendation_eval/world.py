@@ -29,9 +29,13 @@ SCENARIOS = {
              "tutor_modes": [0.35, 0.3, 0.35], "student_modes": [0.35, 0.25, 0.4]},
     # Many candidates per search and competition for places (2.2): 2 subjects, 1 city, 4 districts; 15% of the
     # tutors are popular with only 1-2 places, 20% are new (no history, no review).
+    # Calibrated 26/10/2026 (design 13, 13.3): 400 students (300 left the tutor side with a median of 42
+    # candidates); b0 brings the mean P(accept) of the candidates from 0.86 to ~0.5; a good tutor (hidden
+    # quality) is one level more relevant and is rated by it, so that Q is about as related to rel as in real life.
     "crowded": {"subjects": ["Toán", "Tiếng Anh"], "subject_weights": [0.55, 0.45],
                 "cities": {"Hà Nội": ["Cầu Giấy", "Đống Đa", "Ba Đình", "Hai Bà Trưng"]}, "tutors": 600,
-                "students": 300, "famous": 0.15, "new": 0.20, "t2s_tutors": 150,
+                "students": 400, "famous": 0.15, "new": 0.20, "t2s_tutors": 150,
+                "b0": -3.1, "quality_bonus_at": 0.75, "quality_penalty_under": 0.6, "rating_from_quality": True,
                 # Mostly in person in the same 4 districts, so that both sides compete for the same people.
                 "tutor_modes": [0.7, 0.05, 0.25], "student_modes": [0.6, 0.05, 0.35]},
     # What a student needs is only in the prose (2.3); enough candidates per search for the order to matter.
@@ -382,10 +386,26 @@ def rel(student: dict, posting: dict, tutor: dict) -> int:
     value = 1 + (need >= 0.35) + (need >= 0.6)
     if posting["price"] > student["budget"]:
         value = max(1, value - 1)
+    if S.get("quality_bonus_at") is not None and tutor["quality"] >= S["quality_bonus_at"]:
+        # A good tutor is a better match once the basics fit, a weak one a worse match (crowded, 13.3). A bonus
+        # alone gave corr(Q, rel) ~0.18; both ways ~0.28 (calibrate_crowded.py).
+        value = min(3, value + 1)
+    elif S.get("quality_penalty_under") is not None and tutor["quality"] < S["quality_penalty_under"]:
+        value = max(1, value - 1)
     return adjust(int(value), student, tutor)
 
 
-BETA = {"b0": -1.0, "grade": 1.6, "price": 1.2, "segment": 1.0, "schedule": 1.2}
+BETA = {"b0": S.get("b0", -1.0), "grade": 1.6, "price": 1.2, "segment": 1.0, "schedule": 1.2}
+
+
+def rating(tutor: dict, rng: random.Random) -> int:
+    """Review given after a finished contract. Crowded: driven by the hidden quality, so Q reflects it (13.3)."""
+    if tutor.get("famous"):
+        return 5
+    if S.get("rating_from_quality"):
+        value = round(1 + 4 * tutor["quality"] + rng.gauss(0, 0.6)) - (0 if tutor["reliable"] else 1)
+        return max(1, min(5, value))
+    return rng.choice([4, 5, 5]) if tutor["reliable"] else rng.choice([2, 3, 3, 4])
 
 
 def p_accept(student: dict, posting: dict, tutor: dict) -> float:
