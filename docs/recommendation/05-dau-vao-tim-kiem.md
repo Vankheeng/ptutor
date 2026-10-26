@@ -51,7 +51,31 @@ Gia sư có tin dạy `OPEN` có thể bấm "Dùng tin của tôi làm tiêu ch
 
 ## 5.4. Câu tự nhiên (A2) — tự điền bộ lọc
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Prompt `/parse-query` sẽ thêm hai quy tắc: "gia sư giỏi" là mong muốn về gia sư (không phải trình độ học sinh); nói buổi mà không nói ngày thì không điền ngày. Lý do và bằng chứng: [13, mục 13.6](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 26/10/2026:** prompt `/parse-query` theo bảng quy ước dưới (giá, hình thức học, quận, lịch, "gia sư
+> giỏi", "dễ hiểu", môn ngoài danh mục); AI service tự sửa hai trường hợp sau khi model trả lời: một giá (min = max)
+> → 0,8X–1,2X, học online → bỏ quận. Bộ câu độc lập: câu đúng toàn bộ 39,1 % → **91,3 %** (sau khi thống nhất nhãn theo T10). Số đo:
+> [13, mục 13.6](./13-tinh-chinh-sau-danh-gia.md).
+
+**Quy ước tách câu (nhóm chốt 26/10/2026, dùng cho nhãn đánh giá và prompt; đã đưa vào prompt 26/10/2026).** Bảng đầy đủ,
+gồm cả quy ước về lịch, ở [13 mục 13.6](./13-tinh-chinh-sau-danh-gia.md).
+
+> 💡 Đây là cách "đọc đúng" một câu mà nhóm thống nhất, để chấm điểm LLM công bằng và để viết prompt cho khớp. Ví dụ
+> "giá 150k" được hiểu là "tầm 150k" (cho phép lệch 20 %), còn "khoảng 300–350k" thì lấy đúng khoảng người dùng nói.
+
+| Câu | Cách điền |
+|---|---|
+| Học online (và chỉ online) | `mode = ONLINE`, **không** điền quận dù câu có nêu nơi ở |
+| "Online hoặc trực tiếp đều được" | `mode` để trống, **vẫn** điền quận |
+| "Khoảng X–Y", "tầm X–Y" | đúng X–Y (khoảng người dùng nói được ưu tiên hơn quy tắc ±20 %) |
+| "Khoảng X", "tầm X", "giá X", "X/buổi" (một giá) | 0,8X – 1,2X |
+| Giá theo tháng ("2tr/tháng") | không điền giá |
+| "Dễ hiểu" | không gắn `giai_thich_ky`; chỉ "giải thích kỹ" mới gắn |
+| Môn không có trong danh mục môn (ví dụ "tiếng Nhật"; "Hoá" thì có: "Hóa học") | không điền `subject` |
+| Tên quận theo đơn vị hành chính cũ ("Nam Từ Liêm") | tên trong danh mục mới ("Từ Liêm") |
+| Có quận mà không nói hình thức ("ở Đống Đa") | `mode = OFFLINE`, điền quận |
+| "Gia sư giỏi", "thầy giỏi" | mong muốn về gia sư; không gắn `segmentTags` |
+| Nói buổi mà không nói ngày ("buổi tối") | không điền ngày |
+| "Ngày thường", "các ngày trong tuần" | thứ 2 – thứ 6 |
 
 > 💡 Người dùng gõ *"Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"*; LLM đọc câu và trả về giá trị cho từng ô (môn = Toán, lớp = 9, học phí tối đa = 200.000…), backend đối chiếu tên với danh mục thật (bỏ dấu, không phân biệt hoa thường) rồi điền vào form. Phần không điền được ô nào (`semanticText`) dùng để so nghĩa. Số điện thoại, email trong câu bị lọc trước (PII = thông tin định danh cá nhân). Kết quả được nhớ 24 giờ (cache).
 

@@ -373,11 +373,95 @@ nhãn (ví dụ "sau 8h tối" kết thúc 22:00 hay 21:00) — quy ước này 
 3. **Nhóm duyệt lại bộ nhãn** (200 nhãn trong `llm_eval_cases.py`) và thống nhất quy ước với prompt; tự viết thêm
    20–30 câu không nhìn prompt để kiểm tra độc lập.
 
+### Bảng quy ước nhãn (26/10/2026)
+
+> 💡 Nhãn là "đáp án" dùng để chấm LLM. Nếu đáp án và prompt hiểu một câu theo hai cách khác nhau thì LLM bị chấm sai
+> dù nó làm đúng như được dặn. Bảng này là cách hiểu chung mà nhóm đã chốt; nhãn nháp và prompt đều phải theo nó.
+
+**Nguồn:** *nhóm chốt 26/10* = nhóm chọn rõ; *đề xuất* = Claude đề xuất, nhóm không phản đối và nhãn của bộ câu độc
+lập (`llm_eval_independent.json`, nhóm duyệt) cũng theo.
+
+| # | Câu | Cách hiểu | Nguồn |
+|---|---|---|---|
+| L1 | Chỉ có giờ bắt đầu ("lúc 20h", "từ 18h", "17h30 thứ 6") | +2 tiếng, kết thúc muộn nhất 22:00 | nhóm chốt 26/10 |
+| L2 | "Sau X giờ" ("sau 9h tối", "sau 7h30") | như L1: "sau 9h tối" → 21:00–22:00, "sau 7h30" tối → 19:30–21:30 | nhóm chốt 26/10 |
+| L3 | Buổi kèm giờ bắt đầu ("chiều từ 2 rưỡi") | như L1 (14:30–16:30), không kéo tới hết buổi | nhóm chốt 26/10 |
+| L4 | Có thời lượng ("từ 19h30 khoảng 2 tiếng") | theo thời lượng | đề xuất |
+| L5 | "Cả ngày" | 08:00–21:00 | đề xuất |
+| L6 | "Ngày thường", "các ngày trong tuần" | thứ 2–6 | đề xuất |
+| L7 | Có buổi, không nói ngày ("buổi tối thôi") | không điền ngày (A1: lịch rỗng) | đề xuất |
+| L8 | "Thứ 3 hoặc thứ 5" | cả hai ngày | đề xuất |
+| L9 | "Trừ thứ 6", "riêng t6 nghỉ" | bỏ ngày đó | đề xuất |
+| L10 | Tối / chiều / sáng không giờ | 19–21 / 14–17 / 08–11 | prompt cũ |
+| T1 | Học online | `mode = ONLINE`, không điền quận | nhóm chốt |
+| T2 | "Online hoặc trực tiếp đều được" | `mode` trống, vẫn điền quận | nhóm chốt |
+| T3 | "Khoảng X–Y", "tầm X–Y" | đúng X–Y | nhóm chốt |
+| T4 | Một giá: "khoảng X", "tầm X", "giá X" | 0,8X – 1,2X | nhóm chốt 26/10 (thay đề xuất min = max) |
+| T5 | Giá theo tháng | không điền giá | nhóm chốt |
+| T6 | "Dễ hiểu" | không gắn `giai_thich_ky`; chỉ "giải thích kỹ" | nhóm chốt |
+| T7 | Môn không có trong danh mục môn (danh mục thật có 16–17 môn; ví dụ "tiếng Nhật" không có) | không điền `subject` | nhóm chốt |
+| T8 | "Gia sư giỏi", "thầy giỏi càng tốt" | không gắn `segmentTags` | đề xuất |
+| T9 | Tên quận theo đơn vị hành chính cũ ("Nam Từ Liêm") | tên trong danh mục mới ("Từ Liêm"); danh mục quận Hà Nội là 126 đơn vị sau sáp nhập | nhóm chốt 26/10 |
+| T10 | Có quận mà không nói hình thức ("ở Đống Đa") | `mode = OFFLINE`, điền quận (khác T2: nói "online hoặc trực tiếp" thì `mode` trống) | nhóm chốt 26/10 (sau duyệt mẫu) |
+
+**Nhãn đã sửa theo bảng (26/10/2026).** Bộ nháp: "Sau 9h tối các ngày thường" 21:00–22:30 → 21:00–22:00 (L2);
+"chiều t6 từ 2 rưỡi" 14:30–17:00 → 14:30–16:30 (L3); "mức 250k một buổi" 250k–250k → 200k–300k, "giá 150k" 150k–150k
+→ 120k–180k (T4). Bộ độc lập: câu 15 "Nam Từ Liêm" → "Từ Liêm" (T9); câu 18 thêm `subject = "Hóa học"` (Hoá có trong
+danh mục; nhóm soạn câu khi chỉ liệt kê 3 môn của mô phỏng); thêm câu 23 "tìm gs tiếng Nhật cho con lớp 7, online"
+để còn một câu kiểm tra T7; câu 6 "Tìm thầy Toán lớp 9 ở Đống Đa…" thêm `mode = OFFLINE` (T10; các câu 3, 15, 16, 20
+cũng có quận và không ghi mode nhưng đều nói "online hoặc trực tiếp", thuộc T2, giữ nguyên). Sau duyệt mẫu, bộ nháp:
+#30 bỏ `STYLE:giai_thich_ky` ("giải thích bằng thí nghiệm" là cách dạy, không phải "giải thích kỹ"); #23 thêm
+`TOPIC:noi`; #35 thêm `GOAL:cai_thien_diem`. Bộ nháp không có câu nào cùng dạng T10 mà thiếu mode.
+
+**Trạng thái duyệt.** Bộ độc lập (13 câu lịch, 23 câu tìm kiếm): nhóm duyệt → **số chính**. Bộ nháp (200 nhãn):
+**đã duyệt mẫu 40/196** (`llm_eval_review_sample.md`, 40 nhãn ngẫu nhiên trong 196 nhãn chưa sửa trước đó; lượt duyệt
+do Claude làm, nhóm xác nhận các dòng đánh dấu): 33 OK, 1 sai rõ (#30), 2 bổ sung (#23, #35), 4 vướng quy ước còn
+thiếu (#5, #11, #20, #27 — nay T10, nhãn đã đúng). Vì nhãn nháp và lượt duyệt đầu cùng do Claude làm, bộ nháp vẫn chỉ
+báo kèm. Bộ độc lập chỉ dùng để
+đo: prompt chỉ chỉnh theo bảng này và lỗi ở bộ nháp, không xem từng câu sai của bộ độc lập.
+
 ### Làm sao biết đã đúng
 
 Chạy lại `llm_eval.py`: trích lịch đúng toàn bộ ngày ≥ 90%, không còn câu "có giờ bắt đầu → rỗng"; A2 giữ ≥ 91% và
 hết hai kiểu lỗi trên; tag không giảm. Sau đó chạy lại A1 cho dữ liệu đánh giá (`enrichment` chạy lại) và so NDCG.
 
+
+
+### Kết quả thật (26/10/2026)
+
+Đo bằng `llm_eval.py --as truoc` (prompt cũ) và `--as sau` (prompt mới), cùng nhãn, cùng danh mục (`ptutor`), mỗi
+lượt 236 lời gọi; kết quả `ket-qua/llm/truoc-*`, `sau-*`. **Số chính là bộ độc lập** (nhóm duyệt; không xem từng câu
+sai của bộ này khi sửa prompt). Bộ nháp đã duyệt mẫu 40/196, báo kèm.
+
+Sau khi sửa nhãn (T10 ở bộ độc lập; #23, #30, #35 ở bộ nháp), **cả hai lượt được chấm lại từ câu trả lời đã lưu**
+(`llm_eval.py --as truoc|sau --rescore`, không gọi LLM; chấm lại với nhãn cũ cho ra đúng hệt số đã đo). Bảng dưới là
+số sau khi chấm lại; số trước khi sửa nhãn ghi trong ngoặc khi khác.
+
+| Chỉ số | Độc lập trước | Độc lập sau | Nháp trước | Nháp sau |
+|---|---|---|---|---|
+| Lịch: đúng toàn bộ ngày | 76,9 % | **100 %** | 78,3 % | **100 %** |
+| Lịch: recall / precision theo ngày | 0,85 / 1,00 | 1,00 / 1,00 | 0,76 / 0,96 | 1,00 / 1,00 |
+| Lịch: IoU khung giờ | 0,96 | 1,00 | 0,96 | 1,00 |
+| A2: câu đúng toàn bộ | 39,1 % (9/23) | **91,3 %** (21/23; trước khi sửa nhãn 87,0 %) | 88,7 % (90,0 %) | **96,3 %** (97,5 %) |
+| A2: ngày (F1) | 0,14 | 1,00 | 1,00 | 1,00 |
+| A2: hình thức / quận / trình độ (F1) | 0,90 (0,86) / 0,91 / 0,71 | 1,00 (0,96) / 1,00 / 0,91 | 0,99 / 1,00 / 0,91 | 1,00 / 1,00 / 1,00 |
+| A2: giá min / max (F1) | 0,90 / 0,90 | 1,00 / 1,00 | 0,82 / 0,86 | 1,00 / 1,00 |
+| A1 tag (F1) | — | — | 0,973 (0,966) | 0,974 (0,966) |
+
+Đối chiếu tiêu chí: lịch ≥ 90 % — **đạt** cả hai bộ, không còn câu "có giờ bắt đầu → rỗng"; tag không giảm — **đạt**
+(0,973 → 0,974); "gia sư giỏi" và "buổi tối không có ngày" — **hết** ở bộ nháp; A2 ≥ 91 % — **đạt** ở bộ độc lập
+(91,3 %, 2/23 câu sai) và bộ nháp (96,3 %). Câu 6 của bộ độc lập là câu đổi từ sai sang đúng khi sửa nhãn: model đã
+trả `OFFLINE` theo đúng quy tắc cũ của prompt ("nêu tên quận → OFFLINE"), nhãn lúc đầu bỏ trống. Ba câu nháp còn sai:
+hai câu thiếu tag phong cách (`giao_tiep`, `tu_duy`), một câu (#35) thiếu `GOAL:cai_thien_diem` vừa thêm vào nhãn.
+
+> 💡 Nói bằng lời thường: sau khi ghi rõ các quy ước, phần đọc lịch đúng hết trên cả bộ câu nhóm tự kiểm; phần tách
+> câu tìm kiếm từ 9/23 câu đúng hoàn toàn lên 21/23. Hai câu còn sai không được đem ra "chữa" vào prompt, vì như thế bộ
+> độc lập sẽ không còn độc lập nữa. Một câu "đúng thêm" là do sửa đáp án cho thống nhất (T10), không phải do model
+> giỏi lên — nên con số 87 % trước khi sửa nhãn cũng được ghi lại.
+
+Ngoài prompt, AI service tự sửa hai trường hợp sau khi model trả lời (có test): một giá min = max → 0,8X–1,2X (T4);
+`mode = ONLINE` → bỏ quận (T1). Hai lỗi đọc ngày quan trọng nhất ở bản cũ: "thứ 2, 4, 6" bị đọc thành ngày ISO 2, 4, 6
+(prompt cũ chỉ viết "1 = Thứ Hai", không nói "thứ N" là N − 1); giờ bắt đầu không có giờ kết thúc bị bỏ trống.
 ## 13.7. T6 — L1: giảm độ mạnh prior và mức khám phá
 
 > 💡 **κ (độ mạnh prior)** = trọng số do nhóm đặt "đáng giá" bao nhiêu quan sát. κ lớn → hệ thống tin trọng số ban
@@ -443,7 +527,7 @@ và ghi lại vào file này.
 | # | Thay đổi | Mục | Trạng thái |
 |---|---|---|---|
 | 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
-| 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | Đã quyết, chưa code |
+| 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | Đã quyết, chưa code |
 | 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | Đã quyết, chưa code — chốt tham số trên crowded |
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | Đã quyết, chưa code |
@@ -459,4 +543,4 @@ và ghi lại vào file này.
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α để chỉnh mức tin b | 13.5 |
 | Trọng số tự học (L1) có thật sự học được không? | Với prior quá mạnh thì không; chọn κ bằng thí nghiệm, và cơ chế luôn ở trong biên an toàn quanh trọng số nhóm đặt | 13.7 |
-| Độ chính xác LLM cao vậy có đáng tin? | Bộ nhãn đầu do Claude soạn theo quy ước của prompt nên có thể lạc quan; nhóm duyệt lại và thêm câu viết độc lập trước khi dùng số này (cập nhật dòng này khi đã làm) | 13.6 |
+| Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp do Claude soạn (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |
