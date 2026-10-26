@@ -190,3 +190,50 @@ def test_requires_the_internal_token():
     with client_with(llm) as client:
         assert client.post("/parse-query", json=body()).status_code == 401
     assert llm.calls == []
+
+
+def test_one_price_reads_like_about_that_price():
+    # 13.6, T4: "giá 150k" is 120k-180k even when the model gives the price as both ends.
+    llm = FakeLlm(parsed(price={"min": 150000, "max": 150000}))
+    with client_with(llm) as client:
+        data = client.post("/parse-query", json=body(), headers=HEADERS).json()
+
+    assert data["price"] == {"min": 120000, "max": 180000}
+
+
+def test_a_range_is_kept_as_written():
+    llm = FakeLlm(parsed(price={"min": 300000, "max": 350000}))
+    with client_with(llm) as client:
+        data = client.post("/parse-query", json=body(), headers=HEADERS).json()
+
+    assert data["price"] == {"min": 300000, "max": 350000}
+
+
+def test_online_only_drops_the_district():
+    # 13.6, T1: where an online learner lives is not a filter.
+    llm = FakeLlm(parsed(mode="ONLINE", area={"scope": "DISTRICTS", "districts": ["Cầu Giấy"]}))
+    with client_with(llm) as client:
+        data = client.post("/parse-query", json=body(), headers=HEADERS).json()
+
+    assert data["mode"] == "ONLINE"
+    assert data["area"] == {"scope": None, "districts": []}
+
+
+def test_online_or_at_home_keeps_the_district():
+    # 13.6, T2: no mode, the district stays.
+    llm = FakeLlm(parsed(mode=None, area={"scope": "DISTRICTS", "districts": ["Cầu Giấy"]}))
+    with client_with(llm) as client:
+        data = client.post("/parse-query", json=body(), headers=HEADERS).json()
+
+    assert data["mode"] is None
+    assert data["area"] == {"scope": "DISTRICTS", "districts": ["Cầu Giấy"]}
+
+
+def test_the_prompts_carry_the_label_conventions():
+    from app.llm import PARSE_PROMPT, SYSTEM_PROMPT
+
+    for rule in ("dayOfWeek = N − 1", "kéo dài 2 tiếng", "muộn nhất 22:00", "Cả ngày", "ngày thường"):
+        assert rule in SYSTEM_PROMPT, rule
+    for rule in ("min = 0.8X, max = 1.2X", "khoảng X-Y", "Giá theo tháng", "không phải segmentTags", "Dễ hiểu",
+                 "Chỉ học online thì không ghi quận"):
+        assert rule in PARSE_PROMPT, rule
