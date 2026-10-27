@@ -681,6 +681,75 @@ khỏi biên quanh trọng số nhóm đặt) và **không tệ hơn** trọng s
 Với κ chọn được: regret thấp hơn trọng số cố định ở cả kịch bản truy vấn đa dạng và `drift`; trong `drift`, có quên
 (γ = 0,99) bắt kịp nhanh hơn không quên.
 
+### Kết quả thật (Bước 41, 27/10/2026)
+
+`learning.py` trên `crowded` (`ket-qua/crowded/9.9.4-*`, `9.9.5-drift.*`): đặc trưng lấy từ lượt tìm với mặc định mới
+(chống dồn công thức mới, R = a^0,65 · b^0,35 — `learning.py` trước đó còn dùng trung bình điều hoà); 3 000 lần tìm ×
+10 hạt giống, cập nhật mỗi 100 lần tìm (30 lần cập nhật); **truy vấn đa dạng**: 1 180 truy vấn S2T, rút không lặp lại
+cho tới khi dùng hết (mỗi truy vấn ~2,5 lần; `base-dev` lặp 106 truy vấn). Mặc định sau Bước 41: κ = 50, khám phá
+ρ = 0,5, `max-step` 0,05, quên γ = 0,99.
+
+| Chiến lược | Regret (TB ± sd) | So với cố định | Sai số trọng số | Bước lớn nhất |
+|---|---|---|---|---|
+| Trọng số cố định (prior nhóm đặt) | 1 658 ± 10 | — | 0,300 | 0 |
+| **L1, mặc định mới (κ 50, ρ 0,5, γ 0,99)** | **1 311 ± 100** | **−20,9 %** (10/10 hạt giống tốt hơn) | 0,203 | 0,047 |
+| L1, κ 50, ρ 0,5, γ 1 | 1 317 ± 106 | −20,6 % | 0,193 | 0,047 |
+| L1, mặc định cũ (κ 200, ρ 1, γ 1) | 1 453 ± 84 | −12,3 % | 0,247 | 0,024 |
+| Greedy (như mặc định mới, không khám phá) | 1 282 ± 90 | −22,7 % | 0,199 | 0,050 |
+
+**Prior sai** — so với trọng số cố định **ở chính prior sai đó** (L1 xuất phát từ đâu thì mốc là giữ nguyên chỗ đó):
+
+| Prior | Cố định ở prior này | L1 từ prior này | L1 so với cố định cùng prior | Sai số: cố định → L1 |
+|---|---|---|---|---|
+| Nhóm đặt | 1 658 | 1 311 | −21 % | 0,300 → 0,203 |
+| Chia đều (sai vừa) | 2 456 ± 14 | **1 630 ± 98** | **−34 %** | 0,543 → 0,234 |
+| Đảo ngược (sai hẳn) | 3 843 ± 16 | 2 715 ± 31 | −29 % | 1,000 → 0,617 |
+
+Lưới κ × `max-step` (ρ 0,5, γ 0,99, 10 hạt giống, tất cả 10/10 hạt giống tốt hơn cố định):
+
+| κ | `max-step` 0,05: regret · sai số · bước lớn nhất | `max-step` 0,1 |
+|---|---|---|
+| 20 | **1 214** · 0,172 · 0,050 (chạm trần) | 1 220 · 0,182 · 0,079 |
+| 50 | 1 311 · 0,203 · 0,047 | 1 245 · 0,196 · 0,047 |
+| 100 | 1 382 · 0,227 · 0,039 | 1 360 · 0,235 · 0,039 |
+
+`drift` (w* đổi ở lần tìm 1 500, κ 50, ρ 0,5): regret sau khi đổi — cố định 1 137; γ = 1: 715; **γ = 0,99: 691**;
+γ = 0,9: 632; Greedy γ 0,99: 682. Sai số cuối: cố định 0,400; γ = 1: 0,230; γ = 0,99: 0,196; γ = 0,9: 0,178. Không có
+drift, γ 0,99 gần như không mất gì so với γ 1 (1 311 so với 1 317).
+
+Đối chiếu tiêu chí: với κ 50, regret thấp hơn cố định ở cả truy vấn đa dạng (−21 %) và `drift` (toàn lượt 1 385 so với
+1 964, −30 %) — **đạt**; trong `drift`, γ 0,99 bắt kịp nhanh hơn không quên (regret sau khi đổi −3 %, sai số cuối 0,196
+so với 0,230) — **đạt**. Bước lớn nhất luôn ≤ `max-step` (biên an toàn giữ đúng).
+
+**Quyết định (người dùng, 27/10/2026):**
+
+- **κ = 50.** κ 20 có regret thấp hơn nhưng bước luôn chạm trần 0,05: trọng số đang bị kéo theo nhiễu, chỉ giới hạn
+  bước giữ lại. κ 50 là điểm cân bằng.
+- **`max-step` = 0,05.** Mức 0,1 chỉ tốt hơn một chút; "trọng số không bao giờ nhảy quá 5 điểm phần trăm trong một
+  đêm" là giới hạn an toàn dễ giải thích, đáng giữ hơn vài phần trăm regret.
+- **γ = 0,99**, áp một lần trước mỗi lần cập nhật, tức **mỗi đêm** khi chạy thật: dữ liệu cũ khoảng 70 đêm thì còn
+  một nửa sức nặng (0,99⁶⁹ ≈ 0,5). γ 0,9 bắt kịp nhanh hơn trong mô phỏng nhưng quên quá nhanh với dữ liệu thật thưa
+  (sau 7 đêm chỉ còn một nửa). Trong mô phỏng một lần cập nhật = 100 lần tìm, nên γ ở đây mạnh hơn so với thời gian
+  thật; con số 70 đêm là cách đọc khi chạy thật.
+- **ρ = 0,5 (giữ khám phá).** Nêu thẳng: **trong mô phỏng, khám phá không mang lại lợi ích thêm và tốn khoảng 2 %
+  regret so với Greedy** (1 311 so với 1 282, chênh nằm trong dao động giữa hạt giống). Nhóm giữ mức khám phá thấp vì
+  môi trường thật có những bất định mà mô phỏng không có (người dùng mới, môn mới, tin đăng mới). Thêm nữa, ρ = 0 thì
+  L1 không còn là contextual bandit mà chỉ là hồi quy Bayes cập nhật dần — phần "phía người tìm là học tăng cường"
+  (12 mục 12.1) không còn đúng; giữ ρ 0,5 thì vẫn đúng.
+
+**Prior sai: L1 sửa được đến đâu.** L1 tự sửa được sai lệch nằm trong biên an toàn: từ prior chia đều, regret thấp
+hơn giữ nguyên prior đó 34 % và sai số trọng số giảm từ 0,543 xuống 0,234 (gần mức của L1 từ prior nhóm đặt, 0,203);
+regret 1 630 vẫn thấp hơn cả trọng số cố định nhóm đặt (1 658). Với prior **sai ngược hẳn**, L1 vẫn cải thiện so với
+giữ nguyên prior (−29 %) nhưng biên [0,5; 2] × prior không cho đi đủ xa tới w* (sai số còn 0,617) nên vẫn tệ hơn trọng
+số nhóm đặt 64 %. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa: biên chặn hệ thống đi xa trọng số
+nhóm đặt khi dữ liệu nhiễu, đổi lại không sửa được một prior sai hoàn toàn.
+
+> 💡 Nói bằng lời thường: với prior tin vừa phải (κ 50), hệ thống tự chỉnh trọng số và gợi ý tốt hơn trọng số cố định
+> khoảng 21 %, cả khi sở thích người dùng thay đổi giữa chừng; có "quên" thì theo kịp thay đổi nhanh hơn. Nếu trọng
+> số nhóm đặt lệch vừa phải (ví dụ chia đều), hệ thống tự kéo về gần đúng. Nếu nhóm đặt sai ngược hẳn thì nó chỉ đỡ
+> được một phần, vì nó không được phép đi quá xa trọng số nhóm đặt. Phần "thử nghiệm" (khám phá) không giúp gì trong
+> mô phỏng; nhóm vẫn giữ ở mức thấp cho người dùng và môn học mới khi chạy thật.
+
 ## 13.8. T7 — Tách hệ số Q và các cổng chặn để xem cái nào làm hạ điểm
 
 > 💡 Điểm cuối = R × (0,7 + 0,3·Q) × G, trong đó G gồm hai "cổng chặn mềm": lịch không giao nhau (× 0,4), gia sư vừa
@@ -761,7 +830,7 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | **Đã làm 26/10/2026.** `restore()` / `clone()`; crowded dựng lại (β0 −3,1, `rel` và đánh giá theo `quality`, 400 HS, A1 prompt mới); mọi kiểm tra bộ mô phỏng đạt; mốc 6 cấu hình (thị trường 8 vòng + tìm kiếm) |
 | 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | **Đã làm 26/10/2026.** Mặc định: `ON_SHORTAGE` λ 0,5, `GEOMETRIC` α 0,65. So công thức cũ / mới trên `base` (Bước 40, 27/10): đạt, giữ công thức mới. Còn: lấy số báo cáo trên `crowded` hạt giống khác (Bước 43) |
-| 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | Đã quyết, chưa code |
+| 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | **Đã làm 27/10/2026** (crowded, truy vấn đa dạng + `drift`). Mặc định κ 50, ρ 0,5, `max-step` 0,05, γ 0,99; regret −21 % so với cố định |
 | 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
 
 ## 13.10. Câu hỏi phản biện dự kiến
@@ -775,5 +844,7 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | Cổng "vừa bị từ chối" không có lợi trong mô phỏng, sao vẫn giữ? | Mô phỏng không có hiện tượng "đã từ chối một lần thì dễ từ chối nữa"; lý do giữ là trải nghiệm người dùng (không đưa lại người vừa từ chối mình lên đầu) | 13.8 |
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α (0,65) để chỉnh mức tin b. Reciprocal một mình còn làm từ chối tăng vì b đẩy học sinh vào gia sư có lịch sử nhận cao mà không biết họ đã hết chỗ — nên luôn đi cùng chống dồn (Su và cộng sự, 2022) | 13.5 |
-| Trọng số tự học (L1) có thật sự học được không? | Với prior quá mạnh thì không; chọn κ bằng thí nghiệm, và cơ chế luôn ở trong biên an toàn quanh trọng số nhóm đặt | 13.7 |
+| Trọng số tự học (L1) có thật sự học được không? | (sửa 27/10/2026) Trên mô phỏng crowded có đáp án ẩn: với κ 50, regret thấp hơn trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng. Với prior quá mạnh (κ 200 trên `base-dev`) thì gần như không học | 13.7 |
+| Trọng số ban đầu đặt sai thì L1 có tự sửa? | Sai vừa (chia đều) thì có: regret −34 % so với giữ nguyên prior đó, sai số trọng số 0,54 → 0,23. Sai ngược hẳn thì chỉ sửa được một phần (−29 %, vẫn tệ hơn trọng số nhóm đặt): biên [0,5; 2] × prior không cho đi đủ xa. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa | 13.7 |
+| Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn khoảng 2 % regret so với Greedy. Giữ mức thấp (ρ 0,5) vì môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit | 13.7 |
 | Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp do Claude soạn (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |

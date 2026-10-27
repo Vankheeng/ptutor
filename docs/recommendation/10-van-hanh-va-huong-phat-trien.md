@@ -7,7 +7,7 @@
 > 📌 **Đã làm 26/10/2026:** `rerank.mode` (mặc định `OFF`: rerank không có lợi ích đo được; `ASYNC` khi bật) và các
 > tham số của worker chấm nền (bảng dưới; 06 mục 6.9; lý do và điều kiện bật lại ở 13 mục 13.2).
 > Cũng đã làm 26/10/2026: `reciprocal.mode` / `reciprocal.alpha` (0,65), `willingness.congestion-formula` (chỉ phạt khi n ≥ r).
-> **Đã quyết 26/10/2026, chưa code:** Tham số sẽ đổi / thêm: `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5. Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
+> Đã làm 27/10/2026: `learning.prior-strength` 200 → 50, `learning.exploration-scale` 1,0 → 0,5, `learning.forgetting` 1,0 → 0,99 (áp mỗi đêm). Lý do và bằng chứng: [13, mục 13.2, 13.4, 13.5, 13.7](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Các con số đặt trong file cấu hình (tiền tố `app.recommendation.`), đổi được mà không sửa code. Mỗi dòng ghi giá trị khởi đầu và mục tài liệu giải thích nó. Các "cờ bật / tắt" (`…enabled`) cho phép tắt từng thành phần — dùng để so sánh khi đánh giá, hoặc tắt nhanh khi demo gặp sự cố. Cron (ví dụ `0 0 19 * * *`) là cách ghi lịch chạy định kỳ; UTC chậm hơn giờ Việt Nam 7 tiếng.
 
@@ -66,7 +66,7 @@
 | `query-embedding.timeout-ms` / `cache-size` | 1 000 / 500 | 06, 6.3 |
 | `jobs.retention-days` / `cleanup-interval-ms` (dọn job đã xong trong `ai_enrichment_jobs`) | 7 / 21 600 000 | 02 |
 | `app.ai-service.base-url` / `connect-timeout-ms` / `embed-timeout-ms` / `health-timeout-ms` / `internal-token` | `http://127.0.0.1:8000` / 500 / 1 000 / 500 / (bí mật) | 10, 10.2 |
-| `learning.enabled` / `models.<key>.mode` / `prior-strength` / `intercept-prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` / `reload-interval-ms` | true / `SHADOW` / 200 / 1 / 1,0 / 0,5 / 2,0 / 0,05 / 600 000 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng và mẫu phía b) |
+| `learning.enabled` / `models.<key>.mode` / `prior-strength` / `intercept-prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` / `reload-interval-ms` | true / `SHADOW` / 50 / 1 / 0,5 / 0,5 / 2,0 / 0,05 / 600 000 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng, mẫu phía b và `forgetting` 0,99) |
 | `algorithm-version` | `v2.2-rcx` (trước Bước 8: `v2.1-a`; Bước 8–10: `v2.1-rc`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,

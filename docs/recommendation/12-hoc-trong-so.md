@@ -111,7 +111,7 @@ nhạy.
 
 ## 12.3. Mô hình toán
 
-> 💡 **Hồi quy tuyến tính Bayes**: giả định phản hồi r ≈ tổng có trọng số của các đặc trưng x, cộng nhiễu. θ là vector trọng số cần học. Thay vì nhớ hết dữ liệu, chỉ cần giữ hai bảng số tích lũy **A** (ma trận) và **c** (vector), mỗi quan sát mới cộng thêm vào; trọng số ước lượng μ = A⁻¹c. **κ** = trọng số nhóm đặt "đáng giá" bao nhiêu quan sát (200): lúc đầu μ gần như bằng prior, phải có hàng trăm quan sát mới kéo lệch được. Σ đo mức chưa chắc chắn, càng nhiều dữ liệu càng nhỏ.
+> 💡 **Hồi quy tuyến tính Bayes**: giả định phản hồi r ≈ tổng có trọng số của các đặc trưng x, cộng nhiễu. θ là vector trọng số cần học. Thay vì nhớ hết dữ liệu, chỉ cần giữ hai bảng số tích lũy **A** (ma trận) và **c** (vector), mỗi quan sát mới cộng thêm vào; trọng số ước lượng μ = A⁻¹c. **κ** = trọng số nhóm đặt "đáng giá" bao nhiêu quan sát (50 từ 27/10/2026, trước là 200): lúc đầu μ gần như bằng prior, phải có vài chục quan sát mới kéo lệch được. Σ đo mức chưa chắc chắn, càng nhiều dữ liệu càng nhỏ.
 
 Mỗi mô hình là **hồi quy tuyến tính Bayes** trên vector đặc trưng `x` (thêm hệ số chặn `x₀ = 1`):
 
@@ -138,14 +138,15 @@ c  = c₀ + Σ_i s_i · r_i · x_i
 ```
 
 - `κ` (`learning.prior-strength`) = prior "đáng giá" bao nhiêu quan sát. κ lớn → tin trọng số tự đặt lâu
-  hơn. Giá trị khởi đầu 200, hiệu chỉnh trong thí nghiệm mô phỏng.
+  hơn. Mặc định 50 (từ 27/10/2026; trước là 200), chọn bằng thí nghiệm mô phỏng (13 mục 13.7).
 - `s_i` = trọng số mẫu để giảm thiên lệch vị trí (12.5).
 - Hệ số chặn hấp thụ mức phản hồi nền (ví dụ ai cũng ít bấm), **không** dùng khi xếp hạng.
 - Kích thước: 8×8 (`A_S2T`), 7×7 (`A_T2S`), 5×5 (`B_*`). Nghịch đảo / phân rã Cholesky viết tay trong Java,
   không cần thư viện.
 
 **Quên dần (tuỳ chọn):** trước mỗi lần cập nhật, `A ← A₀ + γ·(A − A₀)`, `c ← c₀ + γ·(c − c₀)` với
-`γ = learning.forgetting` (mặc định 1 = không quên; 0,99 nếu hành vi người dùng thay đổi theo mùa).
+`γ = learning.forgetting` (mặc định 0,99 từ 27/10/2026; 1 = không quên). γ áp một lần trước mỗi lần cập nhật, tức
+mỗi đêm khi chạy thật: với 0,99, dữ liệu của khoảng 70 đêm trước còn một nửa sức nặng.
 
 ### Từ θ sang trọng số dùng được
 
@@ -196,7 +197,7 @@ Mỗi lần tìm (khi mô hình ở chế độ ACTIVE):
 
 - Lúc đầu Σ lớn → các mẫu khác nhau nhiều → hệ thống thử nhiều bộ trọng số. Dữ liệu tăng → Σ co lại →
   mẫu tiến về μ, tức tự chuyển từ khám phá sang khai thác.
-- `ρ` (`learning.exploration-scale`, mặc định 1) điều chỉnh mức khám phá; `ρ = 0` → luôn dùng μ (tham lam).
+- `ρ` (`learning.exploration-scale`, mặc định 0,5 từ 27/10/2026, trước là 1) điều chỉnh mức khám phá; `ρ = 0` → luôn dùng μ (tham lam).
 - **Ổn định trải nghiệm:** hạt giống ngẫu nhiên = băm (người dùng, ngày), nên cùng một người trong cùng
   một ngày nhận cùng bộ trọng số — tìm lại không bị đảo thứ tự lung tung. Lật trang dùng thứ tự đã lưu
   theo `logId` như hiện tại.
@@ -528,7 +529,10 @@ Thompson làm ở bước sau.
 
 ## 12.10. Tham số `app.recommendation.learning.*`
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** `prior-strength` sẽ hạ 200 → 50 và `exploration-scale` 1,0 → 0,5 — vì sau khi đưa prior về thang phần thưởng, κ = 200 làm trọng số gần như đứng yên (regret 1 144, kém trọng số cố định 1 128), còn κ = 50 tốt hơn cố định ~6%; khám phá không hơn Greedy. Lý do và bằng chứng: [13, mục 13.7](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 27/10/2026:** `prior-strength` 200 → **50**, `exploration-scale` 1,0 → **0,5**, `forgetting` 1,0 →
+> **0,99**; `max-step` giữ 0,05. Trên mô phỏng `crowded` có truy vấn đa dạng, L1 với mặc định mới có regret thấp hơn
+> trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng; khám phá không hơn Greedy (tốn ~2 %
+> regret) nhưng vẫn giữ ở mức thấp. Lý do và bằng chứng: [13, mục 13.7](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Bảng mọi tham số của cơ chế học, mỗi dòng có ý nghĩa ngắn. Các tham số quan trọng nhất: κ (prior đáng bao nhiêu quan sát), ρ (mức thử), khoảng kẹp 0,5–2, bước tối đa 0,05, ngưỡng dữ liệu để kích hoạt.
 
@@ -536,13 +540,13 @@ Thompson làm ở bước sau.
 |---|---|---|
 | `enabled` | `true` | Tắt toàn bộ L1 (mọi mô hình về prior) |
 | `models.<key>.mode` | `SHADOW` | `OFF` / `SHADOW` / `ACTIVE` cho từng mô hình |
-| `prior-strength` (κ) | 200 | Prior đáng giá bao nhiêu quan sát |
+| `prior-strength` (κ) | 50 | Prior đáng giá bao nhiêu quan sát (200 trước 27/10/2026) |
 | `intercept-prior-strength` (κ₀) | 1 | Độ mạnh prior của hệ số chặn (thêm 21/10/2026) |
 | `reload-interval-ms` | 600 000 | Nạp lại trọng số định kỳ, lưới an toàn cho event (thêm 21/10/2026) |
 | `noise` (ν) | 0,3 | Độ nhiễu giả định của phản hồi |
-| `exploration-scale` (ρ) | 1,0 | Mức khám phá Thompson phía a; 0 = tham lam |
+| `exploration-scale` (ρ) | 0,5 | Mức khám phá Thompson phía a; 0 = tham lam (1,0 trước 27/10/2026) |
 | `min-ratio` / `max-ratio` | 0,5 / 2,0 | Biên kẹp quanh prior |
-| `max-step` | 0,05 | Thay đổi tối đa của mỗi trọng số trong một lần cập nhật |
+| `max-step` | 0,05 | Thay đổi tối đa của mỗi trọng số trong một lần cập nhật (một đêm) |
 | `reward-window-days` | 7 | Thời gian chờ phần thưởng phía a "chốt" |
 | `rewards` view / favorite / contact / request / dismissed | 0,3 / 0,6 / 0,8 / 1,0 / −0,2 | Thang thưởng phía a (12.4) |
 | `rewards.repeat-view` / `unfavorite` / `alert-click` / `bounce` | bật / bật / tắt / tắt | Tín hiệu tuỳ chọn |
@@ -552,7 +556,7 @@ Thompson làm ở bước sau.
 | `viewed-depth-margin` | 2 | Lấy ứng viên tới vị trí tương tác thấp nhất + 2 |
 | `exploration-sample-weight` | 2 | Trọng số mẫu của ứng viên ở slot khám phá |
 | `ipw.enabled` / `ipw.max-weight` | `false` / 10 | Trọng số nghịch đảo xác suất được nhìn |
-| `forgetting` (γ) | 1,0 | Hệ số quên mỗi lần cập nhật |
+| `forgetting` (γ) | 0,99 | Hệ số quên, áp một lần trước mỗi lần cập nhật (mỗi đêm); ~70 đêm thì dữ liệu cũ còn nửa sức nặng (1,0 trước 27/10/2026) |
 | `min-samples-a` / `min-samples-b` | 2 000 / 300 | Điều kiện kích hoạt |
 | `auto-activate` | `true` | Tự kích hoạt khi đủ điều kiện |
 | `job-cron` | `0 30 20 * * *` (UTC) | Lịch `WeightLearningJob` |
@@ -572,11 +576,14 @@ của người dùng ảo được biết trước nhưng hệ thống không nh
 > Trọng số do nhóm thiết lập đóng vai trò prior cho giai đoạn khởi đầu lạnh. Khi vận hành thật, hệ thống
 > dùng contextual bandit (Linear Thompson Sampling) cho độ phù hợp phía người tìm và hồi quy Bayes trực
 > tuyến cho khả năng phía kia đồng ý, tự tinh chỉnh trọng số từ phản hồi. Trên bộ mô phỏng có đáp án ẩn,
-> trọng số học được hội tụ về trọng số thật, regret tích luỹ tăng chậm dần, và **kể cả khi xuất phát từ
-> trọng số cố tình đặt sai, hệ thống vẫn tự sửa**.
+> trọng số học được tiến về trọng số thật và regret thấp hơn trọng số cố định khoảng 21 %, cả khi sở thích
+> thay đổi giữa chừng. **Hệ thống tự sửa được sai lệch vừa phải nằm trong biên an toàn quanh trọng số nhóm
+> đặt; một prior sai ngược hẳn thì chỉ sửa được một phần** — đó là đánh đổi có chủ đích giữa an toàn và khả
+> năng tự sửa.
 
 **Không tuyên bố:** mô hình "đã học được" sở thích của người dùng thật; số lượng dữ liệu cần thiết ngoài
-đời thật (chỉ nêu con số đọc từ mô phỏng, kèm điều kiện).
+đời thật (chỉ nêu con số đọc từ mô phỏng, kèm điều kiện); hệ thống sửa được mọi prior sai; khám phá có lợi
+(trong mô phỏng khám phá không hơn Greedy và tốn ~2 % regret — 13 mục 13.7).
 
 **Câu hỏi hội đồng dự kiến:**
 
@@ -584,7 +591,8 @@ của người dùng ảo được biết trước nhưng hệ thống không nh
 |---|---|
 | Vì sao không dùng deep RL? | Bài toán một bước, không có chuyển trạng thái; dữ liệu ít. Contextual bandit là dạng RL phù hợp, có đảm bảo lý thuyết về regret (Agrawal & Goyal, 2013) |
 | Vì sao Thompson sampling, không phải UCB? | Dễ cập nhật theo lô (job đêm), chịu được phản hồi trễ, thực nghiệm tốt (Chapelle & Li, 2011); nhất quán với slot khám phá R6 |
-| Trọng số ban đầu chọn sai thì sao? | Đó là thí nghiệm "prior sai" trong 9.9 — hệ thống tự sửa; cơ chế kẹp quanh prior chỉ giới hạn tốc độ và biên độ |
+| Trọng số ban đầu chọn sai thì sao? | (sửa 27/10/2026) Thí nghiệm "prior sai" trong 9.9: sai vừa (chia đều) thì tự sửa phần lớn (regret −34 % so với giữ nguyên prior đó, sai số trọng số 0,54 → 0,23); sai ngược hẳn thì chỉ sửa được một phần (−29 %), vì biên [0,5; 2] × prior không cho đi đủ xa. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa |
+| Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn ~2 % regret so với Greedy. Môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit (13.7) |
 | Thiên lệch vị trí, vòng lặp phản hồi? | Ba lớp ở 12.5; Thompson sampling chủ động thử nghiệm nên không chỉ học từ những gì nó đã đưa lên đầu |
 | Sao không học tất cả tham số? | Bảng "giữ cố định" ở 12.2 — một số là chính sách thị trường hoặc định nghĩa phần thưởng, không nên học |
 | Bao giờ thì đủ dữ liệu? | Đọc từ đường hội tụ trong mô phỏng; khi chạy thật có điều kiện kích hoạt và chế độ `SHADOW` |

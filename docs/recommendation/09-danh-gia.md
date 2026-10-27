@@ -282,6 +282,13 @@ khi prior lệch nhiều.
 Hạn chế riêng: `w*`, `β` và mô hình click do nhóm đặt; nếu `w*` nằm ngoài biên kẹp quanh prior thì L1 chỉ
 tới được biên — điều này được trình bày như một **đánh đổi có chủ đích** giữa an toàn và tốc độ học.
 
+> 💡 **Kết quả trên `crowded` (Bước 41, 27/10/2026; 13 mục 13.7):** truy vấn đa dạng (1 180 truy vấn) thay cho 106
+> truy vấn lặp; độ nhạy chạy theo κ ∈ {20, 50, 100} × `max-step` ∈ {0,05; 0,1} (thay lưới κ × ρ × IPW); thêm mốc "cố
+> định ở prior sai" để đo L1 sửa được bao nhiêu. Với mặc định mới (κ 50, ρ 0,5, γ 0,99) L1 có regret thấp hơn Fixed
+> 21 % (10/10 hạt giống). Giả thuyết **đúng một phần**: khám phá không hơn Greedy (tốn ~2 % regret); prior chia đều
+> được sửa phần lớn (regret −34 % so với giữ prior đó, sai số 0,54 → 0,23); prior đảo ngược chỉ sửa được một phần
+> (−29 %, vẫn tệ hơn Fixed nhóm đặt 64 %) vì biên kẹp — đúng đánh đổi nêu ở trên.
+
 ## 9.10. Ghi chú triển khai (21/10/2026)
 
 > 📌 **Đã làm 26/10/2026:** các lượt chạy 21–22/10 (base, text-only, đánh giá LLM) dùng để tinh chỉnh kiến trúc, chưa phải số cho báo cáo. Kịch bản thị trường đông đã được hiệu chỉnh và dựng lại (công thức ở mục 9.3; P(nhận) trung bình 0,52, tương quan Q–rel 0,20, trung vị ứng viên 171 / 61) và đã chạy mốc 6 cấu hình trước khi kết luận về reciprocal, chống dồn, slot khám phá. Kết quả và lý do: [13, mục 13.1, 13.3](./13-tinh-chinh-sau-danh-gia.md).
