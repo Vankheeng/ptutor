@@ -1,0 +1,14 @@
+kiem_tra,gia_tri,muc_tieu
+median_candidates_s2t,167.000,≥ 50
+median_candidates_t2s,59,≥ 50
+mean_p_accept_top50,0.523,"0,4–0,6"
+random_ea10,0.479,"0,4–0,6"
+corr_q_rel,0.195,"0,2–0,4"
+popularity_vs_random_ndcg,0.134,> 0
+popularity_rejections_highest,có,có
+corr_q_rel_ktc95,[0.184; 0.206],bootstrap theo truy vấn
+
+cau_hinh,queries,ndcg10,ea10,ms10,match_rate,rejections,match_rel
+Random,587,0.3229,0.4789,0.2224,0.8184,1.0280,1.4686
+Popularity,587,0.4569,0.4669,0.3548,0.1834,2.6850,1.4780
+V2-a,587,0.6691,0.5546,0.4275,0.7112,1.4109,2.4294
