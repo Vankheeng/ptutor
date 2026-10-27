@@ -557,9 +557,12 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.models.B_T2S.mode:SHADOW}")
     private WeightLearningMode learningModeBT2S = WeightLearningMode.SHADOW;
 
-    /** κ: how many observations the prior is worth. */
-    @Value("${app.recommendation.learning.prior-strength:200}")
-    private double learningPriorStrength = 200;
+    /**
+     * κ: how many observations the prior is worth. 50 since 27/10/2026 (was 200): once the prior was put on the scale
+     * of the rewards, 200 held the weights almost still (design 13, 13.7).
+     */
+    @Value("${app.recommendation.learning.prior-strength:50}")
+    private double learningPriorStrength = 50;
 
     /** κ₀: the prior on the intercept (the base rate of feedback) is weak, so the weights do not have to explain it. */
     @Value("${app.recommendation.learning.intercept-prior-strength:1}")
@@ -569,9 +572,12 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.noise:0.3}")
     private double learningNoise = 0.3;
 
-    /** ρ: Thompson exploration of the suitability side; 0 always serves μ. */
-    @Value("${app.recommendation.learning.exploration-scale:1.0}")
-    private double learningExplorationScale = 1.0;
+    /**
+     * ρ: Thompson exploration of the suitability side; 0 always serves μ. 0.5 since 27/10/2026 (was 1.0): exploring did
+     * not beat serving μ, so the order moves less from one day to the next (13.7).
+     */
+    @Value("${app.recommendation.learning.exploration-scale:0.5}")
+    private double learningExplorationScale = 0.5;
 
     /** Learned weights are clamped to [min-ratio, max-ratio] × prior. */
     @Value("${app.recommendation.learning.min-ratio:0.5}")
@@ -584,9 +590,13 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.max-step:0.05}")
     private double learningMaxStep = 0.05;
 
-    /** γ: forgetting factor applied before each update; 1 = never forget. */
-    @Value("${app.recommendation.learning.forgetting:1.0}")
-    private double learningForgetting = 1.0;
+    /**
+     * γ: forgetting factor applied once before each update (each nightly run); 1 = never forget. 0.99 since 27/10/2026
+     * (was 1.0): it caught up faster when the preferences changed and cost almost nothing when they did not; the data
+     * of ~70 runs ago keeps half its weight (13.7).
+     */
+    @Value("${app.recommendation.learning.forgetting:0.99}")
+    private double learningForgetting = 0.99;
 
     /** Days a search waits before its reward is final. */
     @Value("${app.recommendation.learning.reward-window-days:7}")

@@ -38,6 +38,16 @@ class WeightProviderTest {
     private final RecommendationSettings settings = new RecommendationSettings();
     private final WeightProvider provider = new WeightProvider(settings);
 
+    /** Design 13, 13.7: a prior worth 50 observations, half the exploration of before and γ = 0.99 (27/10/2026). */
+    @Test
+    void learningDefaultsLetTheWeightsMoveAndExploreLess() {
+        RecommendationSettings defaults = new RecommendationSettings();
+
+        assertThat(defaults.getLearningPriorStrength()).isEqualTo(50.0);
+        assertThat(defaults.getLearningExplorationScale()).isEqualTo(0.5);
+        assertThat(defaults.getLearningForgetting()).isEqualTo(0.99);
+    }
+
     @Test
     void priorOfTheSuitabilityModelsIsTheHandSetWeights() {
         assertThat(provider.weights(WeightModel.A_S2T).values())

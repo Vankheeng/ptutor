@@ -59,7 +59,7 @@ class WeightLearningServiceIntegrationTest {
 
     @AfterEach
     void restoreSettings() {
-        ReflectionTestUtils.setField(settings, "learningPriorStrength", 200.0);
+        ReflectionTestUtils.setField(settings, "learningPriorStrength", 50.0);
         ReflectionTestUtils.setField(settings, "learningMinSamplesB", 300);
         ReflectionTestUtils.setField(settings, "learningMinSamplesA", 2000);
         ReflectionTestUtils.setField(settings, "learningMinSearchesA", 300);
