@@ -441,6 +441,22 @@ Bước 40 phải dựng lại `base` để tách Q và các cổng chặn; khi 
 công thức mới không cải thiện được tình trạng ở `base` (từ chối tăng, NDCG giảm như lần trước) thì quay về công thức cũ
 và ghi lý do vào đây. Như vậy quyết định có bằng chứng ở cả hai loại thị trường: thừa chỗ và cạnh tranh.
 
+**Kết quả kiểm tra trên `base` (Bước 40, 27/10/2026).** `base` dựng lại trong database riêng (`ptutor_eval_base`,
+A1 bằng prompt mới), α 0,65 cho mọi cấu hình; 79 truy vấn S2T kiểm định, thị trường 60 học sinh (mẫu nhỏ). Kết quả
+`ket-qua/base-t40/`.
+
+| | NDCG@10 | So với V2-R | Từ chối / HS (một lượt) | Từ chối / HS (8 vòng) | rel khi ghép (8 vòng) |
+|---|---|---|---|---|---|
+| V2-R (không chống dồn) | 0,400 | — | 0,206 | 0,30 | 1,36 |
+| Công thức cũ | 0,392 | −0,0074 (p = 0,012) | 0,252 | 0,10 | 1,44 |
+| Công thức mới | 0,398 | −0,0022 (p = 0,10) | 0,239 | 0,18 | 1,37 |
+
+Công thức cũ lặp lại đúng lỗi 22/10 (NDCG −0,007 có ý nghĩa; lần trước −0,008); công thức mới bỏ được phần lớn mức giảm
+(cũ → mới NDCG +0,005 [+0,001; +0,011]) và bị từ chối ở thị trường một lượt ít hơn (0,239 so với 0,252). Ở thị trường 8
+vòng công thức cũ có ít lần bị từ chối hơn (0,10 so với 0,18) nhưng không có ý nghĩa (+0,08 [−0,02; +0,20]; ~11 so với
+6 lần trên 60 học sinh). → **Đạt điều kiện**: công thức mới cải thiện đúng tình trạng ở thị trường thừa chỗ, không kém ở
+thị trường đông → giữ công thức mới.
+
 **Lưu ý cho báo cáo.** λ (và α ở 13.5) được chọn trên chính thế giới `crowded` này; báo cáo kết quả trên cùng thế giới
 đó sẽ hơi lạc quan vì tham số đã được chỉnh cho vừa với nó. Ở lượt chạy tổng kết (Bước 43 đề xuất), dựng `crowded` với
 **hạt giống ngẫu nhiên khác** (cùng công thức, người dùng và tin đăng khác) rồi mới lấy số. Chưa cần làm ngay.
@@ -686,6 +702,57 @@ crowded. **Chỉ kết luận về Q trên crowded** (trên `base`, Q không li�
 Thành phần nào làm NDCG / số lần bị từ chối xấu đi có ý nghĩa trên crowded thì chỉnh (giảm hệ số, đổi ngưỡng) hoặc bỏ,
 và ghi lại vào file này.
 
+### Kết quả thật (Bước 40, 27/10/2026)
+
+Mỗi phần tắt riêng trên mặc định mới (chống dồn `ON_SHORTAGE` λ 0,5, reciprocal `GEOMETRIC` α 0,65). `crowded`: chuẩn
+là cấu hình tổ hợp của Bước 39, thị trường dùng chung số ngẫu nhiên với lượt đó (`ket-qua/crowded/t40-crowded-*.csv`,
+`9.6-kiem-dinh.csv`); `base`: `ket-qua/base-t40/`.
+
+| `crowded` | NDCG@10 | MS@10 | EA@10 | Từ chối / HS | Vòng chờ | Gini | Gia sư mới | rel khi ghép |
+|---|---|---|---|---|---|---|---|---|
+| Chuẩn (mặc định mới) | 0,624 | 0,428 | 0,583 | 0,85 | 1,13 | 0,513 | 0,297 | 2,14 |
+| Tắt hệ số Q | **0,559** | **0,399** | 0,601 | 0,83 | 1,10 | 0,513 | 0,312 | 2,11 |
+| Tắt cổng lịch | 0,624 | 0,428 | 0,583 | 0,88 | 1,14 | 0,516 | 0,297 | 2,13 |
+| Tắt cổng từ chối | **0,632** | **0,431** | 0,583 | 0,89 | 1,11 | 0,510 | 0,290 | 2,17 |
+
+Kiểm định (`crowded`, 597 truy vấn; thị trường theo học sinh):
+
+- **Hệ số Q:** tắt Q → NDCG −0,065 [−0,073; −0,058], MS@10 −0,029, EA@10 +0,018 (đều p < 0,001); thị trường không
+  khác. **Kiểm tra phụ (13.3):** bỏ gia sư nổi tiếng khỏi cả hai danh sách và danh sách lý tưởng (chỉ 8 / 597 truy vấn
+  không có gia sư nổi tiếng trong top-10, quá ít để tính riêng) → tắt Q lại **tốt hơn**: NDCG +0,014 [+0,009; +0,019],
+  MS@10 +0,020 [+0,015; +0,025] (p < 0,001). Nghĩa là toàn bộ lợi ích của Q đến từ nhóm gia sư nổi tiếng — đúng cái mà
+  cách dựng kịch bản cho trước (chất lượng ≥ 0,9 → luôn +1 mức phù hợp, 5 sao); với các gia sư còn lại, Q (đánh giá
+  có nhiễu, gia sư mới ở mức trung tính) làm thứ tự hơi kém đi. `base`: tắt Q NDCG −0,003 (không ý nghĩa).
+- **Cổng lịch:** không đổi gì ở cả hai kịch bản (NDCG −0,0001, thị trường +0,02 không ý nghĩa). Cổng chỉ chạm cặp hai bên
+  đều có lịch mà không giao nhau; trong 193 691 ứng viên được log ở `crowded`, 1,3 % bị một trong hai cổng hạ điểm, và
+  cặp lệch lịch hoàn toàn có rel ẩn = 0 nên vốn đã ở dưới top-10.
+- **Cổng từ chối:** tắt → NDCG +0,007 [+0,005; +0,010], MS@10 +0,003 (p < 0,001); thị trường không khác (+0,04 lần từ
+  chối, p = 0,32). `base`: +0,011 [−0,000; +0,026], không ý nghĩa. Trong mô phỏng, gia sư đã từ chối học sinh không
+  có xác suất nhận thấp hơn lần sau (P(nhận) chỉ theo đặc điểm của cặp), nên cổng chỉ hạ những cặp vẫn có thể hợp;
+  lý do giữ cổng nằm ngoài mô phỏng (không cho học sinh thấy lại người vừa từ chối mình).
+
+> 💡 Nói bằng lời thường: điểm Q làm danh sách tốt lên rõ, nhưng chỉ vì nó đưa các gia sư "nổi tiếng" lên đầu — mà
+> trong thế giới mô phỏng, nhóm này được dựng sẵn là vừa giỏi vừa hợp. Bỏ họ ra thì Q hơi có hại. Cổng lịch gần như
+> không bao giờ được dùng tới. Cổng "vừa bị từ chối" làm thứ tự kém đi một chút trong mô phỏng, vì mô phỏng không có
+> hiện tượng "đã từ chối một lần thì dễ từ chối nữa".
+
+**Quyết định (người dùng, 27/10/2026): giữ nguyên cả ba phần.**
+
+- **Hệ số Q: giữ 0,3.** Lợi ích đo được của Q trên `crowded` đến từ cách dựng gia sư nổi tiếng; với các gia sư còn lại,
+  tắt Q nhỉnh hơn (NDCG +0,014). Giữ 0,3 vì Q mang tín hiệu tin cậy (khiếu nại, khoá tài khoản, xác minh) mà mô phỏng
+  không đo được. Kiểm lại trọng số này khi có đánh giá và khiếu nại thật. Không chạy thử 0,15: số đo trên mô phỏng
+  này mang cùng hạn chế, nên không giúp quyết định tốt hơn; chỉnh theo nó là chỉnh theo một đặc điểm do chính nhóm
+  dựng trong mô phỏng. Q chỉ dịch điểm cuối trong khoảng ±15 %, nên tác hại với gia sư thường là nhỏ; gia sư mới (Q
+  trung tính) đã có slot khám phá bù lại. Bỏ Q cũng là bỏ tác dụng của phạt khiếu nại có lỗi lên xếp hạng (06 mục 6.8).
+- **Cổng lịch: giữ 0,4.** Không có tác dụng đo được vì các cặp nó chạm tới vốn đã ở dưới top-10. Vô hại, và là quy
+  tắc dễ giải thích ("lịch không khớp chút nào thì hạ điểm").
+- **Cổng từ chối: giữ 0,5.** Lý do giữ là trải nghiệm người dùng: không đưa lại người vừa từ chối mình lên đầu danh
+  sách. Mô phỏng không có hiện tượng này nên không đo được lợi ích; điều đó không có nghĩa là lợi ích không tồn tại.
+  Không nới lên 0,8, vì làm vậy là chỉnh theo một khiếm khuyết đã biết của mô phỏng.
+
+**Cấu trúc xếp hạng sau Bước 40 (đã chốt):** rerank tắt (13.2); reciprocal trung bình nhân α = 0,65 (13.5); chống dồn
+công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (lịch 0,4, từ chối 0,5).
+
 ## 13.9. Thứ tự làm và trạng thái
 
 | # | Thay đổi | Mục | Trạng thái |
@@ -693,9 +760,9 @@ và ghi lại vào file này.
 | 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
 | 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | **Đã làm 26/10/2026.** `restore()` / `clone()`; crowded dựng lại (β0 −3,1, `rel` và đánh giá theo `quality`, 400 HS, A1 prompt mới); mọi kiểm tra bộ mô phỏng đạt; mốc 6 cấu hình (thị trường 8 vòng + tìm kiếm) |
-| 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | **Đã làm 26/10/2026.** Mặc định: `ON_SHORTAGE` λ 0,5, `GEOMETRIC` α 0,65. Còn: so công thức chống dồn cũ / mới trên `base` ở Bước 40; lấy số báo cáo trên `crowded` hạt giống khác (Bước 43) |
+| 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | **Đã làm 26/10/2026.** Mặc định: `ON_SHORTAGE` λ 0,5, `GEOMETRIC` α 0,65. So công thức cũ / mới trên `base` (Bước 40, 27/10): đạt, giữ công thức mới. Còn: lấy số báo cáo trên `crowded` hạt giống khác (Bước 43) |
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | Đã quyết, chưa code |
-| 6 | Tách Q và các cổng chặn | 13.8 | Đã quyết, chưa code |
+| 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
 
 ## 13.10. Câu hỏi phản biện dự kiến
 
@@ -704,6 +771,8 @@ và ghi lại vào file này.
 | Vì sao không bỏ rerank khi nó gần như không giúp? | (sửa 26/10/2026) Đã tắt mặc định: chấm đủ mọi cặp thì không giúp (NDCG −0,001, KTC chứa 0); mức +0,013 lúc trước là do dùng nhầm vector hồ sơ. Giữ code chạy nền (không bắt người dùng chờ) và chỉ bật lại khi chứng minh được trên click thật | 13.2 |
 | Sao lần đo trước lại ra "+0,013 có ý nghĩa"? | AI service quá tải vì các lô rerank bị bỏ dở, embed câu truy vấn quá hạn, backend lặng lẽ dùng vector hồ sơ (54 % lần tìm). Từ nay log ghi `queryVector` và bộ đánh giá loại các lần đó; ở `base` loại ra thì không kết luận nào đổi | 13.0, 13.2 |
 | Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Ở `base` (thừa chỗ) công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ. Trên thị trường đông, chống dồn giảm số lần bị từ chối từ 2,70 xuống ~0,8 mỗi học sinh | 13.1, 13.4 |
+| Q làm danh sách tốt hơn nhiều trên mô phỏng, có đáng tin? | Không hẳn: lợi ích đến từ nhóm gia sư nổi tiếng do cách dựng; bỏ nhóm đó ra thì tắt Q nhỉnh hơn (NDCG +0,014). Giữ Q 0,3 vì nó mang tín hiệu tin cậy (khiếu nại có lỗi, khoá tài khoản, xác minh) mà mô phỏng không đo được, và chỉ dịch điểm ±15 % | 13.8 |
+| Cổng "vừa bị từ chối" không có lợi trong mô phỏng, sao vẫn giữ? | Mô phỏng không có hiện tượng "đã từ chối một lần thì dễ từ chối nữa"; lý do giữ là trải nghiệm người dùng (không đưa lại người vừa từ chối mình lên đầu) | 13.8 |
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α (0,65) để chỉnh mức tin b. Reciprocal một mình còn làm từ chối tăng vì b đẩy học sinh vào gia sư có lịch sử nhận cao mà không biết họ đã hết chỗ — nên luôn đi cùng chống dồn (Su và cộng sự, 2022) | 13.5 |
 | Trọng số tự học (L1) có thật sự học được không? | Với prior quá mạnh thì không; chọn κ bằng thí nghiệm, và cơ chế luôn ở trong biên an toàn quanh trọng số nhóm đặt | 13.7 |

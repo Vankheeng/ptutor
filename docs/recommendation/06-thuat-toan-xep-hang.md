@@ -366,7 +366,11 @@ vì vậy hai phần luôn bật cùng nhau (13 mục 13.5).
 
 ## 6.8. Điểm cuối (R2)
 
-> 📌 **Đã quyết 26/10/2026, chưa code:** Sẽ chạy thêm ba cấu hình tách (tắt hệ số Q, tắt cổng lịch, tắt cổng từ chối); kết luận về Q chỉ dựa trên kịch bản thị trường đông. Lý do và bằng chứng: [13, mục 13.8](./13-tinh-chinh-sau-danh-gia.md).
+> 📌 **Đã làm 27/10/2026:** đã chạy ba cấu hình tách (tắt hệ số Q, tắt cổng lịch, tắt cổng từ chối) trên `base` và thị
+> trường đông; **giữ nguyên công thức dưới**. Lợi ích đo được của Q đến từ cách dựng nhóm gia sư nổi tiếng trong mô
+> phỏng (bỏ nhóm đó thì tắt Q nhỉnh hơn); giữ Q 0,3 vì nó mang tín hiệu tin cậy (khiếu nại có lỗi, khoá tài khoản, xác
+> minh) mà mô phỏng không đo được — kiểm lại khi có đánh giá và khiếu nại thật. Cổng lịch không có tác dụng đo được;
+> cổng từ chối giữ vì trải nghiệm người dùng. Bằng chứng: [13, mục 13.8](./13-tinh-chinh-sau-danh-gia.md).
 
 > 💡 Điểm cuối = R × hệ số uy tín × hệ số phạt. Hệ số uy tín `(0,7 + 0,3·Q)` nằm trong khoảng 0,7–1,0, tức Q (điểm uy tín gia sư, 0–1) chỉ dịch điểm khoảng ±15%. G gồm hai "phanh": lịch hai bên có mà không trùng chút nào → × 0,4; gia sư đã từ chối học sinh này trong 90 ngày → × 0,5. Dùng **phép nhân** để một yếu tố rất tệ kéo cả điểm xuống, không bị yếu tố khác "bù" lại. Ví dụ R = 0,490, Q = 0,82, G = 1 → 0,490 × 0,946 = 0,463.
 
@@ -378,7 +382,9 @@ g_sched  = 0.4 nếu cả hai có lịch và overlap = 0;  1 nếu ngược lạ
 g_reject = 0.5 nếu gia sư đã từ chối học sinh này (bất kỳ tin nào) trong 90 ngày;  1 nếu không
 ```
 
-Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ nên không cộng thêm thưởng chứng chỉ.
+Q chỉ dịch điểm ±15%; `recommendation_score` đã gồm chứng chỉ nên không cộng thêm thưởng chứng chỉ. Trên mô phỏng
+(27/10/2026): `g_sched` hầu như không đổi top-10 (cặp lệch lịch hoàn toàn vốn đã xếp thấp); `g_reject` không đo được lợi
+ích vì mô phỏng không có hiện tượng "đã từ chối thì dễ từ chối nữa" — giữ vì trải nghiệm người dùng (13 mục 13.8).
 
 ### Điểm chất lượng `recommendation_score` và khiếu nại có lỗi (bổ sung 15/10/2026)
 
