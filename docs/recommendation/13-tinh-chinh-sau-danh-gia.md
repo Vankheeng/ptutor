@@ -7,7 +7,7 @@
 >
 > **Trạng thái:** đã thống nhất ngày 26/10/2026; **mọi mục T1–T7 đã lập trình và đo xong ngày 26–27/10/2026**
 > (13.9). Nội dung chính của các file 00, 02, 04, 05, 06, 09, 10, 12 đã sửa theo; file này giữ lại như biên bản quyết
-> định. Còn mở: lượt tổng kết trên `crowded` với hạt giống khác (Bước 43).
+> định. Còn mở: kiểm chứng L1 toàn hệ thống (43a), lượt tổng kết trên `crowded` với hạt giống khác (43b), đóng gói (44).
 
 ## 13.0. Nguồn số liệu và cách đọc
 
@@ -837,7 +837,9 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | **Đã làm 27/10/2026** (crowded, truy vấn đa dạng + `drift`). Mặc định κ 50, ρ 0,5, `max-step` 0,05, γ 0,99; regret −21 % so với cố định |
 | 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
 | 7 | Đồng bộ tài liệu, README cho `ket-qua/` | — | **Đã làm 27/10/2026.** Sửa "rerank top-20", trung bình điều hoà, công thức chống dồn cũ và ví dụ tính tay (00, 02, 06, 10, 11, 12); README cho mỗi kịch bản |
-| 8 | Lượt tổng kết: `crowded` dựng với hạt giống khác, lấy số báo cáo | 13.4, 13.5 | **Chưa làm** (Bước 43): λ, α, κ đã chọn trên thế giới hiện tại nên số trên đó hơi lạc quan |
+| 43a | Kiểm chứng L1 toàn hệ thống: người dùng ảo có trọng số ẩn w*, đi qua API thật (tìm kiếm, `/events`, đơn), job đêm thật; đối chiếu quan sát `LearningDataRepository` với mô phỏng, sai số tới w* theo ngày, vòng kích hoạt → phục vụ → log; lấp lỗ hổng `CONTACTED` | 13.7, 12.11 | **Chưa làm** |
+| 43b | Lượt tổng kết: `crowded` dựng với hạt giống khác (A1 ~2 300 lời gọi), chạy mọi cấu hình cả hai chiều, độ nhạy, L1, độ trễ; bộ số duy nhất cho báo cáo và bảng giả thuyết | 13.4, 13.5, 09 | **Chưa làm**: λ, α, κ đã chọn trên thế giới hiện tại nên số trên đó hơi lạc quan |
+| 44 | Đóng gói: merge `dev`, kiểm migration, rà "Còn mở", dọn dữ liệu eval / demo, soạn mô tả PR | — | **Chưa làm** |
 
 ## 13.10. Câu hỏi phản biện dự kiến
 
