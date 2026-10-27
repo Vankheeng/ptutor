@@ -2,6 +2,7 @@
 
     python scripts/recommendation_eval/learning.py           # full run: 3000 searches x 10 seeds
     python scripts/recommendation_eval/learning.py --quick   # 1000 searches x 3 seeds
+    python scripts/recommendation_eval/learning.py --scenario crowded --run V2-RC-s0.5-g0.65 --diverse   # step 41
 
 The features are exported once from the backend (out/runs/V2-full.json: up to 200 logged candidates per
 search, all queries of both halves) and do not depend on the weights, so each simulated search is scored
@@ -10,6 +11,12 @@ semantics less than the prior); the system only sees the feedback. Every 100 sea
 the new samples into linear_bayes.LinearBayesModel (checked against the Java model by LinearBayesParityTest)
 and projects the mean as in production. b is learned the same way from accept / reject decisions drawn with
 a hidden beta.
+
+Step 41 (design 13, 13.7): the defaults are κ = 50, an exploration scale of 0.5 and γ = 0.99 (once per update); R is the weighted geometric mean
+of the ranking (α = 0.65); --run picks the logged search to read the features from (on crowded, the run with the
+defaults of 26/10/2026, so that b_cap follows the new congestion formula); --diverse draws the searches without
+repeating one before all have been used (crowded has ~1 000, against the 106 that base-dev repeated); the sensitivity
+grid is κ x max-step; Fixed-bad / Fixed-reversed keep the wrong prior, the yardstick of whether L1 corrects it.
 """
 
 import csv
@@ -21,6 +28,12 @@ import numpy as np
 from common import OUT, RESULTS, SEED, read_json
 from linear_bayes import LinearBayesModel, prior_scale, project
 from scoring import A_S2T, B_S2T, Params
+
+ALPHA = Params().reciprocal_alpha  # reciprocal.alpha of the backend
+# learning.prior-strength, learning.exploration-scale and learning.forgetting since 27/10/2026 (13.7)
+KAPPA, RHO, GAMMA = 50.0, 0.5, 0.99
+RUN = sys.argv[sys.argv.index("--run") + 1] if "--run" in sys.argv else "V2-full"
+DIVERSE = "--diverse" in sys.argv
 
 PRIOR_A = np.array([0.30, 0.20, 0.20, 0.10, 0.10, 0.05, 0.05])
 W_STAR = np.array([0.15, 0.20, 0.35, 0.10, 0.10, 0.05, 0.05])  # hidden: price up, sem down
@@ -39,12 +52,15 @@ SHOWN = 10
 BATCH = 100
 MIN_RATIO, MAX_RATIO, MAX_STEP, NOISE = 0.5, 2.0, 0.05, 0.3
 INTERCEPT_KAPPA = 1.0  # learning.intercept-prior-strength
+# The weights a strategy starts from; a Fixed* strategy keeps them.
+PRIORS = {"LinTS-bad": BAD_PRIOR, "LinTS-reversed": REVERSED_PRIOR,
+          "Fixed-bad": BAD_PRIOR, "Fixed-reversed": REVERSED_PRIOR}
 
 
 def load_searches() -> list:
     """Per S2T search: feature matrix X (a), parts Z (b), quality factor and gate of each candidate."""
     world = read_json(OUT / "world.json")
-    run = read_json(OUT / "runs" / "V2-full.json")
+    run = read_json(OUT / "runs" / f"{RUN}.json")
     searches = []
     for query in world["queries"]:
         if query["side"] != "S2T":
@@ -66,8 +82,17 @@ def load_searches() -> list:
 def scores(search: dict, weights_a: np.ndarray, weights_b: np.ndarray) -> np.ndarray:
     a = search["x"] @ weights_a
     b = (search["z"] @ weights_b) * search["cap"]
-    r = np.where(a + b > 0, 2 * a * b / np.maximum(a + b, 1e-12), 0)
+    r = np.where((a > 0) & (b > 0), np.maximum(a, 1e-12) ** ALPHA * np.maximum(b, 1e-12) ** (1 - ALPHA), 0)
     return r * search["quality"] * search["g"]
+
+
+def search_order(rng: np.random.Generator, count: int, steps: int) -> np.ndarray:
+    """Index of the search at every step. --diverse: a fresh permutation each time all have been used, so a search
+    comes back only after every other one; otherwise drawn with replacement (the runs of 21/10/2026)."""
+    if not DIVERSE:
+        return rng.integers(count, size=steps)
+    rounds = -(-steps // count)
+    return np.concatenate([rng.permutation(count) for _ in range(rounds)])[:steps]
 
 
 def utility(search: dict) -> np.ndarray:
@@ -95,14 +120,15 @@ def p_accept(search: dict, index: np.ndarray) -> np.ndarray:
     return 1 / (1 + np.exp(-(BETA_STAR[0] + z @ BETA_STAR[1:])))
 
 
-def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: float = 1.0,
+def simulate(strategy: str, seed: int, steps: int, kappa: float = KAPPA, rho: float = RHO,
              ipw: bool = False, intercept_kappa: float = INTERCEPT_KAPPA, scaled_prior: bool = True,
-             drift_at: int | None = None, forgetting: float = 1.0) -> dict:
+             drift_at: int | None = None, forgetting: float = GAMMA, max_step: float = MAX_STEP) -> dict:
     """intercept_kappa = kappa and scaled_prior = False reproduce the model before 21/10/2026 (design 12, 12.3).
     drift_at: the hidden weights become W_DRIFT from that search on; forgetting: γ before every update."""
     rng = np.random.default_rng(seed)
     searches = load_searches.cache
-    prior = {"LinTS-bad": BAD_PRIOR, "LinTS-reversed": REVERSED_PRIOR}.get(strategy, PRIOR_A)
+    prior = PRIORS.get(strategy, PRIOR_A)
+    fixed = strategy.startswith("Fixed")
 
     def new_model(weights, batch):
         # Like WeightLearningService: beta is measured on the first batch.
@@ -122,14 +148,15 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                "max_step_seen": 0.0, "weights": []}
     cumulative = 0.0
     day_weights = {}
+    order_of_searches = search_order(rng, len(searches), steps)
     for step in range(steps):
         CURRENT[0] = W_DRIFT if drift_at is not None and step >= drift_at else W_STAR
         w_star = CURRENT[0] / CURRENT[0].sum()
-        search = searches[rng.integers(len(searches))]
+        search = searches[order_of_searches[step]]
         if strategy == "Oracle":
             order = np.argsort(-utility(search))
-        elif strategy == "Fixed":
-            order = np.argsort(-scores(search, PRIOR_A, PRIOR_B))
+        elif fixed:
+            order = np.argsort(-scores(search, prior, PRIOR_B))
         else:
             key = search["owner"]
             if key not in day_weights:
@@ -159,7 +186,7 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
             for index, label in zip(requested, accepted):
                 pending_b.append((search["z"][index], float(label)))
         if (step + 1) % BATCH == 0:
-            if strategy not in ("Fixed", "Oracle"):
+            if not fixed and strategy != "Oracle":
                 if pending_a:
                     x, r, s = map(np.array, zip(*pending_a))
                     if first_a:
@@ -167,7 +194,7 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                     elif forgetting < 1:
                         model.forget(forgetting)
                     model.update_batch(x, r, s)
-                new = project(model.mean(), prior, served, MIN_RATIO, MAX_RATIO, MAX_STEP)
+                new = project(model.mean(), prior, served, MIN_RATIO, MAX_RATIO, max_step)
                 history["max_step_seen"] = max(history["max_step_seen"], float(np.max(np.abs(new - served))))
                 low = np.maximum(0.01, MIN_RATIO * prior)
                 high = np.maximum(low, MAX_RATIO * prior)
@@ -180,18 +207,17 @@ def simulate(strategy: str, seed: int, steps: int, kappa: float = 200.0, rho: fl
                     if model_b is None:
                         model_b = new_model(PRIOR_B, (z, y, np.ones(len(y))))
                     model_b.update_batch(z, y, np.ones(len(y)))
-                    served_b = project(model_b.mean(), PRIOR_B, served_b, MIN_RATIO, MAX_RATIO, MAX_STEP)
+                    served_b = project(model_b.mean(), PRIOR_B, served_b, MIN_RATIO, MAX_RATIO, max_step)
             history["b_logloss"].append(b_quality(model_b, pending_b)[0])
             history["b_auc"].append(b_quality(model_b, pending_b)[1])
             pending_a, pending_b = [], []
             day_weights = {}
-            current = PRIOR_A if strategy == "Fixed" else (CURRENT[0] if strategy == "Oracle" else served)
+            current = prior if fixed else (CURRENT[0] if strategy == "Oracle" else served)
             history["weight_error"].append(float(np.abs(current / current.sum() - w_star).sum()))
             history["weights"].append((current / current.sum()).tolist())
             history["regret"].append(cumulative)
             history["reward"].append(gained)
-        samples["final_weights"] = (served if strategy not in ("Fixed", "Oracle") else
-                                    (PRIOR_A if strategy == "Fixed" else CURRENT[0])).tolist()
+        samples["final_weights"] = (prior if fixed else CURRENT[0] if strategy == "Oracle" else served).tolist()
     history.update(samples)
     CURRENT[0] = None
     return history
@@ -225,11 +251,13 @@ def main() -> int:
     steps, seeds = (1000, 3) if quick else (3000, 10)
     load_searches.cache = load_searches()
     print(f"{len(load_searches.cache)} searches with at least {SHOWN} logged candidates", flush=True)
-    strategies = ["Fixed", "LinTS-prior", "LinTS-bad", "LinTS-reversed", "Greedy", "Oracle"]
+    strategies = ["Fixed", "LinTS-prior", "LinTS-bad", "Fixed-bad", "LinTS-reversed", "Fixed-reversed", "Greedy",
+                  "Oracle"]
     runs = {name: [simulate(name, SEED + seed, steps) for seed in range(seeds)] for name in strategies}
-    # The model before 21/10/2026, for comparison: same strength on the intercept, prior on the scale of the weights.
-    runs["LinTS-prior (κ₀=κ, β=1)"] = [simulate("LinTS-prior", SEED + seed, steps, intercept_kappa=200.0,
-                                                 scaled_prior=False) for seed in range(seeds)]
+    # The defaults until 27/10/2026, for comparison (κ = 200, exploration 1.0, no forgetting).
+    runs["LinTS-prior (κ=200, ρ=1, γ=1)"] = [simulate("LinTS-prior", SEED + seed, steps, kappa=200.0, rho=1.0,
+                                                      forgetting=1.0) for seed in range(seeds)]
+    runs["LinTS-prior (γ=1)"] = [simulate("LinTS-prior", SEED + seed, steps, forgetting=1.0) for seed in range(seeds)]
     RESULTS.mkdir(parents=True, exist_ok=True)
     rows = []
     for name, histories in runs.items():
@@ -255,14 +283,20 @@ def main() -> int:
         print({key: (round(value, 4) if isinstance(value, float) else value) for key, value in row.items()})
 
     if not quick:
+        # Step 41: κ x max-step at the exploration scale of the defaults, as many seeds as the main runs.
+        fixed = np.array([h["regret"][-1] for h in runs["Fixed"]])
         sensitivity = []
-        for kappa in (50.0, 200.0, 800.0):
-            for rho in (0.0, 0.5, 1.0, 2.0):
-                for ipw in (False, True):
-                    histories = [simulate("LinTS-prior", SEED + seed, steps, kappa, rho, ipw) for seed in range(3)]
-                    sensitivity.append({"kappa": kappa, "rho": rho, "ipw": ipw,
-                                        "regret_final": float(np.mean([h["regret"][-1] for h in histories])),
-                                        "weight_error_final": float(np.mean([h["weight_error"][-1] for h in histories]))})
+        for kappa in (20.0, 50.0, 100.0):
+            for max_step in (0.05, 0.1):
+                histories = [simulate("LinTS-prior", SEED + seed, steps, kappa, max_step=max_step)
+                             for seed in range(seeds)]
+                regret = np.array([h["regret"][-1] for h in histories])
+                sensitivity.append({"kappa": kappa, "max_step": max_step, "rho": RHO,
+                                    "regret_final": float(regret.mean()), "regret_sd": float(regret.std()),
+                                    "regret_vs_fixed": float((regret - fixed).mean()),
+                                    "seeds_better_than_fixed": f"{int(np.sum(regret < fixed))}/{len(regret)}",
+                                    "weight_error_final": float(np.mean([h["weight_error"][-1] for h in histories])),
+                                    "max_step_seen": max(h["max_step_seen"] for h in histories)})
         write_rows(RESULTS / "9.9.4-do-nhay-L1.csv", sensitivity)
         print("L1 sensitivity:", *sensitivity, sep="\n  ")
         plot_kappa(sensitivity)
@@ -276,9 +310,10 @@ def drift(steps: int, seeds: int) -> None:
     at = steps // 2
     runs = {
         "Fixed": [simulate("Fixed", SEED + s, steps, drift_at=at) for s in range(seeds)],
-        "LinTS γ=1": [simulate("LinTS-prior", SEED + s, steps, drift_at=at) for s in range(seeds)],
+        "LinTS γ=1": [simulate("LinTS-prior", SEED + s, steps, drift_at=at, forgetting=1.0) for s in range(seeds)],
         "LinTS γ=0,99": [simulate("LinTS-prior", SEED + s, steps, drift_at=at, forgetting=0.99) for s in range(seeds)],
         "LinTS γ=0,9": [simulate("LinTS-prior", SEED + s, steps, drift_at=at, forgetting=0.9) for s in range(seeds)],
+        "Greedy γ=0,99": [simulate("Greedy", SEED + s, steps, drift_at=at) for s in range(seeds)],
         "Oracle": [simulate("Oracle", SEED + s, steps, drift_at=at) for s in range(seeds)],
     }
     rows = []
@@ -322,11 +357,10 @@ def plot_kappa(sensitivity: list) -> None:
     import matplotlib.pyplot as plt
 
     figure, axis = plt.subplots(figsize=(6, 4))
-    for ipw in (False, True):
-        for rho in (0.0, 1.0):
-            rows = [r for r in sensitivity if r["ipw"] == ipw and r["rho"] == rho]
-            axis.plot([r["kappa"] for r in rows], [r["weight_error_final"] for r in rows], marker="o",
-                      label=f"ρ={rho:g}{', IPW' if ipw else ''}")
+    for max_step in sorted({r["max_step"] for r in sensitivity}):
+        rows = [r for r in sensitivity if r["max_step"] == max_step]
+        axis.plot([r["kappa"] for r in rows], [r["weight_error_final"] for r in rows], marker="o",
+                  label=f"max-step {max_step:g}")
     axis.set_xscale("log")
     axis.set_xlabel("κ (độ mạnh prior)")
     axis.set_ylabel("‖w − w*‖₁ sau 3 000 lần tìm")
