@@ -1,6 +1,8 @@
 # Kết quả đánh giá mô phỏng (21/10/2026)
 
-> 💡 Số liệu của chương đánh giá (thiết kế: [09](../09-danh-gia.md); cách làm thực tế: 09 mục 9.10). Sinh bằng `scripts/recommendation_eval/` với seed cố định; chạy lại cho ra cùng dữ liệu, chỉ thời gian chạy và phần ngẫu nhiên của backend (slot khám phá, rerank hết giờ) có thể khác chút ít. Mọi số dưới đây là trên **dữ liệu mô phỏng**, văn bản viết theo mẫu (9.8).
+> 💡 **Lượt cũ (21/10/2026) trên database dev**, trước mọi tinh chỉnh của [13](../../13-tinh-chinh-sau-danh-gia.md): rerank `ONLINE`, reciprocal điều hoà, chống dồn cũ, L1 κ 200. Giữ làm mốc; số hiện hành ở `../crowded/` và `../base-t40/`.
+
+> 💡 Số liệu của chương đánh giá (thiết kế: [09](../../09-danh-gia.md); cách làm thực tế: 09 mục 9.10). Sinh bằng `scripts/recommendation_eval/` với seed cố định; chạy lại cho ra cùng dữ liệu, chỉ thời gian chạy và phần ngẫu nhiên của backend (slot khám phá, rerank hết giờ) có thể khác chút ít. Mọi số dưới đây là trên **dữ liệu mô phỏng**, văn bản viết theo mẫu (9.8).
 
 Bộ dữ liệu: 120 gia sư (202 tin dạy), 60 học sinh (32 tin học), 4 tuần lịch sử (292 đơn, 177 hợp đồng, 19 khiếu nại),
 352 sự kiện duyệt danh sách, 59 hồ sơ sở thích. 332 truy vấn, nửa kiểm tra có 79 truy vấn học sinh → gia sư có ít nhất
