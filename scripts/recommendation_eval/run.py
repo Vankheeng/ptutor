@@ -83,6 +83,19 @@ SWEEP = {
                          "reciprocal.alpha": "0.65"},
 }
 CONFIGS.update(SWEEP)
+# Step 40 (design 13, 13.8): the final score is R x (0.7 + 0.3 Q) x G. Each part is switched off on the defaults of
+# 26/10/2026 (congestion ON_SHORTAGE λ 0.5, reciprocal GEOMETRIC α 0.65): no quality factor, no schedule gate, no
+# gate for a recent rejection. On base, the old congestion formula too, the check 13.4 asked for.
+DEFAULTS = {**CONFIGS["V2-RC"], "willingness.congestion-formula": "ON_SHORTAGE", "willingness.congestion-lambda": "0.5",
+            "reciprocal.mode": "GEOMETRIC", "reciprocal.alpha": "0.65"}
+ABLATION = {
+    "V2-RC-noQ": {**DEFAULTS, "quality.base": "1", "quality.weight": "0"},
+    "V2-RC-noSchedGate": {**DEFAULTS, "gate.no-schedule-overlap": "1"},
+    "V2-RC-noRejectGate": {**DEFAULTS, "gate.recent-reject": "1"},
+    "V2-RC-oldCongestion": {**DEFAULTS, "willingness.congestion-formula": "EVERY_APPLICATION"},
+}
+CONFIGS.update(ABLATION)
+SWEEP.update(ABLATION)  # not part of "all" either
 # Text-only scenario (2.3): cosine only against rerank, a sweep of the rerank weight and of the weight of f_sem.
 # Exploration and history are off so that only the reading of the text changes. Not part of "all".
 QUIET = {"exploration.enabled": OFF, "history.enabled": OFF}

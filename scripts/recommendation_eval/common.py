@@ -24,7 +24,9 @@ SCENARIO = _scenario()
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "out" / SCENARIO
 REPO = ROOT.parents[1]
-RESULTS = REPO / "docs" / "recommendation" / "ket-qua" / SCENARIO
+# EVAL_RESULTS names another results folder, e.g. base-t40, so that a new pass does not overwrite the files earlier
+# design notes cite (ket-qua/base is the pass of 22/10/2026).
+RESULTS = REPO / "docs" / "recommendation" / "ket-qua" / (os.environ.get("EVAL_RESULTS") or SCENARIO)
 
 SEED = 20261020
 NAMESPACE = uuid.UUID("3f1c9a52-8d47-4b6e-a0c1-5e2f7d9b4a63")
