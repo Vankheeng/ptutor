@@ -98,6 +98,17 @@ ABLATION = {
 }
 CONFIGS.update(ABLATION)
 SWEEP.update(ABLATION)  # not part of "all" either
+# Step 43b (design 13, 13.9): the system as it ships, on the world of the other seed. V2-final overrides nothing: the
+# backend's own defaults (congestion ON_SHORTAGE λ 0.5, reciprocal GEOMETRIC α 0.65, R x (0.7 + 0.3 Q) x G,
+# exploration and history on, rerank.mode OFF). Each ablation switches one part off. Not part of "all".
+FINAL = {
+    "V2-final": {},
+    "V2-final-A1": {"enrichment.use-llm-tags": OFF},
+    "V2-final-H1": {"history.enabled": OFF},
+    "V2-final-noQ": {"quality.base": "1", "quality.weight": "0"},
+}
+CONFIGS.update(FINAL)
+SWEEP.update(FINAL)
 # Text-only scenario (2.3): cosine only against rerank, a sweep of the rerank weight and of the weight of f_sem.
 # Exploration and history are off so that only the reading of the text changes. Not part of "all".
 QUIET = {"exploration.enabled": OFF, "history.enabled": OFF}

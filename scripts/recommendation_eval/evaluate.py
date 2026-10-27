@@ -27,8 +27,9 @@ OFFLINE = ["Random", "Popularity", "Semantic", "V1-old", "V2-linear"]
 ORDER = OFFLINE + ["V2-a", "V2-R", "V2-RC", "V2-RCX", "V2-full", "V2-full-H1", "V2-full-A1", "V2-R-harm", "V2-RC-old",
                    "V2-RC-s0.25", "V2-RC-s0.5", "V2-RC-s1", "V2-RC-g0.5", "V2-RC-g0.65", "V2-RC-g0.8",
                    "V2-RC-s0.5-g0.65", "V2-RC-oldCongestion", "V2-RC-noQ", "V2-RC-noSchedGate",
-                   "V2-RC-noRejectGate"]
-LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1", "V1-old": "V1 (thiết kế cũ)"}
+                   "V2-RC-noRejectGate", "V2-final", "V2-final-A1", "V2-final-H1", "V2-final-noQ"]
+LABEL = {"V2-full-H1": "V2-full − H1", "V2-full-A1": "V2-full − A1", "V1-old": "V1 (thiết kế cũ)",
+         "V2-final-A1": "V2-final − A1", "V2-final-H1": "V2-final − H1", "V2-final-noQ": "V2-final tắt Q"}
 PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"), ("V1-old", "V2-full"),
          ("V2-linear", "V2-a"), ("V2-a", "V2-R"), ("V2-R", "V2-RC"), ("V2-RC", "V2-RCX"), ("V2-RCX", "V2-full"),
          ("V2-full-H1", "V2-full"), ("V2-full-A1", "V2-full"),
@@ -50,7 +51,11 @@ PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"),
          ("V2-RC", "V2-RC-noQ"), ("V2-RC", "V2-RC-noSchedGate"), ("V2-RC", "V2-RC-noRejectGate"),
          ("V2-RC-oldCongestion", "V2-RC"), ("V2-R", "V2-RC"), ("V2-R", "V2-RC-oldCongestion"),
          ("V2-RC-s0.5-g0.65", "V2-RC-noQ"), ("V2-RC-s0.5-g0.65", "V2-RC-noSchedGate"),
-         ("V2-RC-s0.5-g0.65", "V2-RC-noRejectGate")]
+         ("V2-RC-s0.5-g0.65", "V2-RC-noRejectGate"),
+         # step 43b (13.9): the system as it ships against the references, the steps of the funnel and one part off
+         ("Random", "V2-final"), ("Popularity", "V2-final"), ("Semantic", "V2-final"), ("V1-old", "V2-final"),
+         ("V2-linear", "V2-final"), ("V2-RC", "V2-final"), ("V2-final-A1", "V2-final"), ("V2-final-H1", "V2-final"),
+         ("V2-final-noQ", "V2-final")]
 TEXT_ORDER = ["cosine-only", "rerank-w0.3", "rerank-w0.5", "rerank-w0.7", "rerank-w0.9", "cosine-only-sem0.45",
               "rerank-w0.7-sem0.45", "rerank-w0.7-t4000", "rerank-online", "rerank-async", "rerank-async-2",
               "rerank-online-2"]
