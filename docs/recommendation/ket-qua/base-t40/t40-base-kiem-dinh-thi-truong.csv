@@ -1,0 +1,13 @@
+from,to,metric,n,mean_diff,ci_low,ci_high,p
+V2-R,V2-RC-oldCongestion,rejections,60,-0.2000,-0.3667,-0.0500,0.0295
+V2-R,V2-RC-oldCongestion,rounds,60,-0.0167,-0.0500,0.0000,nan
+V2-R,V2-RC,rejections,60,-0.1167,-0.3167,0.0833,0.2524
+V2-R,V2-RC,rounds,60,0.0000,-0.0500,0.0500,nan
+V2-RC-oldCongestion,V2-RC,rejections,60,0.0833,-0.0167,0.2000,nan
+V2-RC-oldCongestion,V2-RC,rounds,60,0.0167,0.0000,0.0500,nan
+V2-RC,V2-RC-noQ,rejections,60,0.0500,-0.0333,0.1333,nan
+V2-RC,V2-RC-noQ,rounds,60,0.0000,0.0000,0.0000,nan
+V2-RC,V2-RC-noSchedGate,rejections,60,0.0000,0.0000,0.0000,nan
+V2-RC,V2-RC-noSchedGate,rounds,60,0.0000,0.0000,0.0000,nan
+V2-RC,V2-RC-noRejectGate,rejections,60,-0.0333,-0.1000,0.0000,nan
+V2-RC,V2-RC-noRejectGate,rounds,60,-0.0167,-0.0500,0.0000,nan

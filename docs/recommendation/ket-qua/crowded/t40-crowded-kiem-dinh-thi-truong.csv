@@ -1,0 +1,9 @@
+from,to,metric,n,mean_diff,ci_low,ci_high,p
+V2-RC-s0.5-g0.65,V2-RC-noQ,rejections,400,-0.0200,-0.1800,0.1375,0.9126
+V2-RC-s0.5-g0.65,V2-RC-noQ,rounds,400,-0.0275,-0.0725,0.0175,0.2524
+V2-RC-s0.5-g0.65,V2-RC-noSchedGate,rejections,400,0.0200,-0.0351,0.0900,0.8457
+V2-RC-s0.5-g0.65,V2-RC-noSchedGate,rounds,400,0.0100,-0.0075,0.0325,nan
+V2-RC-s0.5-g0.65,V2-RC-noRejectGate,rejections,400,0.0375,-0.1050,0.1850,0.3168
+V2-RC-s0.5-g0.65,V2-RC-noRejectGate,rounds,400,-0.0225,-0.0650,0.0225,0.2991
+V2-RC-s0.5-g0.65,V2-RC-noQ,ndcg10 (popular tutors left out),597,0.0139,0.0091,0.0189,0.0000
+V2-RC-s0.5-g0.65,V2-RC-noQ,ms10 (popular tutors left out),597,0.0199,0.0149,0.0252,0.0000
