@@ -219,16 +219,20 @@ public class WeightProvider {
         double[] prior = prior(model).values();
         LinearBayesModel bayes = LinearBayesModel.fromStatistics(prior, settings.getLearningPriorStrength(),
                 settings.getLearningInterceptPriorStrength(), version.priorScale(), version.statsA(), version.statsC());
-        double[] theta = bayes.sample(new Random(seed(model, userId, day)), settings.getLearningExplorationScale(),
-                settings.getLearningNoise());
+        double[] theta = bayes.sample(new Random(seed(model, userId, day, version.version())),
+                settings.getLearningExplorationScale(), settings.getLearningNoise());
         return new ModelWeights(model, LinearBayesModel.project(theta, prior, version.mean().values(),
                 settings.getLearningMinRatio(), settings.getLearningMaxRatio(), settings.getLearningMaxStep()));
     }
 
-    /** Same user, day and model: same sample. */
-    static long seed(WeightModel model, UUID userId, LocalDate day) {
+    /**
+     * Same user, day, model and version: same sample. A new version draws a new sample even on the same day (since
+     * 27/10/2026; before, the noise of a user stayed the same for the whole day across versions).
+     */
+    static long seed(WeightModel model, UUID userId, LocalDate day, int version) {
         return userId.getMostSignificantBits() ^ Long.rotateLeft(userId.getLeastSignificantBits(), 21)
-                ^ (day.toEpochDay() * 0x9E3779B97F4A7C15L) ^ ((long) model.ordinal() << 56);
+                ^ (day.toEpochDay() * 0x9E3779B97F4A7C15L) ^ ((long) model.ordinal() << 56)
+                ^ Long.rotateLeft(version * 0xC2B2AE3D27D4EB4FL, 29);
     }
 
     private static Active active(WeightModel model, RecommendationLearnedWeights row) {

@@ -1,11 +1,15 @@
 package com.ptutor.backend.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +48,8 @@ import tools.jackson.databind.node.ObjectNode;
  *   <li>announce {@link LearnedWeightsUpdatedEvent} so the weight provider loads again.</li>
  * </ol>
  *
- * Each model runs in its own transaction: one failure does not stop the others.
+ * Each model runs in its own transaction: one failure does not stop the others. One run at a time: the nightly job
+ * and an administrator's "learn now" share a lock, and the one that finds it taken does nothing.
  */
 @Service
 public class WeightLearningService {
@@ -72,12 +77,22 @@ public class WeightLearningService {
         }
     }
 
-    /** Held-out comparison of the new weights with the prior (NDCG@10 or log-loss). */
-    private record Evaluation(String metric, double learned, double prior, int n) {
+    /**
+     * Held-out comparison of the new weights with the prior: NDCG@10 (suitability) or AUC (willingness); the
+     * willingness side also keeps its log-loss, for reference only.
+     */
+    private record Evaluation(String metric, double learned, double prior, int n, Double loglossLearned,
+            Double loglossPrior) {
 
-        boolean notWorse() {
-            return n > 0 && (metric.equals("ndcg10") ? learned >= prior - 1e-9 : learned <= prior + 1e-9);
+        /** Not worse than the prior by more than {@code tolerance} (12.7); needs held-out data. */
+        boolean notWorse(double tolerance) {
+            return WeightLearningService.notWorse(metric, learned, prior, n, tolerance);
         }
+    }
+
+    /** Both metrics are "higher is better". */
+    static boolean notWorse(String metric, double learned, double prior, int n, double tolerance) {
+        return n > 0 && learned >= prior - tolerance - 1e-9;
     }
 
     private final LearningDataRepository dataRepository;
@@ -88,6 +103,7 @@ public class WeightLearningService {
     private final JdbcTemplate jdbc;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transaction;
+    private final ReentrantLock running = new ReentrantLock();
 
     public WeightLearningService(LearningDataRepository dataRepository,
             RecommendationLearnedWeightsRepository weightsRepository, WeightProvider weightProvider,
@@ -101,6 +117,22 @@ public class WeightLearningService {
         this.jdbc = jdbc;
         this.eventPublisher = eventPublisher;
         this.transaction = new TransactionTemplate(transactionManager);
+    }
+
+    /**
+     * {@link #learnAll} unless a run is already going on (the nightly job and the admin endpoint share this lock);
+     * empty when it was.
+     */
+    public Optional<List<Outcome>> learnAllIfIdle(LocalDateTime now) {
+        if (!running.tryLock()) {
+            log.info("Weight learning is already running; skipped");
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(learnAll(now));
+        } finally {
+            running.unlock();
+        }
     }
 
     /** Updates every model that is not OFF; the provider loads again when a version was activated. */
@@ -168,7 +200,8 @@ public class WeightLearningService {
         double[] weights = LinearBayesModel.project(mean, prior, previous, settings.getLearningMinRatio(),
                 settings.getLearningMaxRatio(), settings.getLearningMaxStep());
         List<String> clamped = clamped(model, mean, prior);
-        Evaluation evaluation = evaluate(model, data(model, trainingEnd, available), weights, prior);
+        Data heldOut = data(model, trainingEnd, available);
+        Evaluation evaluation = evaluate(model, heldOut, weights, prior);
 
         int samples = latest.map(RecommendationLearnedWeights::getSampleCount).orElse(0) + training.observations().size();
         int searches = latest.map(row -> row.getEvaluation() == null ? 0 : row.getEvaluation().path("searches").asInt())
@@ -177,7 +210,9 @@ public class WeightLearningService {
         boolean enoughData = suitability
                 ? samples >= settings.getLearningMinSamplesA() && searches >= settings.getLearningMinSearchesA()
                 : samples >= settings.getLearningMinSamplesB();
-        boolean activate = settings.isLearningAutoActivate() && enoughData && evaluation.notWorse();
+        double tolerance = suitability ? settings.getLearningActivationToleranceNdcg()
+                : settings.getLearningActivationToleranceAuc();
+        boolean activate = settings.isLearningAutoActivate() && enoughData && evaluation.notWorse(tolerance);
 
         ObjectNode evaluationJson = objectMapper.createObjectNode()
                 .put("metric", evaluation.metric())
@@ -187,6 +222,9 @@ public class WeightLearningService {
                 .put("newSamples", training.observations().size())
                 .put("searches", searches)
                 .put("enoughData", enoughData)
+                .put("tolerance", tolerance)
+                .put("loglossLearned", evaluation.loglossLearned())
+                .put("loglossPrior", evaluation.loglossPrior())
                 .put("priorScale", priorScale);
         ArrayNode clampedJson = evaluationJson.putArray("clamped");
         clamped.forEach(clampedJson::add);
@@ -211,6 +249,8 @@ public class WeightLearningService {
                 .active(activate)
                 .build());
 
+        dump(model, version, now, trainedUntil, trainingEnd, available, priorScale, previous, mean, weights, bayes,
+                training, heldOut, evaluationJson, activate);
         log.info("Weight learning {} v{}: {} new samples ({} total), weights {} -> {}, distance to prior {}, "
                         + "{} learned {} prior {} on {} held-out, {}",
                 model, version, training.observations().size(), samples, round(previous), round(weights),
@@ -219,6 +259,73 @@ public class WeightLearningService {
                 activate ? "activated" : reasonNotActivated(enoughData, evaluation));
         warnAboutLongClamping(model, clamped);
         return new Outcome(model, version, training.observations().size(), activate, activate ? "activated" : "kept");
+    }
+
+    /**
+     * Writes the observations of this run to {@code learning.observation-dump-dir}, when set (design 13, 13.7, the
+     * end-to-end check of step 43a). A failure to write is logged and does not stop the learning.
+     */
+    private void dump(WeightModel model, int version, LocalDateTime now, LocalDateTime from, LocalDateTime trainingEnd,
+            LocalDateTime available, double priorScale, double[] previous, double[] mean, double[] weights,
+            LinearBayesModel bayes, Data training, Data heldOut, ObjectNode evaluation, boolean activated) {
+        String folder = settings.getLearningObservationDumpDir();
+        if (folder == null || folder.isBlank()) {
+            return;
+        }
+        ObjectNode json = objectMapper.createObjectNode()
+                .put("model", model.name())
+                .put("version", version)
+                .put("now", now.toString())
+                .put("from", from.toString())
+                .put("trainingEnd", trainingEnd.toString())
+                .put("available", available.toString())
+                .put("priorStrength", settings.getLearningPriorStrength())
+                .put("interceptPriorStrength", settings.getLearningInterceptPriorStrength())
+                .put("forgetting", settings.getLearningForgetting())
+                .put("priorScale", priorScale)
+                .put("activated", activated);
+        json.set("features", featureNames(model));
+        json.set("prior", array(weightProvider.prior(model).values()));
+        json.set("previous", array(previous));
+        json.set("posteriorMean", array(mean));
+        json.set("weights", array(weights));
+        json.set("statsA", matrixJson(bayes.statsA()));
+        json.set("statsC", array(bayes.statsC()));
+        json.set("evaluation", evaluation);
+        json.set("training", dataJson(training));
+        json.set("heldOut", dataJson(heldOut));
+        try {
+            Path file = Path.of(folder).resolve(model.name() + "-v" + version + ".json");
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, objectMapper.writeValueAsString(json));
+        } catch (IOException | RuntimeException exception) {
+            log.warn("Weight learning {} v{}: unable to write the observations to {}", model, version, folder,
+                    exception);
+        }
+    }
+
+    private ObjectNode dataJson(Data data) {
+        ObjectNode json = objectMapper.createObjectNode();
+        ArrayNode searches = json.putArray("searches");
+        for (SearchFeedback search : data.searches()) {
+            ObjectNode one = searches.addObject().put("logId", search.logId().toString())
+                    .put("searchedAt", search.searchedAt().toString());
+            ArrayNode candidates = one.putArray("candidates");
+            for (CandidateFeedback candidate : search.candidates()) {
+                ObjectNode row = candidates.addObject()
+                        .put("candidateId", candidate.candidateId() == null ? null : candidate.candidateId().toString())
+                        .put("rank", candidate.rank()).put("reward", candidate.reward()).put("weight", candidate.weight());
+                row.set("features", array(candidate.features()));
+            }
+        }
+        ArrayNode decisions = json.putArray("decisions");
+        for (DecisionSample sample : data.decisions()) {
+            ObjectNode row = decisions.addObject().put("requestId", sample.requestId().toString())
+                    .put("kind", sample.kind().name()).put("label", sample.label()).put("weight", sample.weight())
+                    .put("at", sample.at().toString());
+            row.set("features", array(sample.features()));
+        }
+        return json;
     }
 
     private String reasonNotActivated(boolean enoughData, Evaluation evaluation) {
@@ -253,7 +360,11 @@ public class WeightLearningService {
 
     /**
      * Suitability: mean NDCG@10 over the held-out searches with a positive reward, ranking by Σ w·x.
-     * Willingness: weighted log-loss of the predicted acceptance Σ w·x (b before b_cap).
+     * Willingness: weighted AUC of Σ w·x (b before b_cap) — does it put the accepted requests above the refused
+     * ones. Only the order of b matters to the ranking (R = a^α·b^(1−α): scaling every b of a search scales every R
+     * alike), and b is a normalised sum without an intercept, not a calibrated probability, so the log-loss that
+     * decided until 27/10/2026 penalised a level the design never aims at (13, 13.7). It is still computed, for
+     * reference. Needs both labels in the held-out data.
      */
     private Evaluation evaluate(WeightModel model, Data heldOut, double[] learned, double[] prior) {
         if (model == WeightModel.A_S2T || model == WeightModel.A_T2S) {
@@ -268,7 +379,7 @@ public class WeightLearningService {
                 priorSum += ndcg(search.candidates(), prior);
                 n++;
             }
-            return new Evaluation("ndcg10", n == 0 ? 0 : learnedSum / n, n == 0 ? 0 : priorSum / n, n);
+            return new Evaluation("ndcg10", n == 0 ? 0 : learnedSum / n, n == 0 ? 0 : priorSum / n, n, null, null);
         }
         double learnedLoss = 0;
         double priorLoss = 0;
@@ -278,8 +389,37 @@ public class WeightLearningService {
             priorLoss += sample.weight() * logLoss(dot(prior, sample.features()), sample.label());
             total += sample.weight();
         }
-        int n = heldOut.decisions().size();
-        return new Evaluation("logloss", total == 0 ? 0 : learnedLoss / total, total == 0 ? 0 : priorLoss / total, n);
+        List<DecisionSample> decisions = heldOut.decisions();
+        boolean bothLabels = decisions.stream().anyMatch(sample -> sample.label() >= 0.5)
+                && decisions.stream().anyMatch(sample -> sample.label() < 0.5);
+        int n = bothLabels ? decisions.size() : 0;
+        return new Evaluation("auc", bothLabels ? auc(decisions, learned) : 0, bothLabels ? auc(decisions, prior) : 0,
+                n, total == 0 ? null : learnedLoss / total, total == 0 ? null : priorLoss / total);
+    }
+
+    /**
+     * Weighted AUC of Σ w·x: over every (accepted, refused) pair, weight w_pos·w_neg, 1 when the accepted one scores
+     * higher, ½ on a tie.
+     */
+    static double auc(List<DecisionSample> samples, double[] weights) {
+        double agree = 0;
+        double total = 0;
+        for (DecisionSample positive : samples) {
+            if (positive.label() < 0.5) {
+                continue;
+            }
+            double high = dot(weights, positive.features());
+            for (DecisionSample negative : samples) {
+                if (negative.label() >= 0.5) {
+                    continue;
+                }
+                double low = dot(weights, negative.features());
+                double pair = positive.weight() * negative.weight();
+                agree += pair * (high > low + 1e-12 ? 1 : Math.abs(high - low) <= 1e-12 ? 0.5 : 0);
+                total += pair;
+            }
+        }
+        return total == 0 ? 0 : agree / total;
     }
 
     static double ndcg(List<CandidateFeedback> candidates, double[] weights) {

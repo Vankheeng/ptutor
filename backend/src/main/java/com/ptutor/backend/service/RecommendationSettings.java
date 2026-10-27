@@ -681,9 +681,29 @@ public class RecommendationSettings {
     @Value("${app.recommendation.learning.clamp-warning-nights:3}")
     private int learningClampWarningNights = 3;
 
+    /**
+     * Folder where every learning run writes the observations it used, for the end-to-end check of design 13, 13.7
+     * (step 43a). Empty (the default) writes nothing. The files hold user ids and what users did: set it only for
+     * an evaluation database, never in the default or production configuration, and keep the folder out of Git.
+     */
+    @Value("${app.recommendation.learning.observation-dump-dir:}")
+    private String learningObservationDumpDir = "";
+
     /** Activate a new version by itself once it qualifies; otherwise an admin does. */
     @Value("${app.recommendation.learning.auto-activate:true}")
     private boolean learningAutoActivate = true;
+
+    /**
+     * How much worse than the prior on the held-out data a new version may be and still be activated: NDCG@10
+     * (suitability side) or AUC (willingness side) lower by at most this. 0.002 since 27/10/2026 (was 0): on the
+     * end-to-end check the two were ~0.001 apart, so noise alone kept the willingness side at the prior although its
+     * weights moved steadily to the hidden ones (design 13, 13.7). The safety band and the step limit still hold.
+     */
+    @Value("${app.recommendation.learning.activation-tolerance-ndcg:0.002}")
+    private double learningActivationToleranceNdcg = 0.002;
+
+    @Value("${app.recommendation.learning.activation-tolerance-auc:0.002}")
+    private double learningActivationToleranceAuc = 0.002;
 
     /** The mode configured for a model. */
     public WeightLearningMode getLearningMode(WeightModel model) {

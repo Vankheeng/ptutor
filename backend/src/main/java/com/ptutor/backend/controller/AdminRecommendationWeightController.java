@@ -1,5 +1,7 @@
 package com.ptutor.backend.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.AdminRecommendationWeightService;
+import com.ptutor.backend.service.WeightLearningService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,13 @@ public class AdminRecommendationWeightController {
     @GetMapping
     public ResponseEntity<ApiResponse<AdminRecommendationWeightsResponse>> overview() {
         return ResponseEntity.ok(responseFactory.success(weightService.overview(), PATH));
+    }
+
+    /** Runs the nightly update now (409 while a run is going on). */
+    @PostMapping("/learn")
+    public ResponseEntity<ApiResponse<List<WeightLearningService.Outcome>>> learn() {
+        return ResponseEntity.ok(responseFactory.success("WEIGHT_LEARNING_DONE", "Weight learning ran",
+                weightService.learnNow(), PATH + "/learn"));
     }
 
     /** Activates a version, for example to roll back to an older one. */

@@ -42,11 +42,13 @@ public class AdminRecommendationWeightService {
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transaction;
     private final Clock clock;
+    private final WeightLearningService learningService;
 
     public AdminRecommendationWeightService(RecommendationLearnedWeightsRepository weightsRepository,
             RecommendationLearningModeOverrideRepository modeRepository, WeightProvider weightProvider,
             RecommendationSettings settings, ApplicationEventPublisher eventPublisher,
-            PlatformTransactionManager transactionManager, Clock clock) {
+            PlatformTransactionManager transactionManager, Clock clock, WeightLearningService learningService) {
+        this.learningService = learningService;
         this.weightsRepository = weightsRepository;
         this.modeRepository = modeRepository;
         this.weightProvider = weightProvider;
@@ -54,6 +56,15 @@ public class AdminRecommendationWeightService {
         this.eventPublisher = eventPublisher;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
+    }
+
+    /**
+     * Runs the nightly update now, with the same lock as the job (design 08, 8.1; 13, 13.7). Refused while a run
+     * is going on.
+     */
+    public List<WeightLearningService.Outcome> learnNow() {
+        return learningService.learnAllIfIdle(LocalDateTime.now(clock)).orElseThrow(() -> new ApiException(
+                HttpStatus.CONFLICT, "WEIGHT_LEARNING_RUNNING", "Weight learning is already running"));
     }
 
     public AdminRecommendationWeightsResponse overview() {

@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Every night, updates the learned ranking weights (design 12, section 12.7). 20:30 UTC is 03:30 in Vietnam, after
- * {@link ExposureStatsJob}.
+ * {@link ExposureStatsJob}. Skipped when an administrator's "learn now" is still running (same lock).
  */
 @Component
 @RequiredArgsConstructor
@@ -23,6 +23,6 @@ public class WeightLearningJob {
 
     @Scheduled(cron = "${app.recommendation.learning.job-cron:0 30 20 * * *}", zone = "UTC")
     public void run() {
-        learningService.learnAll(LocalDateTime.now(clock));
+        learningService.learnAllIfIdle(LocalDateTime.now(clock));
     }
 }

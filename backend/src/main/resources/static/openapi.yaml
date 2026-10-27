@@ -3298,6 +3298,29 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /api/v1/admin/recommendations/weights/learn:
+    post:
+      tags: [Admin Recommendation Weights]
+      summary: Run the nightly weight learning now
+      description: >-
+        Runs the same update as the nightly WeightLearningJob for every model whose mode is not OFF, at the current
+        time, and returns what each model's update did. The job and this endpoint share one lock: while a run is
+        going on, the call is refused with 409. ADMIN only.
+      operationId: learnRecommendationWeights
+      responses:
+        '200':
+          description: One outcome per model that ran (code WEIGHT_LEARNING_DONE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightLearningOutcomesEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: WEIGHT_LEARNING_RUNNING
+
   /api/v1/admin/recommendations/weights/{model}/activate/{version}:
     post:
       tags: [Admin Recommendation Weights]
@@ -8537,6 +8560,25 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AdminRecommendationWeightModel'
+
+    WeightLearningOutcome:
+      type: object
+      properties:
+        model: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
+        version: { type: integer, nullable: true, description: The new version, or null when nothing was learned }
+        newSamples: { type: integer }
+        activated: { type: boolean }
+        note: { type: string, example: activated }
+
+    WeightLearningOutcomesEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/WeightLearningOutcome'
 
     RecommendationTagSuggestionResponseEnvelope:
       allOf:

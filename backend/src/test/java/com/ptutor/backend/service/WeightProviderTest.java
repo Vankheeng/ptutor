@@ -46,6 +46,36 @@ class WeightProviderTest {
         assertThat(defaults.getLearningPriorStrength()).isEqualTo(50.0);
         assertThat(defaults.getLearningExplorationScale()).isEqualTo(0.5);
         assertThat(defaults.getLearningForgetting()).isEqualTo(0.99);
+        assertThat(defaults.getLearningActivationToleranceNdcg()).isEqualTo(0.002);
+        assertThat(defaults.getLearningActivationToleranceAuc()).isEqualTo(0.002);
+    }
+
+    /** A version within the tolerance of the prior is activated, one beyond it is not (12.7, 13.7). */
+    @Test
+    void aVersionSlightlyWorseThanThePriorWithinTheToleranceStillQualifies() {
+        assertThat(WeightLearningService.notWorse("auc", 0.6655, 0.6670, 249, 0.002)).isTrue();
+        assertThat(WeightLearningService.notWorse("auc", 0.6655, 0.6670, 249, 0)).isFalse();
+        assertThat(WeightLearningService.notWorse("auc", 0.6600, 0.6670, 249, 0.002)).isFalse();
+        assertThat(WeightLearningService.notWorse("ndcg10", 0.803, 0.805, 699, 0.002)).isTrue();
+        assertThat(WeightLearningService.notWorse("ndcg10", 0.800, 0.805, 699, 0.002)).isFalse();
+        assertThat(WeightLearningService.notWorse("ndcg10", 0.9, 0.5, 0, 0.002)).as("no held-out data").isFalse();
+    }
+
+    /** The observation dump holds user ids and behaviour: off by default, and no shipped configuration sets it. */
+    @Test
+    void theObservationDumpIsOffAndNoConfigurationTurnsItOn() throws java.io.IOException {
+        assertThat(new RecommendationSettings().getLearningObservationDumpDir()).isEmpty();
+        try (var files = java.nio.file.Files.walk(java.nio.file.Path.of("src/main/resources"))) {
+            assertThat(files.filter(java.nio.file.Files::isRegularFile)
+                    .filter(file -> file.getFileName().toString().startsWith("application"))
+                    .filter(file -> {
+                        try {
+                            return java.nio.file.Files.readString(file).contains("observation-dump-dir");
+                        } catch (java.io.IOException exception) {
+                            throw new java.io.UncheckedIOException(exception);
+                        }
+                    })).isEmpty();
+        }
     }
 
     @Test
@@ -190,6 +220,24 @@ class WeightProviderTest {
         for (int k = 0; k < values.length; k++) {
             assertThat(values[k]).isBetween((LEARNED_A[k] - 0.05) / 1.35, (LEARNED_A[k] + 0.05) / 0.65);
         }
+    }
+
+    /** A new version draws a new sample on the same day, so exploration does not repeat (13.7, step 43a). */
+    @Test
+    void aNewVersionGetsANewThompsonSampleOnTheSameDay() {
+        mode(WeightModel.A_S2T, WeightLearningMode.ACTIVE);
+        UUID user = UUID.randomUUID();
+        ModelWeights versionFive = learned(DAY_ONE).weightsFor(WeightModel.A_S2T, user);
+        when(repository.findByModelKeyAndActiveTrue(WeightModel.A_S2T))
+                .thenReturn(Optional.of(row(WeightModel.A_S2T, 6, LEARNED_A)));
+        WeightProvider next = new WeightProvider(settings, repository, DAY_ONE);
+        next.reload();
+
+        ModelWeights versionSix = next.weightsFor(WeightModel.A_S2T, user);
+
+        assertThat(versionSix).isNotEqualTo(versionFive);
+        assertThat(WeightProvider.seed(WeightModel.A_S2T, user, java.time.LocalDate.of(2026, 10, 20), 5))
+                .isNotEqualTo(WeightProvider.seed(WeightModel.A_S2T, user, java.time.LocalDate.of(2026, 10, 20), 6));
     }
 
     @Test

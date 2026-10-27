@@ -29,6 +29,7 @@ import com.ptutor.backend.entity.enums.WeightLearningMode;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.AdminRecommendationWeightService;
+import com.ptutor.backend.service.WeightLearningService;
 
 @ExtendWith(MockitoExtension.class)
 class AdminRecommendationWeightControllerTest {
@@ -54,6 +55,19 @@ class AdminRecommendationWeightControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.models[0].model").value("B_S2T"))
                 .andExpect(jsonPath("$.data.models[0].mode").value("SHADOW"));
+    }
+
+    @Test
+    void runsTheLearningNow() throws Exception {
+        when(weightService.learnNow()).thenReturn(List.of(
+                new WeightLearningService.Outcome(WeightModel.A_S2T, 4, 120, true, "activated")));
+
+        mockMvc.perform(post(PATH + "/learn"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("WEIGHT_LEARNING_DONE"))
+                .andExpect(jsonPath("$.data[0].model").value("A_S2T"))
+                .andExpect(jsonPath("$.data[0].version").value(4))
+                .andExpect(jsonPath("$.data[0].activated").value(true));
     }
 
     @Test

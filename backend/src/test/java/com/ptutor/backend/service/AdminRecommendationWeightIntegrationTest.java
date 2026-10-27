@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -116,6 +119,23 @@ class AdminRecommendationWeightIntegrationTest {
         mockMvc.perform(get(PATH).with(jwt().jwt(token -> token.subject(adminUserId.toString()))
                         .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk());
+    }
+
+    /** "Learn now" (step 43a) runs the nightly update: administrators only. */
+    @Test
+    void onlyAdministratorsMayRunTheLearning() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+
+        mockMvc.perform(post(PATH + "/learn")).andExpect(status().isUnauthorized());
+        for (String role : List.of("ROLE_EMPLOYEE", "ROLE_STUDENT", "ROLE_TUTOR")) {
+            mockMvc.perform(post(PATH + "/learn").with(jwt().jwt(token -> token.subject(adminUserId.toString()))
+                            .authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mockMvc.perform(post(PATH + "/learn").with(jwt().jwt(token -> token.subject(adminUserId.toString()))
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("WEIGHT_LEARNING_DONE"));
     }
 
     private void version(int version, double hist, boolean active) {
