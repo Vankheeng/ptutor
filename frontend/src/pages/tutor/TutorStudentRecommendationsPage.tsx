@@ -156,10 +156,12 @@ export function TutorStudentRecommendationsPage() {
     if (action !== 'DISMISSED') setHasNewSignal(true);
   };
 
-  /** The posting page is the existing flow: full details and the proposal form. */
+  /** The posting page is the existing flow: full details and the proposal form. It reports the proposal (CONTACTED). */
   const open = (item: StudentRecommendationItem) => {
     send(item, 'VIEWED');
-    navigate(`/tutor/studying-requests/${item.studyingRequestId}`);
+    navigate(`/tutor/studying-requests/${item.studyingRequestId}`, {
+      state: result?.logId ? { recommendationLogId: result.logId } : undefined
+    });
   };
 
   const favorite = (item: StudentRecommendationItem) => {

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest, useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
+import { recordEvent } from '../../services/recommendationApi';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
 import { updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
@@ -11,6 +12,8 @@ import { dateLabel, modeLabel, moneyLabel, statusLabel, weekdayLabel } from '../
 export function TutorStudyingRequestPage() {
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
+  // Opened from the recommendations: the search to report the proposal to.
+  const recommendationLogId = (useLocation().state as { recommendationLogId?: string } | null)?.recommendationLogId;
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
   const relatedQuery = useStudyingRequests({ page: 0, size: 30 });
   const [proposalRevision, setProposalRevision] = useState(0);
@@ -46,6 +49,9 @@ export function TutorStudyingRequestPage() {
         setNotice('Đã cập nhật đề nghị.');
       } else {
         await submitTutorStudyingRequestProposal(request.id, payload);
+        if (recommendationLogId) {
+          recordEvent(recommendationLogId, request.id, 'CONTACTED').catch(() => undefined);
+        }
         setNotice(myProposal?.status === 'CANCELLED' ? 'Đã gửi lại đề nghị.' : 'Đã gửi đề nghị tới học viên.');
       }
       setShowApply(false);
