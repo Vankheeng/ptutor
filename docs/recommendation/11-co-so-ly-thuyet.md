@@ -24,8 +24,8 @@ huấn luyện sẵn** cho phần hiểu văn bản (`bge-m3`, `bge-reranker-v2-
 Sở thích của mỗi người được học từ những người họ đã liên hệ; tính điểm hai chiều riêng rẽ, gộp bằng
 **trung bình điều hoà**. Không cần huấn luyện mô hình, phù hợp khi ít dữ liệu.
 
-→ Áp dụng: thành phần `b_hist` ước lượng từ lịch sử nhận/từ chối của gia sư (06, mục 6.6); công thức
-`R = 2ab/(a+b)`.
+→ Áp dụng: thành phần `b_hist` ước lượng từ lịch sử nhận/từ chối của gia sư (06, mục 6.6). RECON gộp bằng
+trung bình điều hoà; đồ án dùng trung bình nhân có trọng số (13 mục 13.5).
 
 **Palomares, Porcel, Pizzato, Guy, Herrera-Viedma (2020/2021), "Reciprocal Recommender Systems:
 Analysis of State-of-Art Literature, Challenges and Opportunities towards Social Recommendation".**
@@ -126,7 +126,7 @@ số cho cả danh sách**, có kẹp quanh prior và giới hạn bước để
 > 💡 Một đoạn văn mẫu tóm tắt toàn bộ cách tiếp cận bằng thuật ngữ học thuật, dùng được trong báo cáo hoặc khi bảo vệ.
 
 > Hệ gợi ý hai chiều **dựa trên nội dung theo hướng RECON**, tính riêng hai chiều và gộp bằng trung
-> bình điều hoà; bổ sung **cơ chế chống dồn đơn đơn giản** lấy cảm hứng từ Su và cộng sự (2022); dùng
+> bình nhân có trọng số (thay cho trung bình điều hoà của RECON); bổ sung **cơ chế chống dồn đơn đơn giản** lấy cảm hứng từ Su và cộng sự (2022); dùng
 > **LLM và embedding để hiểu văn bản tự do tiếng Việt**; **thích ứng theo hành vi** trong phiên
 > (Rocchio) và dài hạn (hồ sơ sở thích). Trọng số do nhóm thiết lập đóng vai trò **prior cho giai đoạn
 > khởi đầu lạnh**; khi vận hành, hệ thống **tự tinh chỉnh trọng số bằng contextual bandit** (Linear

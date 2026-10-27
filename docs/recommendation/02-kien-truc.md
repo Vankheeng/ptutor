@@ -87,7 +87,7 @@ Nguyên tắc:
 | Tin đăng chuyển `OPEN` hoặc có embedding mới | `MatchAlertWorker`: đối chiếu với tin đăng và tìm kiếm đã lưu phía bên kia, gửi thông báo (C7) |
 | Click / tym / đơn / đổi trạng thái đơn | `ProfileUpdateWorker`: cập nhật hồ sơ sở thích (H1) |
 | Khiếu nại được kết luận (`COMPLAINT_RESOLVED`, `COMPLAINT_AGAINST_YOU_RESOLVED`) | `TutorRecommendationScoreEventListener` tính lại `recommendation_score` nếu người nhận là gia sư (phạt khiếu nại có lỗi — 06, mục 6.8) |
-| Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian); 20:30 UTC: `WeightLearningJob` cập nhật trọng số học được (L1, 12) |
+| Hằng đêm | `RerankPrefetchJob` (rerank sẵn top-30 cho tin học `OPEN` và tìm kiếm đã lưu; không chạy khi `rerank.mode = OFF`, mặc định từ 26/10/2026); 02:30 UTC: `AggregateRefreshJob` → tính lại `recommendation_score` → `ExposureStatsJob`; tính lại hồ sơ sở thích (giảm theo thời gian); 20:30 UTC: `WeightLearningJob` cập nhật trọng số học được (L1, 12) |
 | Tạo đơn / đề nghị | `DecisionSnapshotRecorder` ghi ảnh chụp các thành phần b của cặp (L1, 12.6) |
 
 Chi tiết hàng đợi (`ai_enrichment_jobs`):
@@ -112,7 +112,7 @@ Chi tiết hàng đợi (`ai_enrichment_jobs`):
 
 ### Luồng tìm kiếm
 
-> 💡 Trình tự một lần bấm tìm: (tùy chọn) tách câu gõ thành bộ lọc → gộp tiêu chí → tính vector cho nhu cầu → lọc trong database → chấm điểm → chấm kỹ top-20 (**rerank**) → hoàn thiện danh sách → ghi nhật ký (log) → trả kết quả kèm `logId` (mã của lần tìm, dùng để lật trang và ghi phản hồi). Đi từng bước bằng lời thường: [00](./00-doc-truoc.md) mục 3.
+> 💡 Trình tự một lần bấm tìm: (tùy chọn) tách câu gõ thành bộ lọc → gộp tiêu chí → tính vector cho nhu cầu → lọc trong database → chấm điểm → (nếu bật) xếp lại top-10 theo điểm **rerank** đã có, mặc định tắt → hoàn thiện danh sách → ghi nhật ký (log) → trả kết quả kèm `logId` (mã của lần tìm, dùng để lật trang và ghi phản hồi). Đi từng bước bằng lời thường: [00](./00-doc-truoc.md) mục 3.
 
 ```mermaid
 sequenceDiagram
@@ -134,8 +134,8 @@ sequenceDiagram
     API->>DB: Đặc trưng, lịch sử quyết định, cache rerank
     API->>API: Lấy trọng số từ WeightProvider (trong bộ nhớ, không truy vấn DB.<br/>L1 ACTIVE: mẫu Thompson theo người dùng + ngày)
     API->>API: Tính a, b, R, Q, G → xếp hạng sơ bộ
-    opt Top-20 chưa có rerank
-        API->>AI: /rerank (lô 4 cặp, ngân sách 4 000 ms)
+    opt rerank.mode = ASYNC (mặc định OFF)
+        API->>API: Xếp lại top-10 theo điểm rerank đã có, cặp thiếu → RerankQueue chấm nền (không chờ)
     end
     API->>API: Xếp lại, slot khám phá, lý do khớp, (nới tiêu chí nếu ít kết quả)
     API->>DB: Ghi recommendation_logs (kèm đặc trưng và trọng số đã dùng)
@@ -177,7 +177,7 @@ Chi tiết: [12](./12-hoc-trong-so.md), mục 12.7–12.9.
 
 ## 2.3. Ngân sách độ trễ (mục tiêu p95)
 
-> 💡 Mỗi bước được phép mất tối đa bao lâu. "p95" nghĩa là 95% số lần tìm phải nhanh hơn mốc này. Bước chậm nhất là rerank (chấm kỹ top-20): lần đầu với tiêu chí mới có thể mất tới ~4 giây, những lần sau dùng kết quả đã lưu (cache) nên tổng chỉ khoảng 1,5 giây.
+> 💡 Mỗi bước được phép mất tối đa bao lâu. "p95" nghĩa là 95% số lần tìm phải nhanh hơn mốc này. Rerank mặc định tắt (từ 26/10/2026); khi bật thì chấm ở nền nên lần tìm không phải chờ. Mục tiêu tổng ≤ 1,5 giây.
 
 | Bước | Thời gian |
 |---|---|
@@ -185,9 +185,9 @@ Chi tiết: [12](./12-hoc-trong-so.md), mục 12.7–12.9.
 | Embed văn bản nhu cầu (cache theo mã băm) | ≤ 150 ms |
 | SQL lọc cứng + vector | ≤ 150 ms |
 | Chấm điểm ≤ 200 ứng viên | ≤ 50 ms |
-| Rerank top-20 khi chưa có cache | ≤ 4 000 ms (ngân sách; đo thực tế ~175 ms mỗi cặp, xem 06 mục 6.9) |
+| Rerank top-10 | 0 ms ở `OFF` (mặc định) và `ASYNC` (chỉ đọc cache, cặp thiếu chấm nền); `ONLINE` (giữ để so sánh): ngân sách 1 500 ms, một lô 4 cặp đo được 3,4–4,4 s (06 mục 6.9) |
 | Nới tiêu chí (song song) | ≤ 400 ms |
-| **Tổng cho một lần bấm tìm** | **≤ 1,5 s khi đã có cache rerank; tới ~5 s ở lần tìm đầu với tiêu chí mới** |
+| **Tổng cho một lần bấm tìm** | **≤ 1,5 s** (rerank tắt hoặc chấm nền) |
 
 ## 2.4. Vị trí code
 

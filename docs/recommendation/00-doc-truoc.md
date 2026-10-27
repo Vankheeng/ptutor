@@ -61,7 +61,7 @@ flowchart TB
 | **Frontend** (React) | Quầy tiếp đón | Màn hình bộ lọc, danh sách kết quả, nút thả tim / "Không quan tâm", gợi ý nới tiêu chí |
 | **Backend** (Spring Boot, Java) | Nhân viên môi giới | **Mọi quyết định** nằm ở đây: lọc, tính điểm, xếp hạng, chọn lý do, ghi nhật ký |
 | **Cơ sở dữ liệu** (PostgreSQL + pgvector) | Tủ hồ sơ | Tin đăng, hồ sơ, đơn đã gửi, nhật ký mỗi lần tìm. *pgvector* là phần mở rộng giúp database lưu và so sánh vector |
-| **AI service** (Python, chạy ngay trên máy chủ) | Chuyên viên đọc hiểu | Ba việc: biến câu chữ thành **vector** (dãy số đại diện ý nghĩa), **chấm lại độ khớp** của một cặp văn bản (rerank), và chuyển lời cho LLM. Không quyết định thứ hạng |
+| **AI service** (Python, chạy ngay trên máy chủ) | Chuyên viên đọc hiểu | Ba việc: biến câu chữ thành **vector** (dãy số đại diện ý nghĩa), **chấm lại độ khớp** của một cặp văn bản (rerank, mặc định tắt từ 26/10/2026), và chuyển lời cho LLM. Không quyết định thứ hạng |
 | **LLM** (OpenAI, gọi qua mạng) | Người đọc văn bản thuê ngoài | Đọc văn bản tự do và trả lời bằng **mã có sẵn trong danh sách** (ví dụ `hinh_hoc_phang`). Không viết nội dung cho người dùng |
 | **Job nền** | Ca trực đêm | Chạy định kỳ: chuẩn hóa dữ liệu mới, tính vector, gửi thông báo ghép đôi, đếm lượt hiển thị, cập nhật hồ sơ sở thích |
 
@@ -84,7 +84,7 @@ Các con số dưới đây là **minh họa**; con số của gia sư X, Y lấ
 flowchart TB
     S1["1 · Nhập tiêu chí<br/>bộ lọc + hồ sơ"] --> S2["2 · Lọc cứng<br/>bỏ tin chắc chắn không hợp"]
     S2 --> S3["3 · Chấm điểm<br/>a, b, R, Q, G"]
-    S3 --> S4["4 · Chấm kỹ top-20<br/>rerank"]
+    S3 --> S4["4 · Chấm kỹ nhóm đầu<br/>rerank (mặc định tắt)"]
     S4 --> S5["5 · Hoàn thiện danh sách<br/>gộp theo người, slot khám phá, lý do"]
     S5 --> S6["6 · Hiển thị<br/>+ gợi ý nới nếu ít kết quả"]
     S6 --> S7["7 · Học từ phản hồi<br/>xem, tym, bỏ qua"]
@@ -116,17 +116,18 @@ kỹ ở mục 4):
 |---|---|---|
 | Hợp với Minh (a) | 0,871 — rất hợp: mạnh hình học, trùng lịch, giá 180k | 0,75 — khá hợp |
 | Khả năng nhận Minh (b) | 0,341 — chỉ còn 1 chỗ mà đã có 3 người chờ | 0,80 — tin còn trống, hay nhận học sinh như Minh |
-| Gộp hai phía (R) | 0,490 | 0,774 |
+| Gộp hai phía (R) | 0,627 | 0,767 |
 | Uy tín (điểm chất lượng 82 / 60) | × 0,946 | × 0,88 |
-| **Điểm cuối** | **0,463** | **0,681** → **Y đứng trên X** |
+| **Điểm cuối** | **0,593** | **0,675** → **Y đứng trên X** |
 
 X hợp hơn về nội dung, nhưng nếu đưa X lên đầu thì Minh rất có thể bị từ chối. Hệ thống ưu tiên Y — người **vừa
 hợp vừa có khả năng nhận**.
 
-**Bước 4 — Chấm kỹ top-20 (rerank).** Bước 3 so nghĩa bằng vector — nhanh nhưng thô. Với **20 tin điểm cao nhất**,
-một mô hình AI chính xác hơn đọc **từng cặp** (nhu cầu của Minh, nội dung tin) và chấm lại độ khớp; điểm mới thay cho
-phần lớn điểm so nghĩa cũ, rồi 20 tin này được sắp lại. Mô hình này chậm (khoảng 0,18 giây mỗi cặp), nên có giới hạn
-tổng 4 giây và **nhớ kết quả** cho lần sau.
+**Bước 4 — Chấm kỹ nhóm đầu (rerank, hiện tắt).** Bước 3 so nghĩa bằng vector — nhanh nhưng thô. Thiết kế có thêm
+một mô hình AI chính xác hơn đọc **từng cặp** (nhu cầu của Minh, nội dung tin) cho **10 tin điểm cao nhất** và chấm
+lại độ khớp; điểm mới thay cho phần lớn điểm so nghĩa cũ, rồi 10 tin này được sắp lại. Đánh giá trên mô phỏng cho
+thấy bước này không làm thứ tự tốt hơn mà làm chậm lần tìm (khoảng 0,18 giây mỗi cặp), nên từ 26/10/2026 mặc định
+**tắt**. Code vẫn giữ: khi bật, mô hình chấm ở nền (lần tìm không phải chờ) và **nhớ kết quả** cho lần sau.
 
 **Bước 5 — Hoàn thiện danh sách.**
 - **Gộp theo người**: gia sư có 2 tin cùng khớp thì chỉ giữ tin điểm cao hơn, để danh sách là 20 *người* khác nhau
@@ -184,12 +185,16 @@ năng gia sư nhận, từ ba nguồn:
 
 Nếu gia sư **đã chủ động mời** học sinh này thì b = 1.
 
-### 4.3. Trung bình điều hòa R — "Phải hợp cả hai phía"
+### 4.3. Gộp hai phía R — "Phải hợp cả hai phía"
 
-Có a và b rồi, gộp thế nào? Nếu lấy trung bình cộng thì a = 0,9, b = 0,2 cho 0,55 — nghe "trung bình khá", trong khi
-thực tế Minh rất có thể bị từ chối. **Trung bình điều hòa** `R = 2ab / (a + b)` bị kéo về phía **số nhỏ hơn**: cùng ví
-dụ đó R ≈ 0,33. Muốn R cao thì **cả hai** phải cao. Đây là cách gộp của mô hình **RECON** (Pizzato và cộng sự, 2010),
-một công trình kinh điển về **gợi ý hai chiều** (reciprocal recommendation).
+Có a và b rồi, gộp thế nào? Nếu lấy trung bình cộng thì một bên rất thấp vẫn được bên kia bù: a = 0,9, b = 0,05 cho
+0,475 — nghe "trung bình", trong khi thực tế Minh gần như chắc bị từ chối. Hệ thống dùng **trung bình nhân có trọng
+số** `R = a^0,65 · b^0,35`: một bên càng gần 0 thì R càng tụt nhanh (cùng ví dụ R ≈ 0,33; b = 0 thì R = 0). Muốn R
+cao thì **cả hai** phải cao. Ý tưởng tính riêng hai chiều rồi gộp lấy từ mô hình **RECON** (Pizzato và cộng sự,
+2010), một công trình kinh điển về **gợi ý hai chiều** (reciprocal recommendation). RECON gộp bằng trung bình điều hoà
+`2ab / (a + b)`; nhóm đổi sang trung bình nhân và cho a nặng hơn (0,65) vì b chỉ là ước lượng thô (nhiều gia sư còn ít
+lịch sử nhận đơn). Trên mô phỏng thị trường đông, cách này cho danh sách hợp hơn mà số lần bị từ chối không tăng
+([13](./13-tinh-chinh-sau-danh-gia.md), mục 13.5).
 
 ### 4.4. Hệ số chất lượng Q và hệ số chặn mềm G
 
@@ -209,9 +214,11 @@ Nhân thì một yếu tố tệ kéo cả điểm xuống — giống "một co
 Nếu ai cũng thấy cùng một gia sư "xịn" ở đầu danh sách thì tất cả cùng gửi đơn cho người đó: gia sư không nhận hết,
 phần lớn học sinh bị từ chối, còn các gia sư khác không ai hỏi tới. Hệ thống tính:
 
-`b_cap = r / (r + 0,5·n)` — r là số chỗ còn trống của tin, n là số đơn đang chờ.
+`b_cap = r / (r + 0,5·(n − r + 1))` khi số người chờ n đã bằng hoặc vượt số chỗ còn trống r; còn chỗ cho mọi người
+đang chờ (n < r) thì `b_cap = 1`.
 
-Còn 1 chỗ, chưa ai chờ → 1 (không ảnh hưởng). Còn 1 chỗ, 2 người chờ → 0,5. Còn 1 chỗ, 6 người chờ → 0,25. Tin càng
+Còn 1 chỗ, chưa ai chờ → 1 (không ảnh hưởng). Còn 1 chỗ, 2 người chờ → 0,5. Còn 1 chỗ, 6 người chờ → 0,25. Còn 3 chỗ,
+2 người chờ → 1 (chưa dồn, không phạt). Tin càng
 "đông" thì càng xuống thấp, nhường chỗ cho tin còn trống. Ý tưởng lấy từ Su, Bayoumi, Joachims (2022) về xếp hạng
 trong **thị trường ghép đôi**.
 
@@ -222,7 +229,8 @@ Có hai kiểu mô hình AI so nghĩa:
 - **Bi-encoder** (mô hình `bge-m3`): biến **từng** văn bản thành vector riêng, rồi so khoảng cách. Nhanh, tính sẵn được
   cho mọi tin đăng — dùng để chấm cả danh sách.
 - **Cross-encoder** (mô hình `bge-reranker-v2-m3`): đọc **cả hai văn bản cùng lúc** rồi cho điểm. Chính xác hơn nhiều
-  nhưng chậm — chỉ dùng cho top-20.
+  nhưng chậm — chỉ dùng cho 10 tin đầu. **Hiện mặc định tắt** (từ 26/10/2026): trên mô phỏng, chấm đủ mọi cặp vẫn
+  không làm thứ tự tốt hơn mà làm chậm lần tìm; code giữ lại, khi bật thì chấm ở nền.
 
 Giống tuyển dụng: vòng 1 lọc hồ sơ nhanh, vòng 2 phỏng vấn kỹ vài người. Kết quả chấm được lưu lại (cache) để lần sau
 không phải chấm lại; ban đêm hệ thống còn chấm sẵn cho các nhu cầu đã biết trước.
@@ -317,7 +325,7 @@ có thể khác, điều này phải nêu rõ trong báo cáo.
 | **Trọng số (weight)** | Mức quan trọng của từng tiêu chí khi cộng lại |
 | **a, b, R, Q, G** | Độ phù hợp với người tìm; khả năng phía kia đồng ý; điểm gộp hai chiều; uy tín gia sư; hệ số phạt nhẹ |
 | **Reciprocal (hai chiều)** | Gợi ý người cho người, phải hợp cả hai phía |
-| **Trung bình điều hòa** | Cách lấy trung bình bị kéo về số nhỏ: `2ab/(a+b)` |
+| **Trung bình nhân có trọng số** | Cách gộp a và b: `a^0,65 · b^0,35`; một bên bằng 0 thì kết quả bằng 0 (RECON dùng trung bình điều hoà `2ab/(a+b)`) |
 | **LLM** | Mô hình ngôn ngữ lớn (như GPT) — ở đây chỉ dùng để đọc và trích thông tin |
 | **Embedding / vector** | Biến câu chữ thành dãy số sao cho câu cùng nghĩa có dãy số gần nhau |
 | **Cosine** | Số đo hai vector "cùng hướng" tới đâu: gần 1 là rất giống nghĩa |

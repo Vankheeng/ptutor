@@ -26,9 +26,9 @@ bên kia**: học sinh nhận danh sách tin dạy (gia sư đã trả phí, đ�
 học.
 
 Điểm của mỗi ứng viên kết hợp **độ phù hợp với người tìm** (a) và **khả năng phía bên kia đồng ý** (b)
-bằng trung bình điều hoà — mô hình gợi ý hai chiều theo hướng RECON — rồi nhân với hệ số chất lượng và
-hệ số chặn mềm. Khả năng đồng ý tính đến **mức dồn đơn** của từng tin. Kết quả được xếp lại bằng
-cross-encoder, dành chỗ cho người ít được hiển thị, **cá nhân hoá dần theo hành vi** (trong phiên và qua
+bằng trung bình nhân có trọng số (a^0,65 · b^0,35), theo hướng RECON, rồi nhân với hệ số chất lượng và
+hệ số chặn mềm. Khả năng đồng ý tính đến **mức dồn đơn** của từng tin. Kết quả dành chỗ cho người ít
+được hiển thị (xếp lại bằng cross-encoder có sẵn nhưng mặc định tắt), **cá nhân hoá dần theo hành vi** (trong phiên và qua
 nhiều phiên), gợi ý cách nới tiêu chí khi ít kết quả, và **chủ động thông báo** khi xuất hiện ghép đôi tốt
 cho tin đăng hoặc tìm kiếm đã lưu của người dùng.
 
@@ -86,7 +86,7 @@ hạng theo ghép đôi thành công lâu dài, tối ưu toàn cục. Loại: c
 | Nhu cầu / `QueryContext` | Tiêu chí tìm kiếm sau khi gộp bộ lọc, câu tự nhiên, hồ sơ (và tin đăng của người tìm, nếu chọn) |
 | a | Độ phù hợp của ứng viên theo góc nhìn người tìm |
 | b | Khả năng ứng viên đồng ý ghép với người tìm |
-| R | Điểm reciprocal = trung bình điều hoà của a và b |
+| R | Điểm reciprocal = a^0,65 · b^0,35 (trung bình nhân có trọng số) |
 | Q | Điểm chất lượng tĩnh của gia sư = `tutors.recommendation_score / 100` |
 | G | Hệ số chặn mềm |
 | `f_hist`, `w_hist` | Đặc trưng lịch sử hành vi và trọng số tăng dần của nó |

@@ -5,9 +5,9 @@
 > nó thế nào → đổi gì → vì sao không chọn cách khác → làm sao biết đã đúng**. Mục đích kép: (1) làm cơ sở để trả lời
 > hội đồng khi bị hỏi "vì sao thiết kế thế này", (2) để đọc là hiểu, không cần đọc code.
 >
-> **Trạng thái:** đã thống nhất ngày 26/10/2026. T1 (13.2) đã lập trình và đo xong ngày 26/10/2026; các mục khác
-> **chưa lập trình** (13.9). Khi một thay đổi được lập trình xong, mục tương
-> ứng ở các file 04, 05, 06, 09, 10, 12 sẽ được sửa nội dung chính; file này giữ lại như biên bản quyết định.
+> **Trạng thái:** đã thống nhất ngày 26/10/2026; **mọi mục T1–T7 đã lập trình và đo xong ngày 26–27/10/2026**
+> (13.9). Nội dung chính của các file 00, 02, 04, 05, 06, 09, 10, 12 đã sửa theo; file này giữ lại như biên bản quyết
+> định. Còn mở: lượt tổng kết trên `crowded` với hạt giống khác (Bước 43).
 
 ## 13.0. Nguồn số liệu và cách đọc
 
@@ -15,8 +15,12 @@
 |---|---|---|
 | `base` | `ket-qua/base/` | 120 gia sư, 60 học sinh, 79 truy vấn học sinh → gia sư có ứng viên phù hợp; 7 cấu hình + 5 đối chứng; độ trễ nguội / ấm (`latency.csv`) |
 | `base-dev` | `ket-qua/base-dev/` | Lượt chạy cũ trên database dev; có thí nghiệm học trọng số L1 (`9.9.4-*`) |
+| `crowded` | `ket-qua/crowded/` | Thị trường đông (13.3): 400 học sinh, 597 truy vấn S2T kiểm định; thị trường 8 vòng; quét λ / α, tách Q và cổng chặn, L1 (Bước 38–41) |
+| `base-t40` | `ket-qua/base-t40/` | `base` dựng lại trong database riêng (27/10/2026): công thức chống dồn cũ / mới, tách Q và cổng chặn (Bước 40) |
 | `text-only` | `ket-qua/text-only/` | 175 truy vấn có nhu cầu **chỉ nằm trong văn bản** (ví dụ "con hay mất tập trung, cần chia nhỏ bài"), không tag hay bộ lọc nào thể hiện |
-| `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); **nhãn do Claude soạn nháp, nhóm chưa duyệt** |
+| `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); lượt đầu nhãn do Claude soạn nháp; từ 26/10 có bộ độc lập do nhóm duyệt (13.6) |
+
+Mỗi thư mục có `README.md`: chạy gì, tham số, bảng chính, đọc kết quả ngắn gọn (27/10/2026).
 
 > 📌 **Cập nhật 26/10/2026 — lần tìm dùng nhầm vector hồ sơ:** khi AI service bận (rerank), embed câu truy vấn quá
 > hạn và backend lặng lẽ dùng vector hồ sơ (13.2, "Kết quả thật"). Ở `base`, 7–11 / 79 truy vấn kiểm định của các
@@ -827,11 +831,13 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | # | Thay đổi | Mục | Trạng thái |
 |---|---|---|---|
 | 1 | Sửa lỗi cache rerank phía học sinh → rerank chạy nền (`ASYNC`) | 13.2 | **Đã làm 26/10/2026.** Có `ASYNC`, worker nhường lần tìm, AI service huỷ việc bị bỏ, ghi `queryVector`; đo xong. Mặc định đổi thành `OFF` vì rerank không có lợi ích đo được |
-| 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). Còn: chạy lại A1 cho dữ liệu đánh giá (chờ quyết) |
+| 2 | Sửa prompt lịch / tách câu; nhóm duyệt nhãn; chạy lại `llm_eval` | 13.6 | **Đã làm 26/10/2026** (prompt, quy ước T1–T10, bộ độc lập; lịch 100 %, A2 độc lập 91,3 %; bộ nháp đã duyệt mẫu 40/196). A1 đã chạy lại bằng prompt mới khi dựng lại `crowded` (26/10) và `base` (27/10); `text-only` giữ A1 cũ (chỉ dùng đo rerank) |
 | 3 | Hiệu chỉnh mô phỏng crowded, sửa `restore()`, chạy thị trường | 13.3 | **Đã làm 26/10/2026.** `restore()` / `clone()`; crowded dựng lại (β0 −3,1, `rel` và đánh giá theo `quality`, 400 HS, A1 prompt mới); mọi kiểm tra bộ mô phỏng đạt; mốc 6 cấu hình (thị trường 8 vòng + tìm kiếm) |
 | 4 | Chống dồn chỉ phạt khi dồn (quét λ); reciprocal có trọng số (quét α) | 13.4, 13.5 | **Đã làm 26/10/2026.** Mặc định: `ON_SHORTAGE` λ 0,5, `GEOMETRIC` α 0,65. So công thức cũ / mới trên `base` (Bước 40, 27/10): đạt, giữ công thức mới. Còn: lấy số báo cáo trên `crowded` hạt giống khác (Bước 43) |
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | **Đã làm 27/10/2026** (crowded, truy vấn đa dạng + `drift`). Mặc định κ 50, ρ 0,5, `max-step` 0,05, γ 0,99; regret −21 % so với cố định |
 | 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
+| 7 | Đồng bộ tài liệu, README cho `ket-qua/` | — | **Đã làm 27/10/2026.** Sửa "rerank top-20", trung bình điều hoà, công thức chống dồn cũ và ví dụ tính tay (00, 02, 06, 10, 11, 12); README cho mỗi kịch bản |
+| 8 | Lượt tổng kết: `crowded` dựng với hạt giống khác, lấy số báo cáo | 13.4, 13.5 | **Chưa làm** (Bước 43): λ, α, κ đã chọn trên thế giới hiện tại nên số trên đó hơi lạc quan |
 
 ## 13.10. Câu hỏi phản biện dự kiến
 
@@ -847,4 +853,6 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | Trọng số tự học (L1) có thật sự học được không? | (sửa 27/10/2026) Trên mô phỏng crowded có đáp án ẩn: với κ 50, regret thấp hơn trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng. Với prior quá mạnh (κ 200 trên `base-dev`) thì gần như không học | 13.7 |
 | Trọng số ban đầu đặt sai thì L1 có tự sửa? | Sai vừa (chia đều) thì có: regret −34 % so với giữ nguyên prior đó, sai số trọng số 0,54 → 0,23. Sai ngược hẳn thì chỉ sửa được một phần (−29 %, vẫn tệ hơn trọng số nhóm đặt): biên [0,5; 2] × prior không cho đi đủ xa. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa | 13.7 |
 | Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn khoảng 2 % regret so với Greedy. Giữ mức thấp (ρ 0,5) vì môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit | 13.7 |
+| λ, α, κ chọn trên chính mô phỏng `crowded`, số báo cáo có lạc quan không? | Có, nên số báo cáo lấy ở lượt tổng kết: dựng lại `crowded` với hạt giống khác (cùng công thức, người dùng và tin đăng khác) rồi chạy lại các cấu hình đã chốt | 13.4, 13.5, 13.9 |
+| Đã code rerank chạy nền mà lại tắt, có lãng phí? | Code giữ để bật lại bằng cấu hình khi có click thật chứng minh lợi ích (điều kiện ở 13.2); tắt thì AI service tiết kiệm ~1,1 GB RAM và lần tìm không bị chậm | 13.2 |
 | Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp do Claude soạn (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |

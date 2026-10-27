@@ -148,7 +148,7 @@ AI service dùng khoảng 2,3 GB RAM khi nạp cả hai model.
 > theo — mô hình phi tuyến (LightGBM LambdaMART) khi đủ dữ liệu, huấn luyện trên chính log của L1.
 
 Giai đoạn này dùng **trọng số khởi đầu lạnh** làm prior cho L1. Khi có nhiều dữ liệu thật,
-thay phần gộp tuyến tính bằng mô hình học — **giữ nguyên cấu trúc** `R = 2ab/(a+b)`, `× Q × G`, chỉ thay cách tính
+thay phần gộp tuyến tính bằng mô hình học — **giữ nguyên cấu trúc** `R = a^α · b^(1−α)`, `× Q × G`, chỉ thay cách tính
 a và b:
 
 | Mô hình | Dự đoán | Dữ liệu huấn luyện | Khi nào có |

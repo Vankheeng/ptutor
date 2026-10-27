@@ -4,7 +4,7 @@
 
 ## 6.1. Tổng quan
 
-> 💡 Quy trình sáu pha. Pha 1 **lọc cứng** (loại hẳn tin không đạt điều kiện bắt buộc). Pha 2 lấy tối đa 200 tin gần nghĩa nhất. Pha 3 chấm điểm: **a** = người tìm có thích tin này không, **b** = phía kia có khả năng nhận không, **R** gộp a và b sao cho phải hợp cả hai, rồi nhân với **Q** (uy tín gia sư) và **G** (hệ số phạt nhẹ). Pha 4 chấm kỹ 20 tin đầu (**rerank**). Pha 5 gộp mỗi người một tin và chèn tin cần được khám phá. Pha 6 viết lý do và ghi nhật ký. S→T = học sinh tìm gia sư; T→S = gia sư tìm học viên.
+> 💡 Quy trình sáu pha. Pha 1 **lọc cứng** (loại hẳn tin không đạt điều kiện bắt buộc). Pha 2 lấy tối đa 200 tin gần nghĩa nhất. Pha 3 chấm điểm: **a** = người tìm có thích tin này không, **b** = phía kia có khả năng nhận không, **R** gộp a và b sao cho phải hợp cả hai, rồi nhân với **Q** (uy tín gia sư) và **G** (hệ số phạt nhẹ). Pha 4 chấm kỹ 10 tin đầu (**rerank**, mặc định tắt từ 26/10/2026). Pha 5 gộp mỗi người một tin và chèn tin cần được khám phá. Pha 6 viết lý do và ghi nhật ký. S→T = học sinh tìm gia sư; T→S = gia sư tìm học viên.
 
 Người tìm **không cần có tin đăng**. Họ nhập tiêu chí (bộ lọc, có thể kèm câu tự nhiên — xem
 [05](./05-dau-vao-tim-kiem.md)); hệ thống ghép tiêu chí với hồ sơ của họ thành một **nhu cầu**
@@ -23,10 +23,10 @@ QueryContext (bộ lọc + câu tự nhiên + hồ sơ người tìm [+ tin đă
   ├─ Pha 3  Chấm điểm sơ bộ
   │           a  = độ phù hợp theo người tìm         (6.4, gồm lịch sử hành vi H1)
   │           b  = khả năng phía kia đồng ý          (6.6, gồm chống dồn B4)
-  │           R  = 2ab / (a + b)                     (6.7, reciprocal R1)
+  │           R  = a^0,65 · b^0,35                   (6.7, reciprocal R1)
   │           score = R × (0.7 + 0.3·Q) × G          (6.8, cấu trúc nhân R2)
   │           (trọng số gộp của a, b lấy từ WeightProvider — prior hoặc bản học được, L1 — 12)
-  ├─ Pha 4  Rerank top-10 bằng cross-encoder, chấm nền (R3)   (6.9)
+  ├─ Pha 4  Rerank top-10 (R3; mặc định OFF, bật thì chấm nền) (6.9)
   ├─ Pha 5  Gộp theo người, chèn slot khám phá (R6) (6.10, 6.11)
   └─ Pha 6  Sinh lý do khớp, ghi log                (6.13)
 ```
@@ -543,7 +543,8 @@ học sinh tìm lại với tiêu chí tương tự thường đã có cache.
 với tin rất ngắn, ~175 ms với tin điển hình (~70 token), ~590 ms với tin dài chạm trần 256 token.
 20 cặp mất 2,2 s / 3,5 s / 11,8 s; gộp lô không nhanh hơn. Với timeout 800 ms và quy tắc "quá giờ thì
 bỏ", lần tìm trực tiếp gần như luôn quá giờ và không bao giờ có cache. Quyết định (người dùng chọn):
-**chờ lâu hơn** — ngân sách 4 000 ms, chia lô nhỏ để giữ lại phần đã chấm khi hết giờ.
+**chờ lâu hơn** — ngân sách 4 000 ms, chia lô nhỏ để giữ lại phần đã chấm khi hết giờ. (Sau đó: hạ còn 1 500 ms
+ngày 21/10/2026; từ 26/10/2026 mặc định `OFF`, khi bật dùng `ASYNC` — ghi chú đầu mục.)
 
 | Vấn đề | Cách cài |
 |---|---|
@@ -725,7 +726,7 @@ Ghi chú triển khai (12/10/2026):
 
 ## 6.14. Ví dụ tính tay
 
-> 💡 Đi trọn một ví dụ với số cụ thể: gia sư X rất hợp với Minh (a = 0,871) nhưng tin đang có 3 người chờ cho 1 chỗ nên b chỉ 0,341; gia sư Y hợp vừa phải (a = 0,75) nhưng tin còn trống và hay nhận học sinh như Minh (b = 0,80). Kết quả Y (0,681) đứng trên X (0,463) — đúng tinh thần "phải hợp cả hai phía". Đoạn cuối cho thấy lịch sử hành vi dần thay đổi thứ hạng.
+> 💡 Đi trọn một ví dụ với số cụ thể: gia sư X rất hợp với Minh (a = 0,871) nhưng tin đang có 3 người chờ cho 1 chỗ nên b chỉ 0,341; gia sư Y hợp vừa phải (a = 0,75) nhưng tin còn trống và hay nhận học sinh như Minh (b = 0,80). Kết quả Y (0,675) đứng trên X (0,593) — đúng tinh thần "phải hợp cả hai phía". Đoạn cuối cho thấy lịch sử hành vi dần thay đổi thứ hạng.
 
 Minh, lớp 9, chọn trên bộ lọc: Toán, lớp 9, offline, quận Cầu Giấy, ngân sách ≤ 200k, rảnh tối T3,
 T5 19–21h, phong cách "kiên nhẫn", "giải thích kỹ"; hồ sơ: yếu hình học phẳng (0,95), bài chứng
@@ -744,12 +745,12 @@ rerank 0,85; lịch sử Σk(ACCEPTED) = 2,6, Σk = 3,4; còn 1 chỗ, 3 đơn c
 | `b_hist` | (2,6 + 2·0,6)/(3,4 + 2) | 0,704 |
 | `b_fit` · `b_cap` | 1 · 1/(1 + 0,5·3) | 1 · 0,4 |
 | **b** | (0,5·0,704 + 0,5·1) × 0,4 | **0,341** |
-| **R** | 2·0,871·0,341/(0,871 + 0,341) | **0,490** |
-| **score** | 0,490 × (0,7 + 0,3·0,82) | **0,463** |
+| **R** | 0,871^0,65 · 0,341^0,35 | **0,627** |
+| **score** | 0,627 × (0,7 + 0,3·0,82) | **0,593** |
 
 **Gia sư Y**: a = 0,75, b = 0,80 (tin không bị dồn, hay nhận học sinh như Minh),
-`recommendation_score` 60 → R = 0,774; score = 0,774 × 0,88 = **0,681** → Y đứng trên X.
+`recommendation_score` 60 → R = 0,75^0,65 · 0,80^0,35 = 0,767; score = 0,767 × 0,88 = **0,675** → Y đứng trên X.
 
 **Sau vài tuần**, Minh đã có 12 tín hiệu (`w_hist = 0,15`) và chủ yếu quan tâm gia sư kiểu luyện
-đề; với X, `f_hist = 0,4` → a = 0,85·0,871 + 0,15·0,4 = 0,801; R = 0,478; score = 0,452. Một gia sư
+đề; với X, `f_hist = 0,4` → a = 0,85·0,871 + 0,15·0,4 = 0,801; R = 0,594; score = 0,562. Một gia sư
 luyện đề có `f_hist` cao sẽ được đẩy lên tương ứng — hệ thống "học" dần sở thích thật của Minh.

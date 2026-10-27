@@ -44,7 +44,7 @@ contextual bandit là cách đặt bài toán học tăng cường đúng cho tr
 - **Phía b là học có giám sát trực tuyến**: nhãn nhận / từ chối có sẵn trong bảng đơn, không phụ thuộc hệ
   thống chọn gì, nên không cần — và không nên — khám phá (12.6).
 
-**Giữ nguyên:** lọc cứng, cấu trúc `R = 2ab/(a+b)`, `score = R × (0,7 + 0,3·Q) × G`, cách tính từng đặc
+**Giữ nguyên:** lọc cứng, cấu trúc `R = a^α · b^(1−α)`, `score = R × (0,7 + 0,3·Q) × G`, cách tính từng đặc
 trưng, rerank, slot khám phá. L1 chỉ thay **trọng số gộp**.
 
 ## 12.2. Tham số nào được học, tham số nào giữ cố định
@@ -163,7 +163,7 @@ mỗi đêm khi chạy thật: với 0,99, dữ liệu của khoảng 70 đêm t
    vẫn không được (prior quá lệch) thì kẹp rồi chia cho tổng.
 ```
 
-Tổng bằng 1 giữ a, b trong [0, 1] để trung bình điều hoà có nghĩa.
+Tổng bằng 1 giữ a, b trong [0, 1] để R (trung bình nhân có trọng số) có nghĩa.
 
 **Sửa 21/10/2026:** bản đầu kẹp θ **thô** rồi mới chuẩn hoá. θ của hồi quy không cùng thang với trọng số nên
 biên kẹp bị chạm ở mọi lần cập nhật, và bước chuẩn hoá phá giới hạn bước (bước thật tới 0,085). Thí nghiệm học
@@ -602,7 +602,7 @@ của người dùng ảo được biết trước nhưng hệ thống không nh
 > 💡 Sáu tiêu chí chọn (ít dữ liệu, dùng được trọng số nhóm đặt, giữ cấu trúc công thức, giải thích được, chạy rẻ trong Java, chứng minh được trên mô phỏng) và bảng so sánh với các phương án khác — ε-greedy (thỉnh thoảng thử ngẫu nhiên hoàn toàn), LinUCB, A/B test, deep RL… — kèm lý do không chọn.
 
 Sáu tiêu chí xuất phát từ hoàn cảnh đồ án: (1) ít hoặc chưa có dữ liệu; (2) dùng được trọng số tự đặt làm
-điểm xuất phát; (3) giữ nguyên cấu trúc `R = 2ab/(a+b)…`; (4) giải thích được từng trọng số; (5) chạy trong
+điểm xuất phát; (3) giữ nguyên cấu trúc `R = a^α · b^(1−α)…`; (4) giải thích được từng trọng số; (5) chạy trong
 Java, không GPU, cập nhật rẻ mỗi đêm; (6) chứng minh được trên mô phỏng.
 
 | Phương án | Ưu | Vì sao không chọn |
