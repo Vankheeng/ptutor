@@ -362,13 +362,34 @@ gửi tự rút lại, hoặc chủ tin huỷ tin) không cho nhãn.
 
 ### Điều kiện kích hoạt (từ `SHADOW` sang `ACTIVE`)
 
-> 💡 Chỉ chuyển sang dùng thật khi đủ dữ liệu (phía a ≥ 2.000 quan sát, phía b ≥ 300 quyết định) **và** bản học được không tệ hơn prior trên dữ liệu 7 ngày gần nhất chưa dùng để học. **Log-loss** là chỉ số đo dự đoán xác suất sai tới đâu (càng nhỏ càng tốt).
+> 💡 Chỉ chuyển sang dùng thật khi đủ dữ liệu (phía a ≥ 2.000 quan sát, phía b ≥ 300 quyết định) **và** bản học được không tệ hơn prior trên dữ liệu 7 ngày gần nhất chưa dùng để học. **AUC** đo bản học có xếp đơn được nhận lên trên đơn bị từ chối hay không (1 = luôn đúng, 0,5 = như đoán bừa).
 
 1. Đủ dữ liệu: phía a ≥ `learning.min-samples-a` (2 000 quan sát, từ ≥ 300 lần tìm có tương tác); phía b ≥
    `learning.min-samples-b` (300 quyết định).
 2. **Đánh giá lại trên dữ liệu gần nhất chưa dùng để học** (7 ngày cuối): bản học được phải không tệ hơn
-   prior — phía a so NDCG@10 theo phần thưởng 12.4 trên các lần tìm có tương tác; phía b so log-loss của
-   dự đoán nhận. Chênh lệch được ghi vào `evaluation`.
+   prior quá một biên nhỏ — phía a so NDCG@10 theo phần thưởng 12.4 trên các lần tìm có tương tác (thấp hơn
+   không quá `learning.activation-tolerance-ndcg` = 0,002); phía b so **AUC có trọng số mẫu** của Σ w·z (b trước
+   `b_cap`) trên các quyết định (thấp hơn không quá `learning.activation-tolerance-auc` = 0,002; cần có cả đơn được
+   nhận lẫn bị từ chối). Chênh lệch, biên và log-loss phía b (chỉ để tham khảo) được ghi vào `evaluation`.
+
+> 💡 Hai thay đổi ngày 27/10/2026, sau phép thử toàn hệ thống (13 mục 13.7).
+>
+> **Phía b so bằng AUC thay cho log-loss.** Log-loss đo xác suất dự đoán có đúng mức không (dự đoán 0,6 thì có đúng
+> 60 % được nhận không). Nhưng b không phải xác suất thật: nó là tổng có trọng số chuẩn hoá về 1, không có hệ số chặn,
+> nên log-loss phạt bản học vì một thứ thiết kế không nhắm tới. Trong xếp hạng chỉ **thứ tự** của b có ý nghĩa: với
+> R = a^0,65 · b^0,35, nhân mọi b của một lần tìm với cùng một hằng số thì mọi R cũng nhân cùng hằng số đó, thứ tự
+> không đổi. AUC đo đúng thứ tự đó. Trên phép thử, log-loss đã chặn nhầm các bản có hướng đúng: các version cuối có
+> AUC **cao hơn** prior (tới +0,007) mà log-loss lại kém hơn (tới +0,011).
+>
+> **Biên 0,002 cho cả hai phía.** Bản học và prior thường chênh nhau rất ít, nên chỉ vì nhiễu mà bản học lần được bật
+> lần không. Biên an toàn [0,5; 2] × prior và giới hạn bước 0,05 vẫn giữ, nên một bản "kém hơn một chút" cũng không
+> thể đưa trọng số đi xa. Tính lại trên phép thử: phía b được bật 30 / 30 version đủ dữ liệu (log-loss, không biên:
+> 12 / 30); phía a không đổi (29 / 29).
+>
+> **Hạn chế còn lại.** R tuyệt đối vẫn được dùng ở hai ngưỡng: thông báo chủ động khi R ≥ 0,65
+> (`proactive.notify-threshold`) và "kết quả tốt" ≥ 0,50 của gợi ý nới tiêu chí (`relaxation.good-threshold`). Ở hai
+> chỗ này mức tuyệt đối của b có ảnh hưởng, nên một bản b học được có thể đổi số lần thông báo / gợi ý nới dù thứ tự
+> tốt hơn. Chưa sửa; kiểm lại khi có dữ liệu thật.
 3. `learning.auto-activate = true` thì job tự kích hoạt; `false` thì chờ admin bấm (12.9).
 
 ### Mỗi đêm — `WeightLearningJob` (20:30 UTC = 03:30 giờ Việt Nam, sau `ExposureStatsJob` lúc 20:00 UTC)
@@ -410,10 +431,13 @@ Với mỗi mô hình có chế độ ≠ OFF:
 - **Không có quan sát mới → không tạo phiên bản** (chỉ ghi log), để không sinh version rỗng mỗi đêm.
 - "Bản trước" của bước giới hạn = trọng số của phiên bản mới nhất (hoặc prior).
 - **Đánh giá:** phía a — NDCG@10 trung bình trên các lần tìm giữ riêng có ít nhất một thưởng dương, xếp theo Σ w·x,
-  điểm thưởng âm tính là 0; phía b — log-loss có trọng số mẫu của Σ w·x (b trước `b_cap`), kẹp xác suất trong
-  [10⁻⁶; 1 − 10⁻⁶]. "Không tệ hơn" cần ít nhất một mẫu giữ riêng.
+  điểm thưởng âm tính là 0; phía b — AUC có trọng số mẫu của Σ w·x (b trước `b_cap`): mỗi cặp (đơn được nhận, đơn
+  bị từ chối) nặng w₁·w₂, tính 1 khi đơn được nhận điểm cao hơn, ½ khi bằng (từ 27/10/2026; trước là log-loss, nay chỉ
+  ghi để tham khảo, kẹp xác suất trong [10⁻⁶; 1 − 10⁻⁶]). "Không tệ hơn" cần ít nhất một mẫu giữ riêng; phía b cần có
+  cả hai nhãn.
 - **Kích hoạt:** `auto-activate` và đủ dữ liệu (phía a: `min-samples-a` quan sát **và** `min-searches-a` lần tìm có
-  tương tác, tính cộng dồn; phía b: `min-samples-b`) và không tệ hơn prior → bỏ đánh dấu bản cũ rồi chèn bản mới với
+  tương tác, tính cộng dồn; phía b: `min-samples-b`) và không tệ hơn prior quá biên (`activation-tolerance-ndcg`,
+  `activation-tolerance-auc`, 0,002) → bỏ đánh dấu bản cũ rồi chèn bản mới với
   `is_active = true` (chỉ mục duy nhất một bản active mỗi mô hình). Kích hoạt **không đổi chế độ**: ở `SHADOW`
   người dùng vẫn nhận prior (đúng "SHADOW không đổi trọng số phục vụ"). Có bản được kích hoạt → phát
   `LearnedWeightsUpdatedEvent` sau khi các transaction đã commit.
@@ -559,6 +583,7 @@ Thompson làm ở bước sau.
 | `forgetting` (γ) | 0,99 | Hệ số quên, áp một lần trước mỗi lần cập nhật (mỗi đêm); ~70 đêm thì dữ liệu cũ còn nửa sức nặng (1,0 trước 27/10/2026) |
 | `min-samples-a` / `min-samples-b` | 2 000 / 300 | Điều kiện kích hoạt |
 | `auto-activate` | `true` | Tự kích hoạt khi đủ điều kiện |
+| `activation-tolerance-ndcg` / `activation-tolerance-auc` | 0,002 / 0,002 | Bản học được kém prior không quá chừng này (NDCG@10 phía a, AUC phía b) trên dữ liệu giữ riêng vẫn được kích hoạt (thêm 27/10/2026; trước là 0 và phía b so log-loss) |
 | `job-cron` | `0 30 20 * * *` (UTC) | Lịch `WeightLearningJob` |
 | `evaluation-days` | 7 | Số ngày mới nhất giữ riêng để so bản mới với prior (thêm khi code, 20/10/2026) |
 | `min-searches-a` | 300 | Số lần tìm có tương tác tối thiểu (cộng dồn) để kích hoạt phía a — điều kiện "từ ≥ 300 lần tìm" của 12.7 (thêm khi code) |
@@ -581,8 +606,20 @@ của người dùng ảo được biết trước nhưng hệ thống không nh
 > đặt; một prior sai ngược hẳn thì chỉ sửa được một phần** — đó là đánh đổi có chủ đích giữa an toàn và khả
 > năng tự sửa.
 
+**Kiểm chứng toàn hệ thống (27/10/2026, 13 mục 13.7):** người dùng ảo đi qua API thật 45 ngày, job học thật chạy
+mỗi đêm. Quan sát job dùng khớp từng dòng với những gì người dùng ảo đã làm (0 lệch trên 32 679 dòng ứng viên và 1 285
+mẫu), Python tính lại ra cùng trọng số (lệch ≤ 6 × 10⁻¹⁴), version mới được kích hoạt và phục vụ đúng (45/45 ngày), và
+trên 5 ngày giữ riêng thứ tự bằng trọng số học được tốt hơn prior (phần thưởng top-10 +2,7 %, NDCG@10 +0,029). Trọng số
+b tiến về b\* (sai số 0,26 → 0,15); trọng số a không trùng w\* từng số (0,32 → 0,16 rồi ~0,23) nhưng xếp hạng lấy được
+91 % lợi ích của w\*. Có thể trình bày: "toàn bộ vòng tự học — từ hành vi người dùng tới trọng số mới được dùng — đã
+được kiểm chứng chạy đúng trong sản phẩm".
+
+> 💡 Nói bằng lời thường: thí nghiệm trước chỉ kiểm phần toán; lần này kiểm cả đường dữ liệu thật của trang web, từ cú
+> bấm của người dùng tới trọng số mới được dùng hôm sau.
+
 **Không tuyên bố:** mô hình "đã học được" sở thích của người dùng thật; số lượng dữ liệu cần thiết ngoài
-đời thật (chỉ nêu con số đọc từ mô phỏng, kèm điều kiện); hệ thống sửa được mọi prior sai; khám phá có lợi
+đời thật (chỉ nêu con số đọc từ mô phỏng, kèm điều kiện); hệ thống sửa được mọi prior sai; trọng số học được hội tụ đúng về trọng số ẩn (thứ tự tốt gần bằng, từng con số
+thì không — 13.7); khám phá có lợi
 (trong mô phỏng khám phá không hơn Greedy và tốn ~2 % regret — 13 mục 13.7).
 
 **Câu hỏi hội đồng dự kiến:**

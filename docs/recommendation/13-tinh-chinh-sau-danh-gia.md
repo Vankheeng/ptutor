@@ -754,6 +754,64 @@ nhóm đặt khi dữ liệu nhiễu, đổi lại không sửa được một p
 > được một phần, vì nó không được phép đi quá xa trọng số nhóm đặt. Phần "thử nghiệm" (khám phá) không giúp gì trong
 > mô phỏng; nhóm vẫn giữ ở mức thấp cho người dùng và môn học mới khi chạy thật.
 
+### Kiểm chứng toàn hệ thống (Bước 43a, 27/10/2026)
+
+Thí nghiệm trên tự dựng quan sát trong Python. Bước này cho người dùng ảo có trọng số ẩn đi qua **đúng đường dữ liệu
+của sản phẩm**: tìm kiếm qua API → `/events` → đơn và ảnh chụp quyết định → `LearningDataRepository` → job học thật
+→ `WeightProvider` → log lần tìm sau. Chi tiết, cách chạy và demo: `ket-qua/l1-he-thong/README.md`.
+
+- **Cách làm:** database riêng `ptutor_eval_l1` (chép từ `crowded`); 45 ngày × 100 lần tìm; cuối mỗi ngày **lùi mọi
+  cột thời gian 1 ngày** (163 cột / 47 bảng, kiểm từng cột) rồi gọi `POST /api/v1/admin/recommendations/weights/learn`
+  (endpoint mới, chỉ ADMIN, chung khoá với job đêm). Ngưỡng kích hoạt và mọi tham số L1 giữ đúng như sản phẩm. Job ghi
+  ra file đúng các quan sát nó dùng (`learning.observation-dump-dir`, mặc định tắt; thư mục ngoài Git).
+- **w\*** = (0,18; 0,24; 0,32; 0,08; 0,08; 0,05; 0,05), ‖w\* − prior‖₁ = 0,32; **b\*** theo hướng β\* của
+  `learning.py` — cả hai nằm trong biên [0,5; 2] × prior, để "không tới được" không phải do biên an toàn.
+
+| Kiểm tra | Kết quả | |
+|---|---|---|
+| Đối chiếu từng dòng: quan sát job dùng ↔ dựng lại độc lập từ những gì người dùng ảo đã làm | a 32 679 dòng ứng viên (3 100 lần tìm, 31 version), b 1 285 mẫu (38 version): **0 thiếu, 0 thừa, 0 lệch** | đạt |
+| Phát lại bằng Python từ đúng quan sát xuất ra | lệch lớn nhất 5,7 × 10⁻¹⁴ | đạt |
+| Vòng khép kín: version mới → kích hoạt → phục vụ → log | 45 / 45 ngày; a kích hoạt 29 / 31 version, b 12 / 38 | đạt |
+| Có ích: 5 ngày cuối, xếp bằng trọng số học được so với prior, chấm theo w\* | phần thưởng top-10 +0,108 [+0,096; +0,120] (+2,7 %), NDCG@10 +0,029 [+0,025; +0,033] | đạt |
+| Học đúng hướng: ‖w − w\*‖₁ | b 0,256 → 0,148, giảm rõ; a 0,32 → 0,16 (version 2) rồi 0,19–0,235 | b đạt, a **một phần** |
+
+**Nêu thẳng về a.** Trọng số a không tiến dần về w\* theo từng con số: `sem`, `style`, `sched` đúng hướng; `price`
+thiếu (0,23 so với 0,32); `need`, `area`, `segment` vượt (`segment` chạm trần). Đường dữ liệu không có lỗi (đối chiếu và
+phát lại khớp tuyệt đối); `learning.py` cho đúng hiện tượng này. Hồi quy tuyến tính tìm bộ trọng số dự đoán phần thưởng
+tốt nhất trên dữ liệu nó thấy — phần thưởng không tuyến tính theo w\*·x, người dùng chỉ thấy những tin đã được xếp trên,
+và các đặc trưng tương quan — không nhất thiết là w\*. Điều quyết định là thứ tự: xếp bằng a học được lấy được **91 %**
+mức cải thiện mà biết w\* thật mang lại so với prior (cả a và b: 83 %). b ít được kích hoạt vì log-loss của bản học và
+prior trên 7 ngày giữ riêng chênh ~0,001, lần đạt lần không; trọng số b vẫn tiến đều về b\*.
+
+**Quyết định (người dùng, 27/10/2026), hai thay đổi ở điều kiện kích hoạt** (12 mục 12.7, có lý do đầy đủ):
+
+1. **Biên 0,002** (`learning.activation-tolerance-ndcg`, `learning.activation-tolerance-auc`): bản học được kém prior
+   không quá 0,002 trên dữ liệu giữ riêng vẫn được bật. Biên an toàn và bước 0,05 vẫn chặn trọng số đi xa.
+2. **Phía b so bằng AUC thay cho log-loss** (log-loss vẫn ghi để tham khảo). b là tổng chuẩn hoá không có hệ số chặn,
+   không phải xác suất, và chỉ thứ tự của b ảnh hưởng xếp hạng (R = a^0,65 · b^0,35); log-loss phạt mức xác suất, thứ
+   thiết kế không nhắm tới. Làm trước Bước 43b để bộ số báo cáo dùng quy tắc đúng.
+
+Tính lại từ file xuất của lượt 45 ngày (không chạy lại; `ket-qua/l1-he-thong/kich-hoat-b-auc.csv`):
+
+| Phía b, 30 version đủ dữ liệu | Được bật |
+|---|---|
+| Log-loss, không biên (lúc chạy) | 12 |
+| Log-loss, biên 0,002 | 23 |
+| **AUC, biên 0,002 (quy tắc mới)** | **30** (AUC bản học cao hơn prior ở 28, bằng ở 1, thấp hơn 0,0006 ở 1) |
+
+Chênh lệch AUC tăng dần theo thời gian (v38: +0,007) trong khi log-loss của chính các version đó kém hơn (+0,011) —
+log-loss đã chặn nhầm các bản có hướng đúng. Phía a không đổi (29 / 29). Số tính trên cùng dữ liệu; chạy thật thì b được
+bật sớm hơn sẽ đổi chút ít các lần tìm sau. Hạn chế còn lại (R tuyệt đối ở hai ngưỡng thông báo / nới tiêu chí): 12.7.
+
+**Thay đổi trong sản phẩm kèm bước này:** endpoint "học ngay" (08, OpenAPI); xuất quan sát (mặc định tắt, có test
+không cấu hình nào bật); mẫu Thompson lấy thêm số version làm hạt giống (version mới → mẫu mới cùng ngày); trang chi
+tiết tin học gửi `CONTACTED` khi gia sư gửi đề nghị từ trang gợi ý. Đã kiểm `LearningDataRepository` bỏ qua log đã xoá
+(có test).
+
+> 💡 Nói bằng lời thường: lần này người dùng ảo dùng chính hệ thống như người thật, và job học ban đêm thật đọc dữ liệu
+> từ database. Mọi dòng dữ liệu job dùng đều khớp với những gì đã xảy ra; mỗi đêm có bản trọng số mới, được bật, và lần
+> tìm hôm sau dùng đúng bản đó. Trọng số học được không giống hệt trọng số ẩn, nhưng xếp danh sách gần tốt bằng.
+
 ## 13.8. T7 — Tách hệ số Q và các cổng chặn để xem cái nào làm hạ điểm
 
 > 💡 Điểm cuối = R × (0,7 + 0,3·Q) × G, trong đó G gồm hai "cổng chặn mềm": lịch không giao nhau (× 0,4), gia sư vừa
@@ -837,7 +895,7 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | 5 | L1: κ = 50, khám phá 0,5, thí nghiệm truy vấn đa dạng và `drift` | 13.7 | **Đã làm 27/10/2026** (crowded, truy vấn đa dạng + `drift`). Mặc định κ 50, ρ 0,5, `max-step` 0,05, γ 0,99; regret −21 % so với cố định |
 | 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
 | 7 | Đồng bộ tài liệu, README cho `ket-qua/` | — | **Đã làm 27/10/2026.** Sửa "rerank top-20", trung bình điều hoà, công thức chống dồn cũ và ví dụ tính tay (00, 02, 06, 10, 11, 12); README cho mỗi kịch bản |
-| 43a | Kiểm chứng L1 toàn hệ thống: người dùng ảo có trọng số ẩn w*, đi qua API thật (tìm kiếm, `/events`, đơn), job đêm thật; đối chiếu quan sát `LearningDataRepository` với mô phỏng, sai số tới w* theo ngày, vòng kích hoạt → phục vụ → log; lấp lỗ hổng `CONTACTED` | 13.7, 12.11 | **Chưa làm** |
+| 43a | Kiểm chứng L1 toàn hệ thống: người dùng ảo có trọng số ẩn w*, đi qua API thật (tìm kiếm, `/events`, đơn), job đêm thật; đối chiếu quan sát `LearningDataRepository` với mô phỏng, sai số tới w* theo ngày, vòng kích hoạt → phục vụ → log; lấp lỗ hổng `CONTACTED` | 13.7, 12.11 | **Đã làm 27/10/2026** (45 ngày, `ket-qua/l1-he-thong`). Đối chiếu 0 lệch, phát lại 5,7e-14, vòng 45/45, có ích +0,108 phần thưởng; a học đúng hướng một phần (91 % lợi ích của w\*), b đạt. Điều kiện kích hoạt: biên 0,002, phía b so AUC thay cho log-loss (b bật 30/30 thay vì 12/30, tính lại từ file xuất) |
 | 43b | Lượt tổng kết: `crowded` dựng với hạt giống khác (A1 ~2 300 lời gọi), chạy mọi cấu hình cả hai chiều, độ nhạy, L1, độ trễ; bộ số duy nhất cho báo cáo và bảng giả thuyết | 13.4, 13.5, 09 | **Chưa làm**: λ, α, κ đã chọn trên thế giới hiện tại nên số trên đó hơi lạc quan |
 | 44 | Đóng gói: merge `dev`, kiểm migration, rà "Còn mở", dọn dữ liệu eval / demo, soạn mô tả PR | — | **Chưa làm** |
 
@@ -854,6 +912,7 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α (0,65) để chỉnh mức tin b. Reciprocal một mình còn làm từ chối tăng vì b đẩy học sinh vào gia sư có lịch sử nhận cao mà không biết họ đã hết chỗ — nên luôn đi cùng chống dồn (Su và cộng sự, 2022) | 13.5 |
 | Trọng số tự học (L1) có thật sự học được không? | (sửa 27/10/2026) Trên mô phỏng crowded có đáp án ẩn: với κ 50, regret thấp hơn trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng. Với prior quá mạnh (κ 200 trên `base-dev`) thì gần như không học | 13.7 |
 | Trọng số ban đầu đặt sai thì L1 có tự sửa? | Sai vừa (chia đều) thì có: regret −34 % so với giữ nguyên prior đó, sai số trọng số 0,54 → 0,23. Sai ngược hẳn thì chỉ sửa được một phần (−29 %, vẫn tệ hơn trọng số nhóm đặt): biên [0,5; 2] × prior không cho đi đủ xa. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa | 13.7 |
+| Làm sao biết vòng tự học chạy đúng trong sản phẩm, không chỉ trong Python? | Người dùng ảo có trọng số ẩn đi qua API thật 45 ngày, job học thật chạy mỗi đêm: mọi quan sát job dùng khớp từng dòng với những gì đã xảy ra (0 lệch trên 32 679 dòng), Python tính lại ra cùng trọng số, version mới được bật và lần tìm hôm sau dùng đúng bản đó (45/45 ngày); xếp hạng tốt hơn prior trên 5 ngày giữ riêng | 13.7 |
 | Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn khoảng 2 % regret so với Greedy. Giữ mức thấp (ρ 0,5) vì môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit | 13.7 |
 | λ, α, κ chọn trên chính mô phỏng `crowded`, số báo cáo có lạc quan không? | Có, nên số báo cáo lấy ở lượt tổng kết: dựng lại `crowded` với hạt giống khác (cùng công thức, người dùng và tin đăng khác) rồi chạy lại các cấu hình đã chốt | 13.4, 13.5, 13.9 |
 | Đã code rerank chạy nền mà lại tắt, có lãng phí? | Code giữ để bật lại bằng cấu hình khi có click thật chứng minh lợi ích (điều kiện ở 13.2); tắt thì AI service tiết kiệm ~1,1 GB RAM và lần tìm không bị chậm | 13.2 |

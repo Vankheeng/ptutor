@@ -21,6 +21,7 @@ Theo quy ước của dự án: tiền tố `/api/v1`, cần access token, respo
 | `DELETE` | `/api/v1/users/me/recommendation-profile` | STUDENT, TUTOR | Xoá lịch sử gợi ý (H1) |
 | `GET` | `/api/v1/admin/recommendations/logs` | ADMIN | Tra cứu log để phân tích. **Chưa làm** — hiện đọc thẳng bảng `recommendation_logs` (bộ đánh giá cũng vậy) |
 | `GET` | `/api/v1/admin/recommendations/weights` | ADMIN | Trọng số L1: prior, chế độ (cấu hình / admin đặt / đang áp dụng), bản đang dùng, lịch sử version kèm đánh giá (12, mục 12.9). Đã làm 20/10/2026 |
+| `POST` | `/api/v1/admin/recommendations/weights/learn` | ADMIN | Chạy ngay lần cập nhật của job đêm (`WeightLearningJob`) cho mọi mô hình không `OFF`, trả kết quả từng mô hình (`version`, `newSamples`, `activated`, `note`). Job và endpoint dùng chung một khoá: đang chạy thì `409 WEIGHT_LEARNING_RUNNING`. Thêm 27/10/2026 cho phép kiểm chứng L1 toàn hệ thống và demo (13 mục 13.7) |
 | `POST` | `/api/v1/admin/recommendations/weights/{model}/activate/{version}` | ADMIN | Kích hoạt một version (quay lui); `404 LEARNED_WEIGHTS_VERSION_NOT_FOUND` |
 | `PUT` | `/api/v1/admin/recommendations/weights/{model}/mode` | ADMIN | Đổi chế độ `OFF` / `SHADOW` / `ACTIVE` của một mô hình (`{"mode": "ACTIVE"}`); lưu bền, thắng cấu hình |
 | `GET` | `/api/v1/recommendation-tags` | đã đăng nhập | Tag `ACTIVE` để chọn làm bộ lọc (`group`, `subjectId`) |

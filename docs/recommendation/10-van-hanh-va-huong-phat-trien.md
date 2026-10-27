@@ -66,7 +66,7 @@
 | `query-embedding.timeout-ms` / `cache-size` | 1 000 / 500 | 06, 6.3 |
 | `jobs.retention-days` / `cleanup-interval-ms` (dọn job đã xong trong `ai_enrichment_jobs`) | 7 / 21 600 000 | 02 |
 | `app.ai-service.base-url` / `connect-timeout-ms` / `embed-timeout-ms` / `health-timeout-ms` / `internal-token` | `http://127.0.0.1:8000` / 500 / 1 000 / 500 / (bí mật) | 10, 10.2 |
-| `learning.enabled` / `models.<key>.mode` / `prior-strength` / `intercept-prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` / `reload-interval-ms` | true / `SHADOW` / 50 / 1 / 0,5 / 0,5 / 2,0 / 0,05 / 600 000 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng, mẫu phía b và `forgetting` 0,99) |
+| `learning.enabled` / `models.<key>.mode` / `prior-strength` / `intercept-prior-strength` / `exploration-scale` / `min-ratio` / `max-ratio` / `max-step` / `reload-interval-ms` | true / `SHADOW` / 50 / 1 / 0,5 / 0,5 / 2,0 / 0,05 / 600 000 | 12, 12.10 (bảng đầy đủ, gồm thang thưởng, mẫu phía b, `forgetting` 0,99 và biên kích hoạt `activation-tolerance-ndcg` / `-auc` 0,002) |
 | `algorithm-version` | `v2.2-rcx` (trước Bước 8: `v2.1-a`; Bước 8–10: `v2.1-rc`) | Ghi vào log |
 
 Cờ bật/tắt từng thành phần: `reciprocal`, `rerank`, `exploration`, `history`, `relaxation`, `refine`,

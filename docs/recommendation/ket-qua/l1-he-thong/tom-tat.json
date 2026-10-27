@@ -1,0 +1,67 @@
+{
+ "days": 45,
+ "searches": 4500,
+ "decisions": 1513,
+ "other_records": {
+  "activity_done": 30
+ },
+ "versions": {
+  "A_S2T": 31,
+  "B_S2T": 38
+ },
+ "activated": {
+  "A_S2T": 29,
+  "B_S2T": 12
+ },
+ "reconcile_a": {
+  "rows": 32679,
+  "problems": 0
+ },
+ "reconcile_b": {
+  "samples": 1285,
+  "problems": 0
+ },
+ "replay_max_difference": 5.684341886080802e-14,
+ "loop_days_ok": "45/45",
+ "holdout_gain": {
+  "searches": 494,
+  "reward": [
+   0.10783270933749459,
+   0.09608612033385422,
+   0.12034946549059666
+  ],
+  "ndcg": [
+   0.029027303383738285,
+   0.025117642822974056,
+   0.03315920790329573
+  ]
+ },
+ "holdout_reference": {
+  "prior": 3.976786303494638,
+  "learned": 4.084619012832133,
+  "learned_a_prior_b": 4.065553287246796,
+  "hidden_a_prior_b": 4.073884409376625,
+  "hidden": 4.1068188314556,
+  "share_of_hidden_gain_a": 0.9141989222739867,
+  "share_of_hidden_gain": 0.8292748824345545
+ },
+ "b_activation_by_auc": {
+  "enough_data": 30,
+  "activated_then_logloss": 12,
+  "activated_by_auc": 30
+ },
+ "active_versions": {
+  "A_S2T": 31,
+  "B_S2T": 32
+ },
+ "first_last_error": {
+  "A_S2T": [
+   0.2445311010696981,
+   0.23465368677641907
+  ],
+  "B_S2T": [
+   0.2635569123260778,
+   0.1482048691028383
+  ]
+ }
+}
