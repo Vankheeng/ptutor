@@ -8,7 +8,9 @@
 
 setup drops and recreates the evaluation database (ptutor_eval, never the dev database), lets the backend create
 the schema and the catalog, loads out/<scenario>/world.json (load.py), waits for the embedding, A1 and the score Q,
-then simulates the browsing history for H1. Results go to out/<scenario>/runs/.
+then simulates the browsing history for H1. Results go to out/<scenario>/runs/. Two frozen copies: <db>_a1 once A1,
+the embedding and Q are done (setup --from-a1 starts the browsing again from it without paying A1 twice), and
+<db>_seed at the end.
 
 Text-only runs empty the rerank cache first unless --keep-cache (a second pass on what the first one scored).
 --drain keeps the backend up after the searches until its background rerank worker has emptied its queue
@@ -356,11 +358,14 @@ def wait_for_catalog(timeout: float = 300) -> None:
     raise TimeoutError("the catalog was not created")
 
 
-def setup(world: dict, resume: bool = False) -> None:
-    """resume: continue on the database a stopped setup left (no reset, no new load, so A1 is not paid twice)."""
+def setup(world: dict, resume: bool = False, from_a1: bool = False) -> None:
+    """resume: continue on the database a stopped setup left (no reset, no new load, so A1 is not paid twice);
+    from_a1: start again from the copy taken after A1 and the embedding (<db>_a1), only the browsing is redone."""
     import load
 
-    if not resume:
+    if from_a1:
+        clone(f"{DATABASE}_a1", DATABASE)
+    elif not resume:
         reset_database()
     properties = config_properties("V2-full")
     # The browsing history is drawn with the defaults of the platform: no reranking since 26/10/2026 (13.2).
@@ -371,7 +376,7 @@ def setup(world: dict, resume: bool = False) -> None:
     process = start_backend(properties, "setup")
     try:
         wait_for_catalog()
-        if resume:
+        if resume or from_a1:
             # Jobs a stopped backend left half done go back to the queue.
             psql("UPDATE ai_enrichment_jobs SET status = 'PENDING' WHERE status = 'PROCESSING';")
             print("resuming on the existing database", flush=True)
@@ -381,10 +386,19 @@ def setup(world: dict, resume: bool = False) -> None:
             from textonly import EXCLUDED_TAGS
             codes = ", ".join(f"'{code}'" for code in EXCLUDED_TAGS)
             psql(f"UPDATE recommendation_tags SET status = 'INACTIVE' WHERE code IN ({codes});")
-        if not resume:
+        if not resume and not from_a1:
             psql(load.build_sql(world))
             print("loaded", load.counts(), flush=True)
         wait_for_pipeline()
+    finally:
+        stop_backend(process)
+    if not from_a1:
+        clone(DATABASE, f"{DATABASE}_a1")
+        print(f"A1 and embedding done: copied to {DATABASE}_a1", flush=True)
+    process = start_backend(properties, "setup-browse")
+    try:
+        wait_for_api()
+        wait_for_catalog()
         browse(world)
         time.sleep(30)
         profiles = query_json("SELECT count(*) AS n FROM recommendation_user_profiles p JOIN users u ON u.id = p.user_id "
@@ -405,7 +419,7 @@ def main() -> int:
         print(__doc__)
         return 1
     if sys.argv[1] == "setup":
-        setup(world, resume="--resume" in sys.argv)
+        setup(world, resume="--resume" in sys.argv, from_a1="--from-a1" in sys.argv)
         return 0
     side = None
     if "--side" in sys.argv:

@@ -22,13 +22,17 @@ def _scenario() -> str:
 
 SCENARIO = _scenario()
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT / "out" / SCENARIO
+# EVAL_OUT names another working folder for the same scenario, e.g. crowded-final: the world drawn with another seed
+# (step 43b) must not overwrite out/crowded, which the earlier passes and the L1 check read.
+OUT = ROOT / "out" / (os.environ.get("EVAL_OUT") or SCENARIO)
 REPO = ROOT.parents[1]
 # EVAL_RESULTS names another results folder, e.g. base-t40, so that a new pass does not overwrite the files earlier
 # design notes cite (ket-qua/base is the pass of 22/10/2026).
 RESULTS = REPO / "docs" / "recommendation" / "ket-qua" / (os.environ.get("EVAL_RESULTS") or SCENARIO)
 
-SEED = 20261020
+# EVAL_SEED draws another world with the same formulas (step 43b, design 13, 13.9: the parameters were chosen on the
+# world of seed 20261020, the report numbers come from another one).
+SEED = int(os.environ.get("EVAL_SEED") or 20261020)
 NAMESPACE = uuid.UUID("3f1c9a52-8d47-4b6e-a0c1-5e2f7d9b4a63")
 EMAIL_DOMAIN = "ptutor.local"
 # Same bcrypt hash as the demo data (scripts/recommendation_demo): local use only.

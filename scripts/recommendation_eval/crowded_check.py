@@ -6,7 +6,8 @@ Reads out/<scenario>/runs/V2-a.json (run.py search V2-a) and the hidden layer of
 Reports: median number of candidates after the hard filters on both sides; mean P(accept) of the top 50 candidates;
 NDCG@10, EA@10 and MS@10 of Random, Popularity and V2-a on the test half; the correlation between the logged Q of a
 candidate and its hidden rel; rejections per student in the one-shot market of evaluate.py (every student applies
-in turn to the top 3 of the list). Writes ket-qua/<scenario>/kiem-tra-mo-phong.csv.
+in turn to the top 3 of the list). The correlation also gets a 95 % bootstrap CI that resamples whole queries (the 50
+candidates of one query are not independent). Writes ket-qua/<scenario>/kiem-tra-mo-phong.csv.
 """
 
 import csv
@@ -26,6 +27,17 @@ TARGETS = {
 }
 
 
+def corr_ci(groups, rng: np.random.Generator, rounds: int = 2_000):
+    """95 % CI of the Pearson correlation of (q, rel) pairs, resampling the groups (queries) with replacement."""
+    values = []
+    for _ in range(rounds):
+        picked = rng.integers(0, len(groups), len(groups))
+        qs = np.concatenate([groups[i][0] for i in picked])
+        rels = np.concatenate([groups[i][1] for i in picked])
+        values.append(np.corrcoef(qs, rels)[0, 1])
+    return float(np.percentile(values, 2.5)), float(np.percentile(values, 97.5))
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     world = read_json(OUT / "world.json")
@@ -36,16 +48,19 @@ def main() -> int:
     totals = {"S2T": [], "T2S": []}
     for query_id, result in run["results"].items():
         totals[queries[query_id]["side"]].append(result["total"])
-    accepts, qs, rels = [], [], []
+    accepts, qs, rels, groups = [], [], [], []
     for query_id, result in run["results"].items():
         query = queries[query_id]
         if query["side"] != "S2T":
             continue
+        start = len(qs)
         for candidate in result["candidates"][:50]:
             if judge.known(query, candidate["candidateId"]):
                 accepts.append(judge.accept(query, candidate["candidateId"]))
                 qs.append(candidate.get("q") or 0)
                 rels.append(judge.rel(query, candidate["candidateId"]))
+        if len(qs) > start:
+            groups.append((np.array(qs[start:], dtype=float), np.array(rels[start:], dtype=float)))
 
     test = [query for query in world["queries"] if query["split"] == "test" and query["side"] == "S2T"]
     market_queries = [query for query in world["queries"] if query["side"] == "S2T" and query["kind"] == "full"]
@@ -74,12 +89,14 @@ def main() -> int:
         "popularity_rejections_highest": "có" if rows["Popularity"]["rejections"] == max(
             row["rejections"] for row in rows.values()) else "không",
     }
+    low, high = corr_ci(groups, np.random.default_rng(SEED))
     RESULTS.mkdir(parents=True, exist_ok=True)
     with (RESULTS / "kiem-tra-mo-phong.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(["kiem_tra", "gia_tri", "muc_tieu"])
         for key, value in checks.items():
             writer.writerow([key, f"{value:.3f}" if isinstance(value, float) else value, TARGETS[key]])
+        writer.writerow(["corr_q_rel_ktc95", f"[{low:.3f}; {high:.3f}]", "bootstrap theo truy vấn"])
         writer.writerow([])
         writer.writerow(["cau_hinh", "queries", "ndcg10", "ea10", "ms10", "match_rate", "rejections", "match_rel"])
         for name, row in rows.items():
@@ -88,6 +105,7 @@ def main() -> int:
                                                                                      "match_rel"))])
     for key, value in checks.items():
         print(f"{key:32s} {value:.3f}" if isinstance(value, float) else f"{key:32s} {value}", f"(mục tiêu {TARGETS[key]})")
+    print(f"{'corr_q_rel_ktc95':32s} [{low:.3f}; {high:.3f}] ({len(groups)} truy vấn)")
     for name, row in rows.items():
         print(f"{name:11s} NDCG {row['ndcg10']:.3f} EA {row['ea10']:.3f} MS {row['ms10']:.3f} "
               f"ghép {row['match_rate']:.3f} từ chối/HS {row['rejections']:.2f}")
