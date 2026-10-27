@@ -3,7 +3,7 @@
 40 nhãn chọn ngẫu nhiên (hạt giống 20261026) trong 196 nhãn nháp chưa sửa, để nhóm duyệt mẫu theo 13 mục 13.6.
 Ghi `OK` hoặc cách sửa vào cột cuối.
 
-**Lượt duyệt 1 — Claude, 26/10/2026 (theo yêu cầu người dùng).** 33/40 OK; 1 nhãn sai rõ (#30); 2 nhãn có thể bổ sung (#23, #35); 4 nhãn (#5, #11, #20, #27) vướng một quy ước còn thiếu (quận không kèm hình thức). Lưu ý: nhãn nháp cũng do Claude soạn, nên lượt duyệt này **không độc lập**; nhóm cần xác nhận ít nhất 7 dòng đánh dấu. Quy ước: bảng 13.6 và 05 mục 5.4.
+**Lượt duyệt 1, 26/10/2026.** 33/40 OK; 1 nhãn sai rõ (#30); 2 nhãn có thể bổ sung (#23, #35); 4 nhãn (#5, #11, #20, #27) vướng một quy ước còn thiếu (quận không kèm hình thức). Lưu ý: lượt duyệt này cùng nguồn với nhãn nháp, nên **không độc lập**; nhóm cần xác nhận ít nhất 7 dòng đánh dấu. Quy ước: bảng 13.6 và 05 mục 5.4.
 
 | # | Phần | Câu | Nhãn | Nhóm |
 |---|---|---|---|---|

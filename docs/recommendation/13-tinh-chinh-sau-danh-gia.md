@@ -18,7 +18,7 @@
 | `crowded` | `ket-qua/crowded/` | Thị trường đông (13.3): 400 học sinh, 597 truy vấn S2T kiểm định; thị trường 8 vòng; quét λ / α, tách Q và cổng chặn, L1 (Bước 38–41) |
 | `base-t40` | `ket-qua/base-t40/` | `base` dựng lại trong database riêng (27/10/2026): công thức chống dồn cũ / mới, tách Q và cổng chặn (Bước 40) |
 | `text-only` | `ket-qua/text-only/` | 175 truy vấn có nhu cầu **chỉ nằm trong văn bản** (ví dụ "con hay mất tập trung, cần chia nhỏ bài"), không tag hay bộ lọc nào thể hiện |
-| `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); lượt đầu nhãn do Claude soạn nháp; từ 26/10 có bộ độc lập do nhóm duyệt (13.6) |
+| `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); lượt đầu dùng nhãn nháp; từ 26/10 có bộ độc lập do nhóm duyệt (13.6) |
 
 Mỗi thư mục có `README.md`: chạy gì, tham số, bảng chính, đọc kết quả ngắn gọn (27/10/2026).
 
@@ -546,7 +546,7 @@ hạt giống khác.
 
 Prompt `/enrich` (`ai-service/app/llm.py`) chỉ quy định "tối / chiều / sáng" không rõ giờ; **không nói gì** về giờ bắt
 đầu không có giờ kết thúc hay "cả ngày", nên model chọn cách an toàn là bỏ trống. Một phần "lỗi" là do quy ước của bộ
-nhãn (ví dụ "sau 8h tối" kết thúc 22:00 hay 21:00) — quy ước này do Claude tự đặt khi soạn nhãn.
+nhãn (ví dụ "sau 8h tối" kết thúc 22:00 hay 21:00) — quy ước này được đặt tạm khi soạn nhãn nháp.
 
 ### Đổi gì
 
@@ -562,7 +562,7 @@ nhãn (ví dụ "sau 8h tối" kết thúc 22:00 hay 21:00) — quy ước này 
 > 💡 Nhãn là "đáp án" dùng để chấm LLM. Nếu đáp án và prompt hiểu một câu theo hai cách khác nhau thì LLM bị chấm sai
 > dù nó làm đúng như được dặn. Bảng này là cách hiểu chung mà nhóm đã chốt; nhãn nháp và prompt đều phải theo nó.
 
-**Nguồn:** *nhóm chốt 26/10* = nhóm chọn rõ; *đề xuất* = Claude đề xuất, nhóm không phản đối và nhãn của bộ câu độc
+**Nguồn:** *nhóm chốt 26/10* = nhóm chọn rõ; *đề xuất* = đề xuất khi soạn nhãn nháp, nhóm không phản đối và nhãn của bộ câu độc
 lập (`llm_eval_independent.json`, nhóm duyệt) cũng theo.
 
 | # | Câu | Cách hiểu | Nguồn |
@@ -599,8 +599,8 @@ cũng có quận và không ghi mode nhưng đều nói "online hoặc trực ti
 
 **Trạng thái duyệt.** Bộ độc lập (13 câu lịch, 23 câu tìm kiếm): nhóm duyệt → **số chính**. Bộ nháp (200 nhãn):
 **đã duyệt mẫu 40/196** (`llm_eval_review_sample.md`, 40 nhãn ngẫu nhiên trong 196 nhãn chưa sửa trước đó; lượt duyệt
-do Claude làm, nhóm xác nhận các dòng đánh dấu): 33 OK, 1 sai rõ (#30), 2 bổ sung (#23, #35), 4 vướng quy ước còn
-thiếu (#5, #11, #20, #27 — nay T10, nhãn đã đúng). Vì nhãn nháp và lượt duyệt đầu cùng do Claude làm, bộ nháp vẫn chỉ
+đầu cùng nguồn với nhãn nháp, nhóm xác nhận các dòng đánh dấu): 33 OK, 1 sai rõ (#30), 2 bổ sung (#23, #35), 4 vướng quy ước còn
+thiếu (#5, #11, #20, #27 — nay T10, nhãn đã đúng). Vì nhãn nháp và lượt duyệt đầu cùng một nguồn, bộ nháp vẫn chỉ
 báo kèm. Bộ độc lập chỉ dùng để
 đo: prompt chỉ chỉnh theo bảng này và lỗi ở bộ nháp, không xem từng câu sai của bộ độc lập.
 
@@ -857,4 +857,4 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn khoảng 2 % regret so với Greedy. Giữ mức thấp (ρ 0,5) vì môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit | 13.7 |
 | λ, α, κ chọn trên chính mô phỏng `crowded`, số báo cáo có lạc quan không? | Có, nên số báo cáo lấy ở lượt tổng kết: dựng lại `crowded` với hạt giống khác (cùng công thức, người dùng và tin đăng khác) rồi chạy lại các cấu hình đã chốt | 13.4, 13.5, 13.9 |
 | Đã code rerank chạy nền mà lại tắt, có lãng phí? | Code giữ để bật lại bằng cấu hình khi có click thật chứng minh lợi ích (điều kiện ở 13.2); tắt thì AI service tiết kiệm ~1,1 GB RAM và lần tìm không bị chậm | 13.2 |
-| Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp do Claude soạn (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |
+| Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |

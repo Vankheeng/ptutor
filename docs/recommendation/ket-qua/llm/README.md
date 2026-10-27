@@ -8,7 +8,7 @@
 
 - **Bộ độc lập** (`llm_eval_independent.json`): 13 câu lịch, 23 câu tìm kiếm; câu do ChatGPT sinh, nhóm sửa và duyệt
   nhãn. **Chỉ dùng để đo** — không xem từng câu sai của bộ này khi sửa prompt. Đây là số chính.
-- **Bộ nháp**: 196 câu do Claude soạn nhãn; nhóm đã duyệt mẫu 40 / 196. Báo kèm.
+- **Bộ nháp**: 196 câu nhãn nháp; nhóm đã duyệt mẫu 40 / 196. Báo kèm.
 
 | File | Nội dung |
 |---|---|

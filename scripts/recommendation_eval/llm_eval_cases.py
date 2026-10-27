@@ -1,7 +1,7 @@
 """2.6: hand-written test sets for A1 (tags, schedule) and A2 (search sentences); llm_eval.py turns them into
 llm_eval_labels.json.
 
-DRAFT LABELS, written by Claude on 22/10/2026 following design 09, 9.5. The team must read and correct them before
+DRAFT LABELS, written on 22/10/2026 following design 09, 9.5. The team must read and correct them before
 the numbers go into the report (the design asks for labels the team set itself). Texts are written the way people
 write on the platform: no template, abbreviations, missing accents here and there.
 

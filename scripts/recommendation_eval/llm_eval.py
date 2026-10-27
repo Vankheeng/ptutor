@@ -10,7 +10,7 @@ A1, tags: micro precision / recall / F1 over (group, code). A1, schedule: per se
 exact match) and, on the days found in both, the IoU of the time ranges. A2: P/R/F1 per filter field and the share of
 sentences whose fields are all right.
 
-Two groups, reported apart: the draft labels of llm_eval_cases.py (written by Claude, reviewed by the team) and the
+Two groups, reported apart: the draft labels of llm_eval_cases.py (drafted, reviewed by the team) and the
 independent set of llm_eval_independent.json (sentences generated with ChatGPT, labels set by the team, 26/10/2026),
 which is never used to tune the prompts (design 13, 13.6). An independent search reads its direction from "side".
 
@@ -38,7 +38,7 @@ def export() -> None:
     import llm_eval_cases as cases
 
     data = {
-        "note": "Nhãn nháp do Claude soạn 22/10/2026 theo 09 mục 9.5; 26/10/2026 sửa 4 nhãn theo bảng quy ước 13.6 "
+        "note": "Nhãn nháp soạn 22/10/2026 theo 09 mục 9.5; 26/10/2026 sửa 4 nhãn theo bảng quy ước 13.6 "
                 "(L2, L3, T4) và 3 nhãn sau khi duyệt mẫu (#23, #30, #35). Đã duyệt mẫu 40/196 (13.6).",
         "a1_tags": [{"entityType": e, "subject": s, "grade": g, "text": t, "expected": x} for e, s, g, t, x in cases.A1_TAGS],
         "a1_schedule": [{"text": t, "expected": [list(slot) for slot in x]} for t, x in cases.A1_SCHEDULE],

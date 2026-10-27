@@ -1,5 +1,5 @@
 {
- "note": "Nhãn nháp do Claude soạn 22/10/2026 theo 09 mục 9.5; 26/10/2026 sửa 4 nhãn theo bảng quy ước 13.6 (L2, L3, T4) và 3 nhãn sau khi duyệt mẫu (#23, #30, #35). Đã duyệt mẫu 40/196 (13.6).",
+ "note": "Nhãn nháp soạn 22/10/2026 theo 09 mục 9.5; 26/10/2026 sửa 4 nhãn theo bảng quy ước 13.6 (L2, L3, T4) và 3 nhãn sau khi duyệt mẫu (#23, #30, #35). Đã duyệt mẫu 40/196 (13.6).",
  "a1_tags": [
   {
    "entityType": "STUDYING_REQUEST",
