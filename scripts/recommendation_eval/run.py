@@ -106,6 +106,8 @@ FINAL = {
     "V2-final-A1": {"enrichment.use-llm-tags": OFF},
     "V2-final-H1": {"history.enabled": OFF},
     "V2-final-noQ": {"quality.base": "1", "quality.weight": "0"},
+    # Sensitivity of the congestion λ (0.5 × 0.5 ... × 1.5, design 09, 9.9.1): it only acts in the market.
+    **{f"V2-final-l{lam}": {"willingness.congestion-lambda": lam} for lam in ("0.25", "0.375", "0.625", "0.75")},
 }
 CONFIGS.update(FINAL)
 SWEEP.update(FINAL)

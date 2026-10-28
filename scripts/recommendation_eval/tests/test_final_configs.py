@@ -15,6 +15,14 @@ def test_each_final_ablation_switches_off_one_part():
 
 
 def test_the_final_configurations_are_scored_and_compared():
-    for name in run.FINAL:
+    # The λ levels only run in the market.
+    for name in (name for name in run.FINAL if not name.startswith("V2-final-l")):
         assert name in evaluate.ORDER
         assert any(name in pair for pair in evaluate.PAIRS)
+
+
+def test_the_lambda_sensitivity_changes_only_lambda():
+    names = [name for name in run.FINAL if name.startswith("V2-final-l")]
+
+    assert [run.CONFIGS[name] for name in names] == [{"willingness.congestion-lambda": lam}
+                                                     for lam in ("0.25", "0.375", "0.625", "0.75")]

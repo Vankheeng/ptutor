@@ -1,11 +1,13 @@
 """26c (1): sensitivity of the ranking to each weight and constant (design 09, 9.9.1).
 
-    python scripts/recommendation_eval/sensitivity.py   # reads out/runs/V2-full.json, writes ket-qua/9.9.1-*
+    python scripts/recommendation_eval/sensitivity.py [--run V2-final]   # reads out/runs/<run>.json, writes ket-qua/9.9.1-*
 
 Each parameter is scaled by 0.5, 0.75, 1.25 and 1.5 (a weight's group is normalised back to 1), the logged
 candidates of the test half are scored again offline (scoring.py) and compared with the unchanged ranking:
-NDCG@10, EA@10 and Kendall tau of the top 10. Parameters that live outside the log (the kernels of the
-features, the complaint penalty inside Q) need the backend and are not part of this offline pass.
+NDCG@10, EA@10 and Kendall tau of the top 10. Since step 43b also α, the two gates and the complaint penalty
+(read from score_breakdown of <db>_seed, the state the searches ran on). The offline order leaves out the
+exploration slots. Parameters that live outside the log (the kernels of the features) need the backend; the
+congestion λ only acts in the market (market.py), a static search has almost no pending application.
 """
 
 import csv
@@ -14,7 +16,9 @@ import sys
 import numpy as np
 from scipy import stats
 
-from common import OUT, RESULTS, read_json
+from dataclasses import replace
+
+from common import DATABASE, OUT, RESULTS, query_json, read_json
 from evaluate import Judge, query_metrics
 from scoring import Params, rerank
 
@@ -28,9 +32,24 @@ def parameters(base: Params) -> list:
     for group, label in (("a_s2t", "a"), ("b_s2t", "b")):
         for name in getattr(base, group):
             found.append((f"{label}.{name}", lambda factor, g=group, n=name: base.with_weight(g, n, factor)))
-    found.append(("λ (trọng số Q)", lambda factor: Params(quality_base=1 - 0.3 * factor, quality_weight=0.3 * factor)))
-    found.append(("prior đặc trưng thiếu", lambda factor: Params(confidence_prior=min(1.0, 0.5 * factor))))
+    weight = base.quality_weight
+    found.append(("hệ số Q", lambda factor: replace(base, quality_base=1 - weight * factor,
+                                                     quality_weight=weight * factor)))
+    found.append(("prior đặc trưng thiếu", lambda factor: replace(base, confidence_prior=min(1.0, 0.5 * factor))))
+    found.append(("α (reciprocal)", lambda factor: replace(base, reciprocal_alpha=min(1.0, base.reciprocal_alpha
+                                                                                      * factor))))
+    found.append(("cổng chặn lịch", lambda factor: replace(base, gate_schedule=min(1.0, base.gate_schedule * factor))))
+    found.append(("cổng chặn từ chối gần đây", lambda factor: replace(base, gate_reject=min(1.0, base.gate_reject
+                                                                                             * factor))))
+    found.append(("phạt khiếu nại", lambda factor: replace(base, complaint_factor=factor)))
     return found
+
+
+def complaint_penalties(database: str) -> dict:
+    """Tutor user id -> complaint penalty (points) in the score the searches read."""
+    rows = query_json("SELECT user_id, (score_breakdown->>'complaintPenalty')::float AS penalty FROM tutors "
+                      "WHERE (score_breakdown->>'faultComplaints')::int > 0", database)
+    return {row["user_id"]: row["penalty"] for row in rows}
 
 
 def kendall_top10(base: list, other: list) -> float:
@@ -58,11 +77,12 @@ def evaluate(judge: Judge, cases: list, params: Params, base_rankings: dict | No
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     world = read_json(OUT / "world.json")
-    run = read_json(OUT / "runs" / "V2-full.json")
+    name = sys.argv[sys.argv.index("--run") + 1] if "--run" in sys.argv else "V2-final"
+    run = read_json(OUT / "runs" / f"{name}.json")
     judge = Judge(world)
     cases = [(query, run["results"][query["id"]]["candidates"] or []) for query in world["queries"]
              if query["split"] == "test" and query["side"] == "S2T"]
-    base = Params()
+    base = Params(penalties=complaint_penalties(f"{DATABASE}_seed"))
     base_ndcg, base_ea, _, base_rankings = evaluate(judge, cases, base)
     rows = []
     for label, make in parameters(base):
