@@ -1,0 +1,25 @@
+from,to,metric,n,mean_diff,ci_low,ci_high,p
+Random,V2-final,rejections,400,-0.7175,-0.9526,-0.4900,0.0000
+Random,V2-final,rounds,400,-0.1950,-0.2700,-0.1250,0.0000
+Popularity,V2-final,rejections,400,-5.7900,-6.2950,-5.2900,0.0000
+Popularity,V2-final,rounds,400,-1.8200,-1.9850,-1.6600,0.0000
+V2-a,V2-final,rejections,400,-1.5875,-1.8125,-1.3650,0.0000
+V2-a,V2-final,rounds,400,-0.4475,-0.5175,-0.3775,0.0000
+V2-a,V2-R,rejections,400,-0.1050,-0.3500,0.1425,0.2763
+V2-a,V2-R,rounds,400,0.0100,-0.0725,0.0925,0.7937
+V2-R,V2-RC,rejections,400,-1.3625,-1.6075,-1.1175,0.0000
+V2-R,V2-RC,rounds,400,-0.4225,-0.5050,-0.3375,0.0000
+V2-RC,V2-final,rejections,400,-0.1200,-0.2726,0.0350,0.2420
+V2-RC,V2-final,rounds,400,-0.0350,-0.1025,0.0200,0.4043
+V2-final,V2-final-noQ,rejections,400,-0.0325,-0.1976,0.1275,0.3928
+V2-final,V2-final-noQ,rounds,400,0.0000,-0.0450,0.0450,0.9859
+V2-final,V2-final-l0.25,rejections,400,0.1825,0.0150,0.3500,0.0900
+V2-final,V2-final-l0.25,rounds,400,0.0350,-0.0125,0.0850,0.1556
+V2-final,V2-final-l0.375,rejections,400,0.0775,-0.0775,0.2375,0.3567
+V2-final,V2-final-l0.375,rounds,400,0.0150,-0.0300,0.0575,0.5029
+V2-final,V2-final-l0.625,rejections,400,0.0500,-0.1150,0.2225,0.7679
+V2-final,V2-final-l0.625,rounds,400,0.0125,-0.0350,0.0600,0.7082
+V2-final,V2-final-l0.75,rejections,400,0.0875,-0.0750,0.2575,0.4885
+V2-final,V2-final-l0.75,rounds,400,0.0175,-0.0300,0.0650,0.4313
+V2-final,V2-final-noQ,ndcg10 (popular tutors left out),587,0.0487,0.0399,0.0576,0.0000
+V2-final,V2-final-noQ,ms10 (popular tutors left out),587,0.0480,0.0400,0.0560,0.0000
