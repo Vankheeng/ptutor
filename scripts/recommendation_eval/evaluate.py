@@ -55,7 +55,9 @@ PAIRS = [("Random", "V2-full"), ("Popularity", "V2-full"), ("Semantic", "V2-a"),
          # step 43b (13.9): the system as it ships against the references, the steps of the funnel and one part off
          ("Random", "V2-final"), ("Popularity", "V2-final"), ("Semantic", "V2-final"), ("V1-old", "V2-final"),
          ("V2-linear", "V2-final"), ("V2-RC", "V2-final"), ("V2-final-A1", "V2-final"), ("V2-final-H1", "V2-final"),
-         ("V2-final-noQ", "V2-final")]
+         ("V2-final-noQ", "V2-final"), ("V1-old", "V2-a"),
+         # the exploration slots alone: V2-final - H1 is V2-RC with exploration on
+         ("V2-RC", "V2-final-H1")]
 TEXT_ORDER = ["cosine-only", "rerank-w0.3", "rerank-w0.5", "rerank-w0.7", "rerank-w0.9", "cosine-only-sem0.45",
               "rerank-w0.7-sem0.45", "rerank-w0.7-t4000", "rerank-online", "rerank-async", "rerank-async-2",
               "rerank-online-2"]
@@ -208,8 +210,9 @@ def main() -> int:
 
     per_query = defaultdict(dict)  # config -> query id -> metrics
     summary = {}
-    rng = random.Random(SEED)
     for config in configs:
+        # Every configuration draws the same coins (common random numbers), whichever others were run before it.
+        rng = random.Random(SEED)
         run = runs[config]
         ranked = {}
         for query in test:
@@ -241,7 +244,7 @@ def main() -> int:
 
     tests = []
     nrng = np.random.default_rng(SEED)
-    for left, right in PAIRS:
+    for left, right in dict.fromkeys(PAIRS):  # a pair listed for two steps is tested once
         if left not in per_query or right not in per_query:
             continue
         both = sorted(qid for qid in set(per_query[left]) & set(per_query[right])

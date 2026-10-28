@@ -26,3 +26,8 @@ def test_the_lambda_sensitivity_changes_only_lambda():
 
     assert [run.CONFIGS[name] for name in names] == [{"willingness.congestion-lambda": lam}
                                                      for lam in ("0.25", "0.375", "0.625", "0.75")]
+
+
+def test_the_exploration_slots_are_compared_alone():
+    assert ("V2-RC", "V2-final-H1") in evaluate.PAIRS
+    assert ("V1-old", "V2-a") in evaluate.PAIRS

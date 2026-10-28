@@ -21,3 +21,8 @@ def test_popularity_on_the_tutor_side_follows_the_offers_received_not_the_v2a_or
 
     assert ranking == ["c", "b", "a"]
     assert baselines.popularity_ranking(run, query, offers={}) == ["a", "b", "c"], "ties keep the logged order"
+
+
+def test_the_baselines_read_the_seed_copy_the_searches_started_from():
+    assert baselines.source_database(lambda: True).endswith("_seed")
+    assert not baselines.source_database(lambda: False).endswith("_seed")

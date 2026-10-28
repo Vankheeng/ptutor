@@ -60,13 +60,19 @@ def tutor_offers() -> dict:
     global _OFFERS
     if _OFFERS is None:
         rows = query_json("SELECT studying_request_id AS id, count(*) AS n FROM tutor_student_requests GROUP BY 1",
-                          database=f"{DATABASE}_seed" if seed_exists() else DATABASE)
+                          database=source_database())
         _OFFERS = {row["id"]: row["n"] for row in rows}
     return _OFFERS
 
 
 def seed_exists() -> bool:
     return bool(query_json(f"SELECT 1 AS x FROM pg_database WHERE datname = '{DATABASE}_seed'"))
+
+
+def source_database(exists=seed_exists) -> str:
+    """The seed copy when there is one: every search started from it, while market.py and latency.py leave their
+    own contracts, decisions and scores in the working database afterwards (found 28/10/2026, step 43b-3)."""
+    return f"{DATABASE}_seed" if exists() else DATABASE
 
 
 def semantic_ranking(run: dict, query: dict) -> list:
@@ -82,27 +88,32 @@ def linear_ranking(run: dict, query: dict) -> list:
 
 
 class V1Old:
-    """The earlier design, rebuilt from its document on the data of the evaluation database."""
+    """The earlier design, rebuilt from its document on the data of the evaluation database (its seed copy)."""
 
     def __init__(self):
         def vector(text):
             return None if text is None else np.array(json_list(text), dtype=float)
 
-        self.students = {row["id"]: vector(row["v"]) for row in query_json(
+        database = source_database()
+
+        def read(sql):
+            return query_json(sql, database)
+
+        self.students = {row["id"]: vector(row["v"]) for row in read(
             "SELECT id, profile_embedding::text AS v FROM students")}
-        self.tutors = {row["id"]: row for row in query_json("""
+        self.tutors = {row["id"]: row for row in read("""
             SELECT id, profile_embedding::text AS v, average_rating, acceptance_rate, experience_years,
                    completed_contracts_count FROM tutors""")}
         for row in self.tutors.values():
             row["vector"] = vector(row.pop("v"))
-        self.postings = {row["id"]: row for row in query_json("""
+        self.postings = {row["id"]: row for row in read("""
             SELECT tr.id, tr.tutor_id, tr.expected_price, tr.teaching_mode,
                    (SELECT count(*) FROM grade_teaching_requests g WHERE g.teaching_request_id = tr.id) AS grades,
                    COALESCE((SELECT json_agg(d.district_id) FROM teaching_request_districts d
                              WHERE d.teaching_request_id = tr.id), '[]') AS districts
             FROM teaching_requests tr""")}
         self.styles = {}
-        for row in query_json("""
+        for row in read("""
                 SELECT et.entity_id, t.code FROM recommendation_entity_tags et
                 JOIN recommendation_tags t ON t.id = et.tag_id
                 WHERE et.deleted_at IS NULL AND t.tag_group = 'STYLE'"""):
@@ -110,10 +121,10 @@ class V1Old:
         self.slots = {}
         for table, column in (("teaching_request_availabilities", "teaching_request_id"),
                               ("studying_request_availabilities", "studying_request_id")):
-            for row in query_json(f"SELECT {column} AS owner, day_of_week, start_time::text AS s, end_time::text AS e "
+            for row in read(f"SELECT {column} AS owner, day_of_week, start_time::text AS s, end_time::text AS e "
                                   f"FROM {table}"):
                 self.slots.setdefault(row["owner"], []).append((row["day_of_week"], row["s"][:5], row["e"][:5]))
-        self.homes = {row["id"]: row["district_id"] for row in query_json(
+        self.homes = {row["id"]: row["district_id"] for row in read(
             "SELECT s.id, u.district_id FROM students s JOIN users u ON u.id = s.user_id")}
 
     def ranking(self, run: dict, query: dict, student: dict) -> list:

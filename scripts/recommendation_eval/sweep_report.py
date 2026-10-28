@@ -3,13 +3,15 @@
     python scripts/recommendation_eval/sweep_report.py --scenario crowded --preset t39
     python scripts/recommendation_eval/sweep_report.py --scenario crowded --preset t40-crowded
     EVAL_RESULTS=base-t40 python scripts/recommendation_eval/sweep_report.py --scenario base --preset t40-base
+    EVAL_OUT=crowded-final EVAL_RESULTS=crowded-final ... sweep_report.py --scenario crowded --preset final   # step 43b
 
 Joins the search metrics of evaluate.py (9.7-bang-ket-qua.json, S2T test half) with the 8-round market of
 market.py --as t39. The market draws the same coin for the same (student, posting, round) in every configuration,
 so the rejections and the rounds a student waited are compared student by student (Wilcoxon, bootstrap CI of the
 mean difference) against the controls. Writes ket-qua/<results>/<preset>-quet.csv and
 <preset>-kiem-dinh-thi-truong.csv. t40-crowded also compares Q on and off with the popular tutors left out (they
-always have a high hidden quality, 13.3).
+always have a high hidden quality, 13.3). final (step 43b) reads the market of market.py without --as (out/<...>/market)
+and compares the system as it ships with the references, the steps of the funnel, Q off and the λ levels.
 """
 
 import csv
@@ -46,7 +48,20 @@ PRESETS = {
         pairs=[("V2-R", "V2-RC-oldCongestion"), ("V2-R", "V2-RC"), ("V2-RC-oldCongestion", "V2-RC"),
                ("V2-RC", "V2-RC-noQ"), ("V2-RC", "V2-RC-noSchedGate"), ("V2-RC", "V2-RC-noRejectGate")],
         popular_check=None),
+    "final": SimpleNamespace(
+        market=None,  # market.py without --as: the same coins in every configuration all the same
+        configs=["Random", "Popularity", "V2-a", "V2-R", "V2-RC", "V2-final", "V2-final-noQ", "V2-final-l0.25",
+                 "V2-final-l0.375", "V2-final-l0.625", "V2-final-l0.75"],
+        pairs=[("Random", "V2-final"), ("Popularity", "V2-final"), ("V2-a", "V2-final"), ("V2-a", "V2-R"),
+               ("V2-R", "V2-RC"), ("V2-RC", "V2-final"), ("V2-final", "V2-final-noQ"),
+               *(("V2-final", f"V2-final-l{lam}") for lam in ("0.25", "0.375", "0.625", "0.75"))],
+        popular_check=("V2-final", "V2-final-noQ")),
 }
+
+
+def market_dir(run):
+    """Folder of the market runs: market.py --as NAME writes market-NAME, without --as market."""
+    return OUT / (f"market-{run}" if run else "market")
 
 
 def popular_free_test(pair: tuple, rng: np.random.Generator) -> list:
@@ -95,8 +110,8 @@ def main() -> int:
     preset = PRESETS[preset_name]
     run = preset.market
     search = read_json(RESULTS / "9.7-bang-ket-qua.json")["summary"]
-    market = {name: read_json(OUT / f"market-{run}" / f"{name}.json") for name in preset.configs
-              if (OUT / f"market-{run}" / f"{name}.json").exists()}
+    market = {name: read_json(market_dir(run) / f"{name}.json") for name in preset.configs
+              if (market_dir(run) / f"{name}.json").exists()}
     rows = []
     for name in preset.configs:
         if name not in market or name not in search:

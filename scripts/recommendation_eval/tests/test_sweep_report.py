@@ -34,3 +34,10 @@ def test_popular_tutors_are_left_out_of_the_rankings_and_of_the_ideal(monkeypatc
     assert np.isclose(ndcg["mean_diff"], expected)
     ms = next(t for t in tests if t["metric"].startswith("ms10"))
     assert np.isclose(ms["mean_diff"], 0.0), "the same tutors with rel >= 2 are in both top 10s"
+
+
+def test_the_final_preset_reads_the_market_written_without_a_name():
+    assert sweep_report.market_dir(None).name == "market"
+    assert sweep_report.market_dir("t39").name == "market-t39"
+    final = sweep_report.PRESETS["final"]
+    assert all(left in final.configs and right in final.configs for left, right in final.pairs)
