@@ -102,6 +102,12 @@ hai chiều có xét dồn đơn (11, mục 11.3).
 | **V2-full − H1** | Bỏ lịch sử hành vi |
 | **V2-full − A1** | Bỏ dữ liệu chuẩn hoá từ A1 |
 
+> 📌 **Lượt tổng kết (Bước 43b, 28/10/2026):** hệ thống phát hành tắt rerank (13.2), nên bộ số báo cáo dùng
+> **V2-final** thay cho V2-RCX / V2-full: đúng các mặc định của backend, không ghi đè thuộc tính nào (R = a^0,65 ·
+> b^0,35, chống dồn `ON_SHORTAGE` λ 0,5, (0,7 + 0,3 Q) × G, ô khám phá và H1 bật, rerank tắt). Ba cấu hình tắt một thành
+> phần: **V2-final − A1**, **V2-final − H1**, **V2-final tắt Q**. Thêm tham chiếu Random, Popularity, Semantic,
+> V2-linear (xếp lại ứng viên của V2-a). Kết quả: 9.11.
+
 Các cấu hình trên dùng **trọng số prior**. Ảnh hưởng của L1 (học trọng số) được đánh giá riêng bằng thí
 nghiệm học tuần tự ở mục 9.9 (Fixed / LinTS-prior / LinTS-bad / Greedy / Oracle), vì L1 chỉ có tác dụng theo
 thời gian, không so được trên một lượt truy vấn tĩnh.
@@ -176,6 +182,8 @@ p50/p95 từng pha trên laptop và VPS; tỉ lệ rerank timeout.
 
 > 💡 Khung bảng sẽ điền khi chạy xong, kèm các giả thuyết cần kiểm chứng (ví dụ "thêm hai chiều thì tỉ lệ ghép thành công tăng").
 
+> 📌 **Đã điền (28/10/2026):** bảng chính ở 9.11; bảng giả thuyết đầy đủ ở [`ket-qua/tong-ket/`](./ket-qua/tong-ket/README.md) mục 6. Các dòng V2-RCX / V2-full không chạy trên thế giới báo cáo vì rerank tắt (13.2).
+
 | Cấu hình | NDCG@10 | P@5 | EA@10 | MS@10 | Tỉ lệ ghép | Từ chối/HS | Gini | p95 (ms) |
 |---|---|---|---|---|---|---|---|---|
 | V1 | | | | | | | | |
@@ -219,6 +227,8 @@ Mục này trả lời hai câu hỏi về trọng số tự đặt: **kết qu�
   tăng / giảm **±25% và ±50%**, chuẩn hoá lại tổng, chạy lại V2-full.
 - Đo: NDCG@10, EA@10, và **Kendall τ** giữa top-10 mới và top-10 gốc.
 - Kết quả trình bày dạng biểu đồ "lốc xoáy" (tornado): tham số nào làm chỉ số đổi nhiều nhất.
+- Từ Bước 43b (28/10/2026) thêm α, hai cổng chặn và hệ số phạt khiếu nại (tính lại offline, 9.10). λ chỉ có tác dụng
+  khi có đơn chờ, nên đo trên thị trường 8 vòng ở 4 mức thay vì offline.
 - Kỳ vọng: kết quả **ổn định** (τ cao, NDCG đổi ít) với đa số tham số — trọng số tự đặt không phải "điểm
   may mắn". Tham số nhạy được nêu trong báo cáo và là ứng viên ưu tiên cho L1.
 
@@ -329,9 +339,51 @@ tới được biên — điều này được trình bày như một **đánh �
   Q (0,85 / 0,15), không cổng, không b, xếp lại trên các ứng viên mà V2-a đã ghi log. Không dùng embedding hồ sơ cũ.
 - **Mô phỏng thị trường** dùng truy vấn "đủ tiêu chí" của học sinh trên nửa kiểm tra, 200 lần lặp thứ tự ngẫu nhiên.
   MS@10 tính theo kỳ vọng (`rel ≥ 2` × P(nhận)) thay vì rút thăm, cho đỡ nhiễu.
-- **Độ nhạy chạy offline** trên đặc trưng trong log (`scoring.py` tính lại đúng công thức 06). Các tham số không nằm
-  trong log — kernel của đặc trưng, tham số phạt khiếu nại bên trong Q — cần chạy lại backend nên không có trong
-  tornado.
+- **Độ nhạy chạy offline** trên đặc trưng trong log (`scoring.py` tính lại đúng công thức 06). Kernel của đặc trưng
+  không nằm trong log, cần chạy lại backend nên không có trong tornado. Từ Bước 43b: cổng chặn tính lại từ G đã log
+  (mỗi cổng nhận ra qua giá trị mặc định của nó: 0,4 lịch, 0,5 vừa bị từ chối); phạt khiếu nại tính lại từ
+  `score_breakdown` (Q′ = Q + phạt × (1 − hệ số) / 100, đúng khi mức phạt chưa chạm trần 20, như trên thế giới báo cáo:
+  tối đa 5,71). Phép tính offline không có ô khám phá.
 - **Thí nghiệm học:** chỉ học a (`A_S2T`) và b (`B_S2T`) phía học sinh tìm gia sư. Phần thưởng theo mức hành động
   (xem 0,3 / tym 0,6 / gửi đơn 1,0), mẫu lấy tới vị trí tương tác thấp nhất + 2 như `LearningDataRepository`; mỗi
   100 lần tìm cập nhật một lần, mẫu Thompson theo (người tìm, "ngày" = lô 100).
+
+## 9.11. Kết quả tổng kết (Bước 43b, 28/10/2026)
+
+> 💡 **Đây là số dùng cho báo cáo.** Mọi tham số đã chọn ở các lượt tinh chỉnh (13). Số ở đây lấy trên một thế giới
+> mô phỏng **khác**: cùng công thức, hạt giống 20261027, nên người dùng, tin đăng và truy vấn đều khác, và không tham
+> số nào được chỉnh lại trên đó. Đầy đủ bảng, kiểm định, bảng giả thuyết và hạn chế:
+> [`ket-qua/tong-ket/`](./ket-qua/tong-ket/README.md).
+
+Thế giới báo cáo có 600 gia sư, 945 tin dạy, 400 học sinh. Kiểm định trên 587 truy vấn học sinh tìm gia sư (nửa kiểm
+tra), thị trường 8 vòng với 400 học sinh.
+
+| Cấu hình | NDCG@10 | EA@10 | MS@10 | Bị từ chối / HS (8 vòng) | Vòng chờ | Gini hiển thị (8 vòng) |
+|---|---|---|---|---|---|---|
+| Random | 0,323 | 0,479 | 0,222 | 1,57 | 1,32 | 0,374 |
+| Popularity | 0,457 | 0,467 | 0,355 | 6,64 | 2,94 | 0,752 |
+| V1 (thiết kế cũ) | 0,583 | 0,536 | 0,444 | — | — | — |
+| V2-a | 0,669 | 0,555 | 0,428 | 2,44 | 1,57 | 0,601 |
+| V2-R | 0,619 | 0,576 | 0,434 | 2,33 | 1,58 | 0,671 |
+| V2-RC | 0,619 | 0,576 | 0,434 | 0,97 | 1,16 | 0,510 |
+| **V2-final** | **0,607** | **0,572** | **0,425** | **0,85** | **1,12** | **0,500** |
+
+Kết luận chính (KTC 95 %, ghép cặp):
+
+- **V2-final hơn mọi tham chiếu.** So với Random, Popularity, V1, NDCG cao hơn lần lượt +0,284, +0,150 và +0,024
+  [+0,013; +0,035]. Trên thị trường, so với Popularity, mỗi học sinh bị từ chối ít hơn 5,79 lần và chờ ít hơn 1,82 vòng.
+- **Chống dồn là thành phần làm giảm từ chối:** từ V2-R sang V2-RC, số lần bị từ chối giảm 1,36 lần mỗi học sinh
+  [−1,61; −1,12]. Reciprocal một mình (V2-a → V2-R) không làm giảm từ chối; nó đổi NDCG −0,050 lấy EA +0,021.
+- **A1 có ích rõ** (NDCG +0,097). **H1 không thấy tác dụng** trên phép tìm tĩnh (+0,002, p 0,43). Ô khám phá tốn NDCG
+  −0,014 để Coverage@20 tăng 0,029.
+- **Q**: tổng thể NDCG +0,052, nhưng bỏ nhóm gia sư nổi tiếng ra thì tắt Q tốt hơn (+0,049). Lợi ích của Q đến từ cách
+  dựng mô phỏng (13.8).
+- **Độ nhạy:** 16 / 17 tham số đổi NDCG ≤ 0,025 khi nhân ×0,5…×1,5. α nhạy nhất (đánh đổi NDCG / EA). λ ổn định quanh
+  0,5: chỉ λ 0,25 kém hơn rõ trên thị trường.
+- **L1:** regret thấp hơn trọng số cố định 19,0 % (10/10 hạt giống). Prior sai được sửa một phần (chia đều −26,7 %,
+  đảo ngược −23,3 %).
+- **Độ trễ** (laptop 16 GB): p95 291 ms phía học sinh, 458 ms phía gia sư, trong ngân sách 1,5 s.
+
+Kết quả trên thế giới tinh chỉnh và thế giới báo cáo gần nhau (ví dụ V2-a NDCG 0,661 và 0,669; L1 −20,6 % và −19,0 %),
+nên các kết luận không phụ thuộc hạt giống ngẫu nhiên. Hạn chế: [`ket-qua/tong-ket/`](./ket-qua/tong-ket/README.md)
+mục 7.

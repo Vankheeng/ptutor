@@ -1,5 +1,7 @@
 # Kịch bản `text-only` — nhu cầu chỉ nằm trong văn bản
 
+> 📌 **Lượt tinh chỉnh, không dùng cho báo cáo** (28/10/2026). Số báo cáo lấy trên thế giới hạt giống khác: [`../tong-ket/`](../tong-ket/README.md).
+
 > 💡 Ghi chú tinh chỉnh, chưa phải văn báo cáo. Số trên **dữ liệu mô phỏng**, sinh bằng `scripts/recommendation_eval/` (seed cố định). Lý do và quyết định: [13](../../13-tinh-chinh-sau-danh-gia.md); cách đọc chỉ số: 13 mục 13.0.
 
 **Chạy gì.** 175 truy vấn S2T có nhu cầu **chỉ nằm trong văn bản** (ví dụ "con hay mất tập trung, cần chia nhỏ bài"),

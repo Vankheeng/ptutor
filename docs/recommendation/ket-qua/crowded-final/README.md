@@ -11,9 +11,17 @@ prompt 13.6 (2 305 lời gọi LLM), embedding đủ cho mọi tin OPEN, gia sư
 Database `ptutor_eval_final` / `ptutor_eval_final_a1` (sau A1 + embedding) / `ptutor_eval_final_seed` (sau lịch sử
 duyệt: 3 626 sự kiện, 387 hồ sơ sở thích).
 
+Bảng chính, kiểm định, bảng giả thuyết và hạn chế: [`../tong-ket/`](../tong-ket/README.md).
+
 | File | Nội dung |
 |---|---|
 | `kiem-tra-mo-phong.csv` | Kiểm tra bộ mô phỏng trước khi đọc kết quả thuật toán (13.3) |
+| `9.7-bang-ket-qua.csv` / `.json`, `9.7-so-sanh-cau-hinh.png`, `9.6-kiem-dinh.csv` | Tìm kiếm cả hai chiều: tham chiếu, V2-a / V2-R / V2-RC, V2-final và ba cấu hình tắt một thành phần (Bước 43b-2a) |
+| `market.csv` | Thị trường 8 vòng (Random, Popularity, V2-a, V2-R, V2-RC, V2-final, V2-final tắt Q, 4 mức λ) |
+| `final-quet.csv`, `final-kiem-dinh-thi-truong.csv` | `sweep_report.py --preset final`: thị trường so theo từng học sinh |
+| `9.9.1-do-nhay.csv`, `9.9.1-tornado.png` | Độ nhạy offline, thêm α, hai cổng chặn, phạt khiếu nại (Bước 43b-2b) |
+| `9.9.4-*`, `9.9.5-drift.*` | `learning.py --run V2-final --diverse` (Bước 43b-2c) |
+| `latency.csv` | Độ trễ V2-final, một lượt, máy rảnh (Bước 43b-2d) |
 
 ## Kiểm tra bộ mô phỏng (13.3)
 

@@ -7,7 +7,8 @@
 >
 > **Trạng thái:** đã thống nhất ngày 26/10/2026; **mọi mục T1–T7 đã lập trình và đo xong ngày 26–27/10/2026**
 > (13.9). Nội dung chính của các file 00, 02, 04, 05, 06, 09, 10, 12 đã sửa theo; file này giữ lại như biên bản quyết
-> định. Còn mở: kiểm chứng L1 toàn hệ thống (43a), lượt tổng kết trên `crowded` với hạt giống khác (43b), đóng gói (44).
+> định. Kiểm chứng L1 toàn hệ thống (43a) và lượt tổng kết trên `crowded` với hạt giống khác (43b) xong ngày 27–28/10/2026
+> (09 mục 9.11, `ket-qua/tong-ket/`). Còn mở: đóng gói (44).
 
 ## 13.0. Nguồn số liệu và cách đọc
 
@@ -19,6 +20,9 @@
 | `base-t40` | `ket-qua/base-t40/` | `base` dựng lại trong database riêng (27/10/2026): công thức chống dồn cũ / mới, tách Q và cổng chặn (Bước 40) |
 | `text-only` | `ket-qua/text-only/` | 175 truy vấn có nhu cầu **chỉ nằm trong văn bản** (ví dụ "con hay mất tập trung, cần chia nhỏ bài"), không tag hay bộ lọc nào thể hiện |
 | `llm` | `ket-qua/llm/` | Độ chính xác của A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm); lượt đầu dùng nhãn nháp; từ 26/10 có bộ độc lập do nhóm duyệt (13.6) |
+| `l1-he-thong` | `ket-qua/l1-he-thong/` | Kiểm chứng L1 toàn hệ thống, 45 ngày qua API thật (Bước 43a) |
+| `crowded-final` | `ket-qua/crowded-final/` | **Thế giới báo cáo**: `crowded` hạt giống 20261027, mọi cấu hình đã chốt, thị trường, độ nhạy, L1, độ trễ (Bước 43b) |
+| tổng kết | `ket-qua/tong-ket/` | **Bộ số cho báo cáo**: bảng chính, kiểm định, bảng giả thuyết, hạn chế (09 mục 9.11) |
 
 Mỗi thư mục có `README.md`: chạy gì, tham số, bảng chính, đọc kết quả ngắn gọn (27/10/2026).
 
@@ -896,7 +900,7 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 | 6 | Tách Q và các cổng chặn | 13.8 | **Đã làm 27/10/2026** (base + crowded, kiểm tra phụ Q). Giữ Q 0,3 và hai cổng chặn; Q kiểm lại khi có đánh giá / khiếu nại thật |
 | 7 | Đồng bộ tài liệu, README cho `ket-qua/` | — | **Đã làm 27/10/2026.** Sửa "rerank top-20", trung bình điều hoà, công thức chống dồn cũ và ví dụ tính tay (00, 02, 06, 10, 11, 12); README cho mỗi kịch bản |
 | 43a | Kiểm chứng L1 toàn hệ thống: người dùng ảo có trọng số ẩn w*, đi qua API thật (tìm kiếm, `/events`, đơn), job đêm thật; đối chiếu quan sát `LearningDataRepository` với mô phỏng, sai số tới w* theo ngày, vòng kích hoạt → phục vụ → log; lấp lỗ hổng `CONTACTED` | 13.7, 12.11 | **Đã làm 27/10/2026** (45 ngày, `ket-qua/l1-he-thong`). Đối chiếu 0 lệch, phát lại 5,7e-14, vòng 45/45, có ích +0,108 phần thưởng; a học đúng hướng một phần (91 % lợi ích của w\*), b đạt. Điều kiện kích hoạt: biên 0,002, phía b so AUC thay cho log-loss (b bật 30/30 thay vì 12/30, tính lại từ file xuất) |
-| 43b | Lượt tổng kết: `crowded` dựng với hạt giống khác (A1 ~2 300 lời gọi), chạy mọi cấu hình cả hai chiều, độ nhạy, L1, độ trễ; bộ số duy nhất cho báo cáo và bảng giả thuyết | 13.4, 13.5, 09 | **Chưa làm**: λ, α, κ đã chọn trên thế giới hiện tại nên số trên đó hơi lạc quan |
+| 43b | Lượt tổng kết: `crowded` dựng với hạt giống khác (A1 ~2 300 lời gọi), chạy mọi cấu hình cả hai chiều, độ nhạy, L1, độ trễ; bộ số duy nhất cho báo cáo và bảng giả thuyết | 13.4, 13.5, 09 | **Đã làm 27–28/10/2026** (`ket-qua/crowded-final`, `ket-qua/tong-ket`, 09 mục 9.11). Kiểm tra bộ mô phỏng 6 / 7 (Q–rel 0,195, KTC chứa 0,2). V2-final hơn mọi tham chiếu; chống dồn −1,36 lần bị từ chối / HS; L1 −19,0 % regret; λ ổn định, α nhạy; p95 291 ms. Lý do vẫn cần lượt này: λ, α, κ đã chọn trên thế giới cũ |
 | 44 | Đóng gói: merge `dev`, kiểm migration, rà "Còn mở", dọn dữ liệu eval / demo, soạn mô tả PR | — | **Chưa làm** |
 
 ## 13.10. Câu hỏi phản biện dự kiến
@@ -905,15 +909,16 @@ công thức mới λ = 0,5 (13.4); hệ số Q 0,3; giữ hai cổng chặn (l�
 |---|---|---|
 | Vì sao không bỏ rerank khi nó gần như không giúp? | (sửa 26/10/2026) Đã tắt mặc định: chấm đủ mọi cặp thì không giúp (NDCG −0,001, KTC chứa 0); mức +0,013 lúc trước là do dùng nhầm vector hồ sơ. Giữ code chạy nền (không bắt người dùng chờ) và chỉ bật lại khi chứng minh được trên click thật | 13.2 |
 | Sao lần đo trước lại ra "+0,013 có ý nghĩa"? | AI service quá tải vì các lô rerank bị bỏ dở, embed câu truy vấn quá hạn, backend lặng lẽ dùng vector hồ sơ (54 % lần tìm). Từ nay log ghi `queryVector` và bộ đánh giá loại các lần đó; ở `base` loại ra thì không kết luận nào đổi | 13.0, 13.2 |
-| Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Ở `base` (thừa chỗ) công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ. Trên thị trường đông, chống dồn giảm số lần bị từ chối từ 2,70 xuống ~0,8 mỗi học sinh | 13.1, 13.4 |
-| Q làm danh sách tốt hơn nhiều trên mô phỏng, có đáng tin? | Không hẳn: lợi ích đến từ nhóm gia sư nổi tiếng do cách dựng; bỏ nhóm đó ra thì tắt Q nhỉnh hơn (NDCG +0,014). Giữ Q 0,3 vì nó mang tín hiệu tin cậy (khiếu nại có lỗi, khoá tài khoản, xác minh) mà mô phỏng không đo được, và chỉ dịch điểm ±15 % | 13.8 |
+| Chống dồn làm số lần bị từ chối tăng, sao vẫn giữ? | Ở `base` (thừa chỗ) công thức cũ phạt cả khi chưa dồn; đã sửa để chỉ phạt khi số đơn chờ vượt số chỗ. Trên thị trường đông, chống dồn giảm số lần bị từ chối từ 2,70 xuống ~0,8 mỗi học sinh. Trên thế giới báo cáo: 2,33 → 0,97 (−1,36 [−1,61; −1,12], so theo từng học sinh) | 13.1, 13.4, 9.11 |
+| Q làm danh sách tốt hơn nhiều trên mô phỏng, có đáng tin? | Không hẳn: lợi ích đến từ nhóm gia sư nổi tiếng do cách dựng; bỏ nhóm đó ra thì tắt Q nhỉnh hơn (NDCG +0,014; trên thế giới báo cáo +0,049). Giữ Q 0,3 vì nó mang tín hiệu tin cậy (khiếu nại có lỗi, khoá tài khoản, xác minh) mà mô phỏng không đo được, và chỉ dịch điểm ±15 %. Trên thị trường, bật hay tắt Q không khác nhau (p 0,39) | 13.8, 9.11 |
 | Cổng "vừa bị từ chối" không có lợi trong mô phỏng, sao vẫn giữ? | Mô phỏng không có hiện tượng "đã từ chối một lần thì dễ từ chối nữa"; lý do giữ là trải nghiệm người dùng (không đưa lại người vừa từ chối mình lên đầu) | 13.8 |
 | Sao không đánh giá luôn trên kịch bản base? | Kịch bản base không có cạnh tranh chỗ và Q không gắn với độ phù hợp — thiếu đúng hiện tượng cần kiểm tra | 13.1 |
 | Reciprocal làm giảm MS@10, có mâu thuẫn mục tiêu? | Đó là dấu hiệu b nhiễu được cho trọng số ngang a; đã thêm tham số α (0,65) để chỉnh mức tin b. Reciprocal một mình còn làm từ chối tăng vì b đẩy học sinh vào gia sư có lịch sử nhận cao mà không biết họ đã hết chỗ — nên luôn đi cùng chống dồn (Su và cộng sự, 2022) | 13.5 |
-| Trọng số tự học (L1) có thật sự học được không? | (sửa 27/10/2026) Trên mô phỏng crowded có đáp án ẩn: với κ 50, regret thấp hơn trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng. Với prior quá mạnh (κ 200 trên `base-dev`) thì gần như không học | 13.7 |
+| Trọng số tự học (L1) có thật sự học được không? | (sửa 28/10/2026) Trên mô phỏng crowded có đáp án ẩn: với κ 50, regret thấp hơn trọng số cố định 21 % (10/10 hạt giống), cả khi sở thích đổi giữa chừng; trên thế giới báo cáo 19,0 % (10/10). Với prior quá mạnh (κ 200 trên `base-dev`) thì gần như không học | 13.7, 9.11 |
 | Trọng số ban đầu đặt sai thì L1 có tự sửa? | Sai vừa (chia đều) thì có: regret −34 % so với giữ nguyên prior đó, sai số trọng số 0,54 → 0,23. Sai ngược hẳn thì chỉ sửa được một phần (−29 %, vẫn tệ hơn trọng số nhóm đặt): biên [0,5; 2] × prior không cho đi đủ xa. Đó là đánh đổi có chủ đích giữa an toàn và khả năng tự sửa | 13.7 |
 | Làm sao biết vòng tự học chạy đúng trong sản phẩm, không chỉ trong Python? | Người dùng ảo có trọng số ẩn đi qua API thật 45 ngày, job học thật chạy mỗi đêm: mọi quan sát job dùng khớp từng dòng với những gì đã xảy ra (0 lệch trên 32 679 dòng), Python tính lại ra cùng trọng số, version mới được bật và lần tìm hôm sau dùng đúng bản đó (45/45 ngày); xếp hạng tốt hơn prior trên 5 ngày giữ riêng | 13.7 |
 | Khám phá không có lợi trong mô phỏng, sao vẫn giữ? | Trong mô phỏng khám phá tốn khoảng 2 % regret so với Greedy. Giữ mức thấp (ρ 0,5) vì môi trường thật có bất định mô phỏng không có (người dùng mới, môn mới, tin đăng mới); ρ = 0 thì L1 chỉ còn là hồi quy Bayes, không còn là contextual bandit | 13.7 |
-| λ, α, κ chọn trên chính mô phỏng `crowded`, số báo cáo có lạc quan không? | Có, nên số báo cáo lấy ở lượt tổng kết: dựng lại `crowded` với hạt giống khác (cùng công thức, người dùng và tin đăng khác) rồi chạy lại các cấu hình đã chốt | 13.4, 13.5, 13.9 |
+| λ, α, κ chọn trên chính mô phỏng `crowded`, số báo cáo có lạc quan không? | Có, nên số báo cáo lấy ở lượt tổng kết: dựng lại `crowded` với hạt giống khác (cùng công thức, người dùng và tin đăng khác) rồi chạy lại các cấu hình đã chốt, không chỉnh tham số nào. (28/10/2026) Số trên hai thế giới gần nhau (V2-a NDCG 0,661 / 0,669; L1 −20,6 % / −19,0 %); λ 0,5 vẫn cho ít lần bị từ chối nhất; κ 20 vẫn nhỉnh hơn κ 50 như ở thế giới cũ, mọi ô của lưới κ đều tốt hơn cố định | 13.4, 13.5, 13.9, 9.11 |
 | Đã code rerank chạy nền mà lại tắt, có lãng phí? | Code giữ để bật lại bằng cấu hình khi có click thật chứng minh lợi ích (điều kiện ở 13.2); tắt thì AI service tiết kiệm ~1,1 GB RAM và lần tìm không bị chậm | 13.2 |
+| Tham số tự đặt có phải "điểm may mắn" không? | (thêm 28/10/2026) Trên thế giới báo cáo, nhân từng tham số ×0,5…×1,5: 16 / 17 tham số đổi NDCG ≤ 0,025. α nhạy nhất, vì đó là chỗ đánh đổi phù hợp / được nhận. λ ổn định quanh 0,5. Hai cổng chặn và phạt khiếu nại không đổi top 10: chúng là tham số bảo vệ | 9.9.1, 9.11 |
 | Độ chính xác LLM cao vậy có đáng tin? | (sửa 26/10/2026) Số chính lấy trên bộ câu độc lập: câu do ChatGPT sinh, nhóm sửa và duyệt nhãn, không dùng để chỉnh prompt. Trên bộ đó: lịch 100 %, tách câu 91,3 % (21/23). Bộ nháp (96,3 %) chỉ báo kèm; đã duyệt mẫu 40/196 | 13.6 |

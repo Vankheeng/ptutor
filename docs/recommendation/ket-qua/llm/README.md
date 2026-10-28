@@ -1,5 +1,7 @@
 # Độ chính xác LLM — A1 (gắn tag, trích lịch) và A2 (tách câu tìm kiếm)
 
+> 📌 **Dùng cho báo cáo** (28/10/2026): độ chính xác LLM không phụ thuộc thế giới mô phỏng; số báo cáo là số trên bộ câu độc lập. Tổng kết: [`../tong-ket/`](../tong-ket/README.md).
+
 > 💡 Ghi chú tinh chỉnh, chưa phải văn báo cáo. Sinh bằng `scripts/recommendation_eval/llm_eval.py` (gọi AI service
 > thật, model của `.env`). Lý do và quyết định: [13 mục 13.6](../../13-tinh-chinh-sau-danh-gia.md); bảng quy ước nhãn
 > L1–L10 / T1–T10: 13.6 và 05 mục 5.4.

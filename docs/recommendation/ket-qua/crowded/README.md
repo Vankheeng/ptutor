@@ -1,5 +1,7 @@
 # Kịch bản `crowded` — thị trường đông
 
+> 📌 **Lượt tinh chỉnh, không dùng cho báo cáo** (28/10/2026). Số báo cáo lấy trên thế giới hạt giống khác: [`../tong-ket/`](../tong-ket/README.md).
+
 > 💡 Ghi chú tinh chỉnh, chưa phải văn báo cáo. Số trên **dữ liệu mô phỏng**, sinh bằng `scripts/recommendation_eval/` (seed cố định). Lý do và quyết định: [13](../../13-tinh-chinh-sau-danh-gia.md); cách đọc chỉ số: 13 mục 13.0.
 
 **Chạy gì.** Thế giới `crowded` (09 mục 9.3, 13 mục 13.3): 400 học sinh (360 tin học), b0 −3,1, `rel` +1 khi

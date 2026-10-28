@@ -1,5 +1,7 @@
 # Kiểm chứng L1 toàn hệ thống — "tìm lại trọng số ẩn" (Bước 43a, 27/10/2026)
 
+> 📌 **Dùng cho báo cáo như bằng chứng vòng học chạy đúng trong sản phẩm** (28/10/2026), chạy trên thế giới hạt giống cũ; thí nghiệm học trên thế giới báo cáo ở [`../tong-ket/`](../tong-ket/README.md) mục 4.
+
 > 💡 Ghi chú tinh chỉnh, chưa phải văn báo cáo. Thí nghiệm học ở `9.9.4` (`learning.py`) tự dựng quan sát trong
 > Python; ở đây người dùng ảo đi qua **đúng đường dữ liệu của sản phẩm**: tìm kiếm qua API → sự kiện `/events` → đơn và
 > ảnh chụp quyết định → `LearningDataRepository` (SQL) → `WeightLearningJob` → `WeightProvider` → log lần tìm sau.

@@ -1,5 +1,7 @@
 # Kịch bản `base` dựng lại (Bước 40, 27/10/2026)
 
+> 📌 **Lượt tinh chỉnh, không dùng cho báo cáo** (28/10/2026). Số báo cáo lấy trên thế giới hạt giống khác: [`../tong-ket/`](../tong-ket/README.md).
+
 > 💡 Ghi chú tinh chỉnh, chưa phải văn báo cáo. Số trên **dữ liệu mô phỏng**, sinh bằng `scripts/recommendation_eval/` (seed cố định). Lý do và quyết định: [13](../../13-tinh-chinh-sau-danh-gia.md); cách đọc chỉ số: 13 mục 13.0.
 
 **Chạy gì.** Thế giới `base` (thị trường thừa chỗ: 120 gia sư / 202 tin dạy, 60 học sinh) dựng lại trong database
