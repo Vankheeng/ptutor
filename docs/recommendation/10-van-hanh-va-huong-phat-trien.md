@@ -183,6 +183,23 @@ tuyển dụng (11, mục 11.4).
 | Đánh giá học sinh (để có Q cho chiều T→S) | Quyết định sản phẩm | Khiếu nại có `fault_party` chỉ học sinh có lỗi đã dùng được làm một thành phần độ tin cậy của học sinh (cùng cách tính như 06, mục 6.8) |
 | Index ANN (`hnsw`) | > ~10 000 tin đăng | — |
 
+### Việc kỹ thuật còn mở khi đóng gói (28/10/2026)
+
+> 💡 Những chỗ đã biết là còn thiếu khi kết thúc đồ án. Chúng không làm sai kết quả gợi ý hiện tại, nhưng nên làm trước
+> khi chạy thật lâu dài. Mỗi dòng ghi vì sao cần và hướng làm.
+
+| Việc | Vì sao cần | Hướng làm |
+|---|---|---|
+| Quét bù job `ENRICH` bị `FAILED`, dọn job `DONE`, đếm job theo trạng thái | Một tin có A1 lỗi (LLM hết hạn mức, mạng) sẽ không bao giờ được gắn tag lại; bảng job lớn dần; chưa có cảnh báo như 10.4 mô tả | Job định kỳ đặt lại `FAILED` quá N giờ về `PENDING` (giới hạn số lần); xoá `DONE` cũ hơn 30 ngày; log `WARN` khi số `FAILED` tăng |
+| Đổi tên môn / lớp không làm embed lại; 11 môn chưa có tag `TOPIC`; người dùng chưa sửa được tag do hệ thống suy ra | Vector của tin đăng chứa tên môn cũ; môn không có `TOPIC` thì A1 không gắn được chủ đề | Khi admin đổi tên, xếp việc `EMBED` cho các tin liên quan; bổ sung từ vựng `TOPIC`; API và giao diện để người đăng bỏ / thêm tag suy ra |
+| `/embed` được gọi trong transaction của lần tìm | Giữ kết nối database trong lúc chờ AI service (p50 khoảng 130 ms), nên khi nhiều người tìm cùng lúc thì dễ cạn pool kết nối | Tính vector câu tìm trước khi mở transaction đọc |
+| Gia sư có hồ sơ ở trạng thái `PENDING` không tìm được học viên mà giao diện không nói vì sao | Gia sư sửa hồ sơ thì bị đưa về chờ duyệt và thấy danh sách trống | Trả mã lý do từ API, hiện một dòng thông báo trên trang gợi ý |
+| Hai ngưỡng còn dùng R tuyệt đối: thông báo chủ động 0,65, "kết quả tốt" của nới tiêu chí 0,50 | Khi L1 đổi mức của b, số lần thông báo / gợi ý nới có thể đổi dù thứ tự tốt hơn (12.7) | Đổi sang ngưỡng tương đối (phân vị của R theo lần tìm) hoặc hiệu chỉnh lại sau mỗi lần kích hoạt |
+| Rerank: chế độ "ghi log mà không dùng" | Điều kiện để bật lại rerank (13.2) là chứng minh được trên click thật; chưa có cách ghi điểm rerank mà không đổi thứ tự | Chế độ `SHADOW` cho rerank: chấm ở nền, ghi điểm vào log, không đổi xếp hạng; so NDCG trên click |
+| Giao diện quản trị trọng số L1; khu quản trị còn tiếng Anh | Admin hiện xem / học trọng số qua API (08) | Trang xem version, trọng số, kết quả đánh giá, nút học ngay và quay về prior |
+| Frontend chưa có test tự động | Các luồng gửi sự kiện (`VIEWED`, `CONTACTED`) chỉ được kiểm bằng tay | Test thành phần (Vitest + Testing Library) cho trang gợi ý và trang chi tiết |
+| Đánh giá thêm: H1 theo số phiên, Q với đánh giá / khiếu nại thật, độ trễ trên VPS | Ba điểm này chưa đo được trên mô phỏng hoặc trên laptop (`ket-qua/tong-ket/` mục 7) | Thí nghiệm 9.5 "NDCG theo số phiên"; kiểm lại hệ số Q khi có dữ liệu thật (13.8); chạy `latency.py --config V2-final` trên VPS |
+
 ## 10.6. Thứ tự triển khai gợi ý
 
 > 💡 Thứ tự làm từng phần, mỗi bước chạy được và đo được trước khi sang bước sau: điều kiện tiên quyết → dữ liệu và AI service → bản tìm kiếm cơ bản (V2-a) → chuẩn hóa bằng LLM → hai chiều + chống dồn → rerank → cá nhân hóa, khám phá, nới tiêu chí → thông báo chủ động → tách câu → đánh giá → học trọng số.
