@@ -1,6 +1,7 @@
 """2.7: search latency with a cold and a warm rerank cache (plan of 21/10/2026; design 13, 13.2).
 
     python scripts/recommendation_eval/latency.py --scenario text-only [--drain]
+    python scripts/recommendation_eval/latency.py --config V2-final      # step 43b: the system as it ships
 
 Empties recommendation_rerank_cache in the evaluation database (never the dev database), runs every query of the
 scenario twice with V2-full (first cold, then warm, on what the first pass left in the cache) and reads the
@@ -10,6 +11,9 @@ between the searches (V2-full-busy). --drain instead lets the worker empty its q
 the warm pass reads a full cache. Every row notes the free memory
 (the numbers only count when the machine is not short of it) and how many searches fell back to the profile
 vector. Writes ket-qua/<scenario>/latency.csv.
+
+--config NAME measures another configuration in one pass. Since 26/10/2026 the system ships with rerank off
+(design 13, 13.2), so there is no cache to warm: V2-final runs every query once, start the database from <db>_seed.
 """
 
 import csv
@@ -38,25 +42,32 @@ def phases(log_name: str) -> dict:
     return {"phases": found, "timeouts": timeouts}
 
 
+def passes(config: str, drain: bool) -> list:
+    """(state, configuration, keep the cache, drain) of each pass."""
+    if config != "V2-full":
+        return [("rerank tắt", config, False, False)]
+    # Warm, not drained: a pair that waited a minute is scored while searches run, which is what a search loses
+    # when it meets the worker (design 13, 13.2).
+    return [("cold", "V2-full", False, drain), ("warm", "V2-full" if drain else "V2-full-busy", True, False)]
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     if DATABASE in ("ptutor", "ptutor_test"):
         raise SystemExit(f"refusing to empty the rerank cache of {DATABASE}")
     drain = "--drain" in sys.argv
+    config = sys.argv[sys.argv.index("--config") + 1] if "--config" in sys.argv else "V2-full"
     world = read_json(OUT / "world.json")
     psql("DELETE FROM recommendation_rerank_cache;")
     rows = []
-    for state in ("cold", "warm"):
+    for state, name, keep_cache, drain_queue in passes(config, drain):
         ram_before = free_ram_gb()
-        # Warm, not drained: a pair that waited a minute is scored while searches run, which is what a search loses
-        # when it meets the worker (design 13, 13.2).
-        run_config("V2-full" if state == "cold" or drain else "V2-full-busy", world, run_name=f"latency-{state}",
-                   keep_cache=state == "warm", drain=drain and state == "cold")
+        run_config(name, world, run_name=f"latency-{state}", keep_cache=keep_cache, drain=drain_queue)
         ram_after = free_ram_gb()
         measured = phases(f"latency-{state}")
         results = read_json(OUT / "runs" / f"latency-{state}.json")["results"]
         fell_back = len(fallback.flagged(results, OUT / f"backend-latency-{state}.log"))
-        common = {"cache": state, "free_ram_gb": f"{ram_before}-{ram_after}"}
+        common = {"config": name, "cache": state, "free_ram_gb": f"{ram_before}-{ram_after}"}
         for (side, phase), values in sorted(measured["phases"].items()):
             values = np.array(values)
             rows.append({**common, "side": side, "phase": phase, "n": len(values),
