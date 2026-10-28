@@ -26,6 +26,7 @@ export function TutorPersonalInformationSection({
         <span>01</span>
         <div>
           <h2>Thông tin cá nhân</h2>
+          <p>Thông tin liên hệ và nhận dạng cơ bản của bạn.</p>
         </div>
       </div>
       <div className="tutor-form-grid">
@@ -38,7 +39,7 @@ export function TutorPersonalInformationSection({
           <input name="lastName" defaultValue={profile.lastName ?? ''} maxLength={100} />
         </label>
         <label>
-          Email
+          Địa chỉ email
           <input value={profile.email} readOnly />
         </label>
         <label>
@@ -59,9 +60,9 @@ export function TutorPersonalInformationSection({
           </select>
         </label>
         <label>
-          Tỉnh / thành
+          Tỉnh/thành phố
           <select name="provinceId" value={provinceId} onChange={(event) => onProvinceChange(event.target.value)}>
-            <option value="">Chọn tỉnh / thành</option>
+            <option value="">Chọn tỉnh/thành phố</option>
             {provinces.map((province) => (
               <option key={province.id} value={province.id}>
                 {province.name}
@@ -70,14 +71,14 @@ export function TutorPersonalInformationSection({
           </select>
         </label>
         <label>
-          Quận / huyện
+          Quận/huyện
           <select
             name="districtId"
             value={districtId}
             onChange={(event) => onDistrictChange(event.target.value)}
             disabled={!provinceId}
           >
-            <option value="">Chọn quận / huyện</option>
+            <option value="">Chọn quận/huyện</option>
             {districts.map((district) => (
               <option key={district.id} value={district.id}>
                 {district.name}
@@ -86,7 +87,7 @@ export function TutorPersonalInformationSection({
           </select>
         </label>
         <label className="tutor-field-full">
-          Địa chỉ chi tiết
+          Địa chỉ cụ thể
           <input name="detailAddress" defaultValue={profile.address?.detailAddress ?? ''} maxLength={255} />
         </label>
       </div>

@@ -5,7 +5,6 @@ import { getStudyingRequest, type StudyingRequestSearchResponse } from '../../se
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { TutorProposalCard } from './components/TutorProposalCard';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
-import { statusLabel } from '../../utils/labels';
 
 const filters = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'] as const;
 type ProposalFilter = (typeof filters)[number];
@@ -73,7 +72,7 @@ export function TutorProposalsPage() {
       await cancelTutorProposal(proposal.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Chưa rút được đề nghị này.');
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy đề xuất này.');
     } finally {
       setCancelling(null);
     }
@@ -83,7 +82,7 @@ export function TutorProposalsPage() {
     if (!editingProposal) return;
     const request = requestDetails[editingProposal.studyingRequestId];
     if (!request) {
-      setEditError('Đang tải thông tin tin, hãy thử lại.');
+      setEditError('Đang tải chi tiết yêu cầu học. Vui lòng thử lại.');
       return;
     }
     setSavingEdit(true);
@@ -93,7 +92,7 @@ export function TutorProposalsPage() {
       setEditingProposal(null);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setEditError(caught instanceof Error ? caught.message : 'Chưa cập nhật được đề nghị.');
+      setEditError(caught instanceof Error ? caught.message : 'Không thể cập nhật đề xuất.');
     } finally {
       setSavingEdit(false);
     }
@@ -103,12 +102,12 @@ export function TutorProposalsPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">ĐỀ NGHỊ DẠY</span>
-          <h1>Đề nghị dạy của tôi</h1>
-          <p>Đối chiếu tin của học viên với đề nghị bạn đã gửi.</p>
+          <span className="tutor-eyebrow">HÀNH TRÌNH GIẢNG DẠY</span>
+          <h1>Đề xuất giảng dạy của tôi</h1>
+          <p>Theo dõi yêu cầu học và đề xuất bạn đã gửi cho học viên.</p>
         </div>
         <Link className="tutor-button tutor-heading-button" to="/tutor/dashboard">
-          Xem tin tìm gia sư
+          Tìm yêu cầu học
         </Link>
       </div>
       {(error || proposalQuery.error) && (
@@ -122,11 +121,11 @@ export function TutorProposalsPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm môn, lịch, học phí hoặc địa chỉ"
-            aria-label="Tìm đề nghị"
+            placeholder="Tìm môn học, lịch dạy, giá hoặc địa chỉ"
+            aria-label="Tìm đề xuất của tôi"
           />
         </label>
-        <div className="tutor-filter-tabs" role="tablist" aria-label="Lọc đề nghị">
+        <div className="tutor-filter-tabs" role="tablist" aria-label="Lọc đề xuất">
           {filters.map((item) => (
             <button
               className={filter === item ? 'active' : ''}
@@ -142,12 +141,16 @@ export function TutorProposalsPage() {
         </div>
       </div>
       {proposalQuery.isLoading ? (
-        <div className="tutor-empty">Đang tải đề nghị…</div>
+        <div className="tutor-empty">Đang tải đề xuất…</div>
       ) : visibleProposals.length === 0 ? (
         <div className="tutor-empty">
           <span>↗</span>
-          <h3>{search ? 'Không có đề nghị phù hợp' : 'Không có đề nghị nào ở mục này'}</h3>
-          <p>{search ? 'Thử từ khoá hoặc trạng thái khác.' : 'Xem tin tìm gia sư để gửi đề nghị đầu tiên.'}</p>
+          <h3>{search ? 'Không tìm thấy đề xuất phù hợp' : 'Chưa có đề xuất trong mục này'}</h3>
+          <p>
+            {search
+              ? 'Thử từ khóa hoặc trạng thái khác.'
+              : 'Tìm yêu cầu học đang mở và gửi đề xuất giảng dạy đầu tiên của bạn.'}
+          </p>
         </div>
       ) : (
         <div className="tutor-proposal-list">
@@ -188,5 +191,11 @@ export function TutorProposalsPage() {
 }
 
 function label(value: string) {
-  return statusLabel(value, 'application');
+  const labels: Record<string, string> = {
+    PENDING: 'Đang chờ',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Bị từ chối',
+    CANCELLED: 'Đã hủy'
+  };
+  return labels[value] ?? value;
 }

@@ -7,18 +7,18 @@ import './tutor-layout.css';
 
 const navigation = [
   { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: '⌂' },
-  { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Tin dạy của tôi', icon: '▤' },
+  { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: '▤' },
   { section: 'TEACHING', to: '/tutor/student-recommendations', label: 'Gợi ý học viên', icon: '✦' },
-  { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị dạy đã gửi', icon: '↗' },
+  { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề xuất giảng dạy', icon: '↗' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: '▦' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: '♢' },
-  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví', icon: '◈' },
+  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: '◈' },
   { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: '▤' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: '◉' }
 ];
 
-const SECTION_LABELS = { WORKSPACE: 'CHUNG', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
+const sectionLabels = { WORKSPACE: 'KHÔNG GIAN', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
 
 export function TutorLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -37,12 +37,12 @@ export function TutorLayout() {
     <div className={`tutor-shell${sidebarCollapsed ? ' tutor-shell-collapsed' : ''}`}>
       <header className="tutor-topbar">
         <div className="tutor-topbar-brand">
-          <NavLink className="tutor-brand" to="/tutor/dashboard" aria-label="Trang tổng quan gia sư Ptutor">
+          <NavLink className="tutor-brand" to="/tutor/dashboard" aria-label="Ptutor dashboard">
             <img src={logo} alt="Ptutor" />
           </NavLink>
         </div>
         <div className="tutor-topbar-workspace">
-          <span className="tutor-topbar-kicker">PTUTOR / KHU GIA SƯ</span>
+          <span className="tutor-topbar-kicker">PTUTOR / KHÔNG GIAN GIA SƯ</span>
           <strong>{fullName}</strong>
         </div>
         <span className="tutor-topbar-status">
@@ -62,7 +62,7 @@ export function TutorLayout() {
         <button
           className="tutor-sidebar-toggle"
           type="button"
-          aria-label={sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+          aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
           aria-pressed={sidebarCollapsed}
           onClick={() => setSidebarCollapsed((value) => !value)}
         >
@@ -70,10 +70,10 @@ export function TutorLayout() {
             <path d={sidebarCollapsed ? 'm6 4 4 4-4 4' : 'm10 4-4 4 4 4'} />
           </svg>
         </button>
-        <nav className="tutor-nav" aria-label="Khu gia sư">
+        <nav className="tutor-nav" aria-label="Không gian gia sư">
           {(['WORKSPACE', 'TEACHING', 'ACCOUNT'] as const).map((section) => (
             <div className="tutor-nav-group" key={section}>
-              <span className="tutor-nav-label">{SECTION_LABELS[section]}</span>
+              <span className="tutor-nav-label">{sectionLabels[section]}</span>
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (

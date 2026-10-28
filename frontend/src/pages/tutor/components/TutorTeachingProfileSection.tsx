@@ -6,17 +6,18 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
       <div className="tutor-panel-heading">
         <span>02</span>
         <div>
-          <h2>Hồ sơ dạy học</h2>
+          <h2>Hồ sơ giảng dạy</h2>
+          <p>Giới thiệu điểm mạnh và phong cách giảng dạy của bạn.</p>
         </div>
       </div>
       <div className="tutor-form-grid">
         <label className="tutor-field-full">
-          Giới thiệu
+          Giới thiệu bản thân
           <textarea
             name="introduction"
             rows={5}
             defaultValue={profile.introduction ?? ''}
-            placeholder="Kể về bản thân và cách bạn dạy."
+            placeholder="Chia sẻ về kinh nghiệm và phương pháp giảng dạy của bạn."
           />
         </label>
         <label>
@@ -24,11 +25,11 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
           <input name="experienceYears" type="number" min="0" defaultValue={profile.experienceYears ?? ''} />
         </label>
         <label>
-          Học vấn
+          Trình độ học vấn
           <input name="education" defaultValue={profile.education ?? ''} />
         </label>
         <label className="tutor-field-full">
-          Môn dạy tốt
+          Môn học giảng dạy
           <input
             name="strengthSubjects"
             defaultValue={profile.strengthSubjects ?? ''}
@@ -36,15 +37,15 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
           />
         </label>
         <label className="tutor-field-full">
-          Phong cách dạy
+          Từ khóa phong cách giảng dạy
           <input
             name="teachingStyleTags"
             defaultValue={profile.teachingStyleTags ?? ''}
-            placeholder="Kiên nhẫn, thực tế, tập trung luyện thi…"
+            placeholder="Kiên nhẫn, thực tế, tập trung ôn thi…"
           />
         </label>
         <label className="tutor-field-full">
-          Phương pháp dạy
+          Phương pháp giảng dạy
           <textarea name="teachingMethodology" rows={3} defaultValue={profile.teachingMethodology ?? ''} />
         </label>
         <label className="tutor-field-full">
@@ -52,7 +53,7 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
           <input
             name="targetStudentType"
             defaultValue={profile.targetStudentType ?? ''}
-            placeholder="Tiểu học, luyện thi…"
+            placeholder="Học sinh tiểu học, ôn thi…"
           />
         </label>
       </div>

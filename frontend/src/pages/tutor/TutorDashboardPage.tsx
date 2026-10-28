@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorDashboard } from '../../hooks/useTutorWorkspace';
 import { useAuth } from '../../auth/useAuth';
+import { tutorScheduleLabel } from '../../utils/tutorDisplay';
 
 export function TutorDashboardPage() {
   const { user } = useAuth();
@@ -35,11 +36,11 @@ export function TutorDashboardPage() {
     <>
       <section className="tutor-welcome-card">
         <div>
-          <span className="tutor-eyebrow">GÓC DẠY HỌC</span>
-          <h1>Chào {user?.profile?.firstName || 'bạn'}!</h1>
-          <p>Theo dõi lớp đang dạy, buổi học sắp tới và học viên mới đang tìm gia sư.</p>
+          <span className="tutor-eyebrow">GÓC GIẢNG DẠY CỦA BẠN</span>
+          <h1>Chào mừng trở lại, {user?.profile?.firstName || 'gia sư'}.</h1>
+          <p>Theo dõi lớp đang dạy, lịch học sắp tới và những học viên đang tìm gia sư.</p>
           <a className="tutor-hero-link" href="#marketplace">
-            Xem tin tìm gia sư <span>→</span>
+            Khám phá yêu cầu học <span>→</span>
           </a>
         </div>
         <div className="tutor-welcome-art" aria-hidden="true">
@@ -48,19 +49,19 @@ export function TutorDashboardPage() {
           <b />
         </div>
       </section>
-      <section className="tutor-dashboard-stats" aria-label="Tổng quan dạy học">
+      <section className="tutor-dashboard-stats" aria-label="Tổng quan giảng dạy">
         <Stat
           icon="¤"
           tone="violet"
           label="Hợp đồng đang dạy"
           value={contracts.filter((c) => c.status === 'ACTIVE').length}
         />
-        <Stat icon="◷" tone="orange" label="Buổi học 7 ngày tới" value={upcomingLessons.length} />
-        <Stat icon="✧" tone="green" label="Tin tìm gia sư đang mở" value={requestQuery.data?.totalElements ?? '—'} />
+        <Stat icon="◷" tone="orange" label="Buổi học trong 7 ngày tới" value={upcomingLessons.length} />
+        <Stat icon="✧" tone="green" label="Yêu cầu học đang mở" value={requestQuery.data?.totalElements ?? '—'} />
         <Stat
           icon="↗"
           tone="blue"
-          label="Hợp đồng chờ ký"
+          label="Hợp đồng chờ xử lý"
           value={contracts.filter((c) => c.status === 'PENDING').length}
         />
       </section>
@@ -72,7 +73,7 @@ export function TutorDashboardPage() {
       <section className="tutor-next-lessons">
         <div className="tutor-section-heading">
           <div>
-            <span className="tutor-eyebrow">LỊCH DẠY</span>
+            <span className="tutor-eyebrow">THỜI KHÓA BIỂU</span>
             <h2>Buổi học sắp tới</h2>
           </div>
           <span className="tutor-count">7 ngày tới</span>
@@ -80,8 +81,8 @@ export function TutorDashboardPage() {
         {upcomingLessons.length === 0 ? (
           <div className="tutor-empty tutor-empty-short">
             <span>◷</span>
-            <h3>Chưa có buổi học nào trong 7 ngày tới</h3>
-            <p>Buổi học của các hợp đồng đang dạy sẽ hiện ở đây.</p>
+            <h3>Tuần tới chưa có buổi học nào</h3>
+            <p>Lịch học trong các hợp đồng đang hoạt động sẽ hiển thị tại đây.</p>
           </div>
         ) : (
           <div className="tutor-lesson-grid">
@@ -101,7 +102,7 @@ export function TutorDashboardPage() {
                     </p>
                     <small>
                       {lesson.startTime.slice(0, 5)}–{lesson.endTime.slice(0, 5)} ·{' '}
-                      {lesson.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}
+                      {lesson.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}
                     </small>
                   </div>
                 </article>
@@ -113,10 +114,10 @@ export function TutorDashboardPage() {
       <section id="marketplace" className="tutor-marketplace">
         <div className="tutor-section-heading">
           <div>
-            <span className="tutor-eyebrow">TIN TÌM GIA SƯ</span>
-            <h2>Học viên đang tìm gia sư</h2>
+            <span className="tutor-eyebrow">DANH SÁCH HỌC VIÊN</span>
+            <h2>Yêu cầu tìm gia sư</h2>
           </div>
-          <span className="tutor-count">{requestQuery.data?.totalElements ?? 0} tin</span>
+          <span className="tutor-count">{requestQuery.data?.totalElements ?? 0} yêu cầu</span>
         </div>
         <div className="tutor-marketplace-toolbar">
           <label className="tutor-search">
@@ -127,8 +128,8 @@ export function TutorDashboardPage() {
                 setSearch(event.target.value);
                 setPage(0);
               }}
-              placeholder="Tìm môn, lớp, khu vực…"
-              aria-label="Tìm tin"
+              placeholder="Tìm môn học, lớp, khu vực..."
+              aria-label="Tìm kiếm yêu cầu học"
             />
           </label>
           <label>
@@ -141,15 +142,15 @@ export function TutorDashboardPage() {
               }}
             >
               <option value="ALL">Tất cả</option>
-              <option value="ONLINE">Online</option>
+              <option value="ONLINE">Trực tuyến</option>
               <option value="OFFLINE">Trực tiếp</option>
             </select>
           </label>
           <label>
-            Sắp xếp
+            Sắp xếp theo
             <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
               <option value="NEWEST">Mới nhất</option>
-              <option value="BUDGET">Học phí cao nhất</option>
+              <option value="BUDGET">Ngân sách cao nhất</option>
             </select>
           </label>
         </div>
@@ -166,32 +167,34 @@ export function TutorDashboardPage() {
         ) : requests.length === 0 ? (
           <div className="tutor-empty">
             <span>✧</span>
-            <h3>{search ? 'Không có tin phù hợp' : 'Chưa có tin nào đang mở'}</h3>
-            <p>Thử đổi từ khoá hoặc bộ lọc.</p>
+            <h3>{search ? 'Không tìm thấy yêu cầu phù hợp' : 'Chưa có yêu cầu học nào'}</h3>
+            <p>Hãy thử thay đổi từ khóa hoặc bộ lọc.</p>
           </div>
         ) : (
           <div className="tutor-request-grid">
             {requests.map((request) => (
               <article className="tutor-request-card" key={request.id}>
                 <div className="tutor-card-top">
-                  <span className="tutor-subject-tag">{request.subjectName || 'Gia sư'}</span>
-                  <span>{request.learningMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}</span>
+                  <span className="tutor-subject-tag">{request.subjectName || 'Môn học'}</span>
+                  <span>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</span>
                 </div>
-                <h3>{request.title || `Tìm gia sư ${request.subjectName}`}</h3>
+                <h3>{request.title || `Tìm gia sư môn ${request.subjectName}`}</h3>
                 <p className="tutor-request-meta">
-                  {request.gradeName} · {request.districtName || 'Không giới hạn khu vực'}
+                  Lớp học: {request.gradeName || 'Chưa xác định'} · {request.districtName || 'Linh hoạt địa điểm'}
                 </p>
                 <p className="tutor-request-description">
-                  {request.description || request.learningGoals || 'Học viên đang tìm gia sư. Mở tin để xem chi tiết.'}
+                  {request.description ||
+                    request.learningGoals ||
+                    'Học viên đang tìm gia sư. Mở yêu cầu để xem thêm chi tiết.'}
                 </p>
                 <div className="tutor-request-details">
                   <span>
-                    <small>Học phí</small>
+                    <small>Ngân sách</small>
                     <strong>{formatBudget(request.minPrice, request.maxPrice)}</strong>
                   </span>
                   <span>
-                    <small>Lịch học</small>
-                    <strong>{request.preferredSchedule || 'Linh hoạt'}</strong>
+                    <small>Lịch học mong muốn</small>
+                    <strong>{tutorScheduleLabel(request.preferredSchedule)}</strong>
                   </span>
                 </div>
                 <Link
@@ -207,17 +210,17 @@ export function TutorDashboardPage() {
         {!!requestQuery.data?.totalPages && requestQuery.data.totalPages > 1 && (
           <div className="tutor-marketplace-pagination">
             <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>
-              ← Trang trước
+              ← Trước
             </button>
             <span>
-              Trang {page + 1} / {requestQuery.data.totalPages}
+              Trang {page + 1}/{requestQuery.data.totalPages}
             </span>
             <button
               type="button"
               disabled={page + 1 >= requestQuery.data.totalPages}
               onClick={() => setPage((value) => value + 1)}
             >
-              Trang sau →
+              Sau →
             </button>
           </div>
         )}
@@ -239,7 +242,7 @@ function Stat({ icon, tone, label, value }: { icon: string; tone: string; label:
 }
 function formatBudget(min: number | null, max: number | null) {
   const format = (value: number) => new Intl.NumberFormat('vi-VN').format(value);
-  if (min === null && max === null) return 'Thoả thuận';
-  if (min !== null && max !== null) return `${format(min)}–${format(max)} đ`;
-  return `${format(min ?? max ?? 0)} đ`;
+  if (min === null && max === null) return 'Có thể thương lượng';
+  if (min !== null && max !== null) return `${format(min)}–${format(max)} VNĐ`;
+  return `${format(min ?? max ?? 0)} VNĐ`;
 }

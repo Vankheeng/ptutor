@@ -7,7 +7,9 @@ import { recordEvent } from '../../services/recommendationApi';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
 import { updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
-import { dateLabel, modeLabel, moneyLabel, statusLabel, weekdayLabel } from '../../utils/labels';
+import { tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
+
+const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function TutorStudyingRequestPage() {
   const navigate = useNavigate();
@@ -46,13 +48,13 @@ export function TutorStudyingRequestPage() {
       };
       if (editingProposal && myProposal) {
         await updateTutorProposal(myProposal.id, payload);
-        setNotice('Đã cập nhật đề nghị.');
+        setNotice('Đề xuất của bạn đã được cập nhật.');
       } else {
         await submitTutorStudyingRequestProposal(request.id, payload);
         if (recommendationLogId) {
           recordEvent(recommendationLogId, request.id, 'CONTACTED').catch(() => undefined);
         }
-        setNotice(myProposal?.status === 'CANCELLED' ? 'Đã gửi lại đề nghị.' : 'Đã gửi đề nghị tới học viên.');
+        setNotice(myProposal?.status === 'CANCELLED' ? 'Bạn đã gửi lại đề xuất.' : 'Đề xuất đã được gửi đến học viên.');
       }
       setShowApply(false);
       setEditingProposal(false);
@@ -60,10 +62,10 @@ export function TutorStudyingRequestPage() {
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.status === 409
-          ? 'Bạn đã có một đề nghị đang chờ cho tin này.'
+          ? 'Bạn đã có đề xuất đang chờ xử lý cho yêu cầu này.'
           : caught instanceof Error
             ? caught.message
-            : 'Chưa gửi được đề nghị.'
+            : 'Không thể gửi đề xuất.'
       );
     } finally {
       setSending(false);
@@ -76,7 +78,7 @@ export function TutorStudyingRequestPage() {
     setShowApply(true);
   };
 
-  if (loading) return <div className="tutor-empty">Đang tải tin…</div>;
+  if (loading) return <div className="tutor-empty">Đang tải yêu cầu học…</div>;
   if (!request)
     return (
       <>
@@ -85,10 +87,10 @@ export function TutorStudyingRequestPage() {
           type="button"
           onClick={() => navigate('/tutor/dashboard#marketplace')}
         >
-          ← Quay lại danh sách tin
+          ← Quay lại danh sách yêu cầu
         </button>
         <div className="tutor-error" role="alert">
-          {requestError || 'Tin này không còn nữa.'}
+          {requestError || 'Yêu cầu học này không còn khả dụng.'}
         </div>
       </>
     );
@@ -100,7 +102,7 @@ export function TutorStudyingRequestPage() {
         type="button"
         onClick={() => navigate('/tutor/dashboard#marketplace')}
       >
-        ← Quay lại danh sách tin
+        ← Quay lại danh sách yêu cầu
       </button>
       {notice && (
         <div className="tutor-notice" role="status">
@@ -110,7 +112,7 @@ export function TutorStudyingRequestPage() {
             type="button"
             onClick={() => navigate('/tutor/proposals')}
           >
-            Xem đề nghị của tôi →
+            Xem đề xuất của tôi →
           </button>
         </div>
       )}
@@ -122,45 +124,49 @@ export function TutorStudyingRequestPage() {
       <div className="tutor-request-detail-layout tutor-market-detail">
         <article className="tutor-panel tutor-detail-main">
           <div className="tutor-card-top">
-            <span className="tutor-subject-tag">{request.subjectName || 'Gia sư'}</span>
-            <span>{modeLabel(request.learningMode)} · Đang mở</span>
+            <span className="tutor-subject-tag">{request.subjectName || 'Môn học'}</span>
+            <span>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} · Đang mở</span>
           </div>
-          <h1 className="tutor-detail-heading">{request.title || `Tìm gia sư ${request.subjectName}`}</h1>
+          <h1 className="tutor-detail-heading">{request.title || `Tìm gia sư môn ${request.subjectName}`}</h1>
           <p className="tutor-detail-subtitle">{request.gradeName}</p>
           <p className="tutor-request-author">
             <span>
-              Người đăng{' '}
+              Đăng bởi{' '}
               <strong>
                 {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
               </strong>
             </span>
-            <span>Ngày đăng {dateLabel(request.createdAt)}</span>
+            <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
           </p>
           <div className="tutor-detail-facts">
             <span>
-              <small>Học phí</small>
+              <small>Ngân sách</small>
               <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
             </span>
             <span>
+              <small>Lớp học</small>
+              <strong>{request.gradeName || 'Chưa xác định'}</strong>
+            </span>
+            <span>
               <small>Hình thức học</small>
-              <strong>{modeLabel(request.learningMode)}</strong>
+              <strong>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
             </span>
             {request.learningMode === 'OFFLINE' && (
               <span>
-                <small className="tutor-detail-fact-tag">Địa chỉ dạy</small>
+                <small className="tutor-detail-fact-tag">Địa chỉ dạy học</small>
                 <strong>
                   {[request.detailAddress, request.districtName, request.provinceName].filter(Boolean).join(', ') ||
-                    'Chưa ghi'}
+                    'Chưa cung cấp'}
                 </strong>
               </span>
             )}
             <span>
               <small>Lịch học mong muốn</small>
-              <strong>{request.preferredSchedule || 'Linh hoạt'}</strong>
+              <strong>{tutorScheduleLabel(request.preferredSchedule)}</strong>
             </span>
             <span>
-              <small>Ngày đăng</small>
-              <strong>{dateLabel(request.createdAt)}</strong>
+              <small>Ngày đăng yêu cầu</small>
+              <strong>{new Date(request.createdAt).toLocaleDateString()}</strong>
             </span>
           </div>
           {request.note?.trim() && (
@@ -170,11 +176,11 @@ export function TutorStudyingRequestPage() {
             </div>
           )}
           <section className="tutor-detail-section">
-            <span className="tutor-eyebrow">MỤC TIÊU HỌC</span>
-            <h2 className="tutor-detail-title">Học viên cần gì</h2>
+            <span className="tutor-eyebrow">MỤC TIÊU HỌC TẬP</span>
+            <h2 className="tutor-detail-title">Nhu cầu của học viên</h2>
             {request.description?.trim() && (
               <>
-                <h3 className="tutor-small-heading">Mô tả</h3>
+                <h3 className="tutor-small-heading">Chi tiết yêu cầu</h3>
                 <p className="tutor-detail-copy">{request.description}</p>
               </>
             )}
@@ -185,16 +191,16 @@ export function TutorStudyingRequestPage() {
               </>
             )}
             {!request.description?.trim() && !request.learningGoals?.trim() && (
-              <p className="tutor-detail-copy">Học viên chưa thêm mô tả.</p>
+              <p className="tutor-detail-copy">Học viên chưa bổ sung thêm thông tin.</p>
             )}
           </section>
           {request.availabilities.length > 0 && (
             <section className="tutor-detail-section">
-              <h2 className="tutor-detail-title">Thời gian rảnh của học viên</h2>
+              <h2 className="tutor-detail-title">Thời gian học viên có thể học</h2>
               <div className="tutor-availability-list">
                 {request.availabilities.map((slot, index) => (
                   <span key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}>
-                    {weekdayLabel(slot.dayOfWeek)} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+                    {weekdays[slot.dayOfWeek % 7]} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
                   </span>
                 ))}
               </div>
@@ -203,15 +209,15 @@ export function TutorStudyingRequestPage() {
           <section className="tutor-recommendations">
             <div className="tutor-section-heading">
               <div>
-                <span className="tutor-eyebrow">XEM THÊM</span>
-                <h2>Tin tương tự</h2>
+                <span className="tutor-eyebrow">KHÁM PHÁ THÊM</span>
+                <h2>Yêu cầu học tương tự</h2>
               </div>
               <button
                 className="tutor-button secondary tutor-navigation-compact"
                 type="button"
                 onClick={() => navigate('/tutor/dashboard#marketplace')}
               >
-                Xem tất cả →
+                See all →
               </button>
             </div>
             {recommendations.length ? (
@@ -223,16 +229,16 @@ export function TutorStudyingRequestPage() {
                     onClick={() => navigate(`/tutor/studying-requests/${item.id}`)}
                     key={item.id}
                   >
-                    <span className="tutor-subject-tag">{item.subjectName || 'Gia sư'}</span>
-                    <strong>{item.title || `Tìm gia sư ${item.subjectName}`}</strong>
+                    <span className="tutor-subject-tag">{item.subjectName || 'Môn học'}</span>
+                    <strong>{item.title || `Tìm gia sư môn ${item.subjectName}`}</strong>
                     <small>
-                      {item.gradeName} · {item.districtName || 'Không giới hạn khu vực'}
+                      Lớp học: {item.gradeName || 'Chưa xác định'} · {item.districtName || 'Linh hoạt địa điểm'}
                     </small>
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="tutor-muted">Chưa có tin tương tự.</p>
+              <p className="tutor-muted">Yêu cầu mới sẽ hiển thị tại đây khi học viên đăng bài.</p>
             )}
           </section>
         </article>
@@ -244,8 +250,8 @@ export function TutorStudyingRequestPage() {
                   ↗
                 </span>
                 <div>
-                  <span className="tutor-eyebrow">ĐỀ NGHỊ CỦA TÔI</span>
-                  <h2>Đang tải đề nghị…</h2>
+                  <span className="tutor-eyebrow">ĐỀ XUẤT CỦA TÔI</span>
+                  <h2>Đang tải đề xuất…</h2>
                 </div>
               </div>
             </>
@@ -256,24 +262,28 @@ export function TutorStudyingRequestPage() {
                   ↗
                 </span>
                 <div>
-                  <span className="tutor-eyebrow">ĐỀ NGHỊ CỦA TÔI</span>
-                  <h2>Đề nghị của bạn</h2>
+                  <span className="tutor-eyebrow">ĐỀ XUẤT CỦA TÔI</span>
+                  <h2>Đề xuất giảng dạy</h2>
                 </div>
                 <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
-                  {statusLabel(myProposal.status, 'application')}
+                  {tutorStatusLabel(myProposal.status)}
                 </span>
               </div>
               <div className="tutor-apply-summary">
-                <small>Học phí đề nghị</small>
-                <strong className="tutor-proposed-price-value">{moneyLabel(myProposal.proposedPrice)}</strong>
+                <small>Học phí đề xuất</small>
+                <strong className="tutor-proposed-price-value">
+                  {new Intl.NumberFormat('vi-VN').format(myProposal.proposedPrice)} VNĐ
+                </strong>
                 <small>Thời gian có thể dạy</small>
-                <strong className="tutor-application-time">{myProposal.preferredSchedule || 'Linh hoạt'}</strong>
+                <strong className="tutor-application-time">
+                  {tutorScheduleLabel(myProposal.preferredSchedule, 'Lịch linh hoạt')}
+                </strong>
                 <small>Hình thức dạy</small>
-                <strong>{modeLabel(myProposal.teachingMode)}</strong>
+                <strong>{myProposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
                 {myProposal.teachingMode === 'OFFLINE' &&
                   (myProposal.preferredProvinceName || myProposal.preferredDistrictName) && (
                     <>
-                      <small className="tutor-application-address-label">Địa chỉ dạy</small>
+                      <small className="tutor-application-address-label">Địa chỉ dạy học</small>
                       <strong className="tutor-application-address-value">
                         {[myProposal.preferredDistrictName, myProposal.preferredProvinceName]
                           .filter(Boolean)
@@ -283,7 +293,7 @@ export function TutorStudyingRequestPage() {
                   )}
                 {myProposal.message?.trim() && (
                   <>
-                    <small>Ghi chú</small>
+                    <small>Lời nhắn</small>
                     <strong>{myProposal.message}</strong>
                   </>
                 )}
@@ -295,14 +305,14 @@ export function TutorStudyingRequestPage() {
                     type="button"
                     onClick={() => openApplication(true)}
                   >
-                    Sửa đề nghị <span>↗</span>
+                    Sửa đề xuất <span>↗</span>
                   </button>
                   <button
                     className="tutor-button secondary tutor-navigation-compact"
                     type="button"
                     onClick={() => navigate('/tutor/proposals')}
                   >
-                    Xem tất cả đề nghị →
+                    Xem tất cả đề xuất →
                   </button>
                 </div>
               ) : myProposal.status === 'CANCELLED' ? (
@@ -311,7 +321,7 @@ export function TutorStudyingRequestPage() {
                   type="button"
                   onClick={() => openApplication(false)}
                 >
-                  Gửi lại đề nghị <span>→</span>
+                  Gửi lại đề xuất <span>→</span>
                 </button>
               ) : (
                 <button
@@ -319,29 +329,30 @@ export function TutorStudyingRequestPage() {
                   type="button"
                   onClick={() => navigate('/tutor/proposals')}
                 >
-                  Xem đề nghị của tôi <span>→</span>
+                  Xem đề xuất của tôi <span>→</span>
                 </button>
               )}
             </>
           ) : (
             <>
-              <span className="tutor-eyebrow">BẠN MUỐN DẠY HỌC VIÊN NÀY?</span>
-              <h2>Gửi đề nghị dạy</h2>
+              <span className="tutor-eyebrow">BẠN QUAN TÂM ĐẾN YÊU CẦU NÀY?</span>
+              <h2>Gửi đề xuất giảng dạy</h2>
+              <p>Giới thiệu về bạn và đề xuất thời gian phù hợp.</p>
               <div className="tutor-apply-summary">
-                <small>Học phí học viên đưa ra</small>
+                <small>Ngân sách học viên</small>
                 <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
-                <small>Lịch học</small>
-                <strong>{request.preferredSchedule || 'Linh hoạt'}</strong>
+                <small>Thời gian mong muốn</small>
+                <strong>{tutorScheduleLabel(request.preferredSchedule, 'Lịch linh hoạt')}</strong>
               </div>
               <button className="tutor-button tutor-apply-button" type="button" onClick={() => openApplication(false)}>
-                Gửi đề nghị <span>→</span>
+                Ứng tuyển yêu cầu này <span>→</span>
               </button>
               <button
                 className="tutor-button secondary tutor-save-button"
                 type="button"
                 onClick={() => navigate('/tutor/proposals')}
               >
-                Đề nghị của tôi
+                Đề xuất của tôi
               </button>
             </>
           )}
@@ -369,6 +380,6 @@ export function TutorStudyingRequestPage() {
 
 function formatPrice(min: number | null, max: number | null) {
   const format = (amount: number) => new Intl.NumberFormat('vi-VN').format(amount);
-  if (min === null && max === null) return 'Thoả thuận';
-  return min !== null && max !== null ? `${format(min)}–${format(max)} đ` : `${format(min ?? max ?? 0)} đ`;
+  if (min === null && max === null) return 'Có thể thương lượng';
+  return min !== null && max !== null ? `${format(min)}–${format(max)} VNĐ` : `${format(min ?? max ?? 0)} VNĐ`;
 }
