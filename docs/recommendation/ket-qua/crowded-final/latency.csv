@@ -1,0 +1,19 @@
+config,cache,free_ram_gb,side,phase,n,p50_ms,p95_ms,max_ms
+V2-final,rerank tắt,5.71-4.95,Student,context,1180,13,18,81
+V2-final,rerank tắt,5.71-4.95,Student,explore+reasons,1180,4,6,46
+V2-final,rerank tắt,5.71-4.95,Student,log,1180,1,2,22
+V2-final,rerank tắt,5.71-4.95,Student,rank,1180,55,66,173
+V2-final,rerank tắt,5.71-4.95,Student,relax,1180,0,0,3
+V2-final,rerank tắt,5.71-4.95,Student,rerank,1180,0,0,0
+V2-final,rerank tắt,5.71-4.95,Student,total,1180,204,291,617
+V2-final,rerank tắt,5.71-4.95,Student,vector,1180,132,211,342
+V2-final,rerank tắt,5.71-4.95,Tutor,context,189,19,25,45
+V2-final,rerank tắt,5.71-4.95,Tutor,explore+reasons,189,2,3,11
+V2-final,rerank tắt,5.71-4.95,Tutor,log,189,1,1,3
+V2-final,rerank tắt,5.71-4.95,Tutor,rank,189,29,41,105
+V2-final,rerank tắt,5.71-4.95,Tutor,relax,189,2,51,63
+V2-final,rerank tắt,5.71-4.95,Tutor,rerank,189,0,0,0
+V2-final,rerank tắt,5.71-4.95,Tutor,total,189,322,458,547
+V2-final,rerank tắt,5.71-4.95,Tutor,vector,189,267,389,499
+V2-final,rerank tắt,5.71-4.95,both,rerank timeouts,0,,,
+V2-final,rerank tắt,5.71-4.95,both,profile fallbacks,0,,,
