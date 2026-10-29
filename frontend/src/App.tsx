@@ -36,6 +36,7 @@ import { AdminTutorContractsPage } from './pages/admin/AdminTutorContractsPage';
 import { AdminTutorRatingsPage } from './pages/admin/AdminTutorRatingsPage';
 import { AdminTutorTeachingHistoryPage } from './pages/admin/AdminTutorTeachingHistoryPage';
 import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
+import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 
 export default function App() {
   return (
@@ -50,6 +51,8 @@ export default function App() {
                 <Route index element={<Navigate replace to="tutor-profiles" />} />
                 <Route path="tutor-profiles" element={<AdminTutorProfilesPage />} />
                 <Route path="tutor-profiles/certificates" element={<AdminCertificateQueuePage />} />
+                <Route path="teaching-requests" element={<AdminRequestReviewPage key="teaching" kind="teaching" />} />
+                <Route path="studying-requests" element={<AdminRequestReviewPage key="studying" kind="studying" />} />
                 <Route path="tutor-profiles/:userId" element={<AdminTutorDetailLayout />}>
                   <Route index element={<AdminTutorReviewPage />} />
                   <Route path="contracts" element={<AdminTutorContractsPage />} />
