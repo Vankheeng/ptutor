@@ -1,6 +1,7 @@
 package com.ptutor.backend.repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,6 +32,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
     boolean existsByContract_IdAndStatusIn(UUID contractId, Collection<ComplaintStatus> statuses);
 
     boolean existsByEmployee_IdAndStatusIn(UUID employeeId, Collection<ComplaintStatus> statuses);
+
+    List<Complaint> findAllByContract_IdOrderByCreatedAtDesc(UUID contractId);
 
     @EntityGraph(attributePaths = {
             "user", "contract", "contract.student", "contract.student.user", "contract.tutor",

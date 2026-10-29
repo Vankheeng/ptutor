@@ -90,6 +90,9 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/admin/complaints")) {
             return EnumSet.of(EmployeeJobFunction.COMPLAINT_HANDLER);
         }
+        if (path.startsWith("/api/v1/admin/refund-requests")) {
+            return EnumSet.of(EmployeeJobFunction.ACCOUNTANT);
+        }
         if (path.startsWith("/api/v1/admin/certificates")
                 || path.startsWith("/api/v1/admin/teaching-requests")
                 || path.startsWith("/api/v1/admin/tutor-profiles")

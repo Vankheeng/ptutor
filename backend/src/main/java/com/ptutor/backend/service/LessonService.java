@@ -22,6 +22,7 @@ import com.ptutor.backend.entity.Lesson;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
@@ -30,6 +31,7 @@ import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.RefundRequestLessonRepository;
 import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.StudentRepository;
@@ -41,6 +43,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LessonService {
 
+    private static final List<RefundRequestStatus> OPEN_REFUND_STATUSES =
+            List.of(RefundRequestStatus.PENDING, RefundRequestStatus.IN_REVIEW);
     private static final List<ComplaintStatus> BLOCKING_COMPLAINT_STATUSES =
             List.of(ComplaintStatus.PENDING, ComplaintStatus.IN_REVIEW, ComplaintStatus.AWAITING_EVIDENCE);
 
@@ -49,6 +53,7 @@ public class LessonService {
     private final TutorRepository tutorRepository;
     private final StudentRepository studentRepository;
     private final ComplaintRepository complaintRepository;
+    private final RefundRequestLessonRepository refundRequestLessonRepository;
     private final LessonMapper lessonMapper;
     private final Clock clock;
     private final ContractPaymentInstallmentService installmentService;
@@ -84,6 +89,17 @@ public class LessonService {
             publishStudentNotification(saved, NotificationEventType.LESSON_MARKED_TAUGHT);
         }
         return lessonMapper.toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LessonResponse> findByContractForStudent(UUID userId, UUID contractId) {
+        Student student = findStudentByUserId(userId);
+        contractRepository.findById(contractId)
+                .filter(contract -> contract.getStudent() != null && student.getId().equals(contract.getStudent().getId()))
+                .orElseThrow(() -> contractNotFound(contractId));
+        return lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId).stream()
+                .map(lessonMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -161,6 +177,11 @@ public class LessonService {
         Lesson lesson = findStudentLesson(lessonId, student.getId());
         ensurePendingConfirmation(lesson, "confirmed");
         ensureNoBlockingComplaint(lesson.getContract());
+        if (refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(
+                lesson.getId(), OPEN_REFUND_STATUSES)) {
+            throw new ApiException(HttpStatus.CONFLICT, "LESSON_COMPLETION_ON_HOLD",
+                    "Lesson completion is on hold while it is disputed in a refund request");
+        }
 
         lesson.setStatus(LessonStatus.CONFIRMED);
         return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
@@ -173,7 +194,12 @@ public class LessonService {
         LocalDateTime deadline = LocalDateTime.now(clock).minusDays(graceDays);
         List<Lesson> candidates = lessonRepository.findAllMarkedTaughtBefore(
                 LessonStatus.PENDING_CONFIRMATION, deadline);
+        // Lessons disputed in an open refund request wait for the reviewer's decision.
+        java.util.Set<UUID> heldLessonIds = candidates.isEmpty() ? java.util.Set.of()
+                : java.util.Set.copyOf(refundRequestLessonRepository.findHeldLessonIds(
+                        candidates.stream().map(Lesson::getId).toList(), OPEN_REFUND_STATUSES));
         List<Lesson> completedLessons = candidates.stream()
+                .filter(lesson -> !heldLessonIds.contains(lesson.getId()))
                 .filter(lesson -> !hasBlockingComplaint(lesson.getContract()))
                 .toList();
         if (completedLessons.isEmpty()) {

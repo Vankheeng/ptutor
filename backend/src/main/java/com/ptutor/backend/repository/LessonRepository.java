@@ -23,6 +23,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
     List<Lesson> findAllByContract_IdOrderByDateAscStartTimeAsc(UUID contractId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select lesson from Lesson lesson where lesson.id in :lessonIds")
+    List<Lesson> findAllByIdForUpdate(@Param("lessonIds") java.util.Collection<UUID> lessonIds);
+
     long countByContract_Student_User_Id(UUID userId);
 
     long countByContract_Student_User_IdAndStatus(UUID userId, LessonStatus status);

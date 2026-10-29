@@ -110,6 +110,18 @@ class NotificationTemplateFactory {
             case WITHDRAWAL_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
                     "Withdrawal review required",
                     "A withdrawal request of " + amount + " VND is waiting for approval.");
+            case REFUND_REQUEST_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
+                    "Refund review required", "A student refund request is waiting for review.");
+            case REFUND_REQUEST_SUBMITTED -> content(NotificationType.PAYMENT,
+                    "Student requested a refund",
+                    "A student requested a refund on your contract. Respond before "
+                            + data.getOrDefault("deadline", "") + ".");
+            case REFUND_REQUEST_TUTOR_RESPONDED -> content(NotificationType.PAYMENT,
+                    "Tutor responded to a refund request", "The tutor has responded to a refund request you are reviewing.");
+            case REFUND_REQUEST_APPROVED -> content(NotificationType.PAYMENT,
+                    "Refund approved", amount + " VND has been refunded to the student's wallet balance.");
+            case REFUND_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
+                    "Refund rejected", "The refund request was rejected. Reason: " + reason);
         };
     }
 

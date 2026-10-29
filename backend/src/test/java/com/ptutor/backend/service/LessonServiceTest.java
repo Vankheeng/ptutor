@@ -59,6 +59,7 @@ class LessonServiceTest {
     @Mock ComplaintRepository complaintRepository;
     @Mock ContractPaymentInstallmentService installmentService;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock com.ptutor.backend.repository.RefundRequestLessonRepository refundRequestLessonRepository;
 
     private LessonService service;
     private UUID userId;
@@ -78,6 +79,7 @@ class LessonServiceTest {
                 tutorRepository,
                 studentRepository,
                 complaintRepository,
+                refundRequestLessonRepository,
                 testMapper(),
                 Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
                 installmentService,
@@ -219,6 +221,57 @@ class LessonServiceTest {
         LessonResponse response = service.confirmByStudent(userId, lessonId);
 
         assertThat(response.status()).isEqualTo(LessonStatus.CONFIRMED);
+    }
+
+    @Test
+    void studentListsLessonsOfOwnContractOnly() {
+        Contract own = contract();
+        own.setStudent(student());
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(own));
+        when(lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId))
+                .thenReturn(java.util.List.of(lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION)));
+
+        assertThat(service.findByContractForStudent(userId, contractId)).hasSize(1);
+
+        Contract other = contract();
+        Student someoneElse = Student.builder().build();
+        someoneElse.setId(UUID.randomUUID());
+        other.setStudent(someoneElse);
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(other));
+        assertThatThrownBy(() -> service.findByContractForStudent(userId, contractId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void studentCannotConfirmLessonDisputedInOpenRefundRequest() {
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+        when(refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(eq(lessonId), any()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.confirmByStudent(userId, lessonId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("LESSON_COMPLETION_ON_HOLD"));
+    }
+
+    @Test
+    void autoCompletionSkipsLessonsDisputedInOpenRefundRequest() {
+        Lesson held = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        Lesson free = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of(held, free));
+        when(refundRequestLessonRepository.findHeldLessonIds(any(), any())).thenReturn(java.util.List.of(held.getId()));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+
+        int completedCount = service.completeExpiredPendingLessons(3);
+
+        assertThat(completedCount).isEqualTo(1);
+        assertThat(held.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(free.getStatus()).isEqualTo(LessonStatus.COMPLETED);
     }
 
     @Test

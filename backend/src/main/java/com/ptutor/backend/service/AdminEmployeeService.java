@@ -25,10 +25,12 @@ import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
 import com.ptutor.backend.entity.enums.UserStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.RefundRequestRepository;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
@@ -49,6 +51,7 @@ public class AdminEmployeeService {
     private final ProvinceRepository provinceRepository;
     private final DistrictRepository districtRepository;
     private final ComplaintRepository complaintRepository;
+    private final RefundRequestRepository refundRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final CitizenIdCryptoService citizenIdCryptoService;
     private final RefreshTokenService refreshTokenService;
@@ -266,16 +269,19 @@ public class AdminEmployeeService {
     }
 
     private void ensureFunctionCanChange(Employee employee, EmployeeJobFunction newFunction) {
-        if (employee.getJobFunction() == EmployeeJobFunction.COMPLAINT_HANDLER
-                && newFunction != EmployeeJobFunction.COMPLAINT_HANDLER) {
+        if ((employee.getJobFunction() == EmployeeJobFunction.COMPLAINT_HANDLER
+                        && newFunction != EmployeeJobFunction.COMPLAINT_HANDLER)
+                || (employee.getJobFunction() == EmployeeJobFunction.ACCOUNTANT
+                        && newFunction != EmployeeJobFunction.ACCOUNTANT)) {
             ensureNoOpenAssignments(employee);
         }
     }
 
     private void ensureNoOpenAssignments(Employee employee) {
-        if (complaintRepository.existsByEmployee_IdAndStatusIn(employee.getId(), OPEN_COMPLAINT_STATUSES)) {
+        if (complaintRepository.existsByEmployee_IdAndStatusIn(employee.getId(), OPEN_COMPLAINT_STATUSES)
+                || refundRequestRepository.existsByEmployee_IdAndStatus(employee.getId(), RefundRequestStatus.IN_REVIEW)) {
             throw new ApiException(HttpStatus.CONFLICT, "EMPLOYEE_HAS_OPEN_ASSIGNMENTS",
-                    "Reassign the employee's open complaints before changing access");
+                    "Reassign the employee's open complaints and refund requests before changing access");
         }
     }
 
