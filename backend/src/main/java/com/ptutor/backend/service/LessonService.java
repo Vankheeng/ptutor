@@ -75,6 +75,9 @@ public class LessonService {
                 .note(normalize(source.note()))
                 .status(initialStatus(source.date(), source.endTime()))
                 .build();
+        if (lesson.getStatus() == LessonStatus.PENDING_CONFIRMATION) {
+            lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
+        }
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.assignNextInstallment(contract, saved);
         if (saved.getStatus() == LessonStatus.PENDING_CONFIRMATION) {
@@ -141,6 +144,9 @@ public class LessonService {
         }
 
         lesson.setStatus(targetStatus);
+        if (targetStatus == LessonStatus.PENDING_CONFIRMATION) {
+            lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
+        }
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         publishStudentNotification(saved,
                 targetStatus == LessonStatus.CANCELLED
@@ -162,9 +168,11 @@ public class LessonService {
 
     @Transactional
     public int completeExpiredPendingLessons(int graceDays) {
+        // The grace period starts when the tutor marks the lesson as taught, not when it ends,
+        // so a late report still leaves the student the full window to confirm or dispute it.
         LocalDateTime deadline = LocalDateTime.now(clock).minusDays(graceDays);
-        List<Lesson> candidates = lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, deadline.toLocalDate(), deadline.toLocalTime());
+        List<Lesson> candidates = lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, deadline);
         List<Lesson> completedLessons = candidates.stream()
                 .filter(lesson -> !hasBlockingComplaint(lesson.getContract()))
                 .toList();

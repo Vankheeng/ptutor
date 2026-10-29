@@ -11,6 +11,7 @@ import static org.mockito.Mockito.lenient;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -98,6 +99,7 @@ class LessonServiceTest {
 
         assertThat(response.contractId()).isEqualTo(contractId);
         assertThat(response.status()).isEqualTo(LessonStatus.SCHEDULED);
+        assertThat(response.markedTaughtAt()).isNull();
         assertThat(response.teachingMode()).isEqualTo(TeachingMode.ONLINE);
     }
 
@@ -120,6 +122,7 @@ class LessonServiceTest {
                 null));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_MARKED_TAUGHT);
@@ -183,6 +186,7 @@ class LessonServiceTest {
                 new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
     }
 
     @Test
@@ -237,8 +241,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
 
@@ -254,8 +259,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(true);
 
@@ -263,6 +269,18 @@ class LessonServiceTest {
 
         assertThat(completedCount).isZero();
         assertThat(lesson.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+    }
+
+    @Test
+    void autoCompletionCountsGracePeriodFromMarkedTaughtTime() {
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of());
+
+        service.completeExpiredPendingLessons(3);
+
+        // A lesson that ended weeks ago but was only marked as taught today is not a candidate:
+        // the repository is asked for lessons marked as taught at least 3 days before now.
+        verify(lessonRepository).findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0));
     }
 
     private LessonRequest createRequest() {
@@ -344,6 +362,7 @@ class LessonServiceTest {
                 lesson.getTeachingMode(),
                 lesson.getStatus(),
                 lesson.getNote(),
+                lesson.getMarkedTaughtAt(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt());
     }

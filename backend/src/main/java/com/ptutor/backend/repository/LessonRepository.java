@@ -1,7 +1,6 @@
 package com.ptutor.backend.repository;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -112,12 +111,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
             select lesson
             from Lesson lesson
             where lesson.status = :status
-              and (lesson.date < :deadlineDate
-                   or (lesson.date = :deadlineDate and lesson.endTime <= :deadlineTime))
+              and lesson.markedTaughtAt <= :deadline
             """)
-    List<Lesson> findAllFinishedBefore(
+    List<Lesson> findAllMarkedTaughtBefore(
             @Param("status") LessonStatus status,
-            @Param("deadlineDate") LocalDate deadlineDate,
-            @Param("deadlineTime") LocalTime deadlineTime);
+            @Param("deadline") LocalDateTime deadline);
 
 }
