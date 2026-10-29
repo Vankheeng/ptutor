@@ -6,7 +6,8 @@ import './admin.css';
 const navigation = [
   { to: '/admin/tutor-profiles', label: 'Duyệt hồ sơ gia sư' },
   { to: '/admin/teaching-requests', label: 'Duyệt yêu cầu dạy' },
-  { to: '/admin/studying-requests', label: 'Duyệt yêu cầu học' }
+  { to: '/admin/studying-requests', label: 'Duyệt yêu cầu học' },
+  { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền' }
 ];
 
 export function AdminLayout() {

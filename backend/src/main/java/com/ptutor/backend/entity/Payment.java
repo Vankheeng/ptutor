@@ -103,4 +103,9 @@ public class Payment extends BaseEntity {
     @Column(name = "paid_at")
     @NonFinal
     private LocalDateTime paidAt;
+
+    @Builder.Default
+    @Column(name = "refunded_amount", nullable = false, precision = 15, scale = 2)
+    @NonFinal
+    private BigDecimal refundedAmount = BigDecimal.ZERO;
 }

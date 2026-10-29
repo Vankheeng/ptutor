@@ -160,6 +160,11 @@ export function StudentContractDetailPage() {
           </span>
         </div>
         <div className="student-form-actions">
+          {contract.status !== 'PENDING' && (
+            <Link className="student-button" to={`/student/contracts/${contract.id}/lessons`}>
+              Buổi học và hoàn tiền
+            </Link>
+          )}
           {contract.status === 'PENDING' && contract.createdByUserId !== user?.userId && (
             <button
               className="student-button"
