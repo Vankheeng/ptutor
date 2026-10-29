@@ -32,7 +32,12 @@ export interface TutorProfile {
   totalStudentsTaught: number;
   acceptanceRate: number | null;
   avgResponseTimeHours: number | null;
+  profileStatus: TutorProfileStatus;
+  profileReviewedAt: string | null;
+  profileRejectionReason: string | null;
 }
+
+export type TutorProfileStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface TutorCertificate {
   id: string;

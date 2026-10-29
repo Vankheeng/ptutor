@@ -4,6 +4,7 @@ import logo from '../../assets/ptutor-logo.svg';
 import './admin.css';
 
 const navigation = [
+  { to: '/admin/tutor-profiles', label: 'Duyệt hồ sơ gia sư' },
   { to: '/admin/teaching-requests', label: 'Duyệt yêu cầu dạy' },
   { to: '/admin/studying-requests', label: 'Duyệt yêu cầu học' }
 ];
@@ -15,7 +16,7 @@ export function AdminLayout() {
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
-        <NavLink className="admin-brand" to="/admin">
+        <NavLink className="admin-brand" to="/admin/tutor-profiles">
           <img src={logo} alt="" />
           <span>PTutor Admin</span>
         </NavLink>
