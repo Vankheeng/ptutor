@@ -3,7 +3,10 @@ import { useAuth } from '../../auth/useAuth';
 import logo from '../../assets/ptutor-logo.svg';
 import './admin.css';
 
-const navigation = [{ to: '/admin/tutor-profiles', label: 'Duyệt hồ sơ gia sư' }];
+const navigation = [
+  { to: '/admin/tutor-profiles', label: 'Duyệt hồ sơ gia sư' },
+  { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền' }
+];
 
 export function AdminLayout() {
   const { user, logout } = useAuth();

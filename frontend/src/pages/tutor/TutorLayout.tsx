@@ -10,6 +10,7 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: '▤' },
   { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề xuất giảng dạy', icon: '↗' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: '▣' },
+  { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: '▦' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: '♢' },
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: '◈' },
