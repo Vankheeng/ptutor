@@ -106,10 +106,6 @@
   margin: 0;
   accent-color: var(--admin-brand);
 }
-.review-suggestion {
-  color: var(--admin-success);
-  font-size: 13px;
-}
 .review-new-subject {
   padding: 14px 16px;
   display: flex;
@@ -156,4 +152,88 @@
     border-left: 0;
     border-top: 1px solid var(--admin-border);
   }
+}
+.review-subject-picker {
+  gap: 8px;
+}
+.subject-combobox {
+  position: relative;
+}
+.subject-combobox-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface);
+}
+.subject-combobox-control:focus-within {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 1px;
+}
+.subject-combobox-control.invalid {
+  border: 2px solid var(--admin-danger);
+}
+.subject-combobox-control input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.subject-combobox-control button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+.subject-combobox-control svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.subject-combobox-list {
+  position: fixed;
+  z-index: 60;
+  max-height: 130px;
+  margin: 0;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(34, 28, 54, 0.14);
+}
+.subject-combobox-list li {
+  padding: 10px 12px;
+  line-height: 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.subject-combobox-list li.active {
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand-ink);
+}
+.subject-combobox-list li[aria-selected='true'] {
+  font-weight: 600;
+}
+.subject-combobox-list .subject-combobox-empty {
+  color: var(--admin-muted);
+  cursor: default;
 }

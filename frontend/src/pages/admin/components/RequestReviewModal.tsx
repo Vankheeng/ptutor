@@ -25,6 +25,7 @@ import {
   type ReviewItem
 } from '../requestReviewFormat';
 import { AdminAvatar, AdminModal, AdminState, DefinitionGrid, ReasonField, StatusBadge } from './AdminUi';
+import { SubjectCombobox } from './SubjectCombobox';
 
 type Step = 'resolve' | 'reject' | 'create';
 type Action = SubjectResolution['action'];
@@ -230,26 +231,16 @@ export function RequestReviewModal({ kind, id, onClose, onReviewed }: Props) {
                     </label>
                   </fieldset>
                   {action === 'USE_EXISTING' ? (
-                    <div className="admin-stack-gap">
-                      <span className="review-label-strong">
+                    <div className="admin-stack-gap review-subject-picker">
+                      <label className="review-label-strong" htmlFor="review-subject">
                         Chọn môn <span className="admin-required">*</span>
-                      </span>
-                      {suggestion && <span className="review-suggestion">Gợi ý: {suggestion.name}</span>}
-                      <div className="admin-chips" role="group" aria-label="Danh mục môn học">
-                        {(subjects ?? [])
-                          .filter((subject) => subject.status === 'ACTIVE')
-                          .map((subject) => (
-                            <button
-                              key={subject.id}
-                              type="button"
-                              aria-pressed={subject.id === subjectId}
-                              className={subject.id === subjectId ? 'active' : undefined}
-                              onClick={() => setChosenSubjectId(subject.id)}
-                            >
-                              {subject.name}
-                            </button>
-                          ))}
-                      </div>
+                      </label>
+                      <SubjectCombobox
+                        id="review-subject"
+                        subjects={(subjects ?? []).filter((subject) => subject.status === 'ACTIVE')}
+                        value={subjectId}
+                        onChange={setChosenSubjectId}
+                      />
                     </div>
                   ) : (
                     <div className="review-new-subject">
