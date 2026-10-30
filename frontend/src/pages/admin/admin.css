@@ -52,6 +52,24 @@
   display: grid;
   gap: 4px;
 }
+.admin-nav-label {
+  padding: 20px 12px 8px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.admin-nav-label:first-child {
+  padding-top: 0;
+}
+.admin-nav-group {
+  display: grid;
+  gap: 4px;
+  margin-left: 16px;
+  padding-left: 8px;
+  border-left: 1px solid var(--admin-border);
+}
 .admin-nav a {
   padding: 12px;
   border-radius: 10px;
@@ -599,6 +617,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 20px;
+}
+.admin-header-actions {
+  margin-left: auto;
 }
 .admin-tutor-name {
   display: flex;

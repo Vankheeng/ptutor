@@ -49,6 +49,13 @@ import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
 import { AdminUserAccountsPage } from './pages/admin/AdminUserAccountsPage';
 import { AdminUserAccountDetailPage } from './pages/admin/AdminUserAccountDetailPage';
+import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
+import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout';
+import { AdminStudentProfilePage } from './pages/admin/AdminStudentProfilePage';
+import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearningHistoryPage';
+import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
+import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
+import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 
 export default function App() {
   return (
@@ -66,6 +73,22 @@ export default function App() {
                 <Route path="teaching-requests" element={<AdminRequestReviewPage key="teaching" kind="teaching" />} />
                 <Route path="studying-requests" element={<AdminRequestReviewPage key="studying" kind="studying" />} />
                 <Route path="tutor-profiles/:userId" element={<AdminTutorDetailLayout />}>
+                  <Route index element={<AdminTutorReviewPage />} />
+                  <Route path="contracts" element={<AdminTutorContractsPage />} />
+                  <Route path="ratings" element={<AdminTutorRatingsPage />} />
+                  <Route path="teaching-history" element={<AdminTutorTeachingHistoryPage />} />
+                  <Route path="score" element={<AdminTutorScorePage />} />
+                </Route>
+                <Route path="students" element={<AdminStudentsPage />} />
+                <Route path="students/:userId" element={<AdminStudentDetailLayout />}>
+                  <Route index element={<AdminStudentProfilePage />} />
+                  <Route path="learning-history" element={<AdminStudentLearningHistoryPage />} />
+                  <Route path="contracts" element={<AdminStudentContractsPage />} />
+                  <Route path="transactions" element={<AdminStudentTransactionsPage />} />
+                  <Route path="complaints" element={<AdminStudentComplaintsPage />} />
+                </Route>
+                <Route path="tutors" element={<AdminTutorProfilesPage key="manage" mode="manage" />} />
+                <Route path="tutors/:userId" element={<AdminTutorDetailLayout key="manage" mode="manage" />}>
                   <Route index element={<AdminTutorReviewPage />} />
                   <Route path="contracts" element={<AdminTutorContractsPage />} />
                   <Route path="ratings" element={<AdminTutorRatingsPage />} />

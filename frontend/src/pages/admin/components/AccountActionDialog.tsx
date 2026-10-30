@@ -20,7 +20,10 @@ export type AccountAction = 'suspend' | 'reactivate';
 
 interface Props {
   action: AccountAction;
-  account: AdminUserAccount;
+  account: Pick<
+    AdminUserAccount,
+    'userId' | 'email' | 'firstName' | 'lastName' | 'status' | 'suspensionType' | 'suspendedUntil'
+  >;
   onClose: () => void;
   onDone: (message: string) => void;
 }
