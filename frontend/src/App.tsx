@@ -45,6 +45,8 @@ import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundReq
 import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
 import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
+import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
 
 export default function App() {
   return (
@@ -70,6 +72,8 @@ export default function App() {
                 </Route>
                 <Route path="refund-requests" element={<AdminRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
+                <Route path="complaints" element={<AdminComplaintsPage />} />
+                <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
               </Route>
             </Route>
             <Route element={<RoleGuard roles={['TUTOR']} />}>
