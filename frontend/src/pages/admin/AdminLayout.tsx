@@ -8,7 +8,8 @@ const navigation = [
   { to: '/admin/teaching-requests', label: 'Duyệt yêu cầu dạy' },
   { to: '/admin/studying-requests', label: 'Duyệt yêu cầu học' },
   { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền' },
-  { to: '/admin/complaints', label: 'Khiếu nại' }
+  { to: '/admin/complaints', label: 'Khiếu nại' },
+  { to: '/admin/accounts', label: 'Tài khoản người dùng' }
 ];
 
 export function AdminLayout() {
