@@ -24,6 +24,11 @@
   color: var(--admin-ink);
 }
 
+/* Reserve the scrollbar's width so short and long admin pages lay out at the same width. */
+html:has(.admin-shell) {
+  scrollbar-gutter: stable;
+}
+
 /* Layout */
 .admin-sidebar {
   flex: 1 1 240px;
@@ -34,6 +39,16 @@
   gap: 4px;
   background: var(--admin-surface);
   border-right: 1px solid var(--admin-border);
+}
+/* Beside the content, the sidebar stays one screen tall instead of stretching with long pages. */
+@media (min-width: 900px) {
+  .admin-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+  }
 }
 .admin-brand {
   display: flex;
@@ -1307,4 +1322,165 @@
 }
 .admin-field input[aria-invalid='true'] {
   border: 2px solid var(--admin-danger);
+}
+
+/* Notifications */
+.admin-notification-heading {
+  flex: 1 1 360px;
+  min-width: 0;
+  gap: 10px;
+}
+.admin-notification-heading .admin-title {
+  overflow-wrap: anywhere;
+}
+/* Fixed column widths so switching filters does not reflow the table around different content. */
+.admin-notification-table {
+  min-width: 1080px;
+  table-layout: fixed;
+}
+.admin-notification-col-category {
+  width: 160px;
+}
+.admin-notification-col-audience {
+  width: 150px;
+}
+.admin-notification-col-status {
+  width: 140px;
+}
+.admin-notification-col-time {
+  width: 170px;
+}
+.admin-notification-col-read {
+  width: 220px;
+}
+.admin-notification-col-action {
+  width: 100px;
+}
+.admin-notification-cell > strong {
+  overflow-wrap: anywhere;
+}
+.admin-notification-cell > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-notification-read {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--admin-subtle);
+  white-space: nowrap;
+}
+.admin-notification-read {
+  font-variant-numeric: tabular-nums;
+}
+/* Fixed width so every row's bar has the same scale, whatever the count text beside it. */
+.admin-notification-read .admin-meter {
+  flex: none;
+  width: 96px;
+  height: 8px;
+}
+.admin-choices-compact {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.admin-notification-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.admin-notification-error {
+  flex-basis: 100%;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-word;
+}
+.admin-notification-preview {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: var(--admin-bg);
+}
+.admin-notification-preview p {
+  margin: 2px 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--admin-subtle);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.admin-notification-preview strong {
+  word-break: break-word;
+}
+.admin-notification-preview-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand-ink);
+}
+.admin-notification-preview-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.admin-notification-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.admin-notification-timeline li {
+  position: relative;
+  padding: 0 0 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+.admin-notification-timeline li:last-child {
+  padding-bottom: 0;
+}
+.admin-notification-timeline li::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--admin-border);
+  border-radius: 50%;
+  background: var(--admin-surface);
+}
+.admin-notification-timeline li.done::before {
+  border-color: var(--admin-brand);
+  background: var(--admin-brand);
+}
+.admin-notification-timeline li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 19px;
+  bottom: 0;
+  width: 1px;
+  background: var(--admin-border);
+}
+.admin-notification-timeline span {
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+@media (max-width: 560px) {
+  .admin-notification-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
