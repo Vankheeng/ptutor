@@ -1234,3 +1234,56 @@
   margin: 0;
   accent-color: var(--admin-brand);
 }
+
+/* User accounts */
+.admin-account-header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.admin-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.admin-account-identity .admin-stack-gap {
+  gap: 8px;
+}
+.admin-account-empty {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.admin-suspension-temporary {
+  border-color: #f6d6ae;
+  background: #fff8ef;
+}
+.admin-suspension-temporary h2,
+.admin-suspension-temporary .admin-section-heading span {
+  color: var(--admin-warning);
+}
+.admin-suspension-permanent {
+  border-color: #f3c4cf;
+  background: #fff5f7;
+}
+.admin-suspension-permanent h2 {
+  color: var(--admin-danger);
+}
+.admin-suspension .admin-section-heading span {
+  font-weight: 600;
+}
+.admin-field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.admin-field input[aria-invalid='true'] {
+  border: 2px solid var(--admin-danger);
+}

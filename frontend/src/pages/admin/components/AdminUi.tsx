@@ -128,6 +128,7 @@ interface ReasonFieldProps {
   maxLength: number;
   showError: boolean;
   placeholder?: string;
+  emptyMessage?: string;
   onChange: (value: string) => void;
 }
 
@@ -139,13 +140,14 @@ export function ReasonField({
   maxLength,
   showError,
   placeholder,
+  emptyMessage = 'Vui lòng nhập lý do từ chối.',
   onChange
 }: ReasonFieldProps) {
   const length = value.trim().length;
   const invalid = showError && length < minLength;
   const hint = minLength > 1 ? `Từ ${minLength} đến ${maxLength} ký tự.` : `Tối đa ${maxLength} ký tự.`;
   const error =
-    length === 0 ? 'Vui lòng nhập lý do từ chối.' : `Lý do cần ít nhất ${minLength} ký tự (hiện có ${length}).`;
+    length === 0 ? emptyMessage : `Lý do cần ít nhất ${minLength} ký tự (hiện có ${length}).`;
   return (
     <div className="admin-field">
       <label htmlFor={id}>

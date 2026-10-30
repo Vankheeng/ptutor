@@ -183,8 +183,10 @@ public class AccountSuspensionService {
                 user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getPhone(),
                 roleOf(user), user.getStatus(), user.getSuspensionType(), user.getSuspensionReason(),
                 instant(user.getSuspendedAt()), instant(user.getSuspendedUntil()),
-                idOf(user.getSuspendedByUser()), instant(user.getReactivatedAt()),
-                idOf(user.getReactivatedByUser()), user.getReactivationReason(),
+                idOf(user.getSuspendedByUser()), nameOf(user.getSuspendedByUser()),
+                instant(user.getReactivatedAt()),
+                idOf(user.getReactivatedByUser()), nameOf(user.getReactivatedByUser()),
+                user.getReactivationReason(),
                 user.getSuspensionCount() == null ? 0 : user.getSuspensionCount(),
                 instant(user.getCreatedAt()), instant(user.getUpdatedAt()));
     }
@@ -204,6 +206,15 @@ public class AccountSuspensionService {
 
     private UUID idOf(User user) {
         return user == null ? null : user.getId();
+    }
+
+    private String nameOf(User user) {
+        if (user == null) {
+            return null;
+        }
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName().strip();
+        String lastName = user.getLastName() == null ? "" : user.getLastName().strip();
+        return (firstName + " " + lastName).strip();
     }
 
     private Instant instant(LocalDateTime value) {
