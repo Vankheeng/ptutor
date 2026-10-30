@@ -5020,8 +5020,10 @@ components:
         suspendedAt: { type: string, format: date-time, nullable: true }
         suspendedUntil: { type: string, format: date-time, nullable: true }
         suspendedByUserId: { type: string, format: uuid, nullable: true }
+        suspendedByName: { type: string, nullable: true }
         reactivatedAt: { type: string, format: date-time, nullable: true }
         reactivatedByUserId: { type: string, format: uuid, nullable: true }
+        reactivatedByName: { type: string, nullable: true }
         reactivationReason: { type: string, nullable: true }
         suspensionCount: { type: integer, minimum: 0 }
         createdAt: { type: string, format: date-time }
