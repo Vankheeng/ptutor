@@ -197,7 +197,7 @@ export interface Installment {
   sequenceNumber: number;
   paymentPeriod: PaymentPeriod;
   amount: number;
-  dueDate: string;
+  dueDate: string | null;
   lessonId: string | null;
   status: 'PENDING' | 'PAID' | 'CANCELLED';
 }

@@ -273,6 +273,7 @@ public class ContractService {
             throw invalidTransition("Contract can no longer be signed");
         }
         Contract signed = findContractForParticipant(contractId, userId);
+        installmentService.ensureForActiveContract(signed);
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 signed.getCreatedBy().getId(),
                 NotificationEventType.CONTRACT_SIGNED,

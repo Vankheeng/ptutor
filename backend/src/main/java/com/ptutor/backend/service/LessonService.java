@@ -78,16 +78,10 @@ public class LessonService {
                 .endTime(source.endTime())
                 .teachingMode(contract.getTeachingMode())
                 .note(normalize(source.note()))
-                .status(initialStatus(source.date(), source.endTime()))
+                .status(LessonStatus.SCHEDULED)
                 .build();
-        if (lesson.getStatus() == LessonStatus.PENDING_CONFIRMATION) {
-            lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
-        }
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.assignNextInstallment(contract, saved);
-        if (saved.getStatus() == LessonStatus.PENDING_CONFIRMATION) {
-            publishStudentNotification(saved, NotificationEventType.LESSON_MARKED_TAUGHT);
-        }
         return lessonMapper.toResponse(saved);
     }
 
@@ -133,7 +127,9 @@ public class LessonService {
         lesson.setStartTime(source.startTime());
         lesson.setEndTime(source.endTime());
         lesson.setNote(normalize(source.note()));
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        Lesson saved = lessonRepository.saveAndFlush(lesson);
+        installmentService.updatePendingLessonInstallmentDueDate(saved);
+        return lessonMapper.toResponse(saved);
     }
 
     @Transactional
@@ -149,6 +145,7 @@ public class LessonService {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "LESSON_NOT_FINISHED",
                         "A lesson can only be marked as taught after it ends");
             }
+            installmentService.requirePaidForLesson(lesson);
         } else if (targetStatus == LessonStatus.CANCELLED) {
             if (lesson.getStatus() != LessonStatus.SCHEDULED
                     && lesson.getStatus() != LessonStatus.PENDING_CONFIRMATION) {
@@ -164,6 +161,9 @@ public class LessonService {
             lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
         }
         Lesson saved = lessonRepository.saveAndFlush(lesson);
+        if (targetStatus == LessonStatus.CANCELLED) {
+            installmentService.releasePendingLessonInstallment(saved);
+        }
         publishStudentNotification(saved,
                 targetStatus == LessonStatus.CANCELLED
                         ? NotificationEventType.LESSON_CANCELLED
@@ -298,13 +298,6 @@ public class LessonService {
 
     private boolean hasBlockingComplaint(Contract contract) {
         return complaintRepository.existsByContract_IdAndStatusIn(contract.getId(), BLOCKING_COMPLAINT_STATUSES);
-    }
-
-    private LessonStatus initialStatus(LocalDate date, LocalTime endTime) {
-        LocalDateTime lessonEnd = LocalDateTime.of(date, endTime);
-        return lessonEnd.isAfter(LocalDateTime.now(clock))
-                ? LessonStatus.SCHEDULED
-                : LessonStatus.PENDING_CONFIRMATION;
     }
 
     private ApiException contractNotFound(UUID contractId) {

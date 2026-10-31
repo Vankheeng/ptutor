@@ -322,51 +322,80 @@
   background: #6736d6;
   color: white;
 }
-.student-contract-filter-tabs {
-  width: min(100%, 600px);
-  max-width: 100%;
-  overflow: hidden;
+.student-contract-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.7fr) minmax(150px, 1fr) minmax(165px, 1fr);
+  gap: 10px;
   margin: 0 0 17px;
-  padding: 0;
-  gap: 0;
-  border: 1px solid #e5e6ee;
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: 0 4px 16px #27335f08;
 }
-.student-contract-filter-tabs button {
+.student-contract-filter-search,
+.student-contract-filter-select {
   position: relative;
-  flex: 1 1 0;
+  display: block;
   min-width: 0;
-  padding: 11px 12px 12px;
-  border-color: transparent;
-  border-width: 0 1px 0 0;
-  border-radius: 0;
-  background: transparent;
-  color: #788096;
-  font-weight: 600;
 }
-.student-contract-filter-tabs button:last-child {
-  border-right: 0;
-}
-.student-contract-filter-tabs button:hover:not(.active) {
-  background: #f7f4ff;
-  color: #6033c5;
-}
-.student-contract-filter-tabs button.active {
-  border-color: #edf0f7;
-  background: #fff;
-  color: #6736d6;
-}
-.student-contract-filter-tabs button.active::after {
+.student-contract-filter-search::before {
   content: '';
   position: absolute;
-  right: 9px;
-  bottom: -1px;
-  left: 9px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: #6736d6;
+  top: 50%;
+  left: 13px;
+  width: 11px;
+  height: 11px;
+  border: 1.7px solid #7b87a4;
+  border-radius: 50%;
+  transform: translateY(-60%);
+  pointer-events: none;
+}
+.student-contract-filter-search::after {
+  content: '';
+  position: absolute;
+  top: 54%;
+  left: 24px;
+  width: 6px;
+  border-top: 1.7px solid #7b87a4;
+  transform: rotate(45deg);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.student-contract-filter-search input,
+.student-contract-filter-select select {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #dfe4ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #394568;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+}
+.student-contract-filter-search input {
+  padding: 0 13px 0 37px;
+}
+.student-contract-filter-select select {
+  padding: 0 34px 0 13px;
+  cursor: pointer;
+}
+.student-contract-filter-search input::placeholder {
+  color: #8b94a9;
+  font-weight: 500;
+}
+.student-contract-filter-search input:focus,
+.student-contract-filter-select select:focus {
+  border-color: #6f9fdb;
+  box-shadow: 0 0 0 3px #4d9edb1a;
+}
+.student-contract-filters .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .student-notice,
 .student-error {
@@ -752,19 +781,20 @@
   align-items: center;
   justify-content: flex-end;
 }
-.student-contract-view {
+.student-contract-view.student-button.secondary {
   min-height: 32px;
   padding: 0 12px;
-  border-color: #58afe2;
-  color: #2587bd;
+  border-color: #2587bd;
+  background: #2587bd;
+  color: #fff;
   font-size: 10px;
   gap: 16px;
   white-space: nowrap;
 }
-.student-contract-view:hover:not(:disabled) {
-  border-color: #2587bd;
-  background: #eff9ff;
-  color: #14729f;
+.student-contract-view.student-button.secondary:hover:not(:disabled) {
+  border-color: #14729f;
+  background: #14729f;
+  color: #fff;
 }
 .student-contract-list-card .student-status {
   padding: 6px 11px;
@@ -1441,6 +1471,12 @@
   border: 1px solid #e4ebf5;
   border-radius: 9px;
 }
+.student-installment-note {
+  margin: -7px 0 12px;
+  color: #77829a;
+  font-size: 10px;
+  line-height: 1.5;
+}
 .student-installment-row {
   display: grid;
   grid-template-columns: 40px minmax(125px, 1.2fr) minmax(130px, 1fr) minmax(100px, 0.9fr) minmax(130px, 1fr);
@@ -1533,6 +1569,10 @@
 .student-status.paid {
   background: #eaf8f2;
   color: #27815b;
+}
+.student-status.overdue {
+  background: #fff0ef;
+  color: #ab4039;
 }
 .student-balance {
   display: grid;
@@ -1732,17 +1772,8 @@
   .student-tutor-offer-detail-grid {
     grid-template-columns: 1fr;
   }
-  .student-contract-filter-tabs {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-  .student-contract-filter-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .student-contract-filter-tabs button {
-    flex: 1 0 auto;
+  .student-contract-filters {
+    grid-template-columns: 1fr;
   }
   .student-contract-list-card {
     grid-template-columns: 1fr;

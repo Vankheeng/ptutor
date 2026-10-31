@@ -21,7 +21,7 @@ class NotificationTemplateFactory {
             case PAYMENT_SUCCEEDED -> content(NotificationType.PAYMENT,
                     "Payment successful", "Your payment has been completed successfully.");
             case PAYMENT_INSTALLMENT_DUE -> content(NotificationType.PAYMENT,
-                    "Tuition payment reminder", "A tuition installment is due in 3 days.");
+                    "Tuition payment reminder", "A tuition installment is due today.");
             case TUTOR_REQUEST_RECEIVED -> content(NotificationType.REQUEST,
                     "New tutor proposal", "A tutor sent a teaching proposal for your studying request.");
             case TUTOR_REQUEST_ACCEPTED -> content(NotificationType.REQUEST,
