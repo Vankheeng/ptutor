@@ -9,7 +9,8 @@ const navigation = [
     label: 'Quản lý',
     items: [
       { to: '/admin/students', label: 'Học viên' },
-      { to: '/admin/tutors', label: 'Gia sư' }
+      { to: '/admin/tutors', label: 'Gia sư' },
+      { to: '/admin/notifications', label: 'Thông báo' }
     ]
   },
   {
