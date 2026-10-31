@@ -322,6 +322,52 @@
   background: #6736d6;
   color: white;
 }
+.student-contract-filter-tabs {
+  width: min(100%, 600px);
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0 0 17px;
+  padding: 0;
+  gap: 0;
+  border: 1px solid #e5e6ee;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 4px 16px #27335f08;
+}
+.student-contract-filter-tabs button {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 11px 12px 12px;
+  border-color: transparent;
+  border-width: 0 1px 0 0;
+  border-radius: 0;
+  background: transparent;
+  color: #788096;
+  font-weight: 600;
+}
+.student-contract-filter-tabs button:last-child {
+  border-right: 0;
+}
+.student-contract-filter-tabs button:hover:not(.active) {
+  background: #f7f4ff;
+  color: #6033c5;
+}
+.student-contract-filter-tabs button.active {
+  border-color: #edf0f7;
+  background: #fff;
+  color: #6736d6;
+}
+.student-contract-filter-tabs button.active::after {
+  content: '';
+  position: absolute;
+  right: 9px;
+  bottom: -1px;
+  left: 9px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: #6736d6;
+}
 .student-notice,
 .student-error {
   margin: 13px 0;
@@ -495,7 +541,7 @@
 }
 .student-detail-layout {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px;
 }
 .student-detail-table {
@@ -574,6 +620,395 @@
   border: 1px solid #eceef4;
   border-radius: 14px;
 }
+.student-contract-card {
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.student-contract-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px #27335f16;
+}
+.student-contract-list-card {
+  display: grid;
+  grid-template-columns: minmax(155px, 1.05fr) minmax(165px, 1.15fr) minmax(210px, 1.4fr) minmax(92px, 0.65fr) minmax(145px, auto);
+  align-items: center;
+  gap: 0;
+  min-height: 108px;
+  padding: 18px 19px;
+  border: 1px solid #e8ebf3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 20px #27335f08;
+}
+.student-contract-subject,
+.student-contract-tutor,
+.student-contract-terms,
+.student-contract-status,
+.student-contract-action {
+  min-width: 0;
+}
+.student-contract-subject,
+.student-contract-tutor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.student-contract-tutor,
+.student-contract-terms,
+.student-contract-status,
+.student-contract-action {
+  min-height: 62px;
+  padding-left: 20px;
+  border-left: 1px solid #e5eaf4;
+}
+.student-contract-subject-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eee9ff;
+  color: #6538d2;
+}
+.student-contract-subject > div,
+.student-contract-tutor > div,
+.student-contract-terms {
+  display: grid;
+  gap: 4px;
+}
+.student-contract-subject strong,
+.student-contract-tutor strong,
+.student-contract-terms strong {
+  overflow: hidden;
+  color: #26304e;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-subject span:not(.student-contract-subject-icon),
+.student-contract-tutor span:not(.student-contract-tutor-avatar),
+.student-contract-terms span {
+  overflow: hidden;
+  color: #76809a;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.student-contract-calendar-icon {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  box-sizing: border-box;
+  border: 1.5px solid #7e89a5;
+  border-radius: 2px;
+}
+.student-contract-calendar-icon::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 0;
+  left: 0;
+  border-top: 1.5px solid #7e89a5;
+}
+.student-contract-calendar-icon::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  width: 5px;
+  height: 4px;
+  border-right: 1.5px solid #7e89a5;
+  border-left: 1.5px solid #7e89a5;
+}
+.student-contract-tutor-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edff;
+  color: #5363aa;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-contract-terms strong {
+  color: #36436f;
+}
+.student-contract-status {
+  display: grid;
+  place-items: center;
+}
+.student-contract-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.student-contract-view {
+  min-height: 32px;
+  padding: 0 12px;
+  border-color: #58afe2;
+  color: #2587bd;
+  font-size: 10px;
+  gap: 16px;
+  white-space: nowrap;
+}
+.student-contract-view:hover:not(:disabled) {
+  border-color: #2587bd;
+  background: #eff9ff;
+  color: #14729f;
+}
+.student-contract-list-card .student-status {
+  padding: 6px 11px;
+  font-size: 10px;
+}
+.student-contract-section,
+.student-contract-source {
+  margin-top: 15px;
+}
+.student-contract-create-layout {
+  display: grid;
+  grid-template-columns: minmax(235px, 0.85fr) minmax(0, 1.35fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  align-items: stretch;
+}
+.student-contract-create-student {
+  grid-column: 1;
+  grid-row: 1;
+}
+.student-contract-create-tutor {
+  grid-column: 1;
+  grid-row: 2;
+}
+.student-contract-create-student > .student-contract-participant-card,
+.student-contract-create-tutor > .student-contract-participant-card {
+  height: 100%;
+  box-sizing: border-box;
+}
+.student-contract-create-terms {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.student-contract-create-help {
+  margin: -5px 0 17px;
+  color: #71809c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-contract-participant-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-contract-participant-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-participant-heading h2 {
+  margin: 0;
+}
+.student-contract-participant-details > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.student-contract-participant-details > div > span::after {
+  content: none;
+}
+.student-contract-participant-details strong {
+  min-width: 0;
+}
+.student-contract-source-tag {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eee9ff;
+  color: #6736d6;
+  font-size: 10px;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-schedule-editor {
+  display: grid;
+  gap: 10px;
+}
+.student-contract-schedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #555a6e;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-schedule-heading small {
+  color: #8b91a2;
+  font-size: 10px;
+  font-weight: 400;
+}
+.student-contract-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #e5ebf5;
+  border-radius: 9px;
+  background: #fbfcff;
+}
+.student-contract-schedule-row label {
+  min-width: 0;
+}
+.student-contract-schedule-row .student-button {
+  min-height: 38px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.student-contract-schedule-row .schedule-remove {
+  border-color: #f1c8cc;
+  background: #fff5f5;
+  color: #bd4e58;
+}
+.student-contract-schedule-editor .schedule-add {
+  justify-self: start;
+  border-color: #b9a2ff;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-calculated-lessons {
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #f4f1ff;
+  color: #53618c;
+  font-size: 11px;
+}
+.student-contract-calculated-lessons strong {
+  color: #6736d6;
+}
+.student-contract-schedule-summary {
+  display: grid;
+  gap: 3px;
+}
+.student-contract-participant-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edff;
+  color: #5363aa;
+  font-size: 12px;
+  font-weight: 800;
+}
+.student-contract-participant-heading > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-contract-participant-heading h2 {
+  margin: 0 0 2px;
+  color: #303d67;
+  font-size: 15px;
+}
+.student-contract-participant-heading strong {
+  overflow: hidden;
+  color: #283657;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-participant-heading > div > span {
+  color: #76809a;
+  font-size: 10px;
+}
+.student-contract-participant-details {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  padding-top: 15px;
+}
+.student-contract-participant-details > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.student-contract-participant-details span:not(.student-status) {
+  color: #71809c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-participant-details strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.student-contract-participant-details .student-status {
+  justify-self: start;
+  padding: 5px 9px;
+  font-size: 9px;
+}
+.student-contract-fixed-terms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.student-contract-fixed-term {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #e5ebf5;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+.student-contract-fixed-term span {
+  color: #71809c;
+  font-size: 9px;
+  font-weight: 700;
+}
+.student-contract-fixed-term strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.student-contract-source h2,
+.student-contract-section h2 {
+  margin: 0 0 15px;
+  color: #303448;
+  font-size: 17px;
+}
+.student-contract-actions {
+  justify-content: flex-end;
+}
 .student-list-row h3 {
   margin: 0 0 5px;
   color: #303448;
@@ -584,6 +1019,164 @@
   color: #777c8e;
   font-size: 10px;
   line-height: 1.6;
+}
+.student-tutor-offers-heading {
+  margin-bottom: 18px;
+}
+.student-tutor-offers-heading h2 {
+  margin: 0;
+  color: #20243a;
+  font-size: 18px;
+}
+.student-tutor-offers-heading p {
+  margin: 5px 0 0;
+  color: #81879b;
+  font-size: 10px;
+}
+.student-offer-list {
+  display: grid;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+.student-offer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 0.45fr) minmax(180px, auto);
+  align-items: center;
+  min-height: 82px;
+  gap: 12px;
+  padding: 13px 4px;
+  border-top: 1px solid #e9edf5;
+}
+.student-offer-tutor {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+.student-offer-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edf5;
+  color: #526382;
+  font-size: 12px;
+  font-weight: 800;
+}
+.student-offer-tutor > div {
+  min-width: 0;
+}
+.student-offer-tutor h3 {
+  margin: 0 0 4px;
+  overflow: hidden;
+  color: #283657;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-tutor p {
+  margin: 0;
+  overflow: hidden;
+  color: #76809a;
+  font-size: 10px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-tutor time {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #8b91a2;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-status {
+  justify-self: end;
+}
+.student-offer-status .student-status {
+  padding: 6px 12px;
+  font-size: 10px;
+}
+.student-offer-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.student-offer-actions .student-form-actions {
+  margin: 0;
+}
+.student-offer-create {
+  min-width: 120px;
+  background: #6736d6;
+  border-color: #6736d6;
+}
+.student-offer-view {
+  min-width: 76px;
+  border-color: #dce5f1;
+  background: #f7f9fc;
+  color: #737b8c;
+  text-decoration: none;
+}
+.student-offer-actions .student-button.success {
+  border-color: #2da66b;
+  background: #2da66b;
+  color: #fff;
+}
+.student-offer-actions .student-button.danger {
+  border-color: #e05b62;
+  background: #e05b62;
+  color: #fff;
+}
+.student-tutor-offer-detail {
+  max-width: 900px;
+}
+.student-tutor-offer-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e9edf5;
+}
+.student-tutor-offer-detail-header h2 {
+  margin: 0 0 4px;
+  color: #283657;
+  font-size: 18px;
+}
+.student-tutor-offer-detail-header p {
+  margin: 0;
+  color: #76809a;
+  font-size: 11px;
+}
+.student-tutor-offer-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 28px;
+  padding-top: 20px;
+}
+.student-tutor-offer-detail-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.student-tutor-offer-detail-item span {
+  color: #71809c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-tutor-offer-detail-item strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 12px;
+  line-height: 1.5;
 }
 .student-status {
   padding: 5px 8px;
@@ -613,6 +1206,10 @@
   background: #fff0ef;
   color: #ab4039;
 }
+.student-status.completed {
+  background: #edf0ff;
+  color: #5962bd;
+}
 .student-pagination {
   display: flex;
   justify-content: space-between;
@@ -632,6 +1229,310 @@
 .student-pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.student-contract-pagination {
+  justify-content: center;
+  gap: 7px;
+  margin-top: 21px;
+}
+.student-contract-pagination > button,
+.student-pagination-pages button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #63708e;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-pagination > button:hover:not(:disabled),
+.student-pagination-pages button:hover:not(.active) {
+  background: #f2efff;
+  color: #6033c5;
+}
+.student-contract-pagination .student-pagination-arrow {
+  border-color: #e3e4eb;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+.student-pagination-pages {
+  display: flex;
+  gap: 4px;
+}
+.student-pagination-pages button.active {
+  border-color: #6736d6;
+  background: #6736d6;
+  color: #fff;
+}
+.student-contract-detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+.student-contract-detail-topbar .student-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #536486;
+  font-size: 10px;
+}
+.student-contract-more {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e2e9f4;
+  border-radius: 8px;
+  color: #7786a5;
+  font-size: 16px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.student-contract-hero {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.2fr) minmax(190px, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 108px;
+  padding: 18px 20px;
+  border: 1px solid #e1e8f4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 20px #27335f08;
+}
+.student-contract-hero-main,
+.student-contract-hero-tutor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.student-contract-hero-main h1 {
+  margin: 0 0 5px;
+  overflow: hidden;
+  color: #26304e;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-hero-main > div,
+.student-contract-hero-tutor > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-contract-hero-main > div > span,
+.student-contract-hero-tutor > div > span {
+  color: #76809a;
+  font-size: 10px;
+}
+.student-contract-hero-tutor {
+  padding-left: 20px;
+  border-left: 1px solid #e5eaf4;
+}
+.student-contract-hero-tutor strong {
+  overflow: hidden;
+  color: #26304e;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-hero > .student-status {
+  justify-self: end;
+  padding: 6px 13px;
+  font-size: 10px;
+}
+.student-contract-overview {
+  margin-top: 15px;
+}
+.student-contract-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+  color: #303d67;
+  font-size: 16px;
+}
+.student-contract-panel-heading svg {
+  color: #5d63c6;
+}
+.student-contract-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.student-contract-overview-grid > div + div {
+  padding-left: 24px;
+  border-left: 1px solid #e8edf5;
+}
+.student-contract-overview .student-detail-row {
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 14px;
+  padding: 8px 0;
+}
+.student-contract-overview .student-detail-row > span,
+.student-contract-overview .student-detail-value {
+  color: #536486;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.student-contract-overview .student-detail-row > span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.student-contract-overview .student-detail-value {
+  color: #283657;
+  font-weight: 600;
+}
+.student-contract-actions-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 15px;
+  padding: 16px 18px;
+  border: 1px solid #dfeaf8;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #f2f7ff, #eef5ff);
+}
+.student-contract-actions-copy {
+  min-width: 0;
+}
+.student-contract-actions-copy h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+  color: #304067;
+  font-size: 13px;
+}
+.student-contract-actions-copy h2 svg {
+  color: #5967c7;
+}
+.student-contract-actions-copy p {
+  margin: 0;
+  color: #71809c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-contract-actions-buttons {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.student-button.success {
+  border-color: #13a86d;
+  background: #13a86d;
+  color: #fff;
+}
+.student-contract-actions-buttons .student-button {
+  min-height: 32px;
+  padding: 0 13px;
+  font-size: 10px;
+}
+.student-installment-table {
+  overflow: hidden;
+  border: 1px solid #e4ebf5;
+  border-radius: 9px;
+}
+.student-installment-row {
+  display: grid;
+  grid-template-columns: 40px minmax(125px, 1.2fr) minmax(130px, 1fr) minmax(100px, 0.9fr) minmax(130px, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 49px;
+  padding: 0 13px;
+  border-top: 1px solid #edf1f7;
+  color: #536486;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-installment-row:first-child {
+  border-top: 0;
+}
+.student-installment-header {
+  min-height: 39px;
+  border-top: 0;
+  background: #f3f7fd;
+  color: #526487;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-installment-header > span:last-child {
+  text-align: center;
+}
+.student-installment-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.student-installment-status .student-status {
+  font-size: 9px;
+}
+.student-installment-action {
+  display: flex;
+  justify-content: center;
+}
+.student-installment-pay {
+  min-height: 29px;
+  padding: 0 10px;
+  font-size: 9px;
+}
+.student-contract-renewal {
+  margin-top: 15px;
+  border-color: #e3dcff;
+  background: #faf9ff;
+}
+.student-contract-renewal-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.student-contract-renewal-copy {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.student-contract-renewal-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-renewal-copy h2 {
+  margin: 0 0 4px;
+  color: #303d67;
+  font-size: 13px;
+}
+.student-contract-renewal-copy p {
+  margin: 0;
+  color: #71809c;
+  font-size: 10px;
+}
+.student-contract-renewal-callout .student-button {
+  flex: none;
+  min-height: 32px;
+  font-size: 10px;
+}
+.student-contract-renewal-form {
+  margin-top: 17px;
+  padding-top: 17px;
+  border-top: 1px solid #e8e1ff;
+}
+.student-status.paid {
+  background: #eaf8f2;
+  color: #27815b;
 }
 .student-balance {
   display: grid;
@@ -679,6 +1580,40 @@
   }
   .student-detail-layout {
     grid-template-columns: 1fr;
+  }
+  .student-contract-list-card {
+    grid-template-columns: minmax(145px, 1fr) minmax(145px, 1fr) minmax(180px, 1.2fr) minmax(80px, 0.65fr) minmax(125px, auto);
+    gap: 0;
+    padding: 16px;
+  }
+  .student-contract-tutor,
+  .student-contract-terms,
+  .student-contract-status,
+  .student-contract-action {
+    padding-left: 12px;
+  }
+  .student-contract-hero {
+    grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) auto;
+    gap: 12px;
+  }
+  .student-contract-hero-tutor {
+    padding-left: 12px;
+  }
+}
+@media (max-width: 900px) {
+  .student-contract-create-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .student-contract-create-student,
+  .student-contract-create-tutor,
+  .student-contract-create-terms {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .student-contract-create-student > .student-contract-participant-card,
+  .student-contract-create-tutor > .student-contract-participant-card {
+    height: auto;
   }
 }
 @media (max-width: 700px) {
@@ -740,6 +1675,20 @@
   .student-form-grid {
     grid-template-columns: 1fr;
   }
+  .student-contract-schedule-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .student-contract-schedule-row .schedule-remove {
+    justify-self: start;
+  }
+  .student-contract-schedule-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .student-contract-fixed-terms {
+    grid-template-columns: 1fr;
+  }
   .student-detail-row {
     grid-template-columns: 1fr;
     gap: 3px;
@@ -764,6 +1713,130 @@
     align-self: stretch;
     display: flex;
     justify-content: space-between;
+  }
+  .student-offer-row {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .student-offer-status {
+    justify-self: end;
+  }
+  .student-offer-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .student-tutor-offer-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-tutor-offer-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-contract-filter-tabs {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .student-contract-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .student-contract-filter-tabs button {
+    flex: 1 0 auto;
+  }
+  .student-contract-list-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .student-contract-tutor,
+  .student-contract-terms,
+  .student-contract-status,
+  .student-contract-action {
+    min-height: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .student-contract-date {
+    white-space: normal;
+  }
+  .student-contract-status {
+    display: flex;
+    justify-content: flex-start;
+  }
+  .student-contract-action {
+    justify-content: flex-start;
+  }
+  .student-contract-hero {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    padding: 16px;
+  }
+  .student-contract-hero-tutor {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    padding-left: 0;
+    border-top: 1px solid #e8edf5;
+    border-left: 0;
+  }
+  .student-contract-hero > .student-status {
+    justify-self: end;
+  }
+  .student-contract-overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-contract-overview-grid > div + div {
+    padding-top: 8px;
+    padding-left: 0;
+    border-top: 1px solid #e8edf5;
+    border-left: 0;
+  }
+  .student-contract-actions-panel,
+  .student-contract-renewal-callout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .student-contract-actions-buttons,
+  .student-contract-renewal-callout .student-button {
+    width: 100%;
+  }
+  .student-contract-actions-buttons .student-button {
+    flex: 1;
+  }
+  .student-installment-header {
+    display: none;
+  }
+  .student-installment-row {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 9px;
+    min-height: 0;
+    padding: 12px;
+  }
+  .student-installment-row + .student-installment-row {
+    border-top: 1px solid #edf1f7;
+  }
+  .student-installment-row > span:nth-child(2),
+  .student-installment-row > span:nth-child(3),
+  .student-installment-row > span:nth-child(4),
+  .student-installment-row > span:nth-child(5) {
+    display: flex;
+    align-items: center;
+  }
+  .student-installment-row > span:nth-child(2) {
+    grid-column: 2 / -1;
+  }
+  .student-installment-row > span:nth-child(3) {
+    grid-column: 2;
+  }
+  .student-installment-row > span:nth-child(4) {
+    grid-column: 3;
+  }
+  .student-installment-row > span:nth-child(5) {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+  .student-installment-action {
+    justify-content: flex-start;
   }
   .student-pagination {
     gap: 8px;

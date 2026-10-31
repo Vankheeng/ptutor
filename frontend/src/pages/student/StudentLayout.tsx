@@ -10,7 +10,7 @@ const navigation = [
   { section: 'LEARNING', to: '/student/studying-requests', label: 'My Studying Requests', icon: '▤' },
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Browse Teaching Requests', icon: '⌕' },
   { section: 'LEARNING', to: '/student/applications', label: 'My requests to studying', icon: '↗' },
-  { section: 'LEARNING', to: '/student/contracts', label: 'Contracts', icon: '▣' },
+  { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
   { section: 'ACCOUNT', to: '/student/notifications', label: 'Notifications', icon: 'bell' },
   { section: 'ACCOUNT', to: '/student/wallet', label: 'Wallet & Payments', icon: '◈' },

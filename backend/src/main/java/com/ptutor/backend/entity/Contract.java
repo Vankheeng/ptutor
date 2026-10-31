@@ -3,6 +3,8 @@ package com.ptutor.backend.entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -14,6 +16,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -124,4 +129,10 @@ public class Contract extends BaseEntity {
     @Column(name = "preferred_schedule", nullable = false, length = 500)
     @NonFinal
     private String preferredSchedule;
+
+    @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("dayOfWeek ASC, startTime ASC")
+    @Builder.Default
+    @NonFinal
+    private List<ContractSchedule> schedules = new ArrayList<>();
 }

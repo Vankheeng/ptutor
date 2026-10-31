@@ -16,11 +16,11 @@ export function statusLabel(value: string) {
 }
 
 export function formatStudyingRequestDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 export function formatStudyingRequestMoney(value: number | null) {
-  return value === null ? 'Negotiable' : `${new Intl.NumberFormat('en-US').format(value)} VND`;
+  return value === null ? 'Có thể thương lượng' : `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 
 export function weekdayLabel(dayOfWeek: number) {

@@ -146,8 +146,7 @@ export function ReasonField({
   const length = value.trim().length;
   const invalid = showError && length < minLength;
   const hint = minLength > 1 ? `Từ ${minLength} đến ${maxLength} ký tự.` : `Tối đa ${maxLength} ký tự.`;
-  const error =
-    length === 0 ? emptyMessage : `Lý do cần ít nhất ${minLength} ký tự (hiện có ${length}).`;
+  const error = length === 0 ? emptyMessage : `Lý do cần ít nhất ${minLength} ký tự (hiện có ${length}).`;
   return (
     <div className="admin-field">
       <label htmlFor={id}>
