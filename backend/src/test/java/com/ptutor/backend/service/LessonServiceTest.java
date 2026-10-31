@@ -106,7 +106,7 @@ class LessonServiceTest {
     }
 
     @Test
-    void createsPendingConfirmationLessonForFinishedSchedule() {
+    void createsScheduledLessonForFinishedScheduleUntilTutorMarksItTaught() {
         stubTutor();
         when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract()));
         when(lessonRepository.saveAndFlush(any(Lesson.class))).thenAnswer(invocation -> {
@@ -123,11 +123,8 @@ class LessonServiceTest {
                 null,
                 null));
 
-        assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
-        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
-        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_MARKED_TAUGHT);
+        assertThat(response.status()).isEqualTo(LessonStatus.SCHEDULED);
+        assertThat(response.markedTaughtAt()).isNull();
     }
 
     @Test
@@ -189,6 +186,7 @@ class LessonServiceTest {
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
         assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
+        verify(installmentService).requirePaidForLesson(lesson);
     }
 
     @Test
@@ -204,9 +202,33 @@ class LessonServiceTest {
                 new LessonRequest(null, null, null, null, null, LessonStatus.CANCELLED));
 
         assertThat(response.status()).isEqualTo(LessonStatus.CANCELLED);
+        verify(installmentService).releasePendingLessonInstallment(lesson);
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_CANCELLED);
+    }
+
+    @Test
+    void doesNotMarkLessonTaughtWhenRelatedInstallmentIsUnpaid() {
+        stubTutor();
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.SCHEDULED);
+        lesson.setDate(LocalDate.of(2026, 9, 12));
+        lesson.setEndTime(LocalTime.of(19, 0));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        org.mockito.Mockito.doThrow(new ApiException(HttpStatus.CONFLICT, "INSTALLMENT_PAYMENT_REQUIRED",
+                "The related tuition installment must be paid before this lesson can be marked as taught"))
+                .when(installmentService).requirePaidForLesson(lesson);
+
+        assertThatThrownBy(() -> service.updateStatus(userId, lessonId,
+                new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(exception.getCode()).isEqualTo("INSTALLMENT_PAYMENT_REQUIRED");
+                });
+
+        assertThat(lesson.getStatus()).isEqualTo(LessonStatus.SCHEDULED);
+        org.mockito.Mockito.verifyNoInteractions(eventPublisher);
     }
 
     @Test

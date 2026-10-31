@@ -32,6 +32,8 @@ public interface ContractPaymentInstallmentRepository extends JpaRepository<Cont
     Optional<ContractPaymentInstallment> findFirstByContract_IdAndStatusAndLessonIsNullOrderBySequenceNumberAsc(
             UUID contractId, PaymentInstallmentStatus status);
 
+    Optional<ContractPaymentInstallment> findByLesson_Id(UUID lessonId);
+
     @Query("""
             select installment
             from ContractPaymentInstallment installment
