@@ -58,6 +58,9 @@ import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearn
 import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
+import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
+import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
+import { AdminNotificationDetailPage } from './pages/admin/AdminNotificationDetailPage';
 
 export default function App() {
   return (
@@ -103,6 +106,10 @@ export default function App() {
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
                 <Route path="accounts" element={<AdminUserAccountsPage />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
+                <Route path="notifications" element={<AdminNotificationsPage />} />
+                <Route path="notifications/new" element={<AdminNotificationFormPage />} />
+                <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
+                <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
               </Route>
             </Route>
             <Route element={<RoleGuard roles={['TUTOR']} />}>
