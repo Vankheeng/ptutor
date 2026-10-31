@@ -1,6 +1,7 @@
 package com.ptutor.backend.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import org.hibernate.annotations.SQLDelete;
@@ -85,4 +86,8 @@ public class Lesson extends BaseEntity {
     @Column(name = "note", columnDefinition = "text")
     @NonFinal
     private String note;
+
+    @Column(name = "marked_taught_at")
+    @NonFinal
+    private LocalDateTime markedTaughtAt;
 }

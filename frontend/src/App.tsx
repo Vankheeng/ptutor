@@ -38,6 +38,26 @@ import { AdminTutorContractsPage } from './pages/admin/AdminTutorContractsPage';
 import { AdminTutorRatingsPage } from './pages/admin/AdminTutorRatingsPage';
 import { AdminTutorTeachingHistoryPage } from './pages/admin/AdminTutorTeachingHistoryPage';
 import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
+import { AdminRefundRequestsPage } from './pages/admin/AdminRefundRequestsPage';
+import { AdminRefundRequestDetailPage } from './pages/admin/AdminRefundRequestDetailPage';
+import { StudentContractLessonsPage } from './pages/student/StudentContractLessonsPage';
+import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
+import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
+import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
+import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
+import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
+import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
+import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
+import { AdminUserAccountsPage } from './pages/admin/AdminUserAccountsPage';
+import { AdminUserAccountDetailPage } from './pages/admin/AdminUserAccountDetailPage';
+import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
+import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout';
+import { AdminStudentProfilePage } from './pages/admin/AdminStudentProfilePage';
+import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearningHistoryPage';
+import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
+import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
+import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 
 export default function App() {
   return (
@@ -52,6 +72,8 @@ export default function App() {
                 <Route index element={<Navigate replace to="tutor-profiles" />} />
                 <Route path="tutor-profiles" element={<AdminTutorProfilesPage />} />
                 <Route path="tutor-profiles/certificates" element={<AdminCertificateQueuePage />} />
+                <Route path="teaching-requests" element={<AdminRequestReviewPage key="teaching" kind="teaching" />} />
+                <Route path="studying-requests" element={<AdminRequestReviewPage key="studying" kind="studying" />} />
                 <Route path="tutor-profiles/:userId" element={<AdminTutorDetailLayout />}>
                   <Route index element={<AdminTutorReviewPage />} />
                   <Route path="contracts" element={<AdminTutorContractsPage />} />
@@ -59,6 +81,28 @@ export default function App() {
                   <Route path="teaching-history" element={<AdminTutorTeachingHistoryPage />} />
                   <Route path="score" element={<AdminTutorScorePage />} />
                 </Route>
+                <Route path="students" element={<AdminStudentsPage />} />
+                <Route path="students/:userId" element={<AdminStudentDetailLayout />}>
+                  <Route index element={<AdminStudentProfilePage />} />
+                  <Route path="learning-history" element={<AdminStudentLearningHistoryPage />} />
+                  <Route path="contracts" element={<AdminStudentContractsPage />} />
+                  <Route path="transactions" element={<AdminStudentTransactionsPage />} />
+                  <Route path="complaints" element={<AdminStudentComplaintsPage />} />
+                </Route>
+                <Route path="tutors" element={<AdminTutorProfilesPage key="manage" mode="manage" />} />
+                <Route path="tutors/:userId" element={<AdminTutorDetailLayout key="manage" mode="manage" />}>
+                  <Route index element={<AdminTutorReviewPage />} />
+                  <Route path="contracts" element={<AdminTutorContractsPage />} />
+                  <Route path="ratings" element={<AdminTutorRatingsPage />} />
+                  <Route path="teaching-history" element={<AdminTutorTeachingHistoryPage />} />
+                  <Route path="score" element={<AdminTutorScorePage />} />
+                </Route>
+                <Route path="refund-requests" element={<AdminRefundRequestsPage />} />
+                <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
+                <Route path="complaints" element={<AdminComplaintsPage />} />
+                <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
+                <Route path="accounts" element={<AdminUserAccountsPage />} />
+                <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
               </Route>
             </Route>
             <Route element={<RoleGuard roles={['TUTOR']} />}>
@@ -69,6 +113,8 @@ export default function App() {
                 <Route path="certificates" element={<TutorCertificatesPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
+                <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
+                <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
@@ -94,6 +140,10 @@ export default function App() {
                   path="studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new"
                   element={<StudentContractCreatePage />}
                 />
+                <Route path="contracts/:contractId/lessons" element={<StudentContractLessonsPage />} />
+                <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
+                <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
+                <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="profile" element={<StudentProfilePage />} />

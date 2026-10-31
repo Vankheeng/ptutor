@@ -143,7 +143,6 @@ export function StudentContractDetailPage() {
           {error}
         </div>
       )}
-
       <StudentContractOverview contract={contract} createdByYou={createdByYou} />
       <StudentContractActionBar
         contract={contract}
@@ -161,6 +160,13 @@ export function StudentContractDetailPage() {
           </h2>
           <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
         </section>
+      )}
+      {contract.status !== 'PENDING' && (
+        <div className="student-form-actions student-contract-related-actions">
+          <Link className="student-button secondary" to={`/student/contracts/${contract.id}/lessons`}>
+            Buổi học và hoàn tiền
+          </Link>
+        </div>
       )}
       {contract.status === 'ACTIVE' && (
         <StudentPaymentInstallments installments={installments} loading={busy} onPay={(id) => void pay(id)} />

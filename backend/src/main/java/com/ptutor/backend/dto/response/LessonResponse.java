@@ -18,6 +18,7 @@ public record LessonResponse(
         TeachingMode teachingMode,
         LessonStatus status,
         String note,
+        LocalDateTime markedTaughtAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }

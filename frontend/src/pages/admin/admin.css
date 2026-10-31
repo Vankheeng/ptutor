@@ -52,6 +52,24 @@
   display: grid;
   gap: 4px;
 }
+.admin-nav-label {
+  padding: 20px 12px 8px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.admin-nav-label:first-child {
+  padding-top: 0;
+}
+.admin-nav-group {
+  display: grid;
+  gap: 4px;
+  margin-left: 16px;
+  padding-left: 8px;
+  border-left: 1px solid var(--admin-border);
+}
 .admin-nav a {
   padding: 12px;
   border-radius: 10px;
@@ -600,6 +618,9 @@
   align-items: center;
   gap: 20px;
 }
+.admin-header-actions {
+  margin-left: auto;
+}
 .admin-tutor-name {
   display: flex;
   flex-wrap: wrap;
@@ -1110,4 +1131,180 @@
   .admin-definitions-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Complaints */
+.admin-complaint-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.admin-complaint-header > .admin-stack-gap {
+  flex: 1 1 420px;
+  min-width: 0;
+  gap: 10px;
+}
+.admin-complaint-meta {
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.admin-tabs-inset {
+  padding: 0 12px;
+  overflow-x: auto;
+}
+.admin-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--admin-subtle);
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-tabs button.active {
+  border-bottom-color: var(--admin-brand);
+  color: var(--admin-brand-ink);
+  font-weight: 600;
+}
+.admin-evidence-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-evidence-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.admin-evidence-list li > span:last-child {
+  margin-left: auto;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.admin-field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.admin-field input:focus {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 1px;
+}
+.admin-choice-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-choice-group legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.admin-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.admin-choices-list {
+  grid-template-columns: 1fr;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.admin-choices label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.admin-choices label.active {
+  border-color: var(--admin-brand);
+  background: var(--admin-brand-soft);
+}
+.admin-choices label:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+.admin-choices input {
+  margin: 0;
+  accent-color: var(--admin-brand);
+}
+
+/* User accounts */
+.admin-account-header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.admin-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.admin-account-identity .admin-stack-gap {
+  gap: 8px;
+}
+.admin-account-empty {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.admin-suspension-temporary {
+  border-color: #f6d6ae;
+  background: #fff8ef;
+}
+.admin-suspension-temporary h2,
+.admin-suspension-temporary .admin-section-heading span {
+  color: var(--admin-warning);
+}
+.admin-suspension-permanent {
+  border-color: #f3c4cf;
+  background: #fff5f7;
+}
+.admin-suspension-permanent h2 {
+  color: var(--admin-danger);
+}
+.admin-suspension .admin-section-heading span {
+  font-weight: 600;
+}
+.admin-field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.admin-field input[aria-invalid='true'] {
+  border: 2px solid var(--admin-danger);
 }
