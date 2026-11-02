@@ -33,6 +33,10 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     boolean existsByEmployee_IdAndStatusIn(UUID employeeId, Collection<ComplaintStatus> statuses);
 
+    @EntityGraph(attributePaths = { "user" })
+    List<Complaint> findAllByEmployee_IdAndStatusInOrderByCreatedAtAsc(
+            UUID employeeId, Collection<ComplaintStatus> statuses);
+
     List<Complaint> findAllByContract_IdOrderByCreatedAtDesc(UUID contractId);
 
     @EntityGraph(attributePaths = {

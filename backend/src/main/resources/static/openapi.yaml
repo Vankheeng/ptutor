@@ -3946,7 +3946,7 @@ paths:
     get:
       tags: [Admin User Accounts]
       summary: List complaint summaries related to a student
-      description: USER_SUPPORT receives summaries only; complaint evidence remains in the complaint workflow.
+      description: Customer service receives summaries only; complaint evidence remains in the complaint workflow.
       operationId: listManagedStudentComplaints
       parameters:
         - $ref: '#/components/parameters/UserId'
@@ -4054,11 +4054,31 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/admin/employees/{employeeId}/open-assignments:
+    get:
+      tags: [Admin Employees]
+      summary: List work the employee must hand over
+      description: Complaints in IN_REVIEW or AWAITING_EVIDENCE and refund requests in IN_REVIEW assigned to the employee, oldest first. These block deactivation and job-function changes until reassigned.
+      operationId: getEmployeeOpenAssignments
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Open assignments
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/admin/employees/{employeeId}/deactivate:
     patch:
       tags: [Admin Employees]
       summary: Revoke employee access
-      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints must be reassigned first.
+      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints and refund requests must be reassigned first.
       operationId: deactivateEmployee
       parameters:
         - name: employeeId
@@ -4877,9 +4897,42 @@ components:
           properties:
             data: { $ref: '#/components/schemas/AdminRefundRequestPageResponse' }
 
+    EmployeeOpenAssignmentsResponse:
+      type: object
+      required: [complaints, refundRequests]
+      properties:
+        complaints:
+          type: array
+          items:
+            type: object
+            required: [id, title, status, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+              complainantName: { type: string, nullable: true }
+              status: { type: string, enum: [IN_REVIEW, AWAITING_EVIDENCE] }
+              createdAt: { type: string, format: date-time }
+        refundRequests:
+          type: array
+          items:
+            type: object
+            required: [id, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              studentName: { type: string, nullable: true }
+              subjectName: { type: string, nullable: true }
+              createdAt: { type: string, format: date-time }
+
+    EmployeeOpenAssignmentsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponse' }
+
     EmployeeJobFunction:
       type: string
-      enum: [GENERAL_OPERATIONS, COMPLAINT_HANDLER, ACCOUNTANT, CONTENT_REVIEWER, USER_SUPPORT]
+      enum: [CUSTOMER_SERVICE, ACCOUNTANT]
 
     CreateEmployeeRequest:
       type: object

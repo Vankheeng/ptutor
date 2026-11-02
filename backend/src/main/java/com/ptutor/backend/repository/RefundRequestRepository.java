@@ -25,6 +25,9 @@ public interface RefundRequestRepository extends JpaRepository<RefundRequest, UU
 
     boolean existsByEmployee_IdAndStatus(UUID employeeId, RefundRequestStatus status);
 
+    @EntityGraph(attributePaths = { "student", "student.user", "contract", "contract.subject" })
+    List<RefundRequest> findAllByEmployee_IdAndStatusOrderByCreatedAtAsc(UUID employeeId, RefundRequestStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {
             "contract", "contract.student", "contract.student.user", "contract.tutor", "contract.tutor.user",

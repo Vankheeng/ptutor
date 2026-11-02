@@ -137,9 +137,9 @@ public class AdminComplaintService {
                     "The target employee account must be active");
         }
         if (targetEmployee.getRole() != EmployeeRole.ADMIN
-                && targetEmployee.getJobFunction() != EmployeeJobFunction.COMPLAINT_HANDLER) {
+                && targetEmployee.getJobFunction() != EmployeeJobFunction.CUSTOMER_SERVICE) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_EMPLOYEE_FUNCTION",
-                    "The target employee must be assigned to complaint handling");
+                    "The target employee must be a customer service employee");
         }
         if (complaint.getEmployee().getId().equals(targetEmployee.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "COMPLAINT_ALREADY_ASSIGNED_TO_EMPLOYEE",

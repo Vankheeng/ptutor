@@ -23,6 +23,7 @@ import com.ptutor.backend.dto.request.EmployeeAccessRequest;
 import com.ptutor.backend.dto.request.UpdateEmployeeRequest;
 import com.ptutor.backend.dto.response.AdminEmployeeDetailResponse;
 import com.ptutor.backend.dto.response.AdminEmployeeSummaryResponse;
+import com.ptutor.backend.dto.response.EmployeeOpenAssignmentsResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.UserStatus;
@@ -73,6 +74,13 @@ public class AdminEmployeeController {
     public ResponseEntity<ApiResponse<AdminEmployeeDetailResponse>> findById(@PathVariable UUID employeeId) {
         return ResponseEntity.ok(responseFactory.success(
                 employeeService.findById(employeeId), BASE_PATH + "/" + employeeId));
+    }
+
+    @GetMapping("/{employeeId}/open-assignments")
+    public ResponseEntity<ApiResponse<EmployeeOpenAssignmentsResponse>> findOpenAssignments(
+            @PathVariable UUID employeeId) {
+        return ResponseEntity.ok(responseFactory.success(
+                employeeService.findOpenAssignments(employeeId), BASE_PATH + "/" + employeeId + "/open-assignments"));
     }
 
     @PutMapping("/{employeeId}")
