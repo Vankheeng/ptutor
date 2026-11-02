@@ -20,9 +20,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const hydrateProfile = useCallback(async (tokens: AuthTokenResponse) => {
-    if (tokens.role !== 'STUDENT' && tokens.role !== 'TUTOR') return null;
+    const profilePath = {
+      STUDENT: '/api/v1/students/me',
+      TUTOR: '/api/v1/tutors/me',
+      EMPLOYEE: '/api/v1/employees/me',
+      ADMIN: '/api/v1/employees/me'
+    }[tokens.role];
+    if (!profilePath) return null;
     try {
-      const profile = await get<AuthProfile>(tokens.role === 'STUDENT' ? '/api/v1/students/me' : '/api/v1/tutors/me');
+      const profile = await get<AuthProfile>(profilePath);
       return profile;
     } catch {
       return null;
@@ -52,7 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setIsLoading(false);
       } else {
-        setUser(userFromTokens(tokens));
+        // A token refresh keeps the signed-in user, so keep the profile already loaded for them.
+        setUser((current) => userFromTokens(tokens, current?.userId === tokens.userId ? current.profile : null));
       }
     };
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);

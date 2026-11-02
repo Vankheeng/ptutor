@@ -1,7 +1,8 @@
 import { get, patch, post, put } from './httpClient';
 import type { PageResponse } from './studentApi';
+import type { EmployeeJobFunction } from '../types/auth';
 
-export type EmployeeJobFunction = 'CUSTOMER_SERVICE' | 'ACCOUNTANT';
+export type { EmployeeJobFunction };
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
 export type EmployeeGender = 'MALE' | 'FEMALE' | 'OTHER';
 

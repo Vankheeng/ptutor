@@ -4,7 +4,8 @@ import { useResource } from '../../hooks/useResource';
 import { getEmployee } from '../../services/adminEmployeeApi';
 import { AdminAvatar, AdminState, DefinitionGrid, StatusBadge } from './components/AdminUi';
 import { EmployeeAccessDialog, type EmployeeAccessAction } from './components/EmployeeAccessDialog';
-import { employeeName, employeeStatusMeta, jobFunctionAccess, jobFunctionMeta } from './employeeFormat';
+import { modulesForFunction } from './adminAccess';
+import { employeeName, employeeStatusMeta, jobFunctionMeta } from './employeeFormat';
 import { formatDate, formatDateTime, genderLabels } from './adminFormat';
 
 export function AdminEmployeeDetailPage() {
@@ -127,7 +128,7 @@ export function AdminEmployeeDetailPage() {
           <section className="admin-card admin-card-pad">
             <h2>Quyền truy cập</h2>
             <ul className="admin-employee-access">
-              {jobFunctionAccess[data.jobFunction].map((module) => (
+              {modulesForFunction(data.jobFunction).map((module) => (
                 <li key={module}>
                   <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24">
                     <path d="M5 12l5 5L20 7" />

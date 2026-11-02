@@ -13,19 +13,6 @@ export const jobFunctionMeta: Record<EmployeeJobFunction, StatusMeta> = {
   ACCOUNTANT: { label: 'Kế toán', tone: 'info' }
 };
 
-/** The admin modules each function may open; mirrors the backend's EmployeeFunctionAuthorizationFilter. */
-export const jobFunctionAccess: Record<EmployeeJobFunction, string[]> = {
-  CUSTOMER_SERVICE: [
-    'Khiếu nại',
-    'Thông báo',
-    'Duyệt hồ sơ gia sư',
-    'Duyệt yêu cầu dạy',
-    'Duyệt yêu cầu học',
-    'Tài khoản người dùng'
-  ],
-  ACCOUNTANT: ['Yêu cầu hoàn tiền']
-};
-
 export const employeeStatusMeta: Record<EmployeeStatus, StatusMeta> = {
   ACTIVE: { label: 'Đang hoạt động', tone: 'success' },
   INACTIVE: { label: 'Đã vô hiệu hóa', tone: 'neutral' },

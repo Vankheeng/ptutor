@@ -4054,6 +4054,37 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/employees/me:
+    get:
+      tags: [Admin Employees]
+      summary: Get the signed-in staff member's role and job function
+      description: Available to ADMIN and EMPLOYEE accounts. jobFunction is null for administrators.
+      operationId: getMyEmployeeProfile
+      responses:
+        '200':
+          description: Own employee profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [employeeId, role]
+                        properties:
+                          employeeId: { type: string, format: uuid }
+                          role: { type: string, enum: [ADMIN, EMPLOYEE] }
+                          jobFunction:
+                            allOf:
+                              - $ref: '#/components/schemas/EmployeeJobFunction'
+                            nullable: true
+                          firstName: { type: string, nullable: true }
+                          lastName: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
   /api/v1/admin/employees/{employeeId}/open-assignments:
     get:
       tags: [Admin Employees]
