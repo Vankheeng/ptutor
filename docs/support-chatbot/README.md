@@ -69,7 +69,7 @@ sinh từ code và nạp vào dưới dạng nháp.
 | QĐ12 | Mọi thay đổi prompt / model / cấu hình phải qua **bộ hồi quy** trước khi áp dụng | [10](./10-danh-gia.md), [13](./13-thiet-ke-eval.md) |
 | QĐ13 | Bộ nhớ chỉ **trong một hội thoại** (phiên kết thúc khi đóng tab / đăng xuất) (cửa sổ 6 lượt + trạng thái phiên do code cập nhật); **không** bộ nhớ dài hạn / xuyên phiên — dữ liệu người dùng lấy mới qua tool; agent không tự ghi bộ nhớ bền vững | [04](./04-luong-hoi-dap.md), [12](./12-co-so-ly-thuyet.md) |
 | QĐ14 | Lớp chặn câu hỏi ngoài phạm vi trước khi gọi model | [04](./04-luong-hoi-dap.md) |
-| QĐ15 | Chuyển câu hỏi cho nhân viên bằng yêu cầu hỗ trợ (người dùng tự gửi; nhân viên `USER_SUPPORT` xử lý) | [14](./14-yeu-cau-ho-tro.md) |
+| QĐ15 | Chuyển câu hỏi cho nhân viên bằng yêu cầu hỗ trợ (người dùng tự gửi; nhân viên `CUSTOMER_SERVICE` xử lý) | [14](./14-yeu-cau-ho-tro.md) |
 | QĐ16 | Không dùng Graph RAG | [12](./12-co-so-ly-thuyet.md) |
 
 ## Mục lục
@@ -89,6 +89,8 @@ sinh từ code và nạp vào dưới dạng nháp.
 12. [Cơ sở lý thuyết](./12-co-so-ly-thuyet.md)
 13. [Thiết kế kiểm thử và eval](./13-thiet-ke-eval.md)
 14. [Chuyển câu hỏi cho nhân viên (yêu cầu hỗ trợ)](./14-yeu-cau-ho-tro.md)
+
+Tài liệu tham khảo: [Tổng hợp quy định của nền tảng rút từ code `dev`](./quy-dinh-nen-tang-tu-code.md), dùng làm danh sách kiểm tra khi sinh kho tri thức.
 
 ## Thuật ngữ
 

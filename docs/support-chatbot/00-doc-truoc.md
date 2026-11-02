@@ -159,7 +159,7 @@ nhưng nguồn đó **không hề nói điều này** (kiểu khó nhất, chỉ
 ## 7. Khi trợ lý không trả lời được
 
 Hiện nút **"Gửi câu hỏi cho nhân viên"**. Người dùng tự bấm, sửa câu hỏi nếu muốn, chọn có đính kèm đoạn trò chuyện
-hay không. Nhân viên hỗ trợ (vai trò `USER_SUPPORT`) xem hàng chờ trên trang riêng, trả lời; người dùng nhận thông
+hay không. Nhân viên hỗ trợ (nhân viên chăm sóc khách hàng, chức năng `CUSTOMER_SERVICE`) xem hàng chờ trên trang riêng, trả lời; người dùng nhận thông
 báo. Trợ lý **không tự gửi** thay người dùng.
 
 ---

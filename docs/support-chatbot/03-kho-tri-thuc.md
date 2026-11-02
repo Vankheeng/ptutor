@@ -9,7 +9,10 @@
 - **Bản đang dùng nằm trong DB**, admin quản lý qua trang quản trị (QĐ4). Thư mục `knowledge-base/` trong repo
   chỉ chứa **bản khởi tạo** (sinh từ code), được import vào DB dưới dạng nháp.
 - **Một tài liệu = một chủ đề**, ví dụ "Hủy hợp đồng", không gom "mọi thứ về hợp đồng" vào một bài.
-- **Viết cho người dùng cuối**, câu ngắn, dùng đúng tên nút và tên trang trên giao diện.
+- **Viết bằng ngôn ngữ tự nhiên cho người dùng cuối**: câu ngắn, xưng "bạn", dùng đúng tên nút và tên trang trên
+  giao diện. Thân bài **không** chứa tên kỹ thuật (tên enum như `PENDING_REVIEW`, tên class, đường dẫn API, tên
+  bảng, mã lỗi). Trạng thái ghi bằng nhãn tiếng Việt hiển thị trên giao diện; lỗi ghi bằng câu thông báo người dùng
+  thật sự nhìn thấy. Tên kỹ thuật chỉ nằm trong front matter (`source`, `error_codes`) để người duyệt đối chiếu.
 - **Giá trị quy định (phí, hạn mức, thời hạn) phải khớp code / cấu hình**; mỗi tài liệu ghi `source` để người
   duyệt đối chiếu.
 - **Chỉ bản `PUBLISHED` được truy xuất.** Bản nháp không bao giờ xuất hiện trong câu trả lời cho người dùng.
@@ -50,13 +53,14 @@ repo dùng front matter YAML với cùng các trường:
 ---
 id: hop-dong-huy                       # doc_key: duy nhất, kebab-case
 title: Hủy hợp đồng
-type: policy                           # policy | guide | faq | glossary
+type: policy                           # policy | guide | faq | glossary | error
 audience: [STUDENT, TUTOR]             # PUBLIC | STUDENT | TUTOR
 features: [contract]                   # mã chức năng, xem 3.7
 routes: [/student/contracts]           # trang liên quan, phải có trong danh sách route
 source:                                # căn cứ để đối chiếu khi duyệt
   - backend: ContractController PATCH /users/me/contracts/{id}/cancel
   - enum: CancelContractRequestStatus
+error_codes: [CONTRACT_CREATOR_REQUIRED]   # mã lỗi liên quan; chỉ để đối chiếu, không viết vào thân bài
 keywords: [hủy hợp đồng, chấm dứt, huy hop dong]
 todo:                                  # câu hỏi cần admin trả lời (chỉ có ở bản khởi tạo)
   - "Hủy sau khi đã thanh toán kỳ đầu thì học phí còn lại xử lý thế nào?"
@@ -86,7 +90,7 @@ Kiểm tra khi lưu / công bố (lỗi → không cho công bố, hiện lỗi 
 
 ## 3.4. Loại tài liệu
 
-> 💡 **Nói đơn giản:** Bốn loại bài: quy định, hướng dẫn thao tác, hỏi đáp thường gặp, và "giải nghĩa trạng thái" (để trợ lý giải thích được các mã như `AWAITING_EVIDENCE`).
+> 💡 **Nói đơn giản:** Năm loại bài: quy định, hướng dẫn thao tác, hỏi đáp thường gặp, "giải nghĩa trạng thái", và "lỗi thường gặp" (để trợ lý giải thích được các mã như `AWAITING_EVIDENCE`).
 
 | `type` | Nội dung | Ví dụ |
 |---|---|---|
@@ -94,6 +98,7 @@ Kiểm tra khi lưu / công bố (lỗi → không cho công bố, hiện lỗi 
 | `guide` | Các bước thao tác | Đăng tin tìm gia sư, nộp chứng chỉ, ký hợp đồng |
 | `faq` | Câu hỏi thường gặp, mỗi `##` là một câu hỏi | "Vì sao tin của tôi đang chờ duyệt?" |
 | `glossary` | Ý nghĩa trạng thái, thuật ngữ | Trạng thái hợp đồng, trạng thái khiếu nại |
+| `error` | Thông báo lỗi người dùng hay gặp: câu thông báo, vì sao bị, cách khắc phục | Không đóng được học phí, không xác nhận được buổi học |
 
 Tài liệu `glossary` giúp trợ lý **diễn giải kết quả tra cứu**: tool trả `status = AWAITING_EVIDENCE` thì trợ lý
 truy xuất được "đang chờ bạn bổ sung bằng chứng".
@@ -120,7 +125,7 @@ ngữ cảnh: [04](./04-luong-hoi-dap.md) mục 4.3.
 
 > 💡 **Nói đơn giản:** Để admin không phải viết từ đầu: khi dự án xong, bản đầu tiên của các bài được sinh tự động bằng cách đọc code (màn hình, trạng thái, điều kiện). Chỗ nào code không trả lời được thì để thành câu hỏi (`todo`) cho admin.
 
-Khi dự án đã hoàn thiện, bản khởi tạo được **sinh từ code** (có sự hỗ trợ của AI) rồi import vào DB dạng nháp;
+Khi dự án đã hoàn thiện, bản khởi tạo được **sinh từ code của nhánh `dev`** (có sự hỗ trợ của AI) rồi import vào DB dạng nháp;
 admin duyệt, trả lời các mục `todo`, và công bố.
 
 | Nội dung | Lấy từ |
@@ -164,6 +169,8 @@ Mã chức năng (`features`) và mức sẵn sàng trên `dev` hiện tại.
 | `withdrawal` | Tài khoản ngân hàng, rút tiền, hủy yêu cầu rút, trạng thái | `BankAccountController`, `WithdrawalController`, `WithdrawalRequestStatus` | Có (chưa có trang gia sư) |
 | `tutor-profile` | Hồ sơ gia sư, duyệt hồ sơ, lý do bị từ chối | `TutorProfileController`, `AdminTutorProfileReviewController`, `TutorProfileStatus` | Có |
 | `certificate` | Nộp chứng chỉ (tệp tối đa 10 MB theo `CertificateFileStorageService`), duyệt, hết hạn | `CertificateController`, `CertificateStatus` | Có |
+| `lesson` | Buổi học: gia sư tạo buổi, đánh dấu đã dạy, học viên xác nhận, tự hoàn tất sau 3 ngày, buổi bị giữ | `LessonController`, `StudentLessonController`, `LessonStatus`, `LessonAutoCompletionScheduler` | Có |
+| `refund` | Yêu cầu hoàn tiền buổi không diễn ra, gia sư phản hồi trong 48 giờ, mức hoàn 100% / 80% | `StudentRefundRequestController`, `TutorRefundRequestController`, `RefundPolicy`, `RefundCalculator` | Có |
 | `complaint` | Gửi khiếu nại, bổ sung bằng chứng, hủy, quy trình xử lý và trạng thái | `ComplaintController`, `AdminComplaintController`, `ComplaintStatus` | Có (chưa có trang người dùng) |
 | `review` | Đánh giá gia sư | `PublicReviewController`, `ReviewService` | Một phần |
 | `notification` | Thông báo, đánh dấu đã đọc | `NotificationController` | Có |

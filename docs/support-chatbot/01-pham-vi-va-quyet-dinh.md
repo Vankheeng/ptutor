@@ -21,8 +21,8 @@ Nghiệp vụ của PTutor đan xen nhiều luồng, mỗi luồng có trạng t
 | Tài khoản | `UserStatus`, tạm khóa (`SuspensionType`) |
 
 Người dùng thường không biết mình đang ở bước nào, bước tiếp theo là gì, vì sao bị từ chối, và quy định
-áp dụng ra sao. Câu hỏi lặp lại dồn về nhân viên (`EmployeeJobFunction.USER_SUPPORT`, `COMPLAINT_HANDLER`,
-`ACCOUNTANT`).
+áp dụng ra sao. Câu hỏi lặp lại dồn về nhân viên (chăm sóc khách hàng `EmployeeJobFunction.CUSTOMER_SERVICE` và kế toán
+`ACCOUNTANT` — hai chức năng nhân viên duy nhất của nền tảng).
 
 ## 1.2. Mục tiêu
 
@@ -60,7 +60,7 @@ Vai trò lấy từ claim `role` trong access token (`UserRole`).
 - Hướng dẫn thao tác trên giao diện, kèm link tới trang (chỉ trang có trong danh sách route cho phép).
 - Tra cứu chỉ-đọc dữ liệu của chính người hỏi.
 - Hội thoại nhiều lượt (hiểu câu hỏi tiếp nối như "còn hợp đồng kia thì sao?").
-- Chuyển câu hỏi chưa trả lời được cho nhân viên hỗ trợ — **người dùng tự gửi**; nhân viên `USER_SUPPORT` xử lý trên
+- Chuyển câu hỏi chưa trả lời được cho nhân viên hỗ trợ — **người dùng tự gửi**; nhân viên `CUSTOMER_SERVICE` xử lý trên
   trang riêng ([14](./14-yeu-cau-ho-tro.md)).
 
 **Ngoài phạm vi**

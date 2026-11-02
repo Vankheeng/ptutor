@@ -66,7 +66,7 @@ erDiagram
 | `version` | `int` | Tăng dần theo tài liệu; `UNIQUE (document_id, version)` |
 | `state` | `varchar(20)` | `DRAFT`, `PUBLISHED`, `SUPERSEDED`, `ARCHIVED` |
 | `title` | `varchar(255)` | |
-| `type` | `varchar(20)` | `policy`, `guide`, `faq`, `glossary` |
+| `type` | `varchar(20)` | `policy`, `guide`, `faq`, `glossary`, `error` |
 | `audience` | `varchar(20)[]` | `PUBLIC`, `STUDENT`, `TUTOR` |
 | `features` | `varchar(40)[]` | |
 | `routes` | `varchar(200)[]` | |

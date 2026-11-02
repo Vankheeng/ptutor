@@ -38,7 +38,7 @@ lý và admin (qua trang quản trị) **không sửa được** chúng. Admin c
 | T9 | Lạm dụng tốn chi phí LLM | Lớp 5; theo dõi token trong `turn_trace` |
 | T10 | `assistant-service` đọc trộm dữ liệu nghiệp vụ | Role DB `assistant_app` không có quyền schema `public` |
 | T12 | Dùng trợ lý cho việc ngoài nền tảng (tốn chi phí, sai vai trò) | Lớp chặn ngoài phạm vi trước khi gọi model ([04](./04-luong-hoi-dap.md) mục 4.11) — lớp về phạm vi / chi phí, không thay cho các lớp bảo mật |
-| T13 | Lộ hội thoại qua yêu cầu hỗ trợ | Chỉ đính kèm khi người dùng đồng ý; đoạn trích đã che thông tin cá nhân; chỉ nhân viên `USER_SUPPORT` / `ADMIN` xem được ([14](./14-yeu-cau-ho-tro.md) mục 14.8) |
+| T13 | Lộ hội thoại qua yêu cầu hỗ trợ | Chỉ đính kèm khi người dùng đồng ý; đoạn trích đã che thông tin cá nhân; chỉ nhân viên `CUSTOMER_SERVICE` / `ADMIN` xem được ([14](./14-yeu-cau-ho-tro.md) mục 14.8) |
 | T14 | Trợ lý tạo yêu cầu hỗ trợ hàng loạt do injection | Trợ lý không có tool tạo yêu cầu; chỉ người dùng bấm gửi; giới hạn 5 yêu cầu mở / 10 mỗi ngày |
 | T11 | XSS qua câu trả lời / nội dung tài liệu | Render Markdown không cho HTML ở widget và trang xem trước; link chỉ là route nội bộ qua `navigate` |
 

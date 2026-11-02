@@ -57,7 +57,7 @@ flowchart TB
 | Backend | `AssistantController`, `AdminAssistantController` | Nhận request, kiểm vai trò (`STUDENT` / `TUTOR`; `ADMIN`) |
 | | `AssistantProxyService` | Rate limit; gọi `assistant-service` với `X-Internal-Token`, `X-User-*`, chuyển tiếp `Authorization`; timeout |
 | | API nghiệp vụ sẵn có | Nguồn dữ liệu cho tool tra cứu — không sửa gì |
-| | Yêu cầu hỗ trợ (mới) | Bảng, API, thông báo cho việc chuyển câu hỏi cho nhân viên `USER_SUPPORT` ([14](./14-yeu-cau-ho-tro.md)) |
+| | Yêu cầu hỗ trợ (mới) | Bảng, API, thông báo cho việc chuyển câu hỏi cho nhân viên `CUSTOMER_SERVICE` ([14](./14-yeu-cau-ho-tro.md)) |
 | assistant-service | Agent hỏi đáp | `AgentRunner` + chuỗi middleware (mục 2.3); `Retriever`, `ToolRegistry` + `BackendClient`, `CitationVerifier` |
 | | Quản lý kho tri thức | `KnowledgeBaseService`: phiên bản, công bố, chia đoạn, embed; import bản khởi tạo từ `knowledge-base/` trong repo |
 | | Nhà cung cấp | `LlmProvider` (LLM API), `EmbeddingProvider` (`ai-service`) — đổi được bằng cấu hình |

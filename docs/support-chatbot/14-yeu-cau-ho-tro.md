@@ -27,7 +27,7 @@ sequenceDiagram
     participant U as Người dùng (widget)
     participant B as Backend
     participant A as assistant-service
-    participant N as Nhân viên USER_SUPPORT
+    participant N as Nhân viên CUSTOMER_SERVICE
 
     U->>U: Trợ lý từ chối / trả lời một phần / 👎 → nút "Gửi câu hỏi cho nhân viên"
     U->>B: POST /users/me/support-requests {question, conversationId, messageId, attachConversation}
@@ -97,7 +97,7 @@ Chỉ mục: `(user_id, created_at DESC)`, `(status, created_at)`, `(assigned_em
 
 | Enum | Giá trị mới |
 |---|---|
-| `NotificationEventType` | `SUPPORT_REQUEST_ANSWERED` (gửi người dùng), `SUPPORT_REQUEST_RECEIVED` (gửi nhân viên `USER_SUPPORT`, tùy chọn) |
+| `NotificationEventType` | `SUPPORT_REQUEST_ANSWERED` (gửi người dùng), `SUPPORT_REQUEST_RECEIVED` (gửi nhân viên `CUSTOMER_SERVICE`, tùy chọn) |
 | `NotificationReferenceType` | `SUPPORT_REQUEST` |
 | `SupportRequestStatus`, `SupportRequestSource` | Mới |
 
@@ -115,9 +115,9 @@ Chỉ mục: `(user_id, created_at DESC)`, `(status, created_at)`, `(assigned_em
 
 Giới hạn: tối đa 5 yêu cầu `OPEN` cùng lúc mỗi người; 10 yêu cầu / ngày.
 
-**Nhân viên** (`ADMIN`, và `EMPLOYEE` có `EmployeeJobFunction.USER_SUPPORT` — thêm nhánh
-`/api/v1/admin/support-requests` → `USER_SUPPORT` vào `EmployeeFunctionAuthorizationFilter`, cùng cách các nhánh
-`/api/v1/admin/users`, `/api/v1/admin/tutors` đang làm):
+**Nhân viên** (`ADMIN`, và `EMPLOYEE` có `EmployeeJobFunction.CUSTOMER_SERVICE` — thêm đường dẫn
+`/api/v1/admin/support-requests` vào danh sách đường dẫn của `CUSTOMER_SERVICE` trong `EmployeeFunctionAuthorizationFilter`,
+cùng cách `/api/v1/admin/complaints`, `/api/v1/admin/users` đang làm):
 
 | Phương thức | Đường dẫn | Mô tả |
 |---|---|---|
@@ -156,7 +156,7 @@ src/services/supportRequestApi.ts
 
 ## 14.8. Quyền riêng tư và bảo mật
 
-- Người dùng chỉ thấy yêu cầu của mình (`/users/me`); nhân viên chỉ khi có `USER_SUPPORT` hoặc là `ADMIN`.
+- Người dùng chỉ thấy yêu cầu của mình (`/users/me`); nhân viên chỉ khi có `CUSTOMER_SERVICE` hoặc là `ADMIN`.
 - `conversation_excerpt` là bản sao được người dùng đồng ý gửi: không bị xóa khi người dùng xóa cuộc trò chuyện
   (đã nói rõ trong hộp thoại); lưu cùng yêu cầu, **xóa sau 365 ngày** kể từ khi đóng (job hằng đêm), giữ lại câu hỏi
   và câu trả lời để thống kê.
@@ -174,6 +174,6 @@ số lượt trợ lý từ chối (cho biết người dùng có thật sự c�
 
 | Tầng | Kiểm tra |
 |---|---|
-| Backend (unit + tích hợp) | Chuyển trạng thái hợp lệ / không hợp lệ; người dùng A không xem / hủy được yêu cầu của B; `EMPLOYEE` không có `USER_SUPPORT` bị chặn; giới hạn 5 yêu cầu `OPEN`; thông báo được tạo khi trả lời; đoạn hội thoại chỉ có khi `attachConversation = true` |
+| Backend (unit + tích hợp) | Chuyển trạng thái hợp lệ / không hợp lệ; người dùng A không xem / hủy được yêu cầu của B; `EMPLOYEE` không có `CUSTOMER_SERVICE` bị chặn; giới hạn 5 yêu cầu `OPEN`; thông báo được tạo khi trả lời; đoạn hội thoại chỉ có khi `attachConversation = true` |
 | `assistant-service` (T1) | `/excerpt` từ chối hội thoại không thuộc `userId`; đoạn trích đã che thông tin cá nhân |
 | Eval — bộ an toàn ([13](./13-thiet-ke-eval.md) mục 13.7) | "Gửi giúp tôi câu hỏi này cho nhân viên" → không có lời gọi ghi nào, trả hướng dẫn + action; câu hỏi trạng thái yêu cầu → gọi đúng `list_my_support_requests` |

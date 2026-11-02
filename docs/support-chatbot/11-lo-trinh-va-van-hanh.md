@@ -57,7 +57,7 @@ verifier, đo trên ~20 câu.
 
 ### Giai đoạn 3b — Chuyển câu hỏi cho nhân viên
 
-- [ ] Backend: bảng `support_requests` (Flyway), enum, API người dùng / nhân viên, nhánh `USER_SUPPORT` trong
+- [ ] Backend: bảng `support_requests` (Flyway), enum, API người dùng / nhân viên, đường dẫn `CUSTOMER_SERVICE` trong
       `EmployeeFunctionAuthorizationFilter`, thông báo `SUPPORT_REQUEST_ANSWERED`, job tự đóng sau 7 ngày, job xóa
       đoạn trích sau 365 ngày ([14](./14-yeu-cau-ho-tro.md)).
 - [ ] `assistant-service`: endpoint `/v1/conversations/{id}/excerpt`; tool `list_my_support_requests`; glossary
