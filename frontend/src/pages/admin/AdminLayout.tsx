@@ -10,7 +10,8 @@ const navigation = [
     items: [
       { to: '/admin/students', label: 'Học viên' },
       { to: '/admin/tutors', label: 'Gia sư' },
-      { to: '/admin/notifications', label: 'Thông báo' }
+      { to: '/admin/notifications', label: 'Thông báo' },
+      { to: '/admin/employees', label: 'Nhân viên', adminOnly: true }
     ]
   },
   {
@@ -47,11 +48,13 @@ export function AdminLayout() {
             <Fragment key={group.label}>
               <div className="admin-nav-label">{group.label}</div>
               <div className="admin-nav-group">
-                {group.items.map((item) => (
-                  <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : undefined)}>
-                    {item.label}
-                  </NavLink>
-                ))}
+                {group.items
+                  .filter((item) => !('adminOnly' in item) || user?.role === 'ADMIN')
+                  .map((item) => (
+                    <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : undefined)}>
+                      {item.label}
+                    </NavLink>
+                  ))}
               </div>
             </Fragment>
           ))}

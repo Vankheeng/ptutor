@@ -207,3 +207,5 @@ export const approveRefundRequest = (id: string, input: RefundApprovalInput) =>
   patch<AdminRefundDetail>(`${adminPath}/${id}/approve`, input);
 export const rejectRefundRequest = (id: string, reason: string) =>
   patch<AdminRefundDetail>(`${adminPath}/${id}/reject`, { reason });
+export const reassignRefundRequest = (id: string, employeeId: string) =>
+  patch<AdminRefundDetail>(`${adminPath}/${id}/reassign`, { employeeId });
