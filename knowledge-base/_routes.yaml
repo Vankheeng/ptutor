@@ -1,0 +1,113 @@
+# Route cho phép, lấy từ frontend/src/App.tsx trên nhánh dev (commit 27f6eeb09815385bf92d3d552b0f8f705070a23c).
+# Chỉ gồm route công khai, route học viên và route gia sư. Route /admin/* cố ý không đưa vào
+# vì trợ lý chỉ phục vụ học viên và gia sư.
+# Route có tham số (:xxx) chỉ được điền bằng ID lấy từ kết quả tra cứu.
+routes:
+  - path: /
+    audience: [PUBLIC]
+    page: HomePage
+  - path: /public
+    audience: [PUBLIC]
+    page: HomeLanding
+  - path: /login
+    audience: [PUBLIC]
+    page: LoginPage
+  - path: /register
+    audience: [PUBLIC]
+    page: RegisterPage
+  - path: /forgot-password
+    audience: [PUBLIC]
+    page: ForgotPasswordPage
+
+  - path: /student
+    audience: [STUDENT]
+    page: StudentDashboardPage
+  - path: /student/dashboard
+    audience: [STUDENT]
+    page: StudentDashboardPage
+  - path: /student/studying-requests
+    audience: [STUDENT]
+    page: StudentStudyingRequestsPage
+  - path: /student/studying-requests/new
+    audience: [STUDENT]
+    page: StudentStudyingRequestCreatePage
+  - path: /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId
+    audience: [STUDENT]
+    page: StudentTutorOfferDetailPage
+  - path: /student/studying-requests/:requestId
+    audience: [STUDENT]
+    page: StudentStudyingRequestDetailPage
+  - path: /student/studying-requests/:requestId/edit
+    audience: [STUDENT]
+    page: StudentStudyingRequestEditPage
+  - path: /student/teaching-requests
+    audience: [STUDENT]
+    page: StudentTeachingRequestsPage
+  - path: /student/applications
+    audience: [STUDENT]
+    page: StudentApplicationsPage
+  - path: /student/contracts
+    audience: [STUDENT]
+    page: StudentContractsPage
+  - path: /student/contracts/:contractId
+    audience: [STUDENT]
+    page: StudentContractDetailPage
+  - path: /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new
+    audience: [STUDENT]
+    page: StudentContractCreatePage
+  - path: /student/contracts/:contractId/lessons
+    audience: [STUDENT]
+    page: StudentContractLessonsPage
+  - path: /student/contracts/:contractId/refund-request
+    audience: [STUDENT]
+    page: StudentRefundRequestCreatePage
+  - path: /student/refund-requests
+    audience: [STUDENT]
+    page: StudentRefundRequestsPage
+  - path: /student/refund-requests/:refundRequestId
+    audience: [STUDENT]
+    page: StudentRefundRequestDetailPage
+  - path: /student/notifications
+    audience: [STUDENT]
+    page: NotificationsPage
+  - path: /student/wallet
+    audience: [STUDENT]
+    page: WalletPage
+  - path: /student/profile
+    audience: [STUDENT]
+    page: StudentProfilePage
+
+  - path: /tutor
+    audience: [TUTOR]
+    page: TutorDashboardPage
+  - path: /tutor/dashboard
+    audience: [TUTOR]
+    page: TutorDashboardPage
+  - path: /tutor/profile
+    audience: [TUTOR]
+    page: TutorProfilePage
+  - path: /tutor/certificates
+    audience: [TUTOR]
+    page: TutorCertificatesPage
+  - path: /tutor/studying-requests/:requestId
+    audience: [TUTOR]
+    page: TutorStudyingRequestPage
+  - path: /tutor/proposals
+    audience: [TUTOR]
+    page: TutorProposalsPage
+  - path: /tutor/refund-requests
+    audience: [TUTOR]
+    page: TutorRefundRequestsPage
+  - path: /tutor/refund-requests/:refundRequestId
+    audience: [TUTOR]
+    page: TutorRefundRequestDetailPage
+  - path: /tutor/notifications
+    audience: [TUTOR]
+    page: NotificationsPage
+  - path: /tutor/wallet
+    audience: [TUTOR]
+    page: WalletPage
+  - path: /tutor/sections/:section
+    audience: [TUTOR]
+    page: TutorComingSoonPage
+    note: "section = teaching-requests | contracts | calendar (trang Sắp ra mắt)"

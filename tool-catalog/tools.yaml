@@ -1,0 +1,2330 @@
+# Danh mục công cụ tra cứu của trợ lý hỗ trợ PTutor.
+# Sinh từ code nhánh dev; tools.xlsx được sinh từ file này bằng build_xlsx.py.
+# Khối x-shared chỉ chứa định nghĩa dùng chung (YAML anchor), không phải công cụ.
+catalog:
+  version: 1
+  source_branch: dev
+  source_commit: 27f6eeb09815385bf92d3d552b0f8f705070a23c
+  updated: 2026-11-03
+  spec: "feat/support-chatbot:docs/support-chatbot/05-cong-cu-tra-cuu.md"
+
+# Lớp bọc kết quả chung, áp dụng cho mọi công cụ.
+wrapper:
+  ApiResponse:
+    description: Mọi API trả về cùng một lớp bọc. Dữ liệu cần đọc nằm ở trường data.
+    source: response/ApiResponse.java, response/ApiResponseFactory.java
+    fields:
+      success: {type: boolean, description: "true khi thành công, false khi lỗi"}
+      code: {type: String, description: "SUCCESS khi thành công; mã lỗi khi thất bại (xem common_errors và errors của từng công cụ)"}
+      message: {type: String, description: "Câu mô tả tiếng Anh của máy chủ; không đưa nguyên văn cho người dùng"}
+      data: {type: "T", description: "Dữ liệu kết quả; null khi lỗi"}
+      errors: {type: "Map<String,String>", description: "Lỗi theo từng tham số khi kiểm tra dữ liệu thất bại; rỗng khi thành công"}
+      timestamp: {type: Instant, description: "Thời điểm máy chủ trả lời"}
+      path: {type: String, description: "Đường dẫn đã gọi"}
+  PageResponse:
+    description: Với công cụ có phân trang, data là PageResponse; các mục nằm ở data.content.
+    source: dto/response/PageResponse.java
+    fields:
+      content: {type: "List<T>", description: "Các mục của trang hiện tại"}
+      page: {type: int, description: "Số trang, bắt đầu từ 0"}
+      size: {type: int, description: "Số mục tối đa mỗi trang"}
+      totalElements: {type: long, description: "Tổng số mục khớp bộ lọc; dùng để nói 'bạn có N …'"}
+      totalPages: {type: int, description: "Tổng số trang"}
+      first: {type: boolean, description: "Đây là trang đầu"}
+      last: {type: boolean, description: "Đây là trang cuối"}
+  time_zones:
+    # Quyết định 2026-11-03 (bản sửa trong worktree feat/support-chatbot-claude): backend GIỮ giờ Việt Nam như nhóm
+    # đang chạy (JAVA_TOOL_OPTIONS=-Duser.timezone=Asia/Ho_Chi_Minh, Docker TZ=Asia/Ho_Chi_Minh). Không sửa
+    # ContractTimeProvider.now(). Mỗi trường thời điểm ghi rõ nguồn múi giờ theo code (tìm bằng grep now(clock)).
+    backend_jvm_time_zone: {config: ASSISTANT_BACKEND_JVM_TIME_ZONE, default: Asia/Ho_Chi_Minh, description: "Múi giờ của JVM backend; dùng cho trường time_zone: BACKEND_JVM."}
+    display_time_zone: Asia/Ho_Chi_Minh
+    values:
+      UTC: "Service ghi bằng LocalDateTime.now(clock) hoặc LocalDateTime.ofInstant(clock.instant(), UTC); clock là Clock.systemUTC() (SecurityConfig.clock). Lớp lọc đổi UTC sang giờ Việt Nam."
+      BACKEND_JVM: "createdAt, updatedAt (@CreationTimestamp, @UpdateTimestamp trong BaseEntity), occurredAt (lấy từ createdAt) và signedAt (ContractTimeProvider.now()): theo múi giờ JVM backend. Lớp lọc đổi từ backend_jvm_time_zone sang giờ Việt Nam (không đổi gì khi hai múi giờ trùng nhau)."
+      NOT_WRITTEN: "Code hiện chưa ghi trường này (luôn rỗng); lớp lọc không đổi múi giờ."
+    rules:
+      - "Định dạng hiển thị dd/MM/yyyy HH:mm, giờ Việt Nam."
+      - "Ngày lịch (LocalDate: hạn đóng học phí, ngày học, ngày bắt đầu, kết thúc hợp đồng) và giờ học (LocalTime) giữ nguyên, không đổi múi giờ."
+      - "Tham số thời gian model điền (createdFrom, createdTo) so với createdAt (BACKEND_JVM); model điền theo giờ Việt Nam, lớp lọc đổi sang backend_jvm_time_zone trước khi gọi API."
+    team_followup: "Việc riêng cho nhóm: thống nhất múi giờ toàn hệ thống (UTC ở backend, frontend tự đổi). Xem docs/support-chatbot/trien-khai/NHAT-KY-CLAUDE.md mục Múi giờ."
+  derived_fields: "Trường có derived: true không có trong API; lớp lọc kết quả tự tính theo derived_from trước khi đưa model. Mã người hỏi lấy từ header X-User-Id mà backend gửi sang assistant-service (07-api.md mục 7.4); model không thấy mã này."
+  paging_defaults: "page mặc định 0 (nhỏ nhất 0); size mặc định 20, từ 1 đến 100. Với công cụ liệt kê có phân trang, lớp lọc cố định size = 100 (fixed_params) để tính tổng và đếm theo trạng thái, rồi chỉ đưa model max_items mục."
+  list_rules:
+    description: "Áp cho mọi công cụ có max_items. Lớp lọc chọn mục theo result_selection.strategy, cắt còn max_items, và luôn kèm tổng số cùng số lượng theo trường count_by."
+    output_shape: '{"total": 12, "counts": {"PENDING": 3, "PAID": 9}, "items": [... tối đa max_items mục]}'
+    total: "Với API phân trang: data.totalElements. Với API trả danh sách: số phần tử của danh sách."
+    counts: "Đếm theo count_by trên các mục đã lấy về (tối đa 100 với API phân trang); khi totalElements > 100 thì ghi rõ counts chỉ tính trên 100 mục mới nhất."
+    strategies:
+      newest: "Giữ max_items mục đầu theo thứ tự API trả (các API này đã sắp mới nhất trước)."
+      api_order: "Giữ max_items mục đầu theo thứ tự API trả; muốn chọn nhóm mục nào thì model dùng bộ lọc của chính API (không tự lọc trong lớp lọc)."
+      installments_due_first: "Kỳ chưa đóng (PENDING) trước, xếp theo dueDate tăng dần, kỳ chưa có dueDate xếp cuối nhóm; còn chỗ thì thêm kỳ đã đóng (PAID) có dueDate gần nhất trước; cuối cùng là kỳ đã hủy."
+      lessons_pending_first: "Mọi buổi PENDING_CONFIRMATION trước (dù vượt max_items vẫn giữ đủ nhóm này); tiếp theo các buổi SCHEDULED gần nhất (date, startTime tăng dần); còn chỗ thì các buổi đã qua gần nhất (CONFIRMED, COMPLETED, CANCELLED; date giảm dần)."
+
+# Lỗi chung có thể gặp ở mọi công cụ.
+common_errors:
+  - {code: UNAUTHORIZED, http: 401, meaning: Phiên đăng nhập hết hạn hoặc thiếu; làm mới phiên rồi gọi lại một lần, source: SecurityConfig authenticationEntryPoint}
+  - {code: INVALID_AUTHENTICATED_USER, http: 401, meaning: Tài khoản trong phiên không còn tồn tại, source: security/AccountStatusFilter}
+  - {code: FORBIDDEN, http: 403, meaning: Vai trò của người hỏi không được gọi API này; không thử công cụ khác để vòng qua, source: SecurityConfig accessDeniedHandler}
+  - {code: ACCOUNT_SUSPENDED, http: 403, meaning: Tài khoản đang bị khóa nên không tra cứu được, source: security/AccountStatusFilter}
+  - {code: ACCOUNT_INACTIVE, http: 403, meaning: Tài khoản đang ngừng hoạt động, source: security/AccountStatusFilter}
+  - {code: VALIDATION_ERROR, http: 400, meaning: "Tham số ngoài giới hạn, ví dụ page âm hoặc size ngoài 1–100", source: exception/GlobalExceptionHandler}
+  - {code: INVALID_REQUEST, http: 400, meaning: "Tham số sai kiểu, ví dụ mã không phải UUID hoặc giá trị lọc không thuộc danh sách enum", source: exception/GlobalExceptionHandler}
+  - {code: RESOURCE_NOT_FOUND, http: 404, meaning: "Đường dẫn không tồn tại (thường gặp ở công cụ planned khi backend chưa có API)", source: exception/GlobalExceptionHandler}
+  - {code: INTERNAL_SERVER_ERROR, http: 500, meaning: Lỗi máy chủ; báo tạm thời chưa tra cứu được, source: exception/GlobalExceptionHandler}
+
+# Endpoint đã cân nhắc nhưng không đưa vào danh mục.
+excluded_endpoints:
+  - {method: GET, path: /api/v1/users/me/bank-account, reason: "Dữ liệu nhạy cảm (số tài khoản ngân hàng, tên chủ tài khoản)"}
+  - {method: GET, path: /api/v1/payments/vnpay/ipn, reason: "Callback máy chủ–máy chủ của VNPay, không phải dữ liệu của người hỏi"}
+  - {method: GET, path: /api/v1/payments/vnpay/return, reason: "Trang VNPay chuyển hướng về sau thanh toán, không phải dữ liệu của người hỏi"}
+  - {method: GET, path: "/api/v1/studying-requests, /api/v1/studying-requests/{studyingRequestId}", reason: "Gia sư tìm tin tìm gia sư đang mở; không phải dữ liệu 'của tôi' (quyết định ngày 2026-11-03: không thêm)"}
+  - {method: GET, path: "/api/v1/tutors/{tutorId}, /api/v1/tutors/{tutorId}/certificates", reason: "Hồ sơ, chứng chỉ công khai của gia sư bất kỳ; không phải 'của tôi' và có tham số định danh người dùng"}
+  - {method: GET, path: "/api/v1/teaching-requests, /api/v1/teaching-requests/{requestId}", reason: "Tin nhận dạy công khai; không phải dữ liệu 'của tôi'"}
+  - {method: GET, path: "/api/v1/reviews, /api/v1/subjects, /api/v1/grades, /api/v1/provinces, /api/v1/districts", reason: "Dữ liệu công khai hoặc danh mục; không phải dữ liệu 'của tôi'"}
+  - {method: "POST, PUT, PATCH, DELETE", path: "mọi đường dẫn", reason: "Ghi dữ liệu; trợ lý không được thao tác thay người dùng (đặc tả 5.1 ý 1, QĐ7)"}
+
+x-shared:
+  paging:
+    page: &p_page {name: page, in: query, type: int, default: 0, min: 0, description: "Số trang, bắt đầu từ 0. Chỉ tăng khi người dùng muốn xem thêm mục cũ hơn."}
+    size: &p_size {name: size, in: query, type: int, default: 20, min: 1, max: 100, description: Số mục mỗi trang. Để mặc định.}
+  enums:
+    contract_status: &enum_contract_status
+      type: Enum
+      keep: true
+      description: Trạng thái hợp đồng
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: "Đã soạn, đang chờ bên nhận ký; người soạn còn sửa hoặc hủy được"}
+        ACTIVE: {label: Đang hoạt động, meaning: "Đã ký, đang có hiệu lực; học viên đóng học phí theo các kỳ"}
+        COMPLETED: {label: Đã hoàn tất, meaning: Đã tới ngày kết thúc khi đang hoạt động}
+        CANCELLED: {label: Đã hủy, meaning: "Người soạn hủy, bên nhận từ chối, hoặc tới ngày kết thúc mà chưa ký"}
+    teaching_mode: &enum_teaching_mode
+      type: Enum
+      keep: true
+      description: Hình thức dạy
+      enum_labels:
+        ONLINE: {label: Trực tuyến, meaning: Học qua mạng}
+        OFFLINE: {label: Trực tiếp, meaning: Học tại địa điểm hai bên thống nhất}
+    learning_mode: &enum_learning_mode
+      type: Enum
+      keep: true
+      description: Hình thức học
+      enum_labels:
+        ONLINE: {label: Trực tuyến, meaning: Học qua mạng}
+        OFFLINE: {label: Trực tiếp, meaning: Học tại địa điểm hai bên thống nhất}
+    payment_period: &enum_payment_period
+      type: Enum
+      keep: true
+      description: Chu kỳ thanh toán
+      enum_labels:
+        PER_LESSON: {label: Mỗi buổi, meaning: "Mỗi buổi gia sư tạo sinh một kỳ học phí, hạn đóng là ngày học"}
+        WEEKLY: {label: Hàng tuần, meaning: "Mỗi tuần một kỳ, từ ngày bắt đầu tới trước ngày kết thúc"}
+        MONTHLY: {label: Hàng tháng, meaning: "Mỗi tháng một kỳ, từ ngày bắt đầu tới trước ngày kết thúc"}
+        PACKAGE: {label: Theo gói, meaning: "Một kỳ duy nhất, hạn đóng là ngày bắt đầu"}
+    request_status: &enum_request_status
+      type: Enum
+      keep: true
+      description: Trạng thái tin đăng
+      enum_labels:
+        DRAFT: {label: Bản nháp, meaning: "Đã tạo nhưng chưa trả phí đăng tin, chưa ai thấy"}
+        PENDING_REVIEW: {label: Chờ duyệt, meaning: "Đã trả phí, chờ nhân viên chăm sóc khách hàng duyệt (môn tự nhập hoặc có ghi chú)"}
+        OPEN: {label: Đang mở, meaning: "Đã đăng; bên kia thấy tin và gửi đề nghị hoặc đơn đăng ký"}
+        MATCHED: {label: Đã ghép, meaning: "Tin tìm gia sư đã chấp nhận một gia sư, hoặc tin nhận dạy đã đủ học viên; bước tiếp theo là hợp đồng"}
+        CLOSED: {label: Tạm đóng, meaning: "Người đăng tạm đóng; không nhận đề nghị mới, mở lại được"}
+        CANCELLED: {label: Đã hủy, meaning: Người đăng đã hủy tin}
+        REJECTED: {label: Bị từ chối, meaning: "Không được duyệt; phí đăng tin đã hoàn vào ví"}
+    application_status: &enum_application_status
+      type: Enum
+      keep: true
+      description: Trạng thái đề nghị dạy hoặc đơn đăng ký học
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: Bên kia chưa trả lời; người gửi còn hủy được}
+        ACCEPTED: {label: Đã chấp nhận, meaning: Bên kia đồng ý; bước tiếp theo là tạo hợp đồng}
+        REJECTED: {label: Đã từ chối, meaning: Bên kia từ chối}
+        CANCELLED: {label: Đã hủy, meaning: "Người gửi tự hủy, hoặc học viên đã hủy tin tìm gia sư"}
+    next_step: &enum_next_step
+      type: String
+      keep: true
+      description: "Bước tiếp theo; rỗng khi chưa được chấp nhận"
+      enum_labels:
+        CONTRACT_SIGNING: {label: Tạo và ký hợp đồng, meaning: Đề nghị hoặc đơn đã được chấp nhận; hai bên tạo và ký hợp đồng}
+    lesson_status: &enum_lesson_status
+      type: Enum
+      keep: true
+      description: Trạng thái buổi học
+      enum_labels:
+        SCHEDULED: {label: Sắp diễn ra, meaning: Đã lên lịch và chưa tới giờ kết thúc}
+        PENDING_CONFIRMATION: {label: Chờ xác nhận, meaning: "Gia sư đã đánh dấu đã dạy; học viên xác nhận hoặc yêu cầu hoàn tiền trong 3 ngày"}
+        CONFIRMED: {label: Đã học, meaning: Học viên đã xác nhận buổi học}
+        COMPLETED: {label: Đã học, meaning: "Tự hoàn tất sau 3 ngày, hoặc kế toán kết luận gia sư đã dạy"}
+        CANCELLED: {label: Đã huỷ, meaning: "Gia sư hủy, hoặc kết luận vắng trong yêu cầu hoàn tiền"}
+    installment_status: &enum_installment_status
+      type: Enum
+      keep: true
+      description: Tình trạng của kỳ học phí
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: Kỳ chưa được thanh toán}
+        PAID: {label: Đã thanh toán, meaning: Kỳ đã thanh toán xong}
+        CANCELLED: {label: Đã hủy, meaning: Kỳ không còn phải đóng}
+    complaint_status: &enum_complaint_status
+      type: Enum
+      keep: true
+      description: Trạng thái khiếu nại
+      enum_labels:
+        PENDING: {label: Chờ tiếp nhận, meaning: "Chưa có nhân viên nhận xử lý; người gửi còn sửa, hủy được"}
+        IN_REVIEW: {label: Đang xử lý, meaning: Nhân viên chăm sóc khách hàng đang xử lý; bên bị khiếu nại được phản hồi một lần}
+        AWAITING_EVIDENCE: {label: Chờ bằng chứng, meaning: Đang chờ người khiếu nại bổ sung 1–5 bằng chứng}
+        RESOLVED: {label: Đã giải quyết, meaning: Khiếu nại được chấp nhận, có ghi bên có lỗi}
+        REJECTED: {label: Đã từ chối, meaning: Khiếu nại không được chấp nhận}
+        CANCELLED: {label: Đã huỷ, meaning: Người gửi hủy khi còn chờ tiếp nhận}
+    complaint_category: &enum_complaint_category
+      type: Enum
+      keep: true
+      description: Loại khiếu nại
+      enum_labels:
+        ABSENCE: {label: Vắng mặt, meaning: Một bên không có mặt ở buổi học}
+        LATE_OR_SHORT: {label: Muộn / thiếu giờ, meaning: Tới muộn hoặc dạy, học không đủ giờ}
+        TEACHING_QUALITY: {label: Chất lượng giảng dạy, meaning: Phản ánh về chất lượng dạy}
+        MISCONDUCT: {label: Vi phạm ứng xử, meaning: Hành vi không phù hợp}
+        SERIOUS_MISCONDUCT: {label: Vi phạm nghiêm trọng, meaning: Hành vi vi phạm nghiêm trọng}
+        OTHER: {label: Khác, meaning: Vấn đề khác}
+    fault_party: &enum_fault_party
+      type: Enum
+      keep: true
+      description: "Bên có lỗi theo kết luận; chỉ có khi khiếu nại được chấp nhận"
+      enum_labels:
+        RESPONDENT: {label: Bên bị khiếu nại, meaning: Bên bị khiếu nại có lỗi}
+        COMPLAINANT: {label: Bên khiếu nại, meaning: Người gửi khiếu nại có lỗi}
+        BOTH: {label: Cả hai bên, meaning: Cả hai bên đều có lỗi}
+        NONE: {label: Không bên nào, meaning: Không bên nào có lỗi}
+    refund_status: &enum_refund_status
+      type: Enum
+      keep: true
+      description: Trạng thái yêu cầu hoàn tiền
+      enum_labels:
+        PENDING: {label: Chờ tiếp nhận, meaning: "Học viên vừa gửi, chưa có kế toán nhận xử lý; gia sư phản hồi trong 48 giờ; học viên còn hủy được"}
+        IN_REVIEW: {label: Đang xử lý, meaning: "Kế toán đã tiếp nhận; gia sư vẫn phản hồi được nếu còn hạn và chưa phản hồi"}
+        REFUNDED: {label: Đã hoàn tiền, meaning: "Kế toán đã kết luận và hoàn tiền vào ví học viên; phần của gia sư (nếu có) đã vào ví gia sư"}
+        REJECTED: {label: Đã từ chối, meaning: "Kế toán từ chối yêu cầu, có ghi lý do"}
+        CANCELLED: {label: Đã huỷ, meaning: Học viên tự hủy khi còn chờ tiếp nhận}
+    lesson_outcome: &enum_lesson_outcome
+      type: Enum
+      keep: true
+      description: Kết quả của một buổi bị phản đối
+      enum_labels:
+        TAUGHT: {label: Đã dạy, meaning: Buổi học đã diễn ra}
+        TUTOR_ABSENT: {label: Gia sư không dạy, meaning: "Gia sư vắng; nếu được kết luận, học viên được hoàn 100% đơn giá buổi"}
+        STUDENT_ABSENT: {label: Học viên nghỉ, meaning: "Học viên nghỉ; nếu được kết luận, học viên được hoàn 80% đơn giá, gia sư nhận 20%"}
+    gender: &enum_gender
+      type: Enum
+      keep: false
+      reason: Dữ liệu cá nhân không cần cho câu trả lời
+      description: Giới tính
+      enum_labels:
+        MALE: {label: Nam, meaning: Nam}
+        FEMALE: {label: Nữ, meaning: Nữ}
+        OTHER: {label: Khác, meaning: Khác}
+    certificate_status: &enum_certificate_status
+      type: Enum
+      keep: true
+      description: Trạng thái chứng chỉ
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: "Chờ nhân viên chăm sóc khách hàng duyệt; còn sửa, xóa được"}
+        VERIFIED: {label: Đã xác minh, meaning: "Đã duyệt, hiện với học viên; không sửa được, chỉ xóa"}
+        REJECTED: {label: Bị từ chối, meaning: "Không được duyệt, có lý do; sửa rồi lưu để gửi duyệt lại"}
+        EXPIRED: {label: Đã hết hạn, meaning: "Đã qua ngày hết hạn (hệ thống hiện chưa tự đặt trạng thái này)"}
+    tutor_profile_status: &enum_tutor_profile_status
+      type: Enum
+      keep: true
+      description: Trạng thái duyệt hồ sơ gia sư
+      enum_labels:
+        PENDING: {label: Chờ duyệt, meaning: "Hồ sơ mới hoặc vừa sửa thông tin giảng dạy, chờ nhân viên chăm sóc khách hàng duyệt"}
+        VERIFIED: {label: Đã xác minh, meaning: Hồ sơ đã được duyệt; học viên tìm thấy gia sư trong gợi ý}
+        REJECTED: {label: Không được duyệt, meaning: "Bị từ chối kèm lý do; sửa hồ sơ giảng dạy và lưu để gửi duyệt lại"}
+    payment_status: &enum_payment_status
+      type: Enum
+      keep: true
+      description: Trạng thái thanh toán
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: Đã tạo link VNPay nhưng chưa có kết quả; link hiệu lực 15 phút}
+        PAID: {label: Đã thanh toán, meaning: Thanh toán thành công}
+        FAILED: {label: Thất bại, meaning: "Hủy trên VNPay, ngân hàng từ chối, hoặc link quá 15 phút; không có tiền được ghi nhận"}
+        CANCELLED: {label: Đã huỷ, meaning: Link VNPay bị bỏ vì khoản đó đã được trả bằng ví}
+        REFUNDED: {label: Đã hoàn, meaning: Khoản học phí đã được hoàn lại toàn bộ vào ví học viên}
+    payment_type: &enum_payment_type
+      type: Enum
+      keep: true
+      description: Loại khoản thanh toán
+      enum_labels:
+        WALLET_TOP_UP: {label: Nạp ví, meaning: Nạp tiền vào ví qua VNPay}
+        TUITION_PAYMENT: {label: Học phí, meaning: Đóng một kỳ học phí của hợp đồng}
+        STUDYING_REQUEST_FEE: {label: Phí đăng yêu cầu học, meaning: Phí đăng tin tìm gia sư}
+        TEACHING_REQUEST_FEE: {label: Phí đăng tin dạy, meaning: Phí đăng tin nhận dạy}
+    payment_method: &enum_payment_method
+      type: Enum
+      keep: true
+      description: Phương thức thanh toán
+      enum_labels:
+        VNPAY: {label: VNPay, meaning: Thanh toán qua cổng VNPay}
+        WALLET: {label: Ví, meaning: Trừ từ số dư ví PTutor}
+    reference_type: &enum_reference_type
+      type: Enum
+      keep: true
+      description: "Loại đối tượng mà referenceId trỏ tới"
+      enum_labels:
+        CONTRACT: {label: Hợp đồng, meaning: "referenceId là mã hợp đồng"}
+        LESSON: {label: Buổi học, meaning: "referenceId là mã buổi học"}
+        PAYMENT: {label: Thanh toán, meaning: "referenceId là mã thanh toán"}
+        WALLET_TRANSACTION: {label: Giao dịch ví, meaning: "referenceId là mã giao dịch ví"}
+        STUDYING_REQUEST: {label: Tin tìm gia sư, meaning: "referenceId là mã tin tìm gia sư"}
+        TEACHING_REQUEST: {label: Tin nhận dạy, meaning: "referenceId là mã tin nhận dạy"}
+        WITHDRAWAL_REQUEST: {label: Yêu cầu rút tiền, meaning: "referenceId là mã yêu cầu rút tiền"}
+        REFUND_REQUEST: {label: Yêu cầu hoàn tiền, meaning: "referenceId là mã yêu cầu hoàn tiền"}
+    wallet_tx_type: &enum_wallet_tx_type
+      type: Enum
+      keep: true
+      description: Chiều của giao dịch ví
+      enum_labels:
+        CREDIT: {label: Cộng ví, meaning: Tiền vào ví}
+        DEBIT: {label: Trừ ví, meaning: Tiền ra khỏi ví}
+    wallet_tx_purpose: &enum_wallet_tx_purpose
+      type: Enum
+      keep: true
+      description: Mục đích của giao dịch ví
+      enum_labels:
+        TOP_UP: {label: Nạp ví, meaning: Nạp tiền qua VNPay}
+        TUTOR_EARNING: {label: Tiền gia sư nhận, meaning: Phần 20% của buổi học viên nghỉ khi kế toán kết luận hoàn tiền}
+        CONTRACT_REFUND: {label: Hoàn học phí, meaning: Hoàn tiền cho buổi không diễn ra}
+        TEACHING_REQUEST_REFUND: {label: Hoàn phí đăng tin dạy, meaning: Tin nhận dạy bị từ chối}
+        STUDYING_REQUEST_REFUND: {label: Hoàn phí đăng yêu cầu học, meaning: Tin tìm gia sư bị từ chối}
+        WITHDRAWAL_REVERSAL: {label: Trả lại tiền rút, meaning: Hủy yêu cầu rút nên tiền tạm giữ được trả lại}
+        TUITION_PAYMENT: {label: Học phí, meaning: Đóng kỳ học phí bằng ví}
+        STUDYING_REQUEST_FEE: {label: Phí đăng yêu cầu học, meaning: Trả phí đăng tin tìm gia sư bằng ví}
+        TEACHING_REQUEST_FEE: {label: Phí đăng tin dạy, meaning: Trả phí đăng tin nhận dạy bằng ví}
+        WITHDRAWAL: {label: Rút tiền, meaning: Tiền tạm giữ cho yêu cầu rút}
+    wallet_tx_status: &enum_wallet_tx_status
+      type: Enum
+      keep: true
+      description: Trạng thái giao dịch ví
+      enum_labels:
+        PENDING: {label: Đang chờ, meaning: "Chưa hoàn tất; hiện chỉ có ở yêu cầu rút tiền (tiền đang tạm giữ)"}
+        COMPLETED: {label: Hoàn tất, meaning: Đã ghi vào số dư}
+        FAILED: {label: Thất bại, meaning: Không làm thay đổi số dư}
+        CANCELLED: {label: Đã huỷ, meaning: Không làm thay đổi số dư}
+    withdrawal_status: &enum_withdrawal_status
+      type: Enum
+      keep: true
+      description: Trạng thái yêu cầu rút tiền
+      enum_labels:
+        PENDING: {label: Chờ xử lý, meaning: "Vừa gửi, tiền đang tạm giữ; còn hủy được"}
+        PROCESSING: {label: Đang xử lý, meaning: "PTutor đã tiếp nhận (hệ thống hiện chưa dùng)"}
+        CANCELLED: {label: Đã huỷ, meaning: Người dùng hủy; tiền tạm giữ đã trả lại ví}
+        REJECTED: {label: Bị từ chối, meaning: "PTutor từ chối (hệ thống hiện chưa dùng)"}
+        COMPLETED: {label: Hoàn tất, meaning: "Đã chuyển tiền (hệ thống hiện chưa dùng)"}
+    financial_source: &enum_financial_source
+      type: Enum
+      keep: true
+      description: Nguồn của dòng giao dịch
+      enum_labels:
+        PAYMENT: {label: Thanh toán, meaning: "Một lần thanh toán (VNPay hoặc ví); id là mã thanh toán, dùng cho get_my_payment. list_my_transactions cố định nguồn này"}
+        WALLET_TRANSACTION: {label: Giao dịch ví, meaning: "Một bút toán ví; id là mã giao dịch ví, dùng cho get_my_wallet_transaction"}
+        WITHDRAWAL: {label: Rút tiền, meaning: "Một yêu cầu rút tiền; id là mã yêu cầu rút"}
+    notification_type: &enum_notification_type
+      type: Enum
+      keep: true
+      description: Nhóm thông báo
+      enum_labels:
+        SYSTEM: {label: Hệ thống, meaning: "Tài khoản, hồ sơ, chứng chỉ, kết quả duyệt tin"}
+        REQUEST: {label: Yêu cầu, meaning: Đề nghị dạy và đơn đăng ký học}
+        CONTRACT: {label: Hợp đồng, meaning: Hợp đồng và buổi học}
+        PAYMENT: {label: Thanh toán, meaning: "Thanh toán, nhắc học phí, hoàn tiền"}
+        COMPLAINT: {label: Khiếu nại, meaning: Khiếu nại}
+    notification_reference_type: &enum_notification_reference_type
+      type: Enum
+      keep: true
+      description: "Loại đối tượng mà referenceId của thông báo trỏ tới"
+      enum_labels:
+        PAYMENT: {label: Thanh toán, meaning: "referenceId là mã thanh toán"}
+        CONTRACT: {label: Hợp đồng, meaning: "referenceId là mã hợp đồng"}
+        STUDYING_REQUEST: {label: Tin tìm gia sư, meaning: "referenceId là mã tin tìm gia sư"}
+        TEACHING_REQUEST: {label: Tin nhận dạy, meaning: "referenceId là mã tin nhận dạy"}
+        TUTOR_STUDENT_REQUEST: {label: Đề nghị dạy, meaning: "referenceId là mã đề nghị dạy của gia sư"}
+        STUDENT_TUTOR_REQUEST: {label: Đơn đăng ký học, meaning: "referenceId là mã đơn đăng ký học"}
+        CERTIFICATE: {label: Chứng chỉ, meaning: "referenceId là mã chứng chỉ"}
+        INSTALLMENT: {label: Kỳ học phí, meaning: "referenceId là mã kỳ học phí"}
+        COMPLAINT: {label: Khiếu nại, meaning: "referenceId là mã khiếu nại"}
+        USER: {label: Tài khoản, meaning: "referenceId là mã tài khoản"}
+        LESSON: {label: Buổi học, meaning: "referenceId là mã buổi học"}
+        WITHDRAWAL_REQUEST: {label: Yêu cầu rút tiền, meaning: "referenceId là mã yêu cầu rút"}
+        REFUND_REQUEST: {label: Yêu cầu hoàn tiền, meaning: "referenceId là mã yêu cầu hoàn tiền"}
+    notification_event: &enum_notification_event
+      type: Enum
+      keep: true
+      description: Sự kiện sinh ra thông báo
+      enum_labels:
+        PAYMENT_SUCCEEDED: {label: Thanh toán thành công, meaning: Một khoản thanh toán đã thành công}
+        PAYMENT_INSTALLMENT_DUE: {label: Nhắc đóng học phí, meaning: Có kỳ học phí đến hạn sau 3 ngày}
+        TUTOR_REQUEST_RECEIVED: {label: Có đề nghị dạy mới, meaning: Gia sư gửi đề nghị vào tin tìm gia sư của học viên}
+        TUTOR_REQUEST_ACCEPTED: {label: Đề nghị dạy được chấp nhận, meaning: Học viên chấp nhận đề nghị của gia sư}
+        TUTOR_REQUEST_REJECTED: {label: Đề nghị dạy bị từ chối, meaning: Học viên từ chối đề nghị của gia sư}
+        STUDENT_REQUEST_RECEIVED: {label: Có đơn đăng ký học mới, meaning: Học viên gửi đơn vào tin nhận dạy của gia sư}
+        STUDENT_REQUEST_ACCEPTED: {label: Đơn đăng ký học được chấp nhận, meaning: Gia sư chấp nhận đơn của học viên}
+        STUDENT_REQUEST_REJECTED: {label: Đơn đăng ký học bị từ chối, meaning: Gia sư từ chối đơn của học viên}
+        CONTRACT_SIGNATURE_REQUIRED: {label: Hợp đồng chờ ký, meaning: Có hợp đồng chờ người nhận thông báo ký}
+        CONTRACT_SIGNED: {label: Hợp đồng đã ký, meaning: Bên kia đã ký hợp đồng}
+        CONTRACT_REJECTED: {label: Hợp đồng bị từ chối, meaning: Bên kia từ chối hợp đồng}
+        CONTRACT_CANCELLED: {label: Hợp đồng bị hủy, meaning: Người soạn hủy hợp đồng chưa ký}
+        CONTRACT_RENEWAL_PROPOSED: {label: Đề xuất gia hạn, meaning: Có hợp đồng gia hạn chờ ký}
+        CERTIFICATE_REVIEW_REQUIRED: {label: Chứng chỉ chờ duyệt, meaning: "Thông báo cho nhân viên; người dùng không nhận"}
+        CERTIFICATE_APPROVED: {label: Chứng chỉ được duyệt, meaning: Chứng chỉ của gia sư đã được duyệt}
+        CERTIFICATE_REJECTED: {label: Chứng chỉ bị từ chối, meaning: Chứng chỉ bị từ chối kèm lý do}
+        TUTOR_PROFILE_APPROVED: {label: Hồ sơ được duyệt, meaning: Hồ sơ gia sư đã được duyệt}
+        TUTOR_PROFILE_REJECTED: {label: Hồ sơ bị từ chối, meaning: Hồ sơ gia sư bị từ chối kèm lý do}
+        TEACHING_REQUEST_APPROVED: {label: Tin nhận dạy được duyệt, meaning: Tin nhận dạy đã được duyệt}
+        TEACHING_REQUEST_REJECTED: {label: Tin nhận dạy bị từ chối, meaning: Tin bị từ chối; phí đăng tin hoàn vào ví}
+        COMPLAINT_EVIDENCE_REQUESTED: {label: Cần bổ sung bằng chứng, meaning: Nhân viên yêu cầu bổ sung bằng chứng cho khiếu nại}
+        COMPLAINT_RESOLVED: {label: Khiếu nại được chấp nhận, meaning: Khiếu nại của người dùng được chấp nhận}
+        COMPLAINT_REJECTED: {label: Khiếu nại bị từ chối, meaning: Khiếu nại của người dùng bị từ chối}
+        COMPLAINT_RECEIVED_AGAINST_YOU: {label: Bạn bị khiếu nại, meaning: Có khiếu nại về người dùng đang được xử lý}
+        COMPLAINT_AGAINST_YOU_RESOLVED: {label: Khiếu nại về bạn đã kết luận, meaning: Khiếu nại về người dùng được chấp nhận}
+        COMPLAINT_AGAINST_YOU_REJECTED: {label: Khiếu nại về bạn bị từ chối, meaning: Khiếu nại về người dùng không được chấp nhận}
+        ACCOUNT_SUSPENDED: {label: Tài khoản bị khóa, meaning: Tài khoản bị tạm khóa hoặc khóa vĩnh viễn}
+        ACCOUNT_REACTIVATED: {label: Tài khoản được mở lại, meaning: Tài khoản hoạt động trở lại}
+        TEACHING_REQUEST_REVIEW_REQUIRED: {label: Tin nhận dạy chờ duyệt, meaning: "Thông báo cho nhân viên; người dùng không nhận"}
+        LESSON_MARKED_TAUGHT: {label: Buổi học chờ xác nhận, meaning: Gia sư đã đánh dấu đã dạy}
+        LESSON_CANCELLED: {label: Buổi học bị hủy, meaning: Gia sư hủy buổi học}
+        WITHDRAWAL_REVIEW_REQUIRED: {label: Yêu cầu rút chờ xử lý, meaning: "Thông báo cho nhân viên; người dùng không nhận"}
+        STUDYING_REQUEST_REVIEW_REQUIRED: {label: Tin tìm gia sư chờ duyệt, meaning: "Thông báo cho nhân viên; người dùng không nhận"}
+        STUDYING_REQUEST_APPROVED: {label: Tin tìm gia sư được duyệt, meaning: Tin tìm gia sư đã được duyệt}
+        STUDYING_REQUEST_REJECTED: {label: Tin tìm gia sư bị từ chối, meaning: Tin bị từ chối; phí đăng tin hoàn vào ví}
+        REFUND_REQUEST_REVIEW_REQUIRED: {label: Yêu cầu hoàn tiền chờ xử lý, meaning: "Thông báo cho kế toán; người dùng không nhận"}
+        REFUND_REQUEST_SUBMITTED: {label: Học viên yêu cầu hoàn tiền, meaning: Gia sư cần phản hồi trước hạn}
+        REFUND_REQUEST_TUTOR_RESPONDED: {label: Gia sư đã phản hồi hoàn tiền, meaning: "Thông báo cho kế toán phụ trách"}
+        REFUND_REQUEST_APPROVED: {label: Đã hoàn tiền, meaning: Yêu cầu hoàn tiền đã được kết luận và hoàn vào ví}
+        REFUND_REQUEST_REJECTED: {label: Yêu cầu hoàn tiền bị từ chối, meaning: Yêu cầu hoàn tiền bị từ chối kèm lý do}
+  schemas:
+    contract: &schema_contract
+      id: {type: UUID, description: "Mã hợp đồng; dùng cho get_my_contract, list_my_payment_installments, list_contract_lessons_for_student, list_contract_lessons_for_tutor", keep: true, seen_id: true}
+      studentId: {type: UUID, description: Mã hồ sơ học viên, keep: false, reason: Mã nội bộ không cần cho câu trả lời}
+      studentFirstName: {type: String, description: Tên gọi của học viên, keep: true}
+      studentLastName: {type: String, description: Họ của học viên, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+      studentEmail: {type: String, description: Email học viên, keep: false, reason: Dữ liệu liên hệ cá nhân}
+      tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ không cần cho câu trả lời}
+      tutorFirstName: {type: String, description: Tên gọi của gia sư, keep: true}
+      tutorLastName: {type: String, description: Họ của gia sư, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+      tutorEmail: {type: String, description: Email gia sư, keep: false, reason: Dữ liệu liên hệ cá nhân}
+      subjectId: {type: UUID, description: Mã môn học, keep: false, reason: Mã nội bộ; đã có subjectName}
+      subjectName: {type: String, description: Tên môn học, keep: true}
+      gradeId: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ; đã có gradeName}
+      gradeName: {type: String, description: "Tên lớp; có thể rỗng", keep: true}
+      teachingMode: *enum_teaching_mode
+      price: {type: BigDecimal, description: "Giá của mỗi kỳ thanh toán (mỗi buổi, mỗi tuần, mỗi tháng hoặc cả gói), đơn vị đồng", keep: true}
+      paymentPeriod: *enum_payment_period
+      totalLessons: {type: Integer, description: Tổng số buổi của hợp đồng, keep: true}
+      preferredSchedule: {type: String, description: "Lịch học dạng chữ (hệ thống ghép từ các khung giờ, hoặc chữ nhập ở hợp đồng cũ)", keep: true, user_text: true}
+      schedules:
+        type: List<Schedule>
+        keep: true
+        description: Các khung giờ học trong tuần
+        items:
+          dayOfWeek: {type: Integer, description: "Thứ trong tuần: 1 = Thứ Hai … 6 = Thứ Bảy, 7 = Chủ nhật", keep: true}
+          startTime: {type: LocalTime, description: Giờ bắt đầu, keep: true}
+          endTime: {type: LocalTime, description: Giờ kết thúc, keep: true}
+      startDate: {type: LocalDate, description: Ngày bắt đầu, keep: true}
+      endDate: {type: LocalDate, description: "Ngày kết thúc; lúc 0 giờ ngày này hợp đồng đang hoạt động chuyển sang Đã hoàn tất, hợp đồng chưa ký chuyển sang Đã hủy", keep: true}
+      status: *enum_contract_status
+      createdByUserId: {type: UUID, description: Mã tài khoản người soạn hợp đồng, keep: false, reason: "Mã tài khoản nội bộ; lớp lọc dùng để tính createdByMe rồi bỏ"}
+      signedByUserId: {type: UUID, description: "Mã tài khoản người ký; rỗng khi chưa ký", keep: false, reason: "Mã tài khoản nội bộ; trạng thái và signedAt đã đủ cho câu trả lời"}
+      createdByMe: {type: Boolean, derived: true, derived_from: "createdByUserId == X-User-Id", description: "true nếu người hỏi là người soạn hợp đồng (được sửa, hủy khi Đang chờ); false nếu là bên nhận (được ký hoặc từ chối). Chỉ để giải thích; backend vẫn tự kiểm tra quyền khi người dùng bấm nút", keep: true}
+      tutorStudentRequestId: {type: UUID, description: "Mã đề nghị dạy tạo ra hợp đồng (khi học viên soạn); có thể rỗng", keep: false, reason: "Mã nội bộ; không đủ để gọi get_offer_for_my_request vì thiếu mã tin"}
+      studentTutorRequestId: {type: UUID, description: "Mã đơn đăng ký học tạo ra hợp đồng (khi gia sư soạn); có thể rỗng", keep: false, reason: Mã nội bộ không cần cho câu trả lời}
+      renewedFromContractId: {type: UUID, description: "Mã hợp đồng gốc nếu đây là hợp đồng gia hạn; rỗng nếu không phải", keep: true, seen_id: true}
+      signedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: "Thời điểm ký; rỗng khi chưa ký. Ghi bằng ContractTimeProvider.now() theo CONTRACT_TIME_ZONE (mặc định Asia/Ho_Chi_Minh, trùng múi giờ JVM khi chạy như nhóm)", keep: true}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo hợp đồng, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    refund_request: &schema_refund_request
+      id: {type: UUID, description: Mã yêu cầu hoàn tiền, keep: true, seen_id: true}
+      contractId: {type: UUID, description: "Mã hợp đồng bị yêu cầu hoàn tiền; dùng cho get_my_contract (lấy tên gọi bên kia)", keep: true, seen_id: true}
+      subjectName: {type: String, description: "Môn học của hợp đồng; có thể rỗng", keep: true}
+      gradeName: {type: String, description: "Lớp của hợp đồng; có thể rỗng", keep: true}
+      studentUserId: {type: UUID, description: Mã tài khoản học viên, keep: false, reason: Mã tài khoản nội bộ}
+      studentName: {type: String, description: "Họ tên đầy đủ của học viên (tên + họ)", keep: false, reason: "Có chứa họ; muốn gọi tên học viên thì lấy studentFirstName từ get_my_contract bằng contractId, không tự tách họ tên"}
+      tutorUserId: {type: UUID, description: Mã tài khoản gia sư, keep: false, reason: Mã tài khoản nội bộ}
+      tutorName: {type: String, description: "Họ tên đầy đủ của gia sư (tên + họ)", keep: false, reason: "Có chứa họ; muốn gọi tên gia sư thì lấy tutorFirstName từ get_my_contract bằng contractId, không tự tách họ tên"}
+      status: *enum_refund_status
+      description: {type: String, description: "Mô tả sự việc do học viên viết (tối đa 2.000 ký tự)", keep: true, user_text: true}
+      disputedLessons:
+        type: List<DisputedLesson>
+        keep: true
+        description: Các buổi học bị phản đối, xếp theo ngày và giờ học
+        items:
+          lessonId: {type: UUID, description: "Mã buổi học; gia sư dùng cho get_my_lesson", keep: true, seen_id: true}
+          title: {type: String, description: "Tên buổi học; có thể rỗng", keep: true, user_text: true}
+          date: {type: LocalDate, description: Ngày học, keep: true}
+          startTime: {type: LocalTime, description: Giờ bắt đầu, keep: true}
+          endTime: {type: LocalTime, description: Giờ kết thúc, keep: true}
+          markedTaughtAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm gia sư đánh dấu đã dạy, keep: true}
+          claimedOutcome:
+            <<: *enum_lesson_outcome
+            description: Nguyên nhân học viên chọn cho buổi này
+          tutorPosition:
+            <<: *enum_lesson_outcome
+            description: "Ý kiến của gia sư cho buổi này; rỗng khi gia sư chưa phản hồi"
+          decision:
+            <<: *enum_lesson_outcome
+            description: "Kết luận của kế toán cho buổi này; rỗng khi chưa kết luận"
+      evidences:
+        type: List<Evidence>
+        keep: true
+        description: Minh chứng hai bên đã gửi
+        items:
+          id: {type: UUID, description: Mã minh chứng, keep: false, reason: Mã nội bộ}
+          fileUrl: {type: String, description: Đường dẫn minh chứng do người dùng nhập, keep: false, reason: "Đường dẫn ngoài do người dùng nhập, có thể chứa dữ liệu cá nhân; model không mở được"}
+          fileType: {type: String, description: "Loại tệp (ví dụ image/png, application/pdf)", keep: true}
+          uploadedByUserId: {type: UUID, description: Mã tài khoản người gửi minh chứng, keep: false, reason: Mã tài khoản nội bộ}
+      tutorResponse: {type: String, description: "Lời nhắn gia sư đã gửi; rỗng khi chưa phản hồi", keep: true, user_text: true}
+      tutorRespondedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm gia sư phản hồi; rỗng khi chưa phản hồi", keep: true}
+      tutorResponseDeadline: {type: LocalDateTime, time_zone: UTC, description: "Hạn cuối để gia sư phản hồi (48 giờ sau khi học viên gửi)", keep: true}
+      refundAmount: {type: BigDecimal, description: "Số tiền hoàn cho học viên, đơn vị đồng; rỗng khi chưa kết luận", keep: true}
+      tutorShareAmount: {type: BigDecimal, description: "Phần tiền gia sư nhận cho các buổi học viên nghỉ, đơn vị đồng; rỗng khi chưa kết luận", keep: true}
+      rejectionReason: {type: String, description: "Lý do kế toán từ chối; rỗng nếu không bị từ chối", keep: true, user_text: true}
+      reviewedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm kế toán kết luận; rỗng khi chưa kết luận", keep: true}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm học viên gửi yêu cầu, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    complaint: &schema_complaint
+      id: {type: UUID, description: Mã khiếu nại, keep: true, seen_id: true}
+      userId: {type: UUID, description: Mã tài khoản người gửi khiếu nại, keep: false, reason: Mã tài khoản nội bộ}
+      contractId: {type: UUID, description: "Mã hợp đồng bị khiếu nại; dùng cho get_my_contract", keep: true, seen_id: true}
+      title: {type: String, description: Tiêu đề khiếu nại, keep: true, user_text: true}
+      content: {type: String, description: "Nội dung khiếu nại (tối đa 10.000 ký tự)", keep: true, user_text: true}
+      category: *enum_complaint_category
+      status: *enum_complaint_status
+      resolution: {type: String, description: "Nội dung kết luận hoặc lý do từ chối, hoặc lời yêu cầu bổ sung bằng chứng của nhân viên; với khiếu nại về mình, rỗng cho tới khi có kết luận", keep: true, user_text: true}
+      faultParty: *enum_fault_party
+      resolvedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm kết luận; rỗng khi chưa kết luận", keep: true}
+      respondentResponse: {type: String, description: "Phản hồi của bên bị khiếu nại; rỗng khi chưa phản hồi", keep: true, user_text: true}
+      respondentRespondedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm bên bị khiếu nại phản hồi", keep: true}
+      evidences:
+        type: List<Evidence>
+        keep: true
+        description: Bằng chứng hai bên đã gửi
+        items:
+          id: {type: UUID, description: Mã bằng chứng, keep: false, reason: Mã nội bộ}
+          fileUrl: {type: String, description: Đường dẫn bằng chứng do người dùng nhập, keep: false, reason: "Đường dẫn ngoài do người dùng nhập, có thể chứa dữ liệu cá nhân; model không mở được"}
+          fileType: {type: String, description: Loại tệp, keep: true}
+          uploadedByUserId: {type: UUID, description: Mã tài khoản người gửi bằng chứng, keep: false, reason: Mã tài khoản nội bộ}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi khiếu nại, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    lesson: &schema_lesson
+      id: {type: UUID, description: "Mã buổi học; gia sư dùng cho get_my_lesson", keep: true, seen_id: true}
+      contractId: {type: UUID, description: Mã hợp đồng của buổi học, keep: true, seen_id: true}
+      title: {type: String, description: "Tên buổi học; có thể rỗng", keep: true, user_text: true}
+      date: {type: LocalDate, description: Ngày học, keep: true}
+      startTime: {type: LocalTime, description: Giờ bắt đầu, keep: true}
+      endTime: {type: LocalTime, description: Giờ kết thúc, keep: true}
+      teachingMode: *enum_teaching_mode
+      status: *enum_lesson_status
+      note: {type: String, description: "Ghi chú của gia sư; có thể rỗng", keep: true, user_text: true}
+      markedTaughtAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm gia sư đánh dấu đã dạy; hạn xác nhận là 3 ngày sau mốc này", keep: true}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo buổi học, keep: false, reason: Không cần cho câu trả lời}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    studying_request: &schema_studying_request
+      id: {type: UUID, description: "Mã tin tìm gia sư; dùng cho get_my_studying_request, list_offers_for_my_request", keep: true, seen_id: true}
+      studentId: {type: UUID, description: Mã hồ sơ học viên, keep: false, reason: Mã nội bộ}
+      subjectId: {type: UUID, description: "Mã môn học; rỗng khi môn tự nhập", keep: false, reason: Mã nội bộ; đã có subjectName}
+      subjectName: {type: String, description: "Tên môn học; rỗng khi môn tự nhập (xem note)", keep: true}
+      gradeId: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ; đã có gradeName}
+      gradeName: {type: String, description: Tên lớp, keep: true}
+      districtId: {type: UUID, description: Mã quận/huyện, keep: false, reason: Mã nội bộ; đã có districtName}
+      districtName: {type: String, description: "Quận/huyện học; có thể rỗng", keep: true}
+      title: {type: String, description: Tiêu đề tin, keep: true, user_text: true}
+      description: {type: String, description: "Mô tả tin; có thể rỗng", keep: true, user_text: true}
+      note: {type: String, description: "Ghi chú, hoặc tên môn tự nhập khi không chọn môn trong danh sách", keep: true, user_text: true}
+      detailAddress: {type: String, description: Địa chỉ chi tiết, keep: false, reason: Địa chỉ chi tiết là dữ liệu cá nhân}
+      minPrice: {type: BigDecimal, description: "Giá tối thiểu mong muốn, đồng; rỗng là có thể thương lượng", keep: true}
+      maxPrice: {type: BigDecimal, description: "Giá tối đa mong muốn, đồng; rỗng là có thể thương lượng", keep: true}
+      learningGoals: {type: String, description: Mục tiêu học, keep: true, user_text: true}
+      learningMode: *enum_learning_mode
+      preferredSchedule: {type: String, description: Lịch mong muốn dạng chữ, keep: true, user_text: true}
+      availabilities:
+        type: List<Availability>
+        keep: true
+        description: Các khung giờ rảnh trong tuần
+        items:
+          dayOfWeek: {type: Integer, description: "Thứ trong tuần: 1 = Thứ Hai … 7 = Chủ nhật", keep: true}
+          startTime: {type: LocalTime, description: Giờ bắt đầu, keep: true}
+          endTime: {type: LocalTime, description: Giờ kết thúc, keep: true}
+      status: *enum_request_status
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo tin, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    tutor_offer: &schema_tutor_offer
+      id: {type: UUID, description: "Mã đề nghị dạy; dùng cho get_offer_for_my_request", keep: true, seen_id: true}
+      tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ}
+      tutorFirstName: {type: String, description: Tên gọi của gia sư, keep: true}
+      tutorLastName: {type: String, description: Họ của gia sư, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+      tutorEmail: {type: String, description: Email gia sư, keep: false, reason: Dữ liệu liên hệ cá nhân}
+      studyingRequestId: {type: UUID, description: Mã tin tìm gia sư nhận đề nghị, keep: true, seen_id: true}
+      studyingRequestTitle: {type: String, description: Tiêu đề tin tìm gia sư, keep: true, user_text: true}
+      subjectId: {type: UUID, description: Mã môn học, keep: false, reason: Mã nội bộ; đã có subjectName}
+      subjectName: {type: String, description: "Tên môn học; có thể rỗng", keep: true}
+      gradeId: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ; đã có gradeName}
+      gradeName: {type: String, description: Tên lớp, keep: true}
+      proposedPrice: {type: BigDecimal, description: Học phí gia sư đề xuất, đơn vị đồng, keep: true}
+      teachingMode: *enum_teaching_mode
+      preferredSchedule: {type: String, description: Thời gian gia sư có thể dạy, keep: true, user_text: true}
+      preferredProvinceId: {type: UUID, description: Mã tỉnh/thành, keep: false, reason: Mã nội bộ; đã có preferredProvinceName}
+      preferredProvinceName: {type: String, description: "Tỉnh/thành dạy trực tiếp; rỗng khi dạy trực tuyến", keep: true}
+      preferredDistrictId: {type: UUID, description: Mã quận/huyện, keep: false, reason: Mã nội bộ; đã có preferredDistrictName}
+      preferredDistrictName: {type: String, description: "Quận/huyện dạy trực tiếp; rỗng khi dạy trực tuyến", keep: true}
+      message: {type: String, description: Lời nhắn của gia sư, keep: true, user_text: true}
+      status: *enum_application_status
+      nextStep: *enum_next_step
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi đề nghị, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    student_request: &schema_student_request
+      id: {type: UUID, description: "Mã đơn đăng ký học; dùng cho get_student_request_for_my_post", keep: true, seen_id: true}
+      studentId: {type: UUID, description: Mã hồ sơ học viên, keep: false, reason: Mã nội bộ}
+      studentFirstName: {type: String, description: Tên gọi của học viên, keep: true}
+      studentLastName: {type: String, description: Họ của học viên, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+      studentEmail: {type: String, description: Email học viên, keep: false, reason: Dữ liệu liên hệ cá nhân}
+      gradeId: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ; đã có gradeName}
+      gradeName: {type: String, description: Lớp của học viên, keep: true}
+      teachingRequestId: {type: UUID, description: Mã tin nhận dạy nhận đơn, keep: true, seen_id: true}
+      proposedPrice: {type: BigDecimal, description: Mức giá học viên đề nghị, đơn vị đồng, keep: true}
+      learningMode: *enum_learning_mode
+      preferredSchedule: {type: String, description: Lịch học viên mong muốn, keep: true, user_text: true}
+      message: {type: String, description: Lời nhắn của học viên, keep: true, user_text: true}
+      status: *enum_application_status
+      nextStep: *enum_next_step
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi đơn, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    teaching_request: &schema_teaching_request
+      id: {type: UUID, description: "Mã tin nhận dạy; dùng cho get_my_teaching_request, list_student_requests_for_my_post", keep: true, seen_id: true}
+      tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ}
+      tutorName: {type: String, description: Họ tên đầy đủ của gia sư (chính người hỏi), keep: false, reason: "Có chứa họ; người hỏi chính là gia sư"}
+      tutorAvatarUrl: {type: String, description: Ảnh đại diện gia sư, keep: false, reason: Không cần cho câu trả lời}
+      subjectId: {type: UUID, description: "Mã môn học; rỗng khi môn tự nhập", keep: false, reason: Mã nội bộ; đã có subjectName}
+      subjectName: {type: String, description: "Tên môn học; rỗng khi môn tự nhập", keep: true}
+      customSubjectName: {type: String, description: "Tên môn tự nhập; rỗng khi chọn môn trong danh sách", keep: true, user_text: true}
+      grades:
+        type: List<Reference>
+        keep: true
+        description: Các lớp tin nhận dạy
+        items:
+          id: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ}
+          name: {type: String, description: Tên lớp, keep: true}
+      districts:
+        type: List<Reference>
+        keep: true
+        description: Các quận/huyện dạy
+        items:
+          id: {type: UUID, description: Mã quận/huyện, keep: false, reason: Mã nội bộ}
+          name: {type: String, description: Tên quận/huyện, keep: true}
+      title: {type: String, description: Tiêu đề tin, keep: true, user_text: true}
+      note: {type: String, description: "Ghi chú; tin có ghi chú phải chờ duyệt", keep: true, user_text: true}
+      quantity: {type: Integer, description: "Số học viên cần nhận; đủ số này tin chuyển sang Đã ghép", keep: true}
+      detailAddress: {type: String, description: Địa chỉ chi tiết, keep: false, reason: Địa chỉ chi tiết là dữ liệu cá nhân}
+      expectedPrice: {type: BigDecimal, description: Học phí dự kiến, đơn vị đồng, keep: true}
+      teachingMode: *enum_teaching_mode
+      preferredSchedule: {type: String, description: Lịch dạy mong muốn, keep: true, user_text: true}
+      description: {type: String, description: Mô tả tin, keep: true, user_text: true}
+      availabilities:
+        type: List<Availability>
+        keep: true
+        description: Các khung giờ có thể dạy
+        items:
+          dayOfWeek: {type: Integer, description: "Thứ trong tuần: 1 = Thứ Hai … 7 = Chủ nhật", keep: true}
+          startTime: {type: LocalTime, description: Giờ bắt đầu, keep: true}
+          endTime: {type: LocalTime, description: Giờ kết thúc, keep: true}
+      studentRequestCount: {type: long, description: Tổng số đơn đăng ký học đã nhận, keep: true}
+      pendingStudentRequestCount: {type: long, description: Số đơn đăng ký học đang chờ gia sư trả lời, keep: true}
+      status: *enum_request_status
+      reviewedBy: {type: UUID, description: Mã nhân viên đã duyệt, keep: false, reason: Mã nội bộ}
+      reviewedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm duyệt hoặc từ chối; rỗng khi không qua duyệt", keep: true}
+      rejectionReason: {type: String, description: "Lý do từ chối; rỗng nếu không bị từ chối", keep: true, user_text: true}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo tin, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    certificate: &schema_certificate
+      id: {type: UUID, description: "Mã chứng chỉ; dùng cho get_my_certificate", keep: true, seen_id: true}
+      tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ}
+      name: {type: String, description: Tên chứng chỉ, keep: true, user_text: true}
+      issuingOrganization: {type: String, description: "Đơn vị cấp; có thể rỗng", keep: true, user_text: true}
+      description: {type: String, description: "Mô tả; có thể rỗng", keep: true, user_text: true}
+      issueDate: {type: LocalDate, description: "Ngày cấp; có thể rỗng", keep: true}
+      expiryDate: {type: LocalDate, description: "Ngày hết hạn; rỗng nếu không có thời hạn. Chứng chỉ quá hạn không được duyệt", keep: true}
+      certificateUrl: {type: String, description: "Đường dẫn xem tệp chứng chỉ (link tạm có hạn 15 phút)", keep: false, reason: "Link tạm tới tệp cá nhân; model không mở được"}
+      status: *enum_certificate_status
+      rejectionReason: {type: String, description: "Lý do từ chối; rỗng nếu không bị từ chối", keep: true, user_text: true}
+      reviewedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm duyệt hoặc từ chối; rỗng khi chưa duyệt", keep: true}
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm nộp, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    wallet_transaction: &schema_wallet_transaction
+      transactionId: {type: UUID, description: "Mã giao dịch ví; dùng cho get_my_wallet_transaction", keep: true, seen_id: true}
+      walletId: {type: UUID, description: Mã ví, keep: false, reason: Mã nội bộ}
+      transactionType: *enum_wallet_tx_type
+      purpose: *enum_wallet_tx_purpose
+      amount: {type: BigDecimal, description: Số tiền giao dịch, đơn vị đồng, keep: true}
+      balanceAfter: {type: BigDecimal, description: Số dư dùng được sau giao dịch, keep: true}
+      pendingBalanceAfter: {type: BigDecimal, description: Số tiền đang tạm giữ sau giao dịch, keep: true}
+      referenceType: *enum_reference_type
+      referenceId: {type: UUID, description: "Mã đối tượng liên quan (hợp đồng, thanh toán, yêu cầu rút, yêu cầu hoàn tiền…), theo referenceType", keep: true, seen_id: true}
+      description: {type: String, description: "Mô tả giao dịch do hệ thống ghi, tiếng Anh (ví dụ Wallet top-up via VNPay)", keep: true}
+      status: *enum_wallet_tx_status
+      createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm giao dịch, keep: true}
+      updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+
+    address: &schema_address
+      detailAddress: {type: String, description: Địa chỉ chi tiết, keep: false, reason: Địa chỉ chi tiết là dữ liệu cá nhân}
+      districtId: {type: UUID, description: Mã quận/huyện, keep: false, reason: Mã nội bộ}
+      districtName: {type: String, description: Quận/huyện, keep: true}
+      provinceId: {type: UUID, description: Mã tỉnh/thành, keep: false, reason: Mã nội bộ}
+      provinceName: {type: String, description: Tỉnh/thành, keep: true}
+
+tools:
+  # ===================== Dùng chung STUDENT, TUTOR =====================
+  - func_code: list_my_contracts
+    name: Liệt kê hợp đồng của tôi
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [contract]
+    reversibility: READ_ONLY
+    description: >
+      Trả về danh sách hợp đồng mà người hỏi là học viên hoặc gia sư, mới tạo trước, kèm trạng thái, môn, lớp, giá,
+      chu kỳ thanh toán, thời gian, tên gọi của bên kia và người hỏi có phải người soạn không. Dùng khi người dùng hỏi
+      chung về các hợp đồng của mình, đếm hợp đồng, hoặc cần mã hợp đồng cho công cụ khác. Không dùng khi đã biết đúng
+      một hợp đồng và cần chi tiết (dùng get_my_contract), không dùng để hỏi quy định ký, hủy, gia hạn (trả lời bằng tài liệu).
+    example_questions:
+      - Tôi đang có những hợp đồng nào?
+      - hop dong nao cua toi dang cho ky
+      - Có bao nhiêu hợp đồng đã hoàn tất rồi?
+      - Còn hợp đồng với cô giáo dạy Tiếng Anh thì sao, đang ở trạng thái gì?
+    negative_examples:
+      - Hủy hợp đồng đang học được không?
+      - Lịch học cụ thể của hợp đồng môn Toán là thứ mấy?
+    request: {method: GET, path: /api/v1/users/me/contracts}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, ACTIVE, COMPLETED, CANCELLED], default: null, description: "Chỉ điền khi người dùng hỏi theo trạng thái (đang chờ ký, đang học, đã xong, đã hủy). Để trống để lấy mọi hợp đồng."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/contracts?status=ACTIVE&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: ContractResponse, schema: *schema_contract}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có hợp đồng nào khớp điều kiện này.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách trạng thái hợp đồng}
+      - {code: VALIDATION_ERROR, http: 400, meaning: "page âm hoặc size ngoài 1–100"}
+    source:
+      - controller: ContractController.findMine (GET /api/v1/users/me/contracts)
+      - service: ContractService.findMine -> ContractRepository.findAllForParticipant
+      - mapper: ContractMapper.toResponse
+      - dto: ContractResponse, ContractResponse.Schedule, PageResponse
+      - enum: ContractStatus, TeachingMode, PaymentPeriod
+      - security: "SecurityConstants.CONTRACT_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+      - labels: "frontend components/student/StudentContractStatusBadge.tsx, StudentContractOverview.tsx"
+
+  - func_code: get_my_contract
+    name: Xem chi tiết một hợp đồng
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [contract]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một hợp đồng của người hỏi: trạng thái, lịch học từng khung giờ, giá, chu kỳ thanh toán, ngày bắt đầu,
+      ngày kết thúc, thời điểm ký, tên gọi bên kia, có phải hợp đồng gia hạn không. Dùng khi người dùng hỏi về một hợp đồng
+      cụ thể đã xuất hiện trong hội thoại, hoặc để lấy tên gọi bên kia từ contractId của yêu cầu hoàn tiền, khiếu nại.
+      Không dùng để liệt kê, đếm hợp đồng (dùng list_my_contracts) hay xem kỳ học phí, buổi học (dùng công cụ tương ứng).
+    example_questions:
+      - Hợp đồng môn Toán của tôi học vào những thứ nào?
+      - hop dong do ket thuc ngay nao
+      - Hợp đồng vừa rồi đã được ký chưa, ký lúc nào?
+      - Hợp đồng đó tôi có được hủy không, tôi là người soạn à?
+    negative_examples:
+      - Tôi có mấy hợp đồng đang hoạt động?
+      - Kỳ học phí tiếp theo của hợp đồng này bao nhiêu tiền?
+    request: {method: GET, path: "/api/v1/users/me/contracts/{contractId}"}
+    required_params:
+      - name: contractId
+        in: path
+        type: UUID
+        source: seen_ids
+        from_tools: [list_my_contracts, get_my_contract, list_my_refund_requests, get_my_refund_request, list_refund_requests_on_my_contracts, get_refund_request_on_my_contract, list_my_complaints, get_my_complaint, list_complaints_against_me, get_complaint_against_me, list_contract_lessons_for_student, list_contract_lessons_for_tutor, get_my_lesson]
+        description: Mã hợp đồng người dùng đang nói tới. Chưa có mã thì gọi list_my_contracts trước.
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/contracts/3f2c8a51-7d1e-4c55-9a0b-2b7e6f1d40e1"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: ContractResponse, schema: *schema_contract}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    side_effects: >
+      Đọc, có tác dụng phụ lặp lại vô hại: khi hợp đồng đang hoạt động mà chưa có kỳ học phí, máy chủ tạo các kỳ học phí
+      trong lúc gọi API này (ContractPaymentInstallmentService.ensureForActiveContract). Việc tạo chỉ xảy ra một lần; đã có kỳ
+      thì không tạo nữa. Màn hình hợp đồng của người dùng và tác vụ nhắc học phí lúc 9 giờ hằng ngày cũng gọi đúng hàm này.
+    errors:
+      - {code: CONTRACT_NOT_FOUND, http: 404, meaning: Không tìm thấy hợp đồng này trong các hợp đồng của bạn}
+      - {code: INVALID_CONTRACT_PAYMENT_AMOUNT, http: 409, meaning: "Hợp đồng đang hoạt động có giá bằng 0 nên máy chủ không tạo được kỳ học phí", user_message: "Hợp đồng này đang có giá bằng 0 nên hệ thống chưa tạo được các kỳ học phí và chưa hiển thị được chi tiết. Bạn liên hệ PTutor để được kiểm tra lại giá hợp đồng."}
+      - {code: INVALID_REQUEST, http: 400, meaning: contractId không phải UUID}
+    source:
+      - controller: ContractController.findMineById (GET /api/v1/users/me/contracts/{contractId})
+      - service: ContractService.findMineById, findContractForParticipant -> ContractRepository.findDetailedByIdAndParticipantUserId
+      - service: ContractPaymentInstallmentService.ensureForActiveContract
+      - mapper: ContractMapper.toResponse
+      - dto: ContractResponse
+      - security: "SecurityConstants.CONTRACT_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+
+  - func_code: get_my_wallet
+    name: Xem số dư ví
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [wallet]
+    reversibility: READ_ONLY
+    description: >
+      Trả về số dư ví hiện tại của người hỏi: số dư dùng được và số tiền đang tạm giữ cho yêu cầu rút. Dùng khi người dùng
+      hỏi ví còn bao nhiêu tiền, có đủ tiền không, vì sao số dư bị giữ. Không dùng để xem lịch sử nạp, trừ tiền (dùng
+      list_my_wallet_transactions) và không dùng để hỏi quy định nạp ví (trả lời bằng tài liệu).
+    example_questions:
+      - Ví của tôi còn bao nhiêu tiền?
+      - so du vi hien tai
+      - Có khoản nào đang bị tạm giữ trong ví không?
+    negative_examples:
+      - Nạp ví tối thiểu bao nhiêu?
+      - Tháng này tôi đã nạp những lần nào?
+    request: {method: GET, path: /api/v1/users/me/wallet}
+    required_params: []
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/wallet"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: WalletBalanceResponse
+      schema:
+        walletId: {type: UUID, description: Mã ví, keep: false, reason: Mã nội bộ}
+        userId: {type: UUID, description: Mã tài khoản, keep: false, reason: Mã tài khoản nội bộ}
+        balance: {type: BigDecimal, description: Số dư dùng được, đơn vị đồng, keep: true}
+        pendingBalance: {type: BigDecimal, description: "Số tiền đang tạm giữ cho yêu cầu rút chưa xử lý, đơn vị đồng", keep: true}
+        currency: {type: String, description: Đơn vị tiền (VND), keep: true}
+        updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm số dư thay đổi gần nhất, keep: false, reason: Không cần cho câu trả lời}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: WALLET_NOT_FOUND, http: 404, meaning: Tài khoản chưa có ví; báo lỗi hệ thống và gợi ý liên hệ PTutor}
+    source:
+      - controller: WalletController.getCurrentBalance (GET /api/v1/users/me/wallet)
+      - service: WalletService.getCurrentBalance
+      - dto: WalletBalanceResponse
+      - security: "SecurityConstants.WALLET_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+
+  - func_code: list_my_wallet_transactions
+    name: Liệt kê giao dịch ví
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [wallet]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các bút toán cộng, trừ trong ví của người hỏi, mới nhất trước: số tiền, mục đích (nạp ví, hoàn tiền, phí,
+      học phí, rút tiền…), trạng thái, số dư sau giao dịch. Dùng khi người dùng hỏi tiền vào, ra khỏi ví, tiền hoàn đã
+      vào ví chưa. Không dùng để xem lần thanh toán VNPay (không qua ví), dùng list_my_transactions; không dùng để xem số dư
+      hiện tại (dùng get_my_wallet).
+    example_questions:
+      - Tiền hoàn học phí đã vào ví tôi chưa?
+      - lich su giao dich vi
+      - Tuần trước ví tôi bị trừ những khoản gì?
+      - Khoản cộng tiền gần nhất là tiền gì vậy?
+    negative_examples:
+      - Lần thanh toán VNPay hôm qua thành công chưa?
+      - Ví còn bao nhiêu tiền?
+    request: {method: GET, path: /api/v1/users/me/wallet/transactions}
+    required_params: []
+    optional_params:
+      - {name: transactionType, in: query, type: Enum, enum: [CREDIT, DEBIT], default: null, description: "Điền CREDIT khi hỏi tiền vào, DEBIT khi hỏi tiền ra; để trống để lấy cả hai."}
+      - {name: purpose, in: query, type: Enum, enum: [TOP_UP, TUTOR_EARNING, CONTRACT_REFUND, TEACHING_REQUEST_REFUND, STUDYING_REQUEST_REFUND, WITHDRAWAL_REVERSAL, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE, WITHDRAWAL], default: null, description: "Chỉ điền khi người dùng hỏi đúng một loại (ví dụ CONTRACT_REFUND khi hỏi tiền hoàn học phí)."}
+      - {name: status, in: query, type: Enum, enum: [PENDING, COMPLETED, FAILED, CANCELLED], default: null, description: Thường để trống.}
+      - {name: createdFrom, in: query, type: LocalDateTime, format: "ISO-8601, ví dụ 2026-11-01T00:00:00", default: null, description: "Điền khi người dùng nêu khoảng thời gian; tính theo múi giờ máy chủ."}
+      - {name: createdTo, in: query, type: LocalDateTime, format: "ISO-8601", default: null, description: "Cuối khoảng thời gian; phải không sớm hơn createdFrom."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần, rồi id (cố định trong service)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/wallet/transactions?purpose=CONTRACT_REFUND&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: WalletTransactionResponse, schema: *schema_wallet_transaction}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: transactionType}
+    allow_empty_result: true
+    empty_result_message: Ví của bạn chưa có giao dịch nào khớp điều kiện này.
+    errors:
+      - {code: INVALID_TRANSACTION_DATE_RANGE, http: 400, meaning: createdFrom sau createdTo}
+      - {code: INVALID_REQUEST, http: 400, meaning: "Giá trị lọc không thuộc danh sách, hoặc thời gian sai định dạng"}
+    source:
+      - controller: WalletController.getTransactions (GET /api/v1/users/me/wallet/transactions)
+      - service: WalletService.getMyTransactions
+      - dto: WalletTransactionResponse
+      - enum: WalletTransactionType, WalletTransactionPurpose, WalletTransactionStatus, ReferenceType
+      - labels: "frontend pages/admin/studentFormat.ts (Cộng ví, Trừ ví); còn lại tự đặt"
+
+  - func_code: get_my_wallet_transaction
+    name: Xem một giao dịch ví
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [wallet]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một bút toán ví cụ thể: số tiền, mục đích, trạng thái, số dư sau giao dịch và đối tượng liên quan. Dùng khi
+      người dùng hỏi kỹ về một giao dịch ví đã xuất hiện trong hội thoại. Không dùng để liệt kê giao dịch (dùng
+      list_my_wallet_transactions) và không dùng cho lần thanh toán VNPay (dùng get_my_payment).
+    example_questions:
+      - Giao dịch trừ 200.000đ đó là khoản gì?
+      - giao dich vua roi da hoan tat chua
+      - Khoản đó liên quan tới hợp đồng nào?
+    negative_examples:
+      - Liệt kê các giao dịch ví tháng này.
+    request: {method: GET, path: "/api/v1/users/me/wallet/transactions/{transactionId}"}
+    required_params:
+      - {name: transactionId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_wallet_transactions], description: Mã giao dịch ví. Chưa có thì gọi list_my_wallet_transactions trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/wallet/transactions/6a0e2b7c-1d4f-4a3e-9f21-7c5b8d2e4a10"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: WalletTransactionResponse, schema: *schema_wallet_transaction}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: WALLET_TRANSACTION_NOT_FOUND, http: 404, meaning: Không tìm thấy giao dịch này trong ví của bạn}
+      - {code: INVALID_REQUEST, http: 400, meaning: transactionId không phải UUID}
+    source:
+      - controller: WalletController.getTransaction (GET /api/v1/users/me/wallet/transactions/{transactionId})
+      - service: WalletService.getMyTransaction
+      - dto: WalletTransactionResponse
+
+  - func_code: list_my_transactions
+    name: Liệt kê các lần thanh toán
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [payment]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các lần thanh toán của người hỏi, mới nhất trước: nạp ví, học phí, phí đăng tin; phương thức VNPay hoặc ví;
+      trạng thái thành công, thất bại, đang chờ. Dùng khi người dùng hỏi đã thanh toán những gì, lần thanh toán VNPay gần
+      nhất thành công chưa. Không dùng cho bút toán cộng, trừ ví (dùng list_my_wallet_transactions), yêu cầu rút tiền (dùng
+      list_my_withdrawals) hay kỳ học phí của một hợp đồng (dùng list_my_payment_installments).
+    example_questions:
+      - Tôi đã thanh toán những khoản nào?
+      - lan thanh toan vnpay gan nhat thanh cong chua
+      - Có khoản thanh toán nào bị thất bại không?
+      - Khoản phí đăng tin tôi trả hôm trước đi theo cách nào?
+    negative_examples:
+      - Kỳ học phí tiếp theo của hợp đồng Toán là bao nhiêu?
+      - Thanh toán VNPay có mất phí không?
+    request: {method: GET, path: /api/v1/users/me/transactions}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: String, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED], default: null, description: "So khớp không phân biệt hoa thường; ví dụ FAILED khi hỏi thanh toán thất bại."}
+      - {name: type, in: query, type: String, enum: [WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE], default: null, description: "Loại khoản; ví dụ TUITION_PAYMENT khi hỏi học phí, WALLET_TOP_UP khi hỏi nạp ví."}
+      - {name: method, in: query, type: String, enum: [VNPAY, WALLET], default: null, description: "VNPAY khi hỏi riêng thanh toán VNPay."}
+      - *p_page
+    fixed_params: {source: PAYMENT, size: 100}
+    fixed_params_reason: "API gộp ba nguồn (thanh toán, giao dịch ví, rút tiền; PaymentService.findMyTransactions) nên mỗi lần trả bằng ví, nạp ví hay rút tiền hiện hai dòng. Cố định source=PAYMENT để công cụ chỉ đọc một nguồn; giao dịch ví và rút tiền đã có công cụ riêng. Model không đổi được."
+    sort: "occurredAt giảm dần (sắp trong service sau khi gộp)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/transactions?source=PAYMENT&method=VNPAY&page=0&size=100"}
+    response:
+      wrapper: ApiResponse.data.content (phân trang)
+      item_class: FinancialTransactionResponse
+      schema:
+        id: {type: UUID, description: "Mã thanh toán; dùng cho get_my_payment", keep: true, seen_id: true}
+        source:
+          <<: *enum_financial_source
+          keep: false
+          reason: "Luôn là PAYMENT vì source được cố định"
+        type:
+          type: String
+          keep: true
+          description: "Loại khoản thanh toán (tên PaymentType)"
+          enum_labels:
+            WALLET_TOP_UP: {label: Nạp ví, meaning: Nạp tiền vào ví}
+            TUITION_PAYMENT: {label: Học phí, meaning: Đóng kỳ học phí}
+            STUDYING_REQUEST_FEE: {label: Phí đăng yêu cầu học, meaning: Phí đăng tin tìm gia sư}
+            TEACHING_REQUEST_FEE: {label: Phí đăng tin dạy, meaning: Phí đăng tin nhận dạy}
+        method:
+          type: String
+          keep: true
+          description: Phương thức
+          enum_labels:
+            VNPAY: {label: VNPay, meaning: Thanh toán qua VNPay}
+            WALLET: {label: Ví, meaning: Qua ví PTutor}
+        status:
+          type: String
+          keep: true
+          description: "Trạng thái thanh toán (tên PaymentStatus)"
+          enum_labels:
+            PENDING: {label: Đang chờ, meaning: "Đã tạo link VNPay nhưng chưa có kết quả; link hiệu lực 15 phút"}
+            PAID: {label: Đã thanh toán, meaning: Thanh toán thành công}
+            FAILED: {label: Thất bại, meaning: "Hủy trên VNPay, ngân hàng từ chối, hoặc link quá 15 phút"}
+            CANCELLED: {label: Đã huỷ, meaning: Link VNPay bị bỏ vì khoản đó đã được trả bằng ví}
+            REFUNDED: {label: Đã hoàn, meaning: Khoản học phí đã được hoàn lại toàn bộ vào ví}
+        amount: {type: BigDecimal, description: Số tiền, đơn vị đồng, keep: true}
+        referenceId: {type: UUID, description: "Mã đối tượng được thanh toán: hợp đồng (học phí), tin tìm gia sư hoặc tin nhận dạy (phí đăng tin); rỗng với nạp ví", keep: true, seen_id: true}
+        description: {type: String, description: "Ghi chú của lần thanh toán do hệ thống ghi", keep: true, user_text: true}
+        occurredAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm phát sinh, keep: true}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có giao dịch tài chính nào khớp điều kiện này.
+    errors:
+    source:
+      - controller: PaymentController.transactions (GET /api/v1/users/me/transactions)
+      - service: PaymentService.findMyTransactions, toFinancialPayment, toFinancialWalletTransaction, toFinancialWithdrawal
+      - dto: FinancialTransactionResponse
+      - enum: FinancialTransactionSource
+      - security: "SecurityConstants.PAYMENT_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+      - labels: "frontend pages/admin/studentFormat.ts (transactionSourceLabels, transactionTypeLabels, transactionMethodLabels, transactionStatusMeta)"
+
+  - func_code: get_my_payment
+    name: Xem một lần thanh toán
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [payment]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một lần thanh toán cụ thể: loại khoản, phương thức (VNPay hoặc ví), trạng thái, số tiền, hạn của link VNPay,
+      thời điểm thanh toán thành công. Dùng khi người dùng hỏi lần thanh toán đã xuất hiện trong hội thoại thành công chưa,
+      vì sao thất bại. Không dùng để liệt kê thanh toán (dùng list_my_transactions) hay xem giao dịch ví (dùng
+      get_my_wallet_transaction).
+    example_questions:
+      - Lần thanh toán học phí vừa rồi đã thành công chưa?
+      - thanh toan do het han chua
+      - Khoản đó trả bằng VNPay hay bằng ví?
+    negative_examples:
+      - Link VNPay có hiệu lực bao lâu?
+    request: {method: GET, path: "/api/v1/users/me/payments/{paymentId}"}
+    required_params:
+      - {name: paymentId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_transactions, list_my_wallet_transactions], description: "Mã thanh toán: id trong list_my_transactions, hoặc referenceId của giao dịch ví có referenceType = PAYMENT. Chưa có thì gọi list_my_transactions trước."}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/payments/1c7e9a20-5b3d-4f8e-a6c2-0d9f3b1e7a55"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: PaymentResponse
+      schema:
+        id: {type: UUID, description: Mã thanh toán, keep: true, seen_id: true}
+        paymentType: *enum_payment_type
+        paymentMethod: *enum_payment_method
+        status: *enum_payment_status
+        amount: {type: BigDecimal, description: Số tiền, đơn vị đồng, keep: true}
+        referenceType: *enum_reference_type
+        referenceId: {type: UUID, description: "Mã đối tượng được thanh toán (hợp đồng, tin tìm gia sư, tin nhận dạy) theo referenceType", keep: true, seen_id: true}
+        paymentInstallmentId: {type: UUID, description: "Mã kỳ học phí (với thanh toán học phí)", keep: false, reason: "Mã nội bộ; kỳ học phí xem bằng list_my_payment_installments"}
+        transactionCode: {type: String, description: Mã giao dịch PTutor gửi sang VNPay, keep: false, reason: Mã giao dịch của cổng thanh toán}
+        providerTransactionNo: {type: String, description: Mã giao dịch phía VNPay, keep: false, reason: Mã giao dịch của cổng thanh toán}
+        expiresAt: {type: LocalDateTime, time_zone: UTC, description: "Hạn của link VNPay (15 phút sau khi tạo); rỗng với thanh toán bằng ví", keep: true}
+        paidAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm thanh toán thành công; rỗng khi chưa thành công", keep: true}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo lần thanh toán, keep: true}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: PAYMENT_NOT_FOUND, http: 404, meaning: Không tìm thấy lần thanh toán này trong tài khoản của bạn}
+      - {code: INVALID_REQUEST, http: 400, meaning: paymentId không phải UUID}
+    source:
+      - controller: PaymentController.findPayment (GET /api/v1/users/me/payments/{paymentId})
+      - service: PaymentService.findMine, toPaymentResponse
+      - dto: PaymentResponse
+      - enum: PaymentType, PaymentMethod, PaymentStatus, ReferenceType
+      - labels: "frontend pages/admin/complaintFormat.ts (paymentStatusMeta, paymentMethodLabels), studentFormat.ts"
+
+  - func_code: list_my_withdrawals
+    name: Liệt kê yêu cầu rút tiền
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [withdrawal]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các yêu cầu rút tiền của người hỏi, mới nhất trước: số tiền, trạng thái, lý do từ chối nếu có. Dùng khi người
+      dùng hỏi yêu cầu rút tiền tới đâu rồi, đã chuyển tiền chưa. Không dùng để hỏi quy định rút tiền (trả lời bằng tài
+      liệu) và không dùng để xem số tiền đang tạm giữ tổng (dùng get_my_wallet).
+    example_questions:
+      - Yêu cầu rút tiền của tôi tới đâu rồi?
+      - rut tien da duoc chuyen chua
+      - Cái yêu cầu rút 500.000đ đó có hủy được không?
+    negative_examples:
+      - Rút tiền mất bao lâu?
+    request: {method: GET, path: /api/v1/users/me/wallet/withdrawals}
+    required_params: []
+    optional_params:
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần, rồi id (cố định trong service)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/wallet/withdrawals?page=0&size=20"}
+    response:
+      wrapper: ApiResponse.data.content (phân trang)
+      item_class: WithdrawalResponse
+      schema:
+        withdrawalId: {type: UUID, description: Mã yêu cầu rút, keep: true}
+        walletId: {type: UUID, description: Mã ví, keep: false, reason: Mã nội bộ}
+        amount: {type: BigDecimal, description: Số tiền rút, đơn vị đồng, keep: true}
+        bankCode: {type: String, description: Mã ngân hàng nhận, keep: false, reason: Thông tin tài khoản ngân hàng}
+        bankName: {type: String, description: Tên ngân hàng nhận, keep: false, reason: Thông tin tài khoản ngân hàng}
+        maskedAccountNumber: {type: String, description: Số tài khoản đã che, keep: false, reason: Số tài khoản ngân hàng (dù đã che)}
+        accountHolderName: {type: String, description: Tên chủ tài khoản, keep: false, reason: Họ tên đầy đủ trên tài khoản ngân hàng}
+        note: {type: String, description: Ghi chú của người dùng, keep: true, user_text: true}
+        status: *enum_withdrawal_status
+        reviewedByUserId: {type: UUID, description: Mã tài khoản người xử lý, keep: false, reason: Mã tài khoản nội bộ}
+        reviewedAt: {type: LocalDateTime, time_zone: NOT_WRITTEN, description: "Thời điểm xử lý (hệ thống hiện chưa ghi)", keep: true}
+        rejectionReason: {type: String, description: "Lý do từ chối (hệ thống hiện chưa ghi)", keep: true, user_text: true}
+        completedAt: {type: LocalDateTime, time_zone: NOT_WRITTEN, description: "Thời điểm chuyển tiền xong (hệ thống hiện chưa ghi)", keep: true}
+        transferReference: {type: String, description: Mã giao dịch chuyển khoản, keep: false, reason: Mã giao dịch ngân hàng}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi yêu cầu, keep: true}
+        updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi yêu cầu rút tiền nào.
+    errors:
+      - {code: VALIDATION_ERROR, http: 400, meaning: "page âm hoặc size ngoài 1–100"}
+    source:
+      - controller: WithdrawalController.findMine (GET /api/v1/users/me/wallet/withdrawals)
+      - service: WithdrawalService.findMine
+      - dto: WithdrawalResponse
+      - enum: WithdrawalRequestStatus
+      - security: "SecurityConstants.WALLET_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+
+  - func_code: list_my_complaints
+    name: Liệt kê khiếu nại tôi đã gửi
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [complaint]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các khiếu nại người hỏi đã gửi, mới nhất trước: tiêu đề, loại, trạng thái, kết luận. Dùng khi người dùng hỏi
+      khiếu nại của mình đã được xử lý chưa, có cần bổ sung bằng chứng không. Không dùng cho khiếu nại người khác gửi về
+      mình (dùng list_complaints_against_me) và không dùng để hỏi quy trình khiếu nại (trả lời bằng tài liệu).
+    example_questions:
+      - Khiếu nại của tôi đã được xử lý chưa?
+      - khieu nai cua toi dang o buoc nao
+      - Có khiếu nại nào đang chờ tôi bổ sung bằng chứng không?
+    negative_examples:
+      - Có ai khiếu nại tôi không?
+      - Khiếu nại mất bao lâu để giải quyết?
+    request: {method: GET, path: /api/v1/users/me/complaints}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED], default: null, description: "Chỉ điền khi người dùng hỏi theo trạng thái, ví dụ AWAITING_EVIDENCE khi hỏi cần bổ sung bằng chứng."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/complaints?status=AWAITING_EVIDENCE&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: ComplaintResponse, schema: *schema_complaint}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi khiếu nại nào khớp điều kiện này.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: ComplaintController.findMine (GET /api/v1/users/me/complaints)
+      - service: ComplaintService.findMine
+      - mapper: ComplaintMapper (qua ComplaintService.toResponses)
+      - dto: ComplaintResponse, ComplaintResponse.Evidence
+      - enum: ComplaintStatus, ComplaintCategory, ComplaintFaultParty
+      - security: "SecurityConstants.COMPLAINT_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+      - labels: "frontend pages/admin/complaintFormat.ts (trang người dùng chưa có)"
+
+  - func_code: get_my_complaint
+    name: Xem một khiếu nại tôi đã gửi
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [complaint]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một khiếu nại người hỏi đã gửi: nội dung, trạng thái, lời yêu cầu bổ sung hoặc kết luận, bên có lỗi,
+      phản hồi của bên bị khiếu nại. Dùng khi người dùng hỏi kỹ về một khiếu nại đã xuất hiện trong hội thoại, ví dụ vì
+      sao phải bổ sung bằng chứng. Không dùng để liệt kê (dùng list_my_complaints) và không dùng cho khiếu nại về mình
+      (dùng get_complaint_against_me).
+    example_questions:
+      - Vì sao khiếu nại của tôi cần bổ sung bằng chứng?
+      - khieu nai do ket luan ben nao co loi
+      - Bên kia đã phản hồi khiếu nại đó chưa?
+    negative_examples:
+      - Có bao nhiêu khiếu nại tôi đã gửi?
+    request: {method: GET, path: "/api/v1/users/me/complaints/{complaintId}"}
+    required_params:
+      - {name: complaintId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_complaints], description: Mã khiếu nại người dùng đã gửi. Chưa có thì gọi list_my_complaints trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/complaints/4d2a7e10-9c3b-4f61-8e5a-1b7c0d9e2f33"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: ComplaintResponse, schema: *schema_complaint}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: COMPLAINT_NOT_FOUND, http: 404, meaning: Không tìm thấy khiếu nại này trong các khiếu nại bạn đã gửi}
+      - {code: INVALID_REQUEST, http: 400, meaning: complaintId không phải UUID}
+    source:
+      - controller: ComplaintController.findMineById (GET /api/v1/users/me/complaints/{complaintId})
+      - service: ComplaintService.findMineById
+      - dto: ComplaintResponse
+
+  - func_code: list_complaints_against_me
+    name: Liệt kê khiếu nại về tôi
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [complaint]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các khiếu nại bên kia của hợp đồng gửi về người hỏi, chỉ từ khi nhân viên đã tiếp nhận: tiêu đề, loại, trạng
+      thái, người hỏi đã phản hồi chưa. Dùng khi người dùng hỏi có ai khiếu nại mình không, mình đã phản hồi chưa. Không
+      dùng cho khiếu nại do chính người hỏi gửi (dùng list_my_complaints). Khiếu nại còn chờ tiếp nhận hoặc đã bị hủy không
+      hiện ở đây.
+    example_questions:
+      - Có ai khiếu nại tôi không?
+      - khieu nai ve toi da ket luan chua
+      - Khiếu nại đó tôi đã phản hồi chưa?
+    negative_examples:
+      - Khiếu nại tôi gửi tuần trước sao rồi?
+    request: {method: GET, path: /api/v1/users/me/complaints/against-me}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED], default: null, description: "Chỉ điền khi người dùng hỏi theo trạng thái. PENDING hoặc CANCELLED luôn trả rỗng."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/complaints/against-me?page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: ComplaintResponse, schema: *schema_complaint}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Hiện không có khiếu nại nào về bạn đang được xử lý hoặc đã có kết luận.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: ComplaintController.findAgainstMe (GET /api/v1/users/me/complaints/against-me)
+      - service: ComplaintService.findAgainstMe, forRespondent (ẩn resolution khi chưa có kết luận)
+      - dto: ComplaintResponse
+
+  - func_code: get_complaint_against_me
+    name: Xem một khiếu nại về tôi
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [complaint]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một khiếu nại về người hỏi: nội dung, loại, trạng thái, phản hồi người hỏi đã gửi, kết luận và bên có
+      lỗi khi đã kết luận. Dùng khi người dùng hỏi kỹ về một khiếu nại về mình đã xuất hiện trong hội thoại. Không dùng để
+      liệt kê (dùng list_complaints_against_me) và không dùng cho khiếu nại do người hỏi gửi (dùng get_my_complaint).
+    example_questions:
+      - Học viên khiếu nại tôi về chuyện gì?
+      - khieu nai do ket luan the nao
+      - Tôi còn phản hồi được khiếu nại đó không?
+    negative_examples:
+      - Bị kết luận có lỗi thì bị phạt thế nào?
+    request: {method: GET, path: "/api/v1/users/me/complaints/against-me/{complaintId}"}
+    required_params:
+      - {name: complaintId, in: path, type: UUID, source: seen_ids, from_tools: [list_complaints_against_me], description: Mã khiếu nại về người dùng. Chưa có thì gọi list_complaints_against_me trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/complaints/against-me/8b3f1c55-2e7a-4d90-b6c4-3a1e9f0d7c21"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: ComplaintResponse, schema: *schema_complaint}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: COMPLAINT_NOT_FOUND, http: 404, meaning: "Không tìm thấy khiếu nại này về bạn, hoặc khiếu nại chưa được tiếp nhận"}
+      - {code: INVALID_REQUEST, http: 400, meaning: complaintId không phải UUID}
+    source:
+      - controller: ComplaintController.findAgainstMeById (GET /api/v1/users/me/complaints/against-me/{complaintId})
+      - service: ComplaintService.findAgainstMeById, isVisibleToRespondent, forRespondent
+      - dto: ComplaintResponse
+
+  - func_code: list_my_notifications
+    name: Liệt kê thông báo
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [notification]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các thông báo của người hỏi, mới nhất trước: tiêu đề, nội dung, loại sự kiện, đã đọc hay chưa, đối tượng liên
+      quan. Dùng khi người dùng hỏi thông báo gần đây nói gì, vừa nhận thông báo về việc gì. Không dùng khi chỉ cần đếm
+      thông báo chưa đọc (dùng count_my_unread_notifications) và không dùng để hỏi cách đánh dấu đã đọc (trả lời bằng tài liệu).
+    example_questions:
+      - Thông báo mới nhất của tôi nói gì vậy?
+      - thong bao chua doc gan day
+      - Thông báo về hợp đồng hôm qua là sao?
+    negative_examples:
+      - Tôi có bao nhiêu thông báo chưa đọc?
+      - Làm sao đánh dấu tất cả đã đọc?
+    request: {method: GET, path: /api/v1/users/me/notifications}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [READ, UNREAD], default: null, description: "UNREAD khi hỏi thông báo chưa đọc; để trống để lấy tất cả."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/notifications?status=UNREAD&page=0&size=20"}
+    response:
+      wrapper: ApiResponse.data.content (phân trang)
+      item_class: NotificationResponse
+      schema:
+        id: {type: UUID, description: Mã thông báo, keep: false, reason: Không có công cụ nào dùng mã này}
+        title: {type: String, description: "Tiêu đề, tiếng Anh, do hệ thống hoặc PTutor soạn", keep: true}
+        content: {type: String, description: "Nội dung, tiếng Anh với thông báo tự động; thông báo chung do PTutor soạn", keep: true, user_text: true}
+        type: *enum_notification_type
+        eventType: *enum_notification_event
+        referenceType: *enum_notification_reference_type
+        referenceId: {type: String, description: "Mã đối tượng liên quan theo referenceType (dạng chuỗi UUID)", keep: true, seen_id: true}
+        isRead: {type: boolean, description: Đã đọc hay chưa, keep: true}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm nhận thông báo, keep: true}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: isRead}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có thông báo nào khớp điều kiện này.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: NotificationController.findMine (GET /api/v1/users/me/notifications)
+      - service: NotificationService.findMine
+      - dto: NotificationResponse
+      - enum: NotificationType, NotificationEventType, NotificationReferenceType, NotificationReadStatus
+      - security: "SecurityConstants.NOTIFICATION_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR, EMPLOYEE, ADMIN)"
+      - template: "service/NotificationTemplateFactory (tiêu đề, nội dung tiếng Anh)"
+
+  - func_code: count_my_unread_notifications
+    name: Đếm thông báo chưa đọc
+    status: ready
+    roles: [STUDENT, TUTOR]
+    features: [notification]
+    reversibility: READ_ONLY
+    description: >
+      Trả về số thông báo chưa đọc của người hỏi. Dùng khi người dùng hỏi có thông báo mới không, có bao nhiêu thông báo
+      chưa đọc. Không dùng khi cần biết nội dung thông báo (dùng list_my_notifications với status UNREAD).
+    example_questions:
+      - Tôi có thông báo mới không?
+      - co bao nhieu thong bao chua doc
+      - Vậy còn mấy cái chưa đọc?
+    negative_examples:
+      - Thông báo mới nhất nói gì?
+    request: {method: GET, path: /api/v1/users/me/notifications/unread-count}
+    required_params: []
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/notifications/unread-count"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: UnreadCountResponse
+      schema:
+        unreadCount: {type: long, description: Số thông báo chưa đọc, keep: true}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors: []
+    source:
+      - controller: NotificationController.unreadCount (GET /api/v1/users/me/notifications/unread-count)
+      - service: NotificationService.unreadCount
+      - dto: UnreadCountResponse
+
+  # ===================== Chỉ STUDENT =====================
+  - func_code: get_my_student_profile
+    name: Xem hồ sơ học viên
+    status: ready
+    roles: [STUDENT]
+    features: [account]
+    reversibility: READ_ONLY
+    description: >
+      Trả về hồ sơ học viên của người hỏi: tên gọi, khu vực, giới thiệu, phong cách học, trình độ, mục tiêu, điểm cần cải
+      thiện. Dùng khi học viên hỏi hồ sơ của mình đang ghi gì, đã điền những mục nào. Không dùng để hỏi cách sửa hồ sơ hay
+      đổi email (trả lời bằng tài liệu). Email, số điện thoại, họ, ngày sinh, địa chỉ chi tiết bị bỏ khỏi kết quả.
+    example_questions:
+      - Hồ sơ học viên của tôi đang ghi mục tiêu là gì?
+      - ho so cua toi da dien trinh do chua
+      - Khu vực trong hồ sơ của tôi là quận nào?
+    negative_examples:
+      - Đổi số điện thoại ở đâu?
+    request: {method: GET, path: /api/v1/students/me}
+    required_params: []
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/students/me"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: StudentProfileResponse
+      schema:
+        userId: {type: UUID, description: Mã tài khoản, keep: false, reason: Mã tài khoản nội bộ}
+        studentId: {type: UUID, description: Mã hồ sơ học viên, keep: false, reason: Mã nội bộ}
+        email: {type: String, description: Email, keep: false, reason: Dữ liệu liên hệ cá nhân}
+        firstName: {type: String, description: Tên gọi, keep: true}
+        lastName: {type: String, description: Họ, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+        phone: {type: String, description: Số điện thoại, keep: false, reason: Dữ liệu liên hệ cá nhân}
+        gender: *enum_gender
+        dateOfBirth: {type: LocalDate, description: Ngày sinh, keep: false, reason: Dữ liệu cá nhân không cần cho câu trả lời}
+        avatarUrl: {type: String, description: Ảnh đại diện, keep: false, reason: Không cần cho câu trả lời}
+        address: {type: AddressResponse, keep: true, description: Khu vực, items_class: AddressResponse, items: *schema_address}
+        introduction: {type: String, description: Giới thiệu bản thân, keep: true, user_text: true}
+        learningStyle: {type: String, description: Phong cách học, keep: true, user_text: true}
+        personalityTags: {type: String, description: Tính cách, keep: true, user_text: true}
+        goalsDescription: {type: String, description: Mục tiêu học, keep: true, user_text: true}
+        currentLevel: {type: String, description: Trình độ hiện tại, keep: true, user_text: true}
+        weakPoints: {type: String, description: Điểm cần cải thiện, keep: true, user_text: true}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: STUDENT_PROFILE_NOT_FOUND, http: 404, meaning: Tài khoản chưa có hồ sơ học viên; gợi ý liên hệ PTutor}
+    source:
+      - controller: StudentProfileController.getCurrentProfile (GET /api/v1/students/me)
+      - service: StudentProfileService.getCurrentProfile, findCurrentStudent
+      - dto: StudentProfileResponse, AddressResponse
+      - enum: Gender
+      - security: "SecurityConstants.STUDENT_SELF_SERVICE_API hasRole(STUDENT)"
+
+  - func_code: list_my_studying_requests
+    name: Liệt kê tin tìm gia sư của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [studying-request]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các tin tìm gia sư học viên đã tạo: tiêu đề, môn, lớp, hình thức học, mức giá, trạng thái (bản nháp, chờ duyệt,
+      đang mở, đã ghép…). Dùng khi học viên hỏi tin của mình đã được duyệt chưa, đang mở mấy tin, hoặc cần mã tin. Không
+      dùng để xem đề nghị của gia sư vào tin (dùng list_offers_for_my_request) và không dùng để hỏi phí đăng tin (trả lời
+      bằng tài liệu).
+    example_questions:
+      - Tin tìm gia sư của tôi đã được duyệt chưa?
+      - tin dang cua toi dang o trang thai nao
+      - Tôi có tin nào còn là bản nháp chưa trả phí không?
+    negative_examples:
+      - Có gia sư nào gửi đề nghị vào tin của tôi chưa?
+      - Phí đăng tin bao nhiêu?
+    request: {method: GET, path: /api/v1/students/me/studying-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED], default: null, description: Chỉ điền khi học viên hỏi theo trạng thái.}
+      - *p_page
+      - {name: sort, in: query, type: Enum, enum: [DESC, ASC], default: DESC, description: "Thứ tự theo thời gian tạo; DESC là mới nhất trước. Chỉ điền ASC khi hỏi tin cũ nhất."}
+    fixed_params: {size: 100}
+    sort: "createdAt theo tham số sort (mặc định giảm dần)"
+    example_call: {url: "{{base_url}}/api/v1/students/me/studying-requests?status=PENDING_REVIEW&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: StudyingRequestResponse, schema: *schema_studying_request}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có tin tìm gia sư nào khớp điều kiện này.
+    errors:
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: "Giá trị status hoặc sort không thuộc danh sách"}
+    source:
+      - controller: StudyingRequestController.findMine (GET /api/v1/students/me/studying-requests)
+      - service: StudyingRequestService.findMine
+      - dto: StudyingRequestResponse, StudyingRequestResponse.Availability
+      - enum: RequestStatus, LearningMode
+      - security: "SecurityConstants.STUDENT_SELF_SERVICE_API hasRole(STUDENT)"
+      - labels: "tự đặt; trang học viên hiển thị mã viết thường (studyingRequestUtils.statusLabel)"
+
+  - func_code: get_my_studying_request
+    name: Xem một tin tìm gia sư của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [studying-request]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một tin tìm gia sư của học viên: mô tả, mục tiêu, mức giá, khung giờ rảnh, trạng thái. Dùng khi học viên
+      hỏi kỹ về một tin đã xuất hiện trong hội thoại. Không dùng để liệt kê tin (dùng list_my_studying_requests) và không dùng
+      để xem đề nghị của gia sư (dùng list_offers_for_my_request).
+    example_questions:
+      - Tin tìm gia sư môn Lý của tôi đang để giá bao nhiêu?
+      - tin do toi de lich ranh nhung ngay nao
+      - Tin đó bị từ chối hay đang chờ duyệt?
+    negative_examples:
+      - Tôi có mấy tin đang mở?
+    request: {method: GET, path: "/api/v1/students/me/studying-requests/{requestId}"}
+    required_params:
+      - {name: requestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_studying_requests, list_offers_for_my_request, get_offer_for_my_request], description: Mã tin tìm gia sư. Chưa có thì gọi list_my_studying_requests trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/students/me/studying-requests/2e6b9d14-7a3c-4f05-8d1e-5c9a0b3f6e27"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: StudyingRequestResponse, schema: *schema_studying_request}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: STUDYING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: requestId không phải UUID}
+    source:
+      - controller: StudyingRequestController.findMineById (GET /api/v1/students/me/studying-requests/{requestId})
+      - service: StudyingRequestService.findMineById
+      - dto: StudyingRequestResponse
+
+  - func_code: list_offers_for_my_request
+    name: Liệt kê đề nghị dạy vào tin của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các đề nghị dạy gia sư gửi vào một tin tìm gia sư của học viên, mới nhất trước: tên gọi gia sư, học phí đề xuất,
+      hình thức dạy, thời gian có thể dạy, lời nhắn, trạng thái. Dùng khi học viên hỏi có gia sư nào gửi đề nghị chưa, đề
+      nghị nào đang chờ. Không dùng cho đơn đăng ký học học viên gửi vào tin của gia sư (dùng list_my_applications_to_tutors).
+    example_questions:
+      - Có gia sư nào gửi đề nghị vào tin tìm gia sư của tôi chưa?
+      - de nghi nao dang cho toi tra loi
+      - Trong mấy đề nghị đó, ai đề xuất giá thấp nhất?
+    negative_examples:
+      - Các đơn tôi gửi cho gia sư sao rồi?
+    request: {method: GET, path: "/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests"}
+    required_params:
+      - {name: studyingRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_studying_requests, get_my_studying_request], description: Mã tin tìm gia sư. Chưa có thì gọi list_my_studying_requests trước.}
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED], default: null, description: "PENDING khi hỏi đề nghị đang chờ trả lời."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/students/me/studying-requests/2e6b9d14-7a3c-4f05-8d1e-5c9a0b3f6e27/tutor-requests?status=PENDING"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: TutorStudentRequestResponse, schema: *schema_tutor_offer}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Tin này chưa có đề nghị dạy nào khớp điều kiện.
+    errors:
+      - {code: STUDYING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: "Mã không phải UUID hoặc status không thuộc danh sách"}
+    source:
+      - controller: StudentTutorOfferController.findMine (GET /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests)
+      - service: TutorStudentRequestService.findMine (học viên)
+      - mapper: TutorStudentRequestMapper.toResponse (nextStep)
+      - dto: TutorStudentRequestResponse
+      - enum: ApplicationStatus, TeachingMode
+      - labels: "frontend components/student/StudentTutorOffers.tsx"
+
+  - func_code: get_offer_for_my_request
+    name: Xem một đề nghị dạy vào tin của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một đề nghị dạy cụ thể gia sư gửi vào tin tìm gia sư của học viên: học phí đề xuất, thời gian có thể dạy, địa
+      điểm, lời nhắn, trạng thái và bước tiếp theo. Dùng khi học viên hỏi kỹ về một đề nghị đã xuất hiện trong hội thoại.
+      Không dùng để liệt kê đề nghị (dùng list_offers_for_my_request).
+    example_questions:
+      - Đề nghị của thầy Minh có lời nhắn gì?
+      - de nghi do day truc tiep o dau
+      - Đề nghị đó tôi chấp nhận rồi thì bước tiếp theo là gì?
+    negative_examples:
+      - Tin của tôi có bao nhiêu đề nghị?
+    request: {method: GET, path: "/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}"}
+    required_params:
+      - {name: studyingRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_studying_requests, get_my_studying_request, list_offers_for_my_request], description: "Mã tin tìm gia sư chứa đề nghị (trường studyingRequestId của đề nghị)."}
+      - {name: tutorRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_offers_for_my_request], description: Mã đề nghị dạy. Chưa có thì gọi list_offers_for_my_request trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/students/me/studying-requests/2e6b9d14-7a3c-4f05-8d1e-5c9a0b3f6e27/tutor-requests/7f1a3c62-0b9e-4d27-a5c8-6e2d1f4b9a03"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: TutorStudentRequestResponse, schema: *schema_tutor_offer}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: STUDYING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: TUTOR_STUDENT_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy đề nghị này trong tin}
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: Mã không phải UUID}
+    source:
+      - controller: StudentTutorOfferController.findMineById
+      - service: TutorStudentRequestService.findMineById (học viên)
+      - dto: TutorStudentRequestResponse
+
+  - func_code: list_my_applications_to_tutors
+    name: Liệt kê đơn đăng ký học tôi đã gửi
+    status: ready
+    roles: [STUDENT]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các đơn đăng ký học học viên đã gửi vào tin nhận dạy của gia sư, mới nhất trước: tin nhận dạy, tên gọi gia sư,
+      mức giá đề nghị, trạng thái và bước tiếp theo. Dùng khi học viên hỏi các đơn đã gửi được chấp nhận chưa. Không dùng cho
+      đề nghị dạy gia sư gửi vào tin của học viên (dùng list_offers_for_my_request).
+    example_questions:
+      - Các đơn đăng ký học tôi gửi cho gia sư sao rồi?
+      - don dang ky hoc nao duoc chap nhan
+      - Đơn gửi cô Lan đó còn đang chờ à?
+    negative_examples:
+      - Có gia sư nào ứng tuyển tin của tôi chưa?
+    request: {method: GET, path: /api/v1/students/me/student-tutor-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED], default: null, description: Chỉ điền khi học viên hỏi theo trạng thái.}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/students/me/student-tutor-requests?page=0&size=20"}
+    response:
+      wrapper: ApiResponse.data.content (phân trang)
+      item_class: StudentTutorRequestMineResponse
+      schema:
+        id: {type: UUID, description: Mã đơn đăng ký học, keep: true, seen_id: true}
+        teachingRequestId: {type: UUID, description: Mã tin nhận dạy, keep: false, reason: Không có công cụ học viên dùng mã này}
+        teachingRequestTitle: {type: String, description: Tiêu đề tin nhận dạy, keep: true, user_text: true}
+        subjectId: {type: UUID, description: Mã môn học, keep: false, reason: Mã nội bộ; đã có subjectName}
+        subjectName: {type: String, description: "Tên môn học; rỗng khi môn tự nhập", keep: true}
+        customSubjectName: {type: String, description: Tên môn tự nhập của tin nhận dạy, keep: true, user_text: true}
+        tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ}
+        tutorFirstName: {type: String, description: Tên gọi của gia sư, keep: true}
+        tutorLastName: {type: String, description: Họ của gia sư, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+        tutorEmail: {type: String, description: Email gia sư, keep: false, reason: Dữ liệu liên hệ cá nhân}
+        gradeId: {type: UUID, description: Mã lớp, keep: false, reason: Mã nội bộ; đã có gradeName}
+        gradeName: {type: String, description: Lớp học viên đăng ký, keep: true}
+        proposedPrice: {type: BigDecimal, description: Mức giá học viên đề nghị, đơn vị đồng, keep: true}
+        learningMode: *enum_learning_mode
+        preferredSchedule: {type: String, description: Lịch mong muốn, keep: true, user_text: true}
+        message: {type: String, description: Lời nhắn cho gia sư, keep: true, user_text: true}
+        status: *enum_application_status
+        nextStep: *enum_next_step
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi đơn, keep: true}
+        updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi đơn đăng ký học nào khớp điều kiện này.
+    errors:
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: StudentTutorRequestStudentController.findMine (GET /api/v1/students/me/student-tutor-requests)
+      - service: StudentTutorRequestService.findMineForStudent
+      - mapper: StudentTutorRequestMapper.toMineResponse (nextStep)
+      - dto: StudentTutorRequestMineResponse
+      - labels: "tự đặt theo StudentTutorOffers.tsx; trang My requests to studying hiển thị mã tiếng Anh"
+
+  - func_code: list_my_payment_installments
+    name: Liệt kê kỳ học phí của một hợp đồng
+    status: ready
+    roles: [STUDENT]
+    features: [payment]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các kỳ học phí của một hợp đồng đang hoạt động: số tiền, hạn đóng, đã đóng hay chưa, buổi học gắn với kỳ (hợp
+      đồng tính theo buổi); lớp lọc đưa kỳ chưa đóng có hạn gần nhất lên trước, kèm tổng số kỳ và số kỳ chưa đóng. Dùng khi học viên hỏi kỳ học phí tiếp theo, còn nợ bao nhiêu, đã đóng kỳ nào.
+      Không dùng để hỏi quy định đóng học phí (trả lời bằng tài liệu) hay lịch sử thanh toán VNPay (dùng list_my_transactions).
+    example_questions:
+      - Kỳ học phí tiếp theo của hợp đồng môn Toán khi nào phải đóng?
+      - con no bao nhieu tien hoc phi
+      - Hợp đồng đó tôi đã đóng mấy kỳ rồi?
+    negative_examples:
+      - Đóng học phí bằng ví được không?
+    request: {method: GET, path: "/api/v1/students/me/contracts/{contractId}/payment-installments"}
+    required_params:
+      - {name: contractId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_contracts, get_my_contract], description: Mã hợp đồng người dùng đang nói tới. Chưa có thì gọi list_my_contracts trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/students/me/contracts/3f2c8a51-7d1e-4c55-9a0b-2b7e6f1d40e1/payment-installments"}
+    response:
+      wrapper: ApiResponse.data (danh sách)
+      item_class: ContractPaymentInstallmentResponse
+      schema:
+        id: {type: UUID, description: Mã kỳ học phí, keep: false, reason: Không có công cụ nào dùng mã này}
+        sequenceNumber: {type: Integer, description: Kỳ thứ mấy, keep: true}
+        paymentPeriod: *enum_payment_period
+        amount: {type: BigDecimal, description: Số tiền của kỳ, đơn vị đồng, keep: true}
+        dueDate: {type: LocalDate, description: "Hạn đóng; với hợp đồng Mỗi buổi, kỳ chưa gắn buổi học thì rỗng và chưa đóng được", keep: true}
+        lessonId: {type: UUID, description: "Buổi học gắn với kỳ (hợp đồng Mỗi buổi); rỗng nếu chưa gắn", keep: true, seen_id: true}
+        status: *enum_installment_status
+    max_items: 10
+    result_selection: {strategy: installments_due_first, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Hợp đồng này chưa có kỳ học phí nào.
+    side_effects: "Giống get_my_contract: nếu hợp đồng đang hoạt động chưa có kỳ học phí, máy chủ tạo các kỳ trong lúc gọi API (một lần, lặp lại vô hại)."
+    errors:
+      - {code: CONTRACT_NOT_ACTIVE, http: 409, meaning: "Hợp đồng chưa ký hoặc đã kết thúc nên không xem được kỳ học phí", user_message: "Hợp đồng này chưa ở trạng thái Đang hoạt động nên chưa có kỳ học phí để xem."}
+      - {code: CONTRACT_NOT_FOUND, http: 404, meaning: Không tìm thấy hợp đồng này trong tài khoản học viên của bạn}
+      - {code: INVALID_CONTRACT_PAYMENT_AMOUNT, http: 409, meaning: "Hợp đồng có giá bằng 0 nên không tạo được kỳ học phí", user_message: "Hợp đồng này đang có giá bằng 0 nên hệ thống chưa tạo được các kỳ học phí. Bạn liên hệ PTutor để được kiểm tra lại."}
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: contractId không phải UUID}
+    source:
+      - controller: PaymentController.installments (GET /api/v1/students/me/contracts/{contractId}/payment-installments)
+      - service: PaymentService.findMyInstallments, findStudentContract; ContractPaymentInstallmentService.ensureForActiveContract
+      - dto: ContractPaymentInstallmentResponse
+      - enum: PaymentInstallmentStatus, PaymentPeriod
+      - labels: "frontend components/student/StudentContractStatusBadge.tsx (dùng cho bảng Các kỳ thanh toán)"
+
+  - func_code: list_contract_lessons_for_student
+    name: Liệt kê buổi học của một hợp đồng (học viên)
+    status: ready
+    roles: [STUDENT]
+    features: [lesson]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các buổi học của một hợp đồng học viên đang học, theo ngày và giờ: trạng thái (sắp diễn ra, chờ xác nhận, đã
+      học, đã hủy), thời điểm gia sư đánh dấu đã dạy để tính hạn xác nhận 3 ngày. API không có bộ lọc; lớp lọc giữ mọi buổi
+      chờ xác nhận trước, rồi buổi sắp diễn ra gần nhất, rồi buổi đã qua gần nhất. Dùng khi học viên hỏi buổi nào đang chờ
+      xác nhận, buổi nào còn hạn để yêu cầu hoàn tiền. Không dùng để xem kỳ học phí (dùng list_my_payment_installments) và
+      không dùng để hỏi quy định xác nhận buổi học (trả lời bằng tài liệu).
+    example_questions:
+      - Hợp đồng Toán có buổi nào đang chờ tôi xác nhận không?
+      - buoi hoc nao sap het han xac nhan
+      - Buổi ngày 5 đó gia sư đánh dấu đã dạy lúc nào?
+    negative_examples:
+      - Không xác nhận buổi học thì sao?
+    request: {method: GET, path: "/api/v1/students/me/contracts/{contractId}/lessons"}
+    required_params:
+      - {name: contractId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_contracts, get_my_contract], description: Mã hợp đồng người dùng đang nói tới. Chưa có thì gọi list_my_contracts trước.}
+    optional_params: []
+    sort: "date tăng dần, rồi startTime (cố định trong service)"
+    example_call: {url: "{{base_url}}/api/v1/students/me/contracts/3f2c8a51-7d1e-4c55-9a0b-2b7e6f1d40e1/lessons"}
+    response: {wrapper: ApiResponse.data (danh sách), item_class: LessonResponse, schema: *schema_lesson}
+    max_items: 10
+    result_selection: {strategy: lessons_pending_first, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Hợp đồng này chưa có buổi học nào.
+    errors:
+      - {code: CONTRACT_NOT_FOUND, http: 404, meaning: Không tìm thấy hợp đồng này trong tài khoản học viên của bạn}
+      - {code: STUDENT_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ học viên}
+      - {code: INVALID_REQUEST, http: 400, meaning: contractId không phải UUID}
+    source:
+      - controller: StudentContractLessonController.findAll (GET /api/v1/students/me/contracts/{contractId}/lessons)
+      - service: LessonService.findByContractForStudent
+      - dto: LessonResponse
+      - enum: LessonStatus, TeachingMode
+      - labels: "frontend components/refund/refundFormat.ts lessonStatusLabels"
+    notes: "Danh sách không phân trang và không có bộ lọc trạng thái; chọn mục theo list_rules.strategies.lessons_pending_first."
+
+  - func_code: list_my_refund_requests
+    name: Liệt kê yêu cầu hoàn tiền của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [refund]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các yêu cầu hoàn tiền học viên đã gửi, mới nhất trước: hợp đồng, trạng thái, hạn phản hồi của gia sư, số tiền
+      được hoàn. Dùng khi học viên hỏi yêu cầu hoàn tiền tới đâu, đã được hoàn chưa. Không dùng để hỏi mức hoàn theo quy định
+      (trả lời bằng tài liệu) và không dùng để xem tiền hoàn đã vào ví (dùng list_my_wallet_transactions). Muốn gọi tên gia
+      sư thì tra get_my_contract bằng contractId.
+    example_questions:
+      - Yêu cầu hoàn tiền của tôi tới đâu rồi?
+      - da duoc hoan tien chua
+      - Yêu cầu đó gia sư đã phản hồi chưa?
+    negative_examples:
+      - Gia sư vắng thì được hoàn bao nhiêu?
+    request: {method: GET, path: /api/v1/students/me/refund-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, IN_REVIEW, REFUNDED, REJECTED, CANCELLED], default: null, description: Chỉ điền khi học viên hỏi theo trạng thái.}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/students/me/refund-requests?page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: RefundRequestResponse, schema: *schema_refund_request}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi yêu cầu hoàn tiền nào khớp điều kiện này.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: StudentRefundRequestController.findMine (GET /api/v1/students/me/refund-requests)
+      - service: RefundRequestService.findMine
+      - mapper: RefundRequestViews.toResponse
+      - dto: RefundRequestResponse
+      - labels: "frontend components/refund/refundFormat.ts"
+
+  - func_code: get_my_refund_request
+    name: Xem một yêu cầu hoàn tiền của tôi
+    status: ready
+    roles: [STUDENT]
+    features: [refund]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một yêu cầu hoàn tiền học viên đã gửi: các buổi bị phản đối, nguyên nhân đã chọn, ý kiến của gia sư, kết
+      luận từng buổi, số tiền hoàn, lý do từ chối. Dùng khi học viên hỏi kỹ về một yêu cầu đã xuất hiện trong hội thoại. Không
+      dùng để liệt kê (dùng list_my_refund_requests). Muốn gọi tên gia sư thì tra get_my_contract bằng contractId.
+    example_questions:
+      - Gia sư phản hồi thế nào về yêu cầu hoàn tiền của tôi?
+      - yeu cau do bi tu choi vi sao
+      - Trong yêu cầu đó tôi được hoàn bao nhiêu tiền?
+    negative_examples:
+      - Hủy yêu cầu hoàn tiền thế nào?
+    request: {method: GET, path: "/api/v1/students/me/refund-requests/{refundRequestId}"}
+    required_params:
+      - {name: refundRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_refund_requests], description: Mã yêu cầu hoàn tiền. Chưa có thì gọi list_my_refund_requests trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/students/me/refund-requests/9b1d4c2e-0f3a-4e7b-8c61-5a2d9e7f1c34"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: RefundRequestResponse, schema: *schema_refund_request}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: REFUND_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy yêu cầu hoàn tiền này trong các yêu cầu bạn đã gửi}
+      - {code: INVALID_REQUEST, http: 400, meaning: refundRequestId không phải UUID}
+    source:
+      - controller: StudentRefundRequestController.findMineById
+      - service: RefundRequestService.findMineById, findDetailed, isStudent
+      - dto: RefundRequestResponse
+
+  # ===================== Chỉ TUTOR =====================
+  - func_code: get_my_tutor_profile
+    name: Xem hồ sơ gia sư
+    status: ready
+    roles: [TUTOR]
+    features: [tutor-profile]
+    reversibility: READ_ONLY
+    description: >
+      Trả về hồ sơ gia sư của người hỏi kèm trạng thái duyệt (chờ duyệt, đã xác minh, không được duyệt), lý do từ chối, các
+      mục hồ sơ giảng dạy và số liệu (điểm đánh giá, số hợp đồng hoàn tất, tỉ lệ nhận lời, thời gian phản hồi). Dùng khi gia
+      sư hỏi hồ sơ đã duyệt chưa, vì sao bị từ chối, hồ sơ đang ghi gì. Không dùng để hỏi cách sửa hồ sơ hay tiêu chí duyệt
+      (trả lời bằng tài liệu). Hồ sơ không có điểm đề xuất.
+    example_questions:
+      - Hồ sơ gia sư của tôi đã được duyệt chưa?
+      - vi sao ho so cua toi bi tu choi
+      - Điểm đánh giá trung bình của tôi bây giờ là bao nhiêu?
+    negative_examples:
+      - Sửa hồ sơ xong có phải duyệt lại không?
+    request: {method: GET, path: /api/v1/tutors/me}
+    required_params: []
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: TutorSelfProfileResponse
+      schema:
+        tutorId: {type: UUID, description: Mã hồ sơ gia sư, keep: false, reason: Mã nội bộ}
+        userId: {type: UUID, description: Mã tài khoản, keep: false, reason: Mã tài khoản nội bộ}
+        email: {type: String, description: Email, keep: false, reason: Dữ liệu liên hệ cá nhân}
+        firstName: {type: String, description: Tên gọi, keep: true}
+        lastName: {type: String, description: Họ, keep: false, reason: "Dữ liệu cá nhân; chỉ giữ tên gọi"}
+        phone: {type: String, description: Số điện thoại, keep: false, reason: Dữ liệu liên hệ cá nhân}
+        gender: *enum_gender
+        dateOfBirth: {type: LocalDate, description: Ngày sinh, keep: false, reason: Dữ liệu cá nhân không cần cho câu trả lời}
+        avatarUrl: {type: String, description: Ảnh đại diện (link tạm), keep: false, reason: Không cần cho câu trả lời}
+        address: {type: AddressResponse, keep: true, description: Khu vực, items_class: AddressResponse, items: *schema_address}
+        introduction: {type: String, description: Giới thiệu bản thân, keep: true, user_text: true}
+        experienceYears: {type: Integer, description: Số năm kinh nghiệm, keep: true}
+        education: {type: String, description: Trình độ học vấn, keep: true, user_text: true}
+        teachingStyleTags: {type: String, description: Từ khóa phong cách giảng dạy, keep: true, user_text: true}
+        teachingMethodology: {type: String, description: Phương pháp giảng dạy, keep: true, user_text: true}
+        strengthSubjects: {type: String, description: Môn học giảng dạy, keep: true, user_text: true}
+        targetStudentType: {type: String, description: Đối tượng học viên phù hợp, keep: true, user_text: true}
+        averageRating: {type: BigDecimal, description: Điểm đánh giá trung bình, keep: true}
+        totalReviews: {type: Integer, description: Số lượt đánh giá, keep: true}
+        completedContractsCount: {type: Integer, description: Số hợp đồng đã hoàn tất, keep: true}
+        totalStudentsTaught: {type: Integer, description: Số học viên đã dạy, keep: true}
+        acceptanceRate: {type: BigDecimal, description: "Tỉ lệ nhận lời (phần trăm); có thể rỗng", keep: true}
+        avgResponseTimeHours: {type: BigDecimal, description: "Thời gian phản hồi trung bình (giờ); có thể rỗng", keep: true}
+        profileStatus: *enum_tutor_profile_status
+        profileReviewedAt: {type: LocalDateTime, time_zone: UTC, description: "Thời điểm duyệt hoặc từ chối gần nhất; rỗng khi đang chờ duyệt", keep: true}
+        profileRejectionReason: {type: String, description: "Lý do từ chối hồ sơ; rỗng nếu không bị từ chối", keep: true, user_text: true}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm tạo hồ sơ, keep: false, reason: Không cần cho câu trả lời}
+        updatedAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm cập nhật gần nhất, keep: false, reason: Không cần cho câu trả lời}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: TUTOR_PROFILE_NOT_FOUND, http: 404, meaning: Tài khoản chưa có hồ sơ gia sư; gợi ý liên hệ PTutor}
+    source:
+      - controller: TutorProfileController.findMine (GET /api/v1/tutors/me)
+      - service: TutorProfileService.findMine
+      - dto: TutorSelfProfileResponse, AddressResponse
+      - enum: TutorProfileStatus, Gender
+      - security: "SecurityConstants.TUTOR_SELF_SERVICE_API hasRole(TUTOR)"
+      - labels: "tự đặt; trang hồ sơ gia sư hiển thị Waiting for review, Verified profile, Not approved"
+
+  - func_code: list_my_certificates
+    name: Liệt kê chứng chỉ của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [certificate]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các chứng chỉ gia sư đã nộp, mới nhất trước: tên, đơn vị cấp, ngày hết hạn, trạng thái, lý do từ chối. Dùng khi
+      gia sư hỏi chứng chỉ nào đã duyệt, bị từ chối, sắp hết hạn. Không dùng để hỏi cách nộp chứng chỉ hay giới hạn tệp (trả
+      lời bằng tài liệu).
+    example_questions:
+      - Chứng chỉ nào của tôi bị từ chối?
+      - chung chi cua toi duyet chua
+      - Cái chứng chỉ IELTS đó hết hạn khi nào?
+    negative_examples:
+      - Tệp chứng chỉ tối đa bao nhiêu MB?
+    request: {method: GET, path: /api/v1/tutors/me/certificates}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, VERIFIED, REJECTED, EXPIRED], default: null, description: Chỉ điền khi gia sư hỏi theo trạng thái.}
+    sort: "createdAt giảm dần (cố định trong service)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/certificates?status=REJECTED"}
+    response: {wrapper: ApiResponse.data (danh sách), item_class: CertificateResponse, schema: *schema_certificate}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có chứng chỉ nào khớp điều kiện này.
+    errors:
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: CertificateController.findMine (GET /api/v1/tutors/me/certificates)
+      - service: CertificateService.findMine, toResponse
+      - dto: CertificateResponse
+      - enum: CertificateStatus
+      - labels: "frontend utils/tutorDisplay.ts"
+
+  - func_code: get_my_certificate
+    name: Xem một chứng chỉ của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [certificate]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một chứng chỉ cụ thể của gia sư: thông tin chứng chỉ, trạng thái, lý do từ chối, thời điểm duyệt. Dùng khi gia sư
+      hỏi kỹ về một chứng chỉ đã xuất hiện trong hội thoại. Không dùng để liệt kê chứng chỉ (dùng list_my_certificates).
+    example_questions:
+      - Vì sao chứng chỉ TOEIC của tôi bị từ chối?
+      - chung chi do duyet luc nao
+      - Chứng chỉ đó tôi còn sửa được không?
+    negative_examples:
+      - Tôi có mấy chứng chỉ đã xác minh?
+    request: {method: GET, path: "/api/v1/tutors/me/certificates/{certificateId}"}
+    required_params:
+      - {name: certificateId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_certificates], description: Mã chứng chỉ. Chưa có thì gọi list_my_certificates trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/certificates/5c8e1a37-4b2d-4f90-9e6a-0d3c7b1f2a48"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: CertificateResponse, schema: *schema_certificate}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: CERTIFICATE_NOT_FOUND, http: 404, meaning: Không tìm thấy chứng chỉ này trong hồ sơ của bạn}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: certificateId không phải UUID}
+    source:
+      - controller: CertificateController.findMineById (GET /api/v1/tutors/me/certificates/{certificateId})
+      - service: CertificateService.findMineById
+      - dto: CertificateResponse
+
+  - func_code: list_my_teaching_requests
+    name: Liệt kê tin nhận dạy của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [teaching-request]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các tin nhận dạy gia sư đã tạo, mới nhất trước: tiêu đề, môn, lớp, học phí dự kiến, số học viên cần, số đơn đăng
+      ký đã nhận và đang chờ, trạng thái. Dùng khi gia sư hỏi tin của mình đã duyệt chưa, có bao nhiêu đơn đăng ký. Không
+      dùng để xem từng đơn (dùng list_student_requests_for_my_post) và không dùng để hỏi phí đăng tin (trả lời bằng tài liệu).
+    example_questions:
+      - Tin nhận dạy của tôi đã được duyệt chưa?
+      - tin day cua toi co bao nhieu don dang ky
+      - Tin môn Hóa đó còn mấy đơn đang chờ tôi trả lời?
+    negative_examples:
+      - Đăng tin nhận dạy mất phí bao nhiêu?
+    request: {method: GET, path: /api/v1/tutors/me/teaching-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED], default: null, description: Chỉ điền khi gia sư hỏi theo trạng thái.}
+    sort: "createdAt giảm dần (cố định trong repository)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/teaching-requests"}
+    response: {wrapper: ApiResponse.data (danh sách), item_class: TeachingRequestResponse, schema: *schema_teaching_request}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa có tin nhận dạy nào khớp điều kiện này.
+    errors:
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: TeachingRequestController.findMine (GET /api/v1/tutors/me/teaching-requests)
+      - service: TeachingRequestService.findMine
+      - mapper: TeachingRequestMapper
+      - dto: TeachingRequestResponse, TeachingRequestResponse.Reference, TeachingRequestResponse.Availability
+      - enum: RequestStatus, TeachingMode
+
+  - func_code: get_my_teaching_request
+    name: Xem một tin nhận dạy của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [teaching-request]
+    reversibility: READ_ONLY
+    description: >
+      Trả về đầy đủ một tin nhận dạy của gia sư: mô tả, lớp, khu vực, khung giờ, số học viên cần, trạng thái, lý do từ chối.
+      Dùng khi gia sư hỏi kỹ về một tin đã xuất hiện trong hội thoại. Không dùng để liệt kê tin (dùng
+      list_my_teaching_requests).
+    example_questions:
+      - Tin nhận dạy môn Toán của tôi bị từ chối vì sao?
+      - tin do toi de may hoc vien
+      - Tin đó tôi ghi những khung giờ nào?
+    negative_examples:
+      - Tôi có mấy tin đang mở?
+    request: {method: GET, path: "/api/v1/tutors/me/teaching-requests/{requestId}"}
+    required_params:
+      - {name: requestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_teaching_requests, list_student_requests_for_my_post, get_student_request_for_my_post], description: Mã tin nhận dạy. Chưa có thì gọi list_my_teaching_requests trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/teaching-requests/0a9c3e71-6d2b-4f18-b7e5-2c1d8f4a6b90"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: TeachingRequestResponse, schema: *schema_teaching_request}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: TEACHING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: requestId không phải UUID}
+    source:
+      - controller: TeachingRequestController.findMineById
+      - service: TeachingRequestService.findMineById
+      - dto: TeachingRequestResponse
+
+  - func_code: list_student_requests_for_my_post
+    name: Liệt kê đơn đăng ký học vào tin của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các đơn đăng ký học học viên gửi vào một tin nhận dạy của gia sư, mới nhất trước: tên gọi học viên, lớp, mức
+      giá đề nghị, lịch mong muốn, lời nhắn, trạng thái. Dùng khi gia sư hỏi có học viên nào đăng ký tin của mình, đơn nào
+      đang chờ. Không dùng cho đề nghị dạy gia sư gửi vào tin của học viên (dùng list_my_offers_to_students).
+    example_questions:
+      - Có học viên nào đăng ký tin nhận dạy của tôi chưa?
+      - don nao dang cho toi tra loi
+      - Trong các đơn đó, ai muốn học trực tuyến?
+    negative_examples:
+      - Các đề nghị dạy tôi đã gửi sao rồi?
+    request: {method: GET, path: "/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests"}
+    required_params:
+      - {name: teachingRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_teaching_requests, get_my_teaching_request], description: Mã tin nhận dạy. Chưa có thì gọi list_my_teaching_requests trước.}
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED], default: null, description: "PENDING khi hỏi đơn đang chờ trả lời."}
+    sort: "createdAt giảm dần (cố định trong repository)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/teaching-requests/0a9c3e71-6d2b-4f18-b7e5-2c1d8f4a6b90/student-requests?status=PENDING"}
+    response: {wrapper: ApiResponse.data (danh sách), item_class: StudentTutorRequestResponse, schema: *schema_student_request}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Tin này chưa có đơn đăng ký học nào khớp điều kiện.
+    errors:
+      - {code: TEACHING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: "Mã không phải UUID hoặc status không thuộc danh sách"}
+    source:
+      - controller: StudentTutorRequestController.findMine (GET /api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests)
+      - service: StudentTutorRequestService.findMine
+      - mapper: StudentTutorRequestMapper.toResponse (nextStep)
+      - dto: StudentTutorRequestResponse
+      - enum: ApplicationStatus, LearningMode
+
+  - func_code: get_student_request_for_my_post
+    name: Xem một đơn đăng ký học vào tin của tôi
+    status: ready
+    roles: [TUTOR]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một đơn đăng ký học cụ thể vào tin nhận dạy của gia sư: tên gọi học viên, lớp, mức giá đề nghị, lịch mong muốn,
+      lời nhắn, trạng thái và bước tiếp theo. Dùng khi gia sư hỏi kỹ về một đơn đã xuất hiện trong hội thoại. Không dùng để
+      liệt kê đơn (dùng list_student_requests_for_my_post).
+    example_questions:
+      - Đơn của bạn Hải Yến ghi lời nhắn gì?
+      - don do muon hoc lop may
+      - Đơn đó tôi chấp nhận rồi thì làm gì tiếp?
+    negative_examples:
+      - Tin của tôi có bao nhiêu đơn?
+    request: {method: GET, path: "/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}"}
+    required_params:
+      - {name: teachingRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_teaching_requests, get_my_teaching_request, list_student_requests_for_my_post], description: "Mã tin nhận dạy chứa đơn (trường teachingRequestId của đơn)."}
+      - {name: requestId, in: path, type: UUID, source: seen_ids, from_tools: [list_student_requests_for_my_post], description: Mã đơn đăng ký học. Chưa có thì gọi list_student_requests_for_my_post trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/teaching-requests/0a9c3e71-6d2b-4f18-b7e5-2c1d8f4a6b90/student-requests/d4e7b2a9-3c16-4f5e-8a01-9b6c2e7f1d35"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: StudentTutorRequestResponse, schema: *schema_student_request}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: TEACHING_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy tin này trong các tin của bạn}
+      - {code: STUDENT_TUTOR_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy đơn này trong tin}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: Mã không phải UUID}
+    source:
+      - controller: StudentTutorRequestController.findMineById
+      - service: StudentTutorRequestService.findMineById
+      - dto: StudentTutorRequestResponse
+
+  - func_code: list_my_offers_to_students
+    name: Liệt kê đề nghị dạy tôi đã gửi
+    status: ready
+    roles: [TUTOR]
+    features: [matching]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các đề nghị dạy gia sư đã gửi vào tin tìm gia sư của học viên, mới nhất trước: tin, môn, lớp, học phí đề xuất,
+      trạng thái và bước tiếp theo. Dùng khi gia sư hỏi đề nghị nào được chấp nhận, bị từ chối. Không dùng cho đơn đăng ký
+      học vào tin của gia sư (dùng list_student_requests_for_my_post). Không có công cụ xem riêng một đề nghị.
+    example_questions:
+      - Các đề nghị dạy tôi đã gửi sao rồi?
+      - de xuat nao cua toi duoc chap nhan
+      - Đề nghị gửi tin môn Văn đó bị từ chối à?
+    negative_examples:
+      - Có học viên nào đăng ký tin của tôi không?
+    request: {method: GET, path: /api/v1/tutors/me/tutor-student-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, ACCEPTED, REJECTED, CANCELLED], default: null, description: Chỉ điền khi gia sư hỏi theo trạng thái.}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/tutor-student-requests?status=ACCEPTED&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: TutorStudentRequestResponse, schema: *schema_tutor_offer}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi đề nghị dạy nào khớp điều kiện này.
+    errors:
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: TutorStudentRequestController.findMine (GET /api/v1/tutors/me/tutor-student-requests)
+      - service: TutorStudentRequestService.findMine (gia sư)
+      - dto: TutorStudentRequestResponse
+      - labels: "frontend pages/tutor/TutorProposalsPage.tsx (Đang chờ, Đã chấp nhận, Bị từ chối, Đã hủy)"
+    notes: "Trong schema dùng chung, tutorFirstName là tên của chính người hỏi."
+
+  - func_code: list_contract_lessons_for_tutor
+    name: Liệt kê buổi học của một hợp đồng (gia sư)
+    status: ready
+    roles: [TUTOR]
+    features: [lesson]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các buổi học của một hợp đồng gia sư đang dạy, theo ngày và giờ: trạng thái, thời điểm đánh dấu đã dạy, ghi
+      chú. Dùng khi gia sư hỏi buổi nào học viên chưa xác nhận, đã dạy bao nhiêu buổi, buổi tới là khi nào; điền status để
+      API tự lọc (PENDING_CONFIRMATION, SCHEDULED…) vì kết quả xếp theo ngày học tăng dần. Không dùng để hỏi quy định tạo
+      buổi, tự hoàn tất (trả lời bằng tài liệu).
+    example_questions:
+      - Hợp đồng với bạn An có buổi nào học viên chưa xác nhận?
+      - buoi hoc tiep theo cua hop dong do la khi nao
+      - Tôi đã dạy bao nhiêu buổi trong hợp đồng đó rồi?
+    negative_examples:
+      - Buổi học tự hoàn tất sau mấy ngày?
+    request: {method: GET, path: "/api/v1/tutors/me/contracts/{contractId}/lessons"}
+    required_params:
+      - {name: contractId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_contracts, get_my_contract], description: Mã hợp đồng người dùng đang nói tới. Chưa có thì gọi list_my_contracts trước.}
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED], default: null, description: "Luôn điền khi câu hỏi nhắm một nhóm buổi: PENDING_CONFIRMATION (học viên chưa xác nhận), SCHEDULED (buổi sắp tới, buổi gần nhất đứng đầu), COMPLETED hoặc CONFIRMED (buổi đã học). Để trống chỉ khi hỏi tổng quát; khi đó kết quả là buổi sớm nhất trước."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "date tăng dần, rồi startTime (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/contracts/3f2c8a51-7d1e-4c55-9a0b-2b7e6f1d40e1/lessons?status=PENDING_CONFIRMATION"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: LessonResponse, schema: *schema_lesson}
+    max_items: 10
+    result_selection: {strategy: api_order, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Hợp đồng này chưa có buổi học nào khớp điều kiện.
+    errors:
+      - {code: CONTRACT_NOT_FOUND, http: 404, meaning: Không tìm thấy hợp đồng này trong các hợp đồng bạn dạy}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: "Mã không phải UUID hoặc status không thuộc danh sách"}
+    source:
+      - controller: LessonController.findByContract (GET /api/v1/tutors/me/contracts/{contractId}/lessons)
+      - service: LessonService.findByContract, findOwnedContract
+      - dto: LessonResponse
+      - enum: LessonStatus
+
+  - func_code: get_my_lesson
+    name: Xem một buổi học (gia sư)
+    status: ready
+    roles: [TUTOR]
+    features: [lesson]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một buổi học cụ thể trong hợp đồng gia sư dạy: ngày giờ, trạng thái, thời điểm đánh dấu đã dạy, ghi chú. Dùng khi
+      gia sư hỏi kỹ về một buổi đã xuất hiện trong hội thoại, ví dụ buổi trong yêu cầu hoàn tiền. Không dùng để liệt kê buổi
+      học (dùng list_contract_lessons_for_tutor).
+    example_questions:
+      - Buổi học ngày 12 đó đang ở trạng thái gì?
+      - buoi do toi danh dau da day luc nao
+      - Buổi bị học viên phản đối đó tôi ghi chú gì?
+    negative_examples:
+      - Hợp đồng này còn mấy buổi?
+    request: {method: GET, path: "/api/v1/tutors/me/lessons/{lessonId}"}
+    required_params:
+      - {name: lessonId, in: path, type: UUID, source: seen_ids, from_tools: [list_contract_lessons_for_tutor, list_refund_requests_on_my_contracts, get_refund_request_on_my_contract], description: Mã buổi học. Chưa có thì gọi list_contract_lessons_for_tutor trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/lessons/e3b6a0d8-1f47-4c29-9a5e-7d2c4b8f0e61"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: LessonResponse, schema: *schema_lesson}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: LESSON_NOT_FOUND, http: 404, meaning: Không tìm thấy buổi học này trong các hợp đồng bạn dạy}
+      - {code: TUTOR_PROFILE_REQUIRED, http: 403, meaning: Tài khoản chưa có hồ sơ gia sư}
+      - {code: INVALID_REQUEST, http: 400, meaning: lessonId không phải UUID}
+    source:
+      - controller: LessonController.findById (GET /api/v1/tutors/me/lessons/{lessonId})
+      - service: LessonService.findById, findOwnedLesson
+      - dto: LessonResponse
+
+  - func_code: list_refund_requests_on_my_contracts
+    name: Liệt kê yêu cầu hoàn tiền về hợp đồng của tôi (gia sư)
+    status: ready
+    roles: [TUTOR]
+    features: [refund]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các yêu cầu hoàn tiền học viên gửi về hợp đồng gia sư dạy, mới nhất trước: môn, trạng thái, hạn phản hồi của
+      gia sư, đã phản hồi chưa, kết quả. Dùng khi gia sư hỏi có yêu cầu hoàn tiền nào cần phản hồi, còn bao lâu. Không dùng
+      để hỏi quy định mức hoàn (trả lời bằng tài liệu). Muốn gọi tên học viên thì tra get_my_contract bằng contractId.
+    example_questions:
+      - Có yêu cầu hoàn tiền nào tôi cần phản hồi không?
+      - yeu cau hoan tien nao sap het han phan hoi
+      - Yêu cầu của hợp đồng môn Toán đó kết luận chưa?
+    negative_examples:
+      - Học viên nghỉ thì được hoàn bao nhiêu phần trăm?
+    request: {method: GET, path: /api/v1/tutors/me/refund-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [PENDING, IN_REVIEW, REFUNDED, REJECTED, CANCELLED], default: null, description: "PENDING hoặc IN_REVIEW khi hỏi yêu cầu chưa có kết luận."}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong controller)"
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/refund-requests?status=PENDING&page=0&size=20"}
+    response: {wrapper: ApiResponse.data.content (phân trang), item_class: RefundRequestResponse, schema: *schema_refund_request}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Không có yêu cầu hoàn tiền nào về hợp đồng của bạn khớp điều kiện này.
+    errors:
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
+    source:
+      - controller: TutorRefundRequestController.findAll (GET /api/v1/tutors/me/refund-requests)
+      - service: RefundRequestService.findForTutor
+      - dto: RefundRequestResponse
+
+  - func_code: get_refund_request_on_my_contract
+    name: Xem một yêu cầu hoàn tiền về hợp đồng của tôi (gia sư)
+    status: ready
+    roles: [TUTOR]
+    features: [refund]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một yêu cầu hoàn tiền học viên gửi về hợp đồng gia sư đang dạy: trạng thái, hạn phản hồi của gia sư, các buổi
+      bị phản đối kèm nguyên nhân học viên chọn, ý kiến của gia sư và kết luận từng buổi, số tiền hoàn và phần gia sư nhận.
+      Dùng khi gia sư hỏi về một yêu cầu cụ thể. Không dùng để liệt kê (dùng list_refund_requests_on_my_contracts). Muốn gọi
+      tên học viên thì tra get_my_contract bằng contractId, không tự tách họ tên.
+    example_questions:
+      - Yêu cầu hoàn tiền của học viên môn Toán tôi phải phản hồi trước mấy giờ?
+      - yeu cau hoan tien do ket luan the nao roi
+      - Học viên nói tôi vắng những buổi nào trong yêu cầu đó?
+      - Tôi được nhận bao nhiêu tiền từ yêu cầu hoàn tiền vừa rồi?
+    negative_examples:
+      - Học viên nghỉ thì được hoàn bao nhiêu phần trăm?
+      - Tôi có bao nhiêu yêu cầu hoàn tiền đang chờ?
+    request: {method: GET, path: "/api/v1/tutors/me/refund-requests/{refundRequestId}"}
+    required_params:
+      - {name: refundRequestId, in: path, type: UUID, source: seen_ids, from_tools: [list_refund_requests_on_my_contracts], description: Mã yêu cầu hoàn tiền. Chưa có thì gọi list_refund_requests_on_my_contracts trước.}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/tutors/me/refund-requests/9b1d4c2e-0f3a-4e7b-8c61-5a2d9e7f1c34"}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: RefundRequestResponse, schema: *schema_refund_request}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: REFUND_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy yêu cầu hoàn tiền này trên các hợp đồng bạn dạy}
+      - {code: INVALID_REQUEST, http: 400, meaning: refundRequestId không phải UUID}
+    source:
+      - controller: TutorRefundRequestController.findById (GET /api/v1/tutors/me/refund-requests/{refundRequestId})
+      - service: RefundRequestService.findForTutorById, findDetailed, isTutor
+      - mapper: RefundRequestViews.toResponse, toDisputedLessons, toEvidence, fullName
+      - dto: RefundRequestResponse, RefundRequestResponse.DisputedLesson, RefundRequestResponse.Evidence
+      - enum: RefundRequestStatus, LessonOutcome
+      - security: "SecurityConstants.TUTOR_SELF_SERVICE_API hasRole(TUTOR)"
+      - labels: "frontend components/refund/refundFormat.ts"
+
+  # ===================== Dự kiến (chưa có trên dev) =====================
+  - func_code: list_my_support_requests
+    name: Liệt kê yêu cầu hỗ trợ tôi đã gửi
+    status: planned
+    roles: [STUDENT, TUTOR]
+    features: [account]
+    reversibility: READ_ONLY
+    description: >
+      Trả về các yêu cầu hỗ trợ người hỏi đã gửi cho nhân viên chăm sóc khách hàng, mới nhất trước: mã hiển thị, trạng
+      thái, câu hỏi (cắt ngắn), thời điểm gửi và trả lời. Dùng khi người dùng hỏi câu hỏi đã gửi nhân viên có trả lời chưa.
+      Không dùng để gửi yêu cầu mới (trợ lý chỉ hướng dẫn mở hộp thoại gửi) và không dùng cho khiếu nại (dùng list_my_complaints).
+    example_questions:
+      - Câu hỏi tôi gửi nhân viên đã có trả lời chưa?
+      - yeu cau ho tro cua toi sao roi
+      - Cái yêu cầu hỗ trợ hôm qua đang ai xử lý?
+    negative_examples:
+      - Gửi câu hỏi cho nhân viên giúp tôi.
+    request: {method: GET, path: /api/v1/users/me/support-requests}
+    required_params: []
+    optional_params:
+      - {name: status, in: query, type: Enum, enum: [OPEN, IN_PROGRESS, ANSWERED, CLOSED, CANCELLED], default: null, description: "Chỉ điền khi người dùng hỏi theo trạng thái."}
+    example_call: {url: "{{base_url}}/api/v1/users/me/support-requests"}
+    response:
+      wrapper: "ApiResponse.data (chưa chốt danh sách hay phân trang)"
+      item_class: "chưa có (theo 14-yeu-cau-ho-tro.md mục 14.7)"
+      schema:
+        code: {type: String, description: "Mã hiển thị, ví dụ HT-000123", keep: true}
+        status:
+          type: Enum
+          keep: true
+          description: Trạng thái yêu cầu hỗ trợ
+          enum_labels:
+            OPEN: {label: Chờ xử lý, meaning: Chưa có nhân viên nhận}
+            IN_PROGRESS: {label: Đang xử lý, meaning: Nhân viên chăm sóc khách hàng đang xử lý}
+            ANSWERED: {label: Đã trả lời, meaning: Nhân viên đã trả lời}
+            CLOSED: {label: Đã đóng, meaning: Người dùng xác nhận đã giải quyết}
+            CANCELLED: {label: Đã hủy, meaning: Người dùng hủy khi còn chờ xử lý}
+        question: {type: String, description: Câu hỏi đã gửi (cắt ngắn), keep: true, user_text: true}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi, keep: true}
+        answeredAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm nhân viên trả lời, keep: true}
+    max_items: 10
+    result_selection: {strategy: newest, count_by: status}
+    allow_empty_result: true
+    empty_result_message: Bạn chưa gửi yêu cầu hỗ trợ nào.
+    errors:
+      - {code: RESOURCE_NOT_FOUND, http: 404, meaning: Backend chưa có API này}
+    source:
+      - design: "feat/support-chatbot:docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5 (API), 14.6 (bảng support_requests), 14.7"
+    notes: "Tên trường giữ đúng thiết kế 14 (hợp đồng giữa backend và chatbot, quyết định 2026-11-03). Nếu backend buộc phải đổi tên trường thì sửa 14-yeu-cau-ho-tro.md và tools.yaml trong cùng một lần; contract test giai đoạn 2 bắt lỗi khi hai bên lệch."
+
+  - func_code: get_my_support_request
+    name: Xem một yêu cầu hỗ trợ tôi đã gửi
+    status: planned
+    roles: [STUDENT, TUTOR]
+    features: [account]
+    reversibility: READ_ONLY
+    description: >
+      Trả về một yêu cầu hỗ trợ cụ thể người hỏi đã gửi, kèm câu trả lời của nhân viên nếu có. Dùng khi người dùng hỏi nhân
+      viên đã trả lời gì cho một yêu cầu đã xuất hiện trong hội thoại. Không dùng để liệt kê (dùng list_my_support_requests).
+    example_questions:
+      - Nhân viên trả lời gì cho câu hỏi của tôi?
+      - yeu cau HT-000123 tra loi chua
+      - Câu trả lời đó gửi lúc nào?
+    negative_examples:
+      - Tôi đã gửi bao nhiêu yêu cầu hỗ trợ?
+    request: {method: GET, path: "/api/v1/users/me/support-requests/{id}"}
+    required_params:
+      - {name: id, in: path, type: UUID, source: seen_ids, from_tools: [list_my_support_requests], description: "Mã yêu cầu hỗ trợ (id, không phải mã hiển thị HT-…). Chưa có thì gọi list_my_support_requests trước."}
+    optional_params: []
+    example_call: {url: "{{base_url}}/api/v1/users/me/support-requests/c1f0e9d2-4b7a-4e36-9d58-2a6b3c7e1f04"}
+    response:
+      wrapper: ApiResponse.data (một đối tượng)
+      item_class: "chưa có (theo 14-yeu-cau-ho-tro.md)"
+      schema:
+        id: {type: UUID, description: Mã yêu cầu hỗ trợ, keep: true, seen_id: true}
+        code: {type: String, description: Mã hiển thị, keep: true}
+        status:
+          type: Enum
+          keep: true
+          description: Trạng thái yêu cầu hỗ trợ
+          enum_labels:
+            OPEN: {label: Chờ xử lý, meaning: Chưa có nhân viên nhận}
+            IN_PROGRESS: {label: Đang xử lý, meaning: Nhân viên chăm sóc khách hàng đang xử lý}
+            ANSWERED: {label: Đã trả lời, meaning: Nhân viên đã trả lời}
+            CLOSED: {label: Đã đóng, meaning: Người dùng xác nhận đã giải quyết}
+            CANCELLED: {label: Đã hủy, meaning: Người dùng hủy khi còn chờ xử lý}
+        question: {type: String, description: Câu hỏi đã gửi, keep: true, user_text: true}
+        answer: {type: String, description: Câu trả lời của nhân viên; rỗng khi chưa trả lời, keep: true, user_text: true}
+        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi, keep: true}
+        answeredAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm trả lời, keep: true}
+    max_items: null
+    allow_empty_result: false
+    empty_result_message: null
+    errors:
+      - {code: RESOURCE_NOT_FOUND, http: 404, meaning: "Backend chưa có API này, hoặc không tìm thấy yêu cầu"}
+    source:
+      - design: "feat/support-chatbot:docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5, 14.6"
+    notes: "Mục 3 của yêu cầu chỉ nêu một công cụ; file 14 có API xem chi tiết kèm câu trả lời nên đề xuất thêm. Tên trường giữ đúng thiết kế 14; đổi thì sửa 14 và tools.yaml cùng lúc."
