@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 2 — **bước:** M3 xong, bắt đầu M4.
-- **Việc tiếp theo:** M4 (model DB, Alembic, `KnowledgeBaseService`, `python -m app.kb.import`).
+- **Chặng hiện tại:** 2 — **bước:** M4 xong (T1 viết, chưa chạy được vì chưa có Docker), bắt đầu M5.
+- **Việc tiếp theo:** M5 (`EmbeddingProvider` fake / ai-service, embed khi công bố, `reembed`).
 - **Chờ người dùng:** bật Docker Desktop (cần cho T1, nạp kho, compose, Playwright); chọn model LLM (cần cho T3–T4).
 
 ## Danh sách việc
@@ -15,7 +15,7 @@
 - [x] M1 Khung `assistant-service`: `/health`, cấu hình
 - [x] M2 `LlmProvider` (`ScriptedLlm`, `OpenAiLlm`), `/v1/chat`
 - [x] M3 Đọc và chia tài liệu
-- [ ] M4 Postgres + pgvector + unaccent, Alembic, import
+- [x] M4 Postgres + pgvector + unaccent, Alembic, import
 - [ ] M5 `EmbeddingProvider` (`fake`, `ai-service`)
 - [ ] M6 Truy xuất lai, RRF, rerank, hit@k
 - [ ] M7 Trả lời có trích dẫn, small-to-big
@@ -120,3 +120,36 @@ Phần mở đầu trước `##` đầu tiên (nếu có) thành một đoạn m
 3. Đáng học: `search_text = heading_path + nội dung` — câu "Tối thiểu 10.000 đ" đứng một mình không biết nói về
    gì; thêm "Nạp ví > Hạn mức" thì vector và full-text đều tìm đúng.
 4. `_tail` + `split_long_text`: chồng lấn để một điều kiện nằm ngay ranh giới vẫn có đủ ở một phần.
+
+## M4 — Cơ sở dữ liệu và lưu kho tri thức
+
+**Đã làm.** Model SQLAlchemy cho `kb_document`, `kb_document_version`, `kb_chunk`, `kb_setting`; migration Alembic
+viết tay `0001` (extension `vector`, `unaccent`, hàm `assistant.f_unaccent`, chỉ mục HNSW một phần, GIN `tsv`, GIN
+`audience`, B-tree cho small-to-big); `KnowledgeBaseService` (lưu nháp, kiểm tra, công bố nguyên tử, khôi phục phiên
+bản, lưu trữ, bỏ nháp); `python -m app.kb.import` (`--overwrite-drafts`, `--publish`, `--allow-todo`); Flyway backend
+`V25__create_assistant_schema.sql`; `python -m app.db.bootstrap` tạo role `assistant_app`.
+
+- File chính: `app/db/models.py`, `migrations/versions/0001_kb_tables.py`, `app/kb/service.py`, `app/kb/importer.py`,
+  `app/db/bootstrap.py`, `tests/integration/test_kb_service.py`.
+- Chạy (khi có Postgres): `python -m app.db.bootstrap` → `alembic upgrade head` → `python -m app.kb.import --path ../knowledge-base`.
+- Kiểm tra: 7 test T1 (`-m db`) **đã viết nhưng chưa chạy** — Docker Desktop chưa khởi động được; test tự bỏ qua
+  kèm lý do. SQL của migration đã kiểm bằng `alembic upgrade head --sql`.
+
+**Khác thiết kế.**
+- Thêm cột `kb_document_version.published_with_open_todo` (điều kiện của người dùng cho `--allow-todo`) và
+  `error_codes` (front matter có trường này; 06 chưa có cột).
+- Eval dùng **database riêng** (`ptutor_eval`, schema vẫn là `assistant`) thay cho schema `assistant_eval` (13 mục
+  13.3): cùng mục đích cách ly, nhưng không phải truyền tên schema vào mọi câu SQL. Test T1 dùng DB `ptutor_test`.
+- `alembic.ini` để chữ không dấu: Alembic đọc file bằng mã hoá mặc định của Windows (cp1252), có dấu thì lỗi.
+- Khôi phục phiên bản dùng trạng thái tạm `RESTORING` trong transaction (không thể là `DRAFT` vì tài liệu có thể
+  đang có một bản nháp khác — chỉ mục "một nháp").
+
+**Còn dở.** Chạy T1 khi có Docker. Embedding thêm ở M5 (hiện cột `embedding` để trống).
+
+**Đọc code này thế nào.**
+1. `app/db/models.py`: bảng nào giữ gì; chú ý `use_alter` cho khoá ngoại vòng `kb_document ↔ kb_document_version`.
+2. `migrations/versions/0001_kb_tables.py`: đọc song song với 06 mục 6.3 — từng cột khớp bảng thiết kế.
+3. `app/kb/service.py` → `_activate`: **đáng học nhất**. Thứ tự: kiểm tra → tắt đoạn của bản cũ → `flush` (để chỉ
+   mục "một bản PUBLISHED" không báo trùng) → thêm đoạn mới → đổi bản active. Tất cả trong `session_factory.begin()`
+   nên lỗi ở bất kỳ bước nào cũng quay lui, bản cũ vẫn chạy.
+4. `_insert_chunks`: `tsv` tính bằng `to_tsvector('simple', assistant.f_unaccent(...))` ngay trong câu INSERT.

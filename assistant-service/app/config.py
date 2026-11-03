@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.0
     llm_max_output_tokens: int = 1200
 
+    # --- Kho tri thức (M3, M4) ---
+    # File tokenizer.json của bge-m3; trống = models/bge-m3-tokenizer.json, không có file thì đếm ước lượng.
+    tokenizer_path: str = ""
+    # Danh sách route ban đầu (03 mục 3.8); sau khi import nằm ở kb_setting.routes.
+    routes_file: str = "../knowledge-base/_routes.yaml"
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

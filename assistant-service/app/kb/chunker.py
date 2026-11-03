@@ -45,7 +45,8 @@ class ChunkDraft:
 def split_sections(document: KbDocument) -> list[Section]:
     """Duyệt thân bài theo dòng, cắt ở mỗi heading `##`/`###` (bỏ qua heading nằm trong khối code)."""
     sections: list[Section] = []
-    h2, h3, buffer = "", "", []
+    h2, h3 = "", ""
+    buffer: list[str] = []
     in_code_block = False
 
     def flush() -> None:
@@ -173,7 +174,9 @@ def _small_units(text: str, budget: int, counter: TokenCounter) -> list[str]:
 
 
 def _split_words(line: str, budget: int, counter: TokenCounter) -> list[str]:
-    words, parts, current = line.split(), [], []
+    words = line.split()
+    parts: list[str] = []
+    current: list[str] = []
     for word in words:
         if current and counter.count(" ".join(current + [word])) > budget:
             parts.append(" ".join(current))
