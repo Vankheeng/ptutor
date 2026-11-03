@@ -60,6 +60,7 @@ import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.GRADE_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.EMPLOYEE_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.STUDENT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_CERTIFICATE_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API;
@@ -178,6 +179,7 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_TUTOR_PROFILE_REVIEW_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_USER_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(EMPLOYEE_SELF_SERVICE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
                         .requestMatchers(STUDYING_REQUEST_READ_API).hasAnyRole("TUTOR", "EMPLOYEE")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")

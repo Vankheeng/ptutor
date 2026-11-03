@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,7 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.ptutor.backend.entity.Complaint;
 import com.ptutor.backend.entity.Employee;
+import com.ptutor.backend.entity.RefundRequest;
+import com.ptutor.backend.entity.Student;
+import com.ptutor.backend.entity.enums.ComplaintStatus;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.EmployeeRole;
@@ -63,7 +69,7 @@ class AdminEmployeeServiceTest {
         User adminUser = User.builder().status(UserStatus.ACTIVE).build();
         adminUser.setId(adminUserId);
         Employee admin = Employee.builder().user(adminUser).role(EmployeeRole.ADMIN).build();
-        when(employeeRepository.findByUser_Id(adminUserId)).thenReturn(Optional.of(admin));
+        org.mockito.Mockito.lenient().when(employeeRepository.findByUser_Id(adminUserId)).thenReturn(Optional.of(admin));
 
         employeeUser = User.builder()
                 .email("employee@ptutor.vn")
@@ -74,7 +80,7 @@ class AdminEmployeeServiceTest {
         employee = Employee.builder()
                 .user(employeeUser)
                 .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.COMPLAINT_HANDLER)
+                .jobFunction(EmployeeJobFunction.CUSTOMER_SERVICE)
                 .build();
         employee.setId(employeeId);
     }
@@ -93,6 +99,37 @@ class AdminEmployeeServiceTest {
         assertThat(response.maskedCitizenId()).isEqualTo("********8901");
         assertThat(employeeUser.getSuspensionReason()).isEqualTo("Employment has ended");
         verify(refreshTokenService).revokeAllForUser(employeeUser.getId());
+    }
+
+    @Test
+    void listsOpenComplaintsAndRefundRequestsOfEmployee() {
+        User complainant = User.builder().firstName("Lan").lastName("Nguyen").email("lan@ptutor.vn").build();
+        Complaint complaint = Complaint.builder()
+                .user(complainant).title("Tutor missed the lesson").status(ComplaintStatus.AWAITING_EVIDENCE).build();
+        complaint.setId(UUID.randomUUID());
+        User studentUser = User.builder().email("student@ptutor.vn").build();
+        RefundRequest refund = RefundRequest.builder()
+                .student(Student.builder().user(studentUser).build()).status(RefundRequestStatus.IN_REVIEW).build();
+        refund.setId(UUID.randomUUID());
+        when(employeeRepository.findDetailedById(employeeId)).thenReturn(Optional.of(employee));
+        when(complaintRepository.findAllByEmployee_IdAndStatusInOrderByCreatedAtAsc(
+                org.mockito.ArgumentMatchers.eq(employeeId), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(complaint));
+        when(refundRequestRepository.findAllByEmployee_IdAndStatusOrderByCreatedAtAsc(
+                employeeId, RefundRequestStatus.IN_REVIEW))
+                .thenReturn(List.of(refund));
+
+        var response = service.findOpenAssignments(employeeId);
+
+        assertThat(response.complaints()).singleElement().satisfies(item -> {
+            assertThat(item.id()).isEqualTo(complaint.getId());
+            assertThat(item.complainantName()).isEqualTo("Lan Nguyen");
+            assertThat(item.status()).isEqualTo("AWAITING_EVIDENCE");
+        });
+        assertThat(response.refundRequests()).singleElement().satisfies(item -> {
+            assertThat(item.id()).isEqualTo(refund.getId());
+            assertThat(item.studentName()).isEqualTo("student@ptutor.vn");
+        });
     }
 
     @Test

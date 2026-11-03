@@ -1484,3 +1484,180 @@ html:has(.admin-shell) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Employees */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+.admin-form-grid-wide {
+  grid-column: 1 / -1;
+}
+.admin-field select {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.admin-field select:focus {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 1px;
+}
+.admin-field select:disabled {
+  opacity: 0.6;
+}
+.admin-field select[aria-invalid='true'] {
+  border: 2px solid var(--admin-danger);
+}
+@media (max-width: 720px) {
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-choices .admin-employee-role {
+  min-height: 72px;
+  gap: 14px;
+}
+.admin-choices .admin-employee-role.active {
+  outline: 1px solid var(--admin-brand);
+}
+.admin-employee-role strong {
+  font-size: 15px;
+}
+.admin-employee-role-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.admin-employee-role-icon svg,
+.admin-employee-access svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.admin-employee-role-brand {
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand-ink);
+}
+.admin-employee-role-info {
+  background: var(--admin-info-soft);
+  color: var(--admin-info);
+}
+.admin-password {
+  position: relative;
+}
+.admin-password input {
+  width: 100%;
+  padding-right: 52px;
+}
+.admin-password .admin-icon-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--admin-muted);
+}
+.admin-employee-gender .admin-choices label {
+  min-height: 44px;
+}
+.admin-alert-stack {
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-employee-revoked {
+  border-color: #ddd8e6;
+  background: #f6f4f9;
+}
+.admin-employee-revoked p {
+  margin: 0;
+}
+.admin-employee-access {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+.admin-employee-access li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-employee-access svg {
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--admin-success-soft);
+  color: var(--admin-success);
+  stroke-width: 3;
+  flex: none;
+}
+.admin-row-muted td {
+  color: var(--admin-muted);
+}
+.admin-row-muted .admin-avatar {
+  background: var(--admin-neutral-soft);
+  color: var(--admin-muted);
+}
+.admin-handover {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+}
+.admin-handover h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.admin-handover ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.admin-handover li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--admin-border);
+  font-size: 14px;
+}
+.admin-handover li:last-child {
+  border-bottom: 0;
+}
+.admin-handover li span {
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.admin-function-change {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-function-change svg {
+  fill: none;
+  stroke: var(--admin-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

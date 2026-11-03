@@ -132,7 +132,7 @@ class AdminTutorProfileReviewServiceTest {
         Employee reviewer = Employee.builder()
                 .user(reviewerUser)
                 .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
+                .jobFunction(EmployeeJobFunction.CUSTOMER_SERVICE)
                 .build();
         when(tutorRepository.findByUserIdForUpdate(tutorUserId)).thenReturn(Optional.of(tutor));
         when(employeeRepository.findByUser_Id(reviewerUserId)).thenReturn(Optional.of(reviewer));
