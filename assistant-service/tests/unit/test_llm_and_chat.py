@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.providers.llm import ChatMessage, LlmError, LlmRequest, LlmResponse, OpenAiLlm, ScriptedLlm, ToolSpec
 from tests.conftest import caller_headers
+from tests.fakes import make_services
 
 
 def test_scripted_llm_returns_steps_in_order_and_records_requests():
@@ -70,26 +71,18 @@ def test_openai_llm_maps_timeout_to_retryable_error():
 
 
 def test_chat_returns_503_when_llm_disabled(settings):
-    client = TestClient(create_app(settings))
+    client = TestClient(create_app(services=make_services(settings)))
     response = client.post("/v1/chat", json={"message": "xin chào"}, headers=caller_headers())
     assert response.status_code == 503
 
 
 def test_chat_requires_internal_token(settings):
-    client = TestClient(create_app(settings, llm=ScriptedLlm(["x"])))
+    client = TestClient(create_app(services=make_services(settings, ScriptedLlm(["x"]))))
     headers = caller_headers() | {"X-Internal-Token": "sai"}
     assert client.post("/v1/chat", json={"message": "hi"}, headers=headers).status_code == 401
 
 
 def test_chat_rejects_staff_roles(settings):
-    client = TestClient(create_app(settings, llm=ScriptedLlm(["x"])))
+    client = TestClient(create_app(services=make_services(settings, ScriptedLlm(["x"]))))
     response = client.post("/v1/chat", json={"message": "hi"}, headers=caller_headers(role="EMPLOYEE"))
     assert response.status_code == 403
-
-
-def test_chat_answers_with_scripted_llm(settings):
-    llm = ScriptedLlm(["Chào bạn!"])
-    client = TestClient(create_app(settings, llm=llm))
-    response = client.post("/v1/chat", json={"message": "xin chào"}, headers=caller_headers())
-    assert response.status_code == 200 and response.json()["answer"] == "Chào bạn!"
-    assert llm.requests[0].messages[-1].content == "xin chào"

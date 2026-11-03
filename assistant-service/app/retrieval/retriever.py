@@ -64,21 +64,21 @@ class RetrievalResult:
 
 class Retriever:
     def __init__(self, store: KnowledgeStore, reranker: Reranker, config: RetrievalConfig):
-        self._store = store
-        self._reranker = reranker
+        self.store = store
+        self.reranker = reranker
         self.config = config
 
     def retrieve(self, question: str, vector: list[float], role: str, page_path: str = "") -> RetrievalResult:
         config = self.config
         audiences = ["PUBLIC", role]
         started = time.perf_counter()
-        by_vector = self._store.vector_search(vector, audiences, config.k_each)
-        by_text = self._store.text_search(question, audiences, config.k_each) if config.mode == "hybrid" else []
+        by_vector = self.store.vector_search(vector, audiences, config.k_each)
+        by_text = self.store.text_search(question, audiences, config.k_each) if config.mode == "hybrid" else []
         result = RetrievalResult(timings_ms={"retrieve_sql": _elapsed_ms(started), "rerank": 0})
 
         candidates = self._fuse(by_vector, by_text, page_path)
         started = time.perf_counter()
-        rerank_scores = self._reranker.scores(question, [candidate.chunk.search_text for candidate in candidates])
+        rerank_scores = self.reranker.scores(question, [candidate.chunk.search_text for candidate in candidates])
         result.timings_ms["rerank"] = _elapsed_ms(started)
         if rerank_scores is not None and len(rerank_scores) == len(candidates):
             for candidate, score in zip(candidates, rerank_scores, strict=True):
@@ -95,7 +95,7 @@ class Retriever:
         result.best_rerank = candidates[0].rerank_score if candidates and result.rerank_used else None
         result.no_context = self._below_threshold(result)
         if not result.no_context:
-            result.sections = expand_to_sections([candidate.chunk for candidate in candidates], self._store,
+            result.sections = expand_to_sections([candidate.chunk for candidate in candidates], self.store,
                                                  context_k=config.context_k)
             in_context = {chunk_id for section in result.sections for chunk_id in section.chunk_ids}
             for candidate in candidates:

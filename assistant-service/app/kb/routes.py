@@ -24,6 +24,23 @@ def load_routes_file(path: Path) -> list[AllowedRoute]:
     return [AllowedRoute(path=item["path"], audience=tuple(item.get("audience") or ())) for item in data["routes"]]
 
 
+class RouteCatalog:
+    """Danh sách route cho phép, tra theo vai trò. Học viên chỉ được đưa nút tới trang công khai và trang học viên."""
+
+    def __init__(self, routes: list[AllowedRoute]):
+        self.routes = routes
+
+    def paths_for_role(self, role: str) -> list[str]:
+        return [route.path for route in self.routes if {"PUBLIC", role} & set(route.audience)]
+
+    def all_paths(self) -> set[str]:
+        return {route.path for route in self.routes}
+
+    def find_pattern(self, role: str, concrete_path: str) -> str | None:
+        """Route cụ thể (`/student/contracts/3b2e…`) khớp mẫu nào của vai trò; None = không hợp lệ."""
+        return next((path for path in self.paths_for_role(role) if route_pattern_matches(path, concrete_path)), None)
+
+
 def route_pattern_matches(pattern: str, path: str) -> bool:
     """`/student/contracts/:contractId` khớp `/student/contracts/3b2e...` (mỗi tham số là một đoạn đường dẫn)."""
     pattern_parts = pattern.strip("/").split("/")

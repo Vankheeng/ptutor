@@ -58,7 +58,7 @@ def first_rank(doc_keys: list[str], expected: str) -> int | None:
 
 
 def evaluate(questions: list[Question], retriever: Retriever, embedder) -> list[Outcome]:
-    no_threshold = Retriever(retriever._store, retriever._reranker,  # noqa: SLF001 — cùng kho, chỉ khác ngưỡng
+    no_threshold = Retriever(retriever.store, retriever.reranker,  # cùng kho, chỉ khác ngưỡng
                              replace(retriever.config, min_cosine=-1.0, min_text_coverage=-1.0, min_rerank_score=-1.0))
     vectors = embedder.embed([question.text for question in questions]).vectors
     outcomes = []

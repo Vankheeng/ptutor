@@ -80,9 +80,14 @@ class AiServiceEmbedding(EmbeddingProvider):
 
     model_name = "bge-m3"
 
-    def __init__(self, base_url: str, internal_token: str, *, timeout_s: float = 10.0, batch_size: int = 32,
+    # bge-m3 chạy CPU: một câu hỏi mất < 1 giây, nhưng một lô 32 đoạn dài có thể mất hơn 10 giây. Timeout tính theo
+    # cỡ lô để lúc hỏi đáp vẫn ngắn (lỗi nhanh) mà lúc công bố tài liệu không bị cắt oan.
+    BASE_TIMEOUT_S = 5.0
+    TIMEOUT_PER_TEXT_S = 1.5
+
+    def __init__(self, base_url: str, internal_token: str, *, batch_size: int = 32,
                  client: httpx.Client | None = None):
-        self._client = client or httpx.Client(base_url=base_url, timeout=timeout_s)
+        self._client = client or httpx.Client(base_url=base_url)
         self._headers = {"X-Internal-Token": internal_token}
         self._batch_size = batch_size
 
@@ -92,7 +97,8 @@ class AiServiceEmbedding(EmbeddingProvider):
         for start in range(0, len(texts), self._batch_size):
             batch = texts[start:start + self._batch_size]
             try:
-                response = self._client.post("/embed", json={"texts": batch}, headers=self._headers)
+                timeout = self.BASE_TIMEOUT_S + self.TIMEOUT_PER_TEXT_S * len(batch)
+                response = self._client.post("/embed", json={"texts": batch}, headers=self._headers, timeout=timeout)
                 response.raise_for_status()
             except httpx.HTTPError as error:
                 raise EmbeddingError(f"ai-service /embed lỗi: {error}") from error

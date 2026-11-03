@@ -23,7 +23,9 @@ def reembed(session_factory: sessionmaker[Session], embedder: EmbeddingProvider,
     with session_factory.begin() as session:
         query = select(KbChunk).where(KbChunk.is_active)
         if not everything:
-            query = query.where(KbChunk.embedding_model.is_distinct_from(embedder.model_name))
+            # Hỏi chính nhà cung cấp tên model hiện tại (ai-service trả "bge-m3-int8"), không đoán từ cấu hình.
+            current_model = embedder.embed(["kiểm tra model"]).model
+            query = query.where(KbChunk.embedding_model.is_distinct_from(current_model))
         chunks = list(session.scalars(query))
         for start in range(0, len(chunks), BATCH):
             batch = chunks[start:start + BATCH]

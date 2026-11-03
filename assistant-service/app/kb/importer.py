@@ -24,18 +24,7 @@ from app.db.models import KbSetting
 from app.kb.parser import DocumentFormatError, find_document_files, parse_file
 from app.kb.routes import load_routes_file
 from app.kb.service import KbError, KnowledgeBaseService
-
-DEFAULT_SUGGESTIONS = {
-    "STUDENT": {
-        "default": ["Làm sao đăng tin tìm gia sư?", "Phí đăng tin là bao nhiêu?", "Hợp đồng của tôi thế nào rồi?"],
-        "/student/wallet": ["Nạp ví tối thiểu bao nhiêu?", "Thanh toán VNPay bị lỗi thì sao?"],
-        "/student/contracts": ["Hủy hợp đồng thế nào?", "Kỳ học phí tiếp theo khi nào?"],
-    },
-    "TUTOR": {
-        "default": ["Hồ sơ của tôi đã được duyệt chưa?", "Làm sao nộp chứng chỉ?"],
-        "/tutor/certificates": ["Chứng chỉ bị từ chối thì làm gì?"],
-    },
-}
+from app.kb.suggestions import DEFAULT_SUGGESTIONS
 
 
 @dataclass

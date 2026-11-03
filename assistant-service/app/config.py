@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     tokenizer_path: str = ""
     # Danh sách route ban đầu (03 mục 3.8); sau khi import nằm ở kb_setting.routes.
     routes_file: str = "../knowledge-base/_routes.yaml"
+    # Nơi tìm tài liệu khi trả lời: `pg` (bản thật) hoặc `memory` (đọc thẳng thư mục Markdown, chỉ để chạy thử /
+    # eval khi chưa có Postgres — xem app/retrieval/store.py).
+    knowledge_store: str = "pg"
+    memory_kb_path: str = "../knowledge-base"
 
     # --- Embedding và rerank (M5, M6) ---
     # Mặc định `fake` và tắt rerank: ai-service chỉ có trên nhánh recommendation chưa merge (quyết định người dùng).

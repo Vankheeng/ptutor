@@ -5,12 +5,14 @@ from fastapi.testclient import TestClient
 from app.api.health import overall_status
 from app.config import Settings
 from app.main import create_app
+from tests.fakes import make_services
 
 
 def test_health_reports_llm_disabled_without_key(settings):
-    client = TestClient(create_app(settings))
+    client = TestClient(create_app(services=make_services(settings)))
     body = client.get("/health").json()
     assert body["llm"] == "disabled"
+    assert body["embedding"] == "ready"
     assert body["status"] == "degraded"
 
 
