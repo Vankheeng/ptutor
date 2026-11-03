@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 4 — **bước:** M12 xong, bắt đầu M13.
-- **Việc tiếp theo:** M13 (CitationVerifierMiddleware + prompt verifier + kiểm evidence là chuỗi con; RouteGuardMiddleware; RedactMiddleware; bộ verifier claims.jsonl).
+- **Chặng hiện tại:** 5 — **bước:** chặng 4 xong (M12–M13), bắt đầu M14.
+- **Việc tiếp theo:** M14 (ToolRegistry đọc tool-catalog/tools.yaml, BackendClient chỉ GET + allowlist + mock, lọc kết quả + múi giờ + focus_items, ToolGate seen_ids, LoopGuard, ToolSelection; fixture mock).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -25,7 +25,7 @@
 - [x] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
 - [x] M11 Widget chat
 - [x] M12 ScopeGuard
-- [ ] M13 CitationVerifier, RouteGuard, Redact
+- [x] M13 CitationVerifier, RouteGuard, Redact
 - [ ] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
 - [ ] M15 `eval.run`, `eval.compare`
 - [ ] M16 Trang quản trị kho tri thức
@@ -472,3 +472,46 @@ trên dev với bge-m3 khi máy đủ bộ nhớ chạy `ai-service`.
    chỉ chặn khi *vừa* không giống câu trong phạm vi *vừa* giống câu ngoài phạm vi hơn một khoảng δ.
 3. `eval/scope_eval.py`: `precompute` tính điểm một lần, `tune` dò ngưỡng chỉ trên dev; so dòng dev với dòng test để
    thấy vì sao không được chỉnh theo test.
+
+## M13 — Kiểm chứng trích dẫn, RouteGuard, Redact
+
+**Đã làm.**
+- `CitationVerifierMiddleware` (④', cho intent POLICY / HOWTO / LOOKUP): kiểm bằng code trước — khẳng định POLICY /
+  HOWTO thiếu nguồn, nguồn không tồn tại (`D9`, tool chưa gọi), khẳng định từ tool có ngày / số tiền / mã trạng thái
+  không có trong kết quả tool; rồi **một** lời gọi verifier cho các khẳng định từ tài liệu (prompt `verifier_v1`,
+  schema `VERIFIER_SCHEMA`, nhiệt độ 0, chỉ gửi khẳng định + nguyên văn đoạn nguồn). `normalize_verdict`: bằng chứng
+  phải là chuỗi con của đoạn nguồn sau chuẩn hoá (giữ dấu, chữ số) → không thì `UNSUPPORTED`. Không đạt → thử lại
+  1 lần kèm góp ý "khẳng định #i … không đạt: lý do"; vẫn không đạt → giữ khẳng định đạt (dựng lại câu trả lời từ
+  chúng, `grounded = PARTIAL`) hoặc từ chối (`VERIFY_FAILED`).
+- `RouteGuardMiddleware`: action phải khớp route của **vai trò**; tham số route phải thuộc `seen_ids` (sổ tay phiên +
+  kết quả tool của lượt).
+- `RedactMiddleware`: che SĐT / email / dãy số dài trong câu trả lời **bản lưu DB** (người dùng vẫn thấy nguyên văn).
+- Cấu hình: `ASSISTANT_VERIFIER_ENABLED` (tắt = E2 "không kiểm chứng"), `ASSISTANT_MAX_VERIFY_RETRIES` (0 = E2
+  "kiểm chứng không thử lại"), `ASSISTANT_VERIFIER_MODEL`.
+
+- File chính: `app/agent/middleware/citation_verifier.py`, `app/agent/verification.py`,
+  `app/agent/prompts/verifier_v1.md`, `app/agent/middleware/route_guard.py`, `app/agent/middleware/redact.py`,
+  `tests/unit/test_citation_verifier.py`.
+- Kiểm tra: 147 test (T0 + T1) xanh; có đúng test mẫu của 13 mục 13.1 `test_verifier_evidence_must_be_substring`.
+
+**Khác thiết kế.**
+- Verifier lỗi / trả JSON hỏng → các khẳng định đó coi là `UNSUPPORTED` (thiết kế chưa nói). Lý do: ưu tiên không
+  bịa — không cho khẳng định về quy định đi qua khi chưa kiểm được.
+- PARTIAL: câu trả lời được **dựng lại** từ các khẳng định đạt (danh sách gạch đầu dòng kèm `[Dn]`) thay vì cố xoá câu
+  sai khỏi đoạn văn của Actor — đơn giản và chắc chắn không sót câu sai.
+- Kiểm số liệu tool so "sự kiện" (ngày dd/MM/yyyy, số ≥ 4 chữ số đã bỏ dấu phân cách, mã IN HOA) với kết quả tool đã
+  lọc; số nhỏ (1, 2 buổi…) không kiểm.
+- Fixture `settings` của test mặc định **tắt** verifier để test các module trước không phải viết kịch bản cho lời gọi
+  verifier; test M13 bật lại tường minh.
+
+**Eval chặng 4.** Bộ an toàn và bộ 60 cặp cho verifier (`claims.jsonl`, `eval.verifier --k 3`) cần model thật → dựng ở
+M15 / chặng 8. Kết quả lớp chặn (M12) ở mục M12.
+
+**Còn dở.** Đo chất lượng verifier (cần model).
+
+**Đọc code này thế nào.**
+1. `citation_verifier.py` → `after_model`: bốn nhánh của sơ đồ 04 mục 4.6 (đạt / thử lại / giữ phần đúng / từ chối).
+2. `_check`: phần kiểm **bằng code** — rẻ, tất định, chạy cả khi tắt verifier; chỉ khẳng định từ tài liệu mới tới LLM.
+3. `verification.py` → `normalize_verdict`: **đáng học nhất** — kiểm luôn cả "người kiểm tra" (bằng chứng phải chép
+   nguyên văn), để chính verifier cũng không bịa được.
+4. `route_guard.py` → `route_allowed`: tách tham số khỏi mẫu route rồi kiểm từng giá trị thuộc `seen_ids`.

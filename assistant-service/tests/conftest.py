@@ -13,7 +13,10 @@ USER_ID = "11111111-1111-1111-1111-000000000001"
 @pytest.fixture
 def settings() -> Settings:
     # _env_file=None: không đọc file .env trên máy, để test không phụ thuộc cấu hình của người chạy.
-    return Settings(_env_file=None, internal_token=INTERNAL_TOKEN, openai_api_key="", llm_model="")
+    # verifier_enabled=False: test của các module trước M13 không phải viết kịch bản cho lời gọi verifier.
+    # Test của M13 (test_citation_verifier.py) bật lại tường minh.
+    return Settings(_env_file=None, internal_token=INTERNAL_TOKEN, openai_api_key="", llm_model="",
+                    verifier_enabled=False)
 
 
 def caller_headers(role: str = "STUDENT", user_id: str = USER_ID) -> dict[str, str]:

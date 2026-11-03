@@ -20,7 +20,8 @@ class TraceMiddleware(Middleware):
 
     def wrap_model_call(self, state: TurnState, request: LlmRequest, call_next: ModelCall) -> LlmResponse:
         actor_calls = sum(1 for span in state.spans if span.name.startswith("actor#"))
-        name = "retry_actor" if state.retry_feedback and state.verify_retries else f"actor#{actor_calls + 1}"
+        retried = any(span.name == "retry_actor" for span in state.spans)
+        name = "retry_actor" if state.verify_retries and not retried else f"actor#{actor_calls + 1}"
         started = time.perf_counter()
         try:
             response = call_next(request)

@@ -53,11 +53,14 @@ def test_student_does_not_get_tutor_documents_in_prompt(settings):
     assert "Nộp chứng chỉ" not in llm.requests[0].messages[1].content
 
 
-def test_invented_source_is_dropped(settings):
-    llm = ScriptedLlm([actor_json(claims=[{"text": "x", "source": "D9"}], answer="Nạp tối thiểu 50.000 đ [D9].")])
+def test_invented_source_is_retried_then_abstains(settings):
+    """Nguồn bịa (D9) bị bắt bằng code (chạy cả khi tắt verifier): sinh lại 1 lần, vẫn bịa → từ chối."""
+    invented = actor_json(claims=[{"text": "x", "source": "D9"}], answer="Nạp tối thiểu 50.000 đ [D9].")
+    llm = ScriptedLlm([invented, invented])
     client = TestClient(create_app(services=make_services(settings, llm)))
     body = post(client, "Nạp ví tối thiểu bao nhiêu?").json()
-    assert body["citations"] == [] and "[D9]" not in body["answer"] and body["grounded"] == "NONE"
+    assert body["answer"] == ABSTAIN_ANSWER and body["grounded"] == "NONE" and body["citations"] == []
+    assert "D9" in llm.requests[1].messages[-1].content  # góp ý nêu đúng khẳng định sai
 
 
 def test_invalid_json_twice_abstains(settings):

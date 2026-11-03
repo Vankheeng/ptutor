@@ -10,6 +10,7 @@ from app.agent.compose import Composer
 from app.agent.config_hash import config_hash
 from app.agent.middleware.base import Middleware
 from app.agent.middleware.budget import BudgetMiddleware
+from app.agent.middleware.citation_verifier import CitationVerifierMiddleware
 from app.agent.middleware.context_injection import ContextInjectionMiddleware
 from app.agent.middleware.input_guard import InputGuardMiddleware
 from app.agent.middleware.memory import MemoryMiddleware
@@ -17,7 +18,9 @@ from app.agent.middleware.model_call import ModelCallMiddleware
 from app.agent.middleware.output_schema import OutputSchemaMiddleware
 from app.agent.middleware.persistence import PersistenceMiddleware
 from app.agent.middleware.query import QueryMiddleware
+from app.agent.middleware.redact import RedactMiddleware
 from app.agent.middleware.retrieval import RetrievalMiddleware
+from app.agent.middleware.route_guard import RouteGuardMiddleware
 from app.agent.middleware.scope_guard import ScopeGuardMiddleware
 from app.agent.middleware.trace import TraceMiddleware
 from app.agent.output_schema import ACTOR_OUTPUT_SCHEMA
@@ -43,6 +46,11 @@ def build_middlewares(services: Services, composer: Composer) -> list[Middleware
                                    history_budget=settings.history_token_budget),  # ② dựng ngữ cảnh
         ModelCallMiddleware(settings.llm_timeout_s, settings.llm_max_output_tokens),  # ③ timeout, thử lại
         OutputSchemaMiddleware(),                                             # ④ đúng schema JSON
+        CitationVerifierMiddleware(services.llm, settings.effective_verifier_model,
+                                   max_retries=settings.max_verify_retries,
+                                   use_llm_verifier=settings.verifier_enabled),  # ④' kiểm chứng trích dẫn
+        RouteGuardMiddleware(services.routes),                                # ④' chỉ route hợp lệ, ID đã thấy
+        RedactMiddleware(),                                                   # ⑥ che trước khi lưu
         PersistenceMiddleware(services.conversations, settings.llm_model,
                               lambda: config_hash(settings)),                 # ⑥ lưu
     ]

@@ -89,6 +89,10 @@ class Settings(BaseSettings):
     scope_tau_in: float = 0.55
     scope_delta: float = 0.05
 
+    # --- Kiểm chứng trích dẫn (M13, thiết kế 04 mục 4.6) ---
+    verifier_enabled: bool = True  # tắt để chạy thí nghiệm E2 "không kiểm chứng"
+    verifier_timeout_s: float = 8.0
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""
