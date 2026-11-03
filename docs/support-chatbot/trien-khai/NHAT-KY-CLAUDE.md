@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 3 — **bước:** M10 xong, bắt đầu M11.
-- **Việc tiếp theo:** M11 (widget chat frontend: components/assistant/*, services/assistantApi.ts, gắn vào StudentLayout, TutorLayout; đăng xuất gọi /end).
+- **Chặng hiện tại:** 4 — **bước:** chặng 3 xong (M8–M11), bắt đầu M12.
+- **Việc tiếp theo:** M12 (ScopeGuardMiddleware: luật + so khớp câu mẫu, bảng scope_exemplar, script đo chặn đúng / chặn nhầm).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -23,7 +23,7 @@
 - [x] M8 `AgentRunner` + middleware cơ bản
 - [x] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
 - [x] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
-- [ ] M11 Widget chat
+- [x] M11 Widget chat
 - [ ] M12 ScopeGuard
 - [ ] M13 CitationVerifier, RouteGuard, Redact
 - [ ] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
@@ -391,3 +391,37 @@ giây, lỗi → dùng câu gốc; embed một lần mỗi lượt); `POST /v1/c
 3. `AssistantProxyService.translate`: lỗi phía sau đổi thành mã người dùng hiểu được.
 4. `AssistantRateLimiter.tryAcquire`: cửa sổ trượt bằng hàng đợi thời điểm; `synchronized` trên hàng đợi của từng
    người để hai request cùng lúc không đếm sai.
+
+## M11 — Widget chat trên frontend
+
+**Đã làm.** `components/assistant/`: `AssistantWidget` (nút nổi, chỉ `STUDENT` / `TUTOR`, tắt bằng
+`VITE_ASSISTANT_ENABLED=false`, dựng lại theo `userId`), `AssistantPanel` (header + menu "Hỏi nhân viên hỗ trợ",
+"Yêu cầu hỗ trợ của tôi"; lời chào + gợi ý; bong bóng "đang soạn…"; viền khác màu khi từ chối; dòng "Một phần câu
+hỏi chưa có thông tin chính thức"; nút "Gửi câu hỏi cho nhân viên" theo 14 mục 14.2; gợi ý mở cuộc mới sau 20 lượt;
+dòng chú thích dưới ô nhập), `MessageBubble` (Markdown an toàn bằng phần tử React: **đậm**, danh sách, xuống dòng,
+chip `[n]` — không `dangerouslySetInnerHTML`), `CitationChip`, `ActionButtons` (chỉ route nội bộ, đi bằng
+`navigate`), `SuggestionChips`, `FeedbackButtons` (👍 / 👎 + lý do + ghi chú), `useAssistant` (giữ `conversationId`
+trong `sessionStorage` theo `userId`; tải lại trang → nạp lại tin; 409 `CONVERSATION_ENDED` → tự mở phiên mới và gửi
+lại; timeout 35 giây; câu báo 429 / 503). `services/assistantApi.ts`; gắn widget vào `StudentLayout`, `TutorLayout`;
+`AuthContext.logout` gọi `/end` (fetch `keepalive`) **trước** khi xoá token.
+
+- File chính: `frontend/src/components/assistant/*`, `frontend/src/services/assistantApi.ts`,
+  `frontend/src/types/assistant.ts`, `frontend/src/auth/AuthContext.tsx`, hai file layout.
+- Kiểm tra: `npm run typecheck`, `npx eslint` (các file đã đụng), `npm run build` đều qua.
+  Repo frontend chưa có bộ test chạy được TypeScript (jest không có ts-jest) → kiểm thử giao diện bằng Playwright ở chặng 8.
+
+**Khác thiết kế.**
+- Mã phiên lưu theo khoá `ptutor.assistant.conversation.<userId>` (thiết kế chỉ nói `sessionStorage`): hai tài khoản
+  đăng nhập lần lượt trong cùng một tab không dùng nhầm phiên của nhau.
+- Hộp thoại gửi nhân viên (`SupportRequestDialog`) làm ở M17; M11 để sẵn điểm gắn `renderSupportDialog`.
+- Không thêm thư viện Markdown: bộ hiển thị tối giản tự viết, đủ cho câu trả lời của trợ lý và an toàn XSS.
+
+**Còn dở.** Chạy thử trên trình duyệt với backend thật — ở chặng 8 (Playwright + ảnh chụp).
+
+**Đọc code này thế nào.**
+1. `useAssistant.ts` → `send`: luồng gửi một câu, đặc biệt nhánh `CONVERSATION_ENDED` → mở phiên mới, gửi lại.
+2. `MessageBubble.tsx` → `renderInline` / `renderSafeMarkdown`: **đáng học nhất** — hiển thị Markdown mà không bao
+   giờ biến chữ thành HTML (chống XSS), chip `[n]` tra trong `citations`.
+3. `AssistantPanel.tsx`: bảng "Hành vi" của 08 mục 8.1 hiện thực thành các điều kiện hiển thị.
+4. `services/assistantApi.ts` → `endAssistantConversationOnLogout`: vì sao phải gọi trước khi xoá token, và vì sao
+   dùng `keepalive`.

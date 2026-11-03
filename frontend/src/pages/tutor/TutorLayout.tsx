@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { AssistantWidget } from '../../components/assistant/AssistantWidget';
 import logo from '../../assets/ptutor-logo.svg';
 import './tutor.css';
 import './tutor-layout.css';
@@ -110,6 +111,7 @@ export function TutorLayout() {
           <Outlet />
         </div>
       </main>
+      <AssistantWidget />
     </div>
   );
 }
