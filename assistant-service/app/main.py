@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api import chat, conversations, health
+from app.api import chat, conversations, feedback, health
 from app.config import Settings, get_settings
 from app.db.session import database_status
 from app.services import Services, build_services
@@ -28,6 +28,7 @@ def create_app(settings: Settings | None = None, *, services: Services | None = 
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(conversations.router)
+    app.include_router(feedback.router)
     return app
 
 

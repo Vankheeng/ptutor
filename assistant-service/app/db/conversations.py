@@ -91,6 +91,22 @@ class ConversationStore:
         """Khoá theo hội thoại: mỗi lúc chỉ một lượt của một phiên được xử lý (04 mục 4.10, 409 BUSY)."""
         raise NotImplementedError
 
+    def list_for_user(self, user_id: uuid.UUID, page: int, size: int) -> tuple[list[ConversationInfo], int]:
+        raise NotImplementedError
+
+    def messages(self, conversation_id: uuid.UUID) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    def mark_deleted(self, conversation_id: uuid.UUID, when: datetime) -> None:
+        raise NotImplementedError
+
+    def assistant_message_owner(self, message_id: uuid.UUID) -> uuid.UUID | None:
+        raise NotImplementedError
+
+    def save_feedback(self, message_id: uuid.UUID, user_id: uuid.UUID, rating: int, reason: str | None,
+                      comment: str | None) -> None:
+        raise NotImplementedError
+
 
 def _title(question: str) -> str:
     return question if len(question) <= 80 else question[:77].rstrip() + "…"
@@ -260,6 +276,8 @@ class MemoryConversationStore(ConversationStore):
         self.conversations: dict[uuid.UUID, ConversationInfo] = {}
         self.turns: dict[uuid.UUID, list[TurnRecord]] = {}
         self.saved: list[TurnRecord] = []
+        self.feedback: dict[uuid.UUID, dict] = {}
+        self._answer_owner: dict[uuid.UUID, tuple[uuid.UUID, int]] = {}  # message_id → (hội thoại, chỉ số lượt)
         self._locks: dict[uuid.UUID, threading.Lock] = {}
 
     def get(self, conversation_id: uuid.UUID) -> ConversationInfo | None:
@@ -282,9 +300,12 @@ class MemoryConversationStore(ConversationStore):
         info = self.conversations[conversation_id]
         info.session_state = record.session_state
         info.last_message_at = now
-        self.turns.setdefault(conversation_id, []).append(record)
+        turns = self.turns.setdefault(conversation_id, [])
+        turns.append(record)
         self.saved.append(record)
-        return SavedTurn(conversation_id, uuid.uuid4(), uuid.uuid4())
+        answer_id = uuid.uuid4()
+        self._answer_owner[answer_id] = (conversation_id, len(turns) - 1)
+        return SavedTurn(conversation_id, uuid.uuid4(), answer_id)
 
     def end(self, conversation_id: uuid.UUID, when: datetime) -> None:
         info = self.conversations.get(conversation_id)
@@ -293,3 +314,39 @@ class MemoryConversationStore(ConversationStore):
 
     def turn_lock(self, conversation_id: uuid.UUID) -> threading.Lock:
         return self._locks.setdefault(conversation_id, threading.Lock())
+
+    def list_for_user(self, user_id: uuid.UUID, page: int, size: int) -> tuple[list[ConversationInfo], int]:
+        mine = [info for info in self.conversations.values() if info.user_id == user_id and info.deleted_at is None]
+        mine.sort(key=lambda info: info.last_message_at, reverse=True)
+        return mine[page * size:(page + 1) * size], len(mine)
+
+    def messages(self, conversation_id: uuid.UUID) -> list[dict[str, Any]]:
+        answers = {index: message_id for message_id, (owner, index) in self._answer_owner.items()
+                   if owner == conversation_id}
+        result: list[dict[str, Any]] = []
+        for index, record in enumerate(self.turns.get(conversation_id, [])):
+            answer_id = answers.get(index)
+            result.append({"id": None, "sender": "USER", "content": record.question, "intent": None,
+                           "grounded": None, "citations": [], "actions": [], "createdAt": record.now, "rating": None})
+            result.append({"id": answer_id, "sender": "ASSISTANT", "content": record.answer,
+                           "intent": record.intent, "grounded": record.grounded, "citations": record.citations,
+                           "actions": record.actions, "createdAt": record.now,
+                           "rating": self.feedback.get(answer_id, {}).get("rating") if answer_id else None})
+        return result
+
+    def mark_deleted(self, conversation_id: uuid.UUID, when: datetime) -> None:
+        info = self.conversations.get(conversation_id)
+        if info is not None:
+            info.deleted_at = when
+            info.ended_at = info.ended_at or when
+
+    def assistant_message_owner(self, message_id: uuid.UUID) -> uuid.UUID | None:
+        owner = self._answer_owner.get(message_id)
+        if owner is None:
+            return None
+        info = self.conversations[owner[0]]
+        return None if info.deleted_at is not None else info.user_id
+
+    def save_feedback(self, message_id: uuid.UUID, user_id: uuid.UUID, rating: int, reason: str | None,
+                      comment: str | None) -> None:
+        self.feedback[message_id] = {"user_id": user_id, "rating": rating, "reason": reason, "comment": comment}

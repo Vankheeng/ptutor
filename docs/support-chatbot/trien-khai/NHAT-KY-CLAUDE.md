@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 3 — **bước:** M9 xong, bắt đầu M10.
-- **Việc tiếp theo:** M10 (backend Spring: AssistantController, AssistantProxyService, SecurityConstants.ASSISTANT_API, rate limit 20 tin / 5 phút, token nội bộ; assistant-service: các API hội thoại còn lại, feedback, suggestions).
+- **Chặng hiện tại:** 3 — **bước:** M10 xong, bắt đầu M11.
+- **Việc tiếp theo:** M11 (widget chat frontend: components/assistant/*, services/assistantApi.ts, gắn vào StudentLayout, TutorLayout; đăng xuất gọi /end).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -22,7 +22,7 @@
 - [x] M7 Trả lời có trích dẫn, small-to-big
 - [x] M8 `AgentRunner` + middleware cơ bản
 - [x] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
-- [ ] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
+- [x] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
 - [ ] M11 Widget chat
 - [ ] M12 ScopeGuard
 - [ ] M13 CitationVerifier, RouteGuard, Redact
@@ -342,3 +342,52 @@ giây, lỗi → dùng câu gốc; embed một lần mỗi lượt); `POST /v1/c
 3. `app/api/chat.py`: `lock.acquire(blocking=False)` → 409 thay vì chờ; nhớ `finally: lock.release()`.
 4. `tests/unit/test_memory.py` → `test_second_turn_with_pronoun_finds_document_through_rewrite`: luồng hai lượt đầy
    đủ, câu "còn cách làm thì sao?" tìm đúng mục "Cách nạp" nhờ câu đã viết lại.
+
+## M10 — Backend Spring: cửa vào an toàn
+
+**Đã làm.**
+- Backend: `SecurityConstants.ASSISTANT_API` (`STUDENT`, `TUTOR`) và `ADMIN_ASSISTANT_API` (`ADMIN`) đăng ký trong
+  `SecurityConfig`; `AssistantController` (`/api/v1/assistant/messages`, `/conversations`, `/conversations/{id}/messages`,
+  `/conversations/{id}/end`, `DELETE /conversations/{id}`, `/messages/{id}/feedback`, `/suggestions`);
+  `AssistantProxyService` (RestClient + JDK HttpClient, timeout 30 giây, gắn `X-Internal-Token`, `X-User-Id`,
+  `X-User-Role`, `X-Request-Id`, chuyển tiếp `Authorization` chỉ ở lời gọi hỏi đáp; 4xx nghiệp vụ giữ mã, còn lại →
+  `503 ASSISTANT_UNAVAILABLE`); `AssistantRateLimiter` (20 tin / 5 phút / người, cửa sổ trượt); cấu hình
+  `app.assistant-service.*` trong `application-prod.yaml` (mặc định **tắt**).
+- assistant-service: `GET /v1/conversations`, `GET /v1/conversations/{id}/messages`, `DELETE /v1/conversations/{id}`
+  (xoá mềm), `POST /v1/messages/{id}/feedback` (ghi đè, che SĐT/email trong ghi chú), `GET /v1/suggestions`.
+
+- File chính: `backend/.../controller/AssistantController.java`, `service/AssistantProxyService.java`,
+  `service/AssistantRateLimiter.java`, `dto/request/Assistant*Request.java`, `config/SecurityConstants.java`,
+  `config/SecurityConfig.java`; `assistant-service/app/api/conversations.py`, `app/api/feedback.py`.
+- Kiểm tra: JUnit 13 test (`./mvnw -o test -Dtest='Assistant*Test'`); pytest 109 test.
+- Cấu hình chạy local: thêm vào `backend/src/main/resources/application.yml` (file riêng của bạn, không commit):
+  ```yaml
+  app:
+    assistant-service:
+      enabled: true
+      base-url: http://127.0.0.1:8100
+      internal-token: <cùng giá trị ASSISTANT_INTERNAL_TOKEN>
+  ```
+
+**Khác thiết kế.**
+- Đặt file theo cấu trúc sẵn có của repo (`controller/`, `service/`, `dto/request/`), không gom vào gói `assistant/`
+  như 02 mục 2.5 — để giống phần còn lại của backend.
+- Backend tự kiểm độ dài câu hỏi (1–1.000) để trả `INVALID_MESSAGE` mà không gọi sang assistant-service; assistant-service
+  vẫn kiểm lại (không tin lớp trước).
+- `401` từ assistant-service (sai token nội bộ) đổi thành `503` (lỗi cấu hình, không phải lỗi của người dùng).
+- `GET /v1/suggestions` kiểm `X-User-*` như mọi API khác; tham số `role` lấy từ JWT ở backend.
+- Bộ giới hạn tần suất giữ trong bộ nhớ tiến trình (một bản backend); nhiều bản cần bộ đếm dùng chung.
+
+**Phát hiện cần người dùng quyết (cho M17).** Trên `dev`, `EmployeeJobFunction` vẫn có 5 giá trị
+(`GENERAL_OPERATIONS`, `COMPLAINT_HANDLER`, `ACCOUNTANT`, `CONTENT_REVIEWER`, `USER_SUPPORT`); bản 2 chức năng
+`CUSTOMER_SERVICE` / `ACCOUNTANT` nằm ở nhánh `feat/employee-two-job-functions` chưa merge (39 file).
+
+**Còn dở.** Thử đầu-cuối frontend → backend → assistant-service ở M11 / chặng 8 (cần backend chạy với cấu hình đầy đủ).
+
+**Đọc code này thế nào.**
+1. `AssistantController.sendMessage`: thứ tự kiểm tra — độ dài → hạn mức → chuyển tiếp. Không xử lý nội dung.
+2. `AssistantProxyService.exchange`: **đáng học nhất** — header nào gắn, vì sao `Authorization` chỉ chuyển tiếp chứ
+   backend không tự tạo token mới cho trợ lý (trợ lý chỉ có đúng quyền của người dùng).
+3. `AssistantProxyService.translate`: lỗi phía sau đổi thành mã người dùng hiểu được.
+4. `AssistantRateLimiter.tryAcquire`: cửa sổ trượt bằng hàng đợi thời điểm; `synchronized` trên hàng đợi của từng
+   người để hai request cùng lúc không đếm sai.

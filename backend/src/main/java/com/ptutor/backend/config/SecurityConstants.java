@@ -109,6 +109,18 @@ public final class SecurityConstants {
             "/api/v1/admin/notifications/**"
     };
 
+    /** Trợ lý hỗ trợ (docs/support-chatbot/07-api.md mục 7.1): widget của học viên, gia sư. */
+    public static final String[] ASSISTANT_API = {
+            "/api/v1/assistant",
+            "/api/v1/assistant/**"
+    };
+
+    /** Quản trị kho tri thức của trợ lý: chỉ ADMIN. */
+    public static final String[] ADMIN_ASSISTANT_API = {
+            "/api/v1/admin/assistant",
+            "/api/v1/admin/assistant/**"
+    };
+
     public static final String[] STUDENT_SELF_SERVICE_API = {
             "/api/v1/students/me",
             "/api/v1/students/me/**"

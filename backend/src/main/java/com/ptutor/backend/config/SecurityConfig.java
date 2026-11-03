@@ -44,6 +44,8 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
 import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_ASSISTANT_API;
+import static com.ptutor.backend.config.SecurityConstants.ASSISTANT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_CERTIFICATE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_REFUND_REQUEST_API;
@@ -167,6 +169,8 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
+                        .requestMatchers(ADMIN_ASSISTANT_API).hasRole("ADMIN")
+                        .requestMatchers(ASSISTANT_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
