@@ -40,7 +40,7 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
           style={{
             textAlign: 'left',
             border: item.isRead ? undefined : '1px solid #c7b4ff',
-            cursor: item.isRead ? 'default' : 'pointer'
+            cursor: 'pointer'
           }}
           key={item.id}
           type="button"

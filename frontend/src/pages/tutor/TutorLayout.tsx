@@ -14,6 +14,8 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: '▦' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: '♢' },
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: '◈' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: '▤' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: '▥' },
   { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: '▤' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: '◉' }
 ];
@@ -80,6 +82,7 @@ export function TutorLayout() {
                   <NavLink
                     key={item.to}
                     to={item.to}
+                    end={item.to === '/tutor/wallet'}
                     className={({ isActive }) => (isActive ? 'tutor-nav-link active' : 'tutor-nav-link')}
                   >
                     <span aria-hidden="true">{item.icon}</span>

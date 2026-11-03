@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
   getNotifications,
@@ -14,6 +15,9 @@ import { NotificationPagination } from './components/NotificationPagination';
 import '../student/student.css';
 
 export function NotificationsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const basePath = location.pathname.startsWith('/tutor/') ? '/tutor' : '/student';
   const [filter, setFilter] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -27,11 +31,23 @@ export function NotificationsPage() {
   const unread = useResource(loadUnread, revision);
   const read = async (notification: Notification) => {
     setError('');
+    const detailPath =
+      notification.referenceId &&
+      notification.referenceType === 'WITHDRAWAL_REQUEST' &&
+      ['WITHDRAWAL_REQUEST_CREATED', 'WITHDRAWAL_REQUEST_CANCELLED'].includes(notification.eventType ?? '')
+        ? `${basePath}/wallet/transactions/WITHDRAWAL/${encodeURIComponent(notification.referenceId)}`
+        : notification.referenceId &&
+            notification.referenceType === 'WALLET_TRANSACTION' &&
+            notification.eventType === 'WALLET_BALANCE_CHANGED'
+          ? `${basePath}/wallet/transactions/WALLET_TRANSACTION/${encodeURIComponent(notification.referenceId)}`
+          : null;
     try {
       if (!notification.isRead) await markNotificationRead(notification.id);
       setRevision((value) => value + 1);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Could not update this notification.');
+    } finally {
+      if (detailPath) navigate(detailPath);
     }
   };
   const readAll = async () => {
@@ -78,6 +94,7 @@ export function NotificationsPage() {
         <NotificationPagination
           page={query.data.page}
           totalPages={query.data.totalPages}
+          totalElements={query.data.totalElements}
           first={query.data.first}
           last={query.data.last}
           onPageChange={setPage}
