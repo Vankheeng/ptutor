@@ -23,3 +23,7 @@ python_version = "3.12"
 ignore_missing_imports = true
 check_untyped_defs = true
 exclude = ['.venv', 'migrations']
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI khai báo phụ thuộc bằng giá trị mặc định Depends(...), Header(...): đây là cách dùng đúng của thư viện.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", "fastapi.Body"]

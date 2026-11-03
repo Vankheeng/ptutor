@@ -5,15 +5,15 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 1 — **bước:** M1 xong, đang làm M2.
-- **Việc tiếp theo:** M2 (`LlmProvider`, `ScriptedLlm`, `OpenAiLlm`, `POST /v1/chat`).
+- **Chặng hiện tại:** 2 — **bước:** M2 xong, bắt đầu M3.
+- **Việc tiếp theo:** M3 (`kb/parser.py`, `kb/chunker.py`, đếm token).
 - **Chờ người dùng:** bật Docker Desktop (cần cho T1, nạp kho, compose, Playwright); chọn model LLM (cần cho T3–T4).
 
 ## Danh sách việc
 
 - [x] Chuẩn bị: worktree, merge `dev`, chép `knowledge-base/`, `tool-catalog/`, kiểm tra danh mục khớp code
 - [x] M1 Khung `assistant-service`: `/health`, cấu hình
-- [ ] M2 `LlmProvider` (`ScriptedLlm`, `OpenAiLlm`), `/v1/chat`
+- [x] M2 `LlmProvider` (`ScriptedLlm`, `OpenAiLlm`), `/v1/chat`
 - [ ] M3 Đọc và chia tài liệu
 - [ ] M4 Postgres + pgvector + unaccent, Alembic, import
 - [ ] M5 `EmbeddingProvider` (`fake`, `ai-service`)
@@ -67,3 +67,30 @@ người hỏi (`app/api/deps.py`, dùng từ M2). Script `scripts/check_catalog
 3. `app/api/health.py`: mỗi thành phần đăng ký một hàm kiểm tra vào `app.state.health_checks`; module sau chỉ cần
    thêm một dòng.
 4. `app/api/deps.py`: vì sao so token bằng `hmac.compare_digest` (chống đoán token theo thời gian phản hồi).
+
+## M2 — Gọi model qua lớp trung gian
+
+**Đã làm.** `LlmProvider` với `complete(LlmRequest) -> LlmResponse`; `ScriptedLlm` (theo danh sách bước hoặc theo
+hàm `policy`), `OpenAiLlm` (Chat Completions, gọi tool, JSON schema `strict`, `store=False`, đổi lỗi thành
+`LlmError(retryable=...)`). `POST /v1/chat` gọi model trực tiếp; không có khoá / model → 503 `ASSISTANT_UNAVAILABLE`.
+
+- File chính: `app/providers/llm.py`, `app/api/chat.py`, `app/api/schemas.py`, `tests/unit/test_llm_and_chat.py`.
+- Kiểm tra: `pytest` 13 test xanh (không mạng: `OpenAiLlm` được test bằng client giả).
+- Chạy thật (khi có khoá): đặt `OPENAI_API_KEY`, `ASSISTANT_LLM_MODEL` trong `.env`, chạy uvicorn, gọi
+  `POST /v1/chat` với header `X-Internal-Token`, `X-User-Id`, `X-User-Role: STUDENT`.
+
+**Khác thiết kế / KE-HOACH.** KE-HOACH ghi `complete(messages) -> str`; bản này nhận cả `LlmRequest` (tool,
+schema, timeout, mục đích) vì M7–M14 cần gọi tool và JSON — đổi chữ ký về sau sẽ phải sửa nhiều chỗ.
+
+**Eval chặng 1.** Chưa có kho tri thức nên chưa có gì để đo chất lượng; khung test pytest (T0) đã dựng.
+
+**Còn dở.** Chưa chạy thật với model (chưa chọn model).
+
+**Đọc code này thế nào.**
+1. `app/providers/llm.py` từ trên xuống: các dataclass (`ChatMessage`, `ToolSpec`, `LlmRequest`, `LlmResponse`) là
+   "hợp đồng" giữa harness và model; `LlmProvider` chỉ có một hàm.
+2. `ScriptedLlm`: đáng học — bản giả ghi lại mọi request (`requests`), nên test vừa điều khiển được câu trả lời,
+   vừa kiểm tra được harness đã gửi gì cho model.
+3. `OpenAiLlm.complete`: chỗ đổi lỗi của thư viện thành `LlmError(retryable=...)` — tầng trên không cần biết
+   thư viện OpenAI.
+4. `app/api/chat.py`: `llm is None` → 503, không phải 500.

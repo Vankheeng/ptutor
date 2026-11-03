@@ -10,24 +10,31 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api import health
+from app.api import chat, health
 from app.config import Settings, get_settings
+from app.providers.llm import LlmProvider, OpenAiLlm
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, llm: LlmProvider | None = None) -> FastAPI:
+    """Dựng ứng dụng. Tham số nào để None thì tạo bản thật theo cấu hình; test truyền bản giả."""
     settings = settings or get_settings()
     app = FastAPI(title="PTutor assistant-service", version="0.1.0")
     app.state.settings = settings
+    app.state.llm = llm or _default_llm(settings)
     # Mỗi thành phần đăng ký một hàm kiểm tra trạng thái; /health gọi lần lượt.
     app.state.health_checks = {
-        "llm": lambda: "ready" if settings.llm_enabled else "disabled",
+        "llm": lambda: "ready" if app.state.llm is not None else "disabled",
     }
     app.include_router(health.router)
+    app.include_router(chat.router)
     return app
 
 
-def _build_default_app() -> FastAPI:
-    return create_app()
+def _default_llm(settings: Settings) -> LlmProvider | None:
+    """Không có khoá hoặc chưa chọn model → None: /v1/chat trả 503 có kiểm soát."""
+    if not settings.llm_enabled:
+        return None
+    return OpenAiLlm(api_key=settings.openai_api_key, base_url=settings.openai_base_url)
 
 
-app = _build_default_app()
+app = create_app()
