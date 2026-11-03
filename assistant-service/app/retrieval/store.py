@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import math
 import re
+import unicodedata
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
@@ -27,12 +28,14 @@ from app.kb.tokens import TokenCounter
 from app.providers.embedding import EmbeddingProvider, cosine
 from app.text import strip_accents
 
-# Từ quá phổ biến trong câu hỏi tiếng Việt, bỏ khi tìm full-text (không dấu, vì so khớp trên văn bản đã bỏ dấu).
+# Từ quá phổ biến trong câu hỏi tiếng Việt, bỏ khi tìm full-text. Viết **có dấu** và lọc trước khi bỏ dấu: nếu
+# lọc sau khi bỏ dấu thì "ví" trùng "vì", "tối" trùng "tôi" và từ khoá quan trọng bị bỏ nhầm.
+# Câu hỏi gõ không dấu ("nap vi toi thieu") vì thế giữ nguyên mọi từ — an toàn hơn bỏ nhầm.
 STOPWORDS = {
-    "toi", "ban", "minh", "cua", "la", "co", "khong", "duoc", "bao", "nhieu", "the", "nao", "gi", "thi", "va",
-    "cho", "voi", "nhu", "khi", "de", "o", "tai", "sao", "vi", "nay", "do", "da", "dang", "se", "can", "phai",
-    "mot", "cac", "nhung", "lam", "ve", "trong", "hay", "hoac", "neu", "roi", "chua", "a", "u", "nhe", "vay",
-    "ra", "len", "di", "den", "tu", "bi", "con", "nua", "ai", "luc", "bay", "gio",
+    "tôi", "bạn", "mình", "của", "là", "có", "không", "được", "bao", "nhiêu", "thế", "nào", "gì", "thì", "và",
+    "cho", "với", "như", "khi", "để", "ở", "tại", "sao", "vì", "này", "đó", "đã", "đang", "sẽ", "cần", "phải",
+    "một", "các", "những", "làm", "về", "trong", "hay", "hoặc", "nếu", "rồi", "chưa", "à", "ừ", "nhé", "vậy",
+    "ra", "lên", "đi", "đến", "từ", "bị", "còn", "nữa", "ai", "lúc", "bây", "giờ", "ạ", "nhỉ", "ơi",
 }
 
 
@@ -62,11 +65,13 @@ class ScoredChunk:
 
 def query_terms(question: str) -> list[str]:
     """Các từ dùng cho full-text: bỏ dấu, chữ thường, bỏ từ dừng, giữ thứ tự, không trùng."""
-    words = re.findall(r"[a-z0-9]+", strip_accents(question).lower())
     seen: list[str] = []
-    for word in words:
-        if word not in STOPWORDS and word not in seen:
-            seen.append(word)
+    for word in re.findall(r"\w+", unicodedata.normalize("NFC", question).lower()):
+        if word in STOPWORDS:
+            continue
+        plain = strip_accents(word)
+        if re.fullmatch(r"[a-z0-9]+", plain) and plain not in seen:
+            seen.append(plain)
     return seen
 
 

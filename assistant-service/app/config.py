@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     ai_internal_token: str = Field(default="", validation_alias=AliasChoices("AI_INTERNAL_TOKEN", "ai_internal_token"))
     rerank_enabled: bool = False
 
+    # --- Truy xuất (M6, thiết kế 04 mục 4.9) ---
+    retrieval_mode: str = "hybrid"  # hybrid | vector (thí nghiệm E1)
+    retrieval_k_each: int = 20
+    rerank_k: int = 20
+    context_k: int = 6
+    rrf_k: int = 60
+    min_rerank_score: float = 0.3
+    min_cosine: float = 0.45
+    min_text_coverage: float = 0.5
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

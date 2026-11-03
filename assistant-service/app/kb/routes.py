@@ -22,3 +22,13 @@ class AllowedRoute:
 def load_routes_file(path: Path) -> list[AllowedRoute]:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return [AllowedRoute(path=item["path"], audience=tuple(item.get("audience") or ())) for item in data["routes"]]
+
+
+def route_pattern_matches(pattern: str, path: str) -> bool:
+    """`/student/contracts/:contractId` khớp `/student/contracts/3b2e...` (mỗi tham số là một đoạn đường dẫn)."""
+    pattern_parts = pattern.strip("/").split("/")
+    path_parts = path.split("?")[0].strip("/").split("/")
+    if len(pattern_parts) != len(path_parts):
+        return False
+    pairs = zip(pattern_parts, path_parts, strict=True)
+    return all(expected.startswith(":") or expected == actual for expected, actual in pairs)

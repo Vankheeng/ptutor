@@ -5,9 +5,10 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 2 — **bước:** M5 xong, bắt đầu M6.
-- **Việc tiếp theo:** M6 (truy xuất lai: vector + full-text, RRF, rerank, ngưỡng; script hit@k).
-- **Chờ người dùng:** bật Docker Desktop (cần cho T1, nạp kho, compose, Playwright); chọn model LLM (cần cho T3–T4).
+- **Chặng hiện tại:** 2 — **bước:** M6 xong, bắt đầu M7.
+- **Việc tiếp theo:** M7 (prompt Actor, schema JSON đầu ra, trả lời có trích dẫn, abstain khi NO_CONTEXT).
+- **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
+- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
 
@@ -17,7 +18,7 @@
 - [x] M3 Đọc và chia tài liệu
 - [x] M4 Postgres + pgvector + unaccent, Alembic, import
 - [x] M5 `EmbeddingProvider` (`fake`, `ai-service`)
-- [ ] M6 Truy xuất lai, RRF, rerank, hit@k
+- [x] M6 Truy xuất lai, RRF, rerank, hit@k
 - [ ] M7 Trả lời có trích dẫn, small-to-big
 - [ ] M8 `AgentRunner` + middleware cơ bản
 - [ ] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
@@ -182,3 +183,50 @@ bản, lưu trữ, bỏ nháp); `python -m app.kb.import` (`--overwrite-drafts`,
    trong 1024 ô, cộng dồn, rồi chuẩn hoá độ dài về 1. Đáng học vì nó cho thấy cosine đo "độ chồng đặc trưng".
 3. `AiServiceEmbedding.embed`: chia lô 32, kiểm `dimensions` để phát hiện nhầm model sớm.
 4. `KnowledgeBaseService._insert_chunks`: embed **trước** khi ghi đoạn nào → lỗi thì quay lui sạch.
+
+## M6 — Truy xuất lai, RRF, rerank
+
+**Đã làm.** `KnowledgeStore` với `PgKnowledgeStore` (SQL pgvector `<=>`, `ts_rank_cd` trên `tsv` đã bỏ dấu, nối từ khoá
+bằng OR) và `MemoryKnowledgeStore` (cùng thuật toán, chạy trong bộ nhớ); `rrf_merge` (k = 60); `Reranker`
+(`AiServiceReranker` gọi `/rerank`, `DisabledReranker`); `expand_to_sections` (small-to-big, ≤ 1.200 token mỗi mục,
+≤ 3.000 token tổng, tối đa 6 mục `D1…D6`); `Retriever` (lọc audience, RRF, ưu tiên trang đang mở, rerank, ngưỡng
+`NO_CONTEXT`); script `python -m eval.hit_at_k` trên `cau-hoi-mau.csv`.
+
+- File chính: `app/retrieval/store.py`, `rrf.py`, `rerank.py`, `expand.py`, `retriever.py`, `eval/hit_at_k.py`,
+  `tests/unit/test_retrieval.py`, `tests/integration/test_pg_retrieval.py`.
+- Kiểm tra: 52 test (T0 + T1 trên Postgres thật) xanh.
+
+**Số liệu (220 câu, embedding `fake`, không rerank, ngưỡng mặc định, 2026-11-03):**
+
+| Kho | hit@1 | hit@3 | **hit@6** | MRR | NO_CONTEXT |
+|---|---|---|---|---|---|
+| PostgreSQL (chính thức) | 0,609 | 0,782 | **0,891** | 0,710 | 0,9% |
+| Trong bộ nhớ | 0,668 | 0,850 | 0,932 | 0,764 | 0,5% |
+| Trong bộ nhớ, chỉ vector | 0,618 | 0,832 | 0,914 | 0,733 | 1,4% |
+
+Theo loại (Postgres): POLICY 0,964 · HOWTO 0,972 · ERROR 0,917 · FAQ 0,846 · NO_ANSWER 0,803. Lưu ý: số này đo trên
+**toàn bộ** 220 câu, chưa chia dev / test (chia ở M15); embedding `fake` chỉ giống *từ ngữ*, chưa phải bge-m3.
+
+**Khác thiết kế.**
+- "Full-text khớp" (ngưỡng NO_CONTEXT khi không rerank) thiết kế chưa định nghĩa → đặt là *đoạn tốt nhất chứa ≥ 50%
+  từ khoá của câu hỏi* (`ASSISTANT_MIN_TEXT_COVERAGE`), hiệu chỉnh trên tập dev ở M15.
+- Ưu tiên trang đang mở: cộng 0,004 vào điểm RRF (≈ 1/4 điểm hạng 1) — thiết kế chỉ ghi "điểm nhỏ".
+- Full-text nối từ khoá bằng OR (`to_tsquery('a | b')`), bỏ từ dừng tiếng Việt *có dấu* trước khi bỏ dấu.
+- Có thêm `MemoryKnowledgeStore` (thiết kế không có) để test T0 và đo nhanh không cần DB.
+
+**Lỗi tìm ra khi đo.** Lọc từ dừng sau khi bỏ dấu làm mất "ví" (trùng "vì") và "tối" (trùng "tôi") → sửa lọc trước
+khi bỏ dấu: hit@6 (bộ nhớ) 0,914 → 0,932.
+
+**Câu tìm sai tiêu biểu** (`--misses`): câu hỏi về vai trò / bộ phận xử lý ("bộ phận nào xử lý hoàn tiền") bị kéo về
+tài liệu trạng thái hoàn tiền; câu hỏi chung chung ("có phí tạo hợp đồng không") trùng từ với nhiều tài liệu hợp đồng.
+Đây là giới hạn của so khớp từ ngữ — cần embedding theo nghĩa (bge-m3) hoặc rerank.
+
+**Còn dở.** Chạy lại với `ai-service` thật (bge-m3 + reranker) cho E1.
+
+**Đọc code này thế nào.**
+1. `app/retrieval/retriever.py` → `retrieve`: đọc từ trên xuống là thấy đủ 6 bước của bảng 4.3.
+2. `app/retrieval/rrf.py`: 10 dòng, có ví dụ tính tay trong docstring — **đáng học nhất**: vì sao gộp theo *hạng*
+   chứ không cộng *điểm*.
+3. `app/retrieval/store.py`: so `PgKnowledgeStore.text_search` (SQL) với `MemoryKnowledgeStore.text_search` (Python)
+   để hiểu `tsvector` / `ts_rank_cd` làm gì; `query_terms` giải thích lỗi từ dừng.
+4. `app/retrieval/expand.py`: `_pick_members` nới dần sang hai bên; `join_overlapping` bỏ phần chồng lấn khi ghép.

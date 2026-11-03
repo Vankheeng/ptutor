@@ -35,6 +35,9 @@ def reembed(session_factory: sessionmaker[Session], embedder: EmbeddingProvider,
 
 
 def main() -> None:
+    from app.cli import use_utf8_output
+
+    use_utf8_output()
     from app.config import Settings
     from app.db.session import make_engine, make_session_factory
     from app.providers.factory import build_embedder

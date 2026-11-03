@@ -39,5 +39,8 @@ def bootstrap(admin_url: str, app_password: str) -> None:
 
 
 if __name__ == "__main__":
+    from app.cli import use_utf8_output
+
+    use_utf8_output()
     bootstrap(os.environ["ASSISTANT_DB_ADMIN_URL"], os.environ["ASSISTANT_DB_APP_PASSWORD"])
     print(f"Đã chuẩn bị role {ROLE} và schema assistant.")

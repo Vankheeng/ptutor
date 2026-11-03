@@ -88,6 +88,9 @@ def import_directory(service: KnowledgeBaseService, root: Path, *, overwrite_dra
 
 
 def main() -> None:
+    from app.cli import use_utf8_output
+
+    use_utf8_output()
     from app.config import Settings
     from app.db.session import make_engine, make_session_factory
     from app.kb.tokens import load_token_counter
