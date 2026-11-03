@@ -11,6 +11,7 @@ Thiết kế 03 mục 3.2 (vòng đời) và 06 mục 6.3 (bảng). Các quy t�
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -237,9 +238,15 @@ _CONTENT_COLUMNS = ("title", "type", "audience", "features", "routes", "keywords
 
 
 def content_hash(parsed: ParsedDocument) -> str:
-    """Băm nội dung + metadata, để import lại cùng file không tạo phiên bản thừa."""
-    payload = "\n".join([parsed.title, parsed.type, ",".join(parsed.audience), ",".join(parsed.features),
-                         ",".join(parsed.routes), ",".join(parsed.keywords), parsed.body])
+    """Băm nội dung + mọi metadata, để import lại cùng file không tạo phiên bản thừa.
+
+    Phải gồm cả `todo`: chỉ thêm / bỏ câu hỏi todo cũng là thay đổi (nó quyết định có công bố được không).
+    """
+    payload = json.dumps({
+        "title": parsed.title, "type": parsed.type, "audience": parsed.audience, "features": parsed.features,
+        "routes": parsed.routes, "keywords": parsed.keywords, "error_codes": parsed.error_codes,
+        "source_refs": parsed.source_refs, "todo": parsed.todo, "body": parsed.body,
+    }, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
