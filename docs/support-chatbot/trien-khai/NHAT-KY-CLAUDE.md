@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 4 — **bước:** chặng 3 xong (M8–M11), bắt đầu M12.
-- **Việc tiếp theo:** M12 (ScopeGuardMiddleware: luật + so khớp câu mẫu, bảng scope_exemplar, script đo chặn đúng / chặn nhầm).
+- **Chặng hiện tại:** 4 — **bước:** M12 đang làm dở (xem mục M12 cuối file).
+- **Việc tiếp theo:** Hoàn thiện M12 theo danh sách trong mục M12, rồi M13.
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -425,3 +425,22 @@ lại; timeout 35 giây; câu báo 429 / 503). `services/assistantApi.ts`; gắn
 3. `AssistantPanel.tsx`: bảng "Hành vi" của 08 mục 8.1 hiện thực thành các điều kiện hiển thị.
 4. `services/assistantApi.ts` → `endAssistantConversationOnLogout`: vì sao phải gọi trước khi xoá token, và vì sao
    dùng `keepalive`.
+
+## M12 — Chặn ngoài phạm vi (ĐANG LÀM DỞ)
+
+**Đã có:** luật tầng 1 (`app/scope/rules.py`), câu mẫu OUT (`app/scope/out_of_scope_seed.yaml`), kho câu mẫu +
+lệnh nạp (`app/scope/exemplars.py`, bảng `scope_exemplar`, migration `0003`), chia dev/test theo tài liệu
+(`eval/make_splits.py` → `eval/datasets/SPLITS.yaml`: 37 tài liệu dev / 128 câu, 28 tài liệu test / 92 câu),
+bộ đo `eval/datasets/scope/scope_eval.yaml` (câu ngoài phạm vi + câu sát ranh giới, chia dev/test).
+
+**Việc tiếp theo (theo thứ tự):**
+1. `app/agent/middleware/scope_guard.py`: tầng 1 luật → CHITCHAT / OUT_OF_SCOPE_RULE; tầng 2 `score()` với
+   `τ_in` / `δ` → OUT_OF_SCOPE_EMBEDDING; còn lại cho qua. Đăng ký sau Query, trước Retrieval.
+2. Thêm vào `Settings`: `scope_guard_enabled`, `scope_tau_in=0.55`, `scope_delta=0.05`; thêm `exemplars` vào
+   `Services` (Pg nếu có DB, không thì Memory dựng lúc khởi động).
+3. `eval/scope_eval.py`: dò lưới τ_in, δ trên dev (leave-one-out cho câu IN), chọn sao cho chặn nhầm ≤ 3%, báo
+   kết quả trên test.
+4. Test T0 cho luật (câu lẫn không bị chặn), tầng 2, middleware; rồi tới M13.
+
+**Chờ người dùng:** chọn (a) merge `feat/employee-two-job-functions` hay (b) dùng `USER_SUPPORT` cho M17.
+**Đang chạy:** container `ptutor-ai-service-claude` (cổng 8001), job đo hit@k có rerank (có thể đã dừng cùng phiên).

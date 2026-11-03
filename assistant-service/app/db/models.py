@@ -262,3 +262,18 @@ class DeletionLog(Base):
     purged_at: Mapped[datetime] = _now()
     rows_deleted: Mapped[Any] = mapped_column(JSONB, nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+
+class ScopeExemplar(Base):
+    """Câu mẫu cho lớp chặn ngoài phạm vi (06 mục 6.3, 04 mục 4.11)."""
+
+    __tablename__ = "scope_exemplar"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    text: Mapped[str] = mapped_column(String(500), nullable=False)
+    label: Mapped[str] = mapped_column(String(10), nullable=False)  # IN | OUT
+    source: Mapped[str] = mapped_column(String(20), nullable=False)  # DATASET | ADMIN
+    embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS), nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = _now()

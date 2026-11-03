@@ -1,0 +1,62 @@
+# Bộ ĐO lớp chặn ngoài phạm vi (thiết kế 10 mục 10.2: chặn đúng ≥ 0,95; chặn nhầm ≤ 0,03). Câu khác hẳn câu mẫu
+# trong app/scope/out_of_scope_seed.yaml. Chia dev / test xen kẽ: chỉnh τ_in, δ trên dev, báo cáo trên test.
+# Câu trong phạm vi để đo chặn nhầm lấy từ knowledge-base/_eval/cau-hoi-mau.csv (theo SPLITS.yaml) + mục boundary.
+out_of_scope:
+  dev:
+    - Giải giúp em phương trình x^2 - 5x + 6 = 0
+    - Viết bài văn nghị luận về lòng biết ơn
+    - Dịch đoạn này sang tiếng Anh giúp mình
+    - Thời tiết Đà Nẵng cuối tuần này thế nào
+    - Viết code JavaScript đếm số chữ trong chuỗi
+    - Tính tích phân từ 0 đến 1 của x bình phương
+    - Ý nghĩa bài thơ Tây Tiến là gì
+    - Cách làm bánh flan tại nhà
+    - Nên học ngành công nghệ thông tin hay kinh tế
+    - Đội tuyển Việt Nam đá trận tiếp theo khi nào
+    - Mẹo ngủ ngon hơn mỗi tối
+    - Viết hộ mình email xin nghỉ học
+    - Hệ mặt trời có bao nhiêu hành tinh
+    - Tóm tắt lịch sử chiến tranh thế giới thứ hai
+    - Gợi ý quà sinh nhật cho bạn gái
+    - Cách sửa vòi nước bị rỉ
+    - Làm sao để học giỏi môn Hoá
+    - Bạn nghĩ gì về trí tuệ nhân tạo
+    - Lập kế hoạch du lịch Phú Quốc 3 ngày
+    - Đặt vé máy bay đi Sài Gòn ở đâu rẻ
+  test:
+    - Giải hệ phương trình 2x + y = 5 và x - y = 1
+    - Phân tích bài thơ Sóng của Xuân Quỳnh
+    - Translate this sentence into Vietnamese please
+    - Mai Hồ Chí Minh có nắng không
+    - Viết chương trình C++ tìm số nguyên tố
+    - Tính đạo hàm của sin(2x)
+    - Kể một câu chuyện cổ tích cho em bé
+    - Cách nấu canh chua cá lóc
+    - Thi đại học khối A gồm những môn nào
+    - Giá xăng hôm nay tăng hay giảm
+    - Làm thế nào để hết đau đầu
+    - Viết giúp mình bài phát biểu đám cưới
+    - Mặt trăng cách trái đất bao xa
+    - Ai phát minh ra bóng đèn
+    - Gợi ý phim hành động hay
+    - Cách trồng rau sạch ở ban công
+    - Ôn thi IELTS trong 3 tháng được không
+    - Bạn có thích âm nhạc không
+    - Lên lịch tập thể dục buổi sáng giúp mình
+    - Mua laptop cho sinh viên nên chọn hãng nào
+# Câu sát ranh giới — PHẢI được cho qua (13 mục 13.7): không được chặn ở tầng 1–2.
+boundary_in_scope:
+  dev:
+    - Gia sư dạy online được không?
+    - Học phí ghi trong hợp đồng tính thế nào?
+    - Con tôi học lớp 9 nên đăng tin thế nào?
+    - Tìm gia sư toán thế nào, giải luôn bài này giúp mình
+    - Mình muốn thuê gia sư dạy viết văn thì đăng tin ra sao?
+    - Gia sư dạy lập trình Python có trên PTutor không?
+  test:
+    - Có gia sư dạy tiếng Nhật không?
+    - Buổi học online thì xác nhận thế nào?
+    - Mình cần gia sư luyện thi IELTS, đăng tin ở đâu?
+    - Gia sư dạy sai kiến thức thì khiếu nại thế nào?
+    - Tiền học phí có được hoàn khi gia sư nghỉ không?
+    - Hợp đồng dạy môn Hoá có giới hạn số buổi không?
