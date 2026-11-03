@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 2 — **bước:** M6 xong, bắt đầu M7.
-- **Việc tiếp theo:** M7 (prompt Actor, schema JSON đầu ra, trả lời có trích dẫn, abstain khi NO_CONTEXT).
+- **Chặng hiện tại:** 3 — **bước:** chặng 2 xong (M3–M7), bắt đầu M8.
+- **Việc tiếp theo:** M8 (`AgentRunner`, giao diện `Middleware`, chuyển luồng M7 thành middleware: Trace, Budget, InputGuard, Retrieval, ContextInjection, ModelCall, OutputSchema, Persistence; migration bảng hội thoại).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -19,7 +19,7 @@
 - [x] M4 Postgres + pgvector + unaccent, Alembic, import
 - [x] M5 `EmbeddingProvider` (`fake`, `ai-service`)
 - [x] M6 Truy xuất lai, RRF, rerank, hit@k
-- [ ] M7 Trả lời có trích dẫn, small-to-big
+- [x] M7 Trả lời có trích dẫn, small-to-big
 - [ ] M8 `AgentRunner` + middleware cơ bản
 - [ ] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
 - [ ] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
@@ -221,7 +221,19 @@ khi bỏ dấu: hit@6 (bộ nhớ) 0,914 → 0,932.
 tài liệu trạng thái hoàn tiền; câu hỏi chung chung ("có phí tạo hợp đồng không") trùng từ với nhiều tài liệu hợp đồng.
 Đây là giới hạn của so khớp từ ngữ — cần embedding theo nghĩa (bge-m3) hoặc rerank.
 
-**Còn dở.** Chạy lại với `ai-service` thật (bge-m3 + reranker) cho E1.
+**Chạy lại với bge-m3 thật (sơ bộ, 220 câu, Postgres, chưa chia dev/test):** container riêng
+`ptutor-ai-service-claude` (cổng 8001, image `ptutor-ai-service` có sẵn trên máy, model mount **chỉ đọc** từ
+`D:\DATN\ptutor\ai-service\models`, token nội bộ ngẫu nhiên chỉ nằm trong env của container).
+
+| Cấu hình | hit@1 | hit@3 | hit@6 | MRR |
+|---|---|---|---|---|
+| bge-m3, chỉ vector | 0,527 | 0,668 | 0,768 | 0,612 |
+| bge-m3, vector + full-text (RRF) | 0,659 | 0,795 | 0,895 | 0,739 |
+
+Embed lại 373 đoạn bằng CPU mất 2 phút 18 giây. Lô 32 đoạn dài hơn 10 giây → timeout embedding tính theo cỡ lô
+(5 giây + 1,5 giây / văn bản).
+
+**Còn dở.** Số chính thức của E1 (gồm cả rerank) chạy ở chặng 8 trên tập test.
 
 **Đọc code này thế nào.**
 1. `app/retrieval/retriever.py` → `retrieve`: đọc từ trên xuống là thấy đủ 6 bước của bảng 4.3.
@@ -230,3 +242,33 @@ tài liệu trạng thái hoàn tiền; câu hỏi chung chung ("có phí tạo 
 3. `app/retrieval/store.py`: so `PgKnowledgeStore.text_search` (SQL) với `MemoryKnowledgeStore.text_search` (Python)
    để hiểu `tsvector` / `ts_rank_cd` làm gì; `query_terms` giải thích lỗi từ dừng.
 4. `app/retrieval/expand.py`: `_pick_members` nới dần sang hai bên; `join_overlapping` bỏ phần chồng lấn khi ghép.
+
+## M7 — Trả lời có trích dẫn
+
+**Đã làm.** `ACTOR_OUTPUT_SCHEMA` + `parse_actor_output` (04 mục 4.5); prompt Actor có phiên bản
+(`agent/prompts/actor_v1.md`); ngữ cảnh: `<user_context>`, `<routes>`, `<docs><doc id="D1" ...>`, `<question>`;
+`/v1/chat` mới: truy xuất → `NO_CONTEXT` thì từ chối **không gọi model** → Actor (JSON schema strict) → bỏ khẳng
+định có nguồn bịa → đổi `[D3]` thành `[1]` theo thứ tự xuất hiện + danh sách `citations` → bỏ action có route lạ →
+cắt câu trả lời > 1.200 ký tự theo đoạn. `Services` gom mọi thành phần; `Clock` / `FixedClock`; `RouteCatalog`;
+gợi ý câu hỏi theo trang (`kb/suggestions.py`).
+
+- File chính: `app/agent/output_schema.py`, `app/agent/prompts/`, `app/agent/context.py`, `app/agent/answer.py`,
+  `app/api/chat.py`, `app/services.py`, `app/clock.py`, `tests/unit/test_answer_with_citations.py`, `tests/fakes.py`.
+- Chạy: `.venv\Scripts\uvicorn app.main:create_app --factory --port 8100` (đổi từ `app.main:app`: không dựng app khi
+  import module, để test không phụ thuộc `.env`).
+- Kiểm tra: 62 test xanh (T0 + T1).
+
+**Khác thiết kế.**
+- Câu trả lời từ chối (`NO_CONTEXT`, JSON hỏng) tạm ghi `intent = POLICY` (thiết kế không có intent riêng cho
+  abstain; lý do nằm ở `fallback_reason` từ M8).
+- M7 chỉ giữ action có route **không tham số** khớp danh sách; route có tham số do `RouteGuard` (M13) xử lý.
+- `grounded` ở M7: `FULL` khi còn ≥ 1 khẳng định có nguồn hợp lệ; kiểm chứng thật (verifier) ở M13.
+
+**Còn dở.** Chưa thử với model thật (chưa có khoá / model) — "hỏi 10 câu mẫu" của KE-HOACH M7 chạy khi có model.
+
+**Đọc code này thế nào.**
+1. `app/api/chat.py` → `chat`: đọc từ trên xuống — đây là toàn bộ luồng RAG tối thiểu trước khi tách middleware.
+2. `app/agent/prompts/actor_v1.md` + `app/agent/context.py`: model nhận gì. Chú ý không có tên / email người hỏi.
+3. `app/agent/answer.py` → `number_citations`: **đáng học nhất** — vì sao đánh số bằng code (luôn liên tục, nguồn
+   bịa `[D9]` tự rơi mất) thay vì bảo model tự đánh `[1]`.
+4. `tests/fakes.py`: cách dựng cả hệ thống bằng bản giả để test không cần mạng.
