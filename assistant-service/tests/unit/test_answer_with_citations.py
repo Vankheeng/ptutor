@@ -41,7 +41,7 @@ def test_answer_has_numbered_citation_pointing_to_section(settings):
 def test_no_context_abstains_without_calling_model(settings):
     llm = ScriptedLlm([])  # gọi model là test hỏng
     client = TestClient(create_app(services=make_services(settings, llm)))
-    body = post(client, "Thời tiết Hà Nội mai thế nào?").json()
+    body = post(client, "Chính sách bảo mật dữ liệu của PTutor quy định gì?").json()
     assert body["answer"] == ABSTAIN_ANSWER and body["grounded"] == "NONE"
     assert llm.requests == []
 

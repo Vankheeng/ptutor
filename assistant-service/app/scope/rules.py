@@ -37,7 +37,8 @@ DEFAULT_RULES: dict[str, list[str]] = {
     ],
     # Có một trong các cụm này → không chặn bằng luật (câu lẫn hoặc câu về nền tảng).
     "platform_terms": [
-        "ptutor", "gia su", "hoc vien", "hop dong", "hoc phi", "nap vi", "so du", "vi cua", "nap tien", "rut tien", "khieu nai",
+        "ptutor", "gia su", "hoc vien", "hop dong", "hoc phi", "nap vi", "so du", "vi cua", "nap tien", "rut tien",
+        "khieu nai",
         "hoan tien", "dang tin", "tin dang", "tin tim", "buoi hoc", "chung chi", "ho so", "tai khoan", "thanh toan",
         "vnpay", "de nghi", "de xuat", "don dang ky", "ky hoc phi", "thong bao", "yeu cau",
     ],

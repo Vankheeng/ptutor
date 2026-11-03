@@ -84,6 +84,11 @@ class Settings(BaseSettings):
     max_conversation_turns: int = 20  # quá mốc này widget chỉ gợi ý mở cuộc mới, không chặn
     rewrite_enabled: bool = True  # tắt để chạy thí nghiệm E4
 
+    # --- Lớp chặn ngoài phạm vi (M12, thiết kế 04 mục 4.11) ---
+    scope_guard_enabled: bool = True
+    scope_tau_in: float = 0.55
+    scope_delta: float = 0.05
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

@@ -18,6 +18,7 @@ from app.agent.middleware.output_schema import OutputSchemaMiddleware
 from app.agent.middleware.persistence import PersistenceMiddleware
 from app.agent.middleware.query import QueryMiddleware
 from app.agent.middleware.retrieval import RetrievalMiddleware
+from app.agent.middleware.scope_guard import ScopeGuardMiddleware
 from app.agent.middleware.trace import TraceMiddleware
 from app.agent.output_schema import ACTOR_OUTPUT_SCHEMA
 from app.agent.runner import AgentRunner
@@ -29,7 +30,7 @@ from app.services import Services
 def build_middlewares(services: Services, composer: Composer) -> list[Middleware]:
     settings = services.settings
     assert services.retriever is not None and services.llm is not None
-    return [
+    middlewares: list[Middleware] = [
         TraceMiddleware(),                                                    # ①③⑤⑥ mở / đóng trace
         BudgetMiddleware(settings, composer),                                 # ①②④⑤ ngân sách
         InputGuardMiddleware(services.conversations, settings.max_message_chars),  # ① đầu vào, sở hữu, che
@@ -45,6 +46,12 @@ def build_middlewares(services: Services, composer: Composer) -> list[Middleware
         PersistenceMiddleware(services.conversations, settings.llm_model,
                               lambda: config_hash(settings)),                 # ⑥ lưu
     ]
+    if settings.scope_guard_enabled:
+        # ① chặn ngoài phạm vi: sau Query (cần vector, câu đã viết lại), trước Retrieval (không tốn truy xuất).
+        position = next(index for index, item in enumerate(middlewares) if isinstance(item, RetrievalMiddleware))
+        middlewares.insert(position, ScopeGuardMiddleware(lambda: services.scope_rules, services.exemplars, composer,
+                                                          tau_in=settings.scope_tau_in, delta=settings.scope_delta))
+    return middlewares
 
 
 def build_runner(services: Services) -> AgentRunner:

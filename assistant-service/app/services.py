@@ -21,6 +21,8 @@ from app.kb.tokens import ApproxTokenCounter, TokenCounter
 from app.providers.embedding import EmbeddingProvider
 from app.providers.llm import LlmProvider, OpenAiLlm
 from app.retrieval.retriever import Retriever
+from app.scope.exemplars import ExemplarStore, MemoryExemplarStore
+from app.scope.rules import ScopeRules
 
 
 @dataclass
@@ -34,6 +36,8 @@ class Services:
     counter: TokenCounter = field(default_factory=ApproxTokenCounter)
     clock: Clock = field(default_factory=Clock)
     suggestions: dict = field(default_factory=lambda: DEFAULT_SUGGESTIONS)
+    exemplars: ExemplarStore = field(default_factory=lambda: MemoryExemplarStore([]))
+    scope_rules: ScopeRules = field(default_factory=lambda: ScopeRules.from_setting(None))
     engine: Engine | None = None
     session_factory: sessionmaker[Session] | None = None
 
@@ -58,9 +62,21 @@ def build_services(settings: Settings) -> Services:
     conversations: ConversationStore = (PgConversationStore(session_factory) if session_factory is not None
                                         else MemoryConversationStore())
     llm = OpenAiLlm(settings.openai_api_key, settings.openai_base_url) if settings.llm_enabled else None
+    exemplars = _build_exemplars(session_factory, embedder)
     return Services(
         settings=settings, llm=llm, embedder=embedder,
         retriever=build_retriever(settings, store) if store is not None else None,
         routes=RouteCatalog(load_routes_file(Path(settings.routes_file))),
         conversations=conversations, counter=counter, engine=engine, session_factory=session_factory,
+        exemplars=exemplars,
     )
+
+
+def _build_exemplars(session_factory, embedder: EmbeddingProvider) -> ExemplarStore:
+    """Có DB → đọc bảng scope_exemplar (nạp bằng `python -m app.scope.exemplars --load`); không có DB → embed câu
+    mẫu nguồn DATASET ngay lúc khởi động (chạy thử / eval không cần DB)."""
+    from app.scope.exemplars import PgExemplarStore, dataset_texts, embed_exemplars
+
+    if session_factory is not None:
+        return PgExemplarStore(session_factory, embedder.embed(["kiểm tra model"]).model)
+    return MemoryExemplarStore(embed_exemplars(dataset_texts(), embedder))

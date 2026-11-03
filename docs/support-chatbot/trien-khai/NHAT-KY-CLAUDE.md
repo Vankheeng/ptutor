@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 4 — **bước:** M12 đang làm dở (xem mục M12 cuối file).
-- **Việc tiếp theo:** Hoàn thiện M12 theo danh sách trong mục M12, rồi M13.
+- **Chặng hiện tại:** 4 — **bước:** M12 xong, bắt đầu M13.
+- **Việc tiếp theo:** M13 (CitationVerifierMiddleware + prompt verifier + kiểm evidence là chuỗi con; RouteGuardMiddleware; RedactMiddleware; bộ verifier claims.jsonl).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -24,7 +24,7 @@
 - [x] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
 - [x] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
 - [x] M11 Widget chat
-- [ ] M12 ScopeGuard
+- [x] M12 ScopeGuard
 - [ ] M13 CitationVerifier, RouteGuard, Redact
 - [ ] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
 - [ ] M15 `eval.run`, `eval.compare`
@@ -426,21 +426,49 @@ lại; timeout 35 giây; câu báo 429 / 503). `services/assistantApi.ts`; gắn
 4. `services/assistantApi.ts` → `endAssistantConversationOnLogout`: vì sao phải gọi trước khi xoá token, và vì sao
    dùng `keepalive`.
 
-## M12 — Chặn ngoài phạm vi (ĐANG LÀM DỞ)
+## M12 — Chặn câu hỏi ngoài phạm vi
 
-**Đã có:** luật tầng 1 (`app/scope/rules.py`), câu mẫu OUT (`app/scope/out_of_scope_seed.yaml`), kho câu mẫu +
-lệnh nạp (`app/scope/exemplars.py`, bảng `scope_exemplar`, migration `0003`), chia dev/test theo tài liệu
-(`eval/make_splits.py` → `eval/datasets/SPLITS.yaml`: 37 tài liệu dev / 128 câu, 28 tài liệu test / 92 câu),
-bộ đo `eval/datasets/scope/scope_eval.yaml` (câu ngoài phạm vi + câu sát ranh giới, chia dev/test).
+**Đã làm.** `ScopeGuardMiddleware` (đăng ký sau Query, trước Retrieval; tắt bằng `ASSISTANT_SCOPE_GUARD_ENABLED=false`)
+với hàm thuần `scope_decision` dùng chung cho middleware và script đo. Tầng 1 luật (`app/scope/rules.py`: chào hỏi →
+CHITCHAT; giải bài / biểu thức toán / viết văn / viết code / dịch / thời tiết… → OUT_OF_SCOPE, **trừ** câu có nhắc
+nghiệp vụ PTutor = câu lẫn); tầng 2 so khớp câu mẫu (`app/scope/exemplars.py`, bảng `scope_exemplar` — migration
+`0003`; IN = 128 câu hỏi **tập dev**, OUT = 60 câu `out_of_scope_seed.yaml`; nạp bằng
+`python -m app.scope.exemplars --load`); câu "chưa chắc" cho qua tới Actor. Ghi `fallback_reason =
+OUT_OF_SCOPE_RULE | OUT_OF_SCOPE_EMBEDDING | OUT_OF_SCOPE_MODEL`; câu ngoài phạm vi không có nút gửi nhân viên.
+Chia dev / test theo tài liệu (`eval/make_splits.py` → `eval/datasets/SPLITS.yaml`: 37 tài liệu / 128 câu dev,
+28 tài liệu / 92 câu test). Bộ đo riêng `eval/datasets/scope/scope_eval.yaml` (câu ngoài phạm vi khác hẳn câu mẫu +
+câu sát ranh giới), script `python -m eval.scope_eval` (dò lưới τ_in × δ trên dev, leave-one-out cho câu IN).
 
-**Việc tiếp theo (theo thứ tự):**
-1. `app/agent/middleware/scope_guard.py`: tầng 1 luật → CHITCHAT / OUT_OF_SCOPE_RULE; tầng 2 `score()` với
-   `τ_in` / `δ` → OUT_OF_SCOPE_EMBEDDING; còn lại cho qua. Đăng ký sau Query, trước Retrieval.
-2. Thêm vào `Settings`: `scope_guard_enabled`, `scope_tau_in=0.55`, `scope_delta=0.05`; thêm `exemplars` vào
-   `Services` (Pg nếu có DB, không thì Memory dựng lúc khởi động).
-3. `eval/scope_eval.py`: dò lưới τ_in, δ trên dev (leave-one-out cho câu IN), chọn sao cho chặn nhầm ≤ 3%, báo
-   kết quả trên test.
-4. Test T0 cho luật (câu lẫn không bị chặn), tầng 2, middleware; rồi tới M13.
+- File chính: `app/agent/middleware/scope_guard.py`, `app/scope/*`, `migrations/versions/0003_*.py`,
+  `eval/scope_eval.py`, `eval/make_splits.py`, `tests/unit/test_scope_guard.py`,
+  `tests/integration/test_scope_exemplars.py`.
+- Kiểm tra: toàn bộ pytest xanh (T0 + T1).
 
-**Chờ người dùng:** chọn (a) merge `feat/employee-two-job-functions` hay (b) dùng `USER_SUPPORT` cho M17.
-**Đang chạy:** container `ptutor-ai-service-claude` (cổng 8001), job đo hit@k có rerank (có thể đã dừng cùng phiên).
+**Số liệu (embedding `fake`, 2026-11-03).** Chặn đúng = câu ngoài phạm vi bị chặn ở tầng 1–2.
+
+| | τ_in / δ | Chặn đúng | trong đó bằng luật | Chặn nhầm |
+|---|---|---|---|---|
+| Dev (chọn ngưỡng) | 0,35 / 0,00 | 75% | 30% | 2,2% |
+| **Test** | 0,35 / 0,00 | **70%** | 15% | **6,1%** |
+| Test, mặc định thiết kế | 0,55 / 0,05 | 55% | 15% | 4,1% |
+
+Chặn nhầm trên test **vượt mục tiêu 3%**. Câu bị chặn nhầm ("Waiting for review là gì?", "VNPay báo lỗi mã 24 là
+gì?", "loc thong bao chua doc") là câu hợp lệ mà embedding `fake` (chỉ giống *từ ngữ*) không nhận ra. Theo 13 mục
+13.9, **không** chỉnh ngưỡng theo test; cấu hình giữ mặc định thiết kế (0,55 / 0,05). Việc tiếp theo: hiệu chỉnh lại
+trên dev với bge-m3 khi máy đủ bộ nhớ chạy `ai-service`.
+
+**Khác thiết kế.**
+- Luật OUT_OF_SCOPE bỏ qua câu có nhắc nghiệp vụ PTutor ("tìm gia sư toán thế nào, giải luôn bài này"), vì thiết kế
+  yêu cầu câu lẫn không bị chặn mà luật thuần chặn được cả câu này.
+- Câu mẫu IN lấy tự động từ tập dev của `cau-hoi-mau.csv`; câu ADMIN bổ sung đọc chung bảng.
+- Đo trên dev theo kiểu leave-one-out (bỏ chính câu đang đo khỏi câu mẫu), thiết kế chưa nói cách xử lý chỗ câu dev
+  vừa là câu mẫu vừa là câu đo.
+
+**Còn dở.** Hiệu chỉnh với bge-m3; trang quản trị chuyển câu bị chặn nhầm thành câu mẫu IN (M16).
+
+**Đọc code này thế nào.**
+1. `app/scope/rules.py` → `classify_by_rules`: hai danh sách mẫu + danh sách "từ nghiệp vụ"; vì sao kiểm từ nghiệp vụ.
+2. `app/agent/middleware/scope_guard.py` → `scope_decision`: ba tầng trong 15 dòng — **đáng học nhất** là tầng 2:
+   chỉ chặn khi *vừa* không giống câu trong phạm vi *vừa* giống câu ngoài phạm vi hơn một khoảng δ.
+3. `eval/scope_eval.py`: `precompute` tính điểm một lần, `tune` dò ngưỡng chỉ trên dev; so dòng dev với dòng test để
+   thấy vì sao không được chỉnh theo test.
