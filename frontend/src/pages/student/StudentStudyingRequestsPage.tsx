@@ -1,58 +1,80 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
-  createStudyingRequest,
+  cancelStudyingRequest,
   getMyStudyingRequests,
-  type LearningMode,
-  type RequestStatus,
-  type StudyingRequestInput
+  payStudyingRequest,
+  updateStudyingRequestStatus,
+  type RequestStatus
 } from '../../services/studentApi';
+import { StudentPagination } from '../../components/student/StudentPagination';
+import { StudentStudyingRequestCard } from '../../components/student/StudentStudyingRequestCard';
+import { StudentStudyingRequestToolbar } from '../../components/student/StudentStudyingRequestToolbar';
+import type { StudyingRequestAction } from '../../components/student/StudentStudyingRequestMenu';
 import { useResource } from '../../hooks/useResource';
 
-const statuses: Array<'ALL' | RequestStatus> = ['ALL', 'DRAFT', 'OPEN', 'MATCHED', 'CLOSED', 'CANCELLED'];
-
 export function StudentStudyingRequestsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [status, setStatus] = useState<'ALL' | RequestStatus>('ALL');
+  const [sort, setSort] = useState<'ASC' | 'DESC'>('DESC');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
-  const [showForm, setShowForm] = useState(false);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const load = useCallback(
-    (signal: AbortSignal) => getMyStudyingRequests(status === 'ALL' ? undefined : status, page, 20, signal),
-    [page, status]
+    (signal: AbortSignal) => getMyStudyingRequests(status === 'ALL' ? undefined : status, page, 20, signal, sort),
+    [status, page, sort]
   );
   const query = useResource(load, revision);
 
-  const create = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
-    const value = (key: string) => String(values.get(key) ?? '').trim();
-    const input: StudyingRequestInput = {
-      subjectId: value('subjectId'),
-      gradeId: value('gradeId'),
-      quantity: Number(value('quantity')),
-      title: value('title'),
-      description: value('description') || undefined,
-      learningMode: value('learningMode') as LearningMode,
-      preferredSchedule: value('preferredSchedule') || undefined
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    if (!menuId) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuId(null);
     };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuId(null);
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuId]);
+
+  const run = async (id: string, action: StudyingRequestAction) => {
+    setBusy(id);
     setError('');
-    setNotice('');
+    setMenuId(null);
     try {
-      await createStudyingRequest(input);
-      setShowForm(false);
-      setRevision((current) => current + 1);
-      setNotice('Your studying request was created as a draft.');
+      if (action === 'cancel') await cancelStudyingRequest(id);
+      if (action === 'pay') {
+        const payment = await payStudyingRequest(id);
+        window.location.assign(payment.paymentUrl);
+        return;
+      }
+      if (action === 'open' || action === 'close') {
+        await updateStudyingRequestStatus(id, action.toUpperCase() as RequestStatus);
+      }
+      setNotice(action === 'cancel' ? 'Studying request cancelled.' : `Request ${action}d.`);
+      setRevision((value) => value + 1);
     } catch (caught) {
       setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Could not create this request.'
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this request.'
       );
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -62,11 +84,11 @@ export function StudentStudyingRequestsPage() {
         <div>
           <span className="student-eyebrow">YOUR LEARNING NEEDS</span>
           <h1>My Studying Requests</h1>
-          <p>Create and manage the requests you send to tutors.</p>
+          <p>Manage the requests you send to tutors.</p>
         </div>
-        <button className="student-button" type="button" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? 'Close form' : 'Create request'}
-        </button>
+        <Link className="student-button draft" to="/student/studying-requests/new">
+          Create request
+        </Link>
       </div>
       {notice && (
         <div className="student-notice" role="status">
@@ -78,81 +100,32 @@ export function StudentStudyingRequestsPage() {
           {error}
         </div>
       )}
-      {showForm && (
-        <section className="student-panel" style={{ marginBottom: 16 }}>
-          <h2>Create a studying request</h2>
-          <form className="student-form-grid" onSubmit={(event) => void create(event)}>
-            <label>
-              Subject ID
-              <input name="subjectId" required placeholder="Subject UUID" />
-            </label>
-            <label>
-              Grade ID
-              <input name="gradeId" required placeholder="Grade UUID" />
-            </label>
-            <label>
-              Quantity
-              <input name="quantity" type="number" min="1" defaultValue="1" required />
-            </label>
-            <label>
-              Learning mode
-              <select name="learningMode" defaultValue="ONLINE">
-                <option value="ONLINE">Online</option>
-                <option value="OFFLINE">In person</option>
-              </select>
-            </label>
-            <label className="student-field-full">
-              Title
-              <input name="title" maxLength={255} required />
-            </label>
-            <label className="student-field-full">
-              Description
-              <textarea name="description" rows={3} />
-            </label>
-            <label className="student-field-full">
-              Preferred schedule
-              <input name="preferredSchedule" placeholder="Weekday evenings" />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button" type="submit">
-                Create draft
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-      <div className="student-filter-tabs" role="tablist">
-        {statuses.map((item) => (
-          <button
-            key={item}
-            className={status === item ? 'active' : ''}
-            type="button"
-            onClick={() => {
-              setStatus(item);
-              setPage(0);
-            }}
-          >
-            {item === 'ALL' ? 'All' : label(item)}
-          </button>
-        ))}
-      </div>
+      <StudentStudyingRequestToolbar
+        status={status}
+        sort={sort}
+        onStatusChange={(nextStatus) => {
+          setStatus(nextStatus);
+          setPage(0);
+        }}
+        onSortChange={(nextSort) => {
+          setSort(nextSort);
+          setPage(0);
+        }}
+      />
       {query.error && (
         <div className="student-error" role="alert">
           {query.error}
         </div>
       )}
-      {query.data && query.data.totalPages > 1 && (
-        <div className="student-pagination">
-          <button type="button" disabled={query.data.first} onClick={() => setPage((value) => value - 1)}>
-            Previous
-          </button>
-          <span>
-            Page {query.data.page + 1} of {query.data.totalPages}
-          </span>
-          <button type="button" disabled={query.data.last} onClick={() => setPage((value) => value + 1)}>
-            Next
-          </button>
-        </div>
+      {query.data && (
+        <StudentPagination
+          page={query.data.page}
+          totalPages={query.data.totalPages}
+          first={query.data.first}
+          last={query.data.last}
+          onPrevious={() => setPage((value) => value - 1)}
+          onNext={() => setPage((value) => value + 1)}
+        />
       )}
       {query.isLoading ? (
         <div className="student-card-grid">
@@ -163,22 +136,17 @@ export function StudentStudyingRequestsPage() {
       ) : query.data?.content.length ? (
         <div className="student-card-grid">
           {query.data.content.map((request) => (
-            <article className="student-panel student-request-card" key={request.id}>
-              <div className="student-card-top">
-                <span className="student-tag">{request.subjectName}</span>
-                <span className={`student-status ${request.status.toLowerCase()}`}>{label(request.status)}</span>
-              </div>
-              <h3>{request.title}</h3>
-              <p>{request.description || request.learningGoals || 'No description provided.'}</p>
-              <div className="student-card-actions">
-                <span>
-                  {request.gradeName} · {request.learningMode === 'ONLINE' ? 'Online' : 'In person'}
-                </span>
-                <Link className="student-link" to={`/student/studying-requests/${request.id}`}>
-                  View details →
-                </Link>
-              </div>
-            </article>
+            <StudentStudyingRequestCard
+              key={request.id}
+              request={request}
+              menuOpen={menuId === request.id}
+              busy={busy === request.id}
+              menuRef={menuId === request.id ? menuRef : undefined}
+              onOpen={(id) => navigate(`/student/studying-requests/${id}`)}
+              onToggleMenu={(id) => setMenuId((currentId) => (currentId === id ? null : id))}
+              onAction={run}
+              onNavigate={navigate}
+            />
           ))}
         </div>
       ) : (
@@ -189,8 +157,4 @@ export function StudentStudyingRequestsPage() {
       )}
     </>
   );
-}
-
-function label(value: string) {
-  return value.toLowerCase().replaceAll('_', ' ');
 }

@@ -40,6 +40,7 @@ class AdminEmployeeServiceTest {
     @Mock ProvinceRepository provinceRepository;
     @Mock DistrictRepository districtRepository;
     @Mock ComplaintRepository complaintRepository;
+    @Mock com.ptutor.backend.repository.RefundRequestRepository refundRequestRepository;
     @Mock PasswordEncoder passwordEncoder;
     @Mock CitizenIdCryptoService citizenIdCryptoService;
     @Mock RefreshTokenService refreshTokenService;
@@ -54,7 +55,7 @@ class AdminEmployeeServiceTest {
     void setUp() {
         service = new AdminEmployeeService(
                 employeeRepository, userRepository, provinceRepository, districtRepository,
-                complaintRepository, passwordEncoder, citizenIdCryptoService, refreshTokenService,
+                complaintRepository, refundRequestRepository, passwordEncoder, citizenIdCryptoService, refreshTokenService,
                 Clock.fixed(Instant.parse("2026-09-26T08:00:00Z"), ZoneOffset.UTC));
         adminUserId = UUID.randomUUID();
         employeeId = UUID.randomUUID();

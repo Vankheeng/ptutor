@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../../services/httpClient';
-import { updateTutorProfile, uploadCertificateFile } from '../../services/tutorApi';
+import { updateTutorProfile, uploadCertificateFile, type TutorProfileStatus } from '../../services/tutorApi';
 import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import { useAuth } from '../../auth/useAuth';
 import { getDistricts, getProvinces } from '../../services/locationApi';
@@ -8,6 +8,12 @@ import type { District, Province } from '../../types/api';
 import { TutorProfilePhotoSection } from './components/TutorProfilePhotoSection';
 import { TutorPersonalInformationSection } from './components/TutorPersonalInformationSection';
 import { TutorTeachingProfileSection } from './components/TutorTeachingProfileSection';
+
+const PROFILE_STATUS_LABELS: Record<TutorProfileStatus, string> = {
+  PENDING: 'Waiting for review',
+  VERIFIED: 'Verified profile',
+  REJECTED: 'Not approved'
+};
 
 export function TutorProfilePage() {
   const { updateProfile } = useAuth();
@@ -48,7 +54,7 @@ export function TutorProfilePage() {
     const selectedProvince = String(form.get('provinceId') ?? '');
     const selectedDistrict = String(form.get('districtId') ?? '');
     if (Boolean(selectedProvince) !== Boolean(selectedDistrict)) {
-      setError('Select both a province and district, or leave both blank.');
+      setError('Vui lòng chọn cả tỉnh/thành phố và quận/huyện, hoặc để trống cả hai.');
       return;
     }
     setSaving(true);
@@ -78,25 +84,25 @@ export function TutorProfilePage() {
       setPhotoReference(null);
       setPhotoPreview(null);
       setRevision((value) => value + 1);
-      setNotice('Your profile has been saved.');
+      setNotice('Hồ sơ của bạn đã được lưu.');
     } catch (caught) {
       setError(
         caught instanceof ApiError
           ? Object.values(caught.fieldErrors).join(' ') || caught.message
           : caught instanceof Error
             ? caught.message
-            : 'Could not save your profile.'
+            : 'Không thể lưu hồ sơ. Vui lòng thử lại.'
       );
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="tutor-empty">Loading your profile…</div>;
+  if (loading) return <div className="tutor-empty">Đang tải hồ sơ…</div>;
   if (!profile)
     return (
       <div className="tutor-error" role="alert">
-        {error || loadError || 'Your tutor profile could not be found.'}
+        {error || loadError || 'Không tìm thấy hồ sơ gia sư của bạn.'}
       </div>
     );
   const initials =
@@ -108,7 +114,7 @@ export function TutorProfilePage() {
   const uploadPhoto = async (file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      setError('Choose a JPG or PNG image.');
+      setError('Vui lòng chọn ảnh JPG hoặc PNG.');
       return;
     }
     setUploadingPhoto(true);
@@ -117,9 +123,9 @@ export function TutorProfilePage() {
       const { certificateUrl, previewUrl } = await uploadCertificateFile(file);
       setPhotoReference(certificateUrl);
       setPhotoPreview(previewUrl);
-      setNotice('Photo uploaded. Save your profile to apply it.');
+      setNotice('Đã tải ảnh lên. Hãy lưu hồ sơ để áp dụng ảnh này.');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not upload your photo.');
+      setError(caught instanceof Error ? caught.message : 'Không thể tải ảnh lên.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -129,12 +135,27 @@ export function TutorProfilePage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">YOUR PUBLIC PRESENCE</span>
-          <h1>Edit user profile</h1>
-          <p>Help students understand your experience and how you teach.</p>
+          <span className="tutor-eyebrow">HỒ SƠ CÔNG KHAI</span>
+          <h1>Chỉnh sửa hồ sơ</h1>
+          <p>Giúp học viên hiểu hơn về kinh nghiệm và phương pháp giảng dạy của bạn.</p>
         </div>
-        <span className="tutor-profile-badge">Tutor profile</span>
+        <span className={`tutor-profile-badge status-${profile.profileStatus.toLowerCase()}`}>
+          {PROFILE_STATUS_LABELS[profile.profileStatus]}
+        </span>
+        <span className="tutor-profile-badge">Hồ sơ gia sư</span>
       </div>
+      {profile.profileStatus === 'REJECTED' && (
+        <div className="tutor-error" role="status">
+          <strong>Your profile was not approved.</strong>{' '}
+          {profile.profileRejectionReason && <>Reason: {profile.profileRejectionReason}. </>}
+          Update your teaching details and save to send it for review again.
+        </div>
+      )}
+      {profile.profileStatus === 'PENDING' && (
+        <div className="tutor-notice tutor-review-pending" role="status">
+          Your profile is waiting for review. Students can find you once it is approved.
+        </div>
+      )}
       {notice && (
         <div className="tutor-notice" role="status">
           {notice}
@@ -168,9 +189,9 @@ export function TutorProfilePage() {
           <TutorTeachingProfileSection profile={profile} />
         </div>
         <div className="tutor-profile-footer">
-          <span>Changes to professional details may be reviewed by Ptutor.</span>
+          <span>Thông tin chuyên môn có thể được Ptutor xem xét.</span>
           <button className="tutor-button" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save profile'}
+            {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
           </button>
         </div>
       </form>

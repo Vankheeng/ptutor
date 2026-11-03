@@ -130,6 +130,38 @@ class WalletServiceTest {
     }
 
     @Test
+    void creditAcceptsStudyingRequestRefund() {
+        User user = User.builder().status(UserStatus.ACTIVE).build();
+        user.setId(userId);
+        Wallet wallet = Wallet.builder()
+                .user(user)
+                .balance(new BigDecimal("20000.00"))
+                .pendingBalance(BigDecimal.ZERO)
+                .build();
+        UUID walletId = UUID.randomUUID();
+        wallet.setId(walletId);
+        UUID requestId = UUID.randomUUID();
+
+        when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
+        when(walletTransactionRepository.findByWallet_IdAndIdempotencyKey(
+                walletId, "studying-request-refund-" + requestId))
+                .thenReturn(Optional.empty());
+        when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        walletService.credit(new WalletTransactionCommand(
+                userId,
+                new BigDecimal("10000.00"),
+                WalletTransactionPurpose.STUDYING_REQUEST_REFUND,
+                ReferenceType.STUDYING_REQUEST,
+                requestId,
+                "Refund for rejected studying request",
+                "studying-request-refund-" + requestId));
+
+        assertThat(wallet.getBalance()).isEqualByComparingTo("30000.00");
+    }
+
+    @Test
     void reserveAndReverseWithdrawalCreatesDebitAndReversalTransactions() {
         User user = User.builder().status(UserStatus.ACTIVE).build();
         user.setId(userId);

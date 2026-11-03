@@ -62,9 +62,19 @@ public final class SecurityConstants {
             "/api/v1/admin/teaching-requests/**"
     };
 
+    public static final String[] ADMIN_STUDYING_REQUEST_API = {
+            "/api/v1/admin/studying-requests",
+            "/api/v1/admin/studying-requests/**"
+    };
+
     public static final String[] ADMIN_COMPLAINT_API = {
             "/api/v1/admin/complaints",
             "/api/v1/admin/complaints/**"
+    };
+
+    public static final String[] ADMIN_REFUND_REQUEST_API = {
+            "/api/v1/admin/refund-requests",
+            "/api/v1/admin/refund-requests/**"
     };
 
     public static final String[] ADMIN_SUBJECT_API = {

@@ -374,7 +374,6 @@ Ví dụ tạo studying request:
 {
   "subjectId": "5f68e2cf-d21f-1c69-3fbd-1404b89f26ff",
   "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
-  "quantity": 1,
   "title": "Cần gia sư Toán lớp 10",
   "description": "Cần hỗ trợ ôn thi học kỳ.",
   "districtId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
@@ -421,7 +420,7 @@ API danh sách hỗ trợ các query parameter:
 GET /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests?page=0&size=20&status=PENDING
 ```
 
-Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi số Tutor được chấp nhận đạt `quantity` của studying request, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên.
+Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi Student chấp nhận Tutor đầu tiên, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên và Student có thể tự reject từng đề nghị.
 
 Khi gọi API, thêm header:
 
@@ -531,18 +530,31 @@ Chỉ đề nghị `PENDING` mới được hủy và khi hủy sẽ chuyển sa
 
 ### 6.12. API khiếu nại (Complaint)
 
-API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại. Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
+API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại; bên còn lại của hợp đồng là bên bị khiếu nại (respondent). Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
-| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING`, có thể kèm evidence URL |
+| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING` với `category` bắt buộc, có thể kèm evidence URL |
 | `GET` | `/api/v1/users/me/complaints` | Lấy khiếu nại của tôi; hỗ trợ `status`, `page`, `size` |
 | `GET` | `/api/v1/users/me/complaints/{complaintId}` | Xem trạng thái, resolution và evidence |
-| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật title, content và evidence của khiếu nại `PENDING` |
+| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật category, title, content và evidence của khiếu nại `PENDING` |
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
 | `POST` | `/api/v1/users/me/complaints/{complaintId}/evidences` | Bổ sung evidence khi complaint đang `AWAITING_EVIDENCE`; hệ thống đưa complaint về `IN_REVIEW` |
+| `GET` | `/api/v1/users/me/complaints/against-me` | Bên bị khiếu nại xem các khiếu nại về mình; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/users/me/complaints/against-me/{complaintId}` | Bên bị khiếu nại xem chi tiết, evidence của hai bên và kết luận |
+| `POST` | `/api/v1/users/me/complaints/against-me/{complaintId}/responses` | Bên bị khiếu nại gửi một phản hồi duy nhất, có thể kèm tối đa 5 evidence |
 
 Các trạng thái gồm `PENDING`, `IN_REVIEW`, `AWAITING_EVIDENCE`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`. Evidence bổ sung được append và không thay thế evidence đã có.
+
+`category` là nhận định của người gửi về loại vấn đề: `ABSENCE` (vắng mặt), `LATE_OR_SHORT` (đi muộn, dạy thiếu giờ), `TEACHING_QUALITY`, `MISCONDUCT`, `SERIOUS_MISCONDUCT` (quấy rối, lừa đảo, giao dịch ngoài nền tảng) hoặc `OTHER`. Complaint tạo trước khi có trường này trả về `category = null`.
+
+Bên bị khiếu nại chỉ thấy complaint từ khi nhân viên tiếp nhận (`IN_REVIEW`) trở đi, vì trước đó người gửi vẫn có thể sửa hoặc hủy. Họ được thông báo khi complaint được tiếp nhận và được gửi đúng một phản hồi trong lúc complaint còn `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; phản hồi và evidence đã gửi không sửa được. Khi complaint chưa có kết quả, API của bên bị khiếu nại không trả `resolution`, vì trường này đang chứa yêu cầu của nhân viên gửi cho người gửi. Mỗi evidence có `uploadedByUserId` để phân biệt evidence của hai bên.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `COMPLAINT_NOT_FOUND` (`404`) | Complaint không tồn tại, không liên quan tới user hiện tại, hoặc chưa được tiếp nhận khi gọi API của bên bị khiếu nại |
+| `RESPONDENT_RESPONSE_NOT_ALLOWED` (`409`) | Gửi phản hồi khi complaint không còn `IN_REVIEW`/`AWAITING_EVIDENCE` |
+| `RESPONDENT_RESPONSE_ALREADY_SUBMITTED` (`409`) | Bên bị khiếu nại gửi phản hồi lần thứ hai |
 
 ### 6.13. API hợp đồng (Contract)
 
@@ -605,6 +617,7 @@ Các API này dành cho role `TUTOR`. Gia sư chỉ quản lý buổi học thu�
 | `GET` | `/api/v1/tutors/me/lessons/{lessonId}` | Xem chi tiết một buổi học |
 | `PUT` | `/api/v1/tutors/me/lessons/{lessonId}` | Cập nhật tiêu đề, lịch và ghi chú của buổi `SCHEDULED` |
 | `PATCH` | `/api/v1/tutors/me/lessons/{lessonId}/status` | Cập nhật trạng thái buổi học |
+| `GET` | `/api/v1/students/me/contracts/{contractId}/lessons` | Học viên xem mọi buổi học của hợp đồng của mình, sắp theo ngày và giờ bắt đầu |
 | `POST` | `/api/v1/students/me/lessons/{lessonId}/confirm` | Học viên xác nhận buổi học `PENDING_CONFIRMATION` |
 
 Ví dụ tạo buổi học:
@@ -630,13 +643,16 @@ Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; 
 | Tutor | `SCHEDULED → PENDING_CONFIRMATION` | Tutor sở hữu contract; buổi học đã kết thúc (`date + endTime ≤ now`). |
 | Tutor | `SCHEDULED → CANCELLED` | Tutor sở hữu contract. |
 | Tutor | `PENDING_CONFIRMATION → CANCELLED` | Tutor sở hữu contract. |
-| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract và contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`. |
-| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Buổi học đã kết thúc ít nhất 3 ngày, student chưa xác nhận (vẫn `PENDING_CONFIRMATION`) và contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`. |
-| Admin | Chưa có | Chưa có API/service để admin đổi `LessonStatus`. |
+| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract, contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, và lesson không bị phản đối trong một yêu cầu hoàn tiền đang mở. |
+| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Đã ít nhất 3 ngày kể từ lúc buổi học được đánh dấu đã dạy (`markedTaughtAt`), student chưa xác nhận (vẫn `PENDING_CONFIRMATION`), contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, và lesson không bị phản đối trong một yêu cầu hoàn tiền đang mở. |
+| Kế toán khi duyệt hoàn tiền | `PENDING_CONFIRMATION → COMPLETED` hoặc `→ CANCELLED` | Lesson bị phản đối trong yêu cầu hoàn tiền: `TAUGHT` thành `COMPLETED`, `TUTOR_ABSENT`/`STUDENT_ABSENT` thành `CANCELLED` (mục 6.24.3). |
+| Admin | Chưa có | Ngoài luồng hoàn tiền, chưa có API/service để admin đổi `LessonStatus`. |
 
 `CONFIRMED`, `COMPLETED` và `CANCELLED` là trạng thái kết thúc trong luồng Lesson hiện tại, không có transition đi tiếp. Job tự động chạy theo chu kỳ cấu hình (`app.lesson.auto-completion-interval-ms`, mặc định 1 giờ); mốc chờ xác nhận cấu hình bằng `app.lesson.auto-completion-grace-days`, mặc định 3 ngày.
 
-Complaint đang xử lý sẽ giữ lesson ở `PENDING_CONFIRMATION`; admin xử lý complaint và quyết toán ở luồng Complaint/Payment riêng, không đổi trực tiếp trạng thái Lesson.
+`markedTaughtAt` là thời điểm buổi học chuyển sang `PENDING_CONFIRMATION`: lúc tutor đánh dấu đã dạy, hoặc lúc tạo nếu buổi học đã kết thúc. Thời gian chờ được tính từ mốc này, không tính từ giờ kết thúc buổi học, nên tutor đánh dấu muộn thì student vẫn có đủ 3 ngày để xác nhận hoặc phản đối. Với các buổi học khác, trường này là `null`.
+
+Complaint đang xử lý sẽ giữ mọi lesson `PENDING_CONFIRMATION` của contract; kết luận complaint không đổi trạng thái Lesson. Student phản đối một buổi không diễn ra bằng yêu cầu hoàn tiền (mục 6.24): yêu cầu đang mở chỉ giữ các buổi bị phản đối, và trạng thái của chúng được chốt khi kế toán duyệt.
 
 ### 6.15. API ví và tài khoản ngân hàng
 
@@ -797,7 +813,7 @@ Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. N
 | `PATCH` | `/api/v1/admin/certificates/{certificateId}/approve` | Phê duyệt certificate `PENDING` |
 | `PATCH` | `/api/v1/admin/certificates/{certificateId}/reject` | Từ chối certificate `PENDING`, bắt buộc có lý do |
 
-API danh sách hỗ trợ `page`, `size`, `status` và `keyword`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
+API danh sách hỗ trợ `page`, `size`, `status`, `keyword` và `excludePendingProfiles` (bỏ chứng chỉ của hồ sơ gia sư còn `PENDING`, vì các chứng chỉ đó được duyệt cùng hồ sơ). Kết quả có `tutorUserId` để mở `/api/v1/admin/tutors/{userId}`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
 
 ### 6.17. API Admin/Employee duyệt yêu cầu dạy
 
@@ -911,6 +927,11 @@ Các workflow hiện tạo notification tự động:
 | Thanh toán thành công hoặc sắp đến hạn học phí | `PAYMENT_SUCCEEDED`, `PAYMENT_INSTALLMENT_DUE` | Người thanh toán/Student | Đối tượng thanh toán hoặc `INSTALLMENT` |
 | Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REVIEW_REQUIRED` | Admin/Employee | `WITHDRAWAL_REQUEST` |
 | Xử lý Complaint | `COMPLAINT_EVIDENCE_REQUESTED`, `COMPLAINT_RESOLVED`, `COMPLAINT_REJECTED` | Người gửi Complaint | `COMPLAINT` |
+| Tiếp nhận và kết luận Complaint | `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` | Bên bị khiếu nại | `COMPLAINT` |
+| Student gửi yêu cầu hoàn tiền | `REFUND_REQUEST_REVIEW_REQUIRED` | Admin/Employee kế toán | `REFUND_REQUEST` |
+| Student gửi yêu cầu hoàn tiền | `REFUND_REQUEST_SUBMITTED` | Tutor của Contract | `REFUND_REQUEST` |
+| Tutor phản hồi yêu cầu hoàn tiền | `REFUND_REQUEST_TUTOR_RESPONDED` | Nhân viên đang xử lý | `REFUND_REQUEST` |
+| Duyệt hoặc từ chối yêu cầu hoàn tiền | `REFUND_REQUEST_APPROVED`, `REFUND_REQUEST_REJECTED` | Student và Tutor của Contract | `REFUND_REQUEST` |
 | Khóa hoặc mở lại tài khoản | `ACCOUNT_SUSPENDED`, `ACCOUNT_REACTIVATED` | Tài khoản bị tác động | `USER` |
 
 Notification nghiệp vụ được tạo với `isRead=false`. Với các workflow phát `NotificationDomainEvent`, listener chỉ lưu notification sau khi transaction nghiệp vụ commit thành công; vì vậy không tạo thông báo cho thao tác đã rollback. `referenceId` là ID của record liên quan, frontend nên kết hợp `referenceType` và `referenceId` để mở đúng màn hình chi tiết.
@@ -951,15 +972,33 @@ Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
-| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `keyword`, `page`, `size` |
-| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại và chuyển `PENDING → IN_REVIEW` |
+| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `category`, `faultParty`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, người gửi, bên bị khiếu nại và phản hồi của họ, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại, chuyển `PENDING → IN_REVIEW` và thông báo bên bị khiếu nại |
 | `PATCH` | `/api/v1/admin/complaints/{complaintId}/request-evidence` | Lưu yêu cầu vào `resolution`, chuyển `IN_REVIEW → AWAITING_EVIDENCE` và thông báo người gửi |
 | `PATCH` | `/api/v1/admin/complaints/{complaintId}/reassign` | Admin chuyển complaint đang mở sang một nhân viên khác mà không đổi trạng thái |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận, chuyển `IN_REVIEW → RESOLVED` và thông báo người gửi |
-| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo người gửi |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận và `faultParty`, chuyển `IN_REVIEW → RESOLVED` và thông báo hai bên |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo hai bên |
 
-Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý chưa tự động hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học.
+Khi chấp nhận complaint, nhân viên bắt buộc chọn bên có lỗi:
+
+```json
+{
+  "resolution": "Gia sư không tham gia buổi học ngày 12/10 và không báo trước.",
+  "faultParty": "RESPONDENT"
+}
+```
+
+| `faultParty` | Ý nghĩa |
+| --- | --- |
+| `RESPONDENT` | Bên bị khiếu nại có lỗi |
+| `COMPLAINANT` | Chính người gửi có lỗi, ví dụ gia sư khiếu nại để phản đối nhưng minh chứng cho thấy buổi học không diễn ra |
+| `BOTH` | Cả hai bên có lỗi |
+| `NONE` | Không bên nào có lỗi, ví dụ sự cố khách quan |
+
+`faultParty` chỉ có giá trị khi complaint `RESOLVED`; complaint `REJECTED` (không đủ căn cứ để xét) và complaint được kết luận trước khi có trường này luôn trả `faultParty = null`. Database cũng chặn việc lưu `fault_party` cho complaint chưa `RESOLVED`. API `reject` giữ nguyên body `{ "resolution": "..." }`.
+
+Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý complaint không tự hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học; tiền được hoàn qua yêu cầu hoàn tiền (mục 6.24). Complaint đang mở chặn việc duyệt hoàn tiền trên cùng contract.
 
 ### 6.21. API Admin/Employee quản lý học viên
 
@@ -1015,7 +1054,7 @@ API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contrac
 
 ### 6.22. API Admin/Employee quản lý gia sư
 
-Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT`. Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
+Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT` hoặc `CONTENT_REVIEWER` (người duyệt cần xem hồ sơ và chứng chỉ trước khi duyệt; chỉ áp dụng cho `GET`). Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1040,6 +1079,8 @@ Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` h
 | `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/approve` | Chuyển hồ sơ `PENDING → VERIFIED` |
 | `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/reject` | Chuyển hồ sơ `PENDING → REJECTED`; lý do bắt buộc từ 10 đến 500 ký tự |
 
+Sau khi duyệt, gia sư nhận thông báo `TUTOR_PROFILE_APPROVED` hoặc `TUTOR_PROFILE_REJECTED` (kèm lý do). `GET /api/v1/tutors/me` trả về `profileStatus`, `profileReviewedAt` và `profileRejectionReason` để trang hồ sơ của gia sư hiển thị kết quả duyệt.
+
 Việc cập nhật các trường nghề nghiệp của Tutor đưa hồ sơ về `PENDING` và xoá metadata lần duyệt trước. Quy trình duyệt khóa bản ghi Tutor trong transaction để tránh hai người xử lý đồng thời. Chỉ tài khoản `ACTIVE` có hồ sơ `VERIFIED` mới đủ điều kiện tham gia đề xuất; trạng thái không đủ điều kiện không làm điểm bị ép về `0`.
 
 Khoá/mở khoá tiếp tục dùng `PATCH /api/v1/admin/users/{userId}/suspend` và `PATCH /api/v1/admin/users/{userId}/reactivate`. Không tạo API khoá riêng cho gia sư và không tự động huỷ hợp đồng, lesson, payment hoặc thay đổi ví. Các API chi tiết hợp đồng và buổi dạy luôn kiểm tra quan hệ sở hữu để ngăn truy xuất chéo.
@@ -1059,9 +1100,132 @@ Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không đư�
 
 Khi tạo nhân viên, backend chuẩn hóa email, kiểm tra email/CCCD không trùng, mã hóa CCCD, hash mật khẩu bằng BCrypt và không tạo ví. Tài khoản hoạt động ngay sau khi tạo; Admin tự bàn giao email và mật khẩu ban đầu cho nhân viên. API không bao giờ trả lại mật khẩu, CCCD đầy đủ, ciphertext hoặc hash CCCD.
 
-`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `COMPLAINT_HANDLER` xử lý khiếu nại, `CONTENT_REVIEWER` duyệt chứng chỉ/yêu cầu dạy và danh mục, `USER_SUPPORT` quản lý tài khoản Student/Tutor; `ACCOUNTANT` được dành cho API kế toán. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn.
+`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `COMPLAINT_HANDLER` xử lý khiếu nại, `CONTENT_REVIEWER` duyệt chứng chỉ/yêu cầu dạy và danh mục, `USER_SUPPORT` quản lý tài khoản Student/Tutor; `ACCOUNTANT` xử lý yêu cầu hoàn tiền. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn.
 
-Không thể vô hiệu hóa hoặc chuyển nhân viên khỏi `COMPLAINT_HANDLER` khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
+Không thể vô hiệu hóa hoặc chuyển nhân viên khỏi `COMPLAINT_HANDLER` khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, hoặc khỏi `ACCOUNTANT` khi họ còn yêu cầu hoàn tiền `IN_REVIEW`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
+
+### 6.24. API hoàn tiền buổi học (Refund Request)
+
+Chức năng này xử lý một trường hợp: buổi học Tutor đã đánh dấu đã dạy (`PENDING_CONFIRMATION`) nhưng thực tế không diễn ra. Student gửi yêu cầu cho các buổi đó, Tutor phản hồi, nhân viên kế toán kết luận từng buổi. Tiền chỉ được cộng vào `wallet.balance` qua `WalletService`, không có chuyển khoản ngân hàng, và chức năng không thay đổi trạng thái Contract.
+
+Mỗi buổi bị phản đối có một kết quả (`LessonOutcome`) do Student nêu, Tutor phản hồi và kế toán kết luận:
+
+| Kết quả | Hoàn cho Student | Cộng cho Tutor | Lesson sau khi duyệt |
+| --- | --- | --- | --- |
+| `TUTOR_ABSENT` (gia sư không dạy) | 100% học phí của buổi | 0 | `CANCELLED` |
+| `STUDENT_ABSENT` (học viên nghỉ) | 80% học phí của buổi | 20% còn lại (`TUTOR_EARNING`) | `CANCELLED` |
+| `TAUGHT` (thực tế đã dạy) | 0 | 0 | `COMPLETED` |
+
+Học phí một buổi = tổng `amount` các kỳ thanh toán chưa `CANCELLED` / `totalLessons`, làm tròn tới đồng. Tỷ lệ cấu hình bằng `app.refund.rates.tutor-absent` (mặc định 100) và `app.refund.rates.student-absent` (mặc định 80). Tổng tiền hoàn của một Contract không vượt tổng học phí `PAID` trừ phần đã hoàn trước đó.
+
+Trạng thái gồm `PENDING`, `IN_REVIEW`, `REFUNDED`, `REJECTED`, `CANCELLED`:
+
+| Chuyển trạng thái | Chủ thể | Điều kiện |
+| --- | --- | --- |
+| `→ PENDING` | Student | Student thuộc Contract đã ký và đã đóng học phí, chưa có yêu cầu `PENDING`/`IN_REVIEW` khác trên Contract |
+| `PENDING → CANCELLED` | Student | Student đã gửi yêu cầu |
+| `PENDING → IN_REVIEW` | Admin/Employee | Gán nhân viên hiện tại làm người xử lý |
+| `IN_REVIEW → REFUNDED` | Nhân viên được gán | Tutor đã phản hồi hoặc đã quá hạn phản hồi, đã kết luận mọi buổi, Contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, có ít nhất một buổi không phải `TAUGHT` |
+| `IN_REVIEW → REJECTED` | Nhân viên được gán | Có lý do từ chối |
+
+#### 6.24.1. Student gửi và theo dõi yêu cầu
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/refund-requests` | Tạo yêu cầu `PENDING` |
+| `GET` | `/api/v1/students/me/refund-requests` | Danh sách yêu cầu của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/students/me/refund-requests/{refundRequestId}` | Chi tiết, phản hồi của Tutor và kết quả |
+| `PATCH` | `/api/v1/students/me/refund-requests/{refundRequestId}/cancel` | Hủy yêu cầu còn `PENDING` |
+
+```json
+{
+  "contractId": "11111111-1111-1111-1111-111111111111",
+  "description": "Buổi 21/10 gia sư không vào lớp, buổi 23/10 em bị ốm nên xin nghỉ.",
+  "lessons": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "claimedOutcome": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "claimedOutcome": "STUDENT_ABSENT" }
+  ],
+  "evidences": [{ "fileUrl": "https://cdn.example.com/tin-nhan.png", "fileType": "image/png" }]
+}
+```
+
+`lessons` có ít nhất một buổi; `claimedOutcome` chỉ nhận `TUTOR_ABSENT` hoặc `STUDENT_ABSENT`. Chỉ chọn được Lesson `PENDING_CONFIRMATION` của Contract, tức là trong vòng 3 ngày kể từ `markedTaughtAt`. `description` bắt buộc, tối đa 2000 ký tự; `evidences` tối đa 5 file. Trong lúc yêu cầu còn `PENDING` hoặc `IN_REVIEW`, các buổi bị phản đối không xác nhận được và không bị job tự động chuyển `COMPLETED`; các buổi khác của Contract vẫn chạy bình thường.
+
+#### 6.24.2. Tutor phản hồi
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me/refund-requests` | Các yêu cầu hoàn tiền trên Contract của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/tutors/me/refund-requests/{refundRequestId}` | Chi tiết yêu cầu, các buổi bị phản đối và hạn phản hồi |
+| `POST` | `/api/v1/tutors/me/refund-requests/{refundRequestId}/response` | Gửi phản hồi duy nhất |
+
+```json
+{
+  "message": "Buổi 21/10 tôi bị ốm, quên hủy trên hệ thống. Buổi 23/10 học viên không vào lớp.",
+  "lessonPositions": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "position": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "position": "STUDENT_ABSENT" }
+  ],
+  "evidences": [{ "fileUrl": "https://cdn.example.com/ban-ghi.mp4", "fileType": "video/mp4" }]
+}
+```
+
+Tutor nhận notification ngay khi Student gửi yêu cầu. Phản hồi chỉ gửi được một lần, khi yêu cầu còn `PENDING` hoặc `IN_REVIEW`, và phải có `position` (`TAUGHT`, `TUTOR_ABSENT` hoặc `STUDENT_ABSENT`) cho đúng từng buổi bị phản đối. Hạn phản hồi (`tutorResponseDeadline`) là 48 giờ kể từ lúc Student gửi, cấu hình bằng `app.refund.tutor-response-hours`. Quá hạn mà chưa phản hồi thì kế toán được xử lý tiếp; Tutor vẫn có thể gửi complaint trên Contract, và complaint đang mở sẽ chặn việc duyệt.
+
+#### 6.24.3. Admin/Employee xử lý yêu cầu
+
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=ACCOUNTANT`. Sau khi tiếp nhận, chỉ nhân viên được gán mới duyệt hoặc từ chối được.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/refund-requests` | Danh sách; hỗ trợ `status` (mặc định `PENDING`), `contractId`, `keyword`, `page`, `size`; cũ nhất trước |
+| `GET` | `/api/v1/admin/refund-requests/{refundRequestId}` | Chi tiết yêu cầu, phản hồi của Tutor, Contract, payment học phí, complaint đang mở và bảng tính |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/start-review` | Gán nhân viên hiện tại, chuyển `PENDING → IN_REVIEW` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/approve` | Kết luận từng buổi, hoàn tiền, chuyển `IN_REVIEW → REFUNDED` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/reassign` | Admin chuyển yêu cầu `IN_REVIEW` cho một kế toán khác |
+
+```json
+{
+  "expectedAmount": 450000,
+  "lessonDecisions": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "decision": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "decision": "STUDENT_ABSENT" }
+  ],
+  "note": "Gia sư xác nhận nghỉ buổi 21/10."
+}
+```
+
+Ví dụ: Contract 2 kỳ × 2.000.000đ cho 16 buổi có học phí 250.000đ một buổi. Với hai kết luận trên, Student được hoàn 250.000 + 200.000 = 450.000đ và Tutor được cộng 50.000đ. Bảng tính trong API chi tiết dùng kết luận đã có, còn buổi chưa kết luận thì dùng nguyên nhân Student nêu. Backend luôn tự tính lại; nếu khác `expectedAmount` thì trả lỗi để nhân viên xem lại số liệu mới. Nếu mọi buổi được kết luận `TAUGHT`, nhân viên dùng `reject` thay vì `approve`.
+
+Khi duyệt, trong cùng một transaction:
+
+1. Cộng tiền vào ví Student bằng giao dịch `CREDIT + CONTRACT_REFUND + COMPLETED`, `referenceType = REFUND_REQUEST`, idempotency key `contract-refund-{refundRequestId}`.
+2. Cộng phần của Tutor (nếu có) bằng `CREDIT + TUTOR_EARNING + COMPLETED`, idempotency key `refund-tutor-share-{refundRequestId}`.
+3. Phân bổ số tiền hoàn vào `refundedAmount` của các payment học phí, payment mới nhất trước; payment được hoàn đủ chuyển `REFUNDED`.
+4. Chuyển buổi `TAUGHT` sang `COMPLETED`, buổi `TUTOR_ABSENT`/`STUDENT_ABSENT` sang `CANCELLED`.
+5. Lưu học phí mỗi buổi, số tiền hoàn, phần của Tutor, người duyệt và thời điểm duyệt, rồi thông báo cho Student và Tutor.
+
+Khi từ chối, ví không thay đổi và các buổi bị phản đối được trả về luồng xác nhận bình thường. Gọi lại `approve` không cộng ví lần thứ hai. Thao tác thay đổi trạng thái khóa yêu cầu trong transaction để hai nhân viên không xử lý đồng thời. Nếu tài khoản Student hoặc Tutor không `ACTIVE`, `WalletService` từ chối cộng tiền và yêu cầu giữ nguyên trạng thái.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `REFUND_REQUEST_NOT_FOUND` (`404`) | Yêu cầu không tồn tại hoặc không liên quan tới user hiện tại |
+| `REFUND_REQUEST_ALREADY_OPEN` (`409`) | Contract đã có yêu cầu `PENDING` hoặc `IN_REVIEW` |
+| `CONTRACT_NOT_REFUNDABLE` (`409`) | Contract còn `PENDING` hoặc chưa có học phí `PAID` |
+| `INVALID_CLAIMED_OUTCOME` (`400`) | `claimedOutcome` là `TAUGHT` |
+| `DUPLICATE_DISPUTED_LESSON` (`400`) | Một buổi xuất hiện hai lần trong `lessons` |
+| `LESSON_NOT_DISPUTABLE` (`409`) | Buổi được chọn không thuộc Contract hoặc không còn `PENDING_CONFIRMATION` |
+| `INVALID_REFUND_REQUEST_STATUS_TRANSITION` (`409`) | Thao tác không hợp lệ với trạng thái hiện tại |
+| `REFUND_REQUEST_REVIEW_FORBIDDEN` (`403`) | Nhân viên không phải người được gán |
+| `TUTOR_RESPONSE_ALREADY_SUBMITTED` (`409`) | Tutor gửi phản hồi lần thứ hai |
+| `TUTOR_RESPONSE_NOT_ALLOWED` (`409`) | Tutor phản hồi khi yêu cầu đã kết thúc hoặc đã quá hạn phản hồi |
+| `LESSON_POSITION_REQUIRED` (`400`) | `lessonPositions` thiếu hoặc thừa so với các buổi bị phản đối |
+| `TUTOR_RESPONSE_WINDOW_OPEN` (`409`) | Duyệt khi Tutor chưa phản hồi và chưa quá hạn |
+| `CONTRACT_HAS_OPEN_COMPLAINT` (`409`) | Duyệt khi Contract còn complaint chưa có kết luận |
+| `LESSON_DECISION_REQUIRED` (`400`) | `lessonDecisions` thiếu hoặc thừa so với các buổi bị phản đối |
+| `NOTHING_TO_REFUND` (`409`) | Mọi buổi được kết luận `TAUGHT` |
+| `REFUND_AMOUNT_CHANGED` (`409`) | `expectedAmount` khác số tiền backend tính lại |
 
 ### 7. Khởi động Frontend
 

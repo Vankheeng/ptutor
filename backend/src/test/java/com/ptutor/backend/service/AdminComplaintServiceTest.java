@@ -3,7 +3,9 @@ package com.ptutor.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -32,6 +34,8 @@ import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.dto.enums.UserRole;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
@@ -91,6 +95,25 @@ class AdminComplaintServiceTest {
         assertThat(response.status()).isEqualTo(ComplaintStatus.IN_REVIEW);
         assertThat(response.reviewer().employeeId()).isEqualTo(reviewer.getId());
         assertThat(complaint.getEmployee()).isEqualTo(reviewer);
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.COMPLAINT_RECEIVED_AGAINST_YOU);
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(tutorUserId(complaint));
+    }
+
+    @Test
+    void detailExposesRespondentAsTheOtherContractParticipant() {
+        Complaint complaint = complaint(ComplaintStatus.IN_REVIEW, reviewer);
+        complaint.setRespondentResponse("I was there on time");
+        when(complaintRepository.findDetailedById(complaintId)).thenReturn(Optional.of(complaint));
+        stubRelatedData(complaint.getContract().getId());
+
+        var response = service.findById(complaintId);
+
+        assertThat(response.complainant().role()).isEqualTo(UserRole.STUDENT);
+        assertThat(response.respondent().userId()).isEqualTo(tutorUserId(complaint));
+        assertThat(response.respondent().role()).isEqualTo(UserRole.TUTOR);
+        assertThat(response.respondent().response()).isEqualTo("I was there on time");
     }
 
     @Test
@@ -115,7 +138,8 @@ class AdminComplaintServiceTest {
         Complaint complaint = complaint(ComplaintStatus.IN_REVIEW, reviewer);
         when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
 
-        assertThatThrownBy(() -> service.accept(UUID.randomUUID(), complaintId, "Valid complaint"))
+        assertThatThrownBy(() -> service.accept(
+                UUID.randomUUID(), complaintId, "Valid complaint", ComplaintFaultParty.RESPONDENT))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
                     assertThat(exception.getCode()).isEqualTo("COMPLAINT_REVIEW_FORBIDDEN");
@@ -141,11 +165,51 @@ class AdminComplaintServiceTest {
         when(complaintRepository.saveAndFlush(complaint)).thenReturn(complaint);
         stubRelatedData(complaint.getContract().getId());
 
-        var response = service.accept(reviewerUserId, complaintId, "Complaint is valid");
+        var response = service.accept(
+                reviewerUserId, complaintId, "Complaint is valid", ComplaintFaultParty.RESPONDENT);
 
         assertThat(response.status()).isEqualTo(ComplaintStatus.RESOLVED);
+        assertThat(response.faultParty()).isEqualTo(ComplaintFaultParty.RESPONDENT);
         assertThat(response.resolvedAt()).isEqualTo("2026-09-26T03:00:00");
-        verify(eventPublisher).publishEvent(any(NotificationDomainEvent.class));
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher, times(2)).publishEvent(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(NotificationDomainEvent::eventType, NotificationDomainEvent::recipientUserId)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(
+                                NotificationEventType.COMPLAINT_RESOLVED, complaint.getUser().getId()),
+                        org.assertj.core.groups.Tuple.tuple(
+                                NotificationEventType.COMPLAINT_AGAINST_YOU_RESOLVED, tutorUserId(complaint)));
+        assertThat(captor.getAllValues().get(1).data()).containsEntry("faultParty", "RESPONDENT");
+    }
+
+    @Test
+    void acceptRequiresFaultParty() {
+        assertThatThrownBy(() -> service.accept(reviewerUserId, complaintId, "Complaint is valid", null))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("FAULT_PARTY_REQUIRED");
+                });
+        verifyNoInteractions(complaintRepository);
+    }
+
+    @Test
+    void rejectLeavesFaultPartyEmptyAndNotifiesBothParties() {
+        Complaint complaint = complaint(ComplaintStatus.IN_REVIEW, reviewer);
+        when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));
+        when(complaintRepository.saveAndFlush(complaint)).thenReturn(complaint);
+        stubRelatedData(complaint.getContract().getId());
+
+        var response = service.reject(reviewerUserId, complaintId, "Insufficient evidence");
+
+        assertThat(response.status()).isEqualTo(ComplaintStatus.REJECTED);
+        assertThat(response.faultParty()).isNull();
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher, times(2)).publishEvent(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(NotificationDomainEvent::eventType)
+                .containsExactly(NotificationEventType.COMPLAINT_REJECTED,
+                        NotificationEventType.COMPLAINT_AGAINST_YOU_REJECTED);
     }
 
     @Test
@@ -185,6 +249,10 @@ class AdminComplaintServiceTest {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
                     assertThat(exception.getCode()).isEqualTo("COMPLAINT_REASSIGN_FORBIDDEN");
                 });
+    }
+
+    private UUID tutorUserId(Complaint complaint) {
+        return complaint.getContract().getTutor().getUser().getId();
     }
 
     private void stubRelatedData(UUID contractId) {

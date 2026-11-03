@@ -1,7 +1,6 @@
 package com.ptutor.backend.repository;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +22,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     Page<Lesson> findAllByContract_IdAndStatus(UUID contractId, LessonStatus status, Pageable pageable);
 
     List<Lesson> findAllByContract_IdOrderByDateAscStartTimeAsc(UUID contractId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select lesson from Lesson lesson where lesson.id in :lessonIds")
+    List<Lesson> findAllByIdForUpdate(@Param("lessonIds") java.util.Collection<UUID> lessonIds);
 
     long countByContract_Student_User_Id(UUID userId);
 
@@ -112,12 +115,10 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
             select lesson
             from Lesson lesson
             where lesson.status = :status
-              and (lesson.date < :deadlineDate
-                   or (lesson.date = :deadlineDate and lesson.endTime <= :deadlineTime))
+              and lesson.markedTaughtAt <= :deadline
             """)
-    List<Lesson> findAllFinishedBefore(
+    List<Lesson> findAllMarkedTaughtBefore(
             @Param("status") LessonStatus status,
-            @Param("deadlineDate") LocalDate deadlineDate,
-            @Param("deadlineTime") LocalTime deadlineTime);
+            @Param("deadline") LocalDateTime deadline);
 
 }

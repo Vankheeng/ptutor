@@ -11,6 +11,7 @@ import static org.mockito.Mockito.lenient;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -58,6 +59,7 @@ class LessonServiceTest {
     @Mock ComplaintRepository complaintRepository;
     @Mock ContractPaymentInstallmentService installmentService;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock com.ptutor.backend.repository.RefundRequestLessonRepository refundRequestLessonRepository;
 
     private LessonService service;
     private UUID userId;
@@ -77,6 +79,7 @@ class LessonServiceTest {
                 tutorRepository,
                 studentRepository,
                 complaintRepository,
+                refundRequestLessonRepository,
                 testMapper(),
                 Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
                 installmentService,
@@ -98,6 +101,7 @@ class LessonServiceTest {
 
         assertThat(response.contractId()).isEqualTo(contractId);
         assertThat(response.status()).isEqualTo(LessonStatus.SCHEDULED);
+        assertThat(response.markedTaughtAt()).isNull();
         assertThat(response.teachingMode()).isEqualTo(TeachingMode.ONLINE);
     }
 
@@ -120,6 +124,7 @@ class LessonServiceTest {
                 null));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_MARKED_TAUGHT);
@@ -183,6 +188,7 @@ class LessonServiceTest {
                 new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
     }
 
     @Test
@@ -218,6 +224,57 @@ class LessonServiceTest {
     }
 
     @Test
+    void studentListsLessonsOfOwnContractOnly() {
+        Contract own = contract();
+        own.setStudent(student());
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(own));
+        when(lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId))
+                .thenReturn(java.util.List.of(lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION)));
+
+        assertThat(service.findByContractForStudent(userId, contractId)).hasSize(1);
+
+        Contract other = contract();
+        Student someoneElse = Student.builder().build();
+        someoneElse.setId(UUID.randomUUID());
+        other.setStudent(someoneElse);
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(other));
+        assertThatThrownBy(() -> service.findByContractForStudent(userId, contractId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void studentCannotConfirmLessonDisputedInOpenRefundRequest() {
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+        when(refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(eq(lessonId), any()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.confirmByStudent(userId, lessonId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("LESSON_COMPLETION_ON_HOLD"));
+    }
+
+    @Test
+    void autoCompletionSkipsLessonsDisputedInOpenRefundRequest() {
+        Lesson held = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        Lesson free = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of(held, free));
+        when(refundRequestLessonRepository.findHeldLessonIds(any(), any())).thenReturn(java.util.List.of(held.getId()));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+
+        int completedCount = service.completeExpiredPendingLessons(3);
+
+        assertThat(completedCount).isEqualTo(1);
+        assertThat(held.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(free.getStatus()).isEqualTo(LessonStatus.COMPLETED);
+    }
+
+    @Test
     void studentCannotConfirmWhenContractHasBlockingComplaint() {
         UUID lessonId = UUID.randomUUID();
         Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
@@ -237,8 +294,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
 
@@ -254,8 +312,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(true);
 
@@ -263,6 +322,18 @@ class LessonServiceTest {
 
         assertThat(completedCount).isZero();
         assertThat(lesson.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+    }
+
+    @Test
+    void autoCompletionCountsGracePeriodFromMarkedTaughtTime() {
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of());
+
+        service.completeExpiredPendingLessons(3);
+
+        // A lesson that ended weeks ago but was only marked as taught today is not a candidate:
+        // the repository is asked for lessons marked as taught at least 3 days before now.
+        verify(lessonRepository).findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0));
     }
 
     private LessonRequest createRequest() {
@@ -344,6 +415,7 @@ class LessonServiceTest {
                 lesson.getTeachingMode(),
                 lesson.getStatus(),
                 lesson.getNote(),
+                lesson.getMarkedTaughtAt(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt());
     }

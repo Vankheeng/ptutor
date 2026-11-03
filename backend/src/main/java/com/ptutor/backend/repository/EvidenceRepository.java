@@ -11,4 +11,6 @@ import com.ptutor.backend.entity.Evidence;
 public interface EvidenceRepository extends JpaRepository<Evidence, UUID> {
 
     List<Evidence> findAllByComplaint_IdInOrderByCreatedAtAsc(Collection<UUID> complaintIds);
+
+    List<Evidence> findAllByRefundRequest_IdOrderByCreatedAtAsc(UUID refundRequestId);
 }

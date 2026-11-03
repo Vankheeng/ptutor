@@ -53,8 +53,8 @@ public class StudyingRequest extends BaseEntity {
     @NonFinal
     private Student student;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "subject_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
     @NonFinal
     private Subject subject;
 
@@ -62,10 +62,6 @@ public class StudyingRequest extends BaseEntity {
     @JoinColumn(name = "grade_id", nullable = false)
     @NonFinal
     private Grade grade;
-
-    @Column(name = "quantity", nullable = false)
-    @NonFinal
-    private Integer quantity;
 
     @Column(name = "title", length = 255)
     @NonFinal
@@ -108,6 +104,19 @@ public class StudyingRequest extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    @NonFinal
+    private Employee reviewedBy;
+
+    @Column(name = "reviewed_at")
+    @NonFinal
+    private java.time.LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    @NonFinal
+    private String rejectionReason;
 
     @OneToMany(mappedBy = "studyingRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dayOfWeek ASC, startTime ASC")

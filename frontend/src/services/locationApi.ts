@@ -3,6 +3,7 @@ import type { District, Province } from '../types/api';
 
 let provincesPromise: Promise<Province[]> | null = null;
 const districtPromises = new Map<string, Promise<District[]>>();
+let allDistrictsPromise: Promise<District[]> | null = null;
 
 export function getProvinces(): Promise<Province[]> {
   if (!provincesPromise) {
@@ -26,4 +27,14 @@ export function getDistricts(provinceId: string): Promise<District[]> {
   );
   districtPromises.set(provinceId, request);
   return request;
+}
+
+export function getAllDistricts(): Promise<District[]> {
+  if (!allDistrictsPromise) {
+    allDistrictsPromise = get<District[]>('/api/v1/districts').catch((error: unknown) => {
+      allDistrictsPromise = null;
+      throw error;
+    });
+  }
+  return allDistrictsPromise;
 }

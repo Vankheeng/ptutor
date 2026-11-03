@@ -187,7 +187,7 @@ class ContractServiceTest {
     void studentCannotCreateContractFromAnotherStudentsStudyingRequest() {
         Student otherStudent = student(UUID.randomUUID());
         StudyingRequest studyingRequest = StudyingRequest.builder()
-                .student(otherStudent).subject(subject).grade(grade).quantity(1)
+                .student(otherStudent).subject(subject).grade(grade)
                 .learningMode(LearningMode.ONLINE).status(RequestStatus.OPEN).build();
         studyingRequest.setId(studyingRequestId);
         TutorStudentRequest tutorRequest = TutorStudentRequest.builder()
@@ -540,7 +540,7 @@ class ContractServiceTest {
 
     private StudyingRequest studyingRequest(RequestStatus status) {
         StudyingRequest request = StudyingRequest.builder()
-                .student(student).subject(subject).grade(grade).quantity(1)
+                .student(student).subject(subject).grade(grade)
                 .learningMode(LearningMode.ONLINE).status(status).build();
         request.setId(studyingRequestId);
         return request;

@@ -39,7 +39,10 @@ public interface StudyingRequestMapper {
     @Mapping(target = "gradeName", source = "request.grade.name")
     @Mapping(target = "districtId", source = "request.district.id")
     @Mapping(target = "districtName", source = "request.district.name")
+    @Mapping(target = "provinceName", source = "request.district.province.name")
     @Mapping(target = "availabilities", source = "availabilityResponses")
+    @Mapping(target = "studentFirstName", source = "request.student.user.firstName")
+    @Mapping(target = "studentLastName", source = "request.student.user.lastName")
     StudyingRequestSearchResponse toSearchResponse(
             StudyingRequest request,
             List<StudyingRequestSearchResponse.Availability> availabilityResponses);
@@ -56,6 +59,9 @@ public interface StudyingRequestMapper {
     @Mapping(target = "grade", ignore = true)
     @Mapping(target = "district", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "reviewedAt", ignore = true)
+    @Mapping(target = "rejectionReason", ignore = true)
     @Mapping(target = "availabilities", ignore = true)
     void updateEntity(StudyingRequestUpdateRequest source, @MappingTarget StudyingRequest target);
 }

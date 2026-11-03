@@ -16,7 +16,6 @@ public record StudyingRequestResponse(
         String subjectName,
         UUID gradeId,
         String gradeName,
-        Integer quantity,
         UUID districtId,
         String districtName,
         String title,

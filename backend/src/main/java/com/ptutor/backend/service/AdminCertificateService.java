@@ -22,6 +22,7 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CertificateRepository;
@@ -76,10 +77,12 @@ public class AdminCertificateService {
 
     @Transactional(readOnly = true)
     public PageResponse<AdminCertificateSummaryResponse> findAll(
-            CertificateStatus status, String keyword, Pageable pageable) {
+            CertificateStatus status, String keyword, boolean excludePendingProfiles, Pageable pageable) {
         String normalizedKeyword = keyword == null ? "" : keyword.strip();
+        // Certificates of a profile still under review are checked together with that profile.
+        TutorProfileStatus excludedProfileStatus = excludePendingProfiles ? TutorProfileStatus.PENDING : null;
         Page<Certificate> certificates = certificateRepository.findAllForReview(
-                status, normalizedKeyword, pageable);
+                status, excludedProfileStatus, normalizedKeyword, pageable);
         return PageResponse.from(certificates, certificates.getContent().stream()
                 .map(this::toSummaryResponse)
                 .toList());
@@ -149,7 +152,7 @@ public class AdminCertificateService {
     private AdminCertificateSummaryResponse toSummaryResponse(Certificate certificate) {
         User user = certificate.getTutor().getUser();
         return new AdminCertificateSummaryResponse(
-                certificate.getId(), certificate.getTutor().getId(), fullName(user), user.getEmail(),
+                certificate.getId(), certificate.getTutor().getId(), user.getId(), fullName(user), user.getEmail(),
                 certificate.getName(), certificate.getIssuingOrganization(), certificate.getIssueDate(),
                 certificate.getExpiryDate(), certificate.getStatus(), certificate.getCreatedAt());
     }
@@ -162,7 +165,8 @@ public class AdminCertificateService {
             reviewer = new CertificateReviewerResponse(reviewedBy.getId(), fullName(reviewedBy.getUser()));
         }
         return new AdminCertificateDetailResponse(
-                certificate.getId(), certificate.getTutor().getId(), fullName(tutorUser), tutorUser.getEmail(),
+                certificate.getId(), certificate.getTutor().getId(), tutorUser.getId(), fullName(tutorUser),
+                tutorUser.getEmail(),
                 tutorUser.getAvatarUrl(), certificate.getName(), certificate.getIssuingOrganization(),
                 certificate.getDescription(), certificate.getIssueDate(), certificate.getExpiryDate(),
                 certificateFileStorageService == null ? certificate.getCertificateUrl()
