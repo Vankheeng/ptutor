@@ -78,6 +78,12 @@ class Settings(BaseSettings):
     context_token_cap: int = 10_000
     max_message_chars: int = 1000
 
+    # --- Bộ nhớ hội thoại (M9, thiết kế 04 mục 4.10) ---
+    history_turns: int = 6
+    history_token_budget: int = 1500
+    max_conversation_turns: int = 20  # quá mốc này widget chỉ gợi ý mở cuộc mới, không chặn
+    rewrite_enabled: bool = True  # tắt để chạy thí nghiệm E4
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

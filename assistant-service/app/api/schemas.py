@@ -41,3 +41,5 @@ class ChatResponse(BaseModel):
     intent: str = "POLICY"
     grounded: str = "NONE"
     createdAt: datetime
+    # Hội thoại vượt 20 lượt: widget chỉ gợi ý "Bắt đầu cuộc trò chuyện mới", không chặn (04 mục 4.10).
+    suggestNewConversation: bool = False

@@ -105,7 +105,8 @@ class ToolCallRecord:
     latency_ms: int = 0
     result_items: int | None = None
     result_text: str = ""  # kết quả đã lọc, chỉ để đưa model trong lượt này — KHÔNG lưu DB
-    result_data: Any = None  # dữ liệu đã lọc (dict/list) cho kiểm tra số liệu và cập nhật focus
+    result_data: Any = None  # dữ liệu đã lọc (dict/list) cho kiểm tra số liệu
+    focus_items: list[FocusItem] = field(default_factory=list)  # đối tượng có ID trong kết quả → session focus
 
 
 @dataclass
@@ -165,6 +166,7 @@ class TurnResult:
     conversation_id: uuid.UUID | None = None
     message_id: uuid.UUID | None = None
     show_support_button: bool = False
+    suggest_new_conversation: bool = False  # hội thoại vượt 20 lượt → widget gợi ý mở cuộc mới (04 mục 4.10)
 
 
 @dataclass

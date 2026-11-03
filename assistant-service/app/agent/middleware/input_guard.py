@@ -10,7 +10,7 @@ Ba việc, trước khi model thấy bất cứ thứ gì:
 from __future__ import annotations
 
 from app.agent.middleware.base import Middleware
-from app.agent.state import SessionState, TurnError, TurnState
+from app.agent.state import TurnError, TurnState
 from app.agent.trace import timed
 from app.db.conversations import ConversationStore
 from app.privacy.redact import redact
@@ -35,5 +35,4 @@ class InputGuardMiddleware(Middleware):
                 if info.ended_at is not None:
                     raise TurnError(409, "CONVERSATION_ENDED")
                 state.turn_number = info.turn_count + 1
-                state.session_state = SessionState.from_json(info.session_state)
             state.safe_question = redact(question)

@@ -12,9 +12,11 @@ from app.agent.middleware.base import Middleware
 from app.agent.middleware.budget import BudgetMiddleware
 from app.agent.middleware.context_injection import ContextInjectionMiddleware
 from app.agent.middleware.input_guard import InputGuardMiddleware
+from app.agent.middleware.memory import MemoryMiddleware
 from app.agent.middleware.model_call import ModelCallMiddleware
 from app.agent.middleware.output_schema import OutputSchemaMiddleware
 from app.agent.middleware.persistence import PersistenceMiddleware
+from app.agent.middleware.query import QueryMiddleware
 from app.agent.middleware.retrieval import RetrievalMiddleware
 from app.agent.middleware.trace import TraceMiddleware
 from app.agent.output_schema import ACTOR_OUTPUT_SCHEMA
@@ -26,14 +28,18 @@ from app.services import Services
 
 def build_middlewares(services: Services, composer: Composer) -> list[Middleware]:
     settings = services.settings
-    assert services.retriever is not None and services.conversations is not None
+    assert services.retriever is not None and services.llm is not None
     return [
         TraceMiddleware(),                                                    # ①③⑤⑥ mở / đóng trace
         BudgetMiddleware(settings, composer),                                 # ①②④⑤ ngân sách
         InputGuardMiddleware(services.conversations, settings.max_message_chars),  # ① đầu vào, sở hữu, che
+        MemoryMiddleware(services.conversations, settings.history_turns),    # ①⑥ lịch sử + sổ tay phiên
+        QueryMiddleware(services.llm, services.embedder, settings.effective_rewrite_model,
+                        rewrite_enabled=settings.rewrite_enabled),            # ① viết lại câu hỏi + embed
         RetrievalMiddleware(services.retriever, services.embedder),           # ① truy xuất lai
         ContextInjectionMiddleware(services.routes, services.counter, composer,
-                                   context_token_cap=settings.context_token_cap),  # ② dựng ngữ cảnh
+                                   context_token_cap=settings.context_token_cap,
+                                   history_budget=settings.history_token_budget),  # ② dựng ngữ cảnh
         ModelCallMiddleware(settings.llm_timeout_s, settings.llm_max_output_tokens),  # ③ timeout, thử lại
         OutputSchemaMiddleware(),                                             # ④ đúng schema JSON
         PersistenceMiddleware(services.conversations, settings.llm_model,

@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 3 — **bước:** M8 xong, bắt đầu M9.
-- **Việc tiếp theo:** M9 (MemoryMiddleware: lịch sử 6 lượt + focus; QueryMiddleware: viết lại câu hỏi + embed; /v1/conversations/{id}/end; khoá theo phiên 409 BUSY).
+- **Chặng hiện tại:** 3 — **bước:** M9 xong, bắt đầu M10.
+- **Việc tiếp theo:** M10 (backend Spring: AssistantController, AssistantProxyService, SecurityConstants.ASSISTANT_API, rate limit 20 tin / 5 phút, token nội bộ; assistant-service: các API hội thoại còn lại, feedback, suggestions).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -21,7 +21,7 @@
 - [x] M6 Truy xuất lai, RRF, rerank, hit@k
 - [x] M7 Trả lời có trích dẫn, small-to-big
 - [x] M8 `AgentRunner` + middleware cơ bản
-- [ ] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
+- [x] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
 - [ ] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
 - [ ] M11 Widget chat
 - [ ] M12 ScopeGuard
@@ -310,3 +310,35 @@ Bảng hội thoại (migration `0002`): `conversation`, `message`, `message_cit
    (Trace) đo cả thời gian thử lại của lớp trong (ModelCall).
 4. Một middleware ngắn để hiểu khuôn: `output_schema.py` (RETRY 1 lần rồi ABSTAIN), `budget.py` (cầu dao).
 5. `tests/unit/test_harness.py` → `test_runner_calls_hooks_in_registration_order...`: in ra đúng thứ tự gọi hook.
+
+## M9 — Bộ nhớ hội thoại
+
+**Đã làm.** `MemoryMiddleware` (① nạp 6 lượt gần nhất — chỉ câu hỏi đã che + câu trả lời cuối — và `session_state`;
+⑥ `update_focus`: thêm đối tượng **chỉ từ kết quả tool không bị chặn**, cập nhật `last_turn` khi được nhắc lại hoặc
+dùng làm tham số, tối đa 20 mục); `QueryMiddleware` (viết lại câu hỏi khi có lịch sử, prompt `rewrite_v1`, timeout 3
+giây, lỗi → dùng câu gốc; embed một lần mỗi lượt); `POST /v1/conversations/{id}/end`; khoá theo hội thoại →
+`409 CONVERSATION_BUSY`; `409 CONVERSATION_ENDED`; `suggestNewConversation` khi tới lượt 20.
+
+- File chính: `app/agent/middleware/memory.py`, `app/agent/middleware/query.py`, `app/agent/prompts/rewrite_v1.md`,
+  `app/api/conversations.py`, `app/api/chat.py`, `tests/unit/test_memory.py`.
+- Kiểm tra: 103 test xanh (T0 + T1). Có test của chính thiết kế 13 mục 13.1 `test_session_state_ignores_user_claims`.
+
+**Khác thiết kế.**
+- Thêm trường `suggestNewConversation` vào `ChatResponse` (thiết kế chỉ nói widget "gợi ý" khi vượt 20 lượt, chưa nói
+  widget biết số lượt bằng cách nào).
+- Việc nạp `session_state` chuyển từ InputGuard sang Memory (đúng bảng 02 mục 2.3: Memory ① "nạp lịch sử +
+  session_state").
+- Viết lại câu hỏi dùng 3 lượt gần nhất (cắt câu trả lời ở 400 ký tự) để lời gọi phụ ngắn và rẻ; Actor vẫn thấy đủ
+  6 lượt.
+- Câu hỏi đã viết lại được đưa cho Actor dưới dạng "(Câu hỏi đầy đủ: …)" kèm câu gốc, để Actor vẫn trả lời đúng
+  giọng người hỏi.
+
+**Còn dở.** `focus_items` sẽ được lớp lọc kết quả tool điền ở M14 (hiện chưa có tool nào chạy thật).
+
+**Đọc code này thế nào.**
+1. `app/agent/middleware/memory.py` → `update_focus`: **đáng học nhất** — vì sao chỉ đọc `record.focus_items` (dữ
+   liệu backend trả) mà không đọc câu hỏi của người dùng: chặn được việc "cài" ID lạ vào bộ nhớ.
+2. `app/agent/middleware/query.py` → `_rewrite`: lời gọi phụ có timeout riêng, lỗi thì lặng lẽ dùng câu gốc.
+3. `app/api/chat.py`: `lock.acquire(blocking=False)` → 409 thay vì chờ; nhớ `finally: lock.release()`.
+4. `tests/unit/test_memory.py` → `test_second_turn_with_pronoun_finds_document_through_rewrite`: luồng hai lượt đầy
+   đủ, câu "còn cách làm thì sao?" tìm đúng mục "Cách nạp" nhờ câu đã viết lại.
