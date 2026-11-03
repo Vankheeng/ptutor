@@ -16,11 +16,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.CreateWithdrawalRequest;
+import com.ptutor.backend.dto.request.ConfirmWalletSecurityChallengeRequest;
+import com.ptutor.backend.dto.request.RequestWithdrawalOtpRequest;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.WithdrawalResponse;
+import com.ptutor.backend.dto.response.WalletSecurityChallengeResponse;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.service.WithdrawalService;
+import com.ptutor.backend.service.WalletSecurityService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -36,6 +40,7 @@ public class WithdrawalController {
     private static final String WITHDRAWALS_PATH = "/api/v1/users/me/wallet/withdrawals";
 
     private final WithdrawalService withdrawalService;
+    private final WalletSecurityService walletSecurityService;
     private final ApiResponseFactory responseFactory;
 
     @PostMapping
@@ -45,9 +50,27 @@ public class WithdrawalController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(responseFactory.success(
                         "WITHDRAWAL_REQUESTED",
-                        "Withdrawal is pending approval",
+                        "Yêu cầu rút tiền đang chờ duyệt",
                         withdrawalService.create(request, idempotencyKey),
                         WITHDRAWALS_PATH));
+    }
+
+    @PostMapping("/otp")
+    public ResponseEntity<ApiResponse<WalletSecurityChallengeResponse>> requestOtp(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody RequestWithdrawalOtpRequest request) {
+        return ResponseEntity.ok(responseFactory.success("WITHDRAWAL_OTP_SENT",
+                "Mã xác minh rút tiền đã được gửi", walletSecurityService.requestWithdrawalOtp(request, idempotencyKey),
+                WITHDRAWALS_PATH + "/otp"));
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<ApiResponse<WithdrawalResponse>> confirm(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody ConfirmWalletSecurityChallengeRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseFactory.success("WITHDRAWAL_REQUESTED",
+                "Yêu cầu rút tiền đang chờ duyệt",
+                walletSecurityService.confirmWithdrawal(request, idempotencyKey), WITHDRAWALS_PATH + "/confirm"));
     }
 
     @GetMapping
@@ -63,7 +86,7 @@ public class WithdrawalController {
     public ResponseEntity<ApiResponse<WithdrawalResponse>> cancel(@PathVariable UUID withdrawalId) {
         return ResponseEntity.ok(responseFactory.success(
                 "WITHDRAWAL_CANCELLED",
-                "Withdrawal request cancelled and funds returned to the wallet",
+                "Đã hủy yêu cầu rút tiền và hoàn lại tiền vào ví",
                 withdrawalService.cancel(withdrawalId),
                 WITHDRAWALS_PATH + "/" + withdrawalId + "/cancel"));
     }

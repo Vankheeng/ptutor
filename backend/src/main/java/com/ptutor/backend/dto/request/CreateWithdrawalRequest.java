@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 
 public record CreateWithdrawalRequest(
         @NotNull(message = "Amount is required")
-        @DecimalMin(value = "0.01", message = "Amount must be greater than zero")
+        @DecimalMin(value = "50000", message = "Withdrawal amount must be at least 50,000 VND")
         @Digits(integer = 13, fraction = 2, message = "Amount must have at most 13 integer and 2 fractional digits")
         BigDecimal amount,
 

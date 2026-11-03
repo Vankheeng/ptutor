@@ -37,7 +37,8 @@ public final class SecurityConstants {
     public static final String[] PAYMENT_SELF_SERVICE_API = {
             "/api/v1/users/me/payments",
             "/api/v1/users/me/payments/**",
-            "/api/v1/users/me/transactions"
+            "/api/v1/users/me/transactions",
+            "/api/v1/users/me/transactions/**"
     };
 
     public static final String[] NOTIFICATION_SELF_SERVICE_API = {
@@ -142,7 +143,8 @@ public final class SecurityConstants {
     public static final String[] WALLET_SELF_SERVICE_API = {
             "/api/v1/users/me/wallet",
             "/api/v1/users/me/wallet/**",
-            "/api/v1/users/me/bank-account"
+            "/api/v1/users/me/bank-account",
+            "/api/v1/users/me/bank-account/**"
     };
 
     public static final String[] TUTOR_CERTIFICATE_READ_API = {

@@ -198,15 +198,7 @@ class PaymentServiceTest {
         assertThat(command.referenceId()).isEqualTo(paymentId);
         assertThat(command.idempotencyKey()).isEqualTo("payment:top-up:" + paymentId);
 
-        ArgumentCaptor<NotificationDomainEvent> eventCaptor =
-                ArgumentCaptor.forClass(NotificationDomainEvent.class);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        NotificationDomainEvent event = eventCaptor.getValue();
-        assertThat(event.recipientUserId()).isEqualTo(userId);
-        assertThat(event.eventType()).isEqualTo(NotificationEventType.PAYMENT_SUCCEEDED);
-        assertThat(event.referenceType()).isEqualTo(NotificationReferenceType.PAYMENT);
-        assertThat(event.referenceId()).isEqualTo(paymentId.toString());
-        assertThat(event.data()).containsEntry("paymentType", "WALLET_TOP_UP");
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -263,11 +255,7 @@ class PaymentServiceTest {
         assertThat(response.status()).isEqualTo(PaymentStatus.PAID);
         verify(studyingRequestService).activateAfterPayment(requestId);
 
-        ArgumentCaptor<NotificationDomainEvent> eventCaptor =
-                ArgumentCaptor.forClass(NotificationDomainEvent.class);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().recipientUserId()).isEqualTo(userId);
-        assertThat(eventCaptor.getValue().eventType()).isEqualTo(NotificationEventType.PAYMENT_SUCCEEDED);
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -353,7 +341,7 @@ class PaymentServiceTest {
         assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.WALLET);
         assertThat(response.status()).isEqualTo(PaymentStatus.PAID);
         verify(teachingRequestService).activateAfterPayment(requestId);
-        verify(eventPublisher).publishEvent(any(NotificationDomainEvent.class));
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -409,7 +397,7 @@ class PaymentServiceTest {
         assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.WALLET);
         assertThat(installment.getStatus()).isEqualTo(PaymentInstallmentStatus.PAID);
         verify(installmentRepository).save(installment);
-        verify(eventPublisher).publishEvent(any(NotificationDomainEvent.class));
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     private void givenDraftStudyingRequest() {
