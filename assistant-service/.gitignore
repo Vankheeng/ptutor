@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+# Kết quả mỗi lần chạy eval và cache vector: không commit (thiết kế 13 mục 13.2).
+eval/reports/
+eval/.cache/
+models/

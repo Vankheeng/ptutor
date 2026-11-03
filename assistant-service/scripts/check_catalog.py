@@ -121,7 +121,8 @@ def find_frontend_routes(app_tsx: Path) -> set[str]:
 def check_routes(repo: Path) -> list[str]:
     declared = yaml.safe_load((repo / "knowledge-base" / "_routes.yaml").read_text(encoding="utf-8"))
     existing = find_frontend_routes(repo / "frontend" / "src" / "App.tsx")
-    return [f"route {item['path']} không có trong App.tsx" for item in declared["routes"] if item["path"] not in existing]
+    missing = [item["path"] for item in declared["routes"] if item["path"] not in existing]
+    return [f"route {path} không có trong App.tsx" for path in missing]
 
 
 def main() -> int:
