@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,6 +43,7 @@ class WalletServiceTest {
     @Mock WalletTransactionRepository walletTransactionRepository;
     @Mock WalletTransactionMapper walletTransactionMapper;
     @Mock CurrentUserProvider currentUserProvider;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private WalletService walletService;
     private UUID userId;
@@ -54,7 +56,8 @@ class WalletServiceTest {
                 walletTransactionRepository,
                 mapper,
                 walletTransactionMapper,
-                currentUserProvider);
+                currentUserProvider,
+                eventPublisher);
         userId = UUID.randomUUID();
     }
 
@@ -162,7 +165,7 @@ class WalletServiceTest {
     }
 
     @Test
-    void reserveAndReverseWithdrawalCreatesDebitAndReversalTransactions() {
+    void releaseWithdrawalBalanceCancelsExistingTransactionWithoutCreatingReversal() {
         User user = User.builder().status(UserStatus.ACTIVE).build();
         user.setId(userId);
         Wallet wallet = Wallet.builder()
@@ -171,24 +174,23 @@ class WalletServiceTest {
                 .pendingBalance(BigDecimal.ZERO)
                 .build();
         UUID walletId = UUID.randomUUID();
-        UUID withdrawalId = UUID.randomUUID();
         wallet.setId(walletId);
-        when(walletTransactionRepository.findByWallet_IdAndIdempotencyKey(walletId, "withdrawal-1"))
-                .thenReturn(Optional.empty());
-        when(walletTransactionRepository.findByWallet_IdAndIdempotencyKey(
-                walletId, "withdrawal-reversal-" + withdrawalId)).thenReturn(Optional.empty());
         when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        WalletTransaction withdrawal = walletService.reserveForWithdrawal(
-                wallet, withdrawalId, new BigDecimal("200000.00"), "withdrawal-1", "Withdrawal request");
-        WalletTransaction reversal = walletService.reverseWithdrawal(wallet, withdrawal, withdrawalId);
+        WalletTransaction withdrawal = WalletTransaction.builder()
+                .wallet(wallet)
+                .transactionType(WalletTransactionType.DEBIT)
+                .purpose(WalletTransactionPurpose.WITHDRAWAL)
+                .amount(new BigDecimal("200000.00"))
+                .status(WalletTransactionStatus.PENDING)
+                .build();
+        wallet.setPendingBalance(new BigDecimal("200000.00"));
+        wallet.setBalance(new BigDecimal("300000.00"));
+        walletService.releaseWithdrawalBalance(wallet, new BigDecimal("200000.00"), withdrawal);
 
-        assertThat(withdrawal.getTransactionType()).isEqualTo(WalletTransactionType.DEBIT);
-        assertThat(withdrawal.getPurpose()).isEqualTo(WalletTransactionPurpose.WITHDRAWAL);
         assertThat(withdrawal.getStatus()).isEqualTo(WalletTransactionStatus.CANCELLED);
-        assertThat(reversal.getTransactionType()).isEqualTo(WalletTransactionType.CREDIT);
-        assertThat(reversal.getPurpose()).isEqualTo(WalletTransactionPurpose.WITHDRAWAL_REVERSAL);
+        verify(walletTransactionRepository).saveAndFlush(withdrawal);
         assertThat(wallet.getBalance()).isEqualByComparingTo("500000.00");
         assertThat(wallet.getPendingBalance()).isEqualByComparingTo("0.00");
     }

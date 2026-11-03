@@ -494,11 +494,12 @@ paths:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-    put:
+  /api/v1/users/me/bank-account/otp:
+    post:
       tags: [Wallet]
-      summary: Create or update my bank account
-      description: Creates the user's receiving account on first use or replaces it. The account number is encrypted at rest.
-      operationId: updateCurrentBankAccount
+      summary: Request OTP to create or update my bank account
+      description: Sends a six-digit one-time code to the authenticated user's email. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. The proposed account is saved only after OTP confirmation.
+      operationId: requestBankAccountUpdateOtp
       requestBody:
         required: true
         content:
@@ -506,7 +507,27 @@ paths:
             schema: { $ref: '#/components/schemas/UpdateBankAccountRequest' }
       responses:
         '200':
-          description: Bank account saved successfully
+          description: Verification code sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /api/v1/users/me/bank-account/confirm:
+    post:
+      tags: [Wallet]
+      summary: Confirm bank account update with OTP
+      operationId: confirmBankAccountUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '200':
+          description: Bank account updated
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
@@ -2901,8 +2922,8 @@ paths:
   /api/v1/users/me/wallet/withdrawals:
     post:
       tags: [Wallets]
-      summary: Request a wallet withdrawal
-      description: Moves the requested amount from available balance to pending balance and snapshots the configured destination bank account. Reusing an Idempotency-Key returns the original request without reserving funds again.
+      summary: Legacy withdrawal endpoint (OTP required)
+      description: This endpoint is retired and always returns 410. Use the OTP request and confirmation endpoints.
       operationId: createMyWithdrawal
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -2915,11 +2936,7 @@ paths:
               amount: 500000.00
               note: Withdraw tutoring earnings
       responses:
-        '201':
-          description: Withdrawal requested or an identical idempotent request returned
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '410': { description: Request an OTP and confirm it to withdraw }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -2951,11 +2968,61 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/users/me/wallet/withdrawals/otp:
+    post:
+      tags: [Wallets]
+      summary: Send OTP for a wallet withdrawal
+      description: Sends a six-digit email code bound to the amount and a snapshot of the current destination bank account. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. An Idempotency-Key is required and must be repeated for confirmation.
+      operationId: requestMyWithdrawalOtp
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestWithdrawalOtpRequest' }
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Wait before requesting another code }
+  /api/v1/users/me/wallet/withdrawals/confirm:
+    post:
+      tags: [Wallets]
+      summary: Confirm withdrawal with OTP
+      description: Creates the withdrawal and reserves funds atomically after validating the OTP. The withdrawal amount must be at least 50,000 VND. Repeated confirmation with the same challenge and idempotency key returns the original withdrawal.
+      operationId: confirmMyWithdrawal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '201':
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Verification attempt limit reached }
+
   /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel:
     patch:
       tags: [Wallets]
       summary: Cancel my pending withdrawal
-      description: Cancels an owned PENDING withdrawal and returns its reserved amount from pending balance to available balance.
+      description: Cancels an owned PENDING withdrawal and releases its reserved amount to the available balance. The existing withdrawal transaction is marked CANCELLED; no separate refund transaction is created.
       operationId: cancelMyWithdrawal
       parameters:
         - name: withdrawalId
@@ -6081,6 +6148,28 @@ components:
           maxLength: 500
           nullable: true
 
+    RequestWithdrawalOtpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 50000, multipleOf: 0.01, description: Minimum withdrawal amount is 50,000 VND. }
+        note: { type: string, maxLength: 500, nullable: true }
+
+    ConfirmWalletSecurityChallengeRequest:
+      type: object
+      required: [challengeId, otp]
+      properties:
+        challengeId: { type: string, format: uuid }
+        otp: { type: string, pattern: '^[0-9]{6}$' }
+
+    WalletSecurityChallengeResponse:
+      type: object
+      required: [challengeId, maskedAccountNumber, expiresAt]
+      properties:
+        challengeId: { type: string, format: uuid }
+        maskedAccountNumber: { type: string, example: '****7890' }
+        expiresAt: { type: string, format: date-time }
+
     WithdrawalResponse:
       type: object
       required:
@@ -8255,6 +8344,13 @@ components:
           properties:
             data: { $ref: '#/components/schemas/BankAccountResponse' }
 
+    WalletSecurityChallengeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletSecurityChallengeResponse' }
+
     WalletTransactionResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8416,9 +8512,12 @@ components:
             - LESSON_MARKED_TAUGHT
             - LESSON_CANCELLED
             - WITHDRAWAL_REVIEW_REQUIRED
+            - WITHDRAWAL_REQUEST_CREATED
+            - WITHDRAWAL_REQUEST_CANCELLED
+            - WALLET_BALANCE_CHANGED
         referenceType:
           type: string
-          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WITHDRAWAL_REQUEST]
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WALLET_TRANSACTION, WITHDRAWAL_REQUEST, REFUND_REQUEST]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }

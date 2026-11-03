@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,9 @@ import com.ptutor.backend.entity.enums.UserStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.entity.enums.WalletTransactionStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionType;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.WalletMapper;
 import com.ptutor.backend.mapper.WalletTransactionMapper;
@@ -45,6 +49,7 @@ public class WalletService {
     private final WalletMapper walletMapper;
     private final WalletTransactionMapper walletTransactionMapper;
     private final CurrentUserProvider currentUserProvider;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public WalletBalanceResponse getCurrentBalance() {
@@ -120,31 +125,35 @@ public class WalletService {
         return applyDebit(wallet, command, WalletTransactionStatus.PENDING);
     }
 
-    /**
-     * Called only by WithdrawalService after it has acquired the pessimistic wallet lock.
-     */
-    public WalletTransaction reverseWithdrawal(Wallet wallet, WalletTransaction withdrawalTransaction, UUID withdrawalRequestId) {
-        if (withdrawalTransaction.getStatus() != WalletTransactionStatus.PENDING) {
-            throw new ApiException(HttpStatus.CONFLICT, "WITHDRAWAL_TRANSACTION_NOT_REVERSIBLE",
-                    "Only a pending withdrawal transaction can be reversed");
+    /** Reserves available funds for a withdrawal without creating a second ledger transaction. */
+    public void reserveWithdrawalBalance(Wallet wallet, BigDecimal amount) {
+        BigDecimal normalizedAmount = normalizeAmount(amount);
+        if (wallet.getBalance().compareTo(normalizedAmount) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_WALLET_BALANCE",
+                    "Wallet balance is insufficient");
         }
-        if (wallet.getPendingBalance().compareTo(withdrawalTransaction.getAmount()) < 0) {
+        wallet.setBalance(wallet.getBalance().subtract(normalizedAmount));
+        wallet.setPendingBalance(wallet.getPendingBalance().add(normalizedAmount));
+    }
+
+    /** Releases a cancelled withdrawal reservation without creating a second ledger row. */
+    public void releaseWithdrawalBalance(Wallet wallet, BigDecimal amount, WalletTransaction withdrawalTransaction) {
+        BigDecimal normalizedAmount = normalizeAmount(amount);
+        if (wallet.getPendingBalance().compareTo(normalizedAmount) < 0) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_PENDING_WALLET_BALANCE",
-                    "Wallet pending balance is inconsistent with the withdrawal transaction");
+                    "Wallet pending balance is inconsistent with the withdrawal request");
         }
-
-        withdrawalTransaction.setStatus(WalletTransactionStatus.CANCELLED);
-        walletTransactionRepository.saveAndFlush(withdrawalTransaction);
-
-        WalletTransactionCommand reversal = new WalletTransactionCommand(
-                wallet.getUser().getId(),
-                withdrawalTransaction.getAmount(),
-                WalletTransactionPurpose.WITHDRAWAL_REVERSAL,
-                ReferenceType.WITHDRAWAL_REQUEST,
-                withdrawalRequestId,
-                "Withdrawal request cancelled",
-                "withdrawal-reversal-" + withdrawalRequestId);
-        return applyCreditFromPending(wallet, reversal);
+        if (withdrawalTransaction != null) {
+            if (withdrawalTransaction.getStatus() != WalletTransactionStatus.PENDING
+                    || withdrawalTransaction.getAmount().compareTo(normalizedAmount) != 0) {
+                throw new ApiException(HttpStatus.CONFLICT, "WITHDRAWAL_TRANSACTION_NOT_REVERSIBLE",
+                        "The linked wallet transaction cannot be cancelled");
+            }
+            withdrawalTransaction.setStatus(WalletTransactionStatus.CANCELLED);
+            walletTransactionRepository.saveAndFlush(withdrawalTransaction);
+        }
+        wallet.setPendingBalance(wallet.getPendingBalance().subtract(normalizedAmount));
+        wallet.setBalance(wallet.getBalance().add(normalizedAmount));
     }
 
     private Wallet findWalletForUpdate(UUID userId) {
@@ -168,20 +177,9 @@ public class WalletService {
 
         BigDecimal amount = normalizeAmount(command.amount());
         wallet.setBalance(wallet.getBalance().add(amount));
-        return saveTransaction(wallet, command, WalletTransactionType.CREDIT, amount, status);
-    }
-
-    private WalletTransaction applyCreditFromPending(Wallet wallet, WalletTransactionCommand command) {
-        validateCommand(command, WalletTransactionType.CREDIT);
-        WalletTransaction existing = findExisting(wallet, command.idempotencyKey());
-        if (existing != null) {
-            return existing;
-        }
-
-        BigDecimal amount = normalizeAmount(command.amount());
-        wallet.setPendingBalance(wallet.getPendingBalance().subtract(amount));
-        wallet.setBalance(wallet.getBalance().add(amount));
-        return saveTransaction(wallet, command, WalletTransactionType.CREDIT, amount, WalletTransactionStatus.COMPLETED);
+        WalletTransaction transaction = saveTransaction(wallet, command, WalletTransactionType.CREDIT, amount, status);
+        if (status == WalletTransactionStatus.COMPLETED) publishBalanceChanged(wallet, transaction);
+        return transaction;
     }
 
     private WalletTransaction applyDebit(
@@ -203,7 +201,21 @@ public class WalletService {
         if (command.purpose() == WalletTransactionPurpose.WITHDRAWAL) {
             wallet.setPendingBalance(wallet.getPendingBalance().add(amount));
         }
-        return saveTransaction(wallet, command, WalletTransactionType.DEBIT, amount, status);
+        WalletTransaction transaction = saveTransaction(wallet, command, WalletTransactionType.DEBIT, amount, status);
+        if (status == WalletTransactionStatus.COMPLETED) publishBalanceChanged(wallet, transaction);
+        return transaction;
+    }
+
+    private void publishBalanceChanged(Wallet wallet, WalletTransaction transaction) {
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                wallet.getUser().getId(),
+                NotificationEventType.WALLET_BALANCE_CHANGED,
+                NotificationReferenceType.WALLET_TRANSACTION,
+                transaction.getId(),
+                java.util.Map.of(
+                        "amount", transaction.getAmount().stripTrailingZeros().toPlainString(),
+                        "transactionType", transaction.getTransactionType().name(),
+                        "balanceAfter", wallet.getBalance().stripTrailingZeros().toPlainString())));
     }
 
     private WalletTransaction saveTransaction(

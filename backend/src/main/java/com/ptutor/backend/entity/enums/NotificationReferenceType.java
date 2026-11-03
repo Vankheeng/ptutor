@@ -12,6 +12,7 @@ public enum NotificationReferenceType {
     COMPLAINT,
     USER,
     LESSON,
+    WALLET_TRANSACTION,
     WITHDRAWAL_REQUEST,
     REFUND_REQUEST
 }

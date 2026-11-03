@@ -110,6 +110,19 @@ class NotificationTemplateFactory {
             case WITHDRAWAL_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
                     "Withdrawal review required",
                     "A withdrawal request of " + amount + " VND is waiting for approval.");
+            case WITHDRAWAL_REQUEST_CREATED -> content(NotificationType.PAYMENT,
+                    "Đã tạo yêu cầu rút tiền",
+                    "Yêu cầu rút " + amount + " VND đã được ghi nhận và đang chờ duyệt.");
+            case WITHDRAWAL_REQUEST_CANCELLED -> content(NotificationType.PAYMENT,
+                    "Đã hủy yêu cầu rút tiền",
+                    "Yêu cầu rút " + amount + " VND đã được hủy. Tiền đã được cộng lại vào ví.");
+            case WALLET_BALANCE_CHANGED -> {
+                String direction = "CREDIT".equals(data.get("transactionType")) ? "cộng vào" : "trừ khỏi";
+                String balance = data.getOrDefault("balanceAfter", "0");
+                yield content(NotificationType.PAYMENT,
+                        "Biến động số dư",
+                        amount + " VND đã được " + direction + " ví PTutor. Số dư hiện tại: " + balance + " VND.");
+            }
             case REFUND_REQUEST_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
                     "Refund review required", "A student refund request is waiting for review.");
             case REFUND_REQUEST_SUBMITTED -> content(NotificationType.PAYMENT,

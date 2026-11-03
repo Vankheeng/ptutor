@@ -664,8 +664,11 @@ Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDEN
 | `GET` | `/api/v1/users/me/wallet/transactions` | Xem lịch sử giao dịch ví, có phân trang và lọc |
 | `GET` | `/api/v1/users/me/wallet/transactions/{transactionId}` | Xem chi tiết giao dịch ví của chính mình |
 | `GET` | `/api/v1/users/me/bank-account` | Xem tài khoản ngân hàng nhận tiền đã cấu hình |
-| `PUT` | `/api/v1/users/me/bank-account` | Tạo mới hoặc cập nhật tài khoản ngân hàng nhận tiền |
-| `POST` | `/api/v1/users/me/wallet/withdrawals` | Tạo yêu cầu rút tiền về tài khoản ngân hàng đã cấu hình |
+| `POST` | `/api/v1/users/me/bank-account/otp` | Gửi OTP để tạo hoặc cập nhật tài khoản ngân hàng nhận tiền |
+| `POST` | `/api/v1/users/me/bank-account/confirm` | Xác nhận OTP và lưu tài khoản ngân hàng |
+| `POST` | `/api/v1/users/me/wallet/withdrawals/otp` | Gửi OTP cho yêu cầu rút tiền (tối thiểu 50.000 VND) |
+| `POST` | `/api/v1/users/me/wallet/withdrawals/confirm` | Xác nhận OTP và tạo yêu cầu rút tiền |
+| `POST` | `/api/v1/users/me/wallet/withdrawals` | Endpoint cũ, trả `410`; dùng quy trình OTP |
 | `GET` | `/api/v1/users/me/wallet/withdrawals` | Xem lịch sử yêu cầu rút tiền của chính mình |
 | `PATCH` | `/api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel` | Tự hủy yêu cầu rút đang `PENDING` và hoàn tiền về ví |
 
@@ -695,7 +698,7 @@ Ví dụ response `GET /api/v1/users/me/wallet`:
 }
 ```
 
-Khi chưa cấu hình tài khoản ngân hàng, `GET /api/v1/users/me/bank-account` trả `200 SUCCESS` với `data: null`; đây là trạng thái bình thường. Dùng `PUT` để tạo mới hoặc thay thế thông tin hiện có:
+Khi chưa cấu hình tài khoản ngân hàng, `GET /api/v1/users/me/bank-account` trả `200 SUCCESS` với `data: null`; đây là trạng thái bình thường. Gửi thông tin tài khoản tới endpoint OTP:
 
 ```json
 {
@@ -705,6 +708,8 @@ Khi chưa cấu hình tài khoản ngân hàng, `GET /api/v1/users/me/bank-accou
   "accountHolderName": "Nguyen Van A"
 }
 ```
+
+API trả `challengeId` và thời điểm hết hạn. OTP gồm 6 chữ số, hết hạn sau 5 phút và tối đa 5 lần nhập sai. Yêu cầu mã mới sẽ vô hiệu hóa mã trước đó. Gửi `challengeId` và `otp` tới `POST /api/v1/users/me/bank-account/confirm` để lưu tài khoản.
 
 Số tài khoản được mã hóa khi lưu trong database. API chỉ trả bốn số cuối qua `maskedAccountNumber`; `bankCode`, `bankName` và `accountHolderName` được trả nguyên văn cho chính chủ tài khoản.
 
@@ -733,15 +738,15 @@ Số tài khoản được mã hóa khi lưu trong database. API chỉ trả b�
 
 Luồng rút tiền áp dụng cho `STUDENT` và `TUTOR` đã đăng nhập. Client không gửi `userId`, `walletId` hoặc thông tin tài khoản nhận tiền trong body; hệ thống luôn lấy các thông tin này từ JWT và Bank Account của chính người dùng.
 
-1. Cấu hình tài khoản nhận tiền bằng `PUT /api/v1/users/me/bank-account`.
+1. Cấu hình tài khoản nhận tiền qua `POST /api/v1/users/me/bank-account/otp`, sau đó xác nhận tại `/api/v1/users/me/bank-account/confirm`.
 2. Xem số dư khả dụng bằng `GET /api/v1/users/me/wallet`.
-3. Tạo yêu cầu bằng `POST /api/v1/users/me/wallet/withdrawals`.
+3. Gửi yêu cầu OTP bằng `POST /api/v1/users/me/wallet/withdrawals/otp`, rồi xác nhận tại `/api/v1/users/me/wallet/withdrawals/confirm`.
 4. Dùng `GET /api/v1/users/me/wallet/withdrawals?page=0&size=20` để xem lịch sử của chính mình.
 5. Nếu chưa được xử lý, hủy bằng `PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel`.
 
 ##### 6.14.1.1. Tạo yêu cầu rút
 
-Trước khi tạo yêu cầu, tài khoản ngân hàng phải tồn tại và `balance` phải lớn hơn hoặc bằng `amount`. Header `Idempotency-Key` là bắt buộc:
+Trước khi tạo yêu cầu, tài khoản ngân hàng phải tồn tại và `balance` phải lớn hơn hoặc bằng `amount`. Số tiền rút tối thiểu là `50,000` VND. Header `Idempotency-Key` là bắt buộc và phải dùng cùng giá trị khi yêu cầu OTP và xác nhận:
 
 ```text
 Idempotency-Key: withdrawal-2026-09-10-001
@@ -754,7 +759,7 @@ Idempotency-Key: withdrawal-2026-09-10-001
 }
 ```
 
-`Idempotency-Key` phải là một chuỗi khác nhau cho mỗi ý định rút tiền. Nếu gửi lại POST với cùng user và cùng key, hệ thống trả lại chính request đã tạo trước đó (cùng `withdrawalId`) và không trừ tiền lần nữa — kể cả khi body mới có `amount` hoặc `note` khác. Chỉ dùng lại key khi retry đúng request cũ; hãy tạo key mới để tạo một yêu cầu mới.
+OTP gồm 6 chữ số, hết hạn sau 5 phút và tối đa 5 lần nhập sai. Yêu cầu OTP mới sẽ vô hiệu hóa mã cũ. `Idempotency-Key` phải là chuỗi riêng cho mỗi ý định rút tiền. Xác nhận lặp lại cùng challenge và key trả về yêu cầu đã tạo, không giữ tiền lần nữa. Dùng key mới cho một yêu cầu khác.
 
 Khi tạo thành công:
 
@@ -767,7 +772,7 @@ Ví dụ: trước khi rút, `balance = 1,000,000` và `pendingBalance = 0`. T�
 
 ##### 6.14.1.2. Hủy yêu cầu rút
 
-Chỉ chủ sở hữu của request mới được hủy, và chỉ hủy được khi status là `PENDING`. API cancel không cần request body. Khi hủy thành công, hệ thống đổi status thành `CANCELLED`, giảm `pendingBalance` và cộng lại cùng số tiền vào `balance`.
+Chỉ chủ sở hữu của request mới được hủy, và chỉ hủy được khi status là `PENDING`. API cancel không cần request body. Khi hủy thành công, hệ thống đổi status của yêu cầu và giao dịch rút tiền hiện có thành `CANCELLED`, giảm `pendingBalance` và cộng lại cùng số tiền vào `balance`. Không tạo giao dịch hoàn tiền riêng.
 
 ```http
 PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel
@@ -790,7 +795,7 @@ Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và 
 
 `GET /api/v1/users/me/wallet/transactions` trả lịch sử của chính user JWT, sắp xếp mới nhất trước. Hỗ trợ các query parameter tùy chọn: `transactionType` (`CREDIT`/`DEBIT`), `purpose`, `status`, `createdFrom`, `createdTo`, `page` và `size`.
 
-Mỗi record có `amount`, `balanceAfter`, `pendingBalanceAfter`, nguồn nghiệp vụ (`referenceType`, `referenceId`) và trạng thái. Một lần rút tiền chỉ có một transaction `DEBIT + WITHDRAWAL + PENDING`; khi hủy, transaction đó chuyển `CANCELLED` và hệ thống ghi thêm `CREDIT + WITHDRAWAL_REVERSAL + COMPLETED`.
+Mỗi record có `amount`, `balanceAfter`, `pendingBalanceAfter`, nguồn nghiệp vụ (`referenceType`, `referenceId`) và trạng thái. Một lần rút tiền chỉ có một transaction `DEBIT + WITHDRAWAL`; khi hủy, transaction đó chuyển sang `CANCELLED`, không tạo transaction `CREDIT` riêng. `WITHDRAWAL_REVERSAL` vẫn có thể xuất hiện trong dữ liệu lịch sử cũ.
 
 Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn tiền) luôn đi qua `WalletService` với idempotency key. Student/Tutor có thể tạo yêu cầu nạp ví qua VNPay; hệ thống không cung cấp API cộng số dư trực tiếp. Số dư chỉ được cộng sau khi backend xác minh IPN thành công từ VNPay.
 
@@ -925,7 +930,9 @@ Các workflow hiện tạo notification tự động:
 | Tạo, ký, từ chối, hủy hoặc đề xuất gia hạn Contract | `CONTRACT_SIGNATURE_REQUIRED`, `CONTRACT_SIGNED`, `CONTRACT_REJECTED`, `CONTRACT_CANCELLED`, `CONTRACT_RENEWAL_PROPOSED` | Bên còn lại của Contract | `CONTRACT` |
 | Tutor đánh dấu đã dạy hoặc hủy Lesson | `LESSON_MARKED_TAUGHT`, `LESSON_CANCELLED` | Student của Contract | `LESSON` |
 | Thanh toán thành công hoặc sắp đến hạn học phí | `PAYMENT_SUCCEEDED`, `PAYMENT_INSTALLMENT_DUE` | Người thanh toán/Student | Đối tượng thanh toán hoặc `INSTALLMENT` |
-| Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REVIEW_REQUIRED` | Admin/Employee | `WITHDRAWAL_REQUEST` |
+| Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REQUEST_CREATED`, `WITHDRAWAL_REVIEW_REQUIRED` | Người dùng, Admin/Employee | `WITHDRAWAL_REQUEST` |
+| Người dùng hủy yêu cầu rút tiền đang chờ | `WITHDRAWAL_REQUEST_CANCELLED` | Người dùng | `WITHDRAWAL_REQUEST` |
+| Số dư ví thay đổi sau giao dịch thành công | `WALLET_BALANCE_CHANGED` | Người dùng sở hữu ví | `WALLET_TRANSACTION` khi có giao dịch liên kết |
 | Xử lý Complaint | `COMPLAINT_EVIDENCE_REQUESTED`, `COMPLAINT_RESOLVED`, `COMPLAINT_REJECTED` | Người gửi Complaint | `COMPLAINT` |
 | Tiếp nhận và kết luận Complaint | `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` | Bên bị khiếu nại | `COMPLAINT` |
 | Student gửi yêu cầu hoàn tiền | `REFUND_REQUEST_REVIEW_REQUIRED` | Admin/Employee kế toán | `REFUND_REQUEST` |
