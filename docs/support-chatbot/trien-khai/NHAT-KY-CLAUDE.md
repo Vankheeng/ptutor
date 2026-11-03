@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 2 — **bước:** M2 xong, bắt đầu M3.
-- **Việc tiếp theo:** M3 (`kb/parser.py`, `kb/chunker.py`, đếm token).
+- **Chặng hiện tại:** 2 — **bước:** M3 xong, bắt đầu M4.
+- **Việc tiếp theo:** M4 (model DB, Alembic, `KnowledgeBaseService`, `python -m app.kb.import`).
 - **Chờ người dùng:** bật Docker Desktop (cần cho T1, nạp kho, compose, Playwright); chọn model LLM (cần cho T3–T4).
 
 ## Danh sách việc
@@ -14,7 +14,7 @@
 - [x] Chuẩn bị: worktree, merge `dev`, chép `knowledge-base/`, `tool-catalog/`, kiểm tra danh mục khớp code
 - [x] M1 Khung `assistant-service`: `/health`, cấu hình
 - [x] M2 `LlmProvider` (`ScriptedLlm`, `OpenAiLlm`), `/v1/chat`
-- [ ] M3 Đọc và chia tài liệu
+- [x] M3 Đọc và chia tài liệu
 - [ ] M4 Postgres + pgvector + unaccent, Alembic, import
 - [ ] M5 `EmbeddingProvider` (`fake`, `ai-service`)
 - [ ] M6 Truy xuất lai, RRF, rerank, hit@k
@@ -94,3 +94,29 @@ schema, timeout, mục đích) vì M7–M14 cần gọi tool và JSON — đổi
 3. `OpenAiLlm.complete`: chỗ đổi lỗi của thư viện thành `LlmError(retryable=...)` — tầng trên không cần biết
    thư viện OpenAI.
 4. `app/api/chat.py`: `llm is None` → 503, không phải 500.
+
+## M3 — Đọc và chia tài liệu
+
+**Đã làm.** `parse_document` (front matter YAML + thân bài), `chunk_document` (chia theo `##`/`###`, gộp mục ngắn
+< 40 token vào mục kế cùng mục cha, mục dài > 400 token chia theo đoạn văn chồng lấn 40 token), `validate_document`
+(bảng kiểm tra 3.3, trừ trùng `doc_key` cần DB), đếm token bằng tokenizer bge-m3.
+
+- File chính: `app/kb/parser.py`, `app/kb/chunker.py`, `app/kb/tokens.py`, `app/kb/validate.py`, `app/kb/routes.py`,
+  `app/text.py`, `tests/unit/test_kb_chunking.py`.
+- Tải tokenizer (17 MB, một lần): `.venv\Scripts\python -m app.kb.tokens --download` → `models/` (git bỏ qua).
+- Số liệu trên toàn kho (65 tài liệu, tokenizer bge-m3 thật): **373 đoạn**, dài nhất 275 token, trung bình 83 token,
+  không đoạn nào vượt 400.
+
+**Khác thiết kế.** Không có tokenizer thì đếm ước lượng `1,3 × số chữ` (hệ số đo trên chính kho: 21.773 chữ →
+28.110 token). Test dùng bộ ước lượng để không cần file 17 MB; tên bộ đếm được ghi trong kết quả kiểm tra.
+Phần mở đầu trước `##` đầu tiên (nếu có) thành một đoạn mang heading là tiêu đề tài liệu.
+
+**Còn dở.** Không.
+
+**Đọc code này thế nào.**
+1. `app/kb/parser.py`: `split_front_matter` — cắt ở hai dòng `---`, phần giữa đưa cho `yaml.safe_load`.
+2. `app/kb/chunker.py` theo thứ tự gọi trong `chunk_document`: `split_sections` (duyệt từng dòng, gặp heading thì
+   "xả" bộ đệm) → `merge_short_sections` → `split_long_text`.
+3. Đáng học: `search_text = heading_path + nội dung` — câu "Tối thiểu 10.000 đ" đứng một mình không biết nói về
+   gì; thêm "Nạp ví > Hạn mức" thì vector và full-text đều tìm đúng.
+4. `_tail` + `split_long_text`: chồng lấn để một điều kiện nằm ngay ranh giới vẫn có đủ ở một phần.
