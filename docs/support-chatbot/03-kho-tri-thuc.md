@@ -9,6 +9,12 @@
 - **Bản đang dùng nằm trong DB**, admin quản lý qua trang quản trị (QĐ4). Thư mục `knowledge-base/` trong repo
   chỉ chứa **bản khởi tạo** (sinh từ code), được import vào DB dưới dạng nháp.
 - **Một tài liệu = một chủ đề**, ví dụ "Hủy hợp đồng", không gom "mọi thứ về hợp đồng" vào một bài.
+- **Không chia vụn:** thân bài mỗi tài liệu khoảng 200–1.200 chữ. Ý nào quá ngắn thì thành một mục `##` trong
+  tài liệu gần nhất **cùng đối tượng** (ví dụ "đổi mật khẩu" nằm trong bài "quên mật khẩu"), không tách bài riêng.
+  Chatbot tìm theo từng mục chứ không theo cả bài, nên gộp ý ngắn không làm giảm độ chính xác, mà giảm việc duyệt
+  và tránh lặp nội dung giữa các bài.
+- **Bản xuất PDF** (nếu cần cho người duyệt đọc) gộp theo nhóm chủ đề: một file cho mỗi `features`, mỗi tài liệu là
+  một chương. Hệ thống chỉ nạp bản Markdown, không nạp PDF.
 - **Viết bằng ngôn ngữ tự nhiên cho người dùng cuối**: câu ngắn, xưng "bạn", dùng đúng tên nút và tên trang trên
   giao diện. Thân bài **không** chứa tên kỹ thuật (tên enum như `PENDING_REVIEW`, tên class, đường dẫn API, tên
   bảng, mã lỗi). Trạng thái ghi bằng nhãn tiếng Việt hiển thị trên giao diện; lỗi ghi bằng câu thông báo người dùng
