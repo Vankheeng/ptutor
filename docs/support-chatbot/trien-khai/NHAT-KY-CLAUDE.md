@@ -7,8 +7,8 @@
 
 - **Chặng hiện tại:** 4 — **bước:** M12 xong, bắt đầu M13.
 - **Việc tiếp theo:** M13 (CitationVerifierMiddleware + prompt verifier + kiểm evidence là chuỗi con; RouteGuardMiddleware; RedactMiddleware; bộ verifier claims.jsonl).
-- **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
-- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
+- **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
+- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
 
