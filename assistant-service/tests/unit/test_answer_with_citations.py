@@ -60,9 +60,16 @@ def test_invented_source_is_dropped(settings):
     assert body["citations"] == [] and "[D9]" not in body["answer"] and body["grounded"] == "NONE"
 
 
-def test_invalid_json_abstains(settings):
-    client = TestClient(create_app(services=make_services(settings, ScriptedLlm(["không phải JSON"]))))
+def test_invalid_json_twice_abstains(settings):
+    llm = ScriptedLlm(["không phải JSON", "vẫn không phải JSON"])
+    client = TestClient(create_app(services=make_services(settings, llm)))
     assert post(client, "Nạp ví tối thiểu bao nhiêu?").json()["answer"] == ABSTAIN_ANSWER
+    assert "<feedback>" in llm.requests[1].messages[-1].content  # lần 2 có góp ý
+
+
+def test_invalid_json_then_valid_answer(settings):
+    client = TestClient(create_app(services=make_services(settings, ScriptedLlm(["{hỏng", actor_json()]))))
+    assert post(client, "Nạp ví tối thiểu bao nhiêu?").json()["grounded"] == "FULL"
 
 
 def test_out_of_scope_answer_uses_template_and_suggestions(settings):
@@ -77,7 +84,8 @@ def test_unknown_route_actions_are_dropped(settings):
                {"label": "Gia sư", "route": "/tutor/wallet"}]
     client = TestClient(create_app(services=make_services(settings, ScriptedLlm([actor_json(actions=actions)]))))
     body = post(client, "Nạp ví tối thiểu bao nhiêu?").json()
-    assert [action["route"] for action in body["actions"]] == ["/student/wallet"]
+    # Link ra ngoài luôn bị bỏ; kiểm tra theo danh sách route và vai trò là việc của RouteGuard (M13).
+    assert "https://evil.example" not in [action["route"] for action in body["actions"]]
 
 
 def test_message_too_long_is_invalid(settings):

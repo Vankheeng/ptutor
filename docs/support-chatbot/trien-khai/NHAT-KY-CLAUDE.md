@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 3 — **bước:** chặng 2 xong (M3–M7), bắt đầu M8.
-- **Việc tiếp theo:** M8 (`AgentRunner`, giao diện `Middleware`, chuyển luồng M7 thành middleware: Trace, Budget, InputGuard, Retrieval, ContextInjection, ModelCall, OutputSchema, Persistence; migration bảng hội thoại).
+- **Chặng hiện tại:** 3 — **bước:** M8 xong, bắt đầu M9.
+- **Việc tiếp theo:** M9 (MemoryMiddleware: lịch sử 6 lượt + focus; QueryMiddleware: viết lại câu hỏi + embed; /v1/conversations/{id}/end; khoá theo phiên 409 BUSY).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`). Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -20,7 +20,7 @@
 - [x] M5 `EmbeddingProvider` (`fake`, `ai-service`)
 - [x] M6 Truy xuất lai, RRF, rerank, hit@k
 - [x] M7 Trả lời có trích dẫn, small-to-big
-- [ ] M8 `AgentRunner` + middleware cơ bản
+- [x] M8 `AgentRunner` + middleware cơ bản
 - [ ] M9 Bộ nhớ hội thoại, viết lại câu hỏi, kết thúc phiên
 - [ ] M10 Backend proxy (`AssistantController`, `AssistantProxyService`)
 - [ ] M11 Widget chat
@@ -272,3 +272,41 @@ gợi ý câu hỏi theo trang (`kb/suggestions.py`).
 3. `app/agent/answer.py` → `number_citations`: **đáng học nhất** — vì sao đánh số bằng code (luôn liên tục, nguồn
    bịa `[D9]` tự rơi mất) thay vì bảo model tự đánh `[1]`.
 4. `tests/fakes.py`: cách dựng cả hệ thống bằng bản giả để test không cần mạng.
+
+## M8 — Harness: AgentRunner và middleware
+
+**Đã làm.** `TurnState` (phiếu theo dõi một lượt), `Decision` (ACCEPT / RETRY / ABSTAIN), `Budget`, `Middleware` với 6
+hook, `AgentRunner` (vòng lặp model ↔ tool, giới hạn cứng 8 vòng), `Composer` (ghép câu trả lời / từ chối / "đang
+bận"), trace (`timed`, `add_span`, span `SKIPPED`), `config_hash`. Tám middleware: Trace, Budget, InputGuard,
+Retrieval, ContextInjection, ModelCall, OutputSchema, Persistence. Che thông tin cá nhân (`app/privacy/redact.py`).
+Bảng hội thoại (migration `0002`): `conversation`, `message`, `message_citation`, `tool_call_log`, `turn_trace`,
+`message_feedback`, `deletion_log`; `ConversationStore` (Postgres + bộ nhớ) có `purge` xoá có kiểm chứng.
+`/v1/chat` giờ chỉ dựng `TurnState` → `AgentRunner.run`.
+
+- File chính: `app/agent/state.py`, `app/agent/runner.py`, `app/agent/harness.py`, `app/agent/middleware/*.py`,
+  `app/agent/compose.py`, `app/agent/trace.py`, `app/db/conversations.py`, `migrations/versions/0002_*.py`,
+  `tests/unit/test_harness.py`, `tests/unit/test_redact.py`, `tests/integration/test_conversations.py`.
+- Kiểm tra: toàn bộ test (T0 + T1) xanh; `ruff`, `mypy` sạch. Test T1 xoá hội thoại kiểm cả 6 bảng = 0 dòng.
+
+**Khác thiết kế.**
+- `after_agent` chạy **theo thứ tự đăng ký** (không đảo ngược) để Trace (đăng ký đầu) đóng span trước, Persistence
+  (đăng ký cuối) lưu sau cùng.
+- Thứ tự ở hook ②: ToolSelection đăng ký **trước** ContextInjection (thiết kế liệt kê ngược lại) vì ContextInjection
+  cần biết đã chọn tool nào để tính ngân sách lớp 2 và để quyết "NO_CONTEXT + không tool → từ chối".
+- Model / mạng lỗi sau 1 lần thử lại → câu "Trợ lý đang bận…" (`fallback_reason = TIMEOUT | MODEL_ERROR`, vẫn lưu
+  trace) thay vì 503: người dùng không bị báo nhầm "chưa có thông tin chính thức".
+- Thêm cột `message.citations` (jsonb): trích dẫn đã đánh số, để mở lại hội thoại cũ vẫn thấy chip `[1]`.
+- Lịch sử đưa vào ngữ cảnh dạng các cặp tin `user` / `assistant` trước tin hỏi hiện tại (thiết kế chỉ nói "lớp 7").
+- Khoá theo hội thoại (409 BUSY) dùng khoá trong tiến trình; chạy nhiều bản assistant-service cần
+  `pg_advisory_lock` (ghi ở hướng phát triển).
+
+**Còn dở.** Không (Memory / Query thêm ở M9).
+
+**Đọc code này thế nào.**
+1. `app/agent/harness.py` → `build_middlewares`: danh sách đăng ký chính là "dây chuyền" — đọc trước tiên.
+2. `app/agent/runner.py` → `run` rồi `_loop`: mỗi vòng là ② → ③ → ④ → (⑤) ; chú ý runner không tự quyết điều gì
+   về an toàn.
+3. `_call_model` + `_bind_model`: **đáng học nhất** — cách xếp các `wrap_model_call` lồng nhau như củ hành; lớp ngoài
+   (Trace) đo cả thời gian thử lại của lớp trong (ModelCall).
+4. Một middleware ngắn để hiểu khuôn: `output_schema.py` (RETRY 1 lần rồi ABSTAIN), `budget.py` (cầu dao).
+5. `tests/unit/test_harness.py` → `test_runner_calls_hooks_in_registration_order...`: in ra đúng thứ tự gọi hook.

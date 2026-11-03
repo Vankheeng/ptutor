@@ -16,12 +16,14 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     ARRAY,
     CHAR,
+    REAL,
     Boolean,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     MetaData,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -142,3 +144,121 @@ class KbSetting(Base):
     updated_at: Mapped[datetime] = _now()
 
 
+
+
+# ---------------------------------------------------------------- Hội thoại (06 mục 6.4)
+
+
+class Conversation(Base):
+    __tablename__ = "conversation"
+    __table_args__ = (Index("ix_conversation_user_last", "user_id", text("last_message_at DESC")),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    user_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    created_at: Mapped[datetime] = _now()
+    last_message_at: Mapped[datetime] = _now()
+    # Bộ nhớ ngắn hạn có cấu trúc: chỉ ID + nhãn đối tượng đang bàn (04 mục 4.10).
+    session_state: Mapped[Any] = mapped_column(JSONB)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Message(Base):
+    __tablename__ = "message"
+    __table_args__ = (Index("ix_message_conversation_created", "conversation_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False)
+    sender: Mapped[str] = mapped_column(String(10), nullable=False)  # USER | ASSISTANT
+    reply_to_message_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("message.id", ondelete="CASCADE"))
+    content: Mapped[str | None] = mapped_column(Text)  # đặt NULL sau thời hạn lưu (09 mục 9.3)
+    rewritten_query: Mapped[str | None] = mapped_column(Text)
+    intent: Mapped[str | None] = mapped_column(String(20))
+    grounded: Mapped[str | None] = mapped_column(String(10))
+    fallback_reason: Mapped[str | None] = mapped_column(String(40))
+    verification: Mapped[Any] = mapped_column(JSONB)
+    actions: Mapped[Any] = mapped_column(JSONB)
+    citations: Mapped[Any] = mapped_column(JSONB)  # danh sách trích dẫn đã đánh số, để xem lại hội thoại
+    page_path: Mapped[str | None] = mapped_column(String(200))
+    llm_model: Mapped[str | None] = mapped_column(String(80))
+    prompt_version: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[datetime] = _now()
+
+
+class MessageCitation(Base):
+    __tablename__ = "message_citation"
+
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("message.id", ondelete="CASCADE"), primary_key=True)
+    chunk_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("kb_chunk.id"), primary_key=True)
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    vector_score: Mapped[float | None] = mapped_column(REAL)
+    text_score: Mapped[float | None] = mapped_column(REAL)
+    rrf_score: Mapped[float | None] = mapped_column(REAL)
+    rerank_score: Mapped[float | None] = mapped_column(REAL)
+    in_context: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class ToolCallLog(Base):
+    """Chỉ ghi đã gọi gì; **không** lưu dữ liệu trả về (09 mục 9.3)."""
+
+    __tablename__ = "tool_call_log"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("message.id", ondelete="CASCADE"), nullable=False)
+    tool_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    args: Mapped[Any] = mapped_column(JSONB)
+    blocked_reason: Mapped[str | None] = mapped_column(String(40))
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    result_items: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _now()
+
+
+class TurnTrace(Base):
+    __tablename__ = "turn_trace"
+
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("message.id", ondelete="CASCADE"), primary_key=True)
+    request_id: Mapped[str | None] = mapped_column(String(64))
+    config_hash: Mapped[str] = mapped_column(CHAR(12), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # OK | ABSTAINED | BUDGET_EXCEEDED | ERROR
+    spans: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    total_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    tokens_in: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tokens_out: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    model_calls: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    tool_calls: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    verify_retries: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    created_at: Mapped[datetime] = _now()
+
+
+class MessageFeedback(Base):
+    __tablename__ = "message_feedback"
+
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("message.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    rating: Mapped[int] = mapped_column(SmallInteger, nullable=False)  # 1 | -1
+    reason: Mapped[str | None] = mapped_column(String(30))  # WRONG | NOT_HELPFUL | OUTDATED | OTHER
+    comment: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _now()
+
+
+class DeletionLog(Base):
+    """Kết quả xoá có kiểm chứng; không chứa user_id hay nội dung (06 mục 6.4)."""
+
+    __tablename__ = "deletion_log"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    conversation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    purged_at: Mapped[datetime] = _now()
+    rows_deleted: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    verified: Mapped[bool] = mapped_column(Boolean, nullable=False)

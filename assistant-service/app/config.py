@@ -69,6 +69,15 @@ class Settings(BaseSettings):
     min_cosine: float = 0.45
     min_text_coverage: float = 0.5
 
+    # --- Harness và ngân sách mỗi lượt (M8, thiết kế 04 mục 4.9) ---
+    max_tool_calls: int = 3
+    max_model_calls: int = 4  # không tính verifier
+    max_verify_retries: int = 1
+    turn_token_budget: int = 40_000  # mọi lời gọi trong lượt, kể cả viết lại câu hỏi và verifier
+    turn_timeout_s: float = 25.0
+    context_token_cap: int = 10_000
+    max_message_chars: int = 1000
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""
