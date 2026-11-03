@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 5 — **bước:** chặng 4 xong (M12–M13), bắt đầu M14.
-- **Việc tiếp theo:** M14 (ToolRegistry đọc tool-catalog/tools.yaml, BackendClient chỉ GET + allowlist + mock, lọc kết quả + múi giờ + focus_items, ToolGate seen_ids, LoopGuard, ToolSelection; fixture mock).
+- **Chặng hiện tại:** 5 — **bước:** M14 xong, bắt đầu M15.
+- **Việc tiếp theo:** M15 (bộ chạy eval: eval.run, graders, eval.compare, eval.report, eval.latency_cost; định dạng case 13.4; baseline).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -26,7 +26,7 @@
 - [x] M11 Widget chat
 - [x] M12 ScopeGuard
 - [x] M13 CitationVerifier, RouteGuard, Redact
-- [ ] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
+- [x] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
 - [ ] M15 `eval.run`, `eval.compare`
 - [ ] M16 Trang quản trị kho tri thức
 - [ ] M17 Yêu cầu hỗ trợ
@@ -515,3 +515,49 @@ M15 / chặng 8. Kết quả lớp chặn (M12) ở mục M12.
 3. `verification.py` → `normalize_verdict`: **đáng học nhất** — kiểm luôn cả "người kiểm tra" (bằng chứng phải chép
    nguyên văn), để chính verifier cũng không bịa được.
 4. `route_guard.py` → `route_allowed`: tách tham số khỏi mẫu route rồi kiểm từng giá trị thuộc `seen_ids`.
+
+## M14 — Công cụ tra cứu (tool calling)
+
+**Đã làm.**
+- `ToolRegistry` đọc **thẳng** `tool-catalog/tools.yaml` (36 công cụ `ready`: 24 cho học viên, 26 cho gia sư; công cụ
+  `planned` bỏ qua); từ chối nạp nếu có công cụ không phải GET / READ_ONLY; `parameters_schema()` **không** đưa tham số
+  cố định cho model (`list_my_transactions` luôn `source=PAYMENT`, model không đổi được).
+- `BackendClient`: chỉ GET + allowlist = danh mục; `LiveBackendClient` (httpx, 5 giây, token của người hỏi) và
+  `MockBackendClient` (`ASSISTANT_TOOLS_MODE=mock`, fixture `eval/fixtures/scenarios/<kịch bản>/<tool>.json` dạng
+  `default` + `byArgs`; `_all.json` = mọi tool cùng trả một lỗi).
+- Lớp lọc (`tools/result_filter.py`): chỉ trường `keep`; múi giờ theo nhãn `UTC` / `BACKEND_JVM` / `NOT_WRITTEN`;
+  tiền `1.200.000 đ`; ngày `dd/MM/yyyy`; nhãn enum (`status_label`); trường suy ra `createdByMe`; danh sách tối đa
+  10 mục theo `newest` / `installments_due_first` / `lessons_pending_first` kèm `total`, `counts`; cắt văn bản người
+  dùng viết; rút `focus_items` (ID + nhãn "Toán · Lớp 9").
+- `ToolExecutor` (dựng đường dẫn, tham số cố định, đổi giờ tham số thời gian, lỗi HTTP → câu báo ngắn 05 mục 5.5,
+  bọc `<tool_result>`).
+- Middleware: `ToolGateMiddleware` (vai trò, kiểu / enum tham số, bỏ tham số cố định, **ID phải thuộc `seen_ids`** →
+  `UNSEEN_ID`), `LoopGuardMiddleware` (cùng tool + cùng tham số → `DUPLICATE`; hết lượt tool → bỏ tool khỏi request),
+  `ToolSelectionMiddleware` (≤ 6 tool; câu quy định thuần → không gửi tool; tool cần ID kéo theo tool liệt kê).
+- Prompt Actor thêm quy tắc 8 (dùng mã trong `<session_focus>`, dữ liệu tool thắng lời người dùng).
+- Test hợp đồng T2 `tests/contract/test_tool_fields.py` (`pytest -m contract`, cần backend dev + token test).
+
+- File chính: `app/tools/*`, `app/agent/middleware/tool_gate.py`, `loop_guard.py`, `tool_selection.py`,
+  `eval/fixtures/scenarios/*`, `tests/unit/test_tools.py`, `tests/contract/test_tool_fields.py`.
+- Kiểm tra: 168 test xanh (T0 + T1), 27 test T2 bỏ qua (chưa có backend thật). Có đúng test mẫu 13 mục 13.1
+  `test_tool_gate_blocks_unseen_id`, và các nhóm an toàn 13.7: đoán ID, ép gọi lặp, rò trường nhạy cảm, backend lỗi.
+
+**Khác thiết kế.**
+- Danh sách công cụ theo `tools.yaml` (36), không theo bảng 16 công cụ của 05 mục 5.3 (quyết định của người dùng).
+- `ToolGate` đăng ký **trước** `LoopGuard` ở hook ⑤ để LoopGuard so lời gọi đã được làm sạch tham số.
+- Lời gọi bị chặn vẫn tính vào hạn mức 3 lời gọi tool (Budget bọc ngoài) — chặn luôn kiểu "spam lời gọi bị chặn".
+- Câu hỏi "có dấu hiệu cá nhân" so trên câu **có dấu** khi người dùng gõ có dấu (bỏ dấu cả hai phía thì "ví tối
+  thiểu" khớp nhầm "ví tôi" — cùng loại lỗi với từ dừng ở M6).
+- `focus_items` chỉ lấy từ các mục **được đưa cho model** (≤ 10), không lấy mục bị cắt bớt.
+
+**Còn dở.** Chạy với backend thật (T2) ở chặng 8 khi dựng compose + dữ liệu mẫu.
+
+**Đọc code này thế nào.**
+1. `tools.yaml` một công cụ (ví dụ `list_my_payment_installments`) rồi `app/tools/registry.py` → `parse_tool`: một
+   khai báo YAML thành một `ToolDefinition`.
+2. Đường đi của một lời gọi: `runner._run_tools` → Budget ⑤ → Trace ⑤ → **ToolGate** → LoopGuard → `ToolExecutor`
+   → `BackendClient.get` → `shape_result`. Đọc theo đúng thứ tự này.
+3. `tool_gate.py` → `_check_value`: **đáng học nhất** — chặn đoán ID chỉ bằng một phép so tập hợp với `seen_ids`.
+4. `result_filter.py` → `filter_object` + `select_items`: vì sao model không bao giờ thấy email / họ, và vì sao kỳ
+   chưa đóng gần hạn nhất luôn đứng đầu.
+5. `tests/unit/test_tools.py` → `test_lookup_turn_two_tools_then_answer_with_numbers_from_tool`: cả lượt tra cứu.

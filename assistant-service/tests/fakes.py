@@ -19,8 +19,13 @@ from app.retrieval.rerank import DisabledReranker
 from app.retrieval.retriever import RetrievalConfig, Retriever
 from app.retrieval.store import MemoryKnowledgeStore
 from app.services import Services
+from app.tools.backend_client import MockBackendClient
+from app.tools.executor import ToolExecutor
+from app.tools.registry import ToolRegistry
 
 ROUTES_FILE = Path(__file__).resolve().parents[2] / "knowledge-base" / "_routes.yaml"
+CATALOG_FILE = Path(__file__).resolve().parents[2] / "tool-catalog" / "tools.yaml"
+FIXTURES_DIR = Path(__file__).resolve().parents[1] / "eval" / "fixtures" / "scenarios"
 FIXED_NOW = datetime(2026, 10, 20, 9, 0)  # mặc định của eval (13 mục 13.3), giờ Việt Nam
 
 WALLET_DOC = """---
@@ -68,10 +73,17 @@ def make_store(*documents: str) -> MemoryKnowledgeStore:
     return store
 
 
-def make_services(settings: Settings, llm: LlmProvider | None = None, *documents: str, **extra) -> Services:
+def make_services(settings: Settings, llm: LlmProvider | None = None, *documents: str, tools_scenario: str = "",
+                  **extra) -> Services:
+    """`tools_scenario` khác rỗng → bật tool ở chế độ mock với kịch bản đó (eval/fixtures/scenarios/<tên>)."""
     store = make_store(*documents)
-    return Services(
+    services = Services(
         settings=settings, llm=llm, embedder=FakeEmbedding(),
         retriever=Retriever(store, DisabledReranker(), RetrievalConfig()),
         routes=RouteCatalog(load_routes_file(ROUTES_FILE)), clock=FixedClock(FIXED_NOW), **extra,
     )
+    if tools_scenario:
+        registry = ToolRegistry.from_file(CATALOG_FILE)
+        services.tool_registry = registry
+        services.tool_executor = ToolExecutor(registry, MockBackendClient(registry, FIXTURES_DIR, tools_scenario))
+    return services

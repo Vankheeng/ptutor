@@ -93,6 +93,16 @@ class Settings(BaseSettings):
     verifier_enabled: bool = True  # tắt để chạy thí nghiệm E2 "không kiểm chứng"
     verifier_timeout_s: float = 8.0
 
+    # --- Công cụ tra cứu (M14, thiết kế 05) ---
+    tools_mode: str = "live"  # live | mock | off
+    tool_catalog_path: str = "../tool-catalog/tools.yaml"
+    tool_fixtures_dir: str = "eval/fixtures/scenarios"
+    tool_scenario: str = "student_two_contracts"  # kịch bản mock mặc định (demo không cần backend)
+    tool_timeout_s: float = 5.0
+    max_tools_exposed: int = 6
+    # Múi giờ JVM backend cho trường thời điểm BACKEND_JVM (quyết định 2026-11-03: backend giữ giờ Việt Nam).
+    backend_jvm_time_zone: str = "Asia/Ho_Chi_Minh"
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

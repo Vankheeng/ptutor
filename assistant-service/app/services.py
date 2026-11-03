@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -23,6 +24,7 @@ from app.providers.llm import LlmProvider, OpenAiLlm
 from app.retrieval.retriever import Retriever
 from app.scope.exemplars import ExemplarStore, MemoryExemplarStore
 from app.scope.rules import ScopeRules
+from app.tools.registry import ToolRegistry
 
 
 @dataclass
@@ -38,6 +40,8 @@ class Services:
     suggestions: dict = field(default_factory=lambda: DEFAULT_SUGGESTIONS)
     exemplars: ExemplarStore = field(default_factory=lambda: MemoryExemplarStore([]))
     scope_rules: ScopeRules = field(default_factory=lambda: ScopeRules.from_setting(None))
+    tool_registry: ToolRegistry | None = None
+    tool_executor: Any = None  # app.tools.executor.ToolExecutor; None = không có tool (ASSISTANT_TOOLS_MODE=off)
     engine: Engine | None = None
     session_factory: sessionmaker[Session] | None = None
 
@@ -63,13 +67,29 @@ def build_services(settings: Settings) -> Services:
                                         else MemoryConversationStore())
     llm = OpenAiLlm(settings.openai_api_key, settings.openai_base_url) if settings.llm_enabled else None
     exemplars = _build_exemplars(session_factory, embedder)
+    registry, executor = _build_tools(settings)
     return Services(
         settings=settings, llm=llm, embedder=embedder,
         retriever=build_retriever(settings, store) if store is not None else None,
         routes=RouteCatalog(load_routes_file(Path(settings.routes_file))),
         conversations=conversations, counter=counter, engine=engine, session_factory=session_factory,
-        exemplars=exemplars,
+        exemplars=exemplars, tool_registry=registry, tool_executor=executor,
     )
+
+
+def _build_tools(settings: Settings) -> tuple[ToolRegistry | None, Any]:
+    """`live`: gọi backend thật; `mock`: fixture theo kịch bản; `off`: không có tool."""
+    from app.tools.backend_client import LiveBackendClient, MockBackendClient
+    from app.tools.executor import ToolExecutor
+
+    if settings.tools_mode == "off":
+        return None, None
+    registry = ToolRegistry.from_file(settings.tool_catalog_path)
+    if settings.tools_mode == "mock":
+        client: Any = MockBackendClient(registry, Path(settings.tool_fixtures_dir), settings.tool_scenario)
+    else:
+        client = LiveBackendClient(registry, settings.backend_base_url, timeout_s=settings.tool_timeout_s)
+    return registry, ToolExecutor(registry, client, settings.backend_jvm_time_zone)
 
 
 def _build_exemplars(session_factory, embedder: EmbeddingProvider) -> ExemplarStore:
