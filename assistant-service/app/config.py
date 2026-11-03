@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     # Danh sách route ban đầu (03 mục 3.8); sau khi import nằm ở kb_setting.routes.
     routes_file: str = "../knowledge-base/_routes.yaml"
 
+    # --- Embedding và rerank (M5, M6) ---
+    # Mặc định `fake` và tắt rerank: ai-service chỉ có trên nhánh recommendation chưa merge (quyết định người dùng).
+    # Thiết kế 11.2 ghi mặc định `ai-service` / rerank bật — đổi lại khi ai-service vào dev.
+    embedding_provider: str = "fake"  # fake | ai-service
+    ai_service_url: str = Field(default="http://127.0.0.1:8000",
+                                validation_alias=AliasChoices("AI_SERVICE_URL", "ai_service_url"))
+    ai_internal_token: str = Field(default="", validation_alias=AliasChoices("AI_INTERNAL_TOKEN", "ai_internal_token"))
+    rerank_enabled: bool = False
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""

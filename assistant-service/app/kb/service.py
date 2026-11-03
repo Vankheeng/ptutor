@@ -24,6 +24,7 @@ from app.kb.chunker import ChunkDraft
 from app.kb.parser import KbDocument as ParsedDocument
 from app.kb.tokens import TokenCounter
 from app.kb.validate import ValidationResult, validate_document
+from app.providers.embedding import EmbeddingError, EmbeddingProvider
 
 
 class KbError(Exception):
@@ -44,10 +45,11 @@ class SaveResult:
 
 class KnowledgeBaseService:
     def __init__(self, session_factory: sessionmaker[Session], counter: TokenCounter,
-                 allowed_routes: Callable[[], set[str]]):
+                 allowed_routes: Callable[[], set[str]], embedder: EmbeddingProvider):
         self._sessions = session_factory
         self._counter = counter
         self._allowed_routes = allowed_routes
+        self._embedder = embedder
 
     # ------------------------------------------------------------------ nháp
 
@@ -173,15 +175,20 @@ class KnowledgeBaseService:
         document.status = "PUBLISHED"
 
     def _insert_chunks(self, session: Session, version: KbDocumentVersion, drafts: list[ChunkDraft]) -> None:
+        # Embed trước khi ghi gì: lỗi ở đây làm cả lần công bố thất bại, bản cũ vẫn chạy (03 mục 3.2).
+        try:
+            embedded = self._embedder.embed([draft.search_text for draft in drafts])
+        except EmbeddingError as error:
+            raise KbError("EMBEDDING_FAILED", "Không tạo được vector cho tài liệu, thử lại sau") from error
         keywords = " ".join(version.keywords)
-        for draft in drafts:
+        for draft, vector in zip(drafts, embedded.vectors, strict=True):
             session.add(KbChunk(
                 version_id=version.id, ordinal=draft.ordinal, heading_path=draft.heading_path, anchor=draft.anchor,
                 content=draft.content, search_text=draft.search_text, token_count=draft.token_count,
                 # Full-text trên văn bản đã bỏ dấu: câu hỏi "huy hop dong" vẫn khớp "Hủy hợp đồng" (04 mục 4.3).
                 tsv=func.to_tsvector("simple", func.assistant.f_unaccent(draft.search_text + " " + keywords)),
                 audience=version.audience, features=version.features, routes=version.routes, type=version.type,
-                is_active=True,
+                embedding=vector, embedding_model=embedded.model, is_active=True,
             ))
 
     def _validate(self, session: Session, version: KbDocumentVersion, *, allow_open_todo: bool) -> ValidationResult:

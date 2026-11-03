@@ -91,6 +91,7 @@ def main() -> None:
     from app.config import Settings
     from app.db.session import make_engine, make_session_factory
     from app.kb.tokens import load_token_counter
+    from app.providers.factory import build_embedder
 
     parser = argparse.ArgumentParser(description="Nạp kho tri thức khởi tạo vào DB (dạng nháp)")
     parser.add_argument("--path", type=Path, default=Path("../knowledge-base"))
@@ -105,7 +106,8 @@ def main() -> None:
     routes_file = arguments.path / "_routes.yaml"
     import_settings(session_factory, routes_file)
     allowed = {route.path for route in load_routes_file(routes_file)}
-    service = KnowledgeBaseService(session_factory, load_token_counter(settings.tokenizer_path), lambda: allowed)
+    service = KnowledgeBaseService(session_factory, load_token_counter(settings.tokenizer_path), lambda: allowed,
+                                   build_embedder(settings))
     report = import_directory(service, arguments.path, overwrite_drafts=arguments.overwrite_drafts,
                               publish=arguments.publish, allow_todo=arguments.allow_todo)
     print(report.summary())

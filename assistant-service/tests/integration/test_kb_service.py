@@ -10,6 +10,7 @@ from app.kb.importer import import_directory
 from app.kb.parser import parse_document
 from app.kb.service import KbError, KnowledgeBaseService
 from app.kb.tokens import ApproxTokenCounter
+from app.providers.embedding import EmbeddingError, FakeEmbedding
 from tests.unit.test_kb_chunking import SAMPLE
 
 pytestmark = pytest.mark.db
@@ -18,7 +19,7 @@ KB_ROOT = Path(__file__).resolve().parents[3] / "knowledge-base"
 
 @pytest.fixture
 def service(session_factory):
-    return KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: {"/student/wallet"})
+    return KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: {"/student/wallet"}, FakeEmbedding())
 
 
 def active_chunks(session_factory) -> int:
@@ -91,7 +92,7 @@ def test_import_whole_knowledge_base_as_drafts_then_publish_with_allow_todo(sess
     from app.kb.routes import load_routes_file
 
     allowed = {route.path for route in load_routes_file(KB_ROOT / "_routes.yaml")}
-    service = KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: allowed)
+    service = KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: allowed, FakeEmbedding())
     drafts = import_directory(service, KB_ROOT)
     assert drafts.actions["created"] == 65 and drafts.published == 0
     blocked = import_directory(service, KB_ROOT, publish=True)
@@ -101,3 +102,30 @@ def test_import_whole_knowledge_base_as_drafts_then_publish_with_allow_todo(sess
         published = session.scalar(select(func.count()).select_from(KbDocument)
                                    .where(KbDocument.active_version_id.is_not(None)))
     assert published == 65 and report.published_with_open_todo > 0
+
+
+class BrokenEmbedding(FakeEmbedding):
+    def embed(self, texts):
+        raise EmbeddingError("ai-service tắt")
+
+
+def test_publish_stores_vectors(service, session_factory):
+    saved = service.save_draft(parse_document(SAMPLE), origin="IMPORT")
+    service.publish(saved.document_id)
+    with session_factory() as session:
+        chunk = session.scalars(select(KbChunk)).first()
+    assert len(chunk.embedding) == 1024 and chunk.embedding_model == "fake-hash-v1"
+
+
+def test_embedding_failure_keeps_old_version(service, session_factory):
+    saved = service.save_draft(parse_document(SAMPLE), origin="IMPORT")
+    service.publish(saved.document_id)
+    service.save_draft(parse_document(SAMPLE.replace("10.000", "20.000")), origin="ADMIN")
+    broken = KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: {"/student/wallet"},
+                                  BrokenEmbedding())
+    with pytest.raises(KbError) as raised:
+        broken.publish(saved.document_id)
+    assert raised.value.code == "EMBEDDING_FAILED"
+    with session_factory() as session:
+        contents = session.scalars(select(KbChunk.content).where(KbChunk.is_active)).all()
+    assert any("10.000" in content for content in contents)

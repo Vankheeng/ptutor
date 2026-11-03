@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 2 — **bước:** M4 xong (T1 viết, chưa chạy được vì chưa có Docker), bắt đầu M5.
-- **Việc tiếp theo:** M5 (`EmbeddingProvider` fake / ai-service, embed khi công bố, `reembed`).
+- **Chặng hiện tại:** 2 — **bước:** M5 xong, bắt đầu M6.
+- **Việc tiếp theo:** M6 (truy xuất lai: vector + full-text, RRF, rerank, ngưỡng; script hit@k).
 - **Chờ người dùng:** bật Docker Desktop (cần cho T1, nạp kho, compose, Playwright); chọn model LLM (cần cho T3–T4).
 
 ## Danh sách việc
@@ -16,7 +16,7 @@
 - [x] M2 `LlmProvider` (`ScriptedLlm`, `OpenAiLlm`), `/v1/chat`
 - [x] M3 Đọc và chia tài liệu
 - [x] M4 Postgres + pgvector + unaccent, Alembic, import
-- [ ] M5 `EmbeddingProvider` (`fake`, `ai-service`)
+- [x] M5 `EmbeddingProvider` (`fake`, `ai-service`)
 - [ ] M6 Truy xuất lai, RRF, rerank, hit@k
 - [ ] M7 Trả lời có trích dẫn, small-to-big
 - [ ] M8 `AgentRunner` + middleware cơ bản
@@ -153,3 +153,32 @@ bản, lưu trữ, bỏ nháp); `python -m app.kb.import` (`--overwrite-drafts`,
    mục "một bản PUBLISHED" không báo trùng) → thêm đoạn mới → đổi bản active. Tất cả trong `session_factory.begin()`
    nên lỗi ở bất kỳ bước nào cũng quay lui, bản cũ vẫn chạy.
 4. `_insert_chunks`: `tsv` tính bằng `to_tsvector('simple', assistant.f_unaccent(...))` ngay trong câu INSERT.
+
+## M5 — Vector hoá (embedding)
+
+**Đã làm.** `EmbeddingProvider` với `FakeEmbedding` và `AiServiceEmbedding` (đúng API `ai-service` trên
+`feat/tutor-recommendation`: `POST /embed {"texts"}` → `{"model","dimensions","embeddings"}`, header
+`X-Internal-Token`, lô 32); công bố tài liệu embed `search_text` và lưu `embedding`, `embedding_model`; embed lỗi →
+`KbError("EMBEDDING_FAILED")`, bản cũ vẫn chạy; lệnh `python -m app.kb.reembed [--all]`.
+
+- File chính: `app/providers/embedding.py`, `app/providers/factory.py`, `app/kb/reembed.py`, `tests/unit/test_embedding.py`.
+- Kiểm tra: 29 test T0 xanh; 9 test T1 (thêm 2 cho embedding) chờ Docker.
+
+**Khác thiết kế.**
+- **Mặc định `ASSISTANT_EMBEDDING_PROVIDER=fake`, `ASSISTANT_RERANK_ENABLED=false`** (11.2 ghi mặc định
+  `ai-service` / bật) — theo yêu cầu của người dùng vì `ai-service` chưa vào `dev`.
+- `FakeEmbedding` băm **từng từ, cặp từ và cụm 3 ký tự** (đã bỏ dấu) thay vì băm cả câu (13 mục 13.1 chỉ ghi "vector
+  tất định từ băm nội dung"). Lý do: băm cả câu cho vector ngẫu nhiên → tìm theo vector vô nghĩa, E1 và ngưỡng
+  `τ_in` không đo được gì. Băm đặc trưng vẫn tất định, không cần mạng, và cho cosine cao khi hai câu chung từ.
+  Hạn chế: chỉ giống *từ ngữ*, không giống *nghĩa* — báo cáo phải ghi rõ.
+- Lưu ý cho rerank (M6): `ai-service` cắt văn bản rerank ở 256 token (`AI_RERANK_MAX_TOKENS`), ngắn hơn giới hạn đoạn
+  400 token.
+
+**Còn dở.** Chạy với `ai-service` thật khi người dùng bật được.
+
+**Đọc code này thế nào.**
+1. `app/providers/embedding.py`: lớp cơ sở chỉ có `embed(texts) -> EmbeddingResult`.
+2. `FakeEmbedding.vector` + `_features`: "feature hashing" — mỗi đặc trưng (từ, cặp từ, cụm 3 ký tự) băm ra một ô
+   trong 1024 ô, cộng dồn, rồi chuẩn hoá độ dài về 1. Đáng học vì nó cho thấy cosine đo "độ chồng đặc trưng".
+3. `AiServiceEmbedding.embed`: chia lô 32, kiểm `dimensions` để phát hiện nhầm model sớm.
+4. `KnowledgeBaseService._insert_chunks`: embed **trước** khi ghi đoạn nào → lỗi thì quay lui sạch.
