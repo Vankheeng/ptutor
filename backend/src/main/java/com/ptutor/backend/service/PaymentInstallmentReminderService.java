@@ -43,7 +43,7 @@ public class PaymentInstallmentReminderService {
             installmentService.ensureForActiveContract(contract);
         }
 
-        LocalDate dueDate = LocalDate.now(clock.withZone(ZoneId.of(timeZone))).plusDays(3);
+        LocalDate dueDate = LocalDate.now(clock.withZone(ZoneId.of(timeZone)));
         for (ContractPaymentInstallment installment : installmentRepository.findDueInstallments(
                 PaymentInstallmentStatus.PENDING, dueDate, ContractStatus.ACTIVE)) {
             eventPublisher.publishEvent(NotificationDomainEvent.deduplicated(
