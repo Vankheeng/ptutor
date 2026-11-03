@@ -28,6 +28,9 @@ import { StudentContractDetailPage } from './pages/student/StudentContractDetail
 import { StudentContractCreatePage } from './pages/student/StudentContractCreatePage';
 import { NotificationsPage } from './pages/common-user/NotificationsPage';
 import { WalletPage } from './pages/common-user/WalletPage';
+import { WalletTransactionsPage } from './pages/common-user/WalletTransactionsPage';
+import { WalletTransactionDetailPage } from './pages/common-user/WalletTransactionDetailPage';
+import { WalletAnalyticsPage } from './pages/common-user/WalletAnalyticsPage';
 import { StudentProfilePage } from './pages/student/StudentProfilePage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminTutorProfilesPage } from './pages/admin/AdminTutorProfilesPage';
@@ -133,6 +136,9 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
+                <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
+                <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
+                <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
               </Route>
             </Route>
@@ -162,6 +168,9 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
+                <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
+                <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
+                <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
                 <Route path="profile" element={<StudentProfilePage />} />
               </Route>
             </Route>
