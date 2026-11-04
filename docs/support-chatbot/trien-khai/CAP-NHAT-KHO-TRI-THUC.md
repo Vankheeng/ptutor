@@ -74,6 +74,20 @@ Chạy theo thứ tự này, và xem kết quả từng bước trước khi ch�
 
 ## Không cần làm
 
-- Không sửa code. Phần đưa câu hỏi todo vào ngữ cảnh model (`open_questions`) tự không làm gì khi tài liệu hết todo,
-  nên cứ để nguyên.
+- Không sửa code.
 - Không đổi `SPLITS.yaml` bằng tay.
+
+## Nhánh thử nghiệm `feat/support-chatbot-reference-open-questions`
+
+Nhánh này có thêm **một commit** tách khỏi nhánh chính (quyết định 2026-11-04: để sau khi điền todo).
+
+- **Nội dung:** khi tài liệu được công bố bằng `--allow-todo`, các câu `todo` được đưa vào ngữ cảnh model
+  (`<open_questions>`). Prompt có thêm quy tắc: câu hỏi trùng một câu hỏi mở thì chỉ trả lời "một phần" và nói rõ PTutor
+  chưa có hướng dẫn chính thức. Kết quả là widget hiện nút gửi câu hỏi cho nhân viên thay vì trả lời chắc chắn.
+- **Vì sao tách:** phân tích dev cho thấy 7 / 9 câu NO_ANSWER trượt là câu đang nằm trong `todo` của tài liệu. Điền
+  todo (các mục trên) sửa tận gốc. Nhánh này chỉ có ích trong lúc kho **còn** todo (demo / eval).
+- **Trạng thái:** chưa đo bằng model thật, vì lần chạy dev đã dừng giữa chừng. Test tự động đều qua.
+- **Khi nào dùng:** cần demo hoặc chạy eval mà kho vẫn còn nhiều todo. Gộp vào nhánh chính:
+  `git merge feat/support-chatbot-reference-open-questions`. Sau đó chạy lại dev bằng model thật (≈ 0,4 $) trước khi
+  tin kết quả.
+- **Khi nào bỏ:** nhóm đã điền hết todo → xoá nhánh (`git branch -D feat/support-chatbot-reference-open-questions`).

@@ -5,9 +5,9 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** Chặng 8 / T3 — bge-m3 + model thật xong (test 86,4%)
-- **Việc tiếp theo:** (1) chấm tay `cham-tay/sheet.csv` — **người dùng** làm; (2) cải thiện NO_ANSWER (65,5% với bge-m3): phủ câu todo của kho tri thức (người dùng; các bước ở `CAP-NHAT-KHO-TRI-THUC.md`), làm chặt `coverage`, chọn trên dev; (3) thêm hội thoại nhiều lượt cho E4 (hiện 8) rồi đo lại.
-- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-ref` (cổng 8001, model mount chỉ đọc) đang **tắt** để đỡ RAM — bật bằng `docker start ptutor-ai-service-ref`; số rerank đã đo (BAO-CAO T3.7.1). Sổ chi tiêu eval: 4,83 / 10 $. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
+- **Chặng hiện tại:** Chặng 8 / T3 — bge-m3 + model thật xong (test 86,4%); thử sửa NO_ANSWER để ở nhánh riêng
+- **Việc tiếp theo:** (1) người dùng điền todo theo `CAP-NHAT-KHO-TRI-THUC.md` rồi chạy lại eval; (2) chấm tay `cham-tay/sheet.csv` (người dùng); (3) thêm hội thoại nhiều lượt cho E4 (hiện 8) rồi đo lại. Nhánh thử nghiệm NO_ANSWER: `feat/support-chatbot-reference-open-questions` (chưa đo bằng model thật).
+- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-ref` (cổng 8001, model mount chỉ đọc) đang **tắt** để đỡ RAM — bật bằng `docker start ptutor-ai-service-ref`; số rerank đã đo (BAO-CAO T3.7.1). Sổ chi tiêu eval: 5,03 / 10 $. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
 
@@ -853,3 +853,27 @@ Phiếu chấm tay chờ người chấm.
    **Đáng học**: tách phần tốn kém (embedding, rerank) khỏi phần dò tham số.
 2. `SupportRequestService.refusalFollowUp`: tử số và mẫu số ở hai service khác nhau, cùng một cửa sổ thời gian; mốc
    gửi dạng UTC có `Z` (dấu `+` trong query string bị đọc thành khoảng trắng).
+
+## Chặng 8 — Thử sửa NO_ANSWER, tách ra nhánh riêng (2026-11-04)
+
+**Đã làm.**
+- **Phân tích dev bge-m3** (không tốn tiền): 9 câu NO_ANSWER trượt, đều do trả lời "đầy đủ" thay vì "chưa có thông tin
+  chính thức".
+  - 7 câu nằm trong `todo` của tài liệu: tài liệu có dữ kiện liên quan, nhưng chính sách chưa có.
+  - 2 câu không có trong todo: một câu có lẽ nhãn đã cũ (tài liệu ghi 48 giờ), một câu do model tự suy.
+- **Thử sửa:** đưa câu `todo` vào ngữ cảnh model (`<open_questions>`) cùng quy tắc `coverage` tối đa PARTIAL.
+  - Test tự động qua; bản giả lập dev giữ 63,3%.
+  - Giới hạn: 24/37 câu NO_ANSWER dev (20/29 test) gần trùng câu todo, nên mức cải thiện phần nào do cách dựng bộ dữ
+    liệu.
+- **Quyết định người dùng:** để sau khi điền todo.
+  - Đã dừng lần chạy dev giữa chừng; ghi ước tính 0,2 $ vào sổ (tổng 5,03 / 10 $).
+  - Code ở nhánh **`feat/support-chatbot-reference-open-questions`** (commit `a257f54`), chưa đo bằng model thật.
+- **Nhánh chính:**
+  - sửa test đếm cứng 65 tài liệu (`9343acc`);
+  - thêm `CAP-NHAT-KHO-TRI-THUC.md`: các bước khi điền todo, và khi nào dùng / bỏ nhánh thử nghiệm.
+
+**Lưu ý vận hành.** TaskStop chỉ dừng tiến trình bash bên ngoài; tiến trình `python -m eval.run` vẫn chạy ngầm và tiếp
+tục tiêu tiền. Phải dừng thêm tiến trình python, và ghi chi phí ước tính vào sổ bằng tay vì `finally` không kịp chạy.
+
+**Còn dở.** Người dùng điền todo theo `CAP-NHAT-KHO-TRI-THUC.md`, rồi chạy lại eval; chấm tay; thêm hội thoại nhiều
+lượt cho E4.
