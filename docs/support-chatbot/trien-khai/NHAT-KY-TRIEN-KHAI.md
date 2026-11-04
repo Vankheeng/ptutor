@@ -1,7 +1,7 @@
 # Nhật ký triển khai (bản tham khảo)
 
-> Worktree `D:\DATN\ptutor-reference`, nhánh `feat/support-chatbot-reference` (tạo từ `feat/support-chatbot`, đã merge
-> `dev@27f6eeb`). Phiên mới: đọc mục **Đang ở đâu** trước, rồi làm tiếp việc tiếp theo.
+> Nhánh `feat/support-chatbot-reference` (tạo từ `feat/support-chatbot`, đã merge `dev@27f6eeb`), mở trực tiếp trong
+> repo `D:\DATN\ptutor` từ 2026-11-04 (trước đó là worktree riêng `D:\DATN\ptutor-reference`). Phiên mới: đọc mục **Đang ở đâu** trước, rồi làm tiếp việc tiếp theo.
 
 ## Đang ở đâu
 
