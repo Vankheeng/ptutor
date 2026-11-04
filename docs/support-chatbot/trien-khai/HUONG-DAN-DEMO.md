@@ -14,7 +14,9 @@ Chạy cả hệ thống (Postgres, backend, assistant-service, frontend) bằng
 | `JWT_SECRET` | `python -c "import secrets,base64;print(base64.b64encode(secrets.token_bytes(48)).decode())"` |
 | `CITIZEN_ID_ENCRYPTION_KEY`, `BANK_ACCOUNT_ENCRYPTION_KEY` | như trên nhưng `token_bytes(32)` (đúng 32 byte) |
 | `VNPAY_HASH_SECRET` | chuỗi ngẫu nhiên (demo không thanh toán thật) |
+| `PAYMENT_*_FEE`, `VNPAY_TMN_CODE`, `VNPAY_*_URL` | để trống → compose dùng mặc định **chỉ cho demo** (phí 50.000 đ, mã `DEMO`, VNPay sandbox, `localhost`); triển khai thật phải đặt giá trị thật |
 | `ASSISTANT_INTERNAL_TOKEN` | `python -c "import secrets;print(secrets.token_urlsafe(32))"` |
+| `SPRING_PROFILES_ACTIVE` | **`prod,demo`** — bật seeder tài khoản demo. Compose mặc định `prod` (không có tài khoản demo) |
 | `DEMO_USER_PASSWORD` | mật khẩu chung cho 4 tài khoản demo (≥ 8 ký tự) |
 | `ASSISTANT_LLM_MODEL`, `OPENAI_API_KEY` | model thật (`gpt-4.1-mini` cho cả trả lời / viết lại / kiểm chứng). `OPENAI_BASE_URL` để trống = endpoint mặc định. **Không có khoá** → đặt `ASSISTANT_LLM_PROVIDER=scripted` (câu trả lời chép từ tài liệu, chỉ để xem luồng) |
 
@@ -32,7 +34,8 @@ docker restart ptutor-assistant-service                              # nạp l�
 
 - Frontend: <http://127.0.0.1:8088> (dùng `127.0.0.1`; trên một số máy Docker Desktop không chuyển `localhost` qua
   IPv6). Backend: cổng `BACKEND_PORT` (mặc định 8080). assistant-service không mở cổng ra ngoài — chỉ backend gọi được.
-- Backend chạy profile `prod,demo` với `TZ=Asia/Ho_Chi_Minh`; Flyway tạo đủ V1–V36; seeder `@Profile("demo")` tạo tài
+- Backend chạy profile `prod,demo` (từ `.env`; thiếu dòng này thì chạy `prod` và không có tài khoản demo) với
+  `TZ=Asia/Ho_Chi_Minh`; Flyway tạo đủ V1–V36; seeder `@Profile("demo")` tạo tài
   khoản (bỏ qua nếu email đã có, nên khởi động lại không nhân bản).
 - Chỉ Postgres (như trước khi có trợ lý): `docker compose up -d postgres` — không cần profile.
 

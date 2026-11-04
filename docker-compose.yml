@@ -25,7 +25,8 @@ services:
     depends_on: [postgres]
     restart: on-failure  # lần đầu postgres có thể chưa nhận kết nối
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod,demo}
+      # Mặc định prod (không seeder demo). Demo: đặt SPRING_PROFILES_ACTIVE=prod,demo trong .env.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ptutor}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -33,9 +34,11 @@ services:
       CITIZEN_ID_ENCRYPTION_KEY: ${CITIZEN_ID_ENCRYPTION_KEY:?CITIZEN_ID_ENCRYPTION_KEY must be set}
       BANK_ACCOUNT_ENCRYPTION_KEY: ${BANK_ACCOUNT_ENCRYPTION_KEY:?BANK_ACCOUNT_ENCRYPTION_KEY must be set}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}
-      PAYMENT_STUDYING_REQUEST_FEE: ${PAYMENT_STUDYING_REQUEST_FEE:-50000}
-      PAYMENT_TEACHING_REQUEST_FEE: ${PAYMENT_TEACHING_REQUEST_FEE:-50000}
-      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMO}
+      # Các mặc định phí đăng tin và VNPay dưới đây CHỈ dùng cho demo (mã DEMO, sandbox, localhost);
+      # triển khai thật phải đặt giá trị thật trong .env.
+      PAYMENT_STUDYING_REQUEST_FEE: ${PAYMENT_STUDYING_REQUEST_FEE:-50000}  # phí đăng tin: chỉ cho demo
+      PAYMENT_TEACHING_REQUEST_FEE: ${PAYMENT_TEACHING_REQUEST_FEE:-50000}  # phí đăng tin: chỉ cho demo
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMO}  # mã VNPay giả: chỉ cho demo, không thanh toán được thật
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:?VNPAY_HASH_SECRET must be set}
       VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8088/api/v1/payments/vnpay/return}
