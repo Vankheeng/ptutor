@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 8 — 4b xong, đang làm 4c (hoàn thiện).
-- **Việc tiếp theo:** 4c: Dockerfile + compose profile assistant (đã viết, chưa build thử), seeder demo Java @Profile("demo"), ảnh màn hình Playwright, README assistant-service, HUONG-DAN-DEMO.md, bảng thiết kế ↔ triển khai, kiểm tra cuối.
+- **Chặng hiện tại:** 8 xong (4b + 4c). Toàn bộ M1–M17 và chặng 8 đã làm; còn các việc cần model thật.
+- **Việc tiếp theo:** Khi người dùng chọn model: ước tính chi phí (BAO-CAO-DANH-GIA mục 9) → chạy T3 (eval.run real_llm, eval.verifier), chấm tay, đo rerank khi đủ RAM; chụp lại ảnh demo với model thật.
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -30,7 +30,7 @@
 - [x] M15 `eval.run`, `eval.compare`
 - [x] M16 Trang quản trị kho tri thức
 - [x] M17 Yêu cầu hỗ trợ
-- [ ] Chặng 8: đánh giá đầy đủ (4b) và hoàn thiện (4c)
+- [x] Chặng 8: đánh giá đầy đủ (4b) và hoàn thiện (4c)
 
 ## Quyết định chung (áp cho mọi module)
 
@@ -741,3 +741,36 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
 2. `eval/build_lookup_cases.py`: **đáng học** — chia dev / test theo công cụ để chỉnh trên dev không "học tủ" test.
 3. `app/agent/middleware/memory.py` → `update_focus`: lời người dùng chỉ xếp thứ tự đối tượng đã có, không thêm ID.
 4. `eval/compare.py` + mục 7.2 báo cáo: ví dụ cổng hồi quy bắt một thay đổi "tỉ lệ tổng không đổi" nhưng hỏng một case.
+
+## Chặng 8 / 4c — Hoàn thiện (Docker, dữ liệu demo, ảnh màn hình, tài liệu)
+
+**Đã làm.**
+- Dockerfile multi-stage: `backend/Dockerfile` (Maven → JRE 21, `TZ=Asia/Ho_Chi_Minh`, profile `prod`),
+  `frontend/Dockerfile` + `nginx.conf` (Vite → nginx, `/api` chuyển sang backend), `assistant-service/Dockerfile` +
+  `docker-entrypoint.sh` (Alembic rồi uvicorn; lệnh `kb-import` để nạp kho tri thức).
+- `docker-compose.yml`: thêm `backend`, `assistant-service`, `frontend` dưới profile `assistant`; `postgres` giữ không
+  profile. Sửa khoá volume (đặt `POSTGRES_VOLUME_NAME` trước đây làm compose báo lỗi). `.env.example` thêm biến trợ lý.
+- Seeder `backend/.../demo/DemoDataSeeder.java` (`@Profile("demo")`): 4 tài khoản (ADMIN, CUSTOMER_SERVICE, học viên,
+  gia sư) + ví + 2 yêu cầu hỗ trợ; idempotent theo email; mật khẩu từ `DEMO_USER_PASSWORD` (trống → bỏ qua).
+- Chạy thử toàn bộ bằng Docker (project riêng, Postgres riêng cổng 5434, không đụng `ptutor-postgres`): Flyway V1–V36,
+  seeder, nạp 66 tài liệu, kiểm thử đầu-cuối (hỏi quy định, tra cứu số dư thật qua backend, chặn ngoài phạm vi, hàng
+  chờ CSKH, gia sư bị 403).
+- 10 ảnh màn hình Playwright (Chrome có sẵn) ở `docs/support-chatbot/trien-khai/demo/`.
+- Tài liệu: `assistant-service/README.md`, `HUONG-DAN-DEMO.md`, `THIET-KE-VS-TRIEN-KHAI.md` (bảng đối chiếu).
+
+- Kiểm tra: `DemoDataSeederIntegrationTest` (Postgres thật, chạy seeder hai lần); pytest, ruff, mypy sạch; quét bí mật
+  và TODO trên toàn bộ thay đổi: không có.
+
+**Khác thiết kế.**
+- Dockerfile và dịch vụ compose là thêm mới (chưa có trên `dev`), theo quyết định 2026-11-03.
+- `CORS_ALLOWED_ORIGINS` mặc định trong compose có cả `http://127.0.0.1:8088` (trên máy này Docker Desktop không chuyển
+  `localhost` qua IPv6).
+- Ảnh chụp với `ASSISTANT_LLM_PROVIDER=scripted` (chưa có model).
+
+**Còn dở.** Chạy lại ảnh và eval T3 khi có model; các mục ở `BAO-CAO-DANH-GIA.md` mục 9.
+
+**Đọc code này thế nào.**
+1. `HUONG-DAN-DEMO.md` → chạy thử theo đúng các bước.
+2. `docker-compose.yml`: dịch vụ mới đều có `profiles: [assistant]` — chạy Postgres một mình vẫn như cũ.
+3. `DemoDataSeeder.java`: **đáng học** — idempotent theo email + mật khẩu từ biến môi trường: không có bí mật nào trong
+   mã nguồn, khởi động lại không nhân bản dữ liệu.

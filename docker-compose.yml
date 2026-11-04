@@ -10,7 +10,78 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ${POSTGRES_VOLUME_NAME:-ptutor_postgres_data}:/var/lib/postgresql/data
+      # Khoá cố định, tên thật lấy từ POSTGRES_VOLUME_NAME (mục volumes) — trước đây đặt biến này làm compose báo lỗi.
+      - ptutor_postgres_data:/var/lib/postgresql/data
+
+  # ---------------------------------------------------------------------------------------------------------------
+  # Trợ lý hỗ trợ (thêm mới): chỉ chạy khi bật profile — `docker compose --profile assistant up -d --build`.
+  # Dịch vụ postgres ở trên giữ nguyên, vẫn chạy một mình như trước (không có profile).
+  # Hướng dẫn: docs/support-chatbot/trien-khai/HUONG-DAN-DEMO.md
+  # ---------------------------------------------------------------------------------------------------------------
+  backend:
+    profiles: [assistant]
+    build: ./backend
+    container_name: ptutor-backend
+    depends_on: [postgres]
+    restart: on-failure  # lần đầu postgres có thể chưa nhận kết nối
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod,demo}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ptutor}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      CITIZEN_ID_ENCRYPTION_KEY: ${CITIZEN_ID_ENCRYPTION_KEY:?CITIZEN_ID_ENCRYPTION_KEY must be set}
+      BANK_ACCOUNT_ENCRYPTION_KEY: ${BANK_ACCOUNT_ENCRYPTION_KEY:?BANK_ACCOUNT_ENCRYPTION_KEY must be set}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}
+      PAYMENT_STUDYING_REQUEST_FEE: ${PAYMENT_STUDYING_REQUEST_FEE:-50000}
+      PAYMENT_TEACHING_REQUEST_FEE: ${PAYMENT_TEACHING_REQUEST_FEE:-50000}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMO}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:?VNPAY_HASH_SECRET must be set}
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8088/api/v1/payments/vnpay/return}
+      VNPAY_FRONTEND_RETURN_URL: ${VNPAY_FRONTEND_RETURN_URL:-http://localhost:8088/payment-result}
+      VNPAY_IPN_URL: ${VNPAY_IPN_URL:-http://localhost:8088/api/v1/payments/vnpay/ipn}
+      APP_ASSISTANT_ENABLED: "true"
+      APP_ASSISTANT_SERVICE_BASE_URL: http://assistant-service:8100
+      APP_ASSISTANT_SERVICE_INTERNAL_TOKEN: ${ASSISTANT_INTERNAL_TOKEN:?ASSISTANT_INTERNAL_TOKEN must be set}
+      # Mật khẩu chung của tài khoản demo (seeder @Profile("demo")); trống thì seeder bỏ qua.
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+
+  assistant-service:
+    profiles: [assistant]
+    build:
+      context: .
+      dockerfile: assistant-service/Dockerfile
+    container_name: ptutor-assistant-service
+    depends_on: [postgres]
+    restart: on-failure
+    environment:
+      ASSISTANT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ptutor}
+      ASSISTANT_INTERNAL_TOKEN: ${ASSISTANT_INTERNAL_TOKEN}
+      ASSISTANT_BACKEND_BASE_URL: http://backend:8080
+      ASSISTANT_TOOLS_MODE: ${ASSISTANT_TOOLS_MODE:-live}
+      # Backend chạy múi giờ Asia/Ho_Chi_Minh: trường time_zone=BACKEND_JVM trong tools.yaml theo múi giờ này.
+      ASSISTANT_BACKEND_JVM_TIME_ZONE: Asia/Ho_Chi_Minh
+      ASSISTANT_LLM_PROVIDER: ${ASSISTANT_LLM_PROVIDER:-openai}
+      ASSISTANT_LLM_MODEL: ${ASSISTANT_LLM_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      ASSISTANT_TURN_TOKEN_BUDGET: ${ASSISTANT_TURN_TOKEN_BUDGET:-40000}
+      ASSISTANT_EMBEDDING_PROVIDER: ${ASSISTANT_EMBEDDING_PROVIDER:-fake}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-}
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
+    expose:
+      - "8100"
+
+  frontend:
+    profiles: [assistant]
+    build: ./frontend
+    container_name: ptutor-frontend
+    depends_on: [backend]
+    ports:
+      - "${FRONTEND_PORT:-8088}:80"
 
 volumes:
   ptutor_postgres_data:

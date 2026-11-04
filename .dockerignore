@@ -1,0 +1,16 @@
+# Build context gốc repo chỉ dùng cho assistant-service (cần knowledge-base/, tool-catalog/).
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+backend
+frontend
+docs
+assistant-service/models
+assistant-service/eval/reports
+assistant-service/eval/.cache
+assistant-service/.env
+.env
+.git
