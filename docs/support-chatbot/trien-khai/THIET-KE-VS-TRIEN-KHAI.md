@@ -21,7 +21,7 @@ Mỗi dòng: phần thiết kế → nơi triển khai → trạng thái. "Khác
 | 08 Widget | `frontend/src/components/assistant/*` | Đúng; Markdown tự hiển thị bằng phần tử React (M11) |
 | 08 Trang quản trị kho tri thức | `frontend/src/pages/admin/assistant/*` | Đúng; chỉ ADMIN |
 | 09 Bảo mật: GET "của tôi", lọc trường, che PII, ToolGate, cách ly hội thoại | `registry.py`, `result_filter.py`, `privacy/redact.py`, `tool_gate.py`, `input_guard.py` | Đúng; bộ an toàn 26/26 |
-| 10 Đánh giá: chỉ số, E1 / E2 / E4, B2 | `eval/*`, [BAO-CAO-DANH-GIA.md](./BAO-CAO-DANH-GIA.md) | T0–T2 xong; **T3–T4 chưa** (chưa chọn model); rerank chưa đo |
+| 10 Đánh giá: chỉ số, E1 / E2 / E4, B2 | `eval/*`, [BAO-CAO-DANH-GIA.md](./BAO-CAO-DANH-GIA.md) | T0–T2 xong; T3 (`gpt-4.1-mini`) xong dev, test, E1, E2 — **chưa**: E4, đo riêng verifier (hết credit); T4 chưa; rerank chưa đo |
 | 11 Vận hành, cấu hình | `app/config.py`, `.env.example`, `docker-compose.yml` (profile `assistant`) | Khác: mặc định embedding `fake`, rerank tắt (ai-service chưa vào `dev`) |
 | 12 Cơ sở lý thuyết | — (tài liệu) | — |
 | 13 Thiết kế eval | `eval/` | Khác: Actor trích xuất cho T0–T2; "ổn định" = đạt mọi lần trong k (M15); nhãn verifier chưa qua 2 người |
