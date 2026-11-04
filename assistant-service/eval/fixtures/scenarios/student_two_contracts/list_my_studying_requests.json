@@ -1,0 +1,50 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "r0000000-0000-4000-8000-000000000002",
+          "subjectName": "Vật lý",
+          "gradeName": "Lớp 10",
+          "districtName": "Cầu Giấy",
+          "title": "Tìm gia sư Vật lý lớp 10",
+          "description": "Ôn thi học kỳ",
+          "note": null,
+          "minPrice": 150000,
+          "maxPrice": 250000,
+          "learningGoals": "Đạt 8 điểm",
+          "learningMode": "OFFLINE",
+          "preferredSchedule": "Tối thứ 3, 5",
+          "availabilities": [],
+          "status": "PENDING_REVIEW",
+          "createdAt": "2026-10-19T08:00:00",
+          "studentPhone": "0912345678"
+        },
+        {
+          "id": "r0000000-0000-4000-8000-000000000001",
+          "subjectName": "Hóa học",
+          "gradeName": "Lớp 9",
+          "districtName": "Đống Đa",
+          "title": "Tìm gia sư Hóa lớp 9",
+          "description": "Mất gốc",
+          "note": null,
+          "minPrice": 120000,
+          "maxPrice": 200000,
+          "learningGoals": "Thi vào 10",
+          "learningMode": "ONLINE",
+          "preferredSchedule": "Chiều thứ 7",
+          "availabilities": [],
+          "status": "OPEN",
+          "createdAt": "2026-08-20T08:00:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 2,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

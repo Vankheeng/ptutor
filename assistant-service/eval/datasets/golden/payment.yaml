@@ -17,6 +17,9 @@
     - Kỳ đầu vào ngày bắt đầu, các kỳ sau cách nhau một tháng tới trước ngày kết thúc
     - mỗi kỳ bằng giá hợp đồng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -38,6 +41,9 @@
     - 9 giờ sáng, trước hạn đúng 3 ngày
     - mỗi kỳ nhắc một lần
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 3 ngày
     - 9 giờ
@@ -83,6 +89,9 @@
     - Hợp đồng Mỗi buổi, kỳ chưa gắn buổi học
     - chờ gia sư lên lịch
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -104,6 +113,9 @@
     - Không
     - đã thu thành công
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -124,6 +136,9 @@
     key_points:
     - Chi tiết hợp đồng → Các kỳ thanh toán → Thanh toán → VNPay trong 15 phút
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 15 phút
   tags:
@@ -146,6 +161,9 @@
     - Hệ thống hỗ trợ nhưng giao diện chưa có nút
     - hiện trả qua VNPay
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -189,6 +207,9 @@
     - bấm lại trong 15 phút mở link cũ
     - quá hạn tạo link mới
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 15 phút
   tags:
@@ -212,6 +233,9 @@
     - khoản cần trả giữ trạng thái chờ
     - thanh toán lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -254,6 +278,9 @@
     key_points:
     - Link VNPay bị bỏ vì đã trả bằng ví
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -275,6 +302,9 @@
     - Không có tiền được ghi nhận
     - thanh toán lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

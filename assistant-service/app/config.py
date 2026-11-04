@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     # --- Lớp chặn ngoài phạm vi (M12, thiết kế 04 mục 4.11) ---
     scope_guard_enabled: bool = True
     scope_tau_in: float = 0.55
+    # Chặng 8 thử 0.02 (chọn trên dev): cổng hồi quy chặn vì chặn nhầm "Sửa số điện thoại ở đâu?" → giữ 0.05.
     scope_delta: float = 0.05
 
     # --- Kiểm chứng trích dẫn (M13, thiết kế 04 mục 4.6) ---
@@ -103,10 +104,14 @@ class Settings(BaseSettings):
     # Múi giờ JVM backend cho trường thời điểm BACKEND_JVM (quyết định 2026-11-03: backend giữ giờ Việt Nam).
     backend_jvm_time_zone: str = "Asia/Ho_Chi_Minh"
 
+    # `openai` (mặc định) hoặc `scripted`: Actor trích xuất tất định của eval (eval/scripted_policy.py) — CHỈ để demo /
+    # chụp màn hình khi chưa có model; câu trả lời là câu chép từ tài liệu, không phải model ngôn ngữ.
+    llm_provider: str = "openai"
+
     @property
     def llm_enabled(self) -> bool:
         """LLM chỉ bật khi có cả khoá API và tên model; thiếu một trong hai thì /v1/chat trả 503."""
-        return bool(self.openai_api_key and self.llm_model)
+        return self.llm_provider == "scripted" or bool(self.openai_api_key and self.llm_model)
 
     @property
     def effective_rewrite_model(self) -> str:

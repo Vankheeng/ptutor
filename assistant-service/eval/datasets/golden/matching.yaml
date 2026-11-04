@@ -17,6 +17,9 @@
     - Học viên đã từ chối
     - có thể gửi đề xuất mới nếu tin còn mở
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -38,6 +41,9 @@
     - Tạo hợp đồng
     - học viên bấm Tạo hợp đồng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -79,6 +85,9 @@
     key_points:
     - Mở tin trong My Studying Requests → mục Đề nghị từ gia sư → Chấp nhận
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -100,6 +109,9 @@
     - Không
     - mỗi tin chỉ chấp nhận một gia sư, tin chuyển sang đã ghép
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -143,6 +155,9 @@
     - Browse Teaching Requests → Apply to study → điền Proposed price, Learning mode, Grade ID, Preferred schedule, Message
       → Send application
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -164,6 +179,9 @@
     - My requests to studying → Cancel
     - chỉ đơn đang chờ
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -207,6 +225,9 @@
     - Tổng quan → mở tin → Ứng tuyển yêu cầu này → Học phí đề xuất, Hình thức dạy, Thời gian có thể dạy, địa điểm nếu trực
       tiếp, Lời nhắn → Gửi đề xuất
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -228,6 +249,9 @@
     - Đề xuất giảng dạy → Hủy đề xuất
     - chỉ đề xuất đang chờ
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -271,6 +295,9 @@
     - mục Yêu cầu dạy của tôi đang Sắp ra mắt
     - có thông báo New student application
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -291,6 +318,9 @@
     key_points:
     - Khi số đơn chấp nhận đạt số học viên ghi trong tin, tin chuyển sang đã ghép
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -333,6 +363,9 @@
     - Đã có đề xuất đang chờ
     - sửa đề xuất cũ hoặc hủy rồi gửi lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -355,6 +388,9 @@
     - mỗi tin một gia sư
     - tạo hợp đồng hoặc đăng tin mới
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

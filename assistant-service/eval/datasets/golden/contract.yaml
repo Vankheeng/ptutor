@@ -17,6 +17,9 @@
     - 'Bên chấp nhận: học viên chấp nhận đề nghị dạy thì học viên soạn'
     - gia sư chấp nhận đơn đăng ký thì gia sư soạn
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -38,6 +41,9 @@
     - Người soạn (học viên) sửa được Giá và Lịch học
     - không đổi chu kỳ thanh toán, ngày bắt đầu/kết thúc
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -80,6 +86,9 @@
     - Bên nhận (không phải người soạn)
     - ký xong chuyển Đang hoạt động và tạo kỳ thanh toán
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -101,6 +110,9 @@
     - Hợp đồng chuyển Đã hủy
     - người soạn được báo và có thể soạn lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -144,6 +156,9 @@
     - Chưa hỗ trợ hủy hợp đồng đang hoạt động
     - chỉ người soạn hủy được hợp đồng Đang chờ
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -164,6 +179,9 @@
     key_points:
     - Người soạn mở hợp đồng Đang chờ → Hủy hợp đồng
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -185,6 +203,9 @@
     - Mở hợp đồng Đang hoạt động → Đề xuất gia hạn → điền điều khoản → Gửi đề xuất gia hạn
     - bên kia ký
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -206,6 +227,9 @@
     - Không
     - phải từ ngày kết thúc hợp đồng cũ trở đi
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -249,6 +273,9 @@
     - '0 giờ ngày kết thúc: Đang hoạt động → Đã hoàn tất'
     - Đang chờ → Đã hủy
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 0 giờ
   tags:
@@ -270,6 +297,9 @@
     key_points:
     - 0 giờ (giờ Việt Nam) ngày kết thúc
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 0 giờ
   tags:
@@ -314,6 +344,9 @@
     - người soạn có thể sửa/hủy
     - chưa có kỳ thanh toán
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -336,6 +369,9 @@
     - tự chuyển
     - muốn học tiếp tạo hợp đồng mới
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -378,6 +414,9 @@
     - Chỉ bên nhận ký/từ chối
     - người soạn không tự ký
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -399,6 +438,9 @@
     - Thứ trong lịch không rơi vào khoảng ngày
     - kéo dài khoảng ngày hoặc đổi thứ
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -440,6 +482,9 @@
     key_points:
     - Mở tin → Đề nghị từ gia sư → Tạo hợp đồng → điền Giá, Chu kỳ thanh toán, Lịch học, ngày → Tạo hợp đồng
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -460,6 +505,9 @@
     key_points:
     - Mỗi buổi, Hàng tuần, Hàng tháng, Theo gói
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -501,6 +549,9 @@
     key_points:
     - Hợp đồng → Xem hợp đồng → Ký hợp đồng (khi Đang chờ và là bên nhận)
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -521,6 +572,9 @@
     key_points:
     - Trang chi tiết hợp đồng, mục Các kỳ thanh toán
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -563,6 +617,9 @@
     - Mục Hợp đồng đang Sắp ra mắt
     - Tổng quan có số hợp đồng đang dạy, chờ xử lý
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -585,6 +642,9 @@
     - tin nhận dạy mở hoặc đã ghép
     - môn đã chuẩn hóa
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -629,6 +689,9 @@
     key_points:
     - Chưa hỗ trợ viết đánh giá
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -653,6 +716,9 @@
     - Là một phần của điểm đề xuất
     - đánh giá tốt xếp hạng cao hơn
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -700,6 +766,9 @@
     key_points:
     - Chưa hỗ trợ hủy hợp đồng đang hoạt động
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -724,6 +793,9 @@
     - Chưa tự động
     - chỉ nhận 20% buổi học viên nghỉ khi kế toán kết luận hoàn tiền
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 20%
   tags:

@@ -17,6 +17,9 @@
     - Giao diện chưa có (Yêu cầu dạy của tôi đang Sắp ra mắt)
     - 'quy định: bản nháp, trả phí, đăng hoặc chờ duyệt'
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -38,6 +41,9 @@
     - Có
     - tin có ghi chú hoặc môn tự nhập phải chờ duyệt
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

@@ -6,6 +6,8 @@ Quy tắc chuẩn hoá (ghi lại để người duyệt kiểm):
 - `expect.docs = [doc_id]` (tài liệu phải nằm trong ngữ cảnh) — trừ `NO_ANSWER` mà tài liệu cố ý không có câu trả lời:
   vẫn giữ `docs` để đo truy xuất, nhưng kỳ vọng chính là **không khẳng định sai** (`grounded ∈ {NONE, PARTIAL}`).
 - `expect.intent`: POLICY / HOWTO giữ nguyên; FAQ, ERROR → POLICY (hỏi đáp về quy định / lỗi); NO_ANSWER → không chấm.
+- Câu có đáp án (POLICY, HOWTO, FAQ, ERROR): `grounded ∈ {FULL, PARTIAL}` — từ chối một câu có đáp án là trượt
+  (thêm ở chặng 8: trước đó câu không có con số trong `must_include` vẫn "đạt" khi trợ lý từ chối).
 - `must_include`: chỉ các **con số** (số tiền, phần trăm, số ngày…) rút từ cột `y_bat_buoc` — cột này là mô tả ý, không
   phải cụm chính xác, nên phần còn lại để chấm tay (`reference`, `key_points`).
 - `role` theo cột `vai_tro`; `page` = route đầu tiên của tài liệu khớp vai trò (để có ưu tiên ngữ cảnh như thật).
@@ -51,6 +53,7 @@ def build() -> dict[str, list[dict]]:
             expect["grounded_in"] = ["NONE", "PARTIAL"]
         else:
             expect["intent"] = _intent(question.kind)
+            expect["grounded_in"] = ["FULL", "PARTIAL"]
             expect["must_include"] = sorted({match.group(0).strip() for match in NUMBER.finditer(question.required)})
         by_feature[feature].append({
             "id": f"{question.doc_id}-{counters[question.doc_id]:02d}",

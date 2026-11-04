@@ -1,0 +1,74 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "p0000000-0000-4000-8000-000000000003",
+          "type": "WALLET_TOP_UP",
+          "method": "VNPAY",
+          "status": "FAILED",
+          "amount": 500000,
+          "referenceId": null,
+          "description": "Nạp ví qua VNPay",
+          "occurredAt": "2026-10-18T21:10:00",
+          "gatewayTransactionNo": "should-be-filtered-14093321"
+        },
+        {
+          "id": "p0000000-0000-4000-8000-000000000002",
+          "type": "TUITION_PAYMENT",
+          "method": "WALLET",
+          "status": "PAID",
+          "amount": 1200000,
+          "referenceId": "c0000000-0000-4000-8000-000000000001",
+          "description": "Học phí kỳ 1",
+          "occurredAt": "2026-09-04T20:00:00"
+        },
+        {
+          "id": "p0000000-0000-4000-8000-000000000001",
+          "type": "WALLET_TOP_UP",
+          "method": "VNPAY",
+          "status": "PAID",
+          "amount": 1000000,
+          "referenceId": null,
+          "description": "Nạp ví qua VNPay",
+          "occurredAt": "2026-09-03T19:30:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 3,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  },
+  "byArgs": [
+    {
+      "match": {
+        "status": "FAILED"
+      },
+      "status": 200,
+      "body": {
+        "content": [
+          {
+            "id": "p0000000-0000-4000-8000-000000000003",
+            "type": "WALLET_TOP_UP",
+            "method": "VNPAY",
+            "status": "FAILED",
+            "amount": 500000,
+            "referenceId": null,
+            "description": "Nạp ví qua VNPay",
+            "occurredAt": "2026-10-18T21:10:00"
+          }
+        ],
+        "page": 0,
+        "size": 100,
+        "totalElements": 1,
+        "totalPages": 1,
+        "first": true,
+        "last": true
+      }
+    }
+  ]
+}

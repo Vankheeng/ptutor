@@ -30,6 +30,10 @@ PERSONAL_MARKERS = [
     r"\bđến đâu\b", r"\b(đã|được) .* chưa\b", r"\bsố dư\b",
     r"\bví (của )?(tôi|mình)\b", r"\bhợp đồng (nào|đó|kia|này)\b", r"\bkỳ học phí (tiếp theo|tới)\b",
     r"\bthế nào rồi\b", r"\bsao rồi\b",
+    # Thêm ở chặng 8 (eval tra cứu): "Có ai khiếu nại tôi không?", "rút tiền tháng này xong chưa",
+    # "thu nhập buổi dạy gần nhất cộng vào ví chưa?".
+    r"\b(khiếu nại|báo cáo|nhắc) (tôi|mình)\b", r"\bxong chưa\b", r"\bgần (nhất|đây)\b",
+    r"\b(tháng|tuần) (này|trước)\b", r"\b(hôm qua|hôm nay)\b", r"\bvào ví chưa\b",
 ]
 UNACCENTED_MARKERS = [strip_accents(pattern) for pattern in PERSONAL_MARKERS]
 

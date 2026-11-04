@@ -125,7 +125,7 @@ def build_services(settings: Settings) -> Services:
         store = PgKnowledgeStore(session_factory)
     conversations: ConversationStore = (PgConversationStore(session_factory) if session_factory is not None
                                         else MemoryConversationStore())
-    llm = OpenAiLlm(settings.openai_api_key, settings.openai_base_url) if settings.llm_enabled else None
+    llm = _build_llm(settings)
     exemplars = _build_exemplars(session_factory, embedder)
     registry, executor = _build_tools(settings)
     services = Services(
@@ -170,3 +170,13 @@ def _build_exemplars(session_factory, embedder: EmbeddingProvider) -> ExemplarSt
     if session_factory is not None:
         return PgExemplarStore(session_factory, embedder.embed(["kiểm tra model"]).model)
     return MemoryExemplarStore(embed_exemplars(dataset_texts(), embedder))
+
+
+def _build_llm(settings: Settings) -> LlmProvider | None:
+    if settings.llm_provider == "scripted":
+        # Nhập muộn: eval/ chỉ cần khi bật chế độ demo này.
+        from app.providers.llm import ScriptedLlm
+        from eval.scripted_policy import scripted_policy
+
+        return ScriptedLlm(policy=scripted_policy)
+    return OpenAiLlm(settings.openai_api_key, settings.openai_base_url) if settings.llm_enabled else None

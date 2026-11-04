@@ -5,9 +5,12 @@ liệu thật để chấm — truy xuất, chặn ngoài phạm vi, ToolGate, L
 
 - Viết lại câu hỏi: nếu có đối tượng đang bàn và câu hỏi dùng đại từ ("nó", "cái đó", "còn cái…") → ghép nhãn đối
   tượng nhắc gần nhất vào câu.
-- Actor: có tool và chưa gọi gì → gọi tool liệt kê hợp nhất (hoặc tool chi tiết với ID trong sổ tay phiên); có kết quả
-  tool → trả LOOKUP trích số liệu từ mục đầu; có tài liệu → trích **câu có nhiều từ chung với câu hỏi nhất** của D1
-  làm khẳng định; không có gì → "chưa có thông tin".
+- Actor: câu hỏi về dữ liệu của chính người hỏi (cùng dấu hiệu với ToolSelection) hoặc dùng đại từ chỉ đối tượng
+  đang bàn, có tool và chưa gọi gì → gọi tool hợp nhất (tool chi tiết dùng ID trong sổ tay phiên); có kết quả tool →
+  trả LOOKUP trích số liệu từ mục đầu; có tài liệu → trích **câu có nhiều từ chung với câu hỏi nhất** của D1 làm
+  khẳng định, nhưng nếu câu đó phủ dưới `COVERAGE_MIN` số từ của câu hỏi thì coi như tài liệu không trả lời → "chưa có
+  thông tin" (grounded NONE); không có gì → "chưa có thông tin". Câu hỏi "làm sao / ở đâu / cách…" → intent HOWTO.
+- Phiên bản 2 (chặng 8): thêm điều kiện gọi tool, intent HOWTO, ngưỡng phủ. `COVERAGE_MIN` chọn trên tập **dev**.
 - Verifier: SUPPORTED khi khẳng định là chuỗi con của đoạn nguồn (vì Actor trích nguyên văn), còn lại UNSUPPORTED.
 
 Kết quả eval với policy này đo **harness và truy xuất**, không đo chất lượng diễn đạt của LLM. Báo cáo phải ghi rõ.
@@ -18,9 +21,11 @@ from __future__ import annotations
 import json
 import re
 
+from app.agent.middleware.tool_selection import is_personal_question
 from app.agent.verification import normalize_for_evidence
 from app.providers.llm import LlmRequest, LlmResponse, LlmToolCall
 from app.retrieval.store import query_terms
+from app.text import strip_accents
 
 _DOC = re.compile(r'<doc id="(D\d+)"[^>]*>\n(.*?)\n</doc>', re.S)
 _QUESTION = re.compile(r"<question>(.*?)</question>", re.S)
@@ -29,6 +34,9 @@ _PRONOUN = re.compile(r"\b(nó|cái đó|cái kia|còn cái|hợp đồng kia|h�
 _SOURCE = re.compile(r'<source id="(D\d+)">\n(.*?)\n</source>', re.S)
 _UUID = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
 _CLAIM = re.compile(r'<claim id="(\d+)" source="(D\d+)">(.*?)</claim>', re.S)
+_HOWTO = re.compile(r"\b(lam sao|lam the nao|the nao|cach|o dau|bam|thao tac|cac buoc|can nhung gi|can gi)\b")
+# Tỉ lệ từ của câu hỏi phải có trong câu trích để coi là tài liệu trả lời được (chọn trên dev, xem BAO-CAO-DANH-GIA).
+COVERAGE_MIN = 0.0
 
 
 def scripted_policy(request: LlmRequest) -> LlmResponse:
@@ -80,20 +88,35 @@ def _actor(request: LlmRequest) -> LlmResponse:
     context = next((m.content for m in reversed(user_messages) if "<question>" in m.content), "")
     question = _question_in(context)
     tool_results = [message.content for message in request.messages if message.role == "tool"]
-    if request.tools and not tool_results:
+    wants_data = (is_personal_question(question) or bool(_PRONOUN.search(question) and _FOCUS.search(context))
+                  or _names_focus_item(question, context))
+    if request.tools and not tool_results and wants_data:
         call = _pick_tool(request, question, context)
         if call is not None:
             return _respond(tool_calls=[call], request=request)
     if tool_results and any("error=" not in text and "blocked=" not in text for text in tool_results):
         return _respond(_lookup_answer(tool_results), request=request)
+    intent = "HOWTO" if _HOWTO.search(" " + strip_accents(question.lower()) + " ") else "POLICY"
     documents = _DOC.findall(context)
     if documents:
         label, content = documents[0]
         sentence = _best_sentence(content, question)
-        if sentence:
-            return _respond(_answer("POLICY", [{"text": sentence, "source": label}], f"{sentence} [{label}]"),
+        if sentence and _coverage(question, sentence) >= COVERAGE_MIN:
+            return _respond(_answer(intent, [{"text": sentence, "source": label}], f"{sentence} [{label}]"),
                             request=request)
-    return _respond(_answer("POLICY", [], "Mình chưa có thông tin chính thức về vấn đề này."), request=request)
+    return _respond(_answer(intent, [], "Mình chưa có thông tin chính thức về vấn đề này."), request=request)
+
+
+def _names_focus_item(question: str, context: str) -> bool:
+    """Câu hỏi gọi tên một đối tượng đang bàn ("hợp đồng Toán có buổi nào…") — model thật sẽ tra dữ liệu của nó."""
+    asked = " " + strip_accents(question.lower()) + " "
+    names = [strip_accents(label.split("·")[0].strip().lower()) for _, _, label in _FOCUS.findall(context)]
+    return any(len(name) >= 3 and f" {name} " in asked for name in names)
+
+
+def _coverage(question: str, sentence: str) -> float:
+    terms = set(query_terms(question))
+    return len(terms & set(query_terms(sentence))) / len(terms) if terms else 0.0
 
 
 def _pick_tool(request: LlmRequest, question: str, context: str) -> LlmToolCall | None:

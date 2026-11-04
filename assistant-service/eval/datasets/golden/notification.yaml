@@ -16,6 +16,9 @@
     key_points:
     - Trang Notifications → Mark all as read
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -36,6 +39,9 @@
     key_points:
     - Trang thông báo, thẻ unread
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

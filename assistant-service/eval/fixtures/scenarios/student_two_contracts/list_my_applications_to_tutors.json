@@ -1,0 +1,30 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "a0000000-0000-4000-8000-000000000001",
+          "teachingRequestTitle": "Dạy Ngữ văn THCS",
+          "subjectName": "Ngữ văn",
+          "customSubjectName": null,
+          "tutorFirstName": "Hà",
+          "gradeName": "Lớp 8",
+          "proposedPrice": 180000,
+          "learningMode": "ONLINE",
+          "preferredSchedule": "Tối thứ 6",
+          "message": "Em muốn học thử",
+          "status": "ACCEPTED",
+          "nextStep": "CONTRACT_SIGNING",
+          "createdAt": "2026-10-15T09:00:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

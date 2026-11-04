@@ -16,6 +16,9 @@
     key_points:
     - Hồ sơ của tôi → sửa Thông tin cá nhân, Ảnh hồ sơ, Hồ sơ giảng dạy → Lưu hồ sơ
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -37,6 +40,9 @@
     - Sửa mục Hồ sơ giảng dạy thì hồ sơ về chờ duyệt
     - sửa thông tin cá nhân/ảnh thì không
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -78,6 +84,9 @@
     key_points:
     - Sửa Hồ sơ giảng dạy theo lý do → Lưu hồ sơ → tự về chờ duyệt
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -99,6 +108,9 @@
     - Học viên tìm thấy trong gợi ý
     - cộng điểm đề xuất
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -141,6 +153,9 @@
     - 'Chờ duyệt: hồ sơ mới hoặc vừa sửa thông tin giảng dạy'
     - chờ kết quả
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -162,6 +177,9 @@
     - Không được duyệt
     - sửa Hồ sơ giảng dạy và Lưu hồ sơ để gửi lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -184,6 +202,9 @@
     - Tệp lớn hơn 10 MB
     - nén lại hoặc dùng đường dẫn
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -206,6 +227,9 @@
     - Ảnh đại diện sai định dạng
     - chọn JPG hoặc PNG tối đa 10 MB
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -249,6 +273,9 @@
     - Điểm 0–100 để xếp hạng gia sư khi gợi ý
     - gia sư mới 50 điểm
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -269,6 +296,9 @@
     key_points:
     - Hồ sơ xác minh, chứng chỉ được duyệt, phản hồi nhanh, hợp đồng hoàn tất, đánh giá tốt, tránh bị khóa
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -311,6 +341,9 @@
     key_points:
     - Mỗi ngày 9 giờ 30 sáng giờ Việt Nam và khi có sự kiện liên quan
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 9 giờ
   tags:

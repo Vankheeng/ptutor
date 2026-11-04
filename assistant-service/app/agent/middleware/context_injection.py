@@ -108,7 +108,7 @@ class ContextInjectionMiddleware(Middleware):
         if not state.session_state.focus:
             return ""
         lines: list[str] = []
-        for item in sorted(state.session_state.focus, key=lambda focus: focus.last_turn, reverse=True):
+        for item in sorted(state.session_state.focus, key=lambda focus: focus.rank(), reverse=True):
             line = f"- {item.type} {item.id}: {item.label}"
             if self._counter.count("\n".join(lines + [line])) > FOCUS_BUDGET:
                 break

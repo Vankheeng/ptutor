@@ -16,6 +16,9 @@
     key_points:
     - Sau 3 ngày kể từ lúc gia sư đánh dấu đã dạy, buổi tự chuyển Đã học
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 3 ngày
   tags:
@@ -37,6 +40,9 @@
     key_points:
     - Khi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -79,6 +85,9 @@
     - Gia sư đã đánh dấu đã dạy
     - học viên xác nhận hoặc yêu cầu hoàn tiền trong 3 ngày
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 3 ngày
   tags:
@@ -101,6 +110,9 @@
     - Buổi nằm trong yêu cầu hoàn tiền chưa kết luận
     - bị giữ lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -142,6 +154,9 @@
     key_points:
     - Hợp đồng → Xem hợp đồng → Buổi học và hoàn tiền → Xác nhận đã học
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -163,6 +178,9 @@
     - Buổi trong yêu cầu hoàn tiền hoặc hợp đồng có khiếu nại chưa xong
     - chờ kết luận
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -205,6 +223,9 @@
     - Sau giờ kết thúc buổi học
     - buổi chuyển Chờ xác nhận
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -226,6 +247,9 @@
     - Không
     - ngày học phải trong khoảng ngày bắt đầu–kết thúc hợp đồng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -270,6 +294,9 @@
     - chỉ đánh dấu sau giờ kết thúc
     - giờ sai thì sửa khi buổi còn Sắp diễn ra
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -292,6 +319,9 @@
     - Buổi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
     - chờ kết luận rồi xác nhận lại
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -314,6 +344,9 @@
     - không tạo thêm
     - muốn dạy thêm thì gia hạn hợp đồng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

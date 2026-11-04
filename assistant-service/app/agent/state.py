@@ -125,6 +125,13 @@ class FocusItem:
     source: str
     turn: int
     last_turn: int
+    # Lượt gần nhất người dùng gọi đúng tên đối tượng ("hợp đồng Toán"). Chỉ dùng để xếp thứ tự các đối tượng đã có
+    # trong sổ tay — lời người dùng không bao giờ thêm được đối tượng / ID mới.
+    mentioned_turn: int = 0
+
+    def rank(self) -> tuple[int, int]:
+        """Mức "đang bàn": nhắc gần hơn trước, cùng lượt thì đối tượng người dùng gọi tên trước."""
+        return (self.last_turn, self.mentioned_turn)
 
 
 @dataclass

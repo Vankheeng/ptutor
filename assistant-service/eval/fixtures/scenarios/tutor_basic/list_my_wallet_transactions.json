@@ -1,0 +1,29 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "transactionId": "f0000000-0000-4000-8000-000000000011",
+          "transactionType": "CREDIT",
+          "purpose": "TUTOR_EARNING",
+          "amount": 270000,
+          "balanceAfter": 1500000,
+          "pendingBalanceAfter": 200000,
+          "referenceType": "LESSON",
+          "referenceId": "l0000000-0000-4000-8000-000000000010",
+          "description": "Thu nhập buổi 5 hợp đồng Toán",
+          "status": "COMPLETED",
+          "createdAt": "2026-10-15T13:40:00",
+          "walletId": "w2"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

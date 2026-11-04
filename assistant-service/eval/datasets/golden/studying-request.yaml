@@ -19,6 +19,9 @@
     - hoàn đủ phí vào số dư ví
     - thông báo ghi lý do và số tiền
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -41,6 +44,9 @@
     - Qua VNPay (link 15 phút)
     - hệ thống hỗ trợ trả bằng ví nhưng giao diện chưa có nút
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - 15 phút
   tags:
@@ -88,6 +94,9 @@
     - chờ thông báo
     - bị từ chối được hoàn phí
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -110,6 +119,9 @@
     - 'Đã ghép: học viên đã chấp nhận một gia sư (hoặc tin nhận dạy đủ học viên)'
     - bước tiếp theo tạo và ký hợp đồng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -154,6 +166,9 @@
     - Chỉ sửa được tin bản nháp hoặc đang mở
     - tin tạm đóng thì mở lại trước
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -176,6 +191,9 @@
     - Tin đã được trả phí
     - tải lại trang xem trạng thái
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -220,6 +238,9 @@
     - tin hủy không khôi phục
     - không tự hoàn phí
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -241,6 +262,9 @@
     - Không
     - chỉ sửa tin bản nháp hoặc đang mở
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -286,6 +310,9 @@
     - Create & pay hoặc Create draft
     - trả phí VNPay
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -307,6 +334,9 @@
     - Chọn Other / custom subject, ghi tên môn vào Custom subject / note
     - tin phải chờ duyệt
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -350,6 +380,9 @@
     - Menu thao tác của tin → Close request
     - mở lại bằng Reopen request
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -370,6 +403,9 @@
     key_points:
     - My Studying Requests → menu thao tác → Cancel request
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

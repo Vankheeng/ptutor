@@ -7,7 +7,9 @@ Trợ lý giữ hai thứ trong **một** hội thoại (không có bộ nhớ x
 2. **Sổ tay phiên `session_state.focus`**: đối tượng đang bàn (ID + nhãn ngắn). **Chỉ** ghi từ kết quả tool đã lọc
    của lượt này — không bao giờ từ lời người dùng — nên người dùng không "cài" được ID lạ vào bộ nhớ, và `seen_ids`
    (dùng để chặn đoán ID) luôn là ID mà backend đã trả cho chính người này. Tối đa 20 mục; đầy thì bỏ mục lâu
-   không nhắc nhất.
+   không nhắc nhất. Lời người dùng chỉ được dùng để **xếp thứ tự**: đối tượng có nhãn được gọi tên trong câu hỏi
+   ("hợp đồng Toán") thành đối tượng đang bàn nhất, để đại từ "nó / cái đó" ở các lượt sau chỉ đúng nó — kể cả khi
+   lượt gọi tên đã trôi khỏi cửa sổ lịch sử (thí nghiệm E4).
 
 Quyền sở hữu hội thoại đã được InputGuard kiểm trước khi Memory nạp.
 """
@@ -17,6 +19,7 @@ from __future__ import annotations
 from app.agent.middleware.base import Middleware
 from app.agent.state import FocusItem, SessionState, TurnResult, TurnState
 from app.db.conversations import ConversationStore
+from app.text import collapse_spaces, strip_accents
 
 MAX_FOCUS_ITEMS = 20
 
@@ -58,5 +61,15 @@ def update_focus(session_state: SessionState, state: TurnState) -> None:
         for value in record.call.arguments.values():
             if isinstance(value, str) and value in by_id:
                 by_id[value].last_turn = turn
-    items = sorted(by_id.values(), key=lambda item: item.last_turn, reverse=True)[:MAX_FOCUS_ITEMS]
-    session_state.focus = sorted(items, key=lambda item: (item.turn, item.id))
+    question = _normalized(state.question)
+    for item in by_id.values():
+        name = _normalized(item.label.split("·")[0]).strip()
+        if len(name) >= 3 and f" {name} " in question:
+            item.last_turn = item.mentioned_turn = turn
+    items = sorted(by_id.values(), key=FocusItem.rank, reverse=True)[:MAX_FOCUS_ITEMS]
+    # Thứ tự trong sổ tay: đang bàn nhất ở CUỐI (lời nhắc viết lại câu hỏi đọc từ trên xuống, mục cuối là gần nhất).
+    session_state.focus = sorted(items, key=lambda item: (*item.rank(), item.turn, item.id))
+
+
+def _normalized(text: str) -> str:
+    return " " + collapse_spaces(strip_accents(text).lower().replace("·", " ")) + " "

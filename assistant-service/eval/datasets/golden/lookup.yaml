@@ -1,0 +1,519 @@
+# Sinh bằng eval/build_lookup_cases.py — không sửa tay.
+- id: lookup-list_my_contracts-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Tôi đang có những hợp đồng nào?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_contracts
+  tags:
+  - tool:list_my_contracts
+- id: lookup-list_my_contracts-02
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student
+  question: hop dong cua toi gom nhung mon gi
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_contracts
+  tags:
+  - tool:list_my_contracts
+- id: lookup-list_my_contracts-03
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor
+  question: Tôi đang dạy mấy hợp đồng?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_contracts
+  tags:
+  - tool:list_my_contracts
+- id: lookup-get_my_wallet-01
+  split: test
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Số dư ví của tôi còn bao nhiêu?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - get_my_wallet
+    must_include:
+    - '250.000'
+  tags:
+  - tool:get_my_wallet
+- id: lookup-get_my_wallet-02
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: vi cua toi con bao nhieu tien
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - get_my_wallet
+    must_include:
+    - 1.500.000
+  tags:
+  - tool:get_my_wallet
+- id: lookup-list_my_wallet_transactions-01
+  split: test
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Lịch sử giao dịch ví của tôi gần đây?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_wallet_transactions
+  tags:
+  - tool:list_my_wallet_transactions
+- id: lookup-list_my_wallet_transactions-02
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Tiền thu nhập buổi dạy gần nhất cộng vào ví chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_wallet_transactions
+  tags:
+  - tool:list_my_wallet_transactions
+- id: lookup-list_my_transactions-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Lần thanh toán VNPay gần nhất của tôi có thành công không?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_transactions
+  tags:
+  - tool:list_my_transactions
+- id: lookup-list_my_transactions-02
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: giao dich thanh toan nao cua toi bi that bai
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_transactions
+  tags:
+  - tool:list_my_transactions
+- id: lookup-list_my_withdrawals-01
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Yêu cầu rút tiền của tôi đang ở bước nào?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_withdrawals
+  tags:
+  - tool:list_my_withdrawals
+- id: lookup-list_my_withdrawals-02
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: rut tien thang nay xong chua
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_withdrawals
+  tags:
+  - tool:list_my_withdrawals
+- id: lookup-list_my_complaints-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student
+  question: Khiếu nại tôi gửi đã được xử lý chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_complaints
+  tags:
+  - tool:list_my_complaints
+- id: lookup-list_my_complaints-02
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student
+  question: khieu nai cua toi co can bo sung bang chung khong
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_complaints
+  tags:
+  - tool:list_my_complaints
+- id: lookup-list_complaints_against_me-01
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor
+  question: Có ai khiếu nại tôi không?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_complaints_against_me
+  tags:
+  - tool:list_complaints_against_me
+- id: lookup-list_my_notifications-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Tôi có thông báo nào mới?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_notifications
+  tags:
+  - tool:list_my_notifications
+- id: lookup-count_my_unread_notifications-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Tôi còn bao nhiêu thông báo chưa đọc?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - count_my_unread_notifications
+    must_include:
+    - '2'
+  tags:
+  - tool:count_my_unread_notifications
+- id: lookup-count_my_unread_notifications-02
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: so thong bao chua doc cua toi
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - count_my_unread_notifications
+  tags:
+  - tool:count_my_unread_notifications
+- id: lookup-list_my_studying_requests-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Đơn đăng ký học của tôi đã được duyệt chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_studying_requests
+  tags:
+  - tool:list_my_studying_requests
+- id: lookup-list_my_studying_requests-02
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: don dang ky hoc vat ly cua toi sao roi
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_studying_requests
+  tags:
+  - tool:list_my_studying_requests
+- id: lookup-list_my_applications_to_tutors-01
+  split: test
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/applications
+  question: Gia sư đã nhận lời đề nghị học của tôi chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_applications_to_tutors
+  tags:
+  - tool:list_my_applications_to_tutors
+- id: lookup-list_my_refund_requests-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/refund-requests
+  question: Yêu cầu hoàn tiền của tôi kết quả thế nào?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_refund_requests
+  tags:
+  - tool:list_my_refund_requests
+- id: lookup-list_my_refund_requests-02
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/refund-requests
+  question: vi sao yeu cau hoan tien cua toi bi tu choi
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_refund_requests
+  tags:
+  - tool:list_my_refund_requests
+- id: lookup-get_my_student_profile-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Hồ sơ học viên của tôi ghi mục tiêu gì?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - get_my_student_profile
+  tags:
+  - tool:get_my_student_profile
+- id: lookup-get_my_tutor_profile-01
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Hồ sơ gia sư của tôi đã được duyệt chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - get_my_tutor_profile
+  tags:
+  - tool:get_my_tutor_profile
+- id: lookup-list_my_certificates-01
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Chứng chỉ nào của tôi bị từ chối?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_certificates
+  tags:
+  - tool:list_my_certificates
+- id: lookup-list_my_certificates-02
+  split: test
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: chung chi cua toi duyet het chua
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_certificates
+  tags:
+  - tool:list_my_certificates
+- id: lookup-list_my_teaching_requests-01
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor
+  question: Tin đăng dạy của tôi đang hiển thị không?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_teaching_requests
+  tags:
+  - tool:list_my_teaching_requests
+- id: lookup-list_my_offers_to_students-01
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/proposals
+  question: Học viên đã đồng ý đề xuất dạy của tôi chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_offers_to_students
+  tags:
+  - tool:list_my_offers_to_students
+- id: lookup-list_my_offers_to_students-02
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/proposals
+  question: de xuat day nao cua toi dang cho
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_offers_to_students
+  tags:
+  - tool:list_my_offers_to_students
+- id: lookup-list_refund_requests_on_my_contracts-01
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/refund-requests
+  question: Có yêu cầu hoàn tiền nào trên hợp đồng của tôi cần tôi phản hồi không?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_refund_requests_on_my_contracts
+  tags:
+  - tool:list_refund_requests_on_my_contracts
+- id: lookup-list_my_support_requests-01
+  split: dev
+  category: LOOKUP
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student
+  question: Câu hỏi tôi gửi nhân viên đã có trả lời chưa?
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_support_requests
+  tags:
+  - tool:list_my_support_requests
+- id: lookup-list_my_support_requests-02
+  split: dev
+  category: LOOKUP
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor
+  question: yeu cau ho tro cua toi sao roi
+  expect:
+    intent: LOOKUP
+    tools:
+      mode: includes
+      calls:
+      - list_my_support_requests
+  tags:
+  - tool:list_my_support_requests

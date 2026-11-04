@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 7 xong (M17). Bắt đầu chặng 8 (4b: đánh giá đầy đủ).
-- **Việc tiếp theo:** Chặng 8 / 4b: mở rộng bộ dữ liệu (LOOKUP có fixture theo kịch bản, nhiều lượt, ngoài phạm vi, bẫy), claims.jsonl cho bộ kiểm chứng, chạy E1/E2/E4 + B2 trên dev/test, baseline, BAO-CAO-DANH-GIA.md.
+- **Chặng hiện tại:** 8 — 4b xong, đang làm 4c (hoàn thiện).
+- **Việc tiếp theo:** 4c: Dockerfile + compose profile assistant (đã viết, chưa build thử), seeder demo Java @Profile("demo"), ảnh màn hình Playwright, README assistant-service, HUONG-DAN-DEMO.md, bảng thiết kế ↔ triển khai, kiểm tra cuối.
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -704,3 +704,40 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
    quyền sở hữu nằm ở phía giữ dữ liệu (assistant-service), backend không cần biết cuộc trò chuyện thuộc ai.
 3. `app/api/conversations.py` → `conversation_excerpt`: cửa sổ 6 lượt kết thúc ở `upTo`, che lại PII.
 4. `SupportRequestDialog.tsx`: ô đính kèm mặc định tắt + chú thích lưu trữ — hai điểm quyền riêng tư của 14.8.
+
+## Chặng 8 / 4b — Đánh giá đầy đủ
+
+**Đã làm.**
+- Bộ dữ liệu: `eval/build_lookup_cases.py` sinh 32 case LOOKUP (19 công cụ, chia dev / test **theo công cụ**), 8 hội
+  thoại nhiều lượt (2 kịch bản E4 "hỏi lặp một chi tiết"), 10 câu ngoài phạm vi, 6 câu bẫy; 19 fixture mới cho
+  `student_two_contracts`, `tutor_basic` (cố ý chứa trường nhạy cảm để kiểm lọc). Golden có thêm
+  `grounded_in: [FULL, PARTIAL]` cho câu có đáp án.
+- Verifier: `eval/build_verifier_claims.py` → `datasets/verifier/claims.jsonl` (76 khẳng định), `eval/verifier.py`
+  (recall bắt lỗi, tỉ lệ bác nhầm, ma trận theo `kind`, k lần lấy đa số, chặn chi phí khi dùng model thật).
+- Chấm tay: `eval/grade_manual.py` + `graders/manual_grading.py` (phiếu mù, khoá giải mã riêng, rubric 13.5).
+- Chạy thí nghiệm: `eval/run_experiments.sh` (baseline dev + test gate, E1, E2, E4), B2 bằng `eval.latency_cost`,
+  `eval/tune_actor.py` (quét `COVERAGE_MIN` trên dev), baseline ở `eval/baselines/`.
+- Sửa harness do eval phát hiện: (1) câu có từ nghiệp vụ không bị chặn ở tầng câu mẫu — chặn nhầm test 4,1% → 1,0%;
+  (2) thêm dấu hiệu câu hỏi cá nhân; (3) `FocusItem.mentioned_turn` — đối tượng người dùng gọi tên thành "đang bàn
+  nhất", lời nhắc viết lại câu hỏi nói rõ thứ tự; (4) Actor trích xuất v2 (gọi tool có điều kiện, intent HOWTO).
+- Thêm `ASSISTANT_LLM_PROVIDER=scripted` (chỉ cho demo khi chưa có model).
+- Báo cáo: `docs/support-chatbot/trien-khai/BAO-CAO-DANH-GIA.md` (ghi rõ: Actor giả lập, embedding giả lập, kho 66
+  tài liệu còn 95 câu todo, T3–T4 chưa chạy; việc thống nhất múi giờ cho nhóm kèm danh sách trang).
+
+- Cách chạy: mục 2 của báo cáo.
+- Kết quả chính (test, gate): an toàn 26/26; tổng 65,7%; Recall@6 90,2%, MRR 0,762; LOOKUP 80%.
+- Kiểm tra: pytest toàn bộ qua (thêm `tests/unit/test_stage8.py`), ruff, mypy sạch.
+
+**Khác thiết kế.**
+- Không có số T3–T4 (chưa chọn model). E2, E4 với Actor giả lập không cho kết luận chất lượng — báo cáo nói rõ.
+- Thử δ = 0,02 (chọn trên dev) cho lớp chặn phạm vi; cổng hồi quy chặn vì chặn nhầm một câu → giữ 0,05.
+- Nhãn `claims.jsonl` gán theo cách tạo, chưa có câu diễn đạt lại, chưa qua hai người gán.
+- Rerank chưa đo (máy thiếu RAM).
+
+**Còn dở.** T3–T4, chấm tay, rerank, câu diễn đạt lại cho verifier — mục 9 của báo cáo.
+
+**Đọc code này thế nào.**
+1. `BAO-CAO-DANH-GIA.md` mục 0 và 5 trước: đọc số thế nào, eval đã sửa được gì.
+2. `eval/build_lookup_cases.py`: **đáng học** — chia dev / test theo công cụ để chỉnh trên dev không "học tủ" test.
+3. `app/agent/middleware/memory.py` → `update_focus`: lời người dùng chỉ xếp thứ tự đối tượng đã có, không thêm ID.
+4. `eval/compare.py` + mục 7.2 báo cáo: ví dụ cổng hồi quy bắt một thay đổi "tỉ lệ tổng không đổi" nhưng hỏng một case.

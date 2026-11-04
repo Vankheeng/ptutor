@@ -1,0 +1,31 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "e1000000-0000-4000-8000-000000000001",
+          "contractId": "c0000000-0000-4000-8000-000000000001",
+          "title": "Gia sư đến muộn 30 phút",
+          "content": "Buổi 12/10 gia sư đến muộn 30 phút.",
+          "category": "LATE_OR_SHORT",
+          "status": "AWAITING_EVIDENCE",
+          "resolution": null,
+          "faultParty": null,
+          "resolvedAt": null,
+          "respondentResponse": null,
+          "respondentRespondedAt": null,
+          "evidences": [],
+          "createdAt": "2026-10-13T09:00:00",
+          "complainantEmail": "should-be-filtered@example.com"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

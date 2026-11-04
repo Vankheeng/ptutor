@@ -1,0 +1,173 @@
+# Sinh bằng eval/build_lookup_cases.py — không sửa tay.
+- id: mt-contract-followup-01
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  turns:
+  - question: Tôi có những hợp đồng nào?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  - question: Còn cái tiếng Anh thì kỳ học phí tới khi nào?
+    expect:
+      rewritten_query_contains:
+      - Tiếng Anh
+      tools:
+        mode: includes
+        calls:
+        - list_my_payment_installments
+  split: test
+  category: MULTITURN
+- id: mt-contract-followup-02
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  turns:
+  - question: Cho tôi xem các hợp đồng của tôi
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  - question: Hợp đồng Toán có buổi nào đang chờ tôi xác nhận không?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_contract_lessons_for_student
+  split: dev
+  category: MULTITURN
+- id: mt-wallet-then-policy-01
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  turns:
+  - question: Ví của tôi còn bao nhiêu?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - get_my_wallet
+  - question: Mỗi lần nạp tối thiểu bao nhiêu?
+    expect:
+      tools:
+        mode: none
+      docs:
+      - vi-nap-tien-quy-dinh
+  split: test
+  category: MULTITURN
+- id: mt-policy-then-lookup-01
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  turns:
+  - question: Khiếu nại cần bổ sung bằng chứng thì làm thế nào?
+    expect:
+      tools:
+        mode: none
+  - question: Khiếu nại của tôi đang ở trạng thái nào?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_complaints
+  split: test
+  category: MULTITURN
+- id: mt-tutor-followup-01
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  turns:
+  - question: Tôi đang dạy những hợp đồng nào?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  - question: Hợp đồng Toán có buổi nào học viên chưa xác nhận?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_contract_lessons_for_tutor
+  split: dev
+  category: MULTITURN
+- id: mt-oos-then-back-01
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  turns:
+  - question: Giải giúp tôi bài toán chuyển động đều
+    expect:
+      intent: OUT_OF_SCOPE
+      tools:
+        mode: none
+  - question: Vậy hợp đồng Toán của tôi kỳ tới đóng bao nhiêu?
+    expect:
+      not_blocked: true
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  split: dev
+  category: MULTITURN
+- id: mt-memory-focus-under-spam-01
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  config_overrides:
+    history_turns: 2
+  tags:
+  - E4
+  turns:
+  - question: Hợp đồng tiếng Anh của tôi đang thế nào?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  - question: Chờ ký nghĩa là sao?
+  - question: Thế nếu tôi không ký thì sao?
+  - question: Vẫn chưa hiểu, chờ ký là gì?
+  - question: Vậy kỳ học phí đầu tiên của nó là bao nhiêu?
+    expect:
+      memory_reference:
+        type: contract
+        id: c0000000-0000-4000-8000-000000000002
+      tools:
+        mode: includes
+        calls:
+        - list_my_payment_installments
+  split: dev
+  category: MULTITURN
+- id: mt-memory-focus-under-spam-02
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  config_overrides:
+    history_turns: 2
+  tags:
+  - E4
+  turns:
+  - question: Hợp đồng Toán của tôi thế nào rồi?
+    expect:
+      tools:
+        mode: includes
+        calls:
+        - list_my_contracts
+  - question: Học phí đóng theo tháng nghĩa là gì?
+  - question: Đóng trễ thì sao?
+  - question: Đóng trễ có bị phạt không?
+  - question: Còn cái đó có buổi nào chờ xác nhận không?
+    expect:
+      memory_reference:
+        type: contract
+        id: c0000000-0000-4000-8000-000000000001
+      tools:
+        mode: includes
+        calls:
+        - list_contract_lessons_for_student
+  split: test
+  category: MULTITURN

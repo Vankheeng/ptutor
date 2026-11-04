@@ -6,6 +6,9 @@ Ba tầng, từ rẻ đến đắt:
 1. **Luật**: chào hỏi → CHITCHAT; mẫu rõ ràng ngoài phạm vi (không nhắc nghiệp vụ PTutor) → OUT_OF_SCOPE.
 2. **Câu mẫu**: `in` = cosine lớn nhất tới câu mẫu trong phạm vi, `out` = tới câu mẫu ngoài phạm vi.
    `in ≥ τ_in` → cho qua; `in < τ_in` và `out − in ≥ δ` → OUT_OF_SCOPE; còn lại "chưa chắc" → cho qua.
+   Câu **có nhắc nghiệp vụ PTutor** (`platform_terms`) không bao giờ bị chặn ở tầng này: eval chặng 8 thấy câu tra cứu
+   ngắn ("Tôi có thông báo nào mới?", "Yêu cầu hoàn tiền của tôi kết quả thế nào?") bị chặn nhầm vì gần câu mẫu ngoài
+   phạm vi hơn — mà chặn nhầm đắt hơn bỏ lọt (bỏ lọt vẫn còn tầng 3).
 3. **Actor**: câu chưa chắc đi tiếp bình thường; Actor tự có intent OUT_OF_SCOPE.
 
 Đây là lớp về **phạm vi và chi phí**, không phải lớp bảo mật: bị vượt thì trợ lý vẫn không làm được gì ngoài phạm vi
@@ -21,7 +24,7 @@ from app.agent.middleware.base import Middleware
 from app.agent.state import TurnState
 from app.agent.trace import timed
 from app.scope.exemplars import ExemplarStore, score
-from app.scope.rules import ScopeRules, classify_by_rules
+from app.scope.rules import ScopeRules, classify_by_rules, mentions_platform
 
 
 def scope_decision(question: str, vector: list[float], rules: ScopeRules, exemplars: ExemplarStore,
@@ -31,6 +34,8 @@ def scope_decision(question: str, vector: list[float], rules: ScopeRules, exempl
     by_rule = classify_by_rules(question, rules)
     if by_rule is not None:
         return by_rule, "RULE", {}
+    if mentions_platform(question, rules):
+        return None, "PLATFORM_TERM", {}
     items = exemplars.all()
     if not items:
         return None, "NONE", {}

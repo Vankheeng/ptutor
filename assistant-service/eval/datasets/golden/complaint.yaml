@@ -16,6 +16,9 @@
     key_points:
     - Vắng mặt, Muộn / thiếu giờ, Chất lượng giảng dạy, Vi phạm ứng xử, Vi phạm nghiêm trọng, Khác
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -37,6 +40,9 @@
     - Giao diện chưa có trang khiếu nại
     - khiếu nại gắn với hợp đồng, chỉ hai bên của hợp đồng gửi được
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -80,6 +86,9 @@
     - gửi 1–5 đường dẫn
     - khiếu nại quay lại Đang xử lý
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -100,6 +109,9 @@
     key_points:
     - Mỗi bằng chứng là một đường dẫn
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -143,6 +155,9 @@
     - Thấy khiếu nại khi đã được tiếp nhận
     - gửi một phản hồi (tối đa 5.000 ký tự, 5 bằng chứng) khi Đang xử lý hoặc Chờ bằng chứng
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include:
     - '5.000'
   tags:
@@ -164,6 +179,9 @@
     key_points:
     - Một lần, không sửa được
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -205,6 +223,9 @@
     key_points:
     - Nhân viên chăm sóc khách hàng chấp nhận (Đã giải quyết, ghi bên có lỗi) hoặc từ chối (Đã từ chối, kèm lý do)
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -226,6 +247,9 @@
     - Khi chưa kết luận, buổi chờ xác nhận bị giữ, không tự hoàn tất
     - yêu cầu hoàn tiền chưa kết luận được
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -270,6 +294,9 @@
     - bên kia chưa thấy
     - còn sửa/hủy được
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -291,6 +318,9 @@
     - Chờ người khiếu nại bổ sung 1–5 bằng chứng
     - sau đó quay lại Đang xử lý
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -332,6 +362,9 @@
     key_points:
     - Khiếu nại đã được tiếp nhận nên không sửa/hủy được
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -353,6 +386,9 @@
     - Đã phản hồi rồi
     - mỗi bên bị khiếu nại chỉ phản hồi một lần
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

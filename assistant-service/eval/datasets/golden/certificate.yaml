@@ -18,6 +18,9 @@
     - chỉ xóa được
     - chứng chỉ chờ duyệt/bị từ chối sửa được và quay về chờ duyệt
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -39,6 +42,9 @@
     - Không
     - chứng chỉ quá ngày hết hạn không được duyệt
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -80,6 +86,9 @@
     key_points:
     - Chỉnh sửa theo lý do → Lưu thay đổi để gửi lại, hoặc xóa
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -100,6 +109,9 @@
     key_points:
     - Đã duyệt, hiện với học viên, không sửa được
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -120,6 +132,9 @@
     key_points:
     - Chứng chỉ → Thêm chứng chỉ → Tên chứng chỉ, tệp hoặc đường dẫn → Tải lên và gửi
     intent: HOWTO
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -141,6 +156,9 @@
     - 10 MB
     - PDF, JPEG hoặc PNG
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv
@@ -162,6 +180,9 @@
     - Không
     - chỉ PDF, JPEG, PNG
     intent: POLICY
+    grounded_in:
+    - FULL
+    - PARTIAL
     must_include: []
   tags:
   - source:cau-hoi-mau.csv

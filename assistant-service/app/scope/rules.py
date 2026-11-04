@@ -65,12 +65,17 @@ def normalize_for_rules(text: str) -> str:
     return " " + collapse_spaces(strip_accents(text).lower()) + " "
 
 
+def mentions_platform(question: str, rules: ScopeRules) -> bool:
+    """Câu có nhắc nghiệp vụ PTutor (gia sư, hợp đồng, học phí, ví…)."""
+    text = normalize_for_rules(question)
+    return any(term in text for term in rules.platform_terms)
+
+
 def classify_by_rules(question: str, rules: ScopeRules) -> str | None:
     """`CHITCHAT`, `OUT_OF_SCOPE` hoặc None (luật không quyết được → sang tầng 2)."""
     text = normalize_for_rules(question)
     if any(pattern.search(text.strip()) for pattern in rules.chitchat):
         return "CHITCHAT"
-    mentions_platform = any(term in text for term in rules.platform_terms)
-    if not mentions_platform and any(pattern.search(text) for pattern in rules.out_of_scope):
+    if not mentions_platform(question, rules) and any(pattern.search(text) for pattern in rules.out_of_scope):
         return "OUT_OF_SCOPE"
     return None
