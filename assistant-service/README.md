@@ -55,5 +55,5 @@ Chạy cả hệ thống bằng Docker: [`HUONG-DAN-DEMO.md`](../docs/support-ch
 OPENAI_API_KEY=... bash eval/run_experiments_real.sh t3     # T3 model thật: in ước tính, trần 10 $ (sổ chi tiêu chung)
 ```
 
-Đọc code bắt đầu từ [`NHAT-KY-CLAUDE.md`](../docs/support-chatbot/trien-khai/NHAT-KY-CLAUDE.md) mục "Đọc code này thế
+Đọc code bắt đầu từ [`NHAT-KY-TRIEN-KHAI.md`](../docs/support-chatbot/trien-khai/NHAT-KY-TRIEN-KHAI.md) mục "Đọc code này thế
 nào" của từng module.

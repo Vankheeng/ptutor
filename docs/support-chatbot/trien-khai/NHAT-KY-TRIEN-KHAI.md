@@ -1,14 +1,14 @@
-# Nhật ký triển khai của Claude (bản tham khảo)
+# Nhật ký triển khai (bản tham khảo)
 
-> Worktree `D:\DATN\ptutor-claude`, nhánh `feat/support-chatbot-reference` (tạo từ `feat/support-chatbot`, đã merge
+> Worktree `D:\DATN\ptutor-reference`, nhánh `feat/support-chatbot-reference` (tạo từ `feat/support-chatbot`, đã merge
 > `dev@27f6eeb`). Phiên mới: đọc mục **Đang ở đâu** trước, rồi làm tiếp việc tiếp theo.
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** Chặng 8 / T3 — model thật gpt-4.1-mini (dev, test, E1, E2 xong; dừng vì hết credit)
-- **Việc tiếp theo:** Nạp credit rồi chạy `bash eval/run_experiments_real.sh t3 rest` (E2 không thử lại, E4, verifier); chấm tay phiếu `cham-tay/sheet.csv`
+- **Chặng hiện tại:** Chặng 8 / T3 — bge-m3 + model thật xong (test 86,4%)
+- **Việc tiếp theo:** Chấm tay; cải thiện NO_ANSWER (kho tri thức + coverage, chọn trên dev)
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
-- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
+- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-ref` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-ref`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
 
@@ -222,7 +222,7 @@ tài liệu trạng thái hoàn tiền; câu hỏi chung chung ("có phí tạo 
 Đây là giới hạn của so khớp từ ngữ — cần embedding theo nghĩa (bge-m3) hoặc rerank.
 
 **Chạy lại với bge-m3 thật (sơ bộ, 220 câu, Postgres, chưa chia dev/test):** container riêng
-`ptutor-ai-service-claude` (cổng 8001, image `ptutor-ai-service` có sẵn trên máy, model mount **chỉ đọc** từ
+`ptutor-ai-service-ref` (cổng 8001, image `ptutor-ai-service` có sẵn trên máy, model mount **chỉ đọc** từ
 `D:\DATN\ptutor\ai-service\models`, token nội bộ ngẫu nhiên chỉ nằm trong env của container).
 
 | Cấu hình | hit@1 | hit@3 | hit@6 | MRR |
@@ -679,7 +679,7 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
 - Cách chạy: như các module trước; job đêm chỉnh bằng `app.support-request.maintenance-cron`.
 - Kiểm tra: JUnit 471 test toàn backend, 0 lỗi (12 test mới `SupportRequestServiceTest`, 2 trường hợp mới ở
   `EmployeeFunctionAuthorizationFilterTest`, `SupportRequestRepositoryIntegrationTest` chạy trên Postgres thật — DB
-  nháp `ptutor_it_claude`, Flyway V1–V36); pytest toàn bộ qua (thêm test `/excerpt`); bộ an toàn 26/26; frontend
+  nháp `ptutor_it_ref`, Flyway V1–V36); pytest toàn bộ qua (thêm test `/excerpt`); bộ an toàn 26/26; frontend
   build, lint, prettier qua.
 
 **Khác thiết kế.**
@@ -811,3 +811,46 @@ Phiếu chấm tay chờ người chấm.
 2. `app/agent/compose.py` `_grounded`: kết luận cuối là min(verifier, `coverage`) — **đáng học**. Model tự khai "tài
    liệu chỉ liên quan, không trả lời" là tín hiệu rẻ mà verifier (kiểm từng câu trích) không thấy được.
 3. `app/agent/middleware/route_guard.py` `mask_unseen_ids`: cùng nguyên tắc nguồn gốc ID của ToolGate, áp cho văn bản.
+
+## Chặng 8 / T3 — Embedding thật bge-m3, tỉ lệ yêu cầu / lượt từ chối (2026-11-04)
+
+**Đã làm.**
+- **Tỉ lệ yêu cầu / lượt từ chối (14.9)**, commit `e8ac952`:
+  - assistant-service thêm `GET /v1/admin/refusal-counts` (ADMIN / EMPLOYEE, chỉ trả số đếm);
+  - backend thêm `refusalFollowUp` vào số liệu, cùng cửa sổ 30 ngày;
+  - trang hàng chờ hiển thị tỉ lệ.
+- **E1 không cần model** (`eval.retrieval_eval`, dev / test): bge-m3 lai Recall@6 test 92,4%; chỉ vector 76,1%; lai +
+  rerank 93,5% nhưng thêm ≈ 8 s / lượt trên CPU → không bật rerank.
+- **Hiệu chỉnh trên dev cho bge-m3:**
+  - chặn phạm vi τ 0,65, δ 0,02 (test: chặn sớm 75%, chặn nhầm 0%);
+  - NO_CONTEXT giữ mặc định, vì ngưỡng chọn trên dev từ chối nhầm 7,9% trên test.
+- **Model thật với bge-m3** (`real_bge.yaml`):
+  - dev 87,2%;
+  - test k = 3 **86,4%** (giả lập: 85,0%; McNemar p = 0,79);
+  - an toàn 26/26;
+  - verifier bắt lỗi 100%, bác nhầm 0%;
+  - E4 6/8 so với 7/8 (không kết luận được).
+  - Chi phí 1,52 $, tổng sổ 4,83 / 10 $.
+- `.env.example` và compose có `ASSISTANT_SCOPE_TAU_IN`, `ASSISTANT_SCOPE_DELTA`, `ASSISTANT_RERANK_ENABLED`.
+- **Đổi tên theo yêu cầu người dùng** (không dùng chữ "claude"):
+  - nhánh `feat/support-chatbot-reference`;
+  - nhật ký `NHAT-KY-TRIEN-KHAI.md`;
+  - worktree `D:\DATN\ptutor-reference`;
+  - container `ptutor-ai-service-ref`;
+  - compose demo `ptutor-demo-ref`;
+  - DB nháp `ptutor_it_ref`.
+
+**Lỗi tìm ra.**
+- `min_rerank_score = 0,3` sai thang điểm của bge-reranker-v2-m3: bật rerank thì 62% câu trả lời được bị NO_CONTEXT.
+  Đã ghi cảnh báo trong `app/config.py`.
+- Báo cáo T3.2 từng ghi ngưỡng NO_CONTEXT "đã hiệu chỉnh": sai, nay đã đo và sửa câu đó.
+
+**Còn dở.**
+- NO_ANSWER với bge-m3 còn 65,5%. Hướng sửa: phủ todo của kho tri thức và làm chặt `coverage`, chọn trên dev.
+- Chấm tay.
+
+**Đọc code này thế nào.**
+1. `eval/retrieval_eval.py`: một lần truy xuất "bỏ ngưỡng" cho mỗi câu, rồi dò lưới ngưỡng chỉ bằng so sánh số.
+   **Đáng học**: tách phần tốn kém (embedding, rerank) khỏi phần dò tham số.
+2. `SupportRequestService.refusalFollowUp`: tử số và mẫu số ở hai service khác nhau, cùng một cửa sổ thời gian; mốc
+   gửi dạng UTC có `Z` (dấu `+` trong query string bị đọc thành khoảng trắng).

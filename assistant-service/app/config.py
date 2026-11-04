@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     rerank_k: int = 20
     context_k: int = 6
     rrf_k: int = 60
+    # CẢNH BÁO (E1 chặng 8, bge-reranker-v2-m3): với 0,3 trên test ~62% câu trả lời được bị NO_CONTEXT → chưa bật
+    # rerank khi chưa hiệu chỉnh lại ngưỡng trên dev (`eval.retrieval_eval` giờ lưu điểm thô để dò lại).
     min_rerank_score: float = 0.3
     min_cosine: float = 0.45
     min_text_coverage: float = 0.5

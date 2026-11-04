@@ -2,7 +2,7 @@
 # Chỉ gồm route công khai, route học viên và route gia sư. Route /admin/* cố ý không đưa vào
 # vì trợ lý chỉ phục vụ học viên và gia sư.
 # Route có tham số (:xxx) chỉ được điền bằng ID lấy từ kết quả tra cứu.
-# M17 (nhánh feat/support-chatbot-claude): thêm /student|tutor/support-requests.
+# M17 (nhánh feat/support-chatbot-reference): thêm /student|tutor/support-requests.
 routes:
   - path: /
     audience: [PUBLIC]

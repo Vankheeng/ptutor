@@ -33,7 +33,7 @@ wrapper:
       first: {type: boolean, description: "Đây là trang đầu"}
       last: {type: boolean, description: "Đây là trang cuối"}
   time_zones:
-    # Quyết định 2026-11-03 (bản sửa trong worktree feat/support-chatbot-claude): backend GIỮ giờ Việt Nam như nhóm
+    # Quyết định 2026-11-03 (bản sửa trong worktree feat/support-chatbot-reference): backend GIỮ giờ Việt Nam như nhóm
     # đang chạy (JAVA_TOOL_OPTIONS=-Duser.timezone=Asia/Ho_Chi_Minh, Docker TZ=Asia/Ho_Chi_Minh). Không sửa
     # ContractTimeProvider.now(). Mỗi trường thời điểm ghi rõ nguồn múi giờ theo code (tìm bằng grep now(clock)).
     backend_jvm_time_zone: {config: ASSISTANT_BACKEND_JVM_TIME_ZONE, default: Asia/Ho_Chi_Minh, description: "Múi giờ của JVM backend; dùng cho trường time_zone: BACKEND_JVM."}
@@ -46,7 +46,7 @@ wrapper:
       - "Định dạng hiển thị dd/MM/yyyy HH:mm, giờ Việt Nam."
       - "Ngày lịch (LocalDate: hạn đóng học phí, ngày học, ngày bắt đầu, kết thúc hợp đồng) và giờ học (LocalTime) giữ nguyên, không đổi múi giờ."
       - "Tham số thời gian model điền (createdFrom, createdTo) so với createdAt (BACKEND_JVM); model điền theo giờ Việt Nam, lớp lọc đổi sang backend_jvm_time_zone trước khi gọi API."
-    team_followup: "Việc riêng cho nhóm: thống nhất múi giờ toàn hệ thống (UTC ở backend, frontend tự đổi). Xem docs/support-chatbot/trien-khai/NHAT-KY-CLAUDE.md mục Múi giờ."
+    team_followup: "Việc riêng cho nhóm: thống nhất múi giờ toàn hệ thống (UTC ở backend, frontend tự đổi). Xem docs/support-chatbot/trien-khai/NHAT-KY-TRIEN-KHAI.md mục Múi giờ."
   derived_fields: "Trường có derived: true không có trong API; lớp lọc kết quả tự tính theo derived_from trước khi đưa model. Mã người hỏi lấy từ header X-User-Id mà backend gửi sang assistant-service (07-api.md mục 7.4); model không thấy mã này."
   paging_defaults: "page mặc định 0 (nhỏ nhất 0); size mặc định 20, từ 1 đến 100. Với công cụ liệt kê có phân trang, lớp lọc cố định size = 100 (fixed_params) để tính tổng và đếm theo trạng thái, rồi chỉ đưa model max_items mục."
   list_rules:
@@ -2230,7 +2230,7 @@ tools:
       - security: "SecurityConstants.TUTOR_SELF_SERVICE_API hasRole(TUTOR)"
       - labels: "frontend components/refund/refundFormat.ts"
 
-  # ===================== Yêu cầu hỗ trợ (M17, nhánh feat/support-chatbot-claude) =====================
+  # ===================== Yêu cầu hỗ trợ (M17, nhánh feat/support-chatbot-reference) =====================
   - func_code: list_my_support_requests
     name: Liệt kê yêu cầu hỗ trợ tôi đã gửi
     status: ready

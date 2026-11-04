@@ -1,0 +1,18 @@
+# T3 với embedding thật: như real_llm nhưng bge-m3 (ai-service) + truy xuất lai, KHÔNG rerank.
+# Chọn theo E1 (eval.retrieval_eval, 2026-11-04): rerank chỉ +1,1 điểm Recall@6 trên test, thêm ~8 s / lượt trên CPU,
+# và ngưỡng min_rerank_score = 0,3 từ chối nhầm ~60% câu trả lời được. Ngưỡng chặn phạm vi chọn trên dev cho bge-m3
+# (eval.scope_eval: τ 0,65, δ 0,02). Ngưỡng NO_CONTEXT giữ mặc định: ngưỡng chọn trên dev không giữ được trên test.
+# Cần AI_SERVICE_URL, AI_INTERNAL_TOKEN và OPENAI_API_KEY trong môi trường.
+name: real_bge
+llm: openai
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  llm_model: gpt-4.1-mini
+  rewrite_model: gpt-4.1-mini
+  verifier_model: gpt-4.1-mini
+  embedding_provider: ai-service
+  retrieval_mode: hybrid
+  rerank_enabled: false
+  scope_tau_in: 0.65
+  scope_delta: 0.02

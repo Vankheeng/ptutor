@@ -1,7 +1,7 @@
-# Đối chiếu thiết kế ↔ triển khai (bản tham khảo của Claude)
+# Đối chiếu thiết kế ↔ triển khai (bản tham khảo)
 
 Mỗi dòng: phần thiết kế → nơi triển khai → trạng thái. "Khác" = có chủ ý, lý do ở mục "Khác thiết kế" của module tương
-ứng trong [NHAT-KY-CLAUDE.md](./NHAT-KY-CLAUDE.md). "Chưa" = chưa làm, có ghi ở mục "Còn dở".
+ứng trong [NHAT-KY-TRIEN-KHAI.md](./NHAT-KY-TRIEN-KHAI.md). "Chưa" = chưa làm, có ghi ở mục "Còn dở".
 
 | Thiết kế | Triển khai | Trạng thái |
 |---|---|---|

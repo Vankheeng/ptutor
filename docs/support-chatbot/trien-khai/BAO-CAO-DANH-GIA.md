@@ -1,4 +1,4 @@
-# Báo cáo đánh giá trợ lý hỗ trợ (bản tham khảo của Claude)
+# Báo cáo đánh giá trợ lý hỗ trợ (bản tham khảo)
 
 > Ngày chạy: 2026-11-04. Nhánh `feat/support-chatbot-reference`. Thiết kế: [10-danh-gia.md](../10-danh-gia.md),
 > [13-thiet-ke-eval.md](../13-thiet-ke-eval.md). Mọi số dưới đây chạy lại được bằng lệnh ở mục 2.
@@ -13,7 +13,7 @@
 | Công cụ tra cứu chạy bằng **fixture** (`eval/fixtures/scenarios/*`), không gọi backend thật. | Đo đường đi qua ToolGate / LoopGuard / lọc trường thật; không đo hợp đồng trường với backend (T2 contract test cần backend chạy). |
 | Độ trễ đo trên máy dev, chạy tuần tự, Actor giả lập trả lời tức thì. | Bảng B2 chỉ có ý nghĩa cho phần **không phải model** (truy xuất, chặn phạm vi). Token là **ước lượng** (số ký tự / 4) trên prompt thật. |
 
-**Các điều kiện trên áp dụng cho mục 1–7 (Actor giả lập).** Kết quả với model thật `gpt-4.1-mini` (tầng T3) nằm ở mục **T3** ngay dưới: test 85,0%, an toàn 26/26, chi phí eval 3,30 $. E2-không-thử-lại, E4 và đo riêng verifier chưa chạy được vì tài khoản API hết credit giữa chừng.
+**Các điều kiện trên áp dụng cho mục 1–7 (Actor giả lập).** Kết quả với model thật `gpt-4.1-mini` nằm ở mục **T3** ngay dưới. Với embedding thật bge-m3 (T3.7): test **86,4%**, an toàn 26/26, Recall@6 92,4%; verifier bắt lỗi 100%, bác nhầm 0%. Tổng chi phí eval 4,83 $.
 
 ## Ghi chú nhánh và migration (đọc trước khi merge)
 
@@ -70,8 +70,9 @@ Một lượt trung bình ≈ 0,002 $ (2 $ / 1 000 lượt) với verifier, 0,00
 | sau khi sửa (bên dưới) | **85,1%** | **73,0%** | 82,8% | 85,7% | 85,2% | 77,3% | 100% |
 
 **"Hiệu chỉnh ngưỡng trên dev" thực tế là gì.** Harness chỉ có hai ngưỡng: lớp chặn phạm vi (τ / δ) và cờ
-NO_CONTEXT của truy xuất. Cả hai **không phụ thuộc LLM**: chúng chạy trước model, trên điểm embedding. Hai ngưỡng này đã
-hiệu chỉnh ở mục 7.1, nên chạy dev với model thật không đổi chúng. Dev T3 tìm ra **bốn lỗi** do model thật gây ra, và đã
+NO_CONTEXT của truy xuất. Cả hai **không phụ thuộc LLM**: chúng chạy trước model, trên điểm embedding. Lớp chặn
+phạm vi đã hiệu chỉnh ở mục 7.1; ngưỡng NO_CONTEXT lúc đó **chưa** được đo (sửa lại ở T3.7.1). Chạy dev với model thật
+không đổi hai ngưỡng này. Dev T3 tìm ra **bốn lỗi** do model thật gây ra, và đã
 sửa trên dev trước khi chạm vào tập test:
 
 1. **Câu "không có đáp án" bị trả lời như có đáp án** (NO_ANSWER 48,6%): tài liệu *liên quan* nhưng không trả lời đúng
@@ -138,13 +139,108 @@ McNemar p = 1,0, tức tỉ lệ đạt tổng **không khác nhau**. Khác nhau
 - Không verifier, POLICY / HOWTO tốt hơn: verifier đôi khi bác nhầm câu đúng nhưng diễn đạt lại.
 - Verifier làm p95 tăng gấp 2,4 lần (thêm một lời gọi, và có thể thêm một lượt thử lại), chi phí tăng 47%.
 
-Số đo riêng tỉ lệ bắt lỗi / bác nhầm của verifier (`eval.verifier`) **chưa có** vì hết credit. Đây là số cần có trước
+Số đo riêng của verifier ở T3.7.4: bắt lỗi 100%, bác nhầm 0%. Đoạn dưới viết trước khi có số đó. Đây là số cần có trước
 khi quyết định giữ hay bỏ verifier. Chấm tay (mục 8) cũng sẽ cho biết "khẳng định không căn cứ lọt qua" khi tắt
 verifier.
 
 ### T3.6. E4 — viết lại câu hỏi
 
-**Chưa chạy được** (hết credit, xem T3.1).
+Chạy trên cấu hình bge-m3, xem T3.7.
+
+### T3.7. Embedding thật bge-m3 (2026-11-04, sau khi nạp thêm credit)
+
+Cấu hình `eval/configs/real_bge.yaml`: bge-m3 qua ai-service (int8, CPU) + truy xuất lai, **không rerank**; ngưỡng
+chặn phạm vi chọn lại trên dev cho bge-m3; ngưỡng NO_CONTEXT giữ mặc định. Lý do từng lựa chọn ở T3.7.1–T3.7.2.
+
+#### T3.7.1. E1 không cần model (`eval.retrieval_eval`, dev / test, không tốn tiền)
+
+| Cấu hình | Recall@1 test | Recall@3 test | **Recall@6 test** | MRR test | Thời gian thêm / lượt |
+|---|---|---|---|---|---|
+| giả lập + lai | 64,1% | 83,7% | 91,3% | 0,743 | — |
+| bge-m3, chỉ vector | 52,2% | 66,3% | 76,1% | 0,612 | — |
+| **bge-m3, lai** (chọn) | 64,1% | 77,2% | **92,4%** | 0,727 | — |
+| bge-m3, lai + rerank | 63,0% | 87,0% | 93,5% | 0,754 | ≈ 8 s (CPU) |
+
+- **Truy xuất lai cần thiết với bge-m3**: chỉ vector kém hơn 16 điểm. Kết quả này khớp với số đo M6 trên 220 câu.
+- **Rerank chỉ hơn 1,1 điểm Recall@6** nhưng thêm khoảng 8 giây mỗi lượt trên CPU (cả đợt đo mất 35 phút vì rerank),
+  nên **không bật** khi chạy model thật.
+- **Lỗi cấu hình tìm ra:** `min_rerank_score = 0,3` (mặc định thiết kế) không hợp với thang điểm của
+  bge-reranker-v2-m3: trên test, 62% câu trả lời được bị NO_CONTEXT. Rerank vẫn tắt mặc định, và `app/config.py` có
+  cảnh báo. Công cụ giờ lưu điểm thô từng câu để dò lại ngưỡng mà không phải chạy lại 35 phút.
+- **Ngưỡng NO_CONTEXT chọn trên dev không giữ được trên test.** Với bge-m3 lai, ngưỡng tốt nhất trên dev (cosine 0,65,
+  phủ từ khoá 0,7) cho 0% từ chối nhầm trên dev nhưng **7,9%** trên test; embedding giả lập cũng thế (9,5%). Ngưỡng
+  mặc định (0,45 / 0,5) cho 0% từ chối nhầm trên cả hai tập. Vì vậy giữ mặc định. Lưu ý: quyết định này đưa ra **sau
+  khi đã nhìn số test** của E1 truy xuất. Đó là một điểm yếu về phương pháp, ghi lại để người đọc biết. Ngưỡng không
+  đổi so với cấu hình trước, nên không có tham số nào được chỉnh theo test.
+
+Câu sửa lại cho T3.2: trước đây báo cáo ghi "hai ngưỡng đã hiệu chỉnh ở mục 7.1". Thực ra mục 7.1 chỉ hiệu chỉnh lớp
+chặn phạm vi; ngưỡng NO_CONTEXT lúc đó vẫn là giá trị mặc định chưa đo. Nay đã đo (ở trên).
+
+#### T3.7.2. Lớp chặn phạm vi với bge-m3 (`eval.scope_eval`, chọn trên dev)
+
+| Ngưỡng | Tập | Chặn sớm câu ngoài phạm vi | Chặn nhầm câu trong phạm vi |
+|---|---|---|---|
+| τ 0,55, δ 0,05 (mặc định) | test | 65% | 0% |
+| **τ 0,65, δ 0,02** (chọn trên dev) | test | **75%** | **0%** |
+| giả lập, τ 0,55, δ 0,05 (để so) | test | 50% | 1,0% |
+
+#### T3.7.3. Kết quả với model thật
+
+| Lần chạy | Đạt | So với embedding giả lập | Chi phí |
+|---|---|---|---|
+| Dev, k = 1 (188 case) | **87,2%** | 85,1% | 0,41 $ |
+| **Test, k = 3 (140 case)** | **86,4%** (CI 80,7 – 92,1%) | 85,0% | 0,91 $ |
+| An toàn (26 case) | 26/26 | 26/26 | — |
+
+Test theo nhóm, so với embedding giả lập:
+
+| Nhóm | n | bge-m3 | giả lập |
+|---|---|---|---|
+| ERROR | 10 | 100% | 90,0% |
+| FAQ | 12 | 91,7% | 75,0% |
+| LOOKUP | 10 | 90,0% | 90,0% |
+| HOWTO | 15 | 86,7% | 80,0% |
+| POLICY | 26 | 80,8% | 76,9% |
+| MULTITURN | 4 | 100% | 75,0% |
+| **NO_ANSWER** | 29 | **65,5%** | 79,3% |
+
+So từng case (McNemar): 8 case chỉ bge-m3 đạt, 6 case chỉ giả lập đạt, **p = 0,79**. Tổng **chưa khác biệt có ý
+nghĩa** với 140 case.
+
+Xu hướng rõ nhất: câu trả lời được tốt lên, còn **NO_ANSWER kém đi 14 điểm**. bge-m3 tìm được tài liệu *liên quan*
+tốt hơn (Recall@6 của nhóm này 100%), nên model dễ trả lời "có căn cứ" cho câu mà tài liệu thật ra chưa trả lời; 5 / 6
+case kém đi thuộc nhóm này. Hướng sửa: không phải truy xuất, mà là phủ 95 câu todo trong kho tri thức và làm chặt quy
+tắc `coverage` trong prompt. Cả hai đều phải chọn lại trên dev.
+
+Độ trễ: p95 9,4 s (giả lập: 8,8 s). Token mỗi lượt gần như bằng nhau (4 133 so với 4 124). Chi phí 0,00205 $ / lượt.
+
+#### T3.7.4. Đo riêng verifier (76 khẳng định, k = 3, 0,06 $)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Recall bắt lỗi (UNSUPPORTED / PARTIAL không bị cho SUPPORTED) | **100%** |
+| Tỉ lệ bác nhầm (SUPPORTED bị bác) | **0%** |
+| Khớp nhãn 3 lớp | 96,1% (3 câu PARTIAL bị coi là UNSUPPORTED — nghiêng về phía an toàn) |
+
+Kết hợp với E2 (T3.5): verifier **không** bác nhầm khi khẳng định nằm trong đoạn nguồn. Phần POLICY / HOWTO kém đi
+khi bật verifier vì vậy không đến từ việc verifier chấm sai từng khẳng định, mà nhiều khả năng từ cách Actor viết
+khẳng định (diễn đạt lại, gộp hai câu, trích sai `source`) — cần xem trace. Bộ khẳng định còn nhỏ và chưa qua hai
+người gán nhãn (mục 9).
+
+#### T3.7.5. E4 — viết lại câu hỏi (8 hội thoại nhiều lượt, k = 1, 0,14 $)
+
+| Cấu hình | Đạt |
+|---|---|
+| có viết lại (bge-m3) | 6 / 8 |
+| không viết lại | 7 / 8 |
+
+Chênh **một hội thoại**, k = 1: **không kết luận được**. Viết lại câu hỏi đang thêm một lời gọi model (≈ 460 token)
+mỗi lượt có đại từ. Muốn quyết giữ hay bỏ cần thêm hội thoại nhiều lượt (hiện chỉ 8).
+
+#### T3.7.6. Chi phí
+
+Sau khi nạp credit: dev 0,41 $ + test 0,91 $ + verifier 0,06 $ + E4 0,14 $ = **1,52 $** (ước tính trước: 1,5 $).
+Tổng sổ eval: **4,83 / 10 $**.
 
 ## 1. Tóm tắt
 
@@ -355,12 +451,12 @@ từng cấu hình.
 
 ## 9. Việc còn lại để có số cho luận văn
 
-1. **Nạp credit OpenAI** rồi chạy `bash eval/run_experiments_real.sh t3 rest` (≈ 1,4 $): E2 không thử lại, E4, đo
-   verifier, và phần safety của E2-không-verifier.
-2. Chấm tay phiếu ở mục 8.
-3. Đo rerank (E1) khi máy đủ RAM; chạy lại E1 với bge-m3 trên tập test (E1 ở T3 vẫn dùng embedding giả lập).
-4. Bổ sung câu diễn đạt lại và gán nhãn hai người cho `claims.jsonl`.
-5. Trả lời 95 câu hỏi todo của kho tri thức → nhóm `NO_ANSWER` sẽ thay đổi.
+1. Chấm tay phiếu ở mục 8 (phiếu sinh từ hai lần chạy embedding giả lập; sinh thêm từ `bge-test` nếu cần).
+2. NO_ANSWER với bge-m3 (65,5%): phủ 95 câu todo của kho tri thức; làm chặt quy tắc `coverage` trong prompt, chọn trên dev.
+3. Hiệu chỉnh lại `min_rerank_score` trên dev từ điểm thô (`eval.retrieval_eval` đã lưu) nếu muốn bật rerank; cần GPU
+   hoặc chấp nhận +8 s / lượt.
+4. E2-không-thử-lại: bỏ, theo quyết định tiết kiệm chi phí. E4: thêm hội thoại nhiều lượt rồi đo lại.
+5. Bổ sung câu diễn đạt lại và gán nhãn hai người cho `claims.jsonl`.
 
 ## 10. Việc riêng cho nhóm: thống nhất múi giờ toàn hệ thống
 

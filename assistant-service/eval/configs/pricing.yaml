@@ -1,6 +1,6 @@
 # Đơn giá model cho benchmark B2 và trần chi phí của eval (thiết kế 13 mục 13.11).
 # Nguồn: người dùng cung cấp ngày 2026-11-04 (đối chiếu với trang giá chính thức https://openai.com/api/pricing/).
-# Claude không tự tra hay đoán giá; model không có trong bảng → eval.run từ chối chạy model thật.
+# Không tự tra hay đoán giá; model không có trong bảng → eval.run từ chối chạy model thật.
 # Token vào được tính giá đầy đủ (không trừ giảm giá cache) → chi phí báo cáo là cận trên.
 as_of: "2026-11-04"
 source: "Người dùng cung cấp 2026-11-04; cần đối chiếu https://openai.com/api/pricing/"
