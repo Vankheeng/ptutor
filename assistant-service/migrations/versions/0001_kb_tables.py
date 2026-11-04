@@ -1,7 +1,7 @@
 """M4: schema assistant và các bảng kho tri thức (thiết kế 06 mục 6.1, 6.3).
 
 Viết tay (không tự sinh) để dễ đọc. Extension `vector`, `unaccent` và hàm `f_unaccent` thường do Flyway của backend
-tạo (V25); ở đây tạo lại nếu thiếu, để assistant-service chạy được trên DB test / eval riêng.
+tạo (V35); ở đây tạo lại nếu thiếu, để assistant-service chạy được trên DB test / eval riêng.
 
 Revision ID: 0001
 """

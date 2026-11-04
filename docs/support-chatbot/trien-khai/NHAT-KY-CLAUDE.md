@@ -128,7 +128,7 @@ Phần mở đầu trước `##` đầu tiên (nếu có) thành một đoạn m
 viết tay `0001` (extension `vector`, `unaccent`, hàm `assistant.f_unaccent`, chỉ mục HNSW một phần, GIN `tsv`, GIN
 `audience`, B-tree cho small-to-big); `KnowledgeBaseService` (lưu nháp, kiểm tra, công bố nguyên tử, khôi phục phiên
 bản, lưu trữ, bỏ nháp); `python -m app.kb.import` (`--overwrite-drafts`, `--publish`, `--allow-todo`); Flyway backend
-`V25__create_assistant_schema.sql`; `python -m app.db.bootstrap` tạo role `assistant_app`.
+`V25__create_assistant_schema.sql` (sau đổi thành **V35** vì V25 đã có trên dev — xem M17); `python -m app.db.bootstrap` tạo role `assistant_app`.
 
 - File chính: `app/db/models.py`, `migrations/versions/0001_kb_tables.py`, `app/kb/service.py`, `app/kb/importer.py`,
   `app/db/bootstrap.py`, `tests/integration/test_kb_service.py`.
