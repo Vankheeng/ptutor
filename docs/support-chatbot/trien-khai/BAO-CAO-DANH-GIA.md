@@ -1,6 +1,6 @@
 # Báo cáo đánh giá trợ lý hỗ trợ (bản tham khảo của Claude)
 
-> Ngày chạy: 2026-11-04. Nhánh `feat/support-chatbot-claude`. Thiết kế: [10-danh-gia.md](../10-danh-gia.md),
+> Ngày chạy: 2026-11-04. Nhánh `feat/support-chatbot-reference`. Thiết kế: [10-danh-gia.md](../10-danh-gia.md),
 > [13-thiet-ke-eval.md](../13-thiet-ke-eval.md). Mọi số dưới đây chạy lại được bằng lệnh ở mục 2.
 
 ## 0. Đọc trước: số liệu này đo cái gì, không đo cái gì
@@ -17,7 +17,7 @@
 
 ## Ghi chú nhánh và migration (đọc trước khi merge)
 
-- Nhánh `feat/support-chatbot-claude` **đã gộp** `feat/employee-two-job-functions` (commit `a749d85`) để có hai chức năng
+- Nhánh `feat/support-chatbot-reference` **đã gộp** `feat/employee-two-job-functions` (commit `a749d85`) để có hai chức năng
   nhân viên `CUSTOMER_SERVICE` / `ACCOUNTANT` mà yêu cầu hỗ trợ (M17) cần.
 - Migration Flyway của chatbot là **`V35__create_assistant_schema.sql`** (ban đầu V25, đổi vì trùng
   `V25__remove_studying_request_quantity` trên `dev`); yêu cầu hỗ trợ là `V36__create_support_requests.sql`.

@@ -1,6 +1,6 @@
 # Nhật ký triển khai của Claude (bản tham khảo)
 
-> Worktree `D:\DATN\ptutor-claude`, nhánh `feat/support-chatbot-claude` (tạo từ `feat/support-chatbot`, đã merge
+> Worktree `D:\DATN\ptutor-claude`, nhánh `feat/support-chatbot-reference` (tạo từ `feat/support-chatbot`, đã merge
 > `dev@27f6eeb`). Phiên mới: đọc mục **Đang ở đâu** trước, rồi làm tiếp việc tiếp theo.
 
 ## Đang ở đâu
