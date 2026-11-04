@@ -41,9 +41,12 @@ def must_not_be_called(call):
 
 
 def test_registry_loads_only_ready_get_tools_from_catalog():
-    assert len(REGISTRY.all()) == 36
+    # 36 công cụ có sẵn trên dev + 2 công cụ yêu cầu hỗ trợ của M17 (thiết kế 14 mục 14.7).
+    assert len(REGISTRY.all()) == 38
     assert all(tool.method == "GET" and tool.reversibility == "READ_ONLY" for tool in REGISTRY.all())
-    assert REGISTRY.get("list_my_support_requests") is None  # planned → chưa nạp
+    support = REGISTRY.get("list_my_support_requests")
+    assert support is not None and support.path == "/api/v1/users/me/support-requests"
+    assert "requestId" in REGISTRY.get("get_my_support_request").parameters_schema()["properties"]
 
 
 def test_fixed_source_payment_is_hidden_from_model():

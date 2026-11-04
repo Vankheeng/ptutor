@@ -126,6 +126,9 @@ def check_routes(repo: Path) -> list[str]:
 
 
 def main() -> int:
+    # Console Windows mặc định cp1252, không in được tiếng Việt.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
     args = parser.parse_args()

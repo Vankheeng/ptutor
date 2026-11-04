@@ -13,5 +13,6 @@ public enum NotificationReferenceType {
     USER,
     LESSON,
     WITHDRAWAL_REQUEST,
-    REFUND_REQUEST
+    REFUND_REQUEST,
+    SUPPORT_REQUEST
 }

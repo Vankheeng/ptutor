@@ -46,6 +46,8 @@ import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
 import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_ASSISTANT_API;
 import static com.ptutor.backend.config.SecurityConstants.ASSISTANT_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUPPORT_REQUEST_API;
+import static com.ptutor.backend.config.SecurityConstants.SUPPORT_REQUEST_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_CERTIFICATE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_REFUND_REQUEST_API;
@@ -172,6 +174,8 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_ASSISTANT_API).hasRole("ADMIN")
                         .requestMatchers(ASSISTANT_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(SUPPORT_REQUEST_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(ADMIN_SUPPORT_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")

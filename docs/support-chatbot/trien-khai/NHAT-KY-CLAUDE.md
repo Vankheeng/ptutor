@@ -5,10 +5,10 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 7 — **bước:** chặng 6 xong (M16), bắt đầu M17.
-- **Việc tiếp theo:** M17 (yêu cầu hỗ trợ: Flyway support_requests, enum, API người dùng / nhân viên, thông báo, job tự đóng 7 ngày, job xoá đoạn trích 365 ngày, /v1/conversations/{id}/excerpt, công cụ list_my_support_requests ready, hộp thoại widget, trang người dùng, trang nhân viên). CHỜ người dùng chọn (a) merge feat/employee-two-job-functions hay (b) USER_SUPPORT.
-- **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
-- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
+- **Chặng hiện tại:** 7 xong (M17). Bắt đầu chặng 8 (4b: đánh giá đầy đủ).
+- **Việc tiếp theo:** Chặng 8 / 4b: mở rộng bộ dữ liệu (LOOKUP có fixture theo kịch bản, nhiều lượt, ngoài phạm vi, bẫy), claims.jsonl cho bộ kiểm chứng, chạy E1/E2/E4 + B2 trên dev/test, baseline, BAO-CAO-DANH-GIA.md.
+- **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
+- **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
 
@@ -29,7 +29,7 @@
 - [x] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
 - [x] M15 `eval.run`, `eval.compare`
 - [x] M16 Trang quản trị kho tri thức
-- [ ] M17 Yêu cầu hỗ trợ
+- [x] M17 Yêu cầu hỗ trợ
 - [ ] Chặng 8: đánh giá đầy đủ (4b) và hoàn thiện (4c)
 
 ## Quyết định chung (áp cho mọi module)
@@ -648,3 +648,59 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
    dịch trước khi lưu nên luật hỏng báo lỗi ngay.
 3. `KbDocumentEditorPage.tsx` → `startPublish`: lưu → kiểm tra → hộp thoại → công bố; nút khoá khi còn câu hỏi mở.
 4. `MarkdownPreview.tsx`: xem trước bằng phần tử React (không chèn HTML) — cùng ý tưởng chống XSS với widget.
+
+## M17 — Yêu cầu hỗ trợ (chuyển câu hỏi cho nhân viên)
+
+**Đã làm.**
+- Merge `feat/employee-two-job-functions` (người dùng chọn) để có `EmployeeJobFunction.CUSTOMER_SERVICE`; sửa trùng
+  Flyway V25 (migration trợ lý đổi tên thành `V35__create_assistant_schema.sql`).
+- Backend: Flyway `V36__create_support_requests.sql` (bảng `support_requests`, sequence mã `HT-000123`, CHECK trạng
+  thái / nguồn / độ dài, mở rộng CHECK của `notifications`); entity `SupportRequest`, enum `SupportRequestStatus`,
+  `SupportRequestSource`; thông báo `SUPPORT_REQUEST_ANSWERED` (gửi người dùng), `SUPPORT_REQUEST_RECEIVED` (gửi nhân
+  viên CUSTOMER_SERVICE đang hoạt động).
+- `SupportRequestService`: gửi (giới hạn 5 yêu cầu `OPEN`, 10 yêu cầu / 24 giờ; đoạn hội thoại chỉ lấy khi người dùng
+  chọn đính kèm), xem / hủy (chỉ `OPEN`) / đã giải quyết (chỉ `ANSWERED`); nhân viên: hàng chờ (cũ nhất trước, lọc trạng
+  thái / của tôi / vai trò / khoảng thời gian), nhận xử lý, trả lại hàng chờ, trả lời (chỉ người được giao); thống kê
+  theo trạng thái, nguồn, p50 / p95 thời gian tới khi nhận và tới khi trả lời. Mọi chuyển trạng thái khoá dòng.
+- `SupportRequestScheduler` (2:30 hằng đêm): tự đóng yêu cầu đã trả lời quá 7 ngày; xoá đoạn trích 365 ngày sau khi đóng.
+- Phân quyền: `SUPPORT_REQUEST_SELF_SERVICE_API` (STUDENT, TUTOR), `ADMIN_SUPPORT_REQUEST_API` (ADMIN, EMPLOYEE) và thêm
+  `/api/v1/admin/support-requests` vào `CUSTOMER_SERVICE_PATHS` của `EmployeeFunctionAuthorizationFilter`.
+- assistant-service: `GET /v1/conversations/{id}/excerpt?upTo=` — kiểm chủ sở hữu (404 nếu không phải), tối đa 6 lượt
+  kết thúc ở `upTo`, che thông tin cá nhân lần nữa trước khi rời dịch vụ.
+- `tools.yaml` (bản sao): `list_my_support_requests`, `get_my_support_request` → `ready` (38 công cụ); fixture
+  `student_two_contracts/list_my_support_requests.json`; case an toàn `safety-support-status-01`.
+- Kho tri thức: thêm `chung/trang-thai-yeu-cau-ho-tro.md` (glossary, không còn câu hỏi mở); `_routes.yaml` thêm
+  `/student|tutor/support-requests[/:requestId]`.
+- Frontend: `SupportRequestDialog` (mở từ nút "Gửi câu hỏi cho nhân viên", 👎, menu "Hỏi nhân viên hỗ trợ"; ô đính kèm
+  mặc định không chọn); trang người dùng `SupportRequestsPage`, `SupportRequestDetailPage`; trang nhân viên
+  `pages/admin/support-requests/` (hàng chờ 3 tab + số liệu, chi tiết + đoạn hội thoại + trả lời); menu học viên, gia
+  sư và mục "Yêu cầu hỗ trợ" (CUSTOMER_SERVICE) trong khu quản trị.
+
+- Cách chạy: như các module trước; job đêm chỉnh bằng `app.support-request.maintenance-cron`.
+- Kiểm tra: JUnit 471 test toàn backend, 0 lỗi (12 test mới `SupportRequestServiceTest`, 2 trường hợp mới ở
+  `EmployeeFunctionAuthorizationFilterTest`, `SupportRequestRepositoryIntegrationTest` chạy trên Postgres thật — DB
+  nháp `ptutor_it_claude`, Flyway V1–V36); pytest toàn bộ qua (thêm test `/excerpt`); bộ an toàn 26/26; frontend
+  build, lint, prettier qua.
+
+**Khác thiết kế.**
+- Trang người dùng là một component dùng chung ở `pages/common-user/` (như `WalletPage`), thay vì hai file
+  `pages/student|tutor/`.
+- Thêm `get_my_support_request` thành `ready` (bảng 14.7 chỉ nêu tool liệt kê; danh mục đã đề xuất sẵn tool này). Tham
+  số đường dẫn đổi `id` → `requestId` cho khớp controller.
+- Body tạo yêu cầu có thêm `previousRequestId` (thiết kế 14.1 "gửi yêu cầu mới có liên kết yêu cầu trước"), chưa có nút
+  "Hỏi tiếp" trên giao diện.
+- Thống kê chưa có "tỉ lệ yêu cầu trên số lượt trợ lý từ chối" (14.9) — cần ghép số liệu của assistant-service.
+- Thông báo `SUPPORT_REQUEST_*` chưa bấm sang trang chi tiết: trang thông báo hiện có không điều hướng theo
+  `referenceType` cho mọi loại thông báo (ngoài phạm vi chatbot).
+- `createdAt` (Hibernate, múi giờ JVM) và `answeredAt` / `closedAt` (service, UTC) khác hệ — giao diện đổi riêng từng
+  loại (`supportFormat.ts`), thống kê đổi `createdAt` về UTC trước khi trừ. Ghi vào việc "thống nhất múi giờ" của nhóm.
+
+**Còn dở.** Ảnh màn hình (chặng 8); contract test T2 cho hai tool mới cần backend chạy thật.
+
+**Đọc code này thế nào.**
+1. `SupportRequestService.java`: mỗi phương thức công khai là một mũi tên trong sơ đồ trạng thái 14.3;
+   `requireStatus` + `requireAssignee` là toàn bộ luật chuyển trạng thái.
+2. `create` → `fetchExcerpt`: **đáng học** — backend gọi assistant-service bằng chính danh tính người dùng, nên kiểm
+   quyền sở hữu nằm ở phía giữ dữ liệu (assistant-service), backend không cần biết cuộc trò chuyện thuộc ai.
+3. `app/api/conversations.py` → `conversation_excerpt`: cửa sổ 6 lượt kết thúc ở `upTo`, che lại PII.
+4. `SupportRequestDialog.tsx`: ô đính kèm mặc định tắt + chú thích lưu trữ — hai điểm quyền riêng tư của 14.8.

@@ -75,3 +75,27 @@ def test_suggestions_by_role_and_page(settings):
     body = client.get("/v1/suggestions", params={"role": "STUDENT", "pagePath": "/student/wallet"},
                       headers=caller_headers()).json()
     assert body["suggestions"][0] == "Nạp ví tối thiểu bao nhiêu?"
+
+
+def test_excerpt_for_support_request_is_owned_bounded_and_redacted(settings):
+    """Thiết kế 14 mục 14.10: /excerpt từ chối hội thoại của người khác; đoạn trích đã che thông tin cá nhân."""
+    client = TestClient(create_app(services=make_services(settings, ScriptedLlm(policy=lambda r: _ok()))))
+    first = client.post("/v1/chat", json={"message": "Số của tôi 0912345678, nạp ví thế nào?"},
+                        headers=caller_headers()).json()
+    conversation_id = first["conversationId"]
+    last_id = first["messageId"]
+    for index in range(7):
+        last_id = client.post("/v1/chat", json={"message": f"Câu hỏi {index}", "conversationId": conversation_id},
+                              headers=caller_headers()).json()["messageId"]
+
+    url = f"/v1/conversations/{conversation_id}/excerpt"
+    short = client.get(url, params={"upTo": first["messageId"]}, headers=caller_headers()).json()
+    assert [turn["role"] for turn in short["turns"]] == ["user", "assistant"]
+    assert "0912345678" not in short["turns"][0]["content"]
+
+    full = client.get(url, params={"upTo": last_id}, headers=caller_headers()).json()
+    assert len(full["turns"]) == 12 and full["turns"][-1]["role"] == "assistant"
+
+    assert client.get(url, params={"upTo": last_id}, headers=caller_headers(user_id=OTHER)).status_code == 404
+    unknown = client.get(url, params={"upTo": OTHER}, headers=caller_headers())
+    assert unknown.status_code == 404 and unknown.json()["detail"] == "MESSAGE_NOT_FOUND"

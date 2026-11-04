@@ -121,6 +121,18 @@ public final class SecurityConstants {
             "/api/v1/admin/assistant/**"
     };
 
+    /** Yêu cầu hỗ trợ gửi nhân viên (docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5): học viên, gia sư. */
+    public static final String[] SUPPORT_REQUEST_SELF_SERVICE_API = {
+            "/api/v1/users/me/support-requests",
+            "/api/v1/users/me/support-requests/**"
+    };
+
+    /** Hàng chờ yêu cầu hỗ trợ: ADMIN và EMPLOYEE có chức năng CUSTOMER_SERVICE. */
+    public static final String[] ADMIN_SUPPORT_REQUEST_API = {
+            "/api/v1/admin/support-requests",
+            "/api/v1/admin/support-requests/**"
+    };
+
     public static final String[] EMPLOYEE_SELF_SERVICE_API = {
             "/api/v1/employees/me"
     };

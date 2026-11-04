@@ -2230,10 +2230,10 @@ tools:
       - security: "SecurityConstants.TUTOR_SELF_SERVICE_API hasRole(TUTOR)"
       - labels: "frontend components/refund/refundFormat.ts"
 
-  # ===================== Dự kiến (chưa có trên dev) =====================
+  # ===================== Yêu cầu hỗ trợ (M17, nhánh feat/support-chatbot-claude) =====================
   - func_code: list_my_support_requests
     name: Liệt kê yêu cầu hỗ trợ tôi đã gửi
-    status: planned
+    status: ready
     roles: [STUDENT, TUTOR]
     features: [account]
     reversibility: READ_ONLY
@@ -2251,11 +2251,15 @@ tools:
     required_params: []
     optional_params:
       - {name: status, in: query, type: Enum, enum: [OPEN, IN_PROGRESS, ANSWERED, CLOSED, CANCELLED], default: null, description: "Chỉ điền khi người dùng hỏi theo trạng thái."}
-    example_call: {url: "{{base_url}}/api/v1/users/me/support-requests"}
+      - *p_page
+    fixed_params: {size: 100}
+    sort: "createdAt giảm dần (cố định trong repository)"
+    example_call: {url: "{{base_url}}/api/v1/users/me/support-requests?page=0&size=20"}
     response:
-      wrapper: "ApiResponse.data (chưa chốt danh sách hay phân trang)"
-      item_class: "chưa có (theo 14-yeu-cau-ho-tro.md mục 14.7)"
-      schema:
+      wrapper: ApiResponse.data.content (phân trang)
+      item_class: SupportRequestResponse
+      schema: &schema_support_request
+        id: {type: UUID, description: Mã yêu cầu hỗ trợ, keep: true, seen_id: true}
         code: {type: String, description: "Mã hiển thị, ví dụ HT-000123", keep: true}
         status:
           type: Enum
@@ -2265,24 +2269,35 @@ tools:
             OPEN: {label: Chờ xử lý, meaning: Chưa có nhân viên nhận}
             IN_PROGRESS: {label: Đang xử lý, meaning: Nhân viên chăm sóc khách hàng đang xử lý}
             ANSWERED: {label: Đã trả lời, meaning: Nhân viên đã trả lời}
-            CLOSED: {label: Đã đóng, meaning: Người dùng xác nhận đã giải quyết}
+            CLOSED: {label: Đã đóng, meaning: Người dùng xác nhận đã giải quyết hoặc tự đóng sau 7 ngày}
             CANCELLED: {label: Đã hủy, meaning: Người dùng hủy khi còn chờ xử lý}
         question: {type: String, description: Câu hỏi đã gửi (cắt ngắn), keep: true, user_text: true}
+        answer: {type: String, description: Câu trả lời của nhân viên; rỗng khi chưa trả lời, keep: true, user_text: true}
+        source: {type: Enum, description: Nơi gửi (trợ lý từ chối, trả lời một phần, đánh giá chưa tốt, menu), keep: false}
+        attachConversation: {type: Boolean, description: Có đính kèm đoạn hội thoại, keep: false}
+        previousRequestId: {type: UUID, description: Yêu cầu trước đó, keep: false}
+        previousRequestCode: {type: String, description: Mã hiển thị của yêu cầu trước đó, keep: true}
         createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi, keep: true}
         answeredAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm nhân viên trả lời, keep: true}
+        closedAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm đóng hoặc hủy, keep: true}
     max_items: 10
     result_selection: {strategy: newest, count_by: status}
     allow_empty_result: true
     empty_result_message: Bạn chưa gửi yêu cầu hỗ trợ nào.
     errors:
-      - {code: RESOURCE_NOT_FOUND, http: 404, meaning: Backend chưa có API này}
+      - {code: INVALID_REQUEST, http: 400, meaning: Giá trị status không thuộc danh sách}
     source:
-      - design: "feat/support-chatbot:docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5 (API), 14.6 (bảng support_requests), 14.7"
-    notes: "Tên trường giữ đúng thiết kế 14 (hợp đồng giữa backend và chatbot, quyết định 2026-11-03). Nếu backend buộc phải đổi tên trường thì sửa 14-yeu-cau-ho-tro.md và tools.yaml trong cùng một lần; contract test giai đoạn 2 bắt lỗi khi hai bên lệch."
+      - controller: SupportRequestController.findMine (GET /api/v1/users/me/support-requests)
+      - service: SupportRequestService.findMine, toUserResponse
+      - dto: SupportRequestResponse
+      - enum: SupportRequestStatus, SupportRequestSource
+      - security: "SecurityConstants.SUPPORT_REQUEST_SELF_SERVICE_API hasAnyRole(STUDENT, TUTOR)"
+      - design: "docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5, 14.7"
+    notes: "Tên trường giữ đúng thiết kế 14. createdAt do Hibernate ghi (múi giờ JVM); answeredAt, closedAt do service ghi bằng LocalDateTime.now(clock) (UTC)."
 
   - func_code: get_my_support_request
     name: Xem một yêu cầu hỗ trợ tôi đã gửi
-    status: planned
+    status: ready
     roles: [STUDENT, TUTOR]
     features: [account]
     reversibility: READ_ONLY
@@ -2295,36 +2310,20 @@ tools:
       - Câu trả lời đó gửi lúc nào?
     negative_examples:
       - Tôi đã gửi bao nhiêu yêu cầu hỗ trợ?
-    request: {method: GET, path: "/api/v1/users/me/support-requests/{id}"}
+    request: {method: GET, path: "/api/v1/users/me/support-requests/{requestId}"}
     required_params:
-      - {name: id, in: path, type: UUID, source: seen_ids, from_tools: [list_my_support_requests], description: "Mã yêu cầu hỗ trợ (id, không phải mã hiển thị HT-…). Chưa có thì gọi list_my_support_requests trước."}
+      - {name: requestId, in: path, type: UUID, source: seen_ids, from_tools: [list_my_support_requests], description: "Mã yêu cầu hỗ trợ (id, không phải mã hiển thị HT-…). Chưa có thì gọi list_my_support_requests trước."}
     optional_params: []
     example_call: {url: "{{base_url}}/api/v1/users/me/support-requests/c1f0e9d2-4b7a-4e36-9d58-2a6b3c7e1f04"}
-    response:
-      wrapper: ApiResponse.data (một đối tượng)
-      item_class: "chưa có (theo 14-yeu-cau-ho-tro.md)"
-      schema:
-        id: {type: UUID, description: Mã yêu cầu hỗ trợ, keep: true, seen_id: true}
-        code: {type: String, description: Mã hiển thị, keep: true}
-        status:
-          type: Enum
-          keep: true
-          description: Trạng thái yêu cầu hỗ trợ
-          enum_labels:
-            OPEN: {label: Chờ xử lý, meaning: Chưa có nhân viên nhận}
-            IN_PROGRESS: {label: Đang xử lý, meaning: Nhân viên chăm sóc khách hàng đang xử lý}
-            ANSWERED: {label: Đã trả lời, meaning: Nhân viên đã trả lời}
-            CLOSED: {label: Đã đóng, meaning: Người dùng xác nhận đã giải quyết}
-            CANCELLED: {label: Đã hủy, meaning: Người dùng hủy khi còn chờ xử lý}
-        question: {type: String, description: Câu hỏi đã gửi, keep: true, user_text: true}
-        answer: {type: String, description: Câu trả lời của nhân viên; rỗng khi chưa trả lời, keep: true, user_text: true}
-        createdAt: {type: LocalDateTime, time_zone: BACKEND_JVM, description: Thời điểm gửi, keep: true}
-        answeredAt: {type: LocalDateTime, time_zone: UTC, description: Thời điểm trả lời, keep: true}
+    response: {wrapper: ApiResponse.data (một đối tượng), item_class: SupportRequestResponse, schema: *schema_support_request}
     max_items: null
     allow_empty_result: false
     empty_result_message: null
     errors:
-      - {code: RESOURCE_NOT_FOUND, http: 404, meaning: "Backend chưa có API này, hoặc không tìm thấy yêu cầu"}
+      - {code: SUPPORT_REQUEST_NOT_FOUND, http: 404, meaning: Không tìm thấy yêu cầu này trong các yêu cầu bạn đã gửi}
+      - {code: INVALID_REQUEST, http: 400, meaning: requestId không phải UUID}
     source:
-      - design: "feat/support-chatbot:docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5, 14.6"
-    notes: "Mục 3 của yêu cầu chỉ nêu một công cụ; file 14 có API xem chi tiết kèm câu trả lời nên đề xuất thêm. Tên trường giữ đúng thiết kế 14; đổi thì sửa 14 và tools.yaml cùng lúc."
+      - controller: SupportRequestController.findById (GET /api/v1/users/me/support-requests/{requestId})
+      - service: SupportRequestService.findMine(userId, requestId)
+      - dto: SupportRequestResponse
+      - design: "docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5"

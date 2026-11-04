@@ -35,6 +35,7 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
     private static final List<String> CUSTOMER_SERVICE_PATHS = List.of(
             "/api/v1/admin/notifications",
             "/api/v1/admin/complaints",
+            "/api/v1/admin/support-requests",
             "/api/v1/admin/certificates",
             "/api/v1/admin/teaching-requests",
             "/api/v1/admin/studying-requests",

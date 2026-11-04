@@ -34,6 +34,7 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
     items: [
       { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền', functions: ACCOUNTANT },
       { to: '/admin/complaints', label: 'Khiếu nại', functions: CUSTOMER_SERVICE },
+      { to: '/admin/support-requests', label: 'Yêu cầu hỗ trợ', functions: CUSTOMER_SERVICE },
       { to: '/admin/accounts', label: 'Tài khoản người dùng', functions: CUSTOMER_SERVICE }
     ]
   },

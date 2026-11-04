@@ -103,5 +103,5 @@ def test_real_documents_chunk_within_limit(name):
 
 def test_every_knowledge_base_file_parses():
     files = find_document_files(KB_ROOT)
-    assert len(files) == 65
+    assert len(files) == 66  # 65 tài liệu khởi tạo + trang-thai-yeu-cau-ho-tro (M17)
     assert all(parse_file(path).doc_key for path in files)

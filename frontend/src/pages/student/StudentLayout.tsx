@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { AssistantWidget } from '../../components/assistant/AssistantWidget';
+import { SupportRequestDialog } from '../../components/assistant/SupportRequestDialog';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon } from '../../components/ui/Icon';
 import './student-layout.css';
@@ -14,6 +15,7 @@ const navigation = [
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
   { section: 'ACCOUNT', to: '/student/notifications', label: 'Notifications', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/student/support-requests', label: 'Yêu cầu hỗ trợ', icon: '?' },
   { section: 'ACCOUNT', to: '/student/wallet', label: 'Wallet & Payments', icon: '◈' },
   { section: 'ACCOUNT', to: '/student/profile', label: 'My Profile', icon: '◎' }
 ];
@@ -94,7 +96,11 @@ export function StudentLayout() {
           <Outlet />
         </div>
       </main>
-      <AssistantWidget />
+      <AssistantWidget
+        renderSupportDialog={(draft, close) => (
+          <SupportRequestDialog draft={draft} basePath="/student" onClose={close} />
+        )}
+      />
     </div>
   );
 }

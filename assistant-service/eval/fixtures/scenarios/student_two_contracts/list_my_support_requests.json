@@ -1,0 +1,38 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "e0000000-0000-4000-8000-000000000002",
+          "code": "HT-000042",
+          "question": "Vì sao khoản nạp ví hôm qua chưa vào số dư?",
+          "source": "ASSISTANT_ABSTAIN",
+          "status": "ANSWERED",
+          "answer": "Giao dịch đã được đối soát, số dư đã cập nhật.",
+          "attachConversation": false,
+          "previousRequestId": null,
+          "previousRequestCode": null,
+          "createdAt": "2026-11-02T20:15:00",
+          "answeredAt": "2026-11-03T02:00:00",
+          "closedAt": null
+        },
+        {
+          "id": "e0000000-0000-4000-8000-000000000001",
+          "code": "HT-000017",
+          "question": "Tôi muốn đổi email đăng nhập",
+          "source": "MENU",
+          "status": "OPEN",
+          "answer": null,
+          "attachConversation": false,
+          "previousRequestId": null,
+          "previousRequestCode": null,
+          "createdAt": "2026-11-01T09:00:00",
+          "answeredAt": null,
+          "closedAt": null
+        }
+      ],
+      "page": 0, "size": 100, "totalElements": 2, "totalPages": 1, "first": true, "last": true
+    }
+  }
+}

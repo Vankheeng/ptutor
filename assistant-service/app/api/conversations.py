@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.deps import Caller, assistant_caller, require_internal_token
 from app.db.conversations import ConversationInfo
+from app.privacy.redact import redact
 from app.services import Services
 
 router = APIRouter(prefix="/v1/conversations", dependencies=[Depends(require_internal_token)])
@@ -67,3 +68,27 @@ def delete_conversation(conversation_id: uuid.UUID, request: Request,
     owned_conversation(services, conversation_id, caller)
     services.conversations.mark_deleted(conversation_id, services.clock.now())
     return {"conversationId": str(conversation_id), "deleted": True}
+
+
+EXCERPT_MAX_TURNS = 6
+
+
+@router.get("/{conversation_id}/excerpt")
+def conversation_excerpt(conversation_id: uuid.UUID, request: Request, up_to: uuid.UUID = Query(alias="upTo"),
+                         caller: Caller = Depends(assistant_caller)) -> dict:
+    """Đoạn hội thoại người dùng đồng ý đính kèm vào yêu cầu hỗ trợ (thiết kế 14 mục 14.2, 14.5).
+
+    Tối đa 6 lượt hỏi – đáp, kết thúc ở câu trả lời `upTo`. Chỉ người sở hữu lấy được (backend gọi bằng chính danh
+    tính người dùng). Câu hỏi đã được che khi lưu; che lại lần nữa ở đây vì đoạn trích sẽ rời assistant-service và
+    sống lâu hơn cuộc trò chuyện (365 ngày sau khi đóng yêu cầu).
+    """
+    services: Services = request.app.state.services
+    owned_conversation(services, conversation_id, caller)
+    messages = services.conversations.messages(conversation_id)
+    end = next((index for index, message in enumerate(messages) if message["id"] == up_to), None)
+    if end is None:
+        raise HTTPException(status_code=404, detail="MESSAGE_NOT_FOUND")
+    window = [message for message in messages[: end + 1] if message["content"]][-2 * EXCERPT_MAX_TURNS:]
+    turns = [{"role": "user" if message["sender"] == "USER" else "assistant",
+              "content": redact(message["content"]), "createdAt": message["createdAt"]} for message in window]
+    return {"conversationId": str(conversation_id), "upTo": str(up_to), "turns": turns}

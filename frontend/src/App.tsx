@@ -65,6 +65,10 @@ import { KbDocumentListPage } from './pages/admin/assistant/KbDocumentListPage';
 import { KbDocumentEditorPage } from './pages/admin/assistant/KbDocumentEditorPage';
 import { UnansweredQuestionsPage } from './pages/admin/assistant/UnansweredQuestionsPage';
 import { AssistantStatsPage } from './pages/admin/assistant/AssistantStatsPage';
+import { SupportRequestQueuePage } from './pages/admin/support-requests/SupportRequestQueuePage';
+import { SupportRequestDetailPage as AdminSupportRequestDetailPage } from './pages/admin/support-requests/SupportRequestDetailPage';
+import { SupportRequestsPage } from './pages/common-user/SupportRequestsPage';
+import { SupportRequestDetailPage } from './pages/common-user/SupportRequestDetailPage';
 import { AdminEmployeesPage } from './pages/admin/AdminEmployeesPage';
 import { AdminEmployeeDetailPage } from './pages/admin/AdminEmployeeDetailPage';
 import { AdminEmployeeFormPage } from './pages/admin/AdminEmployeeFormPage';
@@ -111,6 +115,8 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestQueuePage />} />
+                <Route path="support-requests/:requestId" element={<AdminSupportRequestDetailPage />} />
                 <Route path="accounts" element={<AdminUserAccountsPage />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
@@ -140,6 +146,8 @@ export default function App() {
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
@@ -169,6 +177,8 @@ export default function App() {
                 <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
                 <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="profile" element={<StudentProfilePage />} />

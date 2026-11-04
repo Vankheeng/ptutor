@@ -122,6 +122,12 @@ class NotificationTemplateFactory {
                     "Refund approved", amount + " VND has been refunded to the student's wallet balance.");
             case REFUND_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
                     "Refund rejected", "The refund request was rejected. Reason: " + reason);
+            case SUPPORT_REQUEST_ANSWERED -> content(NotificationType.SYSTEM,
+                    "Support request answered",
+                    "Our support team answered your request " + data.getOrDefault("code", "") + ".");
+            case SUPPORT_REQUEST_RECEIVED -> content(NotificationType.SYSTEM,
+                    "New support request",
+                    "Support request " + data.getOrDefault("code", "") + " is waiting in the queue.");
         };
     }
 
