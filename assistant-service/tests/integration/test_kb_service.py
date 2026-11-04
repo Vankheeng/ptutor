@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from app.db.models import KbChunk, KbDocument, KbDocumentVersion
 from app.kb.importer import import_directory
-from app.kb.parser import parse_document
+from app.kb.parser import find_document_files, parse_document
 from app.kb.service import KbError, KnowledgeBaseService
 from app.kb.tokens import ApproxTokenCounter
 from app.providers.embedding import EmbeddingError, FakeEmbedding
@@ -93,15 +93,16 @@ def test_import_whole_knowledge_base_as_drafts_then_publish_with_allow_todo(sess
 
     allowed = {route.path for route in load_routes_file(KB_ROOT / "_routes.yaml")}
     service = KnowledgeBaseService(session_factory, ApproxTokenCounter(), lambda: allowed, FakeEmbedding())
+    total = len(find_document_files(KB_ROOT))  # không đếm cứng: kho tăng theo module (M17 thêm 1 tài liệu)
     drafts = import_directory(service, KB_ROOT)
-    assert drafts.actions["created"] == 65 and drafts.published == 0
+    assert drafts.actions["created"] == total and drafts.published == 0
     blocked = import_directory(service, KB_ROOT, publish=True)
-    assert blocked.published < 65  # còn todo → bị chặn như thiết kế 3.3
+    assert blocked.published < total  # còn todo → bị chặn như thiết kế 3.3
     report = import_directory(service, KB_ROOT, publish=True, allow_todo=True)
     with session_factory() as session:
         published = session.scalar(select(func.count()).select_from(KbDocument)
                                    .where(KbDocument.active_version_id.is_not(None)))
-    assert published == 65 and report.published_with_open_todo > 0
+    assert published == total and report.published_with_open_todo > 0
 
 
 class BrokenEmbedding(FakeEmbedding):
