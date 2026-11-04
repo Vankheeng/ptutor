@@ -142,6 +142,6 @@ export const rejectComplaint = (id: string, resolution: string) =>
 /** Active complaint handlers an admin can hand a complaint to. The employee API is admin-only. */
 export const getComplaintHandlers = (keyword: string, signal?: AbortSignal) =>
   get<PageResponse<ComplaintHandler>>(
-    `/api/v1/admin/employees${query({ status: 'ACTIVE', jobFunction: 'COMPLAINT_HANDLER', keyword, size: 50 })}`,
+    `/api/v1/admin/employees${query({ status: 'ACTIVE', jobFunction: 'CUSTOMER_SERVICE', keyword, size: 50 })}`,
     { signal }
   );

@@ -947,7 +947,7 @@ Authorization: Bearer <access-token-của-người-nhận>
 
 ### 6.20.1. API Admin/Employee quản lý thông báo
 
-Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=GENERAL_OPERATIONS`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1002,7 +1002,7 @@ Các thao tác thay đổi trạng thái và chuyển giao đều khóa complain
 
 ### 6.21. API Admin/Employee quản lý học viên
 
-Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT`. Danh sách tài khoản và thao tác vô hiệu hoá hỗ trợ tài khoản `STUDENT`/`TUTOR`; các API hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại bên dưới chỉ áp dụng cho `STUDENT`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Danh sách tài khoản và thao tác vô hiệu hoá hỗ trợ tài khoản `STUDENT`/`TUTOR`; các API hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại bên dưới chỉ áp dụng cho `STUDENT`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1029,7 +1029,7 @@ Hệ thống giữ thông tin lần vô hiệu hoá gần nhất sau khi mở l�
 
 #### Tra cứu hồ sơ và hoạt động của học viên
 
-Nhóm API dưới đây phục vụ màn hình quản lý học viên. Chỉ `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT` được truy cập. `userId` luôn là ID trong bảng `users`, không phải ID của bản ghi `students`. Nếu tài khoản không tồn tại, đã bị xoá mềm hoặc không có đúng một hồ sơ `STUDENT`, API trả lỗi phù hợp và không trả dữ liệu của vai trò khác.
+Nhóm API dưới đây phục vụ màn hình quản lý học viên. Chỉ `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE` được truy cập. `userId` luôn là ID trong bảng `users`, không phải ID của bản ghi `students`. Nếu tài khoản không tồn tại, đã bị xoá mềm hoặc không có đúng một hồ sơ `STUDENT`, API trả lỗi phù hợp và không trả dữ liệu của vai trò khác.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1054,7 +1054,7 @@ API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contrac
 
 ### 6.22. API Admin/Employee quản lý gia sư
 
-Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=USER_SUPPORT` hoặc `CONTENT_REVIEWER` (người duyệt cần xem hồ sơ và chứng chỉ trước khi duyệt; chỉ áp dụng cho `GET`). Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
+Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1072,7 +1072,7 @@ Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFuncti
 
 Điểm đề xuất không có API ghi và không thể chỉnh thủ công. `TutorRecommendationScoreService` tính điểm từ rating có điều chỉnh theo số lượng review, hợp đồng hoàn thành, tỉ lệ chấp nhận, thời gian phản hồi, số học viên, trạng thái xác minh/chứng chỉ và số lần bị khoá. Điểm được giới hạn trong `[0,100]`, lưu cùng `score_breakdown`, `score_updated_at` và `score_formula_version`. Hệ thống tính lại sau các event tài khoản/chứng chỉ/hợp đồng có liên quan và chạy đối soát hằng ngày lúc `02:30 UTC`; cron có thể cấu hình bằng `app.tutor-recommendation.recalculation-cron`.
 
-Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CONTENT_REVIEWER`:
+Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`:
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1087,7 +1087,7 @@ Khoá/mở khoá tiếp tục dùng `PATCH /api/v1/admin/users/{userId}/suspend`
 
 ### 6.23. API Admin quản lý nhân viên
 
-Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không được xem, tạo, sửa hoặc thay đổi trạng thái của nhân viên khác. Mỗi nhân viên có đúng một chức năng công việc chính: `GENERAL_OPERATIONS`, `COMPLAINT_HANDLER`, `ACCOUNTANT`, `CONTENT_REVIEWER` hoặc `USER_SUPPORT`.
+Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không được xem, tạo, sửa hoặc thay đổi trạng thái của nhân viên khác. Mỗi nhân viên có đúng một chức năng công việc: `CUSTOMER_SERVICE` (chăm sóc khách hàng) hoặc `ACCOUNTANT` (kế toán).
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
@@ -1095,14 +1095,15 @@ Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không đư�
 | `POST` | `/api/v1/admin/employees` | Tạo tài khoản nhân viên ở trạng thái `ACTIVE` với mật khẩu ban đầu |
 | `GET` | `/api/v1/admin/employees/{employeeId}` | Xem chi tiết nhân viên; CCCD chỉ trả dạng che |
 | `PUT` | `/api/v1/admin/employees/{employeeId}` | Cập nhật thông tin cá nhân và chức năng công việc |
+| `GET` | `/api/v1/admin/employees/{employeeId}/open-assignments` | Khiếu nại và yêu cầu hoàn tiền đang xử lý của nhân viên, cần chuyển giao trước khi vô hiệu hóa hoặc đổi chức năng |
 | `PATCH` | `/api/v1/admin/employees/{employeeId}/deactivate` | Chuyển tài khoản sang `INACTIVE` và thu hồi refresh token |
 | `PATCH` | `/api/v1/admin/employees/{employeeId}/reactivate` | Cấp lại quyền truy cập cho nhân viên `INACTIVE` |
 
 Khi tạo nhân viên, backend chuẩn hóa email, kiểm tra email/CCCD không trùng, mã hóa CCCD, hash mật khẩu bằng BCrypt và không tạo ví. Tài khoản hoạt động ngay sau khi tạo; Admin tự bàn giao email và mật khẩu ban đầu cho nhân viên. API không bao giờ trả lại mật khẩu, CCCD đầy đủ, ciphertext hoặc hash CCCD.
 
-`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `COMPLAINT_HANDLER` xử lý khiếu nại, `CONTENT_REVIEWER` duyệt chứng chỉ/yêu cầu dạy và danh mục, `USER_SUPPORT` quản lý tài khoản Student/Tutor; `ACCOUNTANT` xử lý yêu cầu hoàn tiền. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn.
+`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `CUSTOMER_SERVICE` xử lý khiếu nại, quản lý thông báo, duyệt hồ sơ gia sư/chứng chỉ/yêu cầu dạy/yêu cầu học và danh mục, quản lý tài khoản Student/Tutor; `ACCOUNTANT` xử lý yêu cầu hoàn tiền. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn. Tài khoản `ADMIN`/`EMPLOYEE` gọi `GET /api/v1/employees/me` để lấy `role` và `jobFunction` của chính mình; giao diện quản trị dùng thông tin này để chỉ hiện các phân hệ được phép.
 
-Không thể vô hiệu hóa hoặc chuyển nhân viên khỏi `COMPLAINT_HANDLER` khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, hoặc khỏi `ACCOUNTANT` khi họ còn yêu cầu hoàn tiền `IN_REVIEW`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
+Không thể vô hiệu hóa hoặc đổi chức năng của nhân viên khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, hoặc còn yêu cầu hoàn tiền `IN_REVIEW`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
 
 ### 6.24. API hoàn tiền buổi học (Refund Request)
 

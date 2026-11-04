@@ -65,6 +65,9 @@ import { KbDocumentListPage } from './pages/admin/assistant/KbDocumentListPage';
 import { KbDocumentEditorPage } from './pages/admin/assistant/KbDocumentEditorPage';
 import { UnansweredQuestionsPage } from './pages/admin/assistant/UnansweredQuestionsPage';
 import { AssistantStatsPage } from './pages/admin/assistant/AssistantStatsPage';
+import { AdminEmployeesPage } from './pages/admin/AdminEmployeesPage';
+import { AdminEmployeeDetailPage } from './pages/admin/AdminEmployeeDetailPage';
+import { AdminEmployeeFormPage } from './pages/admin/AdminEmployeeFormPage';
 
 export default function App() {
   return (
@@ -120,6 +123,10 @@ export default function App() {
                   <Route path="assistant/documents/:documentId" element={<KbDocumentEditorPage />} />
                   <Route path="assistant/unanswered" element={<UnansweredQuestionsPage />} />
                   <Route path="assistant/stats" element={<AssistantStatsPage />} />
+                  <Route path="employees" element={<AdminEmployeesPage />} />
+                  <Route path="employees/new" element={<AdminEmployeeFormPage />} />
+                  <Route path="employees/:employeeId" element={<AdminEmployeeDetailPage />} />
+                  <Route path="employees/:employeeId/edit" element={<AdminEmployeeFormPage />} />
                 </Route>
               </Route>
             </Route>

@@ -1,5 +1,7 @@
 import type { UserRole } from './api';
 
+export type EmployeeJobFunction = 'CUSTOMER_SERVICE' | 'ACCOUNTANT';
+
 export interface AuthTokenResponse {
   accessToken: string;
   refreshToken: string;
@@ -15,6 +17,8 @@ export interface AuthProfile {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
+  /** Staff only: decides which admin modules the account may open. Null for administrators. */
+  jobFunction?: EmployeeJobFunction | null;
 }
 
 export interface AuthUser {
