@@ -19,9 +19,13 @@ INTENTS = ["POLICY", "HOWTO", "LOOKUP", "CHITCHAT", "OUT_OF_SCOPE"]
 ACTOR_OUTPUT_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["intent", "claims", "answer", "actions", "suggestions"],
+    "required": ["intent", "coverage", "claims", "answer", "actions", "suggestions"],
     "properties": {
         "intent": {"type": "string", "enum": INTENTS},
+        # Model tự đánh giá đã trả lời ĐÚNG điều được hỏi tới đâu (thêm ở chặng 8, xem compose._grounded).
+        "coverage": {"type": "string", "enum": ["FULL", "PARTIAL", "NONE"],
+                     "description": "FULL: tài liệu / dữ liệu trả lời đúng câu hỏi; PARTIAL: chỉ một phần; "
+                                    "NONE: không có thông tin cho điều được hỏi"},
         "claims": {
             "type": "array",
             "items": {
@@ -61,6 +65,7 @@ class ActorAction(BaseModel):
 
 class ActorOutput(BaseModel):
     intent: Literal["POLICY", "HOWTO", "LOOKUP", "CHITCHAT", "OUT_OF_SCOPE"]
+    coverage: Literal["FULL", "PARTIAL", "NONE"] = "FULL"
     claims: list[Claim]
     answer: str
     actions: list[ActorAction] = []

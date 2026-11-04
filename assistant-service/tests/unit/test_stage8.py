@@ -96,3 +96,78 @@ def test_verifier_metrics():
     summary = summarize(rows)
     assert summary["catch_recall"] == 0.5 and summary["false_reject_rate"] == 0.5
     assert summary["by_kind"]["partial"] == {"SUPPORTED": 1}
+
+
+def test_cost_cap_and_shared_ledger_stop_before_next_call(tmp_path):
+    import pytest
+
+    from app.providers.llm import ChatMessage, LlmRequest, LlmResponse, ScriptedLlm
+    from eval.runner import BudgetLedger, GuardedLlm, RunBudgetExceeded
+
+    def costly(_request):
+        return LlmResponse(content="{}", tokens_in=1_000_000, tokens_out=0, model="m")
+
+    request = LlmRequest(messages=[ChatMessage("user", "x")], model="m")
+    guarded = GuardedLlm(ScriptedLlm(policy=costly), 100, 10**12, price=(0.4, 1.6), max_cost_usd=1.0)
+    guarded.complete(request)
+    guarded.complete(request)
+    guarded.complete(request)  # 1,2 $ sau lần này
+    with pytest.raises(RunBudgetExceeded):
+        guarded.complete(request)
+
+    path = tmp_path / "ledger.json"
+    first = BudgetLedger(path, limit_usd=1.0)
+    first.record("run-1", 0.9, 3, 2_250_000, 0)
+    second = GuardedLlm(ScriptedLlm(policy=costly), 100, 10**12, price=(0.4, 1.6), ledger=BudgetLedger(path, 99))
+    second.complete(request)  # 0,9 + 0 < 1 → được gọi; sau đó 1,3 $
+    with pytest.raises(RunBudgetExceeded):
+        second.complete(request)
+    assert BudgetLedger(path, 99).limit_usd == 1.0  # giữ trần của sổ, không đổi theo lần chạy sau
+
+
+def test_answer_never_repeats_ids_the_system_did_not_return():
+    from app.agent.middleware.route_guard import UNKNOWN_ID, mask_unseen_ids
+
+    known = {"c0000000-0000-4000-8000-000000000001"}
+    text = ("Hợp đồng c0000000-0000-4000-8000-000000000001 đang học; "
+            "không có hợp đồng 99999999-9999-4999-8999-999999999999.")
+    masked = mask_unseen_ids(text, known)
+    assert "c0000000-0000-4000-8000-000000000001" in masked
+    assert "99999999-9999" not in masked and UNKNOWN_ID in masked
+
+
+def test_out_of_credit_stops_the_eval_run_instead_of_recording_model_errors():
+    """Eval T3: hết credit giữa chừng → 429 insufficient_quota. Trước đây mỗi lượt thành MODEL_ERROR và lần chạy vẫn
+    "xong" với kết quả rác; nay lỗi tài khoản là `fatal` và GuardedLlm dừng cả lần chạy."""
+    import httpx
+    import openai
+    import pytest
+
+    from app.providers.llm import ChatMessage, LlmError, LlmRequest, OpenAiLlm, ScriptedLlm
+    from eval.runner import GuardedLlm, ProviderUnavailable
+
+    response = httpx.Response(429, request=httpx.Request("POST", "https://api.openai.com/v1/chat/completions"))
+
+    class NoCredit:
+        class chat:  # noqa: N801 — giả lập client.chat.completions.create
+            class completions:  # noqa: N801
+                @staticmethod
+                def create(**_kwargs):
+                    raise openai.RateLimitError("You have no credits remaining.", response=response,
+                                                body={"code": "insufficient_quota"})
+
+    request = LlmRequest(messages=[ChatMessage("user", "x")], model="m")
+    with pytest.raises(LlmError) as caught:
+        OpenAiLlm("k", client=NoCredit()).complete(request)
+    assert caught.value.fatal and not caught.value.retryable
+
+    def fatal(_request):
+        raise LlmError("no credits", retryable=False, fatal=True)
+
+    def transient(_request):
+        raise LlmError("busy", retryable=True)
+
+    with pytest.raises(ProviderUnavailable):
+        GuardedLlm(ScriptedLlm(policy=fatal), 10, 10**6).complete(request)
+    with pytest.raises(LlmError):  # lỗi thoáng qua vẫn để ModelCallMiddleware thử lại / trả MODEL_ERROR như cũ
+        GuardedLlm(ScriptedLlm(policy=transient), 10, 10**6).complete(request)

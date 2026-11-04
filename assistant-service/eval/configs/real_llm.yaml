@@ -1,6 +1,11 @@
-# T3: model thật (cần OPENAI_API_KEY, ASSISTANT_LLM_MODEL trong .env). Chạy với --yes sau khi xem ước tính.
+# T3: model thật. Khoá OPENAI_API_KEY lấy từ môi trường (không ghi vào file này).
+# Cả ba vai trò (trả lời, viết lại câu hỏi, kiểm chứng) dùng gpt-4.1-mini — quyết định của người dùng 2026-11-04.
+# Chạy kèm --yes sau khi xem ước tính chi phí; trần tiền: --max-cost-usd và --budget-ledger (ngân sách tổng).
 name: real_llm
 llm: openai
 store: memory
 kb_snapshot: ../knowledge-base
-settings: {}
+settings:
+  llm_model: gpt-4.1-mini
+  rewrite_model: gpt-4.1-mini
+  verifier_model: gpt-4.1-mini

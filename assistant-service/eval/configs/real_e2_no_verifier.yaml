@@ -1,0 +1,10 @@
+# T3 — real_e2_no_verifier: như real_llm, chỉ đổi một yếu tố (thiết kế 10 mục 10.5).
+name: real_e2_no_verifier
+llm: openai
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  llm_model: gpt-4.1-mini
+  rewrite_model: gpt-4.1-mini
+  verifier_model: gpt-4.1-mini
+  verifier_enabled: false

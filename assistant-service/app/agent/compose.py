@@ -56,7 +56,7 @@ class Composer:
         tool_sources = {f"tool:{record.call.name}" for record in state.tool_calls if record.blocked_reason is None}
         valid = [claim for claim in output.claims if claim.source in doc_labels | tool_sources]
         answer, citations = number_citations(output.answer, sections, [claim.source for claim in valid])
-        grounded = self._grounded(state, has_valid_claims=bool(valid))
+        grounded = self._grounded(state, has_valid_claims=bool(valid), coverage=output.coverage)
         return TurnResult(
             answer=truncate_answer(answer), intent=output.intent, grounded=grounded,
             fallback_reason=None if grounded == "FULL" else (state.verification.get("reason") or "NO_CLAIMS"),
@@ -69,9 +69,16 @@ class Composer:
         )
 
     @staticmethod
-    def _grounded(state: TurnState, *, has_valid_claims: bool) -> str:
-        """Có kết quả kiểm chứng (M13) thì theo đó; chưa có thì: còn khẳng định có nguồn hợp lệ → FULL."""
-        verdict = state.verification.get("grounded")
-        if verdict:
-            return verdict
-        return "FULL" if has_valid_claims else "NONE"
+    def _grounded(state: TurnState, *, has_valid_claims: bool, coverage: str = "FULL") -> str:
+        """Mức thấp hơn giữa (a) kiểm chứng — verifier (M13), hoặc còn khẳng định có nguồn hợp lệ → FULL — và (b) model
+        tự đánh giá `coverage`.
+
+        (b) thêm ở chặng 8: eval T3 thấy verifier chỉ kiểm từng khẳng định **có đúng nguồn không**, không kiểm câu trả
+        lời có **trả lời đúng điều được hỏi** không — model trả lời bằng chuyện liên quan ("chứng chỉ nào được ưu
+        tiên?" → "chứng chỉ đã duyệt được cộng điểm") vẫn thành FULL. Có khẳng định hợp lệ nhưng model nói NONE
+        → PARTIAL (vẫn có thông tin liên quan, nút gửi nhân viên hiện ra)."""
+        verdict = state.verification.get("grounded") or ("FULL" if has_valid_claims else "NONE")
+        if coverage == "NONE" and has_valid_claims:
+            coverage = "PARTIAL"
+        order = {"NONE": 0, "PARTIAL": 1, "FULL": 2}
+        return min(verdict, coverage, key=order.__getitem__)

@@ -52,6 +52,7 @@ Chạy cả hệ thống bằng Docker: [`HUONG-DAN-DEMO.md`](../docs/support-ch
 .venv/Scripts/mypy app
 .venv/Scripts/python scripts/check_catalog.py           # danh mục công cụ và route khớp code backend / frontend
 .venv/Scripts/python -m eval.run --mode quick --split dev   # eval nhanh, không tốn tiền (Actor trích xuất)
+OPENAI_API_KEY=... bash eval/run_experiments_real.sh t3     # T3 model thật: in ước tính, trần 10 $ (sổ chi tiêu chung)
 ```
 
 Đọc code bắt đầu từ [`NHAT-KY-CLAUDE.md`](../docs/support-chatbot/trien-khai/NHAT-KY-CLAUDE.md) mục "Đọc code này thế

@@ -36,3 +36,8 @@ Mỗi dòng: phần thiết kế → nơi triển khai → trạng thái. "Khác
 | `ASSISTANT_LLM_PROVIDER=scripted` | Demo / chụp màn hình khi chưa có model (không bao giờ là mặc định) |
 | `MemoryKnowledgeStore` | Test T0 và eval nhanh không cần DB (M6) |
 | Sửa khoá volume trong `docker-compose.yml` | Trước đây đặt `POSTGRES_VOLUME_NAME` làm compose báo lỗi |
+| Trường `coverage` (FULL / PARTIAL / NONE) trong JSON của Actor; `grounded` = min(verifier, coverage) | T3 dev: model trích câu "gần nghĩa" cho câu không có đáp án → NO_ANSWER 48,6% → 73,0% |
+| `RouteGuard` che UUID chưa từng có trong kết quả tool trong văn bản trả lời (`mask_unseen_ids`) | T3: model nhắc lại mã người dùng tự gõ (thử đoán ID) |
+| `parallel_tool_calls=False` khi gọi model | T3: model bắn 10 lời gọi song song trong một bước |
+| Endpoint OpenAI mặc định ghi rõ khi `OPENAI_BASE_URL` rỗng | Compose đặt biến rỗng → SDK báo `Connection error` |
+| Eval: trần chi phí theo USD, sổ chi tiêu chung (`pricing.yaml`, `BudgetLedger`); lỗi tài khoản (hết credit) dừng lần chạy | Yêu cầu ngân sách 10 $; T3 hết credit giữa chừng từng sinh báo cáo rác |

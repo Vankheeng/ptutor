@@ -1,7 +1,8 @@
 # Hướng dẫn chạy demo trợ lý hỗ trợ
 
 Chạy cả hệ thống (Postgres, backend, assistant-service, frontend) bằng Docker. Đã chạy thử đúng các bước dưới đây ngày
-2026-11-04 trên Windows 11 + Docker Desktop. Ảnh màn hình: [`demo/`](./demo/).
+2026-11-04 trên Windows 11 + Docker Desktop. Ảnh màn hình với model thật `gpt-4.1-mini`: [`demo/`](./demo/); bộ ảnh cũ chạy Actor giả lập:
+[`demo/scripted/`](./demo/scripted/).
 
 ## 1. Chuẩn bị `.env`
 
@@ -15,7 +16,7 @@ Chạy cả hệ thống (Postgres, backend, assistant-service, frontend) bằng
 | `VNPAY_HASH_SECRET` | chuỗi ngẫu nhiên (demo không thanh toán thật) |
 | `ASSISTANT_INTERNAL_TOKEN` | `python -c "import secrets;print(secrets.token_urlsafe(32))"` |
 | `DEMO_USER_PASSWORD` | mật khẩu chung cho 4 tài khoản demo (≥ 8 ký tự) |
-| `ASSISTANT_LLM_MODEL`, `OPENAI_API_KEY` | model thật. **Chưa có model** → đặt `ASSISTANT_LLM_PROVIDER=scripted` (câu trả lời chép từ tài liệu, chỉ để xem luồng) |
+| `ASSISTANT_LLM_MODEL`, `OPENAI_API_KEY` | model thật (`gpt-4.1-mini` cho cả trả lời / viết lại / kiểm chứng). `OPENAI_BASE_URL` để trống = endpoint mặc định. **Không có khoá** → đặt `ASSISTANT_LLM_PROVIDER=scripted` (câu trả lời chép từ tài liệu, chỉ để xem luồng) |
 
 Đã có Postgres khác chạy cổng 5432 / cùng tên container → đổi `POSTGRES_PORT`, `POSTGRES_CONTAINER_NAME`,
 `POSTGRES_VOLUME_NAME` (ví dụ `5434`, `ptutor-demo-postgres`, `ptutor_demo_data`) để không đụng dữ liệu đang có.
@@ -67,8 +68,10 @@ docker compose -p ptutor-demo --profile assistant down -v     # xoá cả volume
 
 - Dockerfile backend / frontend / assistant-service và các dịch vụ compose dưới profile `assistant` là **thêm mới** cho
   demo (chưa có trên `dev`).
-- Ảnh trong `demo/` chụp bằng Playwright với `ASSISTANT_LLM_PROVIDER=scripted` và embedding giả lập — câu trả lời là câu
-  chép từ tài liệu, không phải chất lượng của model thật.
+- Ảnh trong `demo/` chụp bằng Playwright với model thật `gpt-4.1-mini` (12 lượt hỏi, ≈ 0,012 $) và embedding giả lập.
+  Ảnh trong `demo/scripted/` là bộ cũ với `ASSISTANT_LLM_PROVIDER=scripted` (câu trả lời chép từ tài liệu).
+- Khi chạy với khoá thật: sau khi demo xong, `down` (không chỉ `stop`) container assistant-service — container dừng vẫn
+  giữ `OPENAI_API_KEY` trong cấu hình môi trường của nó.
 - Ảnh hiển thị đúng giờ Việt Nam cho cả trường ghi theo giờ JVM (`createdAt`) lẫn trường ghi theo UTC (`answeredAt`)
   nhờ `supportFormat.ts`; các trang cũ của hệ thống vẫn lệch 7 giờ ở trường UTC — xem
   [BAO-CAO-DANH-GIA.md](./BAO-CAO-DANH-GIA.md) mục 10.

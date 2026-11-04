@@ -68,10 +68,12 @@ class LlmResponse:
 class LlmError(Exception):
     """Lỗi khi gọi model. `retryable=True` khi đáng thử lại (mạng, quá giờ, 5xx, 429) — thiết kế 02, ModelCall."""
 
-    def __init__(self, message: str, *, retryable: bool, timeout: bool = False):
+    def __init__(self, message: str, *, retryable: bool, timeout: bool = False, fatal: bool = False):
         super().__init__(message)
         self.retryable = retryable
         self.timeout = timeout
+        # fatal: lỗi tài khoản (hết credit, khoá sai) — mọi lời gọi sau cũng sẽ hỏng, thử lại vô ích.
+        self.fatal = fatal
 
 
 class LlmProvider:
@@ -132,7 +134,10 @@ class OpenAiLlm(LlmProvider):
         if client is None:
             import openai  # nhập muộn: test dùng ScriptedLlm không cần thư viện mạng
 
-            client = openai.OpenAI(api_key=api_key, base_url=base_url or None, max_retries=0)
+            # Ghi rõ endpoint mặc định: để None thì SDK đọc biến OPENAI_BASE_URL, mà docker compose đặt biến này thành
+            # chuỗi rỗng khi không cấu hình → mọi lời gọi lỗi "Connection error" (gặp khi chụp ảnh demo chặng 8).
+            # Settings.openai_base_url đã đọc OPENAI_BASE_URL, nên endpoint tuỳ chỉnh thật vẫn được dùng.
+            client = openai.OpenAI(api_key=api_key, base_url=base_url or "https://api.openai.com/v1", max_retries=0)
         self._client = client
 
     def complete(self, request: LlmRequest) -> LlmResponse:
@@ -149,6 +154,9 @@ class OpenAiLlm(LlmProvider):
             arguments["temperature"] = request.temperature
         if request.tools:
             arguments["tools"] = [_to_openai_tool(tool) for tool in request.tools]
+            # Mỗi bước chỉ một lời gọi tool: eval T3 thấy model bắn 10 lời gọi song song cho "kiểm tra số dư 10 lần";
+            # LoopGuard vẫn chặn được, nhưng gọi từng bước thì model thấy kết quả trước khi quyết định gọi tiếp.
+            arguments["parallel_tool_calls"] = False
         if request.response_schema is not None:
             arguments["response_format"] = {
                 "type": "json_schema",
@@ -160,7 +168,13 @@ class OpenAiLlm(LlmProvider):
             completion = self._client.chat.completions.create(**arguments)
         except openai.APITimeoutError as error:
             raise LlmError(str(error), retryable=True, timeout=True) from error
-        except (openai.APIConnectionError, openai.InternalServerError, openai.RateLimitError) as error:
+        except openai.RateLimitError as error:
+            # 429 "insufficient_quota" = hết credit, không phải quá tải: thử lại không giúp gì (gặp ở eval T3).
+            quota = getattr(error, "code", None) == "insufficient_quota" or "no credits" in str(error).lower()
+            raise LlmError(str(error), retryable=not quota, fatal=quota) from error
+        except (openai.AuthenticationError, openai.PermissionDeniedError) as error:
+            raise LlmError(str(error), retryable=False, fatal=True) from error
+        except (openai.APIConnectionError, openai.InternalServerError) as error:
             raise LlmError(str(error), retryable=True) from error
         except openai.OpenAIError as error:
             raise LlmError(str(error), retryable=False) from error

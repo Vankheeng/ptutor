@@ -179,5 +179,5 @@ def _best_sentence(content: str, question: str) -> str:
 
 
 def _answer(intent: str, claims: list[dict], answer: str) -> str:
-    return json.dumps({"intent": intent, "claims": claims, "answer": answer, "actions": [], "suggestions": []},
-                      ensure_ascii=False)
+    return json.dumps({"intent": intent, "coverage": "FULL" if claims else "NONE", "claims": claims,
+                       "answer": answer, "actions": [], "suggestions": []}, ensure_ascii=False)

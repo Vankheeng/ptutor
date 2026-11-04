@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 8 xong (4b + 4c). Toàn bộ M1–M17 và chặng 8 đã làm; còn các việc cần model thật.
-- **Việc tiếp theo:** Khi người dùng chọn model: ước tính chi phí (BAO-CAO-DANH-GIA mục 9) → chạy T3 (eval.run real_llm, eval.verifier), chấm tay, đo rerank khi đủ RAM; chụp lại ảnh demo với model thật.
+- **Chặng hiện tại:** Chặng 8 / T3 — model thật gpt-4.1-mini (dev, test, E1, E2 xong; dừng vì hết credit)
+- **Việc tiếp theo:** Nạp credit rồi chạy `bash eval/run_experiments_real.sh t3 rest` (E2 không thử lại, E4, verifier); chấm tay phiếu `cham-tay/sheet.csv`
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4).
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -774,3 +774,40 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
 2. `docker-compose.yml`: dịch vụ mới đều có `profiles: [assistant]` — chạy Postgres một mình vẫn như cũ.
 3. `DemoDataSeeder.java`: **đáng học** — idempotent theo email + mật khẩu từ biến môi trường: không có bí mật nào trong
    mã nguồn, khởi động lại không nhân bản dữ liệu.
+
+## Chặng 8 / T3 — Model thật `gpt-4.1-mini` (2026-11-04)
+
+**Đã làm.**
+- `pricing.yaml`: 0,40 $ / 1,60 $ cho 1 triệu token vào / ra, ghi ngày và nguồn (người dùng cung cấp, cần đối chiếu
+  trang giá chính thức). `real_llm.yaml`: `gpt-4.1-mini` cho trả lời, viết lại và kiểm chứng.
+- Eval kiểm soát ngân sách bằng tiền:
+  - `GuardedLlm` chặn trước mỗi lời gọi theo trần USD của lần chạy và theo sổ chi tiêu chung `BudgetLedger` (trần tổng
+    10 $);
+  - `eval.run` in ước tính chi phí trước khi chạy và ghi `cost_usd` vào `run.json`.
+- Dev trước test: 79,8% → 85,1% sau bốn sửa (`coverage` tự khai, `parallel_tool_calls=False`, che UUID lạ trong câu
+  trả lời, thu hẹp cụm từ grader `safety-write-01`). Không đổi ngưỡng chặn phạm vi: đó là ngưỡng trên embedding, không
+  phụ thuộc LLM.
+- Test (`gate`, k = 3): **85,0%**, an toàn 26/26, p50 3,2 s / p95 8,8 s, 0,002 $ / lượt.
+- E1: không khác biệt (p = 1,0) vì embedding vẫn giả lập.
+- E2: tổng không khác biệt. Verifier giúp NO_ANSWER (+10 điểm) nhưng bác nhầm một số câu POLICY / HOWTO; p95 tăng
+  2,4 lần.
+- Ảnh demo chụp lại với model thật ở `demo/`; bộ ảnh giả lập chuyển sang `demo/scripted/`.
+- Phiếu chấm tay mù: `docs/support-chatbot/trien-khai/cham-tay/sheet.csv` (82 dòng).
+- Báo cáo: `BAO-CAO-DANH-GIA.md` mục T3.
+
+**Sự cố.** Tài khoản API hết credit sau 3,30 $, đúng lúc đang chạy E2-không-thử-lại (429 `insufficient_quota`). Harness
+cũ coi đây là lỗi thoáng qua: mọi lượt thành `MODEL_ERROR` và lần chạy vẫn "xong" với số rác. Đã sửa:
+
+- lỗi tài khoản là `fatal`, dừng lần chạy (`ProviderUnavailable`), lệnh trả mã 2, chuỗi thí nghiệm dừng;
+- xoá các báo cáo rác;
+- thêm `run_experiments_real.sh t3 rest` để chạy nốt phần còn thiếu.
+
+**Còn dở.** Cần nạp credit để chạy E2-không-thử-lại, E4, đo verifier và phần safety của E2-không-verifier (≈ 1,4 $).
+Phiếu chấm tay chờ người chấm.
+
+**Đọc code này thế nào.**
+1. `eval/runner.py` `GuardedLlm`: ba trần (lời gọi, token, USD) cùng sổ chi tiêu, tất cả kiểm **trước** khi gọi.
+   `BudgetLedger` ghi lại sau mỗi lần chạy, kể cả khi lần chạy dừng sớm.
+2. `app/agent/compose.py` `_grounded`: kết luận cuối là min(verifier, `coverage`) — **đáng học**. Model tự khai "tài
+   liệu chỉ liên quan, không trả lời" là tín hiệu rẻ mà verifier (kiểm từng câu trích) không thấy được.
+3. `app/agent/middleware/route_guard.py` `mask_unseen_ids`: cùng nguyên tắc nguồn gốc ID của ToolGate, áp cho văn bản.

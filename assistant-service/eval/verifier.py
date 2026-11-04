@@ -25,7 +25,7 @@ from app.cli import use_utf8_output
 from app.providers.llm import ChatMessage, LlmRequest
 from eval.build_verifier_claims import OUT as CLAIMS_FILE
 from eval.build_verifier_claims import load_chunks
-from eval.runner import EVAL_DIR, EvalConfig, RunBudgetExceeded, build_environment
+from eval.runner import EVAL_DIR, BudgetLedger, EvalConfig, ProviderUnavailable, RunBudgetExceeded, build_environment
 
 LABELS = ("SUPPORTED", "PARTIAL", "UNSUPPORTED")
 
@@ -65,7 +65,8 @@ def summarize(rows: list[dict]) -> dict:
 
 def write_markdown(path: Path, meta: dict, summary: dict) -> None:
     lines = [f"# Đo verifier — {meta['config']} (k = {meta['k']})", "",
-             f"- Model: `{meta['model']}`; số khẳng định: {summary['n']}; lời gọi: {meta['calls']}", "",
+             f"- Model: `{meta['model']}`; số khẳng định: {summary['n']}; lời gọi: {meta['calls']}; "
+             f"chi phí: {meta.get('cost_usd', 0)} $", "",
              "| Chỉ số | Giá trị |", "|---|---|",
              f"| Recall bắt lỗi (UNSUPPORTED/PARTIAL không được cho SUPPORTED) | {summary['catch_recall']:.1%} |",
              f"| Tỉ lệ bác nhầm (SUPPORTED bị bác) | {summary['false_reject_rate']:.1%} |",
@@ -84,6 +85,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=EVAL_DIR / "reports" / "verifier")
     parser.add_argument("--max-llm-calls", type=int, default=600)
     parser.add_argument("--max-tokens", type=int, default=600_000)
+    parser.add_argument("--max-cost-usd", type=float, default=None)
+    parser.add_argument("--budget-ledger", type=Path, default=None)
+    parser.add_argument("--budget-usd", type=float, default=10.0)
     parser.add_argument("--yes", action="store_true")
     arguments = parser.parse_args()
 
@@ -93,21 +97,35 @@ def main() -> None:
           f"(giới hạn {arguments.max_llm_calls}).")
     if config.llm == "openai" and not arguments.yes:
         raise SystemExit("Model thật tốn tiền: xem ước tính trên rồi chạy lại với --yes.")
-    env = build_environment(config, max_llm_calls=arguments.max_llm_calls, max_tokens=arguments.max_tokens)
+    ledger = BudgetLedger(arguments.budget_ledger, arguments.budget_usd) if arguments.budget_ledger else None
+    env = build_environment(config, max_llm_calls=arguments.max_llm_calls, max_tokens=arguments.max_tokens,
+                            max_cost_usd=arguments.max_cost_usd, ledger=ledger)
     chunks = load_chunks()
     rows = []
-    for claim in claims:
-        votes = Counter(verify_once(env, claim, chunks[claim["chunk_key"]]) for _ in range(arguments.k))
-        rows.append({**claim, "predicted": votes.most_common(1)[0][0], "votes": dict(votes)})
+    provider_failed = False
+    try:
+        for claim in claims:
+            votes = Counter(verify_once(env, claim, chunks[claim["chunk_key"]]) for _ in range(arguments.k))
+            rows.append({**claim, "predicted": votes.most_common(1)[0][0], "votes": dict(votes)})
+    except RunBudgetExceeded as error:
+        provider_failed = isinstance(error, ProviderUnavailable)
+        print(f"Dừng sớm ({'nhà cung cấp từ chối' if provider_failed else 'chạm giới hạn chi phí'}): {error}")
+    finally:
+        if ledger is not None:
+            ledger.record(f"verifier-{config.name}", env.llm.spent_usd, env.llm.calls, env.llm.tokens_in,
+                          env.llm.tokens_out)
     summary = summarize(rows)
     arguments.out.mkdir(parents=True, exist_ok=True)
     meta = {"config": config.name, "k": arguments.k, "model": env.settings.verifier_model or env.settings.llm_model
-            if config.llm == "openai" else "scripted-substring", "calls": env.llm.calls}
+            if config.llm == "openai" else "scripted-substring", "calls": env.llm.calls,
+            "cost_usd": round(env.llm.spent_usd, 4)}
     (arguments.out / f"{config.name}.jsonl").write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
     write_markdown(arguments.out / f"{config.name}.md", meta, summary)
     print(json.dumps({key: value for key, value in summary.items() if key != "by_kind"}, ensure_ascii=False))
     print(f"Báo cáo: {arguments.out / (config.name + '.md')}")
+    if provider_failed:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

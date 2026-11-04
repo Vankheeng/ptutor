@@ -30,7 +30,7 @@ from app.kb.routes import RouteCatalog, load_routes_file
 from app.kb.tokens import load_token_counter
 from app.providers.embedding import EmbeddingProvider, EmbeddingResult
 from app.providers.factory import build_embedder, build_retriever
-from app.providers.llm import LlmProvider, LlmRequest, LlmResponse, OpenAiLlm, ScriptedLlm
+from app.providers.llm import LlmError, LlmProvider, LlmRequest, LlmResponse, OpenAiLlm, ScriptedLlm
 from app.retrieval.store import KnowledgeStore, MemoryKnowledgeStore, PgKnowledgeStore
 from app.scope.exemplars import MemoryExemplarStore, dataset_texts, embed_exemplars
 from app.services import Services
@@ -47,25 +47,92 @@ FAKE_TOKEN = "Bearer eval-token"  # mock không kiểm token; grader kiểm toke
 
 
 class RunBudgetExceeded(Exception):
-    """Vượt giới hạn tổng của lần chạy eval (số lời gọi model hoặc token)."""
+    """Vượt giới hạn của lần chạy eval (số lời gọi, token, hoặc tiền — kể cả ngân sách tổng nhiều lần chạy)."""
+
+
+class ProviderUnavailable(RunBudgetExceeded):
+    """Nhà cung cấp từ chối vì lý do tài khoản (hết credit, khoá sai). Lần chạy dừng và lệnh trả mã lỗi."""
+
+
+PRICING_FILE = EVAL_DIR / "configs" / "pricing.yaml"
+
+
+def load_price(model: str) -> tuple[float, float] | None:
+    """(USD / 1 triệu token vào, USD / 1 triệu token ra) của model; None nếu chưa khai báo (không tự đoán giá)."""
+    raw = yaml.safe_load(PRICING_FILE.read_text(encoding="utf-8")) or {}
+    entry = (raw.get("models") or {}).get(model)
+    if not entry:
+        return None
+    return float(entry["input_per_1m"]), float(entry["output_per_1m"])
+
+
+class BudgetLedger:
+    """Sổ chi tiêu dùng chung cho **nhiều** lần chạy (một chuỗi thí nghiệm): `{"limit_usd", "spent_usd", "runs"}`.
+
+    Mỗi lần chạy đọc số đã tiêu trước đó, cộng phần của mình sau mỗi lời gọi và ghi lại khi kết thúc — nên tổng của cả
+    chuỗi không vượt `limit_usd` (sai số tối đa: một lời gọi, vì chỉ biết số token sau khi gọi xong).
+    """
+
+    def __init__(self, path: Path, limit_usd: float):
+        self.path = path
+        data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+        self.limit_usd = float(data.get("limit_usd", limit_usd))
+        self.prior_usd = float(data.get("spent_usd", 0.0))
+        self.runs: list[dict] = list(data.get("runs", []))
+
+    def record(self, run_id: str, spent_usd: float, calls: int, tokens_in: int, tokens_out: int) -> None:
+        self.runs.append({"run_id": run_id, "usd": round(spent_usd, 4), "calls": calls, "tokens_in": tokens_in,
+                          "tokens_out": tokens_out})
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        total = round(self.prior_usd + spent_usd, 4)
+        self.path.write_text(json.dumps({"limit_usd": self.limit_usd, "spent_usd": total, "runs": self.runs},
+                                        ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 class GuardedLlm(LlmProvider):
-    """Bọc LLM: ghi lại nội dung gửi model của lượt hiện tại (cho grader rò dữ liệu) và đếm chi phí cả lần chạy."""
+    """Bọc LLM: ghi lại nội dung gửi model của lượt hiện tại (cho grader rò dữ liệu) và đếm chi phí cả lần chạy.
 
-    def __init__(self, inner: LlmProvider, max_calls: int, max_tokens: int):
+    Chặn **trước** mỗi lời gọi khi đã chạm: số lời gọi, số token, số tiền của lần chạy (`max_cost_usd`), hoặc ngân sách
+    tổng trong sổ chi tiêu (`ledger`). Tiền tính từ token thật nhà cung cấp trả về × đơn giá trong `pricing.yaml`
+    (token vào tính giá đầy đủ, không trừ giảm giá cache — ước tính thận trọng).
+    """
+
+    def __init__(self, inner: LlmProvider, max_calls: int, max_tokens: int, *,
+                 price: tuple[float, float] | None = None, max_cost_usd: float | None = None,
+                 ledger: BudgetLedger | None = None):
         self._inner = inner
         self.max_calls, self.max_tokens = max_calls, max_tokens
+        self.price, self.max_cost_usd, self.ledger = price, max_cost_usd, ledger
         self.calls = 0
         self.tokens = 0
+        self.tokens_in = 0
+        self.tokens_out = 0
         self.turn_inputs: list[str] = []
+
+    @property
+    def spent_usd(self) -> float:
+        if self.price is None:
+            return 0.0
+        return (self.tokens_in * self.price[0] + self.tokens_out * self.price[1]) / 1_000_000
 
     def complete(self, request: LlmRequest) -> LlmResponse:
         if self.calls >= self.max_calls or self.tokens >= self.max_tokens:
             raise RunBudgetExceeded(f"Đã dùng {self.calls} lời gọi / {self.tokens} token")
+        if self.max_cost_usd is not None and self.spent_usd >= self.max_cost_usd:
+            raise RunBudgetExceeded(f"Lần chạy đã tiêu {self.spent_usd:.4f} $ (trần {self.max_cost_usd} $)")
+        if self.ledger is not None and self.ledger.prior_usd + self.spent_usd >= self.ledger.limit_usd:
+            raise RunBudgetExceeded(f"Ngân sách tổng {self.ledger.limit_usd} $ đã dùng hết "
+                                    f"({self.ledger.prior_usd + self.spent_usd:.4f} $)")
         self.turn_inputs.extend(message.content for message in request.messages)
-        response = self._inner.complete(request)
+        try:
+            response = self._inner.complete(request)
+        except LlmError as error:
+            if error.fatal:  # hết credit / khoá sai: dừng cả lần chạy, không ghi các lượt "MODEL_ERROR" thành kết quả
+                raise ProviderUnavailable(str(error)) from error
+            raise
         self.calls += 1
+        self.tokens_in += response.tokens_in
+        self.tokens_out += response.tokens_out
         self.tokens += response.tokens_in + response.tokens_out
         return response
 
@@ -122,7 +189,8 @@ class Environment:
     config: EvalConfig
 
 
-def build_environment(config: EvalConfig, *, max_llm_calls: int, max_tokens: int) -> Environment:
+def build_environment(config: EvalConfig, *, max_llm_calls: int, max_tokens: int, max_cost_usd: float | None = None,
+                      ledger: BudgetLedger | None = None) -> Environment:
     settings = Settings(**{**config.settings, "tools_mode": "mock", "internal_token": "eval"})
     embedder = CachedEmbedding(build_embedder(settings), EVAL_DIR / ".cache")
     counter = load_token_counter(settings.tokenizer_path)
@@ -136,11 +204,19 @@ def build_environment(config: EvalConfig, *, max_llm_calls: int, max_tokens: int
     if config.llm == "openai":
         if not settings.llm_enabled:
             raise SystemExit("Cấu hình llm: openai nhưng chưa có OPENAI_API_KEY / ASSISTANT_LLM_MODEL")
+        models = {settings.llm_model, settings.effective_rewrite_model, settings.effective_verifier_model}
+        prices = {model: load_price(model) for model in models}
+        if any(price is None for price in prices.values()) or len(set(prices.values())) != 1:
+            # Không có đơn giá thì không chặn được theo tiền → không cho chạy model thật.
+            raise SystemExit(f"Thiếu đơn giá trong {PRICING_FILE.name} "
+                             f"(hoặc các vai trò dùng model khác giá): {prices}")
+        price = next(iter(prices.values()))
         inner: LlmProvider = OpenAiLlm(settings.openai_api_key, settings.openai_base_url)
     else:
         inner = ScriptedLlm(policy=scripted_policy)
         settings.llm_model = settings.llm_model or "scripted-extractive"
-    llm = GuardedLlm(inner, max_llm_calls, max_tokens)
+        price = None
+    llm = GuardedLlm(inner, max_llm_calls, max_tokens, price=price, max_cost_usd=max_cost_usd, ledger=ledger)
     registry = ToolRegistry.from_file(settings.tool_catalog_path)
     client = MockBackendClient(registry, EVAL_DIR / "fixtures" / "scenarios", "student_two_contracts")
     services = Services(
