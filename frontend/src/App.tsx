@@ -61,6 +61,10 @@ import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaints
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
 import { AdminNotificationDetailPage } from './pages/admin/AdminNotificationDetailPage';
+import { KbDocumentListPage } from './pages/admin/assistant/KbDocumentListPage';
+import { KbDocumentEditorPage } from './pages/admin/assistant/KbDocumentEditorPage';
+import { UnansweredQuestionsPage } from './pages/admin/assistant/UnansweredQuestionsPage';
+import { AssistantStatsPage } from './pages/admin/assistant/AssistantStatsPage';
 
 export default function App() {
   return (
@@ -110,6 +114,13 @@ export default function App() {
                 <Route path="notifications/new" element={<AdminNotificationFormPage />} />
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
+                <Route element={<RoleGuard roles={['ADMIN']} />}>
+                  <Route path="assistant/documents" element={<KbDocumentListPage />} />
+                  <Route path="assistant/documents/new" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/documents/:documentId" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/unanswered" element={<UnansweredQuestionsPage />} />
+                  <Route path="assistant/stats" element={<AssistantStatsPage />} />
+                </Route>
               </Route>
             </Route>
             <Route element={<RoleGuard roles={['TUTOR']} />}>

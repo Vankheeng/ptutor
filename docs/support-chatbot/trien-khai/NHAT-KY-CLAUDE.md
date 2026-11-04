@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 6 — **bước:** chặng 5 xong (M14–M15), bắt đầu M16.
-- **Việc tiếp theo:** M16 (trang quản trị kho tri thức: API /v1/admin/** ở assistant-service, AdminAssistantController ở backend, trang frontend danh sách / soạn / xem trước chia đoạn / công bố / khôi phục / câu hỏi chưa trả lời được / thống kê).
+- **Chặng hiện tại:** 7 — **bước:** chặng 6 xong (M16), bắt đầu M17.
+- **Việc tiếp theo:** M17 (yêu cầu hỗ trợ: Flyway support_requests, enum, API người dùng / nhân viên, thông báo, job tự đóng 7 ngày, job xoá đoạn trích 365 ngày, /v1/conversations/{id}/excerpt, công cụ list_my_support_requests ready, hộp thoại widget, trang người dùng, trang nhân viên). CHỜ người dùng chọn (a) merge feat/employee-two-job-functions hay (b) USER_SUPPORT.
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -28,7 +28,7 @@
 - [x] M13 CitationVerifier, RouteGuard, Redact
 - [x] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
 - [x] M15 `eval.run`, `eval.compare`
-- [ ] M16 Trang quản trị kho tri thức
+- [x] M16 Trang quản trị kho tri thức
 - [ ] M17 Yêu cầu hỗ trợ
 - [ ] Chặng 8: đánh giá đầy đủ (4b) và hoàn thiện (4c)
 
@@ -611,3 +611,40 @@ bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E
    gửi model chứ không chỉ câu trả lời) và `g_id_provenance` (chấm cả con đường).
 3. `eval/report.py` → `majority`, `bootstrap_ci`; `eval/compare.py` → `compare`: cổng hồi quy đọc trong 30 dòng.
 4. `eval/run.py`: ước tính chi phí và `--yes` trước khi gọi model thật.
+
+## M16 — Trang quản trị kho tri thức
+
+**Đã làm.**
+- assistant-service `/v1/admin/**` (kiểm lại `ADMIN`): danh sách tài liệu (lọc trạng thái / loại / chức năng / đối
+  tượng / từ khoá; cờ có nháp, số câu hỏi mở, "công bố khi còn câu hỏi mở"), tạo (trùng mã → 409), chi tiết (bản công
+  bố, bản nháp, lịch sử), lưu nháp, kiểm tra + xem trước chia đoạn, xem trước khi đang gõ (`/documents/preview`, không
+  ghi DB), công bố (luôn chặn khi còn todo), lưu trữ, bỏ nháp, xem phiên bản, khôi phục, câu hỏi chưa trả lời được
+  (06 mục 6.5, không trả `user_id`), thống kê, cài đặt `routes` / `suggestions` / `scope_rules` (áp dụng ngay), thêm
+  câu mẫu phạm vi (`/scope-exemplars`). `Services` nạp cài đặt từ `kb_setting` lúc khởi động.
+- Backend `AdminAssistantController` (`/api/v1/admin/assistant/**`, chỉ `ADMIN`), chuyển tiếp nguyên JSON.
+- Frontend `pages/admin/assistant/`: `KbDocumentListPage`, `KbDocumentEditorPage` (form + Markdown + xem trước + chia
+  đoạn ≤ 400 token + nút Công bố khoá khi còn câu hỏi mở + hộp thoại xác nhận), `KbVersionHistory` (xem / khôi phục),
+  `UnansweredQuestionsPage` ("Tạo tài liệu" điền sẵn câu hỏi; "Thêm làm câu mẫu trong phạm vi" cho câu bị chặn nhầm),
+  `AssistantStatsPage`; nhóm menu "Trợ lý" chỉ hiện với `ADMIN`.
+
+- File chính: `assistant-service/app/api/admin_kb.py`, `app/kb/admin_queries.py`, `app/services.py`;
+  `backend/.../controller/AdminAssistantController.java`; `frontend/src/pages/admin/assistant/*`,
+  `frontend/src/services/adminAssistantApi.ts`.
+- Kiểm tra: pytest 183 test (4 T1 mới cho API quản trị: vòng đời đầy đủ, chặn vai trò, câu hỏi chưa trả lời được,
+  cài đặt); JUnit 16 test trợ lý; frontend typecheck, lint, build qua.
+
+**Khác thiết kế.**
+- Thêm `/documents/preview` (xem trước khi chưa lưu) và `/scope-exemplars` (thiết kế 4.11 có nói chuyển câu bị chặn nhầm
+  thành câu mẫu nhưng 07 mục 7.3 chưa có endpoint).
+- Lịch sử phiên bản là một khối trong trang soạn (thiết kế tách file `KbVersionHistory.tsx` — vẫn là component riêng).
+- Ở trang quản trị, công bố **không** có lựa chọn `--allow-todo` (chỉ lệnh import cho eval / demo mới có).
+- Sửa cài đặt route không kiểm route có thật trong `App.tsx` (đã có `scripts/check_catalog.py` cho bản khởi tạo).
+
+**Còn dở.** Chụp ảnh màn hình trang quản trị ở chặng 8 (Playwright).
+
+**Đọc code này thế nào.**
+1. `admin_kb.py`: mỗi endpoint chỉ gọi `kb_service` (ghi) hoặc `kb_queries` (đọc) — không có logic nghiệp vụ ở router.
+2. `services.py` → `write_setting`: **đáng học** — ghi DB rồi áp dụng ngay cho service đang chạy; luật chặn được biên
+   dịch trước khi lưu nên luật hỏng báo lỗi ngay.
+3. `KbDocumentEditorPage.tsx` → `startPublish`: lưu → kiểm tra → hộp thoại → công bố; nút khoá khi còn câu hỏi mở.
+4. `MarkdownPreview.tsx`: xem trước bằng phần tử React (không chèn HTML) — cùng ý tưởng chống XSS với widget.

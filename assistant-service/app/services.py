@@ -44,6 +44,66 @@ class Services:
     tool_executor: Any = None  # app.tools.executor.ToolExecutor; None = không có tool (ASSISTANT_TOOLS_MODE=off)
     engine: Engine | None = None
     session_factory: sessionmaker[Session] | None = None
+    kb_service: Any = None  # app.kb.service.KnowledgeBaseService — cần PostgreSQL (trang quản trị)
+    kb_queries: Any = None  # app.kb.admin_queries.KbAdminQueries
+
+    # ------------------------------------------------------------------ cài đặt admin sửa được (kb_setting)
+
+    def read_setting(self, key: str) -> Any:
+        from app.kb.service import read_setting
+
+        if self.session_factory is None:
+            return None
+        with self.session_factory() as session:
+            return read_setting(session, key)
+
+    def write_setting(self, key: str, value: Any, editor: Any) -> None:
+        """Ghi `kb_setting` rồi áp dụng ngay cho service đang chạy (không cần khởi động lại)."""
+        from app.db.models import KbSetting
+        from app.kb.routes import AllowedRoute
+
+        assert self.session_factory is not None
+        if key == "routes":
+            if not isinstance(value, list) or not all(isinstance(item, dict) and str(item.get("path", ""))
+                                                      .startswith("/") for item in value):
+                raise ValueError("routes phải là danh sách {path, audience}")
+            self.routes = RouteCatalog([AllowedRoute(item["path"], tuple(item.get("audience") or ()))
+                                        for item in value])
+        elif key == "suggestions":
+            self.suggestions = dict(value or {})
+        elif key == "scope_rules":
+            self.scope_rules = ScopeRules.from_setting(value)  # biên dịch luật trước khi lưu: luật hỏng → lỗi ngay
+        with self.session_factory.begin() as session:
+            setting = session.get(KbSetting, key) or KbSetting(key=key, value=value)
+            setting.value, setting.updated_by = value, editor
+            session.merge(setting)
+
+    def add_scope_exemplar(self, text: str, label: str, editor: Any) -> None:
+        from app.db.models import ScopeExemplar
+        from app.scope.exemplars import PgExemplarStore
+
+        assert self.session_factory is not None
+        result = self.embedder.embed([text])
+        with self.session_factory.begin() as session:
+            session.add(ScopeExemplar(text=text, label=label, source="ADMIN", embedding=result.vectors[0],
+                                      embedding_model=result.model, created_by=editor))
+        if isinstance(self.exemplars, PgExemplarStore):
+            self.exemplars.refresh()
+
+    def load_settings_from_db(self) -> None:
+        """Lúc khởi động: route / gợi ý / luật chặn đã được admin sửa thì dùng bản trong DB thay cho mặc định."""
+        from app.kb.routes import AllowedRoute
+
+        routes = self.read_setting("routes")
+        if routes:
+            self.routes = RouteCatalog([AllowedRoute(item["path"], tuple(item.get("audience") or ()))
+                                        for item in routes])
+        suggestions = self.read_setting("suggestions")
+        if suggestions:
+            self.suggestions = suggestions
+        scope_rules = self.read_setting("scope_rules")
+        if scope_rules:
+            self.scope_rules = ScopeRules.from_setting(scope_rules)
 
 
 def build_services(settings: Settings) -> Services:
@@ -68,13 +128,23 @@ def build_services(settings: Settings) -> Services:
     llm = OpenAiLlm(settings.openai_api_key, settings.openai_base_url) if settings.llm_enabled else None
     exemplars = _build_exemplars(session_factory, embedder)
     registry, executor = _build_tools(settings)
-    return Services(
+    services = Services(
         settings=settings, llm=llm, embedder=embedder,
         retriever=build_retriever(settings, store) if store is not None else None,
         routes=RouteCatalog(load_routes_file(Path(settings.routes_file))),
         conversations=conversations, counter=counter, engine=engine, session_factory=session_factory,
         exemplars=exemplars, tool_registry=registry, tool_executor=executor,
     )
+    if session_factory is not None:
+        from app.kb.admin_queries import KbAdminQueries
+        from app.kb.service import KnowledgeBaseService
+
+        services.load_settings_from_db()
+        # Danh sách route cho phép đọc lúc kiểm tra (lambda) → admin sửa route là có hiệu lực ngay khi công bố.
+        services.kb_service = KnowledgeBaseService(session_factory, counter, lambda: services.routes.all_paths(),
+                                                   embedder)
+        services.kb_queries = KbAdminQueries(session_factory)
+    return services
 
 
 def _build_tools(settings: Settings) -> tuple[ToolRegistry | None, Any]:

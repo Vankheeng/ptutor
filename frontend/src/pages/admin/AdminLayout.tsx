@@ -31,6 +31,16 @@ const navigation = [
   }
 ];
 
+// Trợ lý hỗ trợ: chỉ ADMIN quản lý kho tri thức (docs/support-chatbot/01 mục 1.3, 07 mục 7.1).
+const assistantNavigation = {
+  label: 'Trợ lý',
+  items: [
+    { to: '/admin/assistant/documents', label: 'Kho tri thức' },
+    { to: '/admin/assistant/unanswered', label: 'Câu hỏi chưa trả lời' },
+    { to: '/admin/assistant/stats', label: 'Thống kê trợ lý' }
+  ]
+};
+
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -43,7 +53,7 @@ export function AdminLayout() {
           <span>PTutor Admin</span>
         </NavLink>
         <nav className="admin-nav" aria-label="Menu quản trị">
-          {navigation.map((group) => (
+          {(user?.role === 'ADMIN' ? [...navigation, assistantNavigation] : navigation).map((group) => (
             <Fragment key={group.label}>
               <div className="admin-nav-label">{group.label}</div>
               <div className="admin-nav-group">
