@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +26,7 @@ import com.ptutor.backend.entity.enums.SupportRequestStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
+import com.ptutor.backend.service.AssistantProxyService;
 import com.ptutor.backend.service.SupportRequestService;
 
 import jakarta.validation.Valid;
@@ -64,8 +66,13 @@ public class AdminSupportRequestController {
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<SupportRequestStatsResponse>> stats() {
-        return ResponseEntity.ok(responseFactory.success(supportRequestService.stats(), BASE_PATH + "/stats"));
+    public ResponseEntity<ApiResponse<SupportRequestStatsResponse>> stats(
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId) {
+        String traceId = requestId == null || requestId.isBlank() ? UUID.randomUUID().toString() : requestId;
+        // Chỉ lấy số đếm lượt từ chối: không chuyển tiếp token người dùng.
+        AssistantProxyService.Caller caller = new AssistantProxyService.Caller(
+                currentUserProvider.getCurrentUserId(), currentUserProvider.getCurrentUserRole().name(), null, traceId);
+        return ResponseEntity.ok(responseFactory.success(supportRequestService.stats(caller), BASE_PATH + "/stats"));
     }
 
     @GetMapping("/{requestId}")

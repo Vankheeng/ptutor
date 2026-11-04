@@ -70,6 +70,16 @@ def assistant_caller(x_user_id: str = Header(default=""), x_user_role: str = Hea
     return caller
 
 
+def staff_caller(x_user_id: str = Header(default=""), x_user_role: str = Header(default=""),
+                 x_request_id: str = Header(default="")) -> Caller:
+    """Số liệu cho trang yêu cầu hỗ trợ: ADMIN hoặc nhân viên. Backend đã kiểm chức năng `CUSTOMER_SERVICE` của nhân
+    viên (`EmployeeFunctionAuthorizationFilter`); ở đây chặn học viên / gia sư."""
+    caller = current_caller(x_user_id, x_user_role, "", x_request_id)
+    if caller.role not in {"ADMIN", "EMPLOYEE"}:
+        raise HTTPException(status_code=403, detail="ROLE_NOT_ALLOWED")
+    return caller
+
+
 def admin_caller(x_user_id: str = Header(default=""), x_user_role: str = Header(default=""),
                  x_request_id: str = Header(default="")) -> Caller:
     """API quản trị: kiểm lại `ADMIN` dù backend đã kiểm (thiết kế 07 mục 7.4)."""

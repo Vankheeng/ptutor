@@ -254,4 +254,38 @@ class SupportRequestServiceTest {
         assertThat(SupportRequestService.percentile(List.of(5L, 1L, 3L, 9L), 50)).isEqualTo(3L);
         assertThat(SupportRequestService.percentile(List.of(5L, 1L, 3L, 9L), 95)).isEqualTo(9L);
     }
+    @Test
+    void statsRelateRequestsToAssistantRefusalsInTheSameWindow() {
+        // Mục 14.9: tỉ lệ yêu cầu hỗ trợ trên lượt trợ lý từ chối / trả lời một phần, cùng cửa sổ 30 ngày.
+        when(supportRequestRepository.countByStatus()).thenReturn(List.of());
+        when(supportRequestRepository.countBySource()).thenReturn(List.of());
+        when(supportRequestRepository.findAnsweredSince(any())).thenReturn(List.of());
+        when(supportRequestRepository.countBySourceSince(any())).thenReturn(List.of(
+                new Object[] {SupportRequestSource.ASSISTANT_ABSTAIN, 5L},
+                new Object[] {SupportRequestSource.MENU, 9L}));
+        when(assistantProxyService.get(any(), eq("/v1/admin/refusal-counts"), anyMap()))
+                .thenReturn(objectMapper.readTree("{\"abstain\": 20, \"partial\": 0}"));
+        AssistantProxyService.Caller staffCaller = new AssistantProxyService.Caller(staffUserId, "EMPLOYEE", null, "t");
+
+        var followUp = service.stats(staffCaller).refusalFollowUp();
+
+        assertThat(followUp.abstainTurns()).isEqualTo(20);
+        assertThat(followUp.requestsAfterAbstain()).isEqualTo(5);
+        assertThat(followUp.abstainRequestRate()).isEqualTo(0.25);
+        assertThat(followUp.partialRequestRate()).isNull(); // mẫu số 0 → không có tỉ lệ, không chia cho 0
+    }
+
+    @Test
+    void statsStillWorkWhenAssistantIsUnavailable() {
+        when(supportRequestRepository.countByStatus()).thenReturn(List.of());
+        when(supportRequestRepository.countBySource()).thenReturn(List.of());
+        when(supportRequestRepository.findAnsweredSince(any())).thenReturn(List.of());
+        when(assistantProxyService.get(any(), any(), anyMap()))
+                .thenThrow(new ApiException(HttpStatus.SERVICE_UNAVAILABLE, AssistantProxyService.UNAVAILABLE, "down"));
+
+        var stats = service.stats(new AssistantProxyService.Caller(staffUserId, "ADMIN", null, "t"));
+
+        assertThat(stats.refusalFollowUp()).isNull();
+        assertThat(stats.windowDays()).isEqualTo(SupportRequestService.STATS_WINDOW_DAYS);
+    }
 }

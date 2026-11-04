@@ -1,5 +1,6 @@
 // Hàng chờ yêu cầu hỗ trợ cho nhân viên CUSTOMER_SERVICE và ADMIN (docs/support-chatbot/14-yeu-cau-ho-tro.md
-// mục 14.6): tab Chờ xử lý / Của tôi / Đã trả lời, cũ nhất trước; số liệu theo trạng thái và thời gian phản hồi (14.9).
+// mục 14.6): tab Chờ xử lý / Của tôi / Đã trả lời, cũ nhất trước; số liệu theo trạng thái, thời gian phản hồi và tỉ lệ
+// yêu cầu trên lượt trợ lý từ chối / trả lời một phần (14.9).
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SupportStatusBadge } from '../../../components/support/SupportStatusBadge';
@@ -16,6 +17,10 @@ const TABS: { key: Tab; label: string; filters: Omit<SupportQueueFilters, 'page'
   { key: 'mine', label: 'Của tôi', filters: { status: 'IN_PROGRESS', assignedToMe: true } },
   { key: 'answered', label: 'Đã trả lời', filters: { status: 'ANSWERED' } }
 ];
+
+function followUp(requests: number, turns: number, rate: number | null) {
+  return `${requests} / ${turns} lượt${rate === null ? '' : ` (${Math.round(rate * 100)}%)`}`;
+}
 
 function minutes(value: number | null) {
   if (value === null) return '—';
@@ -49,6 +54,26 @@ export function SupportRequestQueuePage() {
             <dd>
               {minutes(stats.minutesToAnswerP50)} / {minutes(stats.minutesToAnswerP95)}
             </dd>
+            {stats.refusalFollowUp && (
+              <>
+                <dt>Gửi nhân viên sau khi trợ lý từ chối ({stats.windowDays} ngày)</dt>
+                <dd>
+                  {followUp(
+                    stats.refusalFollowUp.requestsAfterAbstain,
+                    stats.refusalFollowUp.abstainTurns,
+                    stats.refusalFollowUp.abstainRequestRate
+                  )}
+                </dd>
+                <dt>Gửi nhân viên sau câu trả lời một phần ({stats.windowDays} ngày)</dt>
+                <dd>
+                  {followUp(
+                    stats.refusalFollowUp.requestsAfterPartial,
+                    stats.refusalFollowUp.partialTurns,
+                    stats.refusalFollowUp.partialRequestRate
+                  )}
+                </dd>
+              </>
+            )}
           </dl>
         </section>
       )}

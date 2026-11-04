@@ -38,6 +38,7 @@ class SupportRequestRepositoryIntegrationTest {
         assertThat(supportRequestRepository.countByUser_IdAndCreatedAtAfter(missing, now.minusDays(1))).isZero();
         assertThat(supportRequestRepository.countByStatus()).isNotNull();
         assertThat(supportRequestRepository.countBySource()).isNotNull();
+        assertThat(supportRequestRepository.countBySourceSince(LocalDateTime.now().minusDays(30))).isNotNull();
         assertThat(supportRequestRepository.findAnsweredSince(now.minusDays(30))).isNotNull();
         assertThat(supportRequestRepository.closeAnsweredBefore(now.minusDays(7), now,
                 SupportRequestStatus.ANSWERED, SupportRequestStatus.CLOSED)).isGreaterThanOrEqualTo(0);

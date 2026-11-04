@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.api.deps import Caller, admin_caller, require_internal_token
+from app.api.deps import Caller, admin_caller, require_internal_token, staff_caller
 from app.kb.parser import KbDocument as ParsedDocument
 from app.kb.service import KbError
 from app.kb.validate import validate_document
@@ -199,6 +199,15 @@ def stats(request: Request, start: datetime | None = Query(None, alias="from"),
     end = end or datetime.now(UTC)
     start = start or end - timedelta(days=30)
     return services.kb_queries.stats(start, end)
+
+
+@router.get("/refusal-counts")
+def refusal_counts(request: Request, start: datetime = Query(alias="from"), end: datetime = Query(alias="to"),
+                   caller: Caller = Depends(staff_caller)) -> dict:
+    """Mẫu số cho tỉ lệ "yêu cầu hỗ trợ / lượt trợ lý từ chối" trên trang yêu cầu hỗ trợ (14 mục 14.9)."""
+    services = _services(request)
+    assert services.kb_queries is not None
+    return services.kb_queries.refusal_counts(start, end)
 
 
 @router.get("/settings/{key}")

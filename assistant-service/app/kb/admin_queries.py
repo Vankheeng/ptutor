@@ -5,6 +5,7 @@ Tách khỏi `KnowledgeBaseService` (lo vòng đời: lưu, công bố, khôi ph
 - Chi tiết một tài liệu: bản đang công bố, bản nháp, lịch sử phiên bản.
 - Câu hỏi chưa trả lời được (06 mục 6.5): câu trả lời không FULL hoặc bị 👎, 30 ngày; **không** trả `user_id`.
 - Thống kê (07 mục 7.3): số lượt, tỉ lệ grounded, lý do từ chối, 👍 / 👎, độ trễ p50 / p95, token.
+- Số lượt trợ lý từ chối / trả lời một phần (14 mục 14.9): mẫu số của "tỉ lệ yêu cầu hỗ trợ trên lượt từ chối".
 """
 
 from __future__ import annotations
@@ -132,6 +133,19 @@ class KbAdminQueries:
             "latencyMs": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)},
             "tokensPerTurn": sum(tokens) / len(tokens) if tokens else 0,
         }
+
+    def refusal_counts(self, start: datetime, end: datetime) -> dict[str, int]:
+        """Lượt có nút "Gửi câu hỏi cho nhân viên" (14 mục 14.2): `grounded = NONE` (từ chối) và `PARTIAL`.
+        Câu `OUT_OF_SCOPE` không có nút nên không tính. Chỉ trả số đếm — không nội dung, không người dùng."""
+        with self._sessions() as session:
+            rows = session.execute(
+                select(Message.grounded, func.count())
+                .where(Message.sender == "ASSISTANT", Message.created_at >= start, Message.created_at < end,
+                       Message.grounded.in_(("NONE", "PARTIAL")),
+                       or_(Message.intent.is_(None), Message.intent != "OUT_OF_SCOPE"))
+                .group_by(Message.grounded)).all()
+        counts = {str(grounded): int(count) for grounded, count in rows}
+        return {"abstain": counts.get("NONE", 0), "partial": counts.get("PARTIAL", 0)}
 
 
 def _matches(row: dict, status: str, type_: str, feature: str, audience: str, keyword: str) -> bool:

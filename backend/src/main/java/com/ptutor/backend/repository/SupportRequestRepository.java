@@ -68,6 +68,10 @@ public interface SupportRequestRepository extends JpaRepository<SupportRequest, 
     @Query("select request.source, count(request) from SupportRequest request group by request.source")
     List<Object[]> countBySource();
 
+    @Query("select request.source, count(request) from SupportRequest request where request.createdAt >= :since "
+            + "group by request.source")
+    List<Object[]> countBySourceSince(@Param("since") LocalDateTime since);
+
     @Query("select request from SupportRequest request where request.answeredAt is not null "
             + "and request.createdAt >= :since")
     List<SupportRequest> findAnsweredSince(@Param("since") LocalDateTime since);

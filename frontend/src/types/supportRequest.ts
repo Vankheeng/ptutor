@@ -80,4 +80,15 @@ export interface SupportRequestStats {
   minutesToAssignP95: number | null;
   minutesToAnswerP50: number | null;
   minutesToAnswerP95: number | null;
+  /** Tỉ lệ yêu cầu / lượt trợ lý từ chối (14.9); null khi không lấy được số lượt từ assistant-service. */
+  refusalFollowUp: RefusalFollowUp | null;
+}
+
+export interface RefusalFollowUp {
+  abstainTurns: number;
+  partialTurns: number;
+  requestsAfterAbstain: number;
+  requestsAfterPartial: number;
+  abstainRequestRate: number | null;
+  partialRequestRate: number | null;
 }

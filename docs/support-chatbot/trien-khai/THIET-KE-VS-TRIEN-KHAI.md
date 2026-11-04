@@ -25,7 +25,7 @@ Mỗi dòng: phần thiết kế → nơi triển khai → trạng thái. "Khác
 | 11 Vận hành, cấu hình | `app/config.py`, `.env.example`, `docker-compose.yml` (profile `assistant`) | Khác: mặc định embedding `fake`, rerank tắt (ai-service chưa vào `dev`) |
 | 12 Cơ sở lý thuyết | — (tài liệu) | — |
 | 13 Thiết kế eval | `eval/` | Khác: Actor trích xuất cho T0–T2; "ổn định" = đạt mọi lần trong k (M15); nhãn verifier chưa qua 2 người |
-| 14 Yêu cầu hỗ trợ | Backend `SupportRequest*`, Flyway V36, `/excerpt`, frontend `components/support`, `pages/*/support-requests` | Khác: trang người dùng dùng chung; thêm `get_my_support_request`; chưa có tỉ lệ yêu cầu / lượt từ chối (M17) |
+| 14 Yêu cầu hỗ trợ | Backend `SupportRequest*`, Flyway V36, `/excerpt`, frontend `components/support`, `pages/*/support-requests` | Khác: trang người dùng dùng chung; thêm `get_my_support_request`; tỉ lệ yêu cầu / lượt từ chối tách riêng từ chối (NONE) và một phần (PARTIAL), lấy mẫu số qua `GET /v1/admin/refusal-counts` |
 
 ## Thêm mới ngoài thiết kế
 

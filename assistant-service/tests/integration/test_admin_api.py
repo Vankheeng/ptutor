@@ -88,3 +88,16 @@ def test_settings_update_applies_immediately(client):
     assert client.app.state.services.routes.all_paths() == {"/student/wallet"}
     assert client.get("/v1/admin/settings/routes", headers=ADMIN).json()["value"] == routes
     assert client.put("/v1/admin/settings/unknown", json={"value": 1}, headers=ADMIN).status_code == 404
+
+
+def test_refusal_counts_for_support_stats_are_counts_only_and_staff_only(client):
+    """14 mục 14.9: mẫu số của tỉ lệ yêu cầu hỗ trợ / lượt từ chối. Nhân viên (EMPLOYEE) đọc được, học viên thì không;
+    câu ngoài phạm vi không tính vì không có nút gửi nhân viên."""
+    client.post("/v1/chat", json={"message": "Chính sách bảo mật dữ liệu của PTutor quy định gì?"},
+                headers=caller_headers())
+    client.post("/v1/chat", json={"message": "Giải giúp em phương trình x^2 - 5x + 6 = 0"}, headers=caller_headers())
+    window = {"from": "2000-01-01T00:00:00+07:00", "to": "2100-01-01T00:00:00+07:00"}
+    staff = caller_headers(role="EMPLOYEE", user_id="55555555-5555-5555-5555-000000000005")
+    counts = client.get("/v1/admin/refusal-counts", params=window, headers=staff)
+    assert counts.status_code == 200 and counts.json() == {"abstain": 1, "partial": 0}
+    assert client.get("/v1/admin/refusal-counts", params=window, headers=caller_headers()).status_code == 403

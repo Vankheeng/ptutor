@@ -2,7 +2,9 @@ package com.ptutor.backend.service;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -33,6 +35,7 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.SupportRequestSource;
 import com.ptutor.backend.entity.enums.SupportRequestStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -203,7 +206,7 @@ public class SupportRequestService {
     }
 
     @Transactional(readOnly = true)
-    public SupportRequestStatsResponse stats() {
+    public SupportRequestStatsResponse stats(AssistantProxyService.Caller caller) {
         Map<String, Long> byStatus = new LinkedHashMap<>();
         for (SupportRequestStatus value : SupportRequestStatus.values()) {
             byStatus.put(value.name(), 0L);
@@ -225,7 +228,39 @@ public class SupportRequestService {
             toAnswer.add(Math.max(0, Duration.between(createdUtc, request.getAnsweredAt()).toMinutes()));
         }
         return new SupportRequestStatsResponse(byStatus, bySource, STATS_WINDOW_DAYS,
-                percentile(toAssign, 50), percentile(toAssign, 95), percentile(toAnswer, 50), percentile(toAnswer, 95));
+                percentile(toAssign, 50), percentile(toAssign, 95), percentile(toAnswer, 50), percentile(toAnswer, 95),
+                refusalFollowUp(caller, since));
+    }
+
+    /**
+     * Mẫu số (lượt từ chối / một phần) lấy từ assistant-service, tử số (yêu cầu theo nguồn) đếm ở đây, cùng cửa sổ thời
+     * gian. Mốc {@code since} theo giờ JVM (như {@code createdAt}) được đổi sang UTC vì assistant lưu theo UTC.
+     * Trợ lý không trả lời được → null: trang thống kê vẫn hiện các số còn lại.
+     */
+    private SupportRequestStatsResponse.RefusalFollowUp refusalFollowUp(AssistantProxyService.Caller caller,
+                                                                         LocalDateTime since) {
+        JsonNode counts;
+        try {
+            // Gửi dạng UTC có "Z": dấu "+" của độ lệch múi giờ trong query string bị đọc thành khoảng trắng.
+            counts = assistantProxyService.get(caller, "/v1/admin/refusal-counts", Map.of(
+                    "from", since.atZone(ZoneId.systemDefault()).toInstant().toString(),
+                    "to", Instant.now().toString()));
+        } catch (ApiException exception) {
+            return null;
+        }
+        Map<String, Long> requests = new LinkedHashMap<>();
+        supportRequestRepository.countBySourceSince(since)
+                .forEach(row -> requests.put(row[0].toString(), (Long) row[1]));
+        long abstainTurns = counts.path("abstain").asLong(0);
+        long partialTurns = counts.path("partial").asLong(0);
+        long afterAbstain = requests.getOrDefault(SupportRequestSource.ASSISTANT_ABSTAIN.name(), 0L);
+        long afterPartial = requests.getOrDefault(SupportRequestSource.ASSISTANT_PARTIAL.name(), 0L);
+        return new SupportRequestStatsResponse.RefusalFollowUp(abstainTurns, partialTurns, afterAbstain, afterPartial,
+                ratio(afterAbstain, abstainTurns), ratio(afterPartial, partialTurns));
+    }
+
+    private static Double ratio(long numerator, long denominator) {
+        return denominator == 0 ? null : (double) numerator / denominator;
     }
 
     // ------------------------------------------------------------------ job định kỳ
