@@ -1,0 +1,301 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: ky-hoc-phi-quy-dinh-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Học phí hàng tháng đóng vào ngày nào?
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-quy-dinh
+    reference: Kỳ đầu vào ngày bắt đầu, các kỳ sau cách nhau một tháng tới trước ngày kết thúc; mỗi kỳ bằng giá hợp đồng
+    key_points:
+    - Kỳ đầu vào ngày bắt đầu, các kỳ sau cách nhau một tháng tới trước ngày kết thúc
+    - mỗi kỳ bằng giá hợp đồng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-quy-dinh-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: khi nao duoc nhac dong hoc phi
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-quy-dinh
+    reference: 9 giờ sáng, trước hạn đúng 3 ngày; mỗi kỳ nhắc một lần
+    key_points:
+    - 9 giờ sáng, trước hạn đúng 3 ngày
+    - mỗi kỳ nhắc một lần
+    intent: POLICY
+    must_include:
+    - 3 ngày
+    - 9 giờ
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-quy-dinh-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Đóng học phí trễ có bị phạt không?
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-quy-dinh
+    reference: Hệ thống không tự phạt; quy định phạt chưa có thông tin chính thức
+    key_points:
+    - Hệ thống không tự phạt
+    - quy định phạt chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-quy-dinh-04
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Kỳ học phí Đang chờ mà không có ngày đến hạn là sao?
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-quy-dinh
+    reference: Hợp đồng Mỗi buổi, kỳ chưa gắn buổi học; chờ gia sư lên lịch
+    key_points:
+    - Hợp đồng Mỗi buổi, kỳ chưa gắn buổi học
+    - chờ gia sư lên lịch
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-quy-dinh-05
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: ky hoc phi da thanh toan roi co phai lam gi nua khong
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-quy-dinh
+    reference: Không; đã thu thành công
+    key_points:
+    - Không
+    - đã thu thành công
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-thanh-toan-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Đóng học phí thế nào?
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-thanh-toan
+    reference: Chi tiết hợp đồng → Các kỳ thanh toán → Thanh toán → VNPay trong 15 phút
+    key_points:
+    - Chi tiết hợp đồng → Các kỳ thanh toán → Thanh toán → VNPay trong 15 phút
+    intent: HOWTO
+    must_include:
+    - 15 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-thanh-toan-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: dong hoc phi bang vi duoc khong
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-thanh-toan
+    reference: Hệ thống hỗ trợ nhưng giao diện chưa có nút; hiện trả qua VNPay
+    key_points:
+    - Hệ thống hỗ trợ nhưng giao diện chưa có nút
+    - hiện trả qua VNPay
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ky-hoc-phi-thanh-toan-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Đóng học phí bằng thẻ tín dụng có mất phí không?
+  features:
+  - payment
+  expect:
+    docs:
+    - ky-hoc-phi-thanh-toan
+    reference: Chưa có thông tin về phí giao dịch
+    key_points:
+    - Chưa có thông tin về phí giao dịch
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thanh-toan-vnpay-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Link VNPay có hạn bao lâu?
+  features:
+  - payment
+  expect:
+    docs:
+    - thanh-toan-vnpay
+    reference: 15 phút; bấm lại trong 15 phút mở link cũ; quá hạn tạo link mới
+    key_points:
+    - 15 phút
+    - bấm lại trong 15 phút mở link cũ
+    - quá hạn tạo link mới
+    intent: POLICY
+    must_include:
+    - 15 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thanh-toan-vnpay-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: thanh toan vnpay that bai thi sao
+  features:
+  - payment
+  expect:
+    docs:
+    - thanh-toan-vnpay
+    reference: Ghi là thất bại; khoản cần trả giữ trạng thái chờ; thanh toán lại
+    key_points:
+    - Ghi là thất bại
+    - khoản cần trả giữ trạng thái chờ
+    - thanh toán lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thanh-toan-vnpay-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Bị trừ tiền ngân hàng nhưng PTutor chưa cập nhật thì liên hệ ai?
+  features:
+  - payment
+  expect:
+    docs:
+    - thanh-toan-vnpay
+    reference: Chưa có kênh chính thức; gợi ý liên hệ PTutor
+    key_points:
+    - Chưa có kênh chính thức
+    - gợi ý liên hệ PTutor
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-thanh-toan-01
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Thanh toán Đã hủy nghĩa là gì?
+  features:
+  - payment
+  expect:
+    docs:
+    - trang-thai-thanh-toan
+    reference: Link VNPay bị bỏ vì đã trả bằng ví
+    key_points:
+    - Link VNPay bị bỏ vì đã trả bằng ví
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-thanh-toan-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: thanh toan that bai co bi tru tien khong
+  features:
+  - payment
+  expect:
+    docs:
+    - trang-thai-thanh-toan
+    reference: Không có tiền được ghi nhận; thanh toán lại
+    key_points:
+    - Không có tiền được ghi nhận
+    - thanh toán lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-thanh-toan-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Xem trạng thái từng giao dịch thanh toán ở trang nào?
+  features:
+  - payment
+  expect:
+    docs:
+    - trang-thai-thanh-toan
+    reference: Giao diện chưa hiển thị trạng thái từng thanh toán
+    key_points:
+    - Giao diện chưa hiển thị trạng thái từng thanh toán
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

@@ -1,0 +1,62 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: thong-bao-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Đánh dấu tất cả thông báo đã đọc thế nào?
+  features:
+  - notification
+  expect:
+    docs:
+    - thong-bao
+    reference: Trang Notifications → Mark all as read
+    key_points:
+    - Trang Notifications → Mark all as read
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thong-bao-02
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: loc thong bao chua doc
+  features:
+  - notification
+  expect:
+    docs:
+    - thong-bao
+    reference: Trang thông báo, thẻ unread
+    key_points:
+    - Trang thông báo, thẻ unread
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thong-bao-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: PTutor có gửi thông báo qua SMS không?
+  features:
+  - notification
+  expect:
+    docs:
+    - thong-bao
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

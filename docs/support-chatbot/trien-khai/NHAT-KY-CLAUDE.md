@@ -5,8 +5,8 @@
 
 ## Đang ở đâu
 
-- **Chặng hiện tại:** 5 — **bước:** M14 xong, bắt đầu M15.
-- **Việc tiếp theo:** M15 (bộ chạy eval: eval.run, graders, eval.compare, eval.report, eval.latency_cost; định dạng case 13.4; baseline).
+- **Chặng hiện tại:** 6 — **bước:** chặng 5 xong (M14–M15), bắt đầu M16.
+- **Việc tiếp theo:** M16 (trang quản trị kho tri thức: API /v1/admin/** ở assistant-service, AdminAssistantController ở backend, trang frontend danh sách / soạn / xem trước chia đoạn / công bố / khôi phục / câu hỏi chưa trả lời được / thống kê).
 - **Chờ người dùng:** chọn model LLM (cần cho T3–T4); M17 dùng (a) merge `feat/employee-two-job-functions` để có `CUSTOMER_SERVICE` hay (b) tạm `USER_SUPPORT` trên `dev`.
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-claude` (cổng 8001, model mount chỉ đọc) đang **tắt** vì máy thiếu RAM — bật bằng `docker start ptutor-ai-service-claude`; job đo rerank bị hệ thống dừng giữa chừng, chưa có số. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
@@ -27,7 +27,7 @@
 - [x] M12 ScopeGuard
 - [x] M13 CitationVerifier, RouteGuard, Redact
 - [x] M14 ToolRegistry, BackendClient, ToolGate, LoopGuard, ToolSelection, mock
-- [ ] M15 `eval.run`, `eval.compare`
+- [x] M15 `eval.run`, `eval.compare`
 - [ ] M16 Trang quản trị kho tri thức
 - [ ] M17 Yêu cầu hỗ trợ
 - [ ] Chặng 8: đánh giá đầy đủ (4b) và hoàn thiện (4c)
@@ -561,3 +561,53 @@ M15 / chặng 8. Kết quả lớp chặn (M12) ở mục M12.
 4. `result_filter.py` → `filter_object` + `select_items`: vì sao model không bao giờ thấy email / họ, và vì sao kỳ
    chưa đóng gần hạn nhất luôn đứng đầu.
 5. `tests/unit/test_tools.py` → `test_lookup_turn_two_tools_then_answer_with_numbers_from_tool`: cả lượt tra cứu.
+
+## M15 — Bộ chạy đánh giá
+
+**Đã làm.**
+- `eval/build_datasets.py`: 220 câu của `cau-hoi-mau.csv` → `eval/datasets/golden/<features>.yaml` theo định dạng
+  13 mục 13.4 (split theo `SPLITS.yaml`; `docs`; FAQ / ERROR → intent POLICY; NO_ANSWER → `grounded_in: [NONE,
+  PARTIAL]`; `must_include` = các con số rút từ cột `y_bat_buoc`; phần còn lại vào `reference` / `key_points` để chấm tay).
+- `eval/datasets/safety/safety.yaml`: 25 case theo các nhóm 13 mục 13.7 (injection trực tiếp / gián tiếp qua dữ liệu,
+  đoán ID, rò tài liệu theo vai trò, rò trường nhạy cảm, ép gọi lặp, ép hứa hẹn, ngoài phạm vi, câu sát ranh giới,
+  thao tác ghi, lời khẳng định sai), có biến thể không dấu / tiếng Anh / nhiều lượt. Fixture `student_injection`
+  (lịch học do gia sư nhập chứa "lệnh"), `tutor_basic`, `users.yaml`.
+- `eval/graders/code_graders.py`: 19 grader của 13 mục 13.5 (truy xuất, must_include có chuẩn hoá số / dấu, intent,
+  grounded, tool_sequence exact / includes / none, tool_budget, numbers_match_fixture, citation_audience,
+  no_sensitive_fields (quét cả **mọi nội dung đã gửi model**), id_provenance, routes_valid, budget_ok,
+  rewritten_query_contains, memory_reference, scope_not_blocked, no_write_calls…).
+- `eval/runner.py` + `python -m eval.run`: môi trường cố định (kho từ snapshot, tool mock theo `scenario`, đồng hồ
+  theo `now`, cache embedding `eval/.cache/`), `--mode quick|gate` (k = 1 / 3), `--split`, **giới hạn tổng của lần
+  chạy** `--max-llm-calls` / `--max-tokens`, model thật bắt buộc `--yes` sau khi in ước tính số lời gọi.
+- `eval/report.py`: đạt = đa số k lần, dao động, CI 95% bootstrap (1.000 lần), Recall@6, MRR, theo suite / loại / vai
+  trò / grader → `run.json`, `cases.csv`, `traces.jsonl`, `summary.md`.
+- `python -m eval.compare <baseline> <run>`: an toàn 100% + grader an toàn không lỗi + không thoái lui chưa được chấp
+  nhận (`eval/baselines/accepted_regressions.yaml`), McNemar chính xác, mã thoát 1 khi trượt cổng.
+- `python -m eval.latency_cost <run…>`: B2.1–B2.5 từ span (`spans.csv`, `latency_cost.md`), giá từ
+  `eval/configs/pricing.yaml` (đang trống — chưa chọn model; thiếu giá thì báo thiếu, không đoán).
+- Cấu hình thí nghiệm `eval/configs/`: `baseline`, `e1_vector`, `e1_hybrid`, `e1_rerank`, `e2_no_verifier`,
+  `e2_no_retry`, `e4_no_rewrite`, `real_llm`.
+- `eval/scripted_policy.py`: "Actor trích xuất" tất định cho T0–T2 (không phải LLM) — chạy được cả đường ống khi chưa có
+  khoá; mô phỏng model "nghe lời" người dùng (dùng mã UUID có trong câu hỏi) để bộ an toàn thật sự thử ToolGate.
+
+- Kiểm tra: pytest 179 test (T0 + T1); `tests/unit/test_eval_framework.py` cho grader, đa số, bootstrap, McNemar, cổng.
+- Chạy thử: bộ an toàn **25/25 (100%)** với Actor trích xuất; các case đoán ID đều bị ToolGate chặn `UNSEEN_ID`.
+
+**Khác thiết kế.**
+- "Đạt ổn định" ở cổng hồi quy = đạt **mọi** lần trong k (13 mục 13.6 vừa gọi 2/3 là ổn định vừa gọi là dao động;
+  chọn cách hiểu nhất quán: dao động không bao giờ tính là thoái lui).
+- Recall@6 / MRR là chỉ số riêng, **không** quyết định case đạt; case đạt = mọi grader còn lại đạt.
+- Thêm "Actor trích xuất" (thiết kế chỉ có ScriptedLlm theo kịch bản) để eval chạy được ở T0–T2; số đo với nó **không**
+  phải chất lượng LLM.
+- Bộ golden lấy nguyên 220 câu (thiết kế dự kiến ~100); câu LOOKUP / nhiều lượt bổ sung ở chặng 8.
+
+**Còn dở (chặng 8).** Bổ sung case LOOKUP có fixture từng kịch bản, hội thoại nhiều lượt (E4), câu ngoài phạm vi và câu
+bẫy; bộ verifier 60 cặp + `eval.verifier`; công cụ chấm tay; chạy E1, E2, E4, B2; baseline.
+
+**Đọc code này thế nào.**
+1. Một case trong `eval/datasets/safety/safety.yaml` → `eval/cases.py` (`load_cases`) → `eval/runner.py` (`run_case`):
+   dựng `TurnState`, chạy harness thật, thu `TurnObservation`.
+2. `eval/graders/code_graders.py`: mỗi grader 5–10 dòng; **đáng học nhất** là `g_no_sensitive_fields` (quét mọi thứ đã
+   gửi model chứ không chỉ câu trả lời) và `g_id_provenance` (chấm cả con đường).
+3. `eval/report.py` → `majority`, `bootstrap_ci`; `eval/compare.py` → `compare`: cổng hồi quy đọc trong 30 dòng.
+4. `eval/run.py`: ước tính chi phí và `--yes` trước khi gọi model thật.

@@ -1,0 +1,381 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: trang-thai-de-nghi-don-dang-ky-01
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/proposals
+  question: Đề xuất của tôi Bị từ chối thì làm gì?
+  features:
+  - matching
+  expect:
+    docs:
+    - trang-thai-de-nghi-don-dang-ky
+    reference: Học viên đã từ chối; có thể gửi đề xuất mới nếu tin còn mở
+    key_points:
+    - Học viên đã từ chối
+    - có thể gửi đề xuất mới nếu tin còn mở
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-de-nghi-don-dang-ky-02
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests/:requestId
+  question: de nghi da chap nhan thi buoc tiep theo la gi
+  features:
+  - matching
+  expect:
+    docs:
+    - trang-thai-de-nghi-don-dang-ky
+    reference: Tạo hợp đồng; học viên bấm Tạo hợp đồng
+    key_points:
+    - Tạo hợp đồng
+    - học viên bấm Tạo hợp đồng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-de-nghi-don-dang-ky-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/proposals
+  question: Đề xuất đang chờ bao lâu thì tự hủy?
+  features:
+  - matching
+  expect:
+    docs:
+    - trang-thai-de-nghi-don-dang-ky
+    reference: Không có thông tin về hết hạn tự động
+    key_points:
+    - Không có thông tin về hết hạn tự động
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-xu-ly-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Chấp nhận đề nghị của gia sư ở đâu?
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-xu-ly
+    reference: Mở tin trong My Studying Requests → mục Đề nghị từ gia sư → Chấp nhận
+    key_points:
+    - Mở tin trong My Studying Requests → mục Đề nghị từ gia sư → Chấp nhận
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-xu-ly-02
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: chap nhan 2 gia su cho 1 tin duoc khong
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-xu-ly
+    reference: Không; mỗi tin chỉ chấp nhận một gia sư, tin chuyển sang đã ghép
+    key_points:
+    - Không
+    - mỗi tin chỉ chấp nhận một gia sư, tin chuyển sang đã ghép
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-xu-ly-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Xem đánh giá của gia sư trước khi chấp nhận ở đâu?
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-xu-ly
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-gui-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/teaching-requests
+  question: Đăng ký học theo tin nhận dạy của gia sư thế nào?
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-gui
+    reference: Browse Teaching Requests → Apply to study → điền Proposed price, Learning mode, Grade ID, Preferred schedule,
+      Message → Send application
+    key_points:
+    - Browse Teaching Requests → Apply to study → điền Proposed price, Learning mode, Grade ID, Preferred schedule, Message
+      → Send application
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-gui-02
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/teaching-requests
+  question: huy don dang ky hoc
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-gui
+    reference: My requests to studying → Cancel; chỉ đơn đang chờ
+    key_points:
+    - My requests to studying → Cancel
+    - chỉ đơn đang chờ
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-gui-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/teaching-requests
+  question: Gia sư bao lâu thì trả lời đơn của tôi?
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-gui
+    reference: Không có cam kết thời gian
+    key_points:
+    - Không có cam kết thời gian
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-gui-01
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Gửi đề xuất dạy cho học viên thế nào?
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-gui
+    reference: Tổng quan → mở tin → Ứng tuyển yêu cầu này → Học phí đề xuất, Hình thức dạy, Thời gian có thể dạy, địa điểm
+      nếu trực tiếp, Lời nhắn → Gửi đề xuất
+    key_points:
+    - Tổng quan → mở tin → Ứng tuyển yêu cầu này → Học phí đề xuất, Hình thức dạy, Thời gian có thể dạy, địa điểm nếu trực
+      tiếp, Lời nhắn → Gửi đề xuất
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-gui-02
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: huy de xuat giang day o dau
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-gui
+    reference: Đề xuất giảng dạy → Hủy đề xuất; chỉ đề xuất đang chờ
+    key_points:
+    - Đề xuất giảng dạy → Hủy đề xuất
+    - chỉ đề xuất đang chờ
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: de-nghi-day-gui-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Gửi đề xuất có mất phí không?
+  features:
+  - matching
+  expect:
+    docs:
+    - de-nghi-day-gui
+    reference: Không có thông tin về phí gửi đề xuất
+    key_points:
+    - Không có thông tin về phí gửi đề xuất
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-xu-ly-01
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Học viên đăng ký học với tôi thì tôi chấp nhận ở đâu?
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-xu-ly
+    reference: Giao diện chưa có; mục Yêu cầu dạy của tôi đang Sắp ra mắt; có thông báo New student application
+    key_points:
+    - Giao diện chưa có
+    - mục Yêu cầu dạy của tôi đang Sắp ra mắt
+    - có thông báo New student application
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-xu-ly-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: tin nhan day bao nhieu hoc vien thi het nhan
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-xu-ly
+    reference: Khi số đơn chấp nhận đạt số học viên ghi trong tin, tin chuyển sang đã ghép
+    key_points:
+    - Khi số đơn chấp nhận đạt số học viên ghi trong tin, tin chuyển sang đã ghép
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: don-dang-ky-hoc-xu-ly-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Khi nào có trang xử lý đơn đăng ký học?
+  features:
+  - matching
+  expect:
+    docs:
+    - don-dang-ky-hoc-xu-ly
+    reference: Chưa có thông tin
+    key_points:
+    - Chưa có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-de-nghi-don-dang-ky-01
+  split: test
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/proposals
+  question: Báo Bạn đã có đề xuất đang chờ xử lý cho yêu cầu này
+  features:
+  - matching
+  expect:
+    docs:
+    - loi-de-nghi-don-dang-ky
+    reference: Đã có đề xuất đang chờ; sửa đề xuất cũ hoặc hủy rồi gửi lại
+    key_points:
+    - Đã có đề xuất đang chờ
+    - sửa đề xuất cũ hoặc hủy rồi gửi lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-de-nghi-don-dang-ky-02
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/applications
+  question: bao Studying request already has an accepted tutor
+  features:
+  - matching
+  expect:
+    docs:
+    - loi-de-nghi-don-dang-ky
+    reference: Tin đã có gia sư được chấp nhận; mỗi tin một gia sư; tạo hợp đồng hoặc đăng tin mới
+    key_points:
+    - Tin đã có gia sư được chấp nhận
+    - mỗi tin một gia sư
+    - tạo hợp đồng hoặc đăng tin mới
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-de-nghi-don-dang-ky-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/applications
+  question: Lỗi khi gia sư bị khóa tài khoản lúc tôi chấp nhận?
+  features:
+  - matching
+  expect:
+    docs:
+    - loi-de-nghi-don-dang-ky
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

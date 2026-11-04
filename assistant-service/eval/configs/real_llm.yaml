@@ -1,0 +1,6 @@
+# T3: model thật (cần OPENAI_API_KEY, ASSISTANT_LLM_MODEL trong .env). Chạy với --yes sau khi xem ước tính.
+name: real_llm
+llm: openai
+store: memory
+kb_snapshot: ../knowledge-base
+settings: {}

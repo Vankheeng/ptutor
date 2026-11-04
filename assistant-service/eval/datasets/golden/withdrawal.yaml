@@ -1,0 +1,274 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: tai-khoan-ngan-hang-01
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Khai báo tài khoản ngân hàng ở đâu?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - tai-khoan-ngan-hang
+    reference: 'Giao diện chưa có; quy định: mã ngân hàng, tên ngân hàng, số tài khoản 6–34 chữ số, tên chủ tài khoản'
+    key_points:
+    - Giao diện chưa có
+    - 'quy định: mã ngân hàng, tên ngân hàng, số tài khoản 6–34 chữ số, tên chủ tài khoản'
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-ngan-hang-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: so tai khoan toi da bao nhieu so
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - tai-khoan-ngan-hang
+    reference: Từ 6 đến 34 chữ số
+    key_points:
+    - Từ 6 đến 34 chữ số
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-ngan-hang-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Tên chủ tài khoản có phải trùng tên đăng ký không?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - tai-khoan-ngan-hang
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: rut-tien-01
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Rút tiền về ngân hàng thế nào?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - rut-tien
+    reference: Cần khai báo tài khoản ngân hàng; tiền tạm giữ; giao diện và quy trình xử lý chưa có
+    key_points:
+    - Cần khai báo tài khoản ngân hàng
+    - tiền tạm giữ
+    - giao diện và quy trình xử lý chưa có
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: rut-tien-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: huy yeu cau rut tien duoc khong
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - rut-tien
+    reference: Được khi còn chờ xử lý; tiền trả lại số dư ngay
+    key_points:
+    - Được khi còn chờ xử lý
+    - tiền trả lại số dư ngay
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: rut-tien-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Rút tiền mất phí bao nhiêu và bao lâu nhận được?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - rut-tien
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-rut-tien-01
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Yêu cầu rút tiền Chờ xử lý là gì?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - trang-thai-rut-tien
+    reference: Vừa gửi, tiền tạm giữ, chờ PTutor xử lý; hủy được
+    key_points:
+    - Vừa gửi, tiền tạm giữ, chờ PTutor xử lý
+    - hủy được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-rut-tien-02
+  split: test
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: rut tien da huy thi tien ve dau
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - trang-thai-rut-tien
+    reference: Trả lại số dư dùng được trong ví
+    key_points:
+    - Trả lại số dư dùng được trong ví
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-rut-tien-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Yêu cầu rút bị từ chối thì tiền có về ví không?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - trang-thai-rut-tien
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-rut-tien-tai-khoan-ngan-hang-01
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Rút tiền báo A bank account must be configured before requesting a withdrawal
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - loi-rut-tien-tai-khoan-ngan-hang
+    reference: Chưa khai báo tài khoản ngân hàng; khai báo trước rồi gửi lại yêu cầu rút
+    key_points:
+    - Chưa khai báo tài khoản ngân hàng
+    - khai báo trước rồi gửi lại yêu cầu rút
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-rut-tien-tai-khoan-ngan-hang-02
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: rut tien bao Wallet balance is insufficient
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - loi-rut-tien-tai-khoan-ngan-hang
+    reference: Số tiền rút lớn hơn số dư dùng được; tiền tạm giữ không tính; rút ít hơn hoặc hủy yêu cầu rút cũ
+    key_points:
+    - Số tiền rút lớn hơn số dư dùng được
+    - tiền tạm giữ không tính
+    - rút ít hơn hoặc hủy yêu cầu rút cũ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-rut-tien-tai-khoan-ngan-hang-03
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Khai báo số tài khoản bị báo Request validation failed
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - loi-rut-tien-tai-khoan-ngan-hang
+    reference: Số tài khoản 6–34 chữ số, không dấu cách; kiểm tra mã ngân hàng, tên ngân hàng, tên chủ tài khoản
+    key_points:
+    - Số tài khoản 6–34 chữ số, không dấu cách
+    - kiểm tra mã ngân hàng, tên ngân hàng, tên chủ tài khoản
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-rut-tien-tai-khoan-ngan-hang-04
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Rút tiền tối thiểu bao nhiêu?
+  features:
+  - withdrawal
+  expect:
+    docs:
+    - loi-rut-tien-tai-khoan-ngan-hang
+    reference: Chưa có thông tin chính thức về mức rút tối thiểu
+    key_points:
+    - Chưa có thông tin chính thức về mức rút tối thiểu
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

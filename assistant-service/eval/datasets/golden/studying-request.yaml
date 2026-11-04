@@ -1,0 +1,397 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: phi-dang-tin-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Tin bị từ chối có được hoàn phí không?
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - phi-dang-tin
+    reference: Có; hoàn đủ phí vào số dư ví; thông báo ghi lý do và số tiền
+    key_points:
+    - Có
+    - hoàn đủ phí vào số dư ví
+    - thông báo ghi lý do và số tiền
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: phi-dang-tin-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: phi dang tin tra bang gi
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - phi-dang-tin
+    reference: Qua VNPay (link 15 phút); hệ thống hỗ trợ trả bằng ví nhưng giao diện chưa có nút
+    key_points:
+    - Qua VNPay (link 15 phút)
+    - hệ thống hỗ trợ trả bằng ví nhưng giao diện chưa có nút
+    intent: POLICY
+    must_include:
+    - 15 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: phi-dang-tin-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Phí đăng tin tìm gia sư bao nhiêu tiền?
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - phi-dang-tin
+    reference: Theo mức hiển thị khi thanh toán; chưa có con số chính thức trong tài liệu
+    key_points:
+    - Theo mức hiển thị khi thanh toán
+    - chưa có con số chính thức trong tài liệu
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-tin-dang-01
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Tin của tôi đang chờ duyệt là sao?
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - trang-thai-tin-dang
+    reference: Đã trả phí, chờ PTutor duyệt vì môn học tự nhập; chờ thông báo; bị từ chối được hoàn phí
+    key_points:
+    - Đã trả phí, chờ PTutor duyệt vì môn học tự nhập
+    - chờ thông báo
+    - bị từ chối được hoàn phí
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-tin-dang-02
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: tin matched nghia la gi
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - trang-thai-tin-dang
+    reference: 'Đã ghép: học viên đã chấp nhận một gia sư (hoặc tin nhận dạy đủ học viên); bước tiếp theo tạo và ký hợp đồng'
+    key_points:
+    - 'Đã ghép: học viên đã chấp nhận một gia sư (hoặc tin nhận dạy đủ học viên)'
+    - bước tiếp theo tạo và ký hợp đồng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-tin-dang-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Tin chờ duyệt bao lâu thì được duyệt?
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - trang-thai-tin-dang
+    reference: Chưa có thông tin chính thức về thời gian duyệt
+    key_points:
+    - Chưa có thông tin chính thức về thời gian duyệt
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tin-dang-01
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Báo Only DRAFT or OPEN requests can be updated khi sửa tin
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - loi-tin-dang
+    reference: Chỉ sửa được tin bản nháp hoặc đang mở; tin tạm đóng thì mở lại trước
+    key_points:
+    - Chỉ sửa được tin bản nháp hoặc đang mở
+    - tin tạm đóng thì mở lại trước
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tin-dang-02
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: khong tra phi duoc bao Only DRAFT studying requests can be paid
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - loi-tin-dang
+    reference: Tin đã được trả phí; tải lại trang xem trạng thái
+    key_points:
+    - Tin đã được trả phí
+    - tải lại trang xem trạng thái
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tin-dang-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Lỗi khi tin hết hạn tự động là gì?
+  features:
+  - studying-request
+  - teaching-request
+  expect:
+    docs:
+    - loi-tin-dang
+    reference: Không có thông tin về tin tự hết hạn
+    key_points:
+    - Không có thông tin về tin tự hết hạn
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-quy-dinh-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Hủy tin tìm gia sư thì các đề xuất của gia sư thế nào?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-quy-dinh
+    reference: Đề xuất đang chờ bị hủy theo; tin hủy không khôi phục; không tự hoàn phí
+    key_points:
+    - Đề xuất đang chờ bị hủy theo
+    - tin hủy không khôi phục
+    - không tự hoàn phí
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-quy-dinh-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: tin dang cho duyet co sua duoc khong
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-quy-dinh
+    reference: Không; chỉ sửa tin bản nháp hoặc đang mở
+    key_points:
+    - Không
+    - chỉ sửa tin bản nháp hoặc đang mở
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-quy-dinh-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Tin tìm gia sư đăng được bao lâu thì hết hạn?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-quy-dinh
+    reference: Không có thông tin về thời hạn tin
+    key_points:
+    - Không có thông tin về thời hạn tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-dang-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Làm sao đăng tin tìm gia sư?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-dang
+    reference: My Studying Requests → Create request; điền Title, Subject, Grade, Learning mode; Create & pay hoặc Create
+      draft; trả phí VNPay
+    key_points:
+    - My Studying Requests → Create request
+    - điền Title, Subject, Grade, Learning mode
+    - Create & pay hoặc Create draft
+    - trả phí VNPay
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-dang-02
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: mon hoc khong co trong danh sach thi sao
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-dang
+    reference: Chọn Other / custom subject, ghi tên môn vào Custom subject / note; tin phải chờ duyệt
+    key_points:
+    - Chọn Other / custom subject, ghi tên môn vào Custom subject / note
+    - tin phải chờ duyệt
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-dang-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Đăng tin rồi bao lâu thì có gia sư liên hệ?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-dang
+    reference: Không có cam kết thời gian; gia sư tự gửi đề xuất
+    key_points:
+    - Không có cam kết thời gian
+    - gia sư tự gửi đề xuất
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-sua-dong-huy-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Muốn tạm ngừng nhận đề xuất thì làm sao?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-sua-dong-huy
+    reference: Menu thao tác của tin → Close request; mở lại bằng Reopen request
+    key_points:
+    - Menu thao tác của tin → Close request
+    - mở lại bằng Reopen request
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-sua-dong-huy-02
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: huy tin tim gia su o dau
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-sua-dong-huy
+    reference: My Studying Requests → menu thao tác → Cancel request
+    key_points:
+    - My Studying Requests → menu thao tác → Cancel request
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-tim-gia-su-sua-dong-huy-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests
+  question: Khôi phục tin đã hủy được không?
+  features:
+  - studying-request
+  expect:
+    docs:
+    - tin-tim-gia-su-sua-dong-huy
+    reference: Tin đã hủy không khôi phục được; không có cách khôi phục
+    key_points:
+    - Tin đã hủy không khôi phục được
+    - không có cách khôi phục
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

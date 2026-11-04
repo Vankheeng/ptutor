@@ -1,0 +1,565 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: gioi-thieu-vai-tro-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: PTutor có những vai trò nào?
+  features:
+  - account
+  expect:
+    docs:
+    - gioi-thieu-vai-tro
+    reference: Học viên, gia sư, nhân viên (chăm sóc khách hàng, kế toán), quản trị viên; không có vai trò phụ huynh
+    key_points:
+    - Học viên, gia sư, nhân viên (chăm sóc khách hàng, kế toán), quản trị viên
+    - không có vai trò phụ huynh
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: gioi-thieu-vai-tro-02
+  split: test
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: phu huynh dang ky tai khoan rieng duoc khong
+  features:
+  - account
+  expect:
+    docs:
+    - gioi-thieu-vai-tro
+    reference: Không có vai trò phụ huynh; tự đăng ký chỉ chọn học viên hoặc gia sư
+    key_points:
+    - Không có vai trò phụ huynh
+    - tự đăng ký chỉ chọn học viên hoặc gia sư
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: gioi-thieu-vai-tro-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Một tài khoản có thể vừa là học viên vừa là gia sư không?
+  features:
+  - account
+  expect:
+    docs:
+    - gioi-thieu-vai-tro
+    reference: Mỗi tài khoản gắn một vai trò; việc mở hai tài khoản chưa có thông tin chính thức, gợi ý liên hệ PTutor
+    key_points:
+    - Mỗi tài khoản gắn một vai trò
+    - việc mở hai tài khoản chưa có thông tin chính thức, gợi ý liên hệ PTutor
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: gioi-thieu-vai-tro-04
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: Liên hệ PTutor bằng cách nào?
+  features:
+  - account
+  expect:
+    docs:
+    - gioi-thieu-vai-tro
+    reference: Kênh liên hệ đang cập nhật; chưa có thông tin chính thức
+    key_points:
+    - Kênh liên hệ đang cập nhật
+    - chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: gioi-thieu-vai-tro-05
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: bo phan nao xu ly hoan tien
+  features:
+  - account
+  expect:
+    docs:
+    - gioi-thieu-vai-tro
+    reference: Kế toán; khiếu nại và tài khoản bị khóa do nhân viên chăm sóc khách hàng
+    key_points:
+    - Kế toán
+    - khiếu nại và tài khoản bị khóa do nhân viên chăm sóc khách hàng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-ky-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Đăng ký tài khoản cần những thông tin gì?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-ky
+    reference: Chọn vai trò; họ, tên, email, số CCCD 12 chữ số, số điện thoại, mật khẩu 8–72 ký tự, ngày sinh, giới tính,
+      tỉnh/thành, quận/huyện; bấm Đăng ký tài khoản
+    key_points:
+    - Chọn vai trò
+    - họ, tên, email, số CCCD 12 chữ số, số điện thoại, mật khẩu 8–72 ký tự, ngày sinh, giới tính, tỉnh/thành, quận/huyện
+    - bấm Đăng ký tài khoản
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-ky-02
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: mat khau dang ky toi thieu bao nhieu ky tu
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-ky
+    reference: Từ 8 đến 72 ký tự
+    key_points:
+    - Từ 8 đến 72 ký tự
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-ky-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Con tôi chưa có CCCD thì đăng ký bằng gì?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-ky
+    reference: Chưa có thông tin chính thức; CCCD bắt buộc 12 chữ số; gợi ý liên hệ PTutor
+    key_points:
+    - Chưa có thông tin chính thức
+    - CCCD bắt buộc 12 chữ số
+    - gợi ý liên hệ PTutor
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-ky-04
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Sửa số điện thoại ở đâu?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-ky
+    reference: My Profile → Phone → Save profile
+    key_points:
+    - My Profile → Phone → Save profile
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-ky-05
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: doi email trong ho so duoc khong
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-ky
+    reference: Email chỉ để xem, không sửa được trong hồ sơ
+    key_points:
+    - Email chỉ để xem, không sửa được trong hồ sơ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-nhap-01
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Vì sao tôi bị đăng xuất?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-nhap
+    reference: Phiên làm việc mặc định 10 giờ, tự gia hạn tối đa 30 ngày; tài khoản bị khóa bị đăng xuất khỏi mọi thiết bị
+    key_points:
+    - Phiên làm việc mặc định 10 giờ, tự gia hạn tối đa 30 ngày
+    - tài khoản bị khóa bị đăng xuất khỏi mọi thiết bị
+    intent: POLICY
+    must_include:
+    - 10 giờ
+    - 30 ngày
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-nhap-02
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: dang nhap bao loi Email or password is incorrect la sao
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-nhap
+    reference: Email hoặc mật khẩu không đúng; kiểm tra lại hoặc dùng Quên mật khẩu?
+    key_points:
+    - Email hoặc mật khẩu không đúng
+    - kiểm tra lại hoặc dùng Quên mật khẩu?
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-dang-nhap-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: Nhập sai mật khẩu bao nhiêu lần thì bị khóa?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-dang-nhap
+    reference: Chưa có thông tin chính thức về giới hạn đăng nhập sai
+    key_points:
+    - Chưa có thông tin chính thức về giới hạn đăng nhập sai
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-quen-mat-khau-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Quên mật khẩu thì làm sao?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-quen-mat-khau
+    reference: Trang Quên mật khẩu?; nhập email, Gửi mã OTP; nhập mã 6 chữ số, Xác thực OTP; đặt mật khẩu mới
+    key_points:
+    - Trang Quên mật khẩu?
+    - nhập email, Gửi mã OTP
+    - nhập mã 6 chữ số, Xác thực OTP
+    - đặt mật khẩu mới
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-quen-mat-khau-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: ma otp co hieu luc bao lau
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-quen-mat-khau
+    reference: 5 phút; mỗi mã dùng một lần; gửi lại thì mã cũ mất hiệu lực
+    key_points:
+    - 5 phút
+    - mỗi mã dùng một lần
+    - gửi lại thì mã cũ mất hiệu lực
+    intent: POLICY
+    must_include:
+    - 5 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-quen-mat-khau-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: Không nhận được email OTP thì gọi số nào?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-quen-mat-khau
+    reference: Chưa có kênh liên hệ chính thức; gợi ý kiểm tra thư rác và gửi lại OTP
+    key_points:
+    - Chưa có kênh liên hệ chính thức
+    - gợi ý kiểm tra thư rác và gửi lại OTP
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-quen-mat-khau-04
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Đổi mật khẩu ở đâu?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-quen-mat-khau
+    reference: Giao diện chưa có nút đổi mật khẩu; dùng trang Quên mật khẩu? để đặt lại qua OTP
+    key_points:
+    - Giao diện chưa có nút đổi mật khẩu
+    - dùng trang Quên mật khẩu? để đặt lại qua OTP
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-quen-mat-khau-05
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/profile
+  question: doi mat khau moi co duoc trung mat khau cu khong
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-quen-mat-khau
+    reference: Không; mật khẩu mới phải khác mật khẩu hiện tại
+    key_points:
+    - Không
+    - mật khẩu mới phải khác mật khẩu hiện tại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-bi-khoa-01
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: Tài khoản bị tạm khóa thì bao giờ mở lại?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-bi-khoa
+    reference: Tự mở khi qua thời điểm kết thúc (kiểm tra mỗi phút); có thông báo Account reactivated; khóa vĩnh viễn chỉ
+      nhân viên mở
+    key_points:
+    - Tự mở khi qua thời điểm kết thúc (kiểm tra mỗi phút)
+    - có thông báo Account reactivated
+    - khóa vĩnh viễn chỉ nhân viên mở
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-bi-khoa-02
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: tai sao toi bi khoa tai khoan
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-bi-khoa
+    reference: Nhân viên chăm sóc khách hàng hoặc quản trị viên khóa kèm lý do; lý do có trong thông báo và câu báo lỗi đăng
+      nhập
+    key_points:
+    - Nhân viên chăm sóc khách hàng hoặc quản trị viên khóa kèm lý do
+    - lý do có trong thông báo và câu báo lỗi đăng nhập
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-bi-khoa-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: Bị khóa tài khoản thì hợp đồng đang dạy có bị hủy không?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-bi-khoa
+    reference: Chưa có thông tin chính thức về hợp đồng khi tài khoản bị khóa
+    key_points:
+    - Chưa có thông tin chính thức về hợp đồng khi tài khoản bị khóa
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-bi-khoa-04
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Trạng thái Đã khóa nghĩa là gì?
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-bi-khoa
+    reference: Bị nhân viên/quản trị viên khóa kèm lý do; không đăng nhập được; tạm khóa tự mở, khóa vĩnh viễn cần nhân viên
+      mở
+    key_points:
+    - Bị nhân viên/quản trị viên khóa kèm lý do
+    - không đăng nhập được
+    - tạm khóa tự mở, khóa vĩnh viễn cần nhân viên mở
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tai-khoan-bi-khoa-05
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: tai khoan ngung hoat dong la gi
+  features:
+  - account
+  expect:
+    docs:
+    - tai-khoan-bi-khoa
+    reference: Không đăng nhập được, câu Account is inactive; cần liên hệ PTutor
+    key_points:
+    - Không đăng nhập được, câu Account is inactive
+    - cần liên hệ PTutor
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tai-khoan-01
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: Báo Citizen ID is already registered là sao?
+  features:
+  - account
+  expect:
+    docs:
+    - loi-tai-khoan
+    reference: Số CCCD đã dùng cho tài khoản khác; mỗi CCCD một tài khoản; đăng nhập tài khoản cũ
+    key_points:
+    - Số CCCD đã dùng cho tài khoản khác
+    - mỗi CCCD một tài khoản
+    - đăng nhập tài khoản cũ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tai-khoan-02
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: bao loi OTP khong hop le hoac da het han
+  features:
+  - account
+  expect:
+    docs:
+    - loi-tai-khoan
+    reference: Mã sai, quá 5 phút, đã dùng hoặc có mã mới hơn; bấm Gửi lại OTP và dùng mã mới nhất
+    key_points:
+    - Mã sai, quá 5 phút, đã dùng hoặc có mã mới hơn
+    - bấm Gửi lại OTP và dùng mã mới nhất
+    intent: POLICY
+    must_include:
+    - 5 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-tai-khoan-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: ''
+  question: Người khác dùng CCCD của tôi đăng ký thì làm sao?
+  features:
+  - account
+  expect:
+    docs:
+    - loi-tai-khoan
+    reference: Chưa có thông tin chính thức; gợi ý liên hệ PTutor
+    key_points:
+    - Chưa có thông tin chính thức
+    - gợi ý liên hệ PTutor
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

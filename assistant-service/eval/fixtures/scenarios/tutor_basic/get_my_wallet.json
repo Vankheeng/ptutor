@@ -1,0 +1,13 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "walletId": "w2",
+      "userId": "33333333-3333-3333-3333-000000000003",
+      "balance": 1500000,
+      "pendingBalance": 200000,
+      "currency": "VND",
+      "updatedAt": "2026-10-18T02:00:00"
+    }
+  }
+}

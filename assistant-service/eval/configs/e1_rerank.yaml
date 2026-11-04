@@ -1,0 +1,8 @@
+# E1 cấu hình đủ: truy xuất lai + rerank (cần ai-service thật: ASSISTANT_EMBEDDING_PROVIDER=ai-service).
+name: e1_rerank
+llm: scripted
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  retrieval_mode: hybrid
+  rerank_enabled: true

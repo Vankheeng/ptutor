@@ -1,0 +1,6 @@
+# Người dùng giả cho eval (thiết kế 13 mục 13.4). Mock không kiểm token; ID dùng cho X-User-Id và trường suy ra
+# createdByMe (so với createdByUserId trong fixture).
+users:
+  student_a: {id: 11111111-1111-1111-1111-000000000001, role: STUDENT}
+  student_b: {id: 22222222-2222-2222-2222-000000000002, role: STUDENT}
+  tutor_a: {id: 33333333-3333-3333-3333-000000000003, role: TUTOR}

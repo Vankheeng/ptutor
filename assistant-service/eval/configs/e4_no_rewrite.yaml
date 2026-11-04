@@ -1,0 +1,7 @@
+# Thí nghiệm e4 (thiết kế 10 mục 10.5): chỉ đổi một yếu tố so với baseline.
+name: e4_no_rewrite
+llm: scripted
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  rewrite_enabled: false

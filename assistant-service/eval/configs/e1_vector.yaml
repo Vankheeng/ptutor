@@ -1,0 +1,7 @@
+# Thí nghiệm e1 (thiết kế 10 mục 10.5): chỉ đổi một yếu tố so với baseline.
+name: e1_vector
+llm: scripted
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  retrieval_mode: vector

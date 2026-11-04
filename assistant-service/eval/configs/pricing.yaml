@@ -1,0 +1,6 @@
+# Đơn giá model cho benchmark B2 (thiết kế 13 mục 13.11). CHƯA có model nào được chọn → để trống.
+# Khi chọn model: lấy giá từ trang giá chính thức của nhà cung cấp tại thời điểm chạy, ghi ngày lấy giá.
+# Model không có trong bảng → báo "thiếu đơn giá", không tự đoán.
+as_of: ""
+models: {}
+#  <tên model>: {input_per_1m: <USD>, output_per_1m: <USD>}

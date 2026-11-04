@@ -1,0 +1,188 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: chung-chi-quy-dinh-01
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Sửa chứng chỉ đã xác minh được không?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-quy-dinh
+    reference: Không; chỉ xóa được; chứng chỉ chờ duyệt/bị từ chối sửa được và quay về chờ duyệt
+    key_points:
+    - Không
+    - chỉ xóa được
+    - chứng chỉ chờ duyệt/bị từ chối sửa được và quay về chờ duyệt
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-quy-dinh-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: chung chi het han co duoc duyet khong
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-quy-dinh
+    reference: Không; chứng chỉ quá ngày hết hạn không được duyệt
+    key_points:
+    - Không
+    - chứng chỉ quá ngày hết hạn không được duyệt
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-quy-dinh-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Chứng chỉ nào được PTutor ưu tiên?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-quy-dinh
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-quy-dinh-04
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Chứng chỉ Bị từ chối thì làm gì?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-quy-dinh
+    reference: Chỉnh sửa theo lý do → Lưu thay đổi để gửi lại, hoặc xóa
+    key_points:
+    - Chỉnh sửa theo lý do → Lưu thay đổi để gửi lại, hoặc xóa
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-quy-dinh-05
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: da xac minh nghia la gi
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-quy-dinh
+    reference: Đã duyệt, hiện với học viên, không sửa được
+    key_points:
+    - Đã duyệt, hiện với học viên, không sửa được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-nop-01
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Nộp chứng chỉ thế nào?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-nop
+    reference: Chứng chỉ → Thêm chứng chỉ → Tên chứng chỉ, tệp hoặc đường dẫn → Tải lên và gửi
+    key_points:
+    - Chứng chỉ → Thêm chứng chỉ → Tên chứng chỉ, tệp hoặc đường dẫn → Tải lên và gửi
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-nop-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: file chung chi toi da bao nhieu mb
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-nop
+    reference: 10 MB; PDF, JPEG hoặc PNG
+    key_points:
+    - 10 MB
+    - PDF, JPEG hoặc PNG
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-nop-03
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Nộp chứng chỉ bằng file Word được không?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-nop
+    reference: Không; chỉ PDF, JPEG, PNG
+    key_points:
+    - Không
+    - chỉ PDF, JPEG, PNG
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: chung-chi-nop-04
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/certificates
+  question: Nộp bao nhiêu chứng chỉ thì được ưu tiên hiển thị?
+  features:
+  - certificate
+  expect:
+    docs:
+    - chung-chi-nop
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

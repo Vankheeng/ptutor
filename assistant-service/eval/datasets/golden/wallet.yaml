@@ -1,0 +1,363 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: vi-nap-tien-quy-dinh-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Nạp ví tối thiểu bao nhiêu?
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-nap-tien-quy-dinh
+    reference: Từ 10.000đ đến 100.000.000đ mỗi lần, số chẵn đồng
+    key_points:
+    - Từ 10.000đ đến 100.000.000đ mỗi lần, số chẵn đồng
+    intent: POLICY
+    must_include:
+    - '10.000'
+    - 100.000.000
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-nap-tien-quy-dinh-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: nap vi toi da bao nhieu mot lan
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-nap-tien-quy-dinh
+    reference: 100.000.000đ
+    key_points:
+    - 100.000.000đ
+    intent: POLICY
+    must_include:
+    - 100.000.000
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-nap-tien-quy-dinh-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Tiền trong ví có hết hạn không?
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-nap-tien-quy-dinh
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-nap-tien-quy-dinh-04
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Nạp tiền vào ví thế nào?
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-nap-tien-quy-dinh
+    reference: 'Wallet & Payments (gia sư: Ví tiền) → Amount (VND) → Open VNPay → thanh toán trong 15 phút'
+    key_points:
+    - 'Wallet & Payments (gia sư: Ví tiền) → Amount (VND) → Open VNPay → thanh toán trong 15 phút'
+    intent: HOWTO
+    must_include:
+    - 15 phút
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-nap-tien-quy-dinh-05
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: bam open vnpay khong thay gi
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-nap-tien-quy-dinh
+    reference: VNPay mở ở thẻ mới; cho phép cửa sổ bật lên rồi bấm lại
+    key_points:
+    - VNPay mở ở thẻ mới
+    - cho phép cửa sổ bật lên rồi bấm lại
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-giao-dich-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Xem lịch sử giao dịch ở đâu?
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-giao-dich
+    reference: Trang ví, mục Transactions, 20 giao dịch gần nhất
+    key_points:
+    - Trang ví, mục Transactions, 20 giao dịch gần nhất
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-giao-dich-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Share of lessons the student skipped la gi
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-giao-dich
+    reference: Phần tiền gia sư nhận cho buổi học viên nghỉ (20% đơn giá)
+    key_points:
+    - Phần tiền gia sư nhận cho buổi học viên nghỉ (20% đơn giá)
+    intent: POLICY
+    must_include:
+    - 20%
+  tags:
+  - source:cau-hoi-mau.csv
+- id: vi-giao-dich-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Xuất sao kê ví ra Excel được không?
+  features:
+  - wallet
+  expect:
+    docs:
+    - vi-giao-dich
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-giao-dich-vi-01
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Giao dịch ví Đang chờ là gì?
+  features:
+  - wallet
+  expect:
+    docs:
+    - trang-thai-giao-dich-vi
+    reference: 'Hiện chỉ có rút tiền: tiền tạm giữ chờ PTutor xử lý; hủy được khi còn chờ'
+    key_points:
+    - 'Hiện chỉ có rút tiền: tiền tạm giữ chờ PTutor xử lý'
+    - hủy được khi còn chờ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-giao-dich-vi-02
+  split: test
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: tien vao tien ra gom nhung gi
+  features:
+  - wallet
+  expect:
+    docs:
+    - trang-thai-giao-dich-vi
+    reference: 'Tiền vào: nạp, hoàn phí, hoàn học phí, phần buổi học viên nghỉ, trả lại tiền rút; tiền ra: phí đăng tin, học
+      phí bằng ví, rút tiền'
+    key_points:
+    - 'Tiền vào: nạp, hoàn phí, hoàn học phí, phần buổi học viên nghỉ, trả lại tiền rút'
+    - 'tiền ra: phí đăng tin, học phí bằng ví, rút tiền'
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-giao-dich-vi-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Giao dịch thất bại bao lâu thì được hoàn?
+  features:
+  - wallet
+  expect:
+    docs:
+    - trang-thai-giao-dich-vi
+    reference: Giao dịch thất bại không đổi số dư; không có thông tin thêm
+    key_points:
+    - Giao dịch thất bại không đổi số dư
+    - không có thông tin thêm
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-vi-thanh-toan-01
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: Báo Wallet balance is insufficient
+  features:
+  - wallet
+  - payment
+  expect:
+    docs:
+    - loi-vi-thanh-toan
+    reference: Số dư không đủ; nạp thêm hoặc trả qua VNPay
+    key_points:
+    - Số dư không đủ
+    - nạp thêm hoặc trả qua VNPay
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-vi-thanh-toan-02
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: bao This lesson installment is not scheduled yet
+  features:
+  - wallet
+  - payment
+  expect:
+    docs:
+    - loi-vi-thanh-toan
+    reference: Kỳ của hợp đồng Mỗi buổi chưa gắn buổi học; chờ gia sư lên lịch
+    key_points:
+    - Kỳ của hợp đồng Mỗi buổi chưa gắn buổi học
+    - chờ gia sư lên lịch
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-vi-thanh-toan-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/wallet
+  question: VNPay báo lỗi mã 24 là gì?
+  features:
+  - wallet
+  - payment
+  expect:
+    docs:
+    - loi-vi-thanh-toan
+    reference: Không có thông tin về mã lỗi VNPay
+    key_points:
+    - Không có thông tin về mã lỗi VNPay
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thu-nhap-gia-su-01
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Dạy xong bao lâu thì tôi nhận tiền?
+  features:
+  - wallet
+  expect:
+    docs:
+    - thu-nhap-gia-su
+    reference: Hệ thống chưa tự cộng tiền dạy; cách trả do PTutor quy định riêng
+    key_points:
+    - Hệ thống chưa tự cộng tiền dạy
+    - cách trả do PTutor quy định riêng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thu-nhap-gia-su-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: khi nao gia su duoc cong tien vao vi
+  features:
+  - wallet
+  expect:
+    docs:
+    - thu-nhap-gia-su
+    reference: 'Chỉ khi kế toán kết luận buổi học viên nghỉ: gia sư nhận 20% đơn giá'
+    key_points:
+    - 'Chỉ khi kế toán kết luận buổi học viên nghỉ: gia sư nhận 20% đơn giá'
+    intent: POLICY
+    must_include:
+    - 20%
+  tags:
+  - source:cau-hoi-mau.csv
+- id: thu-nhap-gia-su-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: PTutor thu bao nhiêu phần trăm hoa hồng?
+  features:
+  - wallet
+  expect:
+    docs:
+    - thu-nhap-gia-su
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

@@ -1,0 +1,317 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: ho-so-gia-su-01
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Cập nhật hồ sơ gia sư thế nào?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su
+    reference: Hồ sơ của tôi → sửa Thông tin cá nhân, Ảnh hồ sơ, Hồ sơ giảng dạy → Lưu hồ sơ
+    key_points:
+    - Hồ sơ của tôi → sửa Thông tin cá nhân, Ảnh hồ sơ, Hồ sơ giảng dạy → Lưu hồ sơ
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: sua ho so co phai duyet lai khong
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su
+    reference: Sửa mục Hồ sơ giảng dạy thì hồ sơ về chờ duyệt; sửa thông tin cá nhân/ảnh thì không
+    key_points:
+    - Sửa mục Hồ sơ giảng dạy thì hồ sơ về chờ duyệt
+    - sửa thông tin cá nhân/ảnh thì không
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Ảnh đại diện có cần chụp chân dung rõ mặt không?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su
+    reference: Không có quy định trong tài liệu
+    key_points:
+    - Không có quy định trong tài liệu
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-duyet-01
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Hồ sơ bị từ chối thì gửi lại thế nào?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su-duyet
+    reference: Sửa Hồ sơ giảng dạy theo lý do → Lưu hồ sơ → tự về chờ duyệt
+    key_points:
+    - Sửa Hồ sơ giảng dạy theo lý do → Lưu hồ sơ → tự về chờ duyệt
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-duyet-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: ho so duoc duyet co loi gi
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su-duyet
+    reference: Học viên tìm thấy trong gợi ý; cộng điểm đề xuất
+    key_points:
+    - Học viên tìm thấy trong gợi ý
+    - cộng điểm đề xuất
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-duyet-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Hồ sơ được duyệt trong bao lâu?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su-duyet
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-duyet-04
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Waiting for review là gì?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su-duyet
+    reference: 'Chờ duyệt: hồ sơ mới hoặc vừa sửa thông tin giảng dạy; chờ kết quả'
+    key_points:
+    - 'Chờ duyệt: hồ sơ mới hoặc vừa sửa thông tin giảng dạy'
+    - chờ kết quả
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: ho-so-gia-su-duyet-05
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: not approved nghia la gi
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - ho-so-gia-su-duyet
+    reference: Không được duyệt; sửa Hồ sơ giảng dạy và Lưu hồ sơ để gửi lại
+    key_points:
+    - Không được duyệt
+    - sửa Hồ sơ giảng dạy và Lưu hồ sơ để gửi lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-ho-so-chung-chi-01
+  split: test
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Báo Certificate files must be 10 MB or smaller
+  features:
+  - tutor-profile
+  - certificate
+  expect:
+    docs:
+    - loi-ho-so-chung-chi
+    reference: Tệp lớn hơn 10 MB; nén lại hoặc dùng đường dẫn
+    key_points:
+    - Tệp lớn hơn 10 MB
+    - nén lại hoặc dùng đường dẫn
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-ho-so-chung-chi-02
+  split: test
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: bao Vui long chon anh JPG hoac PNG
+  features:
+  - tutor-profile
+  - certificate
+  expect:
+    docs:
+    - loi-ho-so-chung-chi
+    reference: Ảnh đại diện sai định dạng; chọn JPG hoặc PNG tối đa 10 MB
+    key_points:
+    - Ảnh đại diện sai định dạng
+    - chọn JPG hoặc PNG tối đa 10 MB
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-ho-so-chung-chi-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Lỗi khi đường dẫn chứng chỉ Google Drive không mở được?
+  features:
+  - tutor-profile
+  - certificate
+  expect:
+    docs:
+    - loi-ho-so-chung-chi
+    reference: Không có thông tin cụ thể
+    key_points:
+    - Không có thông tin cụ thể
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: diem-de-xuat-01
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Điểm đề xuất là gì?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - diem-de-xuat
+    reference: Điểm 0–100 để xếp hạng gia sư khi gợi ý; gia sư mới 50 điểm
+    key_points:
+    - Điểm 0–100 để xếp hạng gia sư khi gợi ý
+    - gia sư mới 50 điểm
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: diem-de-xuat-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: lam sao tang diem de xuat
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - diem-de-xuat
+    reference: Hồ sơ xác minh, chứng chỉ được duyệt, phản hồi nhanh, hợp đồng hoàn tất, đánh giá tốt, tránh bị khóa
+    key_points:
+    - Hồ sơ xác minh, chứng chỉ được duyệt, phản hồi nhanh, hợp đồng hoàn tất, đánh giá tốt, tránh bị khóa
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: diem-de-xuat-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Công thức tính điểm đề xuất chính xác là gì?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - diem-de-xuat
+    reference: Không cung cấp công thức; chỉ giải thích các yếu tố
+    key_points:
+    - Không cung cấp công thức
+    - chỉ giải thích các yếu tố
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: diem-de-xuat-04
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/profile
+  question: Điểm đề xuất cập nhật khi nào?
+  features:
+  - tutor-profile
+  expect:
+    docs:
+    - diem-de-xuat
+    reference: Mỗi ngày 9 giờ 30 sáng giờ Việt Nam và khi có sự kiện liên quan
+    key_points:
+    - Mỗi ngày 9 giờ 30 sáng giờ Việt Nam và khi có sự kiện liên quan
+    intent: POLICY
+    must_include:
+    - 9 giờ
+  tags:
+  - source:cau-hoi-mau.csv

@@ -37,6 +37,7 @@ class Question:
     role: str
     text: str
     kind: str
+    required: str = ""  # cột y_bat_buoc: ý bắt buộc của câu trả lời (để chấm tay)
 
 
 @dataclass
@@ -50,7 +51,8 @@ class Outcome:
 
 def load_questions(path: Path) -> list[Question]:
     with path.open(encoding="utf-8-sig", newline="") as file:
-        return [Question(row["doc_id"], row["vai_tro"], row["cau_hoi"], row["loai"]) for row in csv.DictReader(file)]
+        return [Question(row["doc_id"], row["vai_tro"], row["cau_hoi"], row["loai"], row.get("y_bat_buoc") or "")
+                for row in csv.DictReader(file)]
 
 
 def first_rank(doc_keys: list[str], expected: str) -> int | None:

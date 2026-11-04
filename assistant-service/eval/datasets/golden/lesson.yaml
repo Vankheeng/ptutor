@@ -1,0 +1,340 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: buoi-hoc-quy-dinh-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Không xác nhận buổi học thì sao?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-quy-dinh
+    reference: Sau 3 ngày kể từ lúc gia sư đánh dấu đã dạy, buổi tự chuyển Đã học
+    key_points:
+    - Sau 3 ngày kể từ lúc gia sư đánh dấu đã dạy, buổi tự chuyển Đã học
+    intent: POLICY
+    must_include:
+    - 3 ngày
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-quy-dinh-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: buoi hoc bi giu lai khi nao
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-quy-dinh
+    reference: Khi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
+    key_points:
+    - Khi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-quy-dinh-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Buổi học được xác nhận thì bao lâu tôi nhận tiền?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-quy-dinh
+    reference: Chưa có thông tin chính thức về trả tiền dạy
+    key_points:
+    - Chưa có thông tin chính thức về trả tiền dạy
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-buoi-hoc-01
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Buổi học Chờ xác nhận là sao?
+  features:
+  - lesson
+  expect:
+    docs:
+    - trang-thai-buoi-hoc
+    reference: Gia sư đã đánh dấu đã dạy; học viên xác nhận hoặc yêu cầu hoàn tiền trong 3 ngày
+    key_points:
+    - Gia sư đã đánh dấu đã dạy
+    - học viên xác nhận hoặc yêu cầu hoàn tiền trong 3 ngày
+    intent: POLICY
+    must_include:
+    - 3 ngày
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-buoi-hoc-02
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: dang yeu cau hoan tien nghia la gi
+  features:
+  - lesson
+  expect:
+    docs:
+    - trang-thai-buoi-hoc
+    reference: Buổi nằm trong yêu cầu hoàn tiền chưa kết luận; bị giữ lại
+    key_points:
+    - Buổi nằm trong yêu cầu hoàn tiền chưa kết luận
+    - bị giữ lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-buoi-hoc-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Buổi học bù có trạng thái riêng không?
+  features:
+  - lesson
+  expect:
+    docs:
+    - trang-thai-buoi-hoc
+    reference: Không có thông tin về buổi học bù
+    key_points:
+    - Không có thông tin về buổi học bù
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-xac-nhan-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Xác nhận buổi học ở đâu?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-xac-nhan
+    reference: Hợp đồng → Xem hợp đồng → Buổi học và hoàn tiền → Xác nhận đã học
+    key_points:
+    - Hợp đồng → Xem hợp đồng → Buổi học và hoàn tiền → Xác nhận đã học
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-xac-nhan-02
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: khong xac nhan duoc buoi hoc bao bi tam giu
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-xac-nhan
+    reference: Buổi trong yêu cầu hoàn tiền hoặc hợp đồng có khiếu nại chưa xong; chờ kết luận
+    key_points:
+    - Buổi trong yêu cầu hoàn tiền hoặc hợp đồng có khiếu nại chưa xong
+    - chờ kết luận
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-xac-nhan-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Xác nhận nhầm buổi học thì hủy xác nhận được không?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-xac-nhan
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-gia-su-01
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Đánh dấu đã dạy được lúc nào?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-gia-su
+    reference: Sau giờ kết thúc buổi học; buổi chuyển Chờ xác nhận
+    key_points:
+    - Sau giờ kết thúc buổi học
+    - buổi chuyển Chờ xác nhận
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-gia-su-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: tao buoi hoc ngoai thoi han hop dong duoc khong
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-gia-su
+    reference: Không; ngày học phải trong khoảng ngày bắt đầu–kết thúc hợp đồng
+    key_points:
+    - Không
+    - ngày học phải trong khoảng ngày bắt đầu–kết thúc hợp đồng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: buoi-hoc-gia-su-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Học viên đổi lịch học bù thì tôi tạo buổi thế nào trên giao diện?
+  features:
+  - lesson
+  expect:
+    docs:
+    - buoi-hoc-gia-su
+    reference: Giao diện chưa có; không có thông tin về học bù
+    key_points:
+    - Giao diện chưa có
+    - không có thông tin về học bù
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-buoi-hoc-01
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Vì sao tôi không đánh dấu đã dạy được?
+  features:
+  - lesson
+  expect:
+    docs:
+    - loi-buoi-hoc
+    reference: Buổi học chưa kết thúc; chỉ đánh dấu sau giờ kết thúc; giờ sai thì sửa khi buổi còn Sắp diễn ra
+    key_points:
+    - Buổi học chưa kết thúc
+    - chỉ đánh dấu sau giờ kết thúc
+    - giờ sai thì sửa khi buổi còn Sắp diễn ra
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-buoi-hoc-02
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: xac nhan buoi hoc bao buoi hoc dang bi tam giu
+  features:
+  - lesson
+  expect:
+    docs:
+    - loi-buoi-hoc
+    reference: Buổi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong; chờ kết luận rồi xác nhận
+      lại
+    key_points:
+    - Buổi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
+    - chờ kết luận rồi xác nhận lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-buoi-hoc-03
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Tạo buổi học báo The contract already has its maximum number of lessons
+  features:
+  - lesson
+  expect:
+    docs:
+    - loi-buoi-hoc
+    reference: Hợp đồng Mỗi buổi đã hết số buổi; không tạo thêm; muốn dạy thêm thì gia hạn hợp đồng
+    key_points:
+    - Hợp đồng Mỗi buổi đã hết số buổi
+    - không tạo thêm
+    - muốn dạy thêm thì gia hạn hợp đồng
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-buoi-hoc-04
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/dashboard
+  question: Cần dạy bù một buổi khi đã hết số buổi thì làm sao?
+  features:
+  - lesson
+  expect:
+    docs:
+    - loi-buoi-hoc
+    reference: Chưa có thông tin chính thức về buổi học bù
+    key_points:
+    - Chưa có thông tin chính thức về buổi học bù
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

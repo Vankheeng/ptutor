@@ -1,0 +1,64 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: tin-nhan-day-quy-dinh-01
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Gia sư đăng tin nhận dạy ở đâu?
+  features:
+  - teaching-request
+  expect:
+    docs:
+    - tin-nhan-day-quy-dinh
+    reference: 'Giao diện chưa có (Yêu cầu dạy của tôi đang Sắp ra mắt); quy định: bản nháp, trả phí, đăng hoặc chờ duyệt'
+    key_points:
+    - Giao diện chưa có (Yêu cầu dạy của tôi đang Sắp ra mắt)
+    - 'quy định: bản nháp, trả phí, đăng hoặc chờ duyệt'
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-nhan-day-quy-dinh-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: tin nhan day co ghi chu thi co phai duyet khong
+  features:
+  - teaching-request
+  expect:
+    docs:
+    - tin-nhan-day-quy-dinh
+    reference: Có; tin có ghi chú hoặc môn tự nhập phải chờ duyệt
+    key_points:
+    - Có
+    - tin có ghi chú hoặc môn tự nhập phải chờ duyệt
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: tin-nhan-day-quy-dinh-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Tiêu chí duyệt tin nhận dạy là gì?
+  features:
+  - teaching-request
+  expect:
+    docs:
+    - tin-nhan-day-quy-dinh
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

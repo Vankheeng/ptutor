@@ -1,0 +1,349 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: trang-thai-hoan-tien-01
+  split: test
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/refund-requests
+  question: Yêu cầu hoàn tiền Đang xử lý là sao?
+  features:
+  - refund
+  expect:
+    docs:
+    - trang-thai-hoan-tien
+    reference: Kế toán đã tiếp nhận; học viên không hủy được; chờ kết luận
+    key_points:
+    - Kế toán đã tiếp nhận
+    - học viên không hủy được
+    - chờ kết luận
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-hoan-tien-02
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/refund-requests
+  question: da hoan tien nghia la gi
+  features:
+  - refund
+  expect:
+    docs:
+    - trang-thai-hoan-tien
+    reference: Kế toán đã kết luận và hoàn vào ví học viên; phần gia sư (nếu có) vào ví gia sư
+    key_points:
+    - Kế toán đã kết luận và hoàn vào ví học viên
+    - phần gia sư (nếu có) vào ví gia sư
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-hoan-tien-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/refund-requests
+  question: Kế toán xử lý hoàn tiền trong mấy ngày?
+  features:
+  - refund
+  expect:
+    docs:
+    - trang-thai-hoan-tien
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-quy-dinh-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Gia sư không đến dạy thì được hoàn bao nhiêu?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-quy-dinh
+    reference: 100% đơn giá buổi; đơn giá = tổng tiền các kỳ / tổng số buổi; tối đa bằng học phí đã đóng
+    key_points:
+    - 100% đơn giá buổi
+    - đơn giá = tổng tiền các kỳ / tổng số buổi
+    - tối đa bằng học phí đã đóng
+    intent: POLICY
+    must_include:
+    - 100%
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-quy-dinh-02
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: toi nghi buoi hoc thi duoc hoan bao nhieu
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-quy-dinh
+    reference: 80% đơn giá, gia sư nhận 20%; ví dụ 200.000đ → hoàn 160.000đ
+    key_points:
+    - 80% đơn giá, gia sư nhận 20%
+    - ví dụ 200.000đ → hoàn 160.000đ
+    intent: POLICY
+    must_include:
+    - '160.000'
+    - 20%
+    - '200.000'
+    - 80%
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-quy-dinh-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Gia sư dạy không tốt thì có được hoàn tiền không?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-quy-dinh
+    reference: Hoàn tiền chỉ cho buổi không diễn ra; chất lượng giảng dạy thuộc khiếu nại; mức hoàn cho trường hợp này chưa
+      có thông tin
+    key_points:
+    - Hoàn tiền chỉ cho buổi không diễn ra
+    - chất lượng giảng dạy thuộc khiếu nại
+    - mức hoàn cho trường hợp này chưa có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-quy-dinh-04
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Gia sư có bao lâu để phản hồi yêu cầu hoàn tiền?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-quy-dinh
+    reference: 48 giờ kể từ khi học viên gửi; kế toán chưa duyệt trong thời gian này trừ khi gia sư đã phản hồi
+    key_points:
+    - 48 giờ kể từ khi học viên gửi
+    - kế toán chưa duyệt trong thời gian này trừ khi gia sư đã phản hồi
+    intent: POLICY
+    must_include:
+    - 48 giờ
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-gui-yeu-cau-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Gửi yêu cầu hoàn tiền ở đâu?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-gui-yeu-cau
+    reference: Hợp đồng → Buổi học và hoàn tiền → Yêu cầu hoàn tiền → chọn buổi, nguyên nhân, mô tả, minh chứng → Gửi yêu
+      cầu
+    key_points:
+    - Hợp đồng → Buổi học và hoàn tiền → Yêu cầu hoàn tiền → chọn buổi, nguyên nhân, mô tả, minh chứng → Gửi yêu cầu
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-gui-yeu-cau-02
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: huy yeu cau hoan tien
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-gui-yeu-cau
+    reference: Mở yêu cầu Chờ tiếp nhận → Huỷ yêu cầu
+    key_points:
+    - Mở yêu cầu Chờ tiếp nhận → Huỷ yêu cầu
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-gui-yeu-cau-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/lessons
+  question: Tải ảnh minh chứng lên đâu để có đường dẫn?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-gui-yeu-cau
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hoan-tien-01
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/refund-request
+  question: Báo Hợp đồng này đã có một yêu cầu hoàn tiền đang xử lý
+  features:
+  - refund
+  expect:
+    docs:
+    - loi-hoan-tien
+    reference: Mỗi hợp đồng một yêu cầu mở; chờ kết luận hoặc hủy yêu cầu cũ nếu còn Chờ tiếp nhận
+    key_points:
+    - Mỗi hợp đồng một yêu cầu mở
+    - chờ kết luận hoặc hủy yêu cầu cũ nếu còn Chờ tiếp nhận
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hoan-tien-02
+  split: test
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/refund-request
+  question: bao hop dong chua co hoc phi nao da dong de hoan
+  features:
+  - refund
+  expect:
+    docs:
+    - loi-hoan-tien
+    reference: Hợp đồng chưa ký hoặc chưa đóng học phí; không có khoản để hoàn
+    key_points:
+    - Hợp đồng chưa ký hoặc chưa đóng học phí
+    - không có khoản để hoàn
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hoan-tien-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId/refund-request
+  question: Lỗi khi yêu cầu hoàn tiền quá 50 buổi hiện câu gì trên giao diện?
+  features:
+  - refund
+  expect:
+    docs:
+    - loi-hoan-tien
+    reference: Không có câu báo lỗi cụ thể trong tài liệu
+    key_points:
+    - Không có câu báo lỗi cụ thể trong tài liệu
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-phan-hoi-01
+  split: test
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/refund-requests
+  question: Học viên đòi hoàn tiền, tôi phản hồi thế nào?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-phan-hoi
+    reference: Yêu cầu hoàn tiền → mở yêu cầu → chọn Tôi đã dạy/Tôi không dạy/Học viên nghỉ cho từng buổi → lời nhắn → Gửi
+      phản hồi trong 48 giờ
+    key_points:
+    - Yêu cầu hoàn tiền → mở yêu cầu → chọn Tôi đã dạy/Tôi không dạy/Học viên nghỉ cho từng buổi → lời nhắn → Gửi phản hồi
+      trong 48 giờ
+    intent: HOWTO
+    must_include:
+    - 48 giờ
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-phan-hoi-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/refund-requests
+  question: phan hoi roi sua lai duoc khong
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-phan-hoi
+    reference: Không; chỉ phản hồi một lần
+    key_points:
+    - Không
+    - chỉ phản hồi một lần
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hoan-tien-phan-hoi-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/refund-requests
+  question: Không phản hồi trong 48 giờ thì kế toán kết luận theo hướng nào?
+  features:
+  - refund
+  expect:
+    docs:
+    - hoan-tien-phan-hoi
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

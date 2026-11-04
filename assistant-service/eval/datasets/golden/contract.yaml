@@ -1,0 +1,730 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: hop-dong-soan-va-sua-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Ai là người soạn hợp đồng?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-soan-va-sua
+    reference: 'Bên chấp nhận: học viên chấp nhận đề nghị dạy thì học viên soạn; gia sư chấp nhận đơn đăng ký thì gia sư soạn'
+    key_points:
+    - 'Bên chấp nhận: học viên chấp nhận đề nghị dạy thì học viên soạn'
+    - gia sư chấp nhận đơn đăng ký thì gia sư soạn
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-soan-va-sua-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: hop dong dang cho toi sua duoc nhung gi
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-soan-va-sua
+    reference: Người soạn (học viên) sửa được Giá và Lịch học; không đổi chu kỳ thanh toán, ngày bắt đầu/kết thúc
+    key_points:
+    - Người soạn (học viên) sửa được Giá và Lịch học
+    - không đổi chu kỳ thanh toán, ngày bắt đầu/kết thúc
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-soan-va-sua-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Có mẫu hợp đồng giấy để in ra không?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-soan-va-sua
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-ky-tu-choi-01
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Ai ký hợp đồng?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-ky-tu-choi
+    reference: Bên nhận (không phải người soạn); ký xong chuyển Đang hoạt động và tạo kỳ thanh toán
+    key_points:
+    - Bên nhận (không phải người soạn)
+    - ký xong chuyển Đang hoạt động và tạo kỳ thanh toán
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-ky-tu-choi-02
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: tu choi hop dong thi sao
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-ky-tu-choi
+    reference: Hợp đồng chuyển Đã hủy; người soạn được báo và có thể soạn lại
+    key_points:
+    - Hợp đồng chuyển Đã hủy
+    - người soạn được báo và có thể soạn lại
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-ky-tu-choi-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hợp đồng chờ ký bao lâu thì hết hạn ký?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-ky-tu-choi
+    reference: Chỉ biết tự hủy lúc 0 giờ ngày kết thúc; thời hạn ký riêng chưa có thông tin
+    key_points:
+    - Chỉ biết tự hủy lúc 0 giờ ngày kết thúc
+    - thời hạn ký riêng chưa có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-ky-tu-choi-04
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Tôi muốn hủy hợp đồng đang học được không?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-ky-tu-choi
+    reference: Chưa hỗ trợ hủy hợp đồng đang hoạt động; chỉ người soạn hủy được hợp đồng Đang chờ
+    key_points:
+    - Chưa hỗ trợ hủy hợp đồng đang hoạt động
+    - chỉ người soạn hủy được hợp đồng Đang chờ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-ky-tu-choi-05
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: huy hop dong chua ky the nao
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-ky-tu-choi
+    reference: Người soạn mở hợp đồng Đang chờ → Hủy hợp đồng
+    key_points:
+    - Người soạn mở hợp đồng Đang chờ → Hủy hợp đồng
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-gia-han-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Gia hạn hợp đồng thế nào?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-gia-han
+    reference: Mở hợp đồng Đang hoạt động → Đề xuất gia hạn → điền điều khoản → Gửi đề xuất gia hạn; bên kia ký
+    key_points:
+    - Mở hợp đồng Đang hoạt động → Đề xuất gia hạn → điền điều khoản → Gửi đề xuất gia hạn
+    - bên kia ký
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-gia-han-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: ngay bat dau gia han co duoc truoc ngay ket thuc hop dong cu khong
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-gia-han
+    reference: Không; phải từ ngày kết thúc hợp đồng cũ trở đi
+    key_points:
+    - Không
+    - phải từ ngày kết thúc hợp đồng cũ trở đi
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-gia-han-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Gia hạn có được giảm học phí không?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-gia-han
+    reference: Không có thông tin; giá do hai bên thỏa thuận trong bản gia hạn
+    key_points:
+    - Không có thông tin
+    - giá do hai bên thỏa thuận trong bản gia hạn
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tu-ket-thuc-01
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hợp đồng hết hạn thì sao?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tu-ket-thuc
+    reference: '0 giờ ngày kết thúc: Đang hoạt động → Đã hoàn tất; Đang chờ → Đã hủy'
+    key_points:
+    - '0 giờ ngày kết thúc: Đang hoạt động → Đã hoàn tất'
+    - Đang chờ → Đã hủy
+    intent: POLICY
+    must_include:
+    - 0 giờ
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tu-ket-thuc-02
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: hop dong ket thuc luc may gio
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tu-ket-thuc
+    reference: 0 giờ (giờ Việt Nam) ngày kết thúc
+    key_points:
+    - 0 giờ (giờ Việt Nam) ngày kết thúc
+    intent: POLICY
+    must_include:
+    - 0 giờ
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tu-ket-thuc-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hợp đồng kết thúc mà còn kỳ học phí chưa đóng thì sao?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tu-ket-thuc
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-hop-dong-01
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hợp đồng Đang chờ nghĩa là gì?
+  features:
+  - contract
+  expect:
+    docs:
+    - trang-thai-hop-dong
+    reference: Đã soạn, chờ bên nhận ký; người soạn có thể sửa/hủy; chưa có kỳ thanh toán
+    key_points:
+    - Đã soạn, chờ bên nhận ký
+    - người soạn có thể sửa/hủy
+    - chưa có kỳ thanh toán
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-hop-dong-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: hop dong da hoan tat la sao
+  features:
+  - contract
+  expect:
+    docs:
+    - trang-thai-hop-dong
+    reference: Đã tới ngày kết thúc khi đang hoạt động; tự chuyển; muốn học tiếp tạo hợp đồng mới
+    key_points:
+    - Đã tới ngày kết thúc khi đang hoạt động
+    - tự chuyển
+    - muốn học tiếp tạo hợp đồng mới
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-hop-dong-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hợp đồng bị tạm dừng là trạng thái gì?
+  features:
+  - contract
+  expect:
+    docs:
+    - trang-thai-hop-dong
+    reference: Không có trạng thái tạm dừng
+    key_points:
+    - Không có trạng thái tạm dừng
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hop-dong-01
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: ''
+  question: Báo Only the contract counterparty can perform this action
+  features:
+  - contract
+  expect:
+    docs:
+    - loi-hop-dong
+    reference: Chỉ bên nhận ký/từ chối; người soạn không tự ký
+    key_points:
+    - Chỉ bên nhận ký/từ chối
+    - người soạn không tự ký
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hop-dong-02
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: bao Lich da chon khong co buoi hoc nao trong khoang thoi gian nay
+  features:
+  - contract
+  expect:
+    docs:
+    - loi-hop-dong
+    reference: Thứ trong lịch không rơi vào khoảng ngày; kéo dài khoảng ngày hoặc đổi thứ
+    key_points:
+    - Thứ trong lịch không rơi vào khoảng ngày
+    - kéo dài khoảng ngày hoặc đổi thứ
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-hop-dong-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Lỗi hợp đồng do gia sư bị khóa?
+  features:
+  - contract
+  expect:
+    docs:
+    - loi-hop-dong
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-hoc-vien-01
+  split: test
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests/:requestId
+  question: Tạo hợp đồng với gia sư ở đâu?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-hoc-vien
+    reference: Mở tin → Đề nghị từ gia sư → Tạo hợp đồng → điền Giá, Chu kỳ thanh toán, Lịch học, ngày → Tạo hợp đồng
+    key_points:
+    - Mở tin → Đề nghị từ gia sư → Tạo hợp đồng → điền Giá, Chu kỳ thanh toán, Lịch học, ngày → Tạo hợp đồng
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-hoc-vien-02
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests/:requestId
+  question: chu ky thanh toan co nhung loai nao
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-hoc-vien
+    reference: Mỗi buổi, Hàng tuần, Hàng tháng, Theo gói
+    key_points:
+    - Mỗi buổi, Hàng tuần, Hàng tháng, Theo gói
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-hoc-vien-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/studying-requests/:requestId
+  question: Có phí tạo hợp đồng không?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-hoc-vien
+    reference: Không có thông tin về phí tạo hợp đồng
+    key_points:
+    - Không có thông tin về phí tạo hợp đồng
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-xem-ky-hoc-vien-01
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Ký hợp đồng gia sư gửi thế nào?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-xem-ky-hoc-vien
+    reference: Hợp đồng → Xem hợp đồng → Ký hợp đồng (khi Đang chờ và là bên nhận)
+    key_points:
+    - Hợp đồng → Xem hợp đồng → Ký hợp đồng (khi Đang chờ và là bên nhận)
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-xem-ky-hoc-vien-02
+  split: dev
+  category: HOWTO
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: xem cac ky thanh toan cua hop dong o dau
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-xem-ky-hoc-vien
+    reference: Trang chi tiết hợp đồng, mục Các kỳ thanh toán
+    key_points:
+    - Trang chi tiết hợp đồng, mục Các kỳ thanh toán
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-xem-ky-hoc-vien-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Tải hợp đồng về dạng PDF được không?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-xem-ky-hoc-vien
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-gia-su-01
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Gia sư xem hợp đồng của mình ở đâu?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-gia-su
+    reference: Mục Hợp đồng đang Sắp ra mắt; Tổng quan có số hợp đồng đang dạy, chờ xử lý
+    key_points:
+    - Mục Hợp đồng đang Sắp ra mắt
+    - Tổng quan có số hợp đồng đang dạy, chờ xử lý
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-gia-su-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: gia su tao hop dong khi nao
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-gia-su
+    reference: Khi đã chấp nhận đơn đăng ký học; tin nhận dạy mở hoặc đã ghép; môn đã chuẩn hóa
+    key_points:
+    - Khi đã chấp nhận đơn đăng ký học
+    - tin nhận dạy mở hoặc đã ghép
+    - môn đã chuẩn hóa
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: hop-dong-tao-gia-su-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/sections/:section
+  question: Khi nào có trang hợp đồng cho gia sư?
+  features:
+  - contract
+  expect:
+    docs:
+    - hop-dong-tao-gia-su
+    reference: Chưa có thông tin
+    key_points:
+    - Chưa có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: viec-chua-ho-tro-01
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Viết đánh giá gia sư ở đâu?
+  features:
+  - contract
+  - withdrawal
+  - review
+  - complaint
+  expect:
+    docs:
+    - viec-chua-ho-tro
+    reference: Chưa hỗ trợ viết đánh giá
+    key_points:
+    - Chưa hỗ trợ viết đánh giá
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: viec-chua-ho-tro-02
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: danh gia anh huong gi den gia su
+  features:
+  - contract
+  - withdrawal
+  - review
+  - complaint
+  expect:
+    docs:
+    - viec-chua-ho-tro
+    reference: Là một phần của điểm đề xuất; đánh giá tốt xếp hạng cao hơn
+    key_points:
+    - Là một phần của điểm đề xuất
+    - đánh giá tốt xếp hạng cao hơn
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: viec-chua-ho-tro-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: Gỡ đánh giá sai sự thật thế nào?
+  features:
+  - contract
+  - withdrawal
+  - review
+  - complaint
+  expect:
+    docs:
+    - viec-chua-ho-tro
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: viec-chua-ho-tro-04
+  split: dev
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts
+  question: Hủy hợp đồng đang học được không?
+  features:
+  - contract
+  - withdrawal
+  - review
+  - complaint
+  expect:
+    docs:
+    - viec-chua-ho-tro
+    reference: Chưa hỗ trợ hủy hợp đồng đang hoạt động
+    key_points:
+    - Chưa hỗ trợ hủy hợp đồng đang hoạt động
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: viec-chua-ho-tro-05
+  split: dev
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/wallet
+  question: gia su nhan tien day nhu the nao
+  features:
+  - contract
+  - withdrawal
+  - review
+  - complaint
+  expect:
+    docs:
+    - viec-chua-ho-tro
+    reference: Chưa tự động; chỉ nhận 20% buổi học viên nghỉ khi kế toán kết luận hoàn tiền
+    key_points:
+    - Chưa tự động
+    - chỉ nhận 20% buổi học viên nghỉ khi kế toán kết luận hoàn tiền
+    intent: POLICY
+    must_include:
+    - 20%
+  tags:
+  - source:cau-hoi-mau.csv

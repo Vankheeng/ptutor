@@ -1,0 +1,379 @@
+# Sinh tự động từ knowledge-base/_eval/cau-hoi-mau.csv bằng eval/build_datasets.py — không sửa tay.
+- id: khieu-nai-gui-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Có những loại khiếu nại nào?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-gui
+    reference: Vắng mặt, Muộn / thiếu giờ, Chất lượng giảng dạy, Vi phạm ứng xử, Vi phạm nghiêm trọng, Khác
+    key_points:
+    - Vắng mặt, Muộn / thiếu giờ, Chất lượng giảng dạy, Vi phạm ứng xử, Vi phạm nghiêm trọng, Khác
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-gui-02
+  split: dev
+  category: HOWTO
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: gui khieu nai o dau
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-gui
+    reference: Giao diện chưa có trang khiếu nại; khiếu nại gắn với hợp đồng, chỉ hai bên của hợp đồng gửi được
+    key_points:
+    - Giao diện chưa có trang khiếu nại
+    - khiếu nại gắn với hợp đồng, chỉ hai bên của hợp đồng gửi được
+    intent: HOWTO
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-gui-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/contracts/:contractId
+  question: Sau bao lâu thì hết quyền khiếu nại?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-gui
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bang-chung-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Bổ sung bằng chứng khiếu nại thế nào?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bang-chung
+    reference: Khi khiếu nại Chờ bằng chứng; gửi 1–5 đường dẫn; khiếu nại quay lại Đang xử lý
+    key_points:
+    - Khi khiếu nại Chờ bằng chứng
+    - gửi 1–5 đường dẫn
+    - khiếu nại quay lại Đang xử lý
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bang-chung-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: bang chung gui duoi dang file duoc khong
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bang-chung
+    reference: Mỗi bằng chứng là một đường dẫn
+    key_points:
+    - Mỗi bằng chứng là một đường dẫn
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bang-chung-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Không gửi bằng chứng đúng hạn thì khiếu nại bị hủy không?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bang-chung
+    reference: Chưa có thông tin về thời hạn
+    key_points:
+    - Chưa có thông tin về thời hạn
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bi-khieu-nai-01
+  split: test
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: Tôi bị học viên khiếu nại thì làm gì?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bi-khieu-nai
+    reference: Thấy khiếu nại khi đã được tiếp nhận; gửi một phản hồi (tối đa 5.000 ký tự, 5 bằng chứng) khi Đang xử lý hoặc
+      Chờ bằng chứng
+    key_points:
+    - Thấy khiếu nại khi đã được tiếp nhận
+    - gửi một phản hồi (tối đa 5.000 ký tự, 5 bằng chứng) khi Đang xử lý hoặc Chờ bằng chứng
+    intent: POLICY
+    must_include:
+    - '5.000'
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bi-khieu-nai-02
+  split: test
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: phan hoi khieu nai may lan
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bi-khieu-nai
+    reference: Một lần, không sửa được
+    key_points:
+    - Một lần, không sửa được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-bi-khieu-nai-03
+  split: test
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: Không phản hồi khiếu nại thì có bị phạt không?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-bi-khieu-nai
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-ket-luan-01
+  split: dev
+  category: POLICY
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Khiếu nại được kết luận thế nào?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-ket-luan
+    reference: Nhân viên chăm sóc khách hàng chấp nhận (Đã giải quyết, ghi bên có lỗi) hoặc từ chối (Đã từ chối, kèm lý do)
+    key_points:
+    - Nhân viên chăm sóc khách hàng chấp nhận (Đã giải quyết, ghi bên có lỗi) hoặc từ chối (Đã từ chối, kèm lý do)
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-ket-luan-02
+  split: dev
+  category: POLICY
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: khieu nai anh huong buoi hoc the nao
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-ket-luan
+    reference: Khi chưa kết luận, buổi chờ xác nhận bị giữ, không tự hoàn tất; yêu cầu hoàn tiền chưa kết luận được
+    key_points:
+    - Khi chưa kết luận, buổi chờ xác nhận bị giữ, không tự hoàn tất
+    - yêu cầu hoàn tiền chưa kết luận được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: khieu-nai-ket-luan-03
+  split: dev
+  category: NO_ANSWER
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: Bị kết luận có lỗi thì bị trừ bao nhiêu tiền?
+  features:
+  - complaint
+  expect:
+    docs:
+    - khieu-nai-ket-luan
+    reference: Hệ thống không tự áp dụng hình phạt; mức xử lý chưa có thông tin
+    key_points:
+    - Hệ thống không tự áp dụng hình phạt
+    - mức xử lý chưa có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-khieu-nai-01
+  split: test
+  category: FAQ
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Khiếu nại Chờ tiếp nhận là gì?
+  features:
+  - complaint
+  expect:
+    docs:
+    - trang-thai-khieu-nai
+    reference: Chưa có nhân viên nhận; bên kia chưa thấy; còn sửa/hủy được
+    key_points:
+    - Chưa có nhân viên nhận
+    - bên kia chưa thấy
+    - còn sửa/hủy được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-khieu-nai-02
+  split: test
+  category: FAQ
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: cho bang chung nghia la gi
+  features:
+  - complaint
+  expect:
+    docs:
+    - trang-thai-khieu-nai
+    reference: Chờ người khiếu nại bổ sung 1–5 bằng chứng; sau đó quay lại Đang xử lý
+    key_points:
+    - Chờ người khiếu nại bổ sung 1–5 bằng chứng
+    - sau đó quay lại Đang xử lý
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: trang-thai-khieu-nai-03
+  split: test
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Khiếu nại được giải quyết trong bao lâu?
+  features:
+  - complaint
+  expect:
+    docs:
+    - trang-thai-khieu-nai
+    reference: Chưa có thông tin chính thức
+    key_points:
+    - Chưa có thông tin chính thức
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-khieu-nai-01
+  split: dev
+  category: ERROR
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Báo Only PENDING complaints can be updated
+  features:
+  - complaint
+  expect:
+    docs:
+    - loi-khieu-nai
+    reference: Khiếu nại đã được tiếp nhận nên không sửa/hủy được
+    key_points:
+    - Khiếu nại đã được tiếp nhận nên không sửa/hủy được
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-khieu-nai-02
+  split: dev
+  category: ERROR
+  role: TUTOR
+  user: tutor_a
+  scenario: tutor_basic
+  page: /tutor/notifications
+  question: bao A response has already been submitted for this complaint
+  features:
+  - complaint
+  expect:
+    docs:
+    - loi-khieu-nai
+    reference: Đã phản hồi rồi; mỗi bên bị khiếu nại chỉ phản hồi một lần
+    key_points:
+    - Đã phản hồi rồi
+    - mỗi bên bị khiếu nại chỉ phản hồi một lần
+    intent: POLICY
+    must_include: []
+  tags:
+  - source:cau-hoi-mau.csv
+- id: loi-khieu-nai-03
+  split: dev
+  category: NO_ANSWER
+  role: STUDENT
+  user: student_a
+  scenario: student_two_contracts
+  page: /student/notifications
+  question: Lỗi khi khiếu nại hợp đồng đã kết thúc?
+  features:
+  - complaint
+  expect:
+    docs:
+    - loi-khieu-nai
+    reference: Không có thông tin
+    key_points:
+    - Không có thông tin
+    grounded_in:
+    - NONE
+    - PARTIAL
+  tags:
+  - source:cau-hoi-mau.csv

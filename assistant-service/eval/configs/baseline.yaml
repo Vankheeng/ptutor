@@ -1,0 +1,6 @@
+# Cấu hình harness mặc định cho eval (thiết kế 13 mục 13.3). `settings` đè các trường của app/config.py.
+name: baseline
+llm: scripted        # scripted = Actor trích xuất tất định (T0–T2, không tốn tiền); openai = model thật (T3)
+store: memory        # memory = kho trong bộ nhớ dựng từ kb_snapshot; pg = DB đã nạp (ASSISTANT_DATABASE_URL)
+kb_snapshot: ../knowledge-base
+settings: {}
