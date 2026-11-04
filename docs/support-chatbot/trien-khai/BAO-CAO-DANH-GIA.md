@@ -452,7 +452,7 @@ từng cấu hình.
 ## 9. Việc còn lại để có số cho luận văn
 
 1. Chấm tay phiếu ở mục 8 (phiếu sinh từ hai lần chạy embedding giả lập; sinh thêm từ `bge-test` nếu cần).
-2. NO_ANSWER với bge-m3 (65,5%): phủ 95 câu todo của kho tri thức; làm chặt quy tắc `coverage` trong prompt, chọn trên dev.
+2. NO_ANSWER với bge-m3 (65,5%): phủ 95 câu todo của kho tri thức (các bước: [CAP-NHAT-KHO-TRI-THUC.md](./CAP-NHAT-KHO-TRI-THUC.md)); làm chặt quy tắc `coverage` trong prompt, chọn trên dev.
 3. Hiệu chỉnh lại `min_rerank_score` trên dev từ điểm thô (`eval.retrieval_eval` đã lưu) nếu muốn bật rerank; cần GPU
    hoặc chấp nhận +8 s / lượt.
 4. E2-không-thử-lại: bỏ, theo quyết định tiết kiệm chi phí. E4: thêm hội thoại nhiều lượt rồi đo lại.

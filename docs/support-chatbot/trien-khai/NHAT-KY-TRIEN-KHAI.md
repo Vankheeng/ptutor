@@ -6,7 +6,7 @@
 ## Đang ở đâu
 
 - **Chặng hiện tại:** Chặng 8 / T3 — bge-m3 + model thật xong (test 86,4%)
-- **Việc tiếp theo:** (1) chấm tay `cham-tay/sheet.csv` — **người dùng** làm; (2) cải thiện NO_ANSWER (65,5% với bge-m3): phủ câu todo của kho tri thức, làm chặt `coverage`, chọn trên dev; (3) thêm hội thoại nhiều lượt cho E4 (hiện 8) rồi đo lại.
+- **Việc tiếp theo:** (1) chấm tay `cham-tay/sheet.csv` — **người dùng** làm; (2) cải thiện NO_ANSWER (65,5% với bge-m3): phủ câu todo của kho tri thức (người dùng; các bước ở `CAP-NHAT-KHO-TRI-THUC.md`), làm chặt `coverage`, chọn trên dev; (3) thêm hội thoại nhiều lượt cho E4 (hiện 8) rồi đo lại.
 - **Môi trường:** Docker chạy (ổ C từng đầy → Docker dừng; giữ ổ C trống ≥ 5 GB). Postgres = container `ptutor-postgres`, cổng **5433**. DB phát triển của trợ lý: `ptutor_assistant_dev` (đã nạp 65 tài liệu — chưa nạp tài liệu M17, `--allow-todo`, đã embed lại bằng bge-m3). Container `ptutor-ai-service-ref` (cổng 8001, model mount chỉ đọc) đang **tắt** để đỡ RAM — bật bằng `docker start ptutor-ai-service-ref`; số rerank đã đo (BAO-CAO T3.7.1). Sổ chi tiêu eval: 4,83 / 10 $. Test T1: đặt `ASSISTANT_TEST_ADMIN_DATABASE_URL=postgresql+psycopg://postgres:<mật khẩu>@127.0.0.1:5433/postgres`.
 
 ## Danh sách việc
