@@ -78,18 +78,17 @@ export function TutorProposalCard({
           </span>
         </div>
       </section>
-      <section className="tutor-proposal-my-side" aria-label="Đề xuất của tôi">
+      <section className="tutor-proposal-my-side" aria-label="Ứng tuyển của tôi">
         <div className="tutor-proposal-application-heading">
           <span className="tutor-proposal-application-icon" aria-hidden="true">
             ↗
           </span>
           <div>
-            <span className="tutor-eyebrow">ĐỀ XUẤT CỦA TÔI</span>
-            <h3>Đề xuất giảng dạy</h3>
+            <h3>Ứng tuyển của tôi</h3>
+            <span className={`tutor-cert-status status-${proposal.status.toLowerCase()}`}>
+              {tutorStatusLabel(proposal.status)}
+            </span>
           </div>
-          <span className={`tutor-cert-status status-${proposal.status.toLowerCase()}`}>
-            {tutorStatusLabel(proposal.status)}
-          </span>
         </div>
         <div className="tutor-proposal-offer-price">
           <small>Giá đề xuất</small>

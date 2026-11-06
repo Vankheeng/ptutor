@@ -2,25 +2,27 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import logo from '../../assets/ptutor-logo.svg';
+import { Icon, type IconName } from '../../components/ui/Icon';
 import './tutor.css';
 import './tutor-layout.css';
 
 const navigation = [
-  { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: '⌂' },
-  { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: '▤' },
-  { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề xuất giảng dạy', icon: '↗' },
-  { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: '▣' },
-  { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
-  { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: '▦' },
-  { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: '♢' },
-  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: '◈' },
-  { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: '▤' },
-  { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: '▥' },
-  { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: '▤' },
-  { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: '◉' }
+  { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: 'home' },
+  { section: 'TEACHING', to: '/tutor/students', label: 'Tìm kiếm học viên', icon: 'search' },
+  { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: 'book' },
+  { section: 'TEACHING', to: '/tutor/proposals', label: 'Ứng tuyển của tôi', icon: 'send' },
+  { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
+  { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
+  { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
+  { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
+  { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: 'award' },
+  { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: 'user' }
 ];
 
-const sectionLabels = { WORKSPACE: 'KHÔNG GIAN', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
+const sectionLabels = { WORKSPACE: '', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
 
 export function TutorLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -75,7 +77,7 @@ export function TutorLayout() {
         <nav className="tutor-nav" aria-label="Không gian gia sư">
           {(['WORKSPACE', 'TEACHING', 'ACCOUNT'] as const).map((section) => (
             <div className="tutor-nav-group" key={section}>
-              <span className="tutor-nav-label">{sectionLabels[section]}</span>
+              {sectionLabels[section] && <span className="tutor-nav-label">{sectionLabels[section]}</span>}
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (
@@ -85,7 +87,7 @@ export function TutorLayout() {
                     end={item.to === '/tutor/wallet'}
                     className={({ isActive }) => (isActive ? 'tutor-nav-link active' : 'tutor-nav-link')}
                   >
-                    <span aria-hidden="true">{item.icon}</span>
+                    <span aria-hidden="true"><Icon name={item.icon as IconName} size={18} /></span>
                     {item.label}
                   </NavLink>
                 ))}
@@ -94,7 +96,7 @@ export function TutorLayout() {
         </nav>
         <div className="tutor-sidebar-bottom">
           <NavLink className="tutor-nav-link" to="/public">
-            <span aria-hidden="true">↗</span>Trang chủ
+            <span aria-hidden="true"><Icon name="home" size={18} /></span>Trang chủ
           </NavLink>
           <button
             className="tutor-nav-link tutor-logout"
