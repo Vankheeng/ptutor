@@ -12,6 +12,8 @@ import {
 import { getSubjects } from '../../services/subjectApi';
 import type { District, Grade, Province, Subject } from '../../types/api';
 import { StudentAvailabilityEditor } from '../../components/student/StudentAvailabilityEditor';
+import { RequestSubjectField } from '../common-user/components/RequestSubjectField';
+import { RequestModeField } from '../common-user/components/RequestModeField';
 
 type FormMode = 'create' | 'edit';
 
@@ -185,8 +187,6 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
   const activeSubjects = subjects.filter((item) => item.status === 'ACTIVE');
   const activeGrades = grades.filter((item) => item.status === 'ACTIVE');
   const districts = districtCatalog.provinceId === state.provinceId ? districtCatalog.items : [];
-  const showCustomNote = state.subjectId === 'OTHER' || (mode === 'edit' && !initial?.subjectId);
-
   return (
     <section className="student-panel">
       {catalogError && (
@@ -208,36 +208,17 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           Description
           <textarea value={state.description} onChange={(event) => set('description', event.target.value)} rows={3} />
         </label>
-        <label>
-          Subject
-          <select
-            value={state.subjectId}
-            onChange={(event) => {
-              const value = event.target.value;
-              setState((current) => ({ ...current, subjectId: value, note: value === 'OTHER' ? current.note : '' }));
-            }}
-            required={mode === 'create'}
-          >
-            {mode === 'create' && (
-              <option value="" disabled>
-                Select a subject
-              </option>
-            )}
-            {mode === 'edit' && !initial?.subjectId && <option value="OTHER">Other / custom subject</option>}
-            {activeSubjects.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-            {mode === 'create' && <option value="OTHER">Other</option>}
-          </select>
-        </label>
-        {showCustomNote && (
-          <label>
-            {mode === 'create' ? 'Custom subject' : 'Custom subject / note'}
-            <input value={state.note} onChange={(event) => set('note', event.target.value)} maxLength={255} required />
-          </label>
-        )}
+        <RequestSubjectField
+          subjects={activeSubjects}
+          value={state.subjectId}
+          customValue={state.note}
+          required={mode === 'create'}
+          customLabel={mode === 'create' ? 'Môn học tự nhập' : 'Môn học tự nhập / ghi chú'}
+          onValueChange={(value) =>
+            setState((current) => ({ ...current, subjectId: value, note: value === 'OTHER' ? current.note : '' }))
+          }
+          onCustomValueChange={(value) => set('note', value)}
+        />
         <label>
           Grade
           <select value={state.gradeId} onChange={(event) => set('gradeId', event.target.value)} required>
@@ -251,16 +232,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
             ))}
           </select>
         </label>
-        <label>
-          Learning mode
-          <select
-            value={state.learningMode}
-            onChange={(event) => set('learningMode', event.target.value as LearningMode)}
-          >
-            <option value="ONLINE">Online</option>
-            <option value="OFFLINE">In person</option>
-          </select>
-        </label>
+        <RequestModeField value={state.learningMode} onChange={(value) => set('learningMode', value)} />
         <label>
           Province
           <select
