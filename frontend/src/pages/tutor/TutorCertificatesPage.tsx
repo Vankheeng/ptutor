@@ -138,9 +138,7 @@ export function TutorCertificatesPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">CHỨNG CHỈ & ĐỘ TIN CẬY</span>
           <h1>Chứng chỉ</h1>
-          <p>Bổ sung chứng chỉ để học viên an tâm hơn khi lựa chọn bạn.</p>
         </div>
         <span className="tutor-profile-badge">Chờ xét duyệt</span>
       </div>

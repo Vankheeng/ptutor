@@ -11,6 +11,7 @@ const navigation = [
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Browse Teaching Requests', icon: '⌕' },
   { section: 'LEARNING', to: '/student/applications', label: 'My requests to studying', icon: '↗' },
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
+  { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
   { section: 'ACCOUNT', to: '/student/notifications', label: 'Notifications', icon: 'bell' },
   { section: 'ACCOUNT', to: '/student/wallet', label: 'Wallet & Payments', icon: '◈' },
@@ -59,7 +60,13 @@ export function StudentLayout() {
                     end={item.to === '/student/wallet'}
                     className={({ isActive }) => (isActive ? 'student-nav-link active' : 'student-nav-link')}
                   >
-                    <span aria-hidden="true">{item.icon === 'bell' ? <Icon name="bell" size={18} /> : item.icon}</span>
+                    <span aria-hidden="true">
+                      {item.icon === 'bell' || item.icon === 'calendar' ? (
+                        <Icon name={item.icon} size={18} />
+                      ) : (
+                        item.icon
+                      )}
+                    </span>
                     {item.label}
                   </NavLink>
                 ))}

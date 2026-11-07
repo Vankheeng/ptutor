@@ -199,3 +199,21 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
     signal
   });
 }
+
+export function createTutorLesson(
+  contractId: string,
+  values: { title: string; date: string; startTime: string; endTime: string }
+) {
+  return post<TutorLesson>(`/api/v1/tutors/me/contracts/${contractId}/lessons`, values);
+}
+
+export function updateTutorLesson(
+  id: string,
+  values: { title: string; date: string; startTime: string; endTime: string; note?: string }
+) {
+  return put<TutorLesson>(`/api/v1/tutors/me/lessons/${id}`, values);
+}
+
+export function setTutorLessonStatus(id: string, status: TutorLesson['status']) {
+  return patch<TutorLesson>(`/api/v1/tutors/me/lessons/${id}/status`, { status });
+}
