@@ -1,6 +1,8 @@
-import { get, patch, post, put } from './httpClient';
+import { ApiError, get, patch, post, put } from './httpClient';
 import type { TeachingRequest } from '../types/api';
 import type { PaymentInitiation } from './studentApi';
+
+export const TEACHING_REQUEST_FEE_PER_STUDENT = 50_000;
 
 export interface TeachingRequestInput {
   subjectId?: string;
@@ -68,3 +70,13 @@ export const cancelMyTeachingRequest = (id: string) => post<TeachingRequest>(`${
 export const payTeachingRequestByWallet = (id: string) => post<unknown>(`${base}/${id}/payments/wallet`);
 export const startTeachingRequestVnPay = (id: string) =>
   post<PaymentInitiation>(`${base}/${id}/payments/vnpay`, { locale: 'vn' });
+
+export function teachingRequestWalletErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.code === 'INSUFFICIENT_WALLET_BALANCE') {
+    return 'Số dư ví điện tử không đủ để thanh toán yêu cầu. Vui lòng nạp thêm tiền rồi thử lại.';
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return `Thanh toán bằng ví không thành công: ${error.message}`;
+  }
+  return 'Thanh toán bằng ví không thành công. Vui lòng thử lại.';
+}

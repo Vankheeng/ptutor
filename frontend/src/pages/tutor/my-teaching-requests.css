@@ -80,5 +80,8 @@
 .common-payment-field { max-width: 320px; }
 .student-form-grid .common-payment-field { font-weight: 400; }
 .student-form-grid .common-payment-field select { min-height: 36px; padding: 6px 10px; font-size: 12px; font-weight: 400; }
+.common-payment-summary { display: grid; gap: 5px; padding: 10px 12px; border: 1px solid #e6ddf5; border-radius: 8px; background: #faf8ff; color: #746b82; font-size: 11px; line-height: 1.45; }
+.common-payment-summary strong { color: #392458; font-size: 13px; }
+.common-payment-field { grid-column: 1 / -1; }
 .common-request-actions { align-items: center; }
 .common-request-actions .student-button { min-height: 30px; padding: 0 11px; border-radius: 7px; font-size: 10px; }

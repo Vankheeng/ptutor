@@ -70,6 +70,7 @@ export interface TeachingRequest {
   grades: Reference[];
   status?: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
   reviewedAt?: string | null;
+  rejectionReason?: string | null;
   districts: Reference[];
   title: string | null;
   note: string | null;

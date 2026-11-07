@@ -7,8 +7,10 @@ import {
   getTeachingRequestApplications,
   payTeachingRequestByWallet,
   startTeachingRequestVnPay,
+  teachingRequestWalletErrorMessage,
   updateMyTeachingRequestStatus,
   updateTeachingRequestApplication,
+  TEACHING_REQUEST_FEE_PER_STUDENT,
   type StudentTeachingApplication
 } from '../../services/myTeachingRequestApi';
 import type { TeachingRequest } from '../../types/api';
@@ -113,6 +115,12 @@ export function TeachingRequestDetailPage() {
       }
     } catch (caught) {
       paymentTab?.close();
+      if (paymentMethod === 'wallet') {
+        const message = teachingRequestWalletErrorMessage(caught);
+        window.alert(message);
+        setError(message);
+        return;
+      }
       setError(caught instanceof Error ? caught.message : 'Không thể thanh toán yêu cầu dạy.');
     } finally {
       setBusy(null);
@@ -216,10 +224,29 @@ export function TeachingRequestDetailPage() {
               <dd>{new Date(request.createdAt).toLocaleString('vi-VN')}</dd>
             </div>
           </dl>
+          {request.status === 'REJECTED' && request.rejectionReason && (
+            <div className="teaching-rejection-reason" role="alert">
+              Lý do từ chối: {request.rejectionReason}
+            </div>
+          )}
           {request.status === 'DRAFT' && (
             <div className="student-panel teaching-draft-payment">
               <h2>Thanh toán để đăng yêu cầu</h2>
               <p>Bản nháp đã được lưu. Bạn có thể chọn phương thức thanh toán và thực hiện sau.</p>
+              <div className="teaching-payment-summary">
+                <strong>
+                  Số tiền cần thanh toán:{' '}
+                  {((request.quantity ?? 0) * TEACHING_REQUEST_FEE_PER_STUDENT).toLocaleString('vi-VN')} VNĐ
+                </strong>
+                <span>
+                  {TEACHING_REQUEST_FEE_PER_STUDENT.toLocaleString('vi-VN')} VNĐ / 1 học viên × {request.quantity ?? 0}{' '}
+                  học viên.
+                </span>
+                <span>
+                  Phí đăng bài không được hoàn lại sau khi thanh toán, trừ yêu cầu môn học ngoài danh mục bị quản trị
+                  viên từ chối do không hợp lệ.
+                </span>
+              </div>
               <label>
                 Phương thức thanh toán
                 <select

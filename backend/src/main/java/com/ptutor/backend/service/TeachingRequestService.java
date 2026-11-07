@@ -112,6 +112,10 @@ public class TeachingRequestService {
                 && teachingRequest.getStatus() != RequestStatus.PENDING_REVIEW) {
             throw invalidTransition("Only DRAFT, OPEN or PENDING_REVIEW requests can be updated");
         }
+        if (!draft && !java.util.Objects.equals(teachingRequest.getQuantity(), request.quantity())) {
+            throw badRequest("PAID_REQUEST_QUANTITY_IMMUTABLE",
+                    "Student quantity cannot be changed after the request has been paid");
+        }
 
         Subject subject = resolveSubject(request);
         teachingRequest.setSubject(subject);

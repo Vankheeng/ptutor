@@ -313,6 +313,7 @@ class PaymentServiceTest {
         TeachingRequest teachingRequest = TeachingRequest.builder()
                 .tutor(tutor)
                 .status(RequestStatus.DRAFT)
+                .quantity(1)
                 .build();
         teachingRequest.setId(requestId);
 

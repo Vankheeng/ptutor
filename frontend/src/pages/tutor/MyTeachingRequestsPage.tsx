@@ -6,8 +6,10 @@ import {
   createMyTeachingRequest,
   payTeachingRequestByWallet,
   startTeachingRequestVnPay,
+  teachingRequestWalletErrorMessage,
   updateMyTeachingRequest,
   updateMyTeachingRequestStatus,
+  TEACHING_REQUEST_FEE_PER_STUDENT,
   type TeachingRequestInput
 } from '../../services/myTeachingRequestApi';
 import { getGrades } from '../../services/gradeApi';
@@ -55,6 +57,7 @@ export function MyTeachingRequestsPage() {
   );
   const [gradeIds, setGradeIds] = useState<string[]>(() => initialEditRequest?.grades.map((grade) => grade.id) ?? []);
   const [customSubjectName, setCustomSubjectName] = useState(() => initialEditRequest?.customSubjectName ?? '');
+  const [quantity, setQuantity] = useState(() => String(initialEditRequest?.quantity ?? 1));
   const [teachingMode, setTeachingMode] = useState<'ONLINE' | 'OFFLINE'>(
     () => initialEditRequest?.teachingMode ?? 'ONLINE'
   );
@@ -139,6 +142,8 @@ export function MyTeachingRequestsPage() {
   const firstPageButton = Math.max(1, activePage - 2);
   const lastPageButton = Math.min(pageCount, activePage + 2);
   const goToPage = (nextPage: number) => setPagination({ filterKey, page: nextPage });
+  const learnerCount = Math.max(0, Number(quantity) || 0);
+  const amountDue = subjectIds.length ? learnerCount * TEACHING_REQUEST_FEE_PER_STUDENT : 0;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -181,13 +186,6 @@ export function MyTeachingRequestsPage() {
     const submitAction = submitter?.value ?? 'draft';
     const payImmediately = !editing && submitAction === 'pay';
     const paymentMethod = payImmediately ? String(form.get('paymentMethod')) : '';
-    if (paymentMethod === 'vnpay' && requestSubjects.length > 1) {
-      setBusy(false);
-      setMessage(
-        'VNPay thanh toán từng yêu cầu. Vui lòng chọn một môn học, hoặc chọn Ví điện tử để thanh toán nhiều môn.'
-      );
-      return;
-    }
     const paymentTab = paymentMethod === 'vnpay' ? window.open('about:blank', '_blank') : null;
     let createdCount = 0;
     let paidCount = 0;
@@ -197,8 +195,6 @@ export function MyTeachingRequestsPage() {
       if (editing) {
         savedRequests.push(await updateMyTeachingRequest(editing.id, { ...values, ...requestSubjects[0] }));
       } else {
-        // Keep the requests in order so multiple creations and wallet charges do not
-        // race against the same tutor account.
         for (const subject of requestSubjects) {
           savedRequests.push(await createMyTeachingRequest({ ...values, ...subject }));
         }
@@ -237,6 +233,9 @@ export function MyTeachingRequestsPage() {
       const errorDetails =
         caught instanceof ApiError ? ` (${caught.status}${caught.code ? ` · ${caught.code}` : ''})` : '';
       paymentTab?.close();
+      if (paymentStage && paymentMethod === 'wallet') {
+        window.alert(teachingRequestWalletErrorMessage(caught));
+      }
       setMessage(
         createdCount > 0 && paymentStage
           ? paymentMethod === 'wallet'
@@ -257,6 +256,7 @@ export function MyTeachingRequestsPage() {
     setEditing(request);
     setDistricts([]);
     setSubjectIds([request.subjectId ?? 'OTHER']);
+    setQuantity(String(request.quantity ?? 1));
     setGradeIds(request.grades.map((grade) => grade.id));
     setCustomSubjectName(request.customSubjectName ?? '');
     setTeachingMode(request.teachingMode);
@@ -314,7 +314,12 @@ export function MyTeachingRequestsPage() {
       );
       reload();
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'Không thể cập nhật yêu cầu dạy.');
+      if (action === 'pay-wallet') {
+        window.alert(teachingRequestWalletErrorMessage(caught));
+        setMessage(teachingRequestWalletErrorMessage(caught));
+      } else {
+        setMessage(caught instanceof Error ? caught.message : 'Không thể cập nhật yêu cầu dạy.');
+      }
     } finally {
       setBusyId(null);
     }
@@ -339,6 +344,7 @@ export function MyTeachingRequestsPage() {
               setSubjectIds([]);
               setGradeIds([]);
               setCustomSubjectName('');
+              setQuantity('1');
               setTeachingMode('ONLINE');
               setProvinceId('');
               setDistrictIds([]);
@@ -393,8 +399,16 @@ export function MyTeachingRequestsPage() {
             onChange={setGradeIds}
           />
           <label>
-            Số lượng học viên
-            <input name="quantity" type="number" min="1" defaultValue={editing?.quantity ?? ''} required />
+            Số lượng học viên{editing && editing.status !== 'DRAFT' && ' (Không thể đổi sau khi đã thanh toán)'}
+            <input
+              name="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              readOnly={Boolean(editing && editing.status !== 'DRAFT')}
+              required
+            />
           </label>
           <label>
             Học phí dự kiến (VNĐ)
@@ -449,13 +463,25 @@ export function MyTeachingRequestsPage() {
             onChange={setAvailabilities}
           />
           {!editing && (
-            <label className="common-payment-field">
-              Phương thức thanh toán
-              <select name="paymentMethod" defaultValue="wallet">
-                <option value="wallet">Ví điện tử</option>
-                <option value="vnpay">VNPay</option>
-              </select>
-            </label>
+            <>
+              <div className="student-field-full common-payment-summary">
+                <strong>Số tiền cần thanh toán: {amountDue.toLocaleString('vi-VN')} VNĐ</strong>
+                <span>
+                  {TEACHING_REQUEST_FEE_PER_STUDENT.toLocaleString('vi-VN')} VNĐ / 1 học viên × {learnerCount} học viên.
+                </span>
+                <span>
+                  Phí đăng bài không được hoàn lại sau khi thanh toán. Yêu cầu có môn học chưa có trong danh mục sẽ chờ
+                  duyệt; chỉ trường hợp này nếu bị quản trị viên từ chối do không hợp lệ mới được hoàn phí.
+                </span>
+              </div>
+              <label className="common-payment-field">
+                Phương thức thanh toán
+                <select name="paymentMethod" defaultValue="wallet">
+                  <option value="wallet">Ví điện tử</option>
+                  <option value="vnpay">VNPay</option>
+                </select>
+              </label>
+            </>
           )}
           <div className="student-form-actions common-request-actions">
             <button
@@ -467,6 +493,7 @@ export function MyTeachingRequestsPage() {
                 setSubjectIds([]);
                 setGradeIds([]);
                 setCustomSubjectName('');
+                setQuantity('1');
                 setTeachingMode('ONLINE');
                 setProvinceId('');
                 setDistrictIds([]);
@@ -625,6 +652,11 @@ export function MyTeachingRequestsPage() {
                     </div>
                     <h3>{request.title}</h3>
                     <p>{request.description || request.note || 'Chưa có mô tả.'}</p>
+                    {requestStatus === 'REJECTED' && request.rejectionReason && (
+                      <p className="teaching-rejection-reason" role="alert">
+                        <strong>Lý do từ chối:</strong> {request.rejectionReason}
+                      </p>
+                    )}
                     <div className="student-card-actions">
                       <span>
                         {request.grades.map((grade) => grade.name).join(', ') || 'Chưa chọn khối'} ·{' '}

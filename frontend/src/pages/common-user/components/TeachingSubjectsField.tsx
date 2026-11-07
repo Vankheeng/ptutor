@@ -1,5 +1,4 @@
 import type { Subject } from '../../../types/api';
-import { MultiSelectDropdown } from './MultiSelectDropdown';
 
 interface Props {
   subjects: Subject[];
@@ -9,21 +8,20 @@ interface Props {
 
 export function TeachingSubjectsField({ subjects, values, onChange }: Props) {
   const activeSubjects = subjects.filter((subject) => subject.status === 'ACTIVE');
-  const customSelected = values.includes('OTHER');
+  const selectedSubject = values[0] ?? '';
 
   return (
-    <div className="student-field-full">
-      <MultiSelectDropdown
-        label="Môn có thể dạy"
-        placeholder="Chọn một hoặc nhiều môn học"
-        options={[
-          ...activeSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
-          { value: 'OTHER', label: 'Môn học khác' }
-        ]}
-        values={values}
-        onChange={onChange}
-      />
-      {customSelected && <p className="teaching-choice-hint">Tên môn học khác sẽ được nhập sau khi chọn.</p>}
-    </div>
+    <label className={selectedSubject === 'OTHER' ? undefined : 'student-field-full'}>
+      Môn có thể dạy
+      <select value={selectedSubject} onChange={(event) => onChange(event.target.value ? [event.target.value] : [])}>
+        <option value="">Chọn một môn học</option>
+        {activeSubjects.map((subject) => (
+          <option key={subject.id} value={subject.id}>
+            {subject.name}
+          </option>
+        ))}
+        <option value="OTHER">Môn học khác</option>
+      </select>
+    </label>
   );
 }
