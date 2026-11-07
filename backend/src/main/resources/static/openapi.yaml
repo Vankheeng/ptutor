@@ -974,6 +974,12 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/StudentTutorRequestStatus'
+        - name: keyword
+          in: query
+          required: false
+          description: Search by teaching request, subject, tutor, grade, schedule or message.
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -1006,6 +1012,67 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/student-tutor-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorRequestId'
+    get:
+      tags:
+        - Student Tutor Requests
+      summary: Get my study application detail
+      description: Returns a student application only when it belongs to the authenticated student.
+      operationId: getMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student application detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Student Tutor Requests
+      summary: Update my pending study application
+      description: Updates the application fields only when it belongs to the authenticated student and is still PENDING.
+      operationId: updateMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTutorRequestUpdateRequest'
+      responses:
+        '200':
+          description: Student application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -5952,6 +6019,32 @@ components:
           type: string
           enum: [CANCELLED]
           description: The only status a student can set through this endpoint.
+
+    StudentTutorRequestUpdateRequest:
+      type: object
+      required:
+        - gradeId
+        - proposedPrice
+        - learningMode
+      properties:
+        gradeId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+          minimum: 0
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        message:
+          type: string
+          maxLength: 10000
+          nullable: true
 
     TutorStudentRequestCreateRequest:
       type: object

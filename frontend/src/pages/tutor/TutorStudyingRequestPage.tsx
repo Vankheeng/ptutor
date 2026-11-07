@@ -8,6 +8,7 @@ import { cancelTutorProposal, updateTutorProposal } from '../../services/tutorAp
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
 import { TutorStudyingRequestCard } from './components/TutorStudyingRequestCard';
 import { tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
+import { ApplicationDetailPanel } from '../../components/applications/ApplicationDetailPanel';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -20,8 +21,8 @@ export function TutorStudyingRequestPage() {
   const [proposalRevision, setProposalRevision] = useState(0);
   const proposalsQuery = useTutorProposals(undefined, proposalRevision);
   const myProposal = proposalsQuery.data?.find((proposal) => proposal.studyingRequestId === requestId);
-  const [showApply, setShowApply] = useState(
-    () => Boolean((location.state as { openApplication?: boolean } | null)?.openApplication)
+  const [showApply, setShowApply] = useState(() =>
+    Boolean((location.state as { openApplication?: boolean } | null)?.openApplication)
   );
   const [editingProposal, setEditingProposal] = useState(false);
   const [sending, setSending] = useState(false);
@@ -97,11 +98,7 @@ export function TutorStudyingRequestPage() {
   if (!request)
     return (
       <>
-        <button
-          className="tutor-button secondary tutor-navigation-button"
-          type="button"
-          onClick={() => navigate(-1)}
-        >
+        <button className="tutor-button secondary tutor-navigation-button" type="button" onClick={() => navigate(-1)}>
           ← Quay lại danh sách yêu cầu
         </button>
         <div className="tutor-error" role="alert">
@@ -259,90 +256,76 @@ export function TutorStudyingRequestPage() {
               </div>
             </>
           ) : myProposal ? (
-            <>
-              <div className="tutor-application-panel-heading">
-                <span className="tutor-proposal-application-icon" aria-hidden="true">
-                  ↗
-                </span>
-                <div>
-                  <h2>Ứng tuyển của tôi</h2>
-                  <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
-                    {tutorStatusLabel(myProposal.status)}
-                  </span>
-                </div>
-              </div>
-              <div className="tutor-apply-summary">
-                <small>Học phí đề xuất</small>
-                <strong className="tutor-proposed-price-value">
-                  {new Intl.NumberFormat('vi-VN').format(myProposal.proposedPrice)} VNĐ
-                </strong>
-                <small>Thời gian có thể dạy</small>
-                <strong className="tutor-application-time">
-                  {tutorScheduleLabel(myProposal.preferredSchedule, 'Lịch linh hoạt')}
-                </strong>
-                <small>Hình thức dạy</small>
-                <strong>{myProposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
-                {myProposal.teachingMode === 'OFFLINE' &&
-                  (myProposal.preferredProvinceName || myProposal.preferredDistrictName) && (
-                    <>
-                      <small className="tutor-application-address-label">Địa chỉ dạy học</small>
-                      <strong className="tutor-application-address-value">
-                        {[myProposal.preferredDistrictName, myProposal.preferredProvinceName]
+            <ApplicationDetailPanel
+              heading="Ứng tuyển của tôi"
+              statusClass={`status-${myProposal.status.toLowerCase()}`}
+              statusLabel={tutorStatusLabel(myProposal.status)}
+              priceLabel="Học phí đề xuất"
+              price={myProposal.proposedPrice}
+              fields={[
+                {
+                  label: 'Thời gian có thể dạy',
+                  value: tutorScheduleLabel(myProposal.preferredSchedule, 'Lịch linh hoạt')
+                },
+                { label: 'Hình thức dạy', value: myProposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp' },
+                ...(myProposal.teachingMode === 'OFFLINE' &&
+                (myProposal.preferredProvinceName || myProposal.preferredDistrictName)
+                  ? [
+                      {
+                        label: 'Địa chỉ dạy học',
+                        value: [myProposal.preferredDistrictName, myProposal.preferredProvinceName]
                           .filter(Boolean)
-                          .join(', ')}
-                      </strong>
-                    </>
-                  )}
-                {myProposal.message?.trim() && (
+                          .join(', ')
+                      }
+                    ]
+                  : [])
+              ]}
+              notes={myProposal.message?.trim() ? [{ label: 'Lời nhắn', value: myProposal.message }] : undefined}
+              actions={
+                myProposal.status === 'PENDING' ? (
                   <>
-                    <small>Lời nhắn</small>
-                    <strong>{myProposal.message}</strong>
+                    <button
+                      className="tutor-button tutor-apply-button"
+                      type="button"
+                      onClick={() => openApplication(true)}
+                    >
+                      Sửa đề xuất <span>↗</span>
+                    </button>
+                    <button
+                      className="tutor-button secondary tutor-cancel-proposal-button"
+                      type="button"
+                      disabled={cancellingProposal}
+                      onClick={() => void cancelProposal()}
+                    >
+                      {cancellingProposal ? 'Đang hủy…' : 'Hủy đề xuất'}
+                    </button>
+                    <button
+                      className="tutor-button secondary tutor-navigation-compact"
+                      type="button"
+                      onClick={() => navigate('/tutor/proposals')}
+                    >
+                      Xem tất cả đề xuất →
+                    </button>
                   </>
-                )}
-              </div>
-              {myProposal.status === 'PENDING' ? (
-                <div className="tutor-my-application-actions">
+                ) : myProposal.status === 'CANCELLED' ? (
                   <button
                     className="tutor-button tutor-apply-button"
                     type="button"
-                    onClick={() => openApplication(true)}
+                    onClick={() => openApplication(false)}
                   >
-                    Sửa đề xuất <span>↗</span>
+                    Gửi lại đề xuất <span>→</span>
                   </button>
+                ) : (
                   <button
-                    className="tutor-button secondary tutor-cancel-proposal-button"
-                    type="button"
-                    disabled={cancellingProposal}
-                    onClick={() => void cancelProposal()}
-                  >
-                    {cancellingProposal ? 'Đang hủy…' : 'Hủy đề xuất'}
-                  </button>
-                  <button
-                    className="tutor-button secondary tutor-navigation-compact"
+                    className="tutor-button tutor-apply-button"
                     type="button"
                     onClick={() => navigate('/tutor/proposals')}
                   >
-                    Xem tất cả đề xuất →
+                    Xem đề xuất của tôi <span>→</span>
                   </button>
-                </div>
-              ) : myProposal.status === 'CANCELLED' ? (
-                <button
-                  className="tutor-button tutor-apply-button"
-                  type="button"
-                  onClick={() => openApplication(false)}
-                >
-                  Gửi lại đề xuất <span>→</span>
-                </button>
-              ) : (
-                <button
-                  className="tutor-button tutor-apply-button"
-                  type="button"
-                  onClick={() => navigate('/tutor/proposals')}
-                >
-                  Xem đề xuất của tôi <span>→</span>
-                </button>
-              )}
-            </>
+                )
+              }
+            />
           ) : (
             <>
               <h2>Gửi đề xuất giảng dạy</h2>

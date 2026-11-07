@@ -1873,3 +1873,240 @@
     gap: 8px;
   }
 }
+
+.student-application-toolbar {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(0, 1.7fr);
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+.student-application-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e5e6ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #8c91a1;
+}
+.student-application-search:focus-within {
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
+}
+.student-application-search > span {
+  font-size: 20px;
+}
+.student-application-search input {
+  width: 100%;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #34394d;
+  font: inherit;
+  font-size: 11px;
+}
+.student-application-toolbar .student-filter-tabs {
+  margin: 0;
+  justify-content: flex-end;
+}
+.student-application-list {
+  display: grid;
+  gap: 12px;
+}
+.student-application-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(250px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+}
+.student-application-card-main,
+.student-application-card-summary,
+.student-application-card-actions {
+  min-width: 0;
+}
+.student-application-card-heading,
+.student-application-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.student-application-card-heading .student-eyebrow {
+  margin: 0;
+}
+.student-application-card h2 {
+  margin: 9px 0 5px;
+  color: #303448;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.student-application-meta {
+  margin: 4px 0 0;
+  color: #777c8e;
+  font-size: 10px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.student-application-card-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 15px;
+  padding-left: 18px;
+  border-left: 1px solid #eceef4;
+}
+.student-application-card-summary > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-application-card-summary span {
+  color: #999dad;
+  font-size: 9px;
+}
+.student-application-card-summary strong {
+  color: #3d4255;
+  font-size: 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.student-application-card-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 118px;
+}
+.student-application-card-actions .student-button {
+  justify-content: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.student-application-detail {
+  margin-top: 16px;
+}
+.student-application-detail-header {
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-application-detail-header h2 {
+  margin: 8px 0 5px;
+  color: #303448;
+  font-size: 19px;
+}
+.student-application-detail-header p {
+  margin: 0;
+  color: #777c8e;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.student-application-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 30px;
+  margin-top: 8px;
+}
+.student-application-detail-grid .student-detail-row {
+  grid-template-columns: minmax(105px, 0.45fr) minmax(0, 1fr);
+  gap: 13px;
+}
+.student-application-detail-actions {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #edf1f7;
+}
+
+@media (max-width: 1050px) {
+  .student-application-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .student-application-toolbar .student-filter-tabs {
+    justify-content: flex-start;
+  }
+  .student-application-card {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
+  }
+  .student-application-card-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-application-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .student-application-card-summary {
+    padding-top: 13px;
+    padding-left: 0;
+    border-top: 1px solid #eceef4;
+    border-left: 0;
+  }
+  .student-application-card-actions {
+    display: grid;
+    grid-column: auto;
+  }
+  .student-application-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-application-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shared Tutor-style application presentation used by Student applications. */
+.application-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.application-card-clickable {
+  cursor: pointer;
+}
+
+.application-card-clickable:focus-visible {
+  outline: 2px solid #8b68d2;
+  outline-offset: 3px;
+}
+
+.student-application-card {
+  border-color: #c4b5fd;
+}
+
+.tutor-application-detail-panel .tutor-application-panel-heading p {
+  margin: 0;
+  color: #9599a8;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.tutor-application-detail-panel .tutor-detail-facts {
+  margin-top: 0;
+}
+
+.tutor-application-detail-actions {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+
+@media (max-width: 700px) {
+  .tutor-application-detail-panel .tutor-application-panel-heading {
+    align-items: flex-start;
+  }
+
+  .tutor-application-detail-panel .tutor-application-panel-heading .tutor-cert-status {
+    margin-left: auto;
+  }
+}

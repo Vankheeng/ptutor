@@ -24,6 +24,7 @@ import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyin
 import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
+import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
 import { StudentContractsPage } from './pages/student/StudentContractsPage';
 import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
 import { StudentContractCreatePage } from './pages/student/StudentContractCreatePage';
@@ -163,6 +164,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
+                <Route path="applications/:applicationId" element={<StudentApplicationDetailPage />} />
                 <Route path="contracts" element={<StudentContractsPage />} />
                 <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />
                 <Route

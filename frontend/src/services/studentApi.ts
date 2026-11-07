@@ -357,7 +357,8 @@ export const rejectTutorOffer = (requestId: string, offerId: string) =>
 
 export const getTeachingRequests = (signal?: AbortSignal) =>
   get<TeachingRequest[]>('/api/v1/teaching-requests', { signal });
-export const getTeachingRequest = (id: string) => get<TeachingRequest>(`/api/v1/teaching-requests/${id}`);
+export const getTeachingRequest = (id: string, signal?: AbortSignal) =>
+  get<TeachingRequest>(`/api/v1/teaching-requests/${id}`, { signal });
 export const createStudentApplication = (
   teachingRequestId: string,
   values: {
@@ -369,12 +370,32 @@ export const createStudentApplication = (
   }
 ) =>
   post<StudentApplication>(`/api/v1/students/me/teaching-requests/${teachingRequestId}/student-tutor-requests`, values);
-export function getStudentApplications(status?: ApplicationStatus, page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<StudentApplication>>(
-    `/api/v1/students/me/student-tutor-requests?${pageParams(page, size, status)}`,
-    { signal }
-  );
+export function getStudentApplications(
+  status?: ApplicationStatus,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  keyword = ''
+) {
+  const params = pageParams(page, size, status);
+  const query = new URLSearchParams(params);
+  if (keyword.trim()) query.set('keyword', keyword.trim());
+  return get<PageResponse<StudentApplication>>(`/api/v1/students/me/student-tutor-requests?${query.toString()}`, {
+    signal
+  });
 }
+export const getStudentApplication = (id: string, signal?: AbortSignal) =>
+  get<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, { signal });
+export const updateStudentApplication = (
+  id: string,
+  values: {
+    gradeId: string;
+    proposedPrice: number;
+    learningMode: LearningMode;
+    preferredSchedule?: string;
+    message?: string;
+  }
+) => patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, values);
 export const cancelStudentApplication = (id: string) =>
   patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}/status`, { status: 'CANCELLED' });
 

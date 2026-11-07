@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.StudentTutorRequestCreateRequest;
 import com.ptutor.backend.dto.request.StudentTutorRequestStatusRequest;
+import com.ptutor.backend.dto.request.StudentTutorRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.StudentTutorRequestMineResponse;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
@@ -56,14 +57,34 @@ public class StudentTutorRequestStudentController {
     @GetMapping("/student-tutor-requests")
     public ResponseEntity<ApiResponse<PageResponse<StudentTutorRequestMineResponse>>> findMine(
             @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(required = false, defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(responseFactory.success(
                 studentTutorRequestService.findMineForStudent(
-                        currentUserProvider.getCurrentUserId(), status, pageable),
+                        currentUserProvider.getCurrentUserId(), status, keyword, pageable),
                 BASE_PATH));
+    }
+
+    @GetMapping("/student-tutor-requests/{requestId}")
+    public ResponseEntity<ApiResponse<StudentTutorRequestMineResponse>> findMineById(
+            @PathVariable UUID requestId) {
+        return ResponseEntity.ok(responseFactory.success(
+                studentTutorRequestService.findMineById(
+                        currentUserProvider.getCurrentUserId(), requestId),
+                BASE_PATH + "/" + requestId));
+    }
+
+    @PatchMapping("/student-tutor-requests/{requestId}")
+    public ResponseEntity<ApiResponse<StudentTutorRequestMineResponse>> update(
+            @PathVariable UUID requestId,
+            @Valid @RequestBody StudentTutorRequestUpdateRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                studentTutorRequestService.updateForStudent(
+                        currentUserProvider.getCurrentUserId(), requestId, request),
+                BASE_PATH + "/" + requestId));
     }
 
     @PatchMapping("/student-tutor-requests/{requestId}/status")

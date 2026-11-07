@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { cancelTutorProposal, updateTutorProposal, type TutorTeachingProposal } from '../../services/tutorApi';
 import { getStudyingRequest, type StudyingRequestSearchResponse } from '../../services/studyingRequestApi';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
+import { ApplicationToolbar } from '../../components/applications/ApplicationToolbar';
 import { TutorProposalCard } from './components/TutorProposalCard';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
 
@@ -117,37 +118,22 @@ export function TutorProposalsPage() {
           {error || proposalQuery.error}
         </div>
       )}
-      <div className="tutor-proposal-controls">
-        <label className="tutor-proposal-search">
-          <span aria-hidden="true">⌕</span>
-          <input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(0);
-            }}
-            placeholder="Tìm môn học, lịch dạy, giá hoặc địa chỉ"
-            aria-label="Tìm đề xuất của tôi"
-          />
-        </label>
-        <div className="tutor-filter-tabs" role="tablist" aria-label="Lọc đề xuất">
-          {filters.map((item) => (
-            <button
-              className={filter === item ? 'active' : ''}
-              type="button"
-              role="tab"
-              aria-selected={filter === item}
-              key={item}
-              onClick={() => {
-                setFilter(item);
-                setPage(0);
-              }}
-            >
-              {item === 'ALL' ? 'Tất cả' : label(item)}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ApplicationToolbar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        placeholder="Tìm môn học, lịch dạy, giá hoặc địa chỉ"
+        searchAriaLabel="Tìm đề xuất của tôi"
+        filters={filters.map((item) => ({ value: item, label: item === 'ALL' ? 'Tất cả' : label(item) }))}
+        selectedFilter={filter}
+        onFilterChange={(value) => {
+          setFilter(value as ProposalFilter);
+          setPage(0);
+        }}
+        filterAriaLabel="Lọc đề xuất"
+      />
       {proposalQuery.isLoading ? (
         <div className="tutor-empty">Đang tải đề xuất…</div>
       ) : visibleProposals.length === 0 ? (
@@ -183,12 +169,10 @@ export function TutorProposalsPage() {
           <button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)}>
             Trước
           </button>
-          <span>Trang {page + 1}/{pageCount}</span>
-          <button
-            type="button"
-            disabled={page + 1 >= pageCount}
-            onClick={() => setPage((current) => current + 1)}
-          >
+          <span>
+            Trang {page + 1}/{pageCount}
+          </span>
+          <button type="button" disabled={page + 1 >= pageCount} onClick={() => setPage((current) => current + 1)}>
             Sau
           </button>
         </div>
