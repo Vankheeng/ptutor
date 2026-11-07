@@ -45,6 +45,8 @@ import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
 import { AdminRefundRequestsPage } from './pages/admin/AdminRefundRequestsPage';
 import { AdminRefundRequestDetailPage } from './pages/admin/AdminRefundRequestDetailPage';
 import { StudentContractLessonsPage } from './pages/student/StudentContractLessonsPage';
+import { TutorCalendarPage } from './pages/tutor/TutorCalendarPage';
+import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
 import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
@@ -129,6 +131,8 @@ export default function App() {
               <Route path="/tutor" element={<TutorLayout />}>
                 <Route index element={<TutorDashboardPage />} />
                 <Route path="dashboard" element={<TutorDashboardPage />} />
+                <Route path="calendar" element={<TutorCalendarPage />} />
+                <Route path="sections/calendar" element={<TutorCalendarPage />} />
                 <Route path="profile" element={<TutorProfilePage />} />
                 <Route path="certificates" element={<TutorCertificatesPage />} />
                 <Route path="students" element={<TutorStudentSearchPage />} />
@@ -148,6 +152,7 @@ export default function App() {
               <Route path="/student" element={<StudentLayout />}>
                 <Route index element={<StudentDashboardPage />} />
                 <Route path="dashboard" element={<StudentDashboardPage />} />
+                <Route path="calendar" element={<StudentCalendarPage />} />
                 <Route path="studying-requests" element={<StudentStudyingRequestsPage />} />
                 <Route path="studying-requests/new" element={<StudentStudyingRequestCreatePage />} />
                 <Route

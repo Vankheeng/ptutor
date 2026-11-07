@@ -135,14 +135,11 @@ export function TutorProfilePage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">HỒ SƠ CÔNG KHAI</span>
           <h1>Chỉnh sửa hồ sơ</h1>
-          <p>Giúp học viên hiểu hơn về kinh nghiệm và phương pháp giảng dạy của bạn.</p>
         </div>
         <span className={`tutor-profile-badge status-${profile.profileStatus.toLowerCase()}`}>
           {PROFILE_STATUS_LABELS[profile.profileStatus]}
         </span>
-        <span className="tutor-profile-badge">Hồ sơ gia sư</span>
       </div>
       {profile.profileStatus === 'REJECTED' && (
         <div className="tutor-error" role="status">

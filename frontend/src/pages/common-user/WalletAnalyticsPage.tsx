@@ -235,9 +235,7 @@ export function WalletAnalyticsPage() {
       </div>
       <header className="transactions-page-heading analytics-heading">
         <div>
-          <span className="wallet-eyebrow">PTUTOR LEDGER HUB / ANALYTICS</span>
           <h1>Phân tích &amp; thống kê dòng tiền</h1>
-          <p>Phân tích các giao dịch ví PTutor trong 6 tháng gần đây.</p>
         </div>
         <button
           className="wallet-heading-button wallet-heading-button-light"

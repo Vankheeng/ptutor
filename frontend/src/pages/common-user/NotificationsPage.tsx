@@ -63,9 +63,7 @@ export function NotificationsPage() {
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">STAY UPDATED</span>
           <h1>Notifications</h1>
-          <p>Updates about your requests, contracts, payments, and account.</p>
         </div>
         <button className="student-button secondary" type="button" onClick={() => void readAll()}>
           Mark all as read
