@@ -17,6 +17,7 @@ import type { District, Grade, Province, Subject, TeachingRequest } from '../../
 import type { Availability } from '../../services/studentApi';
 import { StudentAvailabilityEditor } from '../../components/student/StudentAvailabilityEditor';
 import { TeachingSubjectsField } from '../common-user/components/TeachingSubjectsField';
+import { MultiSelectDropdown } from '../common-user/components/MultiSelectDropdown';
 import { RequestModeField } from '../common-user/components/RequestModeField';
 import { ApiError } from '../../services/httpClient';
 import './my-teaching-requests.css';
@@ -381,27 +382,16 @@ export function MyTeachingRequestsPage() {
               />
             </label>
           )}
-          <fieldset className="student-field-full teaching-choice-field">
-            <legend>Khối lớp có thể dạy (chọn một hoặc nhiều)</legend>
-            <div className="teaching-choice-grid">
-              {grades
-                .filter((grade) => grade.status === 'ACTIVE')
-                .map((grade) => (
-                  <label key={grade.id}>
-                    <input
-                      type="checkbox"
-                      checked={gradeIds.includes(grade.id)}
-                      onChange={() =>
-                        setGradeIds((current) =>
-                          current.includes(grade.id) ? current.filter((id) => id !== grade.id) : [...current, grade.id]
-                        )
-                      }
-                    />
-                    <span>{grade.name}</span>
-                  </label>
-                ))}
-            </div>
-          </fieldset>
+          <MultiSelectDropdown
+            className="student-field-full"
+            label="Khối lớp có thể dạy"
+            placeholder="Chọn một hoặc nhiều khối lớp"
+            options={grades
+              .filter((grade) => grade.status === 'ACTIVE')
+              .map((grade) => ({ value: grade.id, label: grade.name }))}
+            values={gradeIds}
+            onChange={setGradeIds}
+          />
           <label>
             Số lượng học viên
             <input name="quantity" type="number" min="1" defaultValue={editing?.quantity ?? ''} required />
@@ -436,33 +426,15 @@ export function MyTeachingRequestsPage() {
               ))}
             </select>
           </label>
-          <fieldset className="student-field-full teaching-district-field">
-            <legend>Chọn nhiều quận/huyện · đã chọn {districtIds.length}</legend>
-            {!provinceId ? (
-              <p>Chọn tỉnh/thành phố để xem các quận/huyện có thể đánh dấu.</p>
-            ) : districts.length ? (
-              <div className="teaching-district-options">
-                {districts.map((district) => (
-                  <label key={district.id}>
-                    <input
-                      type="checkbox"
-                      checked={districtIds.includes(district.id)}
-                      onChange={() =>
-                        setDistrictIds((current) =>
-                          current.includes(district.id)
-                            ? current.filter((id) => id !== district.id)
-                            : [...current, district.id]
-                        )
-                      }
-                    />
-                    <span>{district.name}</span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <p>Không có quận/huyện trong tỉnh/thành phố này.</p>
-            )}
-          </fieldset>
+          <MultiSelectDropdown
+            className="student-field-full"
+            label="Quận/huyện có thể dạy"
+            placeholder={!provinceId ? 'Chọn tỉnh/thành phố trước' : 'Không có quận/huyện để chọn'}
+            options={districts.map((district) => ({ value: district.id, label: district.name }))}
+            values={districtIds}
+            onChange={setDistrictIds}
+            disabled={!provinceId || districts.length === 0}
+          />
           <label className="student-field-full">
             Địa chỉ chi tiết
             <input name="detailAddress" maxLength={255} defaultValue={detailAddress} />

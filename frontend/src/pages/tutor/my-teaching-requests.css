@@ -25,6 +25,21 @@
 .common-request-pagination-pages button { min-width:32px; min-height:32px; padding:0 9px; border:1px solid #e1d8f1; border-radius:8px; background:#fff; color:#5933c6; font:inherit; cursor:pointer; }
 .common-request-pagination-pages button[aria-current="page"] { border-color:#6738d6; background:#6738d6; color:#fff; }
 .common-request-pagination-pages button:disabled { opacity:.45; cursor:not-allowed; }
+.multi-select-field { display:grid; gap:5px; min-width:0; }
+.multi-select-label { color:#555a6e; font-size:11px; font-weight:700; }
+.multi-select-dropdown { position:relative; min-width:0; }
+.multi-select-dropdown > summary { display:flex; align-items:center; gap:8px; min-height:39px; padding:0 11px; overflow:hidden; border:1px solid #ded5ed; border-radius:8px; background:#fff; color:#35394b; font-size:11px; cursor:pointer; list-style:none; }
+.multi-select-dropdown > summary::-webkit-details-marker { display:none; }
+.multi-select-dropdown > summary[aria-disabled="true"] { background:#f7f7fa; color:#9295a2; cursor:not-allowed; }
+.multi-select-dropdown > summary::after { content:'⌄'; flex:0 0 auto; margin-left:auto; color:#6b6280; font-size:15px; }
+.multi-select-dropdown[open] > summary { border-color:#9b7add; border-radius:8px 8px 0 0; }
+.multi-select-summary-text { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.multi-select-count { flex:0 0 auto; padding:3px 7px; border-radius:20px; background:#f0eafd; color:#6540bd; font-size:9px; }
+.multi-select-options { position:absolute; z-index:30; top:calc(100% - 1px); right:0; left:0; display:grid; gap:2px; max-height:230px; overflow:auto; padding:6px; border:1px solid #cdbbe9; border-radius:0 0 8px 8px; background:#fff; box-shadow:0 8px 20px #34244a1c; }
+.student-form-grid .multi-select-option { display:flex; align-items:center; gap:8px; min-height:32px; padding:5px 7px; border-radius:6px; color:#39354a; font-size:11px; font-weight:400; cursor:pointer; }
+.student-form-grid .multi-select-option:hover { background:#f7f3fc; }
+.student-form-grid .multi-select-option input { width:15px; height:15px; flex:0 0 15px; margin:0; accent-color:#7049c8; }
+.multi-select-empty { margin:0; padding:8px; color:#777185; font-size:11px; }
 .common-create-button { min-height:39px; padding:0 15px; border-radius:8px; font-size:11px; }
 .common-request-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:15px; }
 .common-request-card { display:flex; min-width:0; min-height:186px; flex-direction:column; gap:0; padding:20px; margin:0; border-radius:15px; }

@@ -1,4 +1,5 @@
 import type { Subject } from '../../../types/api';
+import { MultiSelectDropdown } from './MultiSelectDropdown';
 
 interface Props {
   subjects: Subject[];
@@ -9,25 +10,20 @@ interface Props {
 export function TeachingSubjectsField({ subjects, values, onChange }: Props) {
   const activeSubjects = subjects.filter((subject) => subject.status === 'ACTIVE');
   const customSelected = values.includes('OTHER');
-  const toggle = (id: string) =>
-    onChange(values.includes(id) ? values.filter((value) => value !== id) : [...values, id]);
 
   return (
-    <fieldset className="student-field-full teaching-choice-field">
-      <legend>Môn có thể dạy (chọn một hoặc nhiều)</legend>
-      <div className="teaching-choice-grid">
-        {activeSubjects.map((subject) => (
-          <label key={subject.id}>
-            <input type="checkbox" checked={values.includes(subject.id)} onChange={() => toggle(subject.id)} />
-            <span>{subject.name}</span>
-          </label>
-        ))}
-        <label>
-          <input type="checkbox" checked={customSelected} onChange={() => toggle('OTHER')} />
-          <span>Môn học khác</span>
-        </label>
-      </div>
+    <div className="student-field-full">
+      <MultiSelectDropdown
+        label="Môn có thể dạy"
+        placeholder="Chọn một hoặc nhiều môn học"
+        options={[
+          ...activeSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
+          { value: 'OTHER', label: 'Môn học khác' }
+        ]}
+        values={values}
+        onChange={onChange}
+      />
       {customSelected && <p className="teaching-choice-hint">Tên môn học khác sẽ được nhập sau khi chọn.</p>}
-    </fieldset>
+    </div>
   );
 }
