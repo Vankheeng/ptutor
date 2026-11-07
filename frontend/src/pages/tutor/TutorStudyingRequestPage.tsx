@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest, useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
-import { updateTutorProposal } from '../../services/tutorApi';
+import { cancelTutorProposal, updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
+import { TutorStudyingRequestCard } from './components/TutorStudyingRequestCard';
 import { tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function TutorStudyingRequestPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
@@ -18,9 +20,12 @@ export function TutorStudyingRequestPage() {
   const [proposalRevision, setProposalRevision] = useState(0);
   const proposalsQuery = useTutorProposals(undefined, proposalRevision);
   const myProposal = proposalsQuery.data?.find((proposal) => proposal.studyingRequestId === requestId);
-  const [showApply, setShowApply] = useState(false);
+  const [showApply, setShowApply] = useState(
+    () => Boolean((location.state as { openApplication?: boolean } | null)?.openApplication)
+  );
   const [editingProposal, setEditingProposal] = useState(false);
   const [sending, setSending] = useState(false);
+  const [cancellingProposal, setCancellingProposal] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -72,6 +77,22 @@ export function TutorStudyingRequestPage() {
     setShowApply(true);
   };
 
+  const cancelProposal = async () => {
+    if (!myProposal || myProposal.status !== 'PENDING') return;
+    setCancellingProposal(true);
+    setError('');
+    setNotice('');
+    try {
+      await cancelTutorProposal(myProposal.id);
+      setNotice('Đề xuất đã được hủy.');
+      setProposalRevision((value) => value + 1);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy đề xuất.');
+    } finally {
+      setCancellingProposal(false);
+    }
+  };
+
   if (loading) return <div className="tutor-empty">Đang tải yêu cầu học…</div>;
   if (!request)
     return (
@@ -79,7 +100,7 @@ export function TutorStudyingRequestPage() {
         <button
           className="tutor-button secondary tutor-navigation-button"
           type="button"
-          onClick={() => navigate('/tutor/dashboard#marketplace')}
+          onClick={() => navigate(-1)}
         >
           ← Quay lại danh sách yêu cầu
         </button>
@@ -94,7 +115,7 @@ export function TutorStudyingRequestPage() {
       <button
         className="tutor-button secondary tutor-navigation-button tutor-back-link"
         type="button"
-        onClick={() => navigate('/tutor/dashboard#marketplace')}
+        onClick={() => navigate(-1)}
       >
         ← Quay lại danh sách yêu cầu
       </button>
@@ -204,12 +225,11 @@ export function TutorStudyingRequestPage() {
             <div className="tutor-section-heading">
               <div>
                 <span className="tutor-eyebrow">KHÁM PHÁ THÊM</span>
-                <h2>Yêu cầu học tương tự</h2>
               </div>
               <button
-                className="tutor-button secondary tutor-navigation-compact"
+                className="tutor-button secondary tutor-navigation-compact tutor-see-all-proposals"
                 type="button"
-                onClick={() => navigate('/tutor/dashboard#marketplace')}
+                onClick={() => navigate('/tutor/students')}
               >
                 See all →
               </button>
@@ -217,18 +237,7 @@ export function TutorStudyingRequestPage() {
             {recommendations.length ? (
               <div className="tutor-recommendation-list">
                 {recommendations.map((item) => (
-                  <button
-                    className="tutor-recommendation-card"
-                    type="button"
-                    onClick={() => navigate(`/tutor/studying-requests/${item.id}`)}
-                    key={item.id}
-                  >
-                    <span className="tutor-subject-tag">{item.subjectName || 'Môn học'}</span>
-                    <strong>{item.title || `Tìm gia sư môn ${item.subjectName}`}</strong>
-                    <small>
-                      Lớp học: {item.gradeName || 'Chưa xác định'} · {item.districtName || 'Linh hoạt địa điểm'}
-                    </small>
-                  </button>
+                  <TutorStudyingRequestCard key={item.id} request={item} actionLabel="Xem yêu cầu" />
                 ))}
               </div>
             ) : (
@@ -244,7 +253,7 @@ export function TutorStudyingRequestPage() {
                   ↗
                 </span>
                 <div>
-                  <span className="tutor-eyebrow">ĐỀ XUẤT CỦA TÔI</span>
+                  <span className="tutor-eyebrow">ỨNG TUYỂN CỦA TÔI</span>
                   <h2>Đang tải đề xuất…</h2>
                 </div>
               </div>
@@ -256,12 +265,11 @@ export function TutorStudyingRequestPage() {
                   ↗
                 </span>
                 <div>
-                  <span className="tutor-eyebrow">ĐỀ XUẤT CỦA TÔI</span>
-                  <h2>Đề xuất giảng dạy</h2>
+                  <h2>Ứng tuyển của tôi</h2>
+                  <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
+                    {tutorStatusLabel(myProposal.status)}
+                  </span>
                 </div>
-                <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
-                  {tutorStatusLabel(myProposal.status)}
-                </span>
               </div>
               <div className="tutor-apply-summary">
                 <small>Học phí đề xuất</small>
@@ -302,6 +310,14 @@ export function TutorStudyingRequestPage() {
                     Sửa đề xuất <span>↗</span>
                   </button>
                   <button
+                    className="tutor-button secondary tutor-cancel-proposal-button"
+                    type="button"
+                    disabled={cancellingProposal}
+                    onClick={() => void cancelProposal()}
+                  >
+                    {cancellingProposal ? 'Đang hủy…' : 'Hủy đề xuất'}
+                  </button>
+                  <button
                     className="tutor-button secondary tutor-navigation-compact"
                     type="button"
                     onClick={() => navigate('/tutor/proposals')}
@@ -329,9 +345,7 @@ export function TutorStudyingRequestPage() {
             </>
           ) : (
             <>
-              <span className="tutor-eyebrow">BẠN QUAN TÂM ĐẾN YÊU CẦU NÀY?</span>
               <h2>Gửi đề xuất giảng dạy</h2>
-              <p>Giới thiệu về bạn và đề xuất thời gian phù hợp.</p>
               <div className="tutor-apply-summary">
                 <small>Ngân sách học viên</small>
                 <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
@@ -346,7 +360,7 @@ export function TutorStudyingRequestPage() {
                 type="button"
                 onClick={() => navigate('/tutor/proposals')}
               >
-                Đề xuất của tôi
+                Ứng tuyển của tôi
               </button>
             </>
           )}

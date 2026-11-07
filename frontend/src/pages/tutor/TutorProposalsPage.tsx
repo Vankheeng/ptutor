@@ -8,11 +8,13 @@ import { TutorApplicationForm, type TutorApplicationValues } from './components/
 
 const filters = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'] as const;
 type ProposalFilter = (typeof filters)[number];
+const PAGE_SIZE = 8;
 
 export function TutorProposalsPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<ProposalFilter>('ALL');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const proposalQuery = useTutorProposals(filter === 'ALL' ? undefined : filter, revision);
   const proposals = useMemo(() => proposalQuery.data ?? [], [proposalQuery.data]);
@@ -64,6 +66,8 @@ export function TutorProposalsPage() {
       ].some((value) => value?.toLocaleLowerCase().includes(term));
     });
   }, [proposals, requestDetails, search]);
+  const pageCount = Math.ceil(visibleProposals.length / PAGE_SIZE);
+  const pageProposals = visibleProposals.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const cancel = async (proposal: TutorTeachingProposal) => {
     setCancelling(proposal.id);
@@ -102,12 +106,10 @@ export function TutorProposalsPage() {
     <>
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">HÀNH TRÌNH GIẢNG DẠY</span>
-          <h1>Đề xuất giảng dạy của tôi</h1>
-          <p>Theo dõi yêu cầu học và đề xuất bạn đã gửi cho học viên.</p>
+          <h1>Ứng tuyển của tôi</h1>
         </div>
-        <Link className="tutor-button tutor-heading-button" to="/tutor/dashboard">
-          Tìm yêu cầu học
+        <Link className="tutor-button tutor-heading-button" to="/tutor/students">
+          Tìm học viên
         </Link>
       </div>
       {(error || proposalQuery.error) && (
@@ -120,7 +122,10 @@ export function TutorProposalsPage() {
           <span aria-hidden="true">⌕</span>
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(0);
+            }}
             placeholder="Tìm môn học, lịch dạy, giá hoặc địa chỉ"
             aria-label="Tìm đề xuất của tôi"
           />
@@ -133,7 +138,10 @@ export function TutorProposalsPage() {
               role="tab"
               aria-selected={filter === item}
               key={item}
-              onClick={() => setFilter(item)}
+              onClick={() => {
+                setFilter(item);
+                setPage(0);
+              }}
             >
               {item === 'ALL' ? 'Tất cả' : label(item)}
             </button>
@@ -154,7 +162,7 @@ export function TutorProposalsPage() {
         </div>
       ) : (
         <div className="tutor-proposal-list">
-          {visibleProposals.map((proposal) => (
+          {pageProposals.map((proposal) => (
             <TutorProposalCard
               key={proposal.id}
               proposal={proposal}
@@ -168,6 +176,21 @@ export function TutorProposalsPage() {
               }}
             />
           ))}
+        </div>
+      )}
+      {!proposalQuery.isLoading && pageCount > 1 && (
+        <div className="tutor-marketplace-pagination" aria-label="Phân trang đề xuất giảng dạy">
+          <button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)}>
+            Trước
+          </button>
+          <span>Trang {page + 1}/{pageCount}</span>
+          <button
+            type="button"
+            disabled={page + 1 >= pageCount}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Sau
+          </button>
         </div>
       )}
       {editingProposal && (

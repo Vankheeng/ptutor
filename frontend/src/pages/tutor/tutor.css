@@ -41,6 +41,41 @@
 .tutor-availability-editor-heading button:disabled{opacity:.45;cursor:default}
 .tutor-offline-location{display:grid;gap:8px;padding:11px;border:1px solid #eeeaf6;border-radius:9px;background:#fbfaff;color:#555a6e;font-size:10px;font-weight:700}.tutor-location-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tutor-location-fields label{display:grid;gap:5px;color:#777c8e;font-size:9px}.tutor-location-fields select{width:100%;min-width:0;height:37px;padding:0 8px;border:1px solid #e3e5ed;border-radius:8px;background:#fff;color:#303448;font:inherit;font-size:10px}
 @media(max-width:500px){.tutor-location-fields{grid-template-columns:1fr}.tutor-availability-row{grid-template-columns:minmax(80px,1fr) minmax(70px,.8fr) minmax(70px,.8fr) 25px;gap:4px}}
+.tutor-student-filter-panel{display:grid;gap:12px;margin:0 0 16px;padding:12px;border:1px solid #eceef4;border-radius:12px;background:#fff}
+.tutor-student-search-basic{display:grid;grid-template-columns:minmax(200px,1.5fr) repeat(5,minmax(105px,1fr)) auto;gap:10px;align-items:end}
+.tutor-student-search-advanced{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:12px;border-top:1px solid #f0f1f5;align-items:start}
+.tutor-student-search-basic>label,.tutor-student-search-advanced>label{display:grid;min-width:0;gap:5px;color:#8c91a1;font-size:9px;font-weight:700}
+.tutor-student-filter-panel input,.tutor-student-filter-panel select{width:100%;min-width:0;height:37px;padding:0 10px;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px;outline:none}
+.tutor-student-filter-panel input:focus,.tutor-student-filter-panel select:focus{border-color:#997be1;box-shadow:0 0 0 3px #8b68d21c}
+.tutor-student-filter-panel .tutor-search{display:flex;align-self:end;grid-template-columns:none;align-items:center;gap:8px;padding:0 10px}
+.tutor-student-filter-panel .tutor-search input{height:35px;padding:0;border:0;box-shadow:none}
+.tutor-student-filter-panel .tutor-search svg{flex:none;color:#8f94a4}
+.tutor-student-advanced-toggle{height:37px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#5f4c91;font:inherit;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer}
+.tutor-student-advanced-toggle:hover{border-color:#c9b9ed;background:#fcfbff}
+.tutor-student-advanced-toggle[aria-expanded="true"]{border-color:#bca8e9;background:#f6f2ff;color:#6944ca}
+.tutor-schedule-filter{grid-column:span 2;min-width:0;margin:0;padding:0;border:0}
+.tutor-schedule-filter legend{margin-bottom:5px;color:#8c91a1;font-size:9px;font-weight:700}
+.tutor-schedule-filter-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(85px,.8fr) minmax(85px,.8fr) 28px;gap:6px;margin-bottom:6px}
+.tutor-schedule-filter-row select,.tutor-schedule-filter-row input{height:37px;padding:0 8px;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px}
+.tutor-schedule-filter-remove{border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#8a8496;font-size:17px;cursor:pointer}
+.tutor-schedule-filter-remove:disabled{opacity:.35;cursor:default}
+.tutor-schedule-filter-add{padding:5px 0;border:0;background:transparent;color:#6944ca;font:inherit;font-size:9px;font-weight:700;text-align:left;cursor:pointer}
+.tutor-student-filter-actions{display:flex;justify-content:flex-end;padding-top:10px;border-top:1px solid #f0f1f5}
+.tutor-student-filter-actions .tutor-button{min-height:34px;font-size:10px}
+.tutor-student-search-card{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.tutor-student-search-card:hover{transform:translateY(-3px);border-color:#c9b9ed;box-shadow:0 12px 28px #3c2b681c}
+.tutor-student-search-card:focus-visible{outline:2px solid #997be1;outline-offset:3px}
+.tutor-student-apply-button{justify-content:center;font-size:10px}
+.tutor-student-card-actions{display:flex;gap:8px;margin-top:9px}
+.tutor-student-card-actions .tutor-button{flex:1;min-width:0;min-height:39px;margin:0;padding:0 8px;justify-content:center;font-size:10px}
+.tutor-proposal-side-heading .tutor-subject-tag{max-width:55%;padding:5px 9px;overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.tutor-apply-sidebar .tutor-apply-button{justify-content:center;gap:8px}
+.tutor-recommendations .tutor-section-heading h2{font-size:14px}
+.tutor-see-all-proposals{min-height:27px;padding:0 8px;font-size:8px}
+.tutor-recommendation-subject{padding:4px 7px;font-size:9px}
+.tutor-recommendation-card strong{font-size:9px}
+@media(max-width:1100px){.tutor-student-search-basic{grid-template-columns:repeat(3,minmax(0,1fr))}.tutor-student-search-basic .tutor-search{grid-column:span 2}.tutor-student-search-advanced{grid-template-columns:repeat(2,minmax(0,1fr))}.tutor-schedule-filter{grid-column:1/-1}}
+@media(max-width:700px){.tutor-student-search-basic{grid-template-columns:1fr 1fr}.tutor-student-search-basic .tutor-search{grid-column:1/-1}.tutor-student-advanced-toggle{grid-column:1/-1}.tutor-student-search-advanced{grid-template-columns:1fr}.tutor-schedule-filter{grid-column:1}.tutor-schedule-filter-row{grid-template-columns:minmax(90px,1fr) minmax(75px,.8fr) minmax(75px,.8fr) 28px}}
 @media(max-width:900px){.tutor-proposal-controls{align-items:flex-start;flex-direction:column;gap:8px}.tutor-proposal-controls .tutor-proposal-search{width:100%;max-width:none}.tutor-proposal-controls .tutor-filter-tabs{width:100%;justify-content:flex-start}}
 .tutor-proposal-open-button{padding:0;border:0;background:transparent;color:#7049c8;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
 .tutor-detail-navigation{padding:0;border:0;background:transparent;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer}.tutor-detail-navigation:hover{text-decoration:underline}.tutor-recommendation-card{width:100%;font-family:inherit;text-align:left;background:#fff;cursor:pointer}.tutor-my-application-actions{margin-top:14px}
@@ -51,3 +86,10 @@
 .tutor-review-pending{background:#fff6e6;color:#8a5a00}
 .tutor-proposal-actions .tutor-proposal-edit{justify-content:center}
 .tutor-my-application-actions .tutor-apply-button{justify-content:center;gap:8px}
+.tutor-my-application-actions .tutor-cancel-proposal-button{color:#a94442;border-color:#f0d7d5}
+.tutor-my-application-actions .tutor-button{box-sizing:border-box;width:100%;min-height:39px;padding:0 10px;font-size:10px}
+.tutor-student-search-grid,.tutor-recommendation-list{align-items:stretch}
+.tutor-student-search-card{display:flex;height:100%;flex-direction:column}
+.tutor-student-search-card>.tutor-propose-button{margin-top:auto}
+.tutor-student-search-card>.tutor-student-card-actions{margin-top:auto;padding-top:9px}
+.tutor-application-panel-heading>div,.tutor-proposal-application-heading>div{display:grid;justify-items:start;gap:5px}

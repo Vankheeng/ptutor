@@ -139,11 +139,9 @@ export function TutorApplicationForm({
         <button className="tutor-modal-close" type="button" aria-label="Đóng" onClick={onClose}>
           ×
         </button>
-        <span className="tutor-eyebrow">ĐỀ XUẤT CỦA BẠN</span>
         <h2 id="tutor-apply-title">
-          {editing ? 'Chỉnh sửa đề xuất' : `Ứng tuyển dạy ${subjectName || 'môn học này'}`}
+          {editing ? 'Chỉnh sửa chi tiết ứng tuyển' : 'Chi tiết ứng tuyển'}
         </h2>
-        <p className="tutor-modal-intro">Gửi mức học phí và thời gian bạn có thể dạy cho học viên.</p>
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}

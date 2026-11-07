@@ -14,7 +14,17 @@ export type IconName =
   | 'book'
   | 'eye'
   | 'eyeOff'
-  | 'bell';
+  | 'bell'
+  | 'dashboard'
+  | 'calendar'
+  | 'wallet'
+  | 'history'
+  | 'send'
+  | 'refund'
+  | 'award'
+  | 'user'
+  | 'home'
+  | 'logout';
 
 interface IconProps {
   name: IconName;
@@ -97,6 +107,68 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
       <path d="M10 21h4" />
+    </>
+  ),
+  dashboard: (
+    <>
+      <rect x="3" y="3" width="8" height="8" rx="1" />
+      <rect x="13" y="3" width="8" height="5" rx="1" />
+      <rect x="13" y="10" width="8" height="11" rx="1" />
+      <rect x="3" y="13" width="8" height="8" rx="1" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M7 3v4M17 3v4M3 10h18M8 14h2M14 14h2M8 18h2" />
+    </>
+  ),
+  wallet: (
+    <>
+      <rect x="3" y="6" width="18" height="15" rx="2" />
+      <path d="M3 9h18M16 15h2M6 6V4h12" />
+    </>
+  ),
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" />
+      <path d="M3 3v5h5M12 7v5l3 2" />
+    </>
+  ),
+  send: (
+    <>
+      <path d="m22 2-7 20-4-9-9-4Z" />
+      <path d="M22 2 11 13" />
+    </>
+  ),
+  refund: (
+    <>
+      <path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" />
+      <path d="M3 3v5h5M12 8v4l3 2" />
+    </>
+  ),
+  award: (
+    <>
+      <circle cx="12" cy="8" r="5" />
+      <path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9" />
+      <path d="m10 8 1.4 1.4L14.5 6" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1Z" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M10 17l5-5-5-5M15 12H3" />
+      <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
     </>
   )
 };
