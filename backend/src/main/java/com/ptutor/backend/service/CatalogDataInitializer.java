@@ -73,5 +73,11 @@ public class CatalogDataInitializer implements ApplicationRunner {
                             .status(CatalogStatus.ACTIVE)
                             .build()));
         }
+        gradeRepository.findByNameIgnoreCase("Khác")
+                .orElseGet(() -> gradeRepository.save(Grade.builder()
+                        .name("Khác")
+                        .level(null)
+                        .status(CatalogStatus.ACTIVE)
+                        .build()));
     }
 }
