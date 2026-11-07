@@ -6,19 +6,25 @@ import './student-layout.css';
 import './student.css';
 
 const navigation = [
-  { section: 'WORKSPACE', to: '/student/dashboard', label: 'Dashboard', icon: '⌂' },
-  { section: 'LEARNING', to: '/student/studying-requests', label: 'My Studying Requests', icon: '▤' },
-  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Browse Teaching Requests', icon: '⌕' },
-  { section: 'LEARNING', to: '/student/applications', label: 'My requests to studying', icon: '↗' },
+  { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: '⌂' },
+  { section: 'LEARNING', to: '/student/studying-requests', label: 'Yêu cầu tìm gia sư', icon: '▤' },
+  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm yêu cầu dạy', icon: '⌕' },
+  { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: '↗' },
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
-  { section: 'ACCOUNT', to: '/student/notifications', label: 'Notifications', icon: 'bell' },
-  { section: 'ACCOUNT', to: '/student/wallet', label: 'Wallet & Payments', icon: '◈' },
-  { section: 'ACCOUNT', to: '/student/wallet/transactions', label: 'Transaction History', icon: '▤' },
+  { section: 'ACCOUNT', to: '/student/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/student/wallet', label: 'Ví tiền & thanh toán', icon: '◈' },
+  { section: 'ACCOUNT', to: '/student/wallet/transactions', label: 'Lịch sử giao dịch', icon: '▤' },
   { section: 'ACCOUNT', to: '/student/wallet/analytics', label: 'Phân tích thu chi', icon: '▥' },
-  { section: 'ACCOUNT', to: '/student/profile', label: 'My Profile', icon: '◎' }
+  { section: 'ACCOUNT', to: '/student/profile', label: 'Hồ sơ của tôi', icon: '◎' }
 ];
+
+const sectionLabels = {
+  WORKSPACE: 'KHÔNG GIAN LÀM VIỆC',
+  LEARNING: 'HỌC TẬP',
+  ACCOUNT: 'TÀI KHOẢN'
+} as const;
 
 export function StudentLayout() {
   const { user, logout } = useAuth();
@@ -35,7 +41,7 @@ export function StudentLayout() {
   return (
     <div className="student-shell">
       <aside className="student-sidebar">
-        <NavLink className="student-brand" to="/student/dashboard" aria-label="Ptutor student dashboard">
+        <NavLink className="student-brand" to="/student/dashboard" aria-label="Bảng điều khiển học viên Ptutor">
           <img src={logo} alt="Ptutor" />
         </NavLink>
         <div className="student-identity">
@@ -44,13 +50,13 @@ export function StudentLayout() {
           </span>
           <span>
             <strong>{fullName}</strong>
-            <small>Student</small>
+            <small>Học viên</small>
           </span>
         </div>
-        <nav className="student-nav" aria-label="Student workspace">
+        <nav className="student-nav" aria-label="Không gian học viên">
           {(['WORKSPACE', 'LEARNING', 'ACCOUNT'] as const).map((section) => (
             <div className="student-nav-group" key={section}>
-              <span className="student-nav-label">{section}</span>
+              <span className="student-nav-label">{sectionLabels[section]}</span>
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (
@@ -75,7 +81,7 @@ export function StudentLayout() {
         </nav>
         <div className="student-sidebar-bottom">
           <NavLink className="student-nav-link" to="/public">
-            <span aria-hidden="true">↗</span>Public home
+            <span aria-hidden="true">↗</span>Trang chủ
           </NavLink>
           <button
             className="student-nav-link student-logout"
@@ -85,7 +91,7 @@ export function StudentLayout() {
               navigate('/');
             }}
           >
-            <span aria-hidden="true">⇥</span>Sign out
+            <span aria-hidden="true">⇥</span>Đăng xuất
           </button>
         </div>
       </aside>
