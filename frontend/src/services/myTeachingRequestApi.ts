@@ -36,6 +36,7 @@ export interface StudentTeachingApplication {
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 const base = '/api/v1/tutors/me/teaching-requests';

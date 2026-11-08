@@ -10,7 +10,7 @@ import {
   type TutorOffer
 } from '../../services/studentApi';
 import { StudentStudyingRequestDetails } from '../../components/student/StudentStudyingRequestDetails';
-import { StudentTutorOffers } from '../../components/student/StudentTutorOffers';
+import { Offers } from '../../components/student/Offers';
 import { useResource } from '../../hooks/useResource';
 
 export function StudentStudyingRequestDetailPage() {
@@ -83,7 +83,7 @@ export function StudentStudyingRequestDetailPage() {
       )}
       <div className="student-detail-layout">
         <StudentStudyingRequestDetails request={request} />
-        <StudentTutorOffers
+        <Offers
           requestStatus={request.status}
           offers={offers}
           busyOfferId={busy}
