@@ -3,7 +3,7 @@ import type { Contract } from '../../services/studentApi';
 import { Icon } from '../ui/Icon';
 import { StudentContractStatusBadge } from './StudentContractStatusBadge';
 
-export function StudentContractCard({ contract }: { contract: Contract }) {
+export function StudentContractCard({ contract, currentUserId }: { contract: Contract; currentUserId?: string }) {
   const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const tutorInitials = tutorName
     .split(/\s+/)
@@ -14,6 +14,9 @@ export function StudentContractCard({ contract }: { contract: Contract }) {
   const subjectName = contract.subjectName || 'Môn học';
   const gradeName = contract.gradeName || 'Chưa có lớp';
   const paymentPeriod = formatPaymentPeriod(contract.paymentPeriod);
+  const isPendingForSignature =
+    contract.status === 'PENDING' && Boolean(currentUserId) && contract.createdByUserId !== currentUserId;
+  const isPendingCreatedByYou = contract.status === 'PENDING' && Boolean(currentUserId) && !isPendingForSignature;
 
   return (
     <article className="student-contract-list-card student-contract-card">
@@ -49,12 +52,16 @@ export function StudentContractCard({ contract }: { contract: Contract }) {
       </div>
 
       <div className="student-contract-status">
-        <StudentContractStatusBadge status={contract.status} />
+        <StudentContractStatusBadge
+          status={contract.status}
+          label={isPendingForSignature ? 'Chờ bạn ký' : isPendingCreatedByYou ? 'Chờ gia sư ký' : undefined}
+          variant={isPendingCreatedByYou ? 'outgoing' : undefined}
+        />
       </div>
 
       <div className="student-contract-action">
         <Link className="student-button secondary student-contract-view" to={`/student/contracts/${contract.id}`}>
-          <span>Xem hợp đồng</span>
+          <span>{isPendingForSignature ? 'Xem và ký' : 'Xem hợp đồng'}</span>
           <span aria-hidden="true">&rarr;</span>
         </Link>
       </div>

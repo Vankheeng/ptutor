@@ -2,7 +2,13 @@ import type { ContractStatus } from '../../services/studentApi';
 
 type Status = ContractStatus | 'PAID';
 
-export function StudentContractStatusBadge({ status }: { status: Status }) {
+interface Props {
+  status: Status;
+  label?: string;
+  variant?: 'default' | 'outgoing';
+}
+
+export function StudentContractStatusBadge({ status, label, variant = 'default' }: Props) {
   const labels: Record<Status, string> = {
     PENDING: 'Đang chờ',
     ACTIVE: 'Đang hoạt động',
@@ -10,5 +16,5 @@ export function StudentContractStatusBadge({ status }: { status: Status }) {
     CANCELLED: 'Đã hủy',
     PAID: 'Đã thanh toán'
   };
-  return <span className={`student-status ${status.toLowerCase()}`}>{labels[status]}</span>;
+  return <span className={`student-status ${status.toLowerCase()} ${variant}`}>{label ?? labels[status]}</span>;
 }

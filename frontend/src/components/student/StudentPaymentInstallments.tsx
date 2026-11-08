@@ -8,7 +8,7 @@ export function StudentPaymentInstallments({
 }: {
   installments: Installment[];
   loading: boolean;
-  onPay: (installmentId: string) => void;
+  onPay: (installment: Installment) => void;
 }) {
   return (
     <section className="student-panel student-contract-section">
@@ -41,7 +41,7 @@ export function StudentPaymentInstallments({
                     className="student-button student-installment-pay"
                     type="button"
                     disabled={loading}
-                    onClick={() => onPay(item.id)}
+                    onClick={() => onPay(item)}
                   >
                     Thanh toán
                   </button>

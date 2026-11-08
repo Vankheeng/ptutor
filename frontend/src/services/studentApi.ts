@@ -540,3 +540,5 @@ export const payInstallment = (contractId: string, installmentId: string) =>
     `/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/vnpay`,
     { locale: 'vn' }
   );
+export const payInstallmentWithWallet = (contractId: string, installmentId: string) =>
+  post<Payment>(`/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/wallet`);
