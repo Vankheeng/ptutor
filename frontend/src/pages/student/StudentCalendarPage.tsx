@@ -87,11 +87,11 @@ export function StudentCalendarPage() {
     )
   ];
   const now = new Date();
-  const upcoming = allEvents.filter(
+  const upcoming = events.filter(
     (event) => lessonDateTime(event) >= now && event.status !== 'CANCELLED' && event.status !== 'COMPLETED'
   ).length;
-  const awaiting = allEvents.filter((event) => event.status === 'PENDING_CONFIRMATION').length;
-  const completed = allEvents.filter((event) => event.status === 'CONFIRMED' || event.status === 'COMPLETED').length;
+  const awaiting = events.filter((event) => event.status === 'PENDING_CONFIRMATION').length;
+  const completed = events.filter((event) => event.status === 'CONFIRMED' || event.status === 'COMPLETED').length;
 
   const move = (amount: number) =>
     setCursor((current) => {
@@ -129,19 +129,12 @@ export function StudentCalendarPage() {
         <div>
           <span className="student-lesson-kicker">LỊCH HỌC</span>
           <h1>Lịch học của tôi</h1>
-          <p>Theo dõi các buổi học và xác nhận tiến độ học tập của bạn.</p>
         </div>
       </header>
 
-      <section className="student-lesson-stats" aria-label="Tổng quan lịch học">
-        <Stat icon="▣" label="Tổng số buổi học" value={allEvents.length} loading={isLoading && !data} tone="purple" />
-        <Stat icon="▣" label="Buổi sắp tới" value={upcoming} loading={isLoading && !data} tone="green" />
-        <Stat icon="⌛" label="Chờ xác nhận" value={awaiting} loading={isLoading && !data} tone="yellow" />
-        <Stat icon="✓" label="Đã hoàn tất" value={completed} loading={isLoading && !data} tone="green" />
-      </section>
-
       <LessonCalendarToolbar
         role="STUDENT"
+        variant="student"
         cursor={cursor}
         view={view}
         contracts={contracts}
@@ -171,6 +164,13 @@ export function StudentCalendarPage() {
         }}
         onCreate={() => undefined}
       />
+
+      <section className="student-lesson-stats" aria-label="Tổng quan lịch học theo bộ lọc">
+        <Stat icon="▣" label="Tổng số buổi học" value={events.length} loading={isLoading && !data} tone="purple" />
+        <Stat icon="▣" label="Buổi sắp tới" value={upcoming} loading={isLoading && !data} tone="green" />
+        <Stat icon="⌛" label="Chờ xác nhận" value={awaiting} loading={isLoading && !data} tone="yellow" />
+        <Stat icon="✓" label="Đã hoàn tất" value={completed} loading={isLoading && !data} tone="green" />
+      </section>
 
       {notice && (
         <div className="lc-notice" role="status">
