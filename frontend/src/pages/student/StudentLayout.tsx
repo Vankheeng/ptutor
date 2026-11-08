@@ -7,8 +7,8 @@ import './student.css';
 
 const navigation = [
   { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: '⌂' },
+  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm kiếm gia sư', icon: '⌕' },
   { section: 'LEARNING', to: '/student/studying-requests', label: 'Yêu cầu tìm gia sư', icon: '▤' },
-  { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm yêu cầu dạy', icon: '⌕' },
   { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: '↗' },
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },

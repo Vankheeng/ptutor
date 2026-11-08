@@ -20,11 +20,21 @@ interface Props {
   filters: TutorStudentFilters;
   onChange: (next: TutorStudentFilters) => void;
   onSearch: () => void;
+  searchPlaceholder?: string;
+  searchAriaLabel?: string;
+  scheduleLabel?: string;
 }
 
 const weekdays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 
-export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props) {
+export function TutorStudentSearchFilters({
+  filters,
+  onChange,
+  onSearch,
+  searchPlaceholder = 'Tìm theo tên, môn học hoặc lớp',
+  searchAriaLabel = 'Tìm theo tên học viên, môn học hoặc lớp',
+  scheduleLabel = 'Lịch mong muốn'
+}: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { provinces, districts } = useLocationOptions(filters.provinceId);
   const { subjects, grades } = useStudyCatalogOptions();
@@ -39,22 +49,30 @@ export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props
             type="search"
             value={filters.search}
             onChange={(event) => update({ search: event.target.value })}
-            placeholder="Tìm theo tên, môn học hoặc lớp"
-            aria-label="Tìm theo tên học viên, môn học hoặc lớp"
+            placeholder={searchPlaceholder}
+            aria-label={searchAriaLabel}
           />
         </label>
         <label>
           Môn học
           <select value={filters.subjectId} onChange={(event) => update({ subjectId: event.target.value })}>
             <option value="">Tất cả môn học</option>
-            {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {subject.name}
+              </option>
+            ))}
           </select>
         </label>
         <label>
           Khối lớp
           <select value={filters.gradeId} onChange={(event) => update({ gradeId: event.target.value })}>
             <option value="">Tất cả khối lớp</option>
-            {grades.map((grade) => <option key={grade.id} value={grade.id}>{grade.name}</option>)}
+            {grades.map((grade) => (
+              <option key={grade.id} value={grade.id}>
+                {grade.name}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -82,7 +100,11 @@ export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props
             }}
           >
             <option value="">Tất cả tỉnh / thành</option>
-            {provinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
+            {provinces.map((province) => (
+              <option key={province.id} value={province.id}>
+                {province.name}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -93,7 +115,11 @@ export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props
             onChange={(event) => update({ districtId: event.target.value })}
           >
             <option value="">Tất cả quận / huyện</option>
-            {districts.map((district) => <option key={district.id} value={district.id}>{district.name}</option>)}
+            {districts.map((district) => (
+              <option key={district.id} value={district.id}>
+                {district.name}
+              </option>
+            ))}
           </select>
         </label>
         <button
@@ -110,41 +136,59 @@ export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props
       {showAdvanced && (
         <div className="tutor-student-search-advanced">
           <fieldset className="tutor-schedule-filter">
-            <legend>Lịch mong muốn</legend>
+            <legend>{scheduleLabel}</legend>
             {filters.scheduleSlots.map((slot, index) => (
               <div className="tutor-schedule-filter-row" key={index}>
                 <select
                   aria-label={`Ngày khung giờ ${index + 1}`}
                   value={slot.dayOfWeek}
-                  onChange={(event) => update({
-                    scheduleSlots: filters.scheduleSlots.map((item, current) => current === index ? { ...item, dayOfWeek: event.target.value } : item)
-                  })}
+                  onChange={(event) =>
+                    update({
+                      scheduleSlots: filters.scheduleSlots.map((item, current) =>
+                        current === index ? { ...item, dayOfWeek: event.target.value } : item
+                      )
+                    })
+                  }
                 >
                   <option value="">Chọn ngày</option>
-                  {weekdays.map((day, dayIndex) => <option key={day} value={String(dayIndex + 1)}>{day}</option>)}
+                  {weekdays.map((day, dayIndex) => (
+                    <option key={day} value={String(dayIndex + 1)}>
+                      {day}
+                    </option>
+                  ))}
                 </select>
                 <input
                   aria-label={`Giờ bắt đầu khung ${index + 1}`}
                   type="time"
                   value={slot.startTime}
-                  onChange={(event) => update({
-                    scheduleSlots: filters.scheduleSlots.map((item, current) => current === index ? { ...item, startTime: event.target.value } : item)
-                  })}
+                  onChange={(event) =>
+                    update({
+                      scheduleSlots: filters.scheduleSlots.map((item, current) =>
+                        current === index ? { ...item, startTime: event.target.value } : item
+                      )
+                    })
+                  }
                 />
                 <input
                   aria-label={`Giờ kết thúc khung ${index + 1}`}
                   type="time"
                   value={slot.endTime}
-                  onChange={(event) => update({
-                    scheduleSlots: filters.scheduleSlots.map((item, current) => current === index ? { ...item, endTime: event.target.value } : item)
-                  })}
+                  onChange={(event) =>
+                    update({
+                      scheduleSlots: filters.scheduleSlots.map((item, current) =>
+                        current === index ? { ...item, endTime: event.target.value } : item
+                      )
+                    })
+                  }
                 />
                 <button
                   className="tutor-schedule-filter-remove"
                   type="button"
                   aria-label={`Xóa khung giờ ${index + 1}`}
                   disabled={filters.scheduleSlots.length === 1}
-                  onClick={() => update({ scheduleSlots: filters.scheduleSlots.filter((_, current) => current !== index) })}
+                  onClick={() =>
+                    update({ scheduleSlots: filters.scheduleSlots.filter((_, current) => current !== index) })
+                  }
                 >
                   ×
                 </button>
@@ -153,18 +197,32 @@ export function TutorStudentSearchFilters({ filters, onChange, onSearch }: Props
             <button
               className="tutor-schedule-filter-add"
               type="button"
-              onClick={() => update({ scheduleSlots: [...filters.scheduleSlots, { dayOfWeek: '', startTime: '', endTime: '' }] })}
+              onClick={() =>
+                update({ scheduleSlots: [...filters.scheduleSlots, { dayOfWeek: '', startTime: '', endTime: '' }] })
+              }
             >
               + Thêm ngày / giờ
             </button>
           </fieldset>
           <label>
             Giá từ
-            <input type="number" min="0" value={filters.minBudget} onChange={(event) => update({ minBudget: event.target.value })} placeholder="₫ tối thiểu" />
+            <input
+              type="number"
+              min="0"
+              value={filters.minBudget}
+              onChange={(event) => update({ minBudget: event.target.value })}
+              placeholder="₫ tối thiểu"
+            />
           </label>
           <label>
             Giá đến
-            <input type="number" min="0" value={filters.maxBudget} onChange={(event) => update({ maxBudget: event.target.value })} placeholder="₫ tối đa" />
+            <input
+              type="number"
+              min="0"
+              value={filters.maxBudget}
+              onChange={(event) => update({ maxBudget: event.target.value })}
+              placeholder="₫ tối đa"
+            />
           </label>
         </div>
       )}

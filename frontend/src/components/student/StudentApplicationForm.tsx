@@ -37,31 +37,40 @@ export interface StudentApplicationFormValues {
 }
 
 interface Props {
-  application: StudentApplication;
+  application?: StudentApplication;
+  initialValues?: Partial<StudentApplicationFormValues>;
   grades: Reference[] | null;
   gradeLoadError?: string;
   saving: boolean;
   error: string;
   onClose: () => void;
   onSubmit: (values: StudentApplicationFormValues) => void;
+  title?: string;
+  submitLabel?: string;
 }
 
 export function StudentApplicationForm({
   application,
+  initialValues,
   grades,
   gradeLoadError,
   saving,
   error,
   onClose,
-  onSubmit
+  onSubmit,
+  title = 'Chỉnh sửa chi tiết ứng tuyển',
+  submitLabel = 'Lưu thay đổi'
 }: Props) {
   const [validationError, setValidationError] = useState('');
-  const [learningMode, setLearningMode] = useState<LearningMode>(application.learningMode);
+  const [learningMode, setLearningMode] = useState<LearningMode>(
+    application?.learningMode ?? initialValues?.learningMode ?? 'ONLINE'
+  );
   const [availableTimes, setAvailableTimes] = useState<AvailableTime[]>(() =>
-    parseAvailableTimes(application.preferredSchedule)
+    parseAvailableTimes(application?.preferredSchedule ?? initialValues?.preferredSchedule)
   );
   const availableGrades = grades ?? [];
-  const gradeIsAvailable = availableGrades.some((grade) => grade.id === application.gradeId);
+  const selectedGradeId = application?.gradeId ?? initialValues?.gradeId ?? '';
+  const gradeIsAvailable = availableGrades.some((grade) => grade.id === selectedGradeId);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -134,7 +143,7 @@ export function StudentApplicationForm({
         <button className="tutor-modal-close" type="button" aria-label="Đóng" onClick={onClose}>
           ×
         </button>
-        <h2 id="student-application-edit-title">Chỉnh sửa chi tiết ứng tuyển</h2>
+        <h2 id="student-application-edit-title">{title}</h2>
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}
@@ -145,7 +154,7 @@ export function StudentApplicationForm({
             Lớp học
             <select
               name="gradeId"
-              defaultValue={gradeIsAvailable ? application.gradeId : ''}
+              defaultValue={gradeIsAvailable ? selectedGradeId : ''}
               required
               disabled={grades === null || availableGrades.length === 0}
             >
@@ -172,7 +181,13 @@ export function StudentApplicationForm({
           </label>
           <label>
             Học phí đề xuất (VNĐ)
-            <input name="proposedPrice" type="number" min="0" defaultValue={application.proposedPrice} required />
+            <input
+              name="proposedPrice"
+              type="number"
+              min="0"
+              defaultValue={application?.proposedPrice ?? initialValues?.proposedPrice ?? ''}
+              required
+            />
           </label>
           <label>
             Hình thức học
@@ -247,7 +262,12 @@ export function StudentApplicationForm({
           </div>
           <label>
             Lời nhắn cho gia sư
-            <textarea name="message" rows={4} maxLength={10000} defaultValue={application.message ?? ''} />
+            <textarea
+              name="message"
+              rows={4}
+              maxLength={10000}
+              defaultValue={application?.message ?? initialValues?.message ?? ''}
+            />
           </label>
           <div className="tutor-form-actions">
             <button className="tutor-button secondary" type="button" onClick={onClose}>
@@ -258,7 +278,7 @@ export function StudentApplicationForm({
               type="submit"
               disabled={saving || Boolean(gradeLoadError) || grades === null || !availableGrades.length}
             >
-              {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
+              {saving ? 'Đang lưu…' : submitLabel}
             </button>
           </div>
         </form>

@@ -23,6 +23,7 @@ import { StudentTutorOfferDetailPage } from './pages/student/StudentTutorOfferDe
 import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyingRequestCreatePage';
 import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
+import { StudentTeachingRequestDetailPage } from './pages/student/StudentTeachingRequestDetailPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
 import { StudentContractsPage } from './pages/student/StudentContractsPage';
@@ -167,6 +168,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
+                <Route path="teaching-requests/:requestId" element={<StudentTeachingRequestDetailPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="applications/:applicationId" element={<StudentApplicationDetailPage />} />
                 <Route path="contracts" element={<StudentContractsPage />} />
