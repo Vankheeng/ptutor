@@ -67,6 +67,10 @@ class ContractPaymentInstallmentServiceTest {
                         LocalDate.of(2026, 10, 9),
                         LocalDate.of(2026, 10, 16),
                         LocalDate.of(2026, 10, 23));
+        assertThat(captor.getValue())
+                .extracting(ContractPaymentInstallment::getAmount)
+                .containsExactly(BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000),
+                        BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000));
     }
 
     @Test
@@ -90,6 +94,91 @@ class ContractPaymentInstallmentServiceTest {
                         LocalDate.of(2026, 10, 2),
                         LocalDate.of(2026, 10, 30),
                         LocalDate.of(2026, 12, 4));
+        assertThat(captor.getValue())
+                .extracting(ContractPaymentInstallment::getAmount)
+                .containsExactly(BigDecimal.valueOf(800_000), BigDecimal.valueOf(1_000_000),
+                        BigDecimal.valueOf(800_000));
+    }
+
+    @Test
+    void createsOnePackageInstallmentWithTheContractPrice() {
+        Contract contract = activeContract(PaymentPeriod.PACKAGE,
+                LocalDate.of(2026, 10, 2), LocalDate.of(2026, 12, 31));
+        contract.setSchedules(List.of(schedule(1)));
+        when(installmentRepository.findAllByContract_IdOrderBySequenceNumberAsc(contract.getId()))
+                .thenReturn(List.of());
+        when(installmentRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.ensureForActiveContract(contract);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ContractPaymentInstallment>> captor = ArgumentCaptor.forClass(List.class);
+        verify(installmentRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).hasSize(1);
+        assertThat(captor.getValue().get(0).getAmount()).isEqualByComparingTo("200000");
+    }
+
+    @Test
+    void createsPerLessonInstallmentsWithTheUnitPrice() {
+        Contract contract = activeContract(PaymentPeriod.PER_LESSON,
+                LocalDate.of(2026, 10, 2), LocalDate.of(2026, 12, 31));
+        contract.setTotalLession(3);
+        when(installmentRepository.findAllByContract_IdOrderBySequenceNumberAsc(contract.getId()))
+                .thenReturn(List.of());
+        when(installmentRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.ensureForActiveContract(contract);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ContractPaymentInstallment>> captor = ArgumentCaptor.forClass(List.class);
+        verify(installmentRepository).saveAll(captor.capture());
+        assertThat(captor.getValue())
+                .extracting(ContractPaymentInstallment::getAmount)
+                .containsExactly(BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000),
+                        BigDecimal.valueOf(200_000));
+    }
+
+    @Test
+    void keepsLegacyPeriodPriceWhenStructuredScheduleIsUnavailable() {
+        Contract contract = activeContract(PaymentPeriod.MONTHLY,
+                LocalDate.of(2026, 10, 2), LocalDate.of(2026, 12, 31));
+        contract.setSchedules(List.of());
+        when(installmentRepository.findAllByContract_IdOrderBySequenceNumberAsc(contract.getId()))
+                .thenReturn(List.of());
+        when(installmentRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.ensureForActiveContract(contract);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ContractPaymentInstallment>> captor = ArgumentCaptor.forClass(List.class);
+        verify(installmentRepository).saveAll(captor.capture());
+        assertThat(captor.getValue())
+                .extracting(ContractPaymentInstallment::getAmount)
+                .containsExactly(BigDecimal.valueOf(200_000), BigDecimal.valueOf(200_000),
+                        BigDecimal.valueOf(200_000));
+    }
+
+    @Test
+    void includesLessonsOnTheContractEndDateInTheFinalMonthlyInstallment() {
+        Contract contract = activeContract(PaymentPeriod.MONTHLY,
+                LocalDate.of(2026, 12, 1), LocalDate.of(2027, 1, 31));
+        contract.setSchedules(List.of(schedule(7))); // Sunday, including 2027-01-31.
+        when(installmentRepository.findAllByContract_IdOrderBySequenceNumberAsc(contract.getId()))
+                .thenReturn(List.of());
+        when(installmentRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.ensureForActiveContract(contract);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ContractPaymentInstallment>> captor = ArgumentCaptor.forClass(List.class);
+        verify(installmentRepository).saveAll(captor.capture());
+        assertThat(captor.getValue())
+                .extracting(ContractPaymentInstallment::getAmount)
+                .containsExactly(BigDecimal.valueOf(800_000), BigDecimal.valueOf(1_000_000));
     }
 
     @Test
