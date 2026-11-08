@@ -54,6 +54,9 @@ import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
 import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
+import { StudentComplaintsPage } from './pages/student/StudentComplaintsPage';
+import { StudentComplaintCreatePage } from './pages/student/StudentComplaintCreatePage';
+import { StudentComplaintDetailPage } from './pages/student/StudentComplaintDetailPage';
 import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
 import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
@@ -181,6 +184,14 @@ export default function App() {
                 <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
                 <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
+                <Route path="complaints" element={<StudentComplaintsPage />} />
+                <Route path="complaints/new" element={<StudentComplaintCreatePage />} />
+                <Route path="complaints/received" element={<StudentComplaintsPage mode="received" />} />
+                <Route
+                  path="complaints/received/:complaintId"
+                  element={<StudentComplaintDetailPage mode="received" />}
+                />
+                <Route path="complaints/:complaintId" element={<StudentComplaintDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />

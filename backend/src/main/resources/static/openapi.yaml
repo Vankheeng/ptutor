@@ -1403,6 +1403,33 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
+  /api/v1/users/me/complaints/evidence-upload:
+    post:
+      tags: [Complaints]
+      summary: Upload complaint evidence file
+      operationId: uploadComplaintEvidence
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Complaint evidence uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintEvidenceUploadResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '503': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/users/me/complaints/{complaintId}:
     parameters:
       - $ref: '#/components/parameters/ComplaintId'
@@ -6737,6 +6764,14 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
+    ComplaintEvidenceUploadResponse:
+      type: object
+      required: [fileUrl, previewUrl, fileType]
+      properties:
+        fileUrl: { type: string, description: S3 reference stored with the complaint evidence }
+        previewUrl: { type: string, format: uri, description: Temporary URL for previewing the uploaded file }
+        fileType: { type: string }
+
     ComplaintPageResponse:
       type: object
       properties:
@@ -8024,6 +8059,13 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/ComplaintResponse' }
+
+    ComplaintEvidenceUploadResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ComplaintEvidenceUploadResponse' }
 
     ComplaintPageResponseEnvelope:
       allOf:
