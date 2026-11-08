@@ -1,23 +1,25 @@
 import type { Contract } from '../../../services/studentApi';
 import type { StudentComplaint } from '../../../services/studentComplaintApi';
-import { complaintCategoryLabels, formatComplaintDate } from './studentComplaintFormat';
-import { StudentComplaintStatusBadge } from './StudentComplaintStatusBadge';
+import { complaintCategoryLabels, formatComplaintDate } from './complaintFormat';
+import { ComplaintStatusBadge } from './ComplaintStatusBadge';
 import { Icon, type IconName } from '../../ui/Icon';
 
 interface Props {
   complaint: StudentComplaint;
   mode: 'submitted' | 'received';
   contract: Contract | null;
+  role?: 'student' | 'tutor';
   cancelling?: boolean;
   onOpen: () => void;
   onEdit?: () => void;
   onCancel?: () => void;
 }
 
-export function StudentComplaintCard({
+export function ComplaintCard({
   complaint,
   mode,
   contract,
+  role = 'student',
   cancelling = false,
   onOpen,
   onEdit,
@@ -32,7 +34,7 @@ export function StudentComplaintCard({
           ? 'support'
           : 'calendar';
   const otherName = contract
-    ? mode === 'submitted'
+    ? role === 'tutor'
       ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
       : [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || contract.studentEmail
     : 'Hợp đồng liên quan';
@@ -77,7 +79,7 @@ export function StudentComplaintCard({
         </div>
       </div>
       <div className="student-complaint-card-right">
-        <StudentComplaintStatusBadge status={complaint.status} />
+        <ComplaintStatusBadge status={complaint.status} />
         {mode === 'submitted' && complaint.status === 'PENDING' ? (
           <div className="student-complaint-card-actions">
             <button

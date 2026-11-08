@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import type { ComplaintEvidenceInput } from '../../../services/studentComplaintApi';
 import { uploadComplaintEvidence } from '../../../services/studentComplaintApi';
-import { complaintErrorMessage } from './studentComplaintFormat';
+import { complaintErrorMessage } from './complaintFormat';
 
 const acceptedFiles = '.pdf,.jpg,.jpeg,.png,.webp,.mp4,.webm,.txt,.doc,.docx';
 
@@ -10,7 +10,7 @@ function fileLabel(fileType: string, index: number) {
   return `Tệp minh chứng ${index + 1} · ${extension}`;
 }
 
-export function StudentComplaintEvidenceField({
+export function ComplaintEvidenceField({
   value,
   onChange,
   max = 5,

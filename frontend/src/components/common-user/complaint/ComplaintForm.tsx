@@ -5,8 +5,8 @@ import type {
   ComplaintEvidenceInput,
   ComplaintUpdateInput
 } from '../../../services/studentComplaintApi';
-import { StudentComplaintEvidenceField } from './StudentComplaintEvidenceField';
-import { complaintCategoryLabels } from './studentComplaintFormat';
+import { ComplaintEvidenceField } from './ComplaintEvidenceField';
+import { complaintCategoryLabels } from './complaintFormat';
 import { Icon, type IconName } from '../../ui/Icon';
 
 export interface StudentComplaintFormValues {
@@ -41,7 +41,7 @@ const categoryIcons: Record<ComplaintCategory, IconName> = {
   OTHER: 'menu'
 };
 
-export function StudentComplaintForm({
+export function ComplaintForm({
   mode,
   contracts,
   initialValues,
@@ -182,7 +182,7 @@ export function StudentComplaintForm({
         {contentError && <small className="student-field-error">Vui lòng nhập nội dung khiếu nại.</small>}
       </div>
 
-      <StudentComplaintEvidenceField
+      <ComplaintEvidenceField
         label="Minh chứng"
         addLabel="Thêm minh chứng"
         value={values.evidences}

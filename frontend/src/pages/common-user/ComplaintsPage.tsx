@@ -10,8 +10,8 @@ import {
   type ComplaintStatus,
   type StudentComplaint
 } from '../../services/studentComplaintApi';
-import { StudentComplaintCard } from '../../components/student/complaint/StudentComplaintCard';
-import { complaintStatusLabels } from '../../components/student/complaint/studentComplaintFormat';
+import { ComplaintCard } from '../../components/common-user/complaint/ComplaintCard';
+import { complaintStatusLabels } from '../../components/common-user/complaint/complaintFormat';
 import { Icon } from '../../components/ui/Icon';
 
 type Mode = 'submitted' | 'received';
@@ -29,7 +29,15 @@ const submittedFilters: Filter[] = [
 const receivedFilters: Filter[] = ['ALL', 'IN_REVIEW', 'AWAITING_EVIDENCE', 'RESOLVED', 'REJECTED'];
 const PAGE_SIZE = 6;
 
-export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
+export function ComplaintsPage({
+  mode = 'submitted',
+  basePath = '/student/complaints',
+  role = 'student'
+}: {
+  mode?: Mode;
+  basePath?: string;
+  role?: 'student' | 'tutor';
+}) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('ALL');
   const [page, setPage] = useState(0);
@@ -96,18 +104,16 @@ export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
     }
   };
 
-  const listPath = mode === 'submitted' ? '/student/complaints' : '/student/complaints/received';
+  const listPath = mode === 'submitted' ? basePath : `${basePath}/received`;
 
   return (
     <div className="student-complaints-page">
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">TRUNG TÂM HỖ TRỢ</span>
           <h1>Khiếu nại</h1>
-          <p>Quản lý các khiếu nại liên quan đến quá trình học tập và hợp đồng của bạn.</p>
         </div>
         {mode === 'submitted' && (
-          <Link className="student-button complaint-create-button" to="/student/complaints/new">
+          <Link className="student-button complaint-create-button" to={`${basePath}/new`}>
             <span aria-hidden="true">+</span> Tạo khiếu nại
           </Link>
         )}
@@ -116,7 +122,7 @@ export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
       <div className="student-complaint-tabs" role="tablist" aria-label="Loại khiếu nại">
         <Link
           className={mode === 'submitted' ? 'active' : ''}
-          to="/student/complaints"
+          to={basePath}
           role="tab"
           aria-selected={mode === 'submitted'}
         >
@@ -125,7 +131,7 @@ export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
         </Link>
         <Link
           className={mode === 'received' ? 'active' : ''}
-          to="/student/complaints/received"
+          to={`${basePath}/received`}
           role="tab"
           aria-selected={mode === 'received'}
         >
@@ -176,14 +182,15 @@ export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
       ) : visibleComplaints.length > 0 ? (
         <div className="student-complaint-list">
           {visibleComplaints.map((complaint) => (
-            <StudentComplaintCard
+            <ComplaintCard
               key={complaint.id}
               complaint={complaint}
               mode={mode}
               contract={contractMap.get(complaint.contractId) ?? null}
+              role={role}
               cancelling={busyId === complaint.id}
               onOpen={() => navigate(`${listPath}/${complaint.id}`)}
-              onEdit={mode === 'submitted' ? () => navigate(`/student/complaints/${complaint.id}?edit=1`) : undefined}
+              onEdit={mode === 'submitted' ? () => navigate(`${basePath}/${complaint.id}?edit=1`) : undefined}
               onCancel={mode === 'submitted' ? () => void cancel(complaint.id) : undefined}
             />
           ))}
@@ -200,13 +207,13 @@ export function StudentComplaintsPage({ mode = 'submitted' }: { mode?: Mode }) {
               : 'Các khiếu nại liên quan đến bạn sẽ hiển thị tại đây.'}
           </p>
           {mode === 'submitted' && (
-            <Link className="student-button complaint-create-button" to="/student/complaints/new">
+            <Link className="student-button complaint-create-button" to={`${basePath}/new`}>
               <span aria-hidden="true">+</span> Tạo khiếu nại
             </Link>
           )}
         </div>
       )}
-      {complaintPage && complaintPage.totalElements > 0 && complaintPage.totalPages > 1 && (
+      {complaintPage && complaintPage.totalElements > 0 && (
         <div className="student-pagination student-complaint-pagination" aria-label="Phân trang khiếu nại">
           <button
             className="student-pagination-arrow"

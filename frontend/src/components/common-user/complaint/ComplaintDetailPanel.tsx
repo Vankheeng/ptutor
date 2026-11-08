@@ -1,25 +1,20 @@
 import type { Contract } from '../../../services/studentApi';
 import type { StudentComplaint } from '../../../services/studentComplaintApi';
-import { complaintCategoryLabels, formatComplaintDate } from './studentComplaintFormat';
-import { StudentComplaintStatusBadge } from './StudentComplaintStatusBadge';
+import { Link } from 'react-router-dom';
+import { complaintCategoryLabels, formatComplaintDate } from './complaintFormat';
 import { Icon } from '../../ui/Icon';
+import { useComplaintParties } from '../../../pages/common-user/useComplaintParties';
 
 interface Props {
   complaint: StudentComplaint;
   contract: Contract | null;
   mode: 'submitted' | 'received';
+  role?: 'student' | 'tutor';
+  contractHref: string;
 }
 
-export function StudentComplaintDetailPanel({ complaint, contract, mode }: Props) {
-  const tutorName = contract
-    ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
-    : `#${complaint.contractId.slice(0, 8)}`;
-  const studentName = contract
-    ? [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || contract.studentEmail
-    : `#${complaint.contractId.slice(0, 8)}`;
-  const contractCode = `HD-${complaint.contractId.slice(0, 8).toUpperCase()}`;
-  const senderName = mode === 'submitted' ? 'Bạn (Học viên)' : tutorName;
-  const respondentName = mode === 'submitted' ? tutorName : studentName;
+export function ComplaintDetailPanel({ complaint, contract, mode, role = 'student', contractHref }: Props) {
+  const { senderName, respondentName, respondentRole } = useComplaintParties(contract, mode, role);
 
   return (
     <div className="student-complaint-detail-main-stack">
@@ -32,12 +27,16 @@ export function StudentComplaintDetailPanel({ complaint, contract, mode }: Props
             <h2>{complaint.title}</h2>
             <div className="student-complaint-summary-tags">
               <span className="student-complaint-category-pill">{complaintCategoryLabels[complaint.category]}</span>
-              <a className="student-complaint-contract-link" href={`/student/contracts/${complaint.contractId}`}>
-                <Icon name="contract" size={14} /> {contractCode} <Icon name="arrow" size={13} />
-              </a>
+              <Link className="student-complaint-contract-link" to={contractHref}>
+                <Icon name="contract" size={14} /> Chi tiết hợp đồng <Icon name="arrow" size={13} />
+              </Link>
             </div>
           </div>
-          <StudentComplaintStatusBadge status={complaint.status} />
+          <div className="student-complaint-contract-summary">
+            <Link className="student-complaint-contract-summary-link" to={contractHref}>
+              Xem chi tiết hợp đồng <Icon name="arrow" size={13} />
+            </Link>
+          </div>
         </div>
         <div className="student-complaint-summary-meta">
           <div>
@@ -51,7 +50,7 @@ export function StudentComplaintDetailPanel({ complaint, contract, mode }: Props
               <Icon name="user" size={15} /> Đối tượng bị khiếu nại
             </span>
             <strong>
-              {respondentName} ({mode === 'submitted' ? 'Gia sư' : 'Học viên'})
+              {respondentName} ({respondentRole})
             </strong>
           </div>
           <div>
@@ -111,7 +110,7 @@ export function StudentComplaintDetailPanel({ complaint, contract, mode }: Props
               </span>
               <div>
                 <strong>
-                  {respondentName} ({mode === 'submitted' ? 'Gia sư' : 'Học viên'})
+                  {respondentName} ({respondentRole})
                 </strong>
                 <small>Phản hồi lúc: {formatComplaintDate(complaint.respondentRespondedAt)}</small>
               </div>
