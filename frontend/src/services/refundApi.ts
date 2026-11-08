@@ -70,6 +70,7 @@ export interface ContractLesson {
   status: LessonStatus;
   note: string | null;
   markedTaughtAt: string | null;
+  paidAt: string | null;
 }
 
 export interface AdminRefundSummary {
@@ -193,14 +194,14 @@ export const confirmContractLesson = (lessonId: string) =>
   post<ContractLesson>(`/api/v1/students/me/lessons/${lessonId}/confirm`);
 
 export const createRefundRequest = (input: RefundCreateInput) => post<RefundRequest>(studentPath, input);
-export const getMyRefundRequests = (page: number, signal?: AbortSignal) =>
-  get<PageResponse<RefundRequest>>(`${studentPath}${query({ page, size: 20 })}`, { signal });
+export const getMyRefundRequests = (page: number, signal?: AbortSignal, status?: RefundRequestStatus) =>
+  get<PageResponse<RefundRequest>>(`${studentPath}${query({ page, size: 20, status })}`, { signal });
 export const getMyRefundRequest = (id: string, signal?: AbortSignal) =>
   get<RefundRequest>(`${studentPath}/${id}`, { signal });
 export const cancelRefundRequest = (id: string) => patch<RefundRequest>(`${studentPath}/${id}/cancel`);
 
-export const getTutorRefundRequests = (page: number, signal?: AbortSignal) =>
-  get<PageResponse<RefundRequest>>(`${tutorPath}${query({ page, size: 20 })}`, { signal });
+export const getTutorRefundRequests = (page: number, signal?: AbortSignal, status?: RefundRequestStatus) =>
+  get<PageResponse<RefundRequest>>(`${tutorPath}${query({ page, size: 20, status })}`, { signal });
 export const getTutorRefundRequest = (id: string, signal?: AbortSignal) =>
   get<RefundRequest>(`${tutorPath}/${id}`, { signal });
 export const respondToRefundRequest = (id: string, input: TutorResponseInput) =>

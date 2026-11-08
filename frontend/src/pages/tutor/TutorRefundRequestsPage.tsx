@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
-import { getTutorRefundRequests, type RefundRequest } from '../../services/refundApi';
+import { getTutorRefundRequests, type RefundRequest, type RefundRequestStatus } from '../../services/refundApi';
 import { RefundStatusBadge } from '../../components/refund/RefundRequestOverview';
 import {
   formatClockTime,
@@ -21,12 +21,34 @@ function awaitingMe(request: RefundRequest) {
 
 export function TutorRefundRequestsPage() {
   const [page, setPage] = useState(0);
-  const load = useCallback((signal: AbortSignal) => getTutorRefundRequests(page, signal), [page]);
+  const [status, setStatus] = useState<'ALL' | RefundRequestStatus>('ALL');
+  const load = useCallback(
+    (signal: AbortSignal) => getTutorRefundRequests(page, signal, status === 'ALL' ? undefined : status),
+    [page, status]
+  );
   const { data, error, isLoading } = useResource(load);
 
   return (
     <div className="rf-page">
       <h1>Yêu cầu hoàn tiền</h1>
+      <div className="rf-filter-row">
+        <label htmlFor="tutor-refund-status">Lọc theo trạng thái</label>
+        <select
+          id="tutor-refund-status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value as 'ALL' | RefundRequestStatus);
+            setPage(0);
+          }}
+        >
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="PENDING">Chờ xử lý</option>
+          <option value="IN_REVIEW">Đang xem xét</option>
+          <option value="REFUNDED">Đã hoàn tiền</option>
+          <option value="REJECTED">Đã từ chối</option>
+          <option value="CANCELLED">Đã hủy</option>
+        </select>
+      </div>
       <section className="rf-card">
         {isLoading && !data && <div className="rf-state">Đang tải…</div>}
         {error && (

@@ -20,5 +20,23 @@ public record LessonResponse(
         String note,
         LocalDateTime markedTaughtAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        LocalDateTime paidAt) {
+
+    public LessonResponse(
+            UUID id,
+            UUID contractId,
+            String title,
+            LocalDate date,
+            LocalTime startTime,
+            LocalTime endTime,
+            TeachingMode teachingMode,
+            LessonStatus status,
+            String note,
+            LocalDateTime markedTaughtAt,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+        this(id, contractId, title, date, startTime, endTime, teachingMode, status, note,
+                markedTaughtAt, createdAt, updatedAt, null);
+    }
 }

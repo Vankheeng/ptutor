@@ -119,7 +119,7 @@ export function StudentCalendarPage() {
         <span>{event.title || contract?.subjectName || 'Buổi học'}</span>
         <small>{tutor || 'Gia sư'}</small>
         <span className="lc-event-status">
-          {event.disputed ? 'Đang khiếu nại / hoàn tiền' : (statusText[event.status] ?? event.status)}
+          {event.disputed ? 'Đang khiếu nại' : (statusText[event.status] ?? event.status)}
         </span>
       </button>
     );

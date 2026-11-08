@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ptutor.backend.dto.request.ContractTermsRequest;
 import com.ptutor.backend.dto.request.ContractUpdateRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
+import com.ptutor.backend.dto.response.CancelContractRequestResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.response.ApiResponse;
@@ -109,5 +110,14 @@ public class ContractController {
                 "Contract renewal proposed and awaiting counterparty signature",
                 contractService.renew(currentUserProvider.getCurrentUserId(), contractId, request),
                 BASE_PATH + "/" + contractId + "/renewals"));
+    }
+
+    @PostMapping("/{contractId}/stop-requests")
+    public ResponseEntity<ApiResponse<CancelContractRequestResponse>> requestStop(@PathVariable UUID contractId) {
+        return ResponseEntity.status(201).body(responseFactory.success(
+                "CONTRACT_STOP_REQUESTED",
+                "Contract stop request sent to the student",
+                contractService.requestStopByTutor(currentUserProvider.getCurrentUserId(), contractId),
+                BASE_PATH + "/" + contractId + "/stop-requests"));
     }
 }

@@ -42,6 +42,9 @@ class NotificationTemplateFactory {
                     "Contract rejected", "The contract was rejected by the other participant.");
             case CONTRACT_CANCELLED -> content(NotificationType.CONTRACT,
                     "Contract cancelled", "A pending contract was cancelled by its creator.");
+            case CONTRACT_STOP_REQUESTED -> content(NotificationType.CONTRACT,
+                    "Yêu cầu dừng hợp đồng",
+                    "Gia sư đã gửi yêu cầu dừng hợp đồng. Vui lòng xem và xử lý yêu cầu.");
             case CONTRACT_RENEWAL_PROPOSED -> content(NotificationType.CONTRACT,
                     "Contract renewal proposed", "A contract renewal is waiting for your signature.");
             case CERTIFICATE_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,

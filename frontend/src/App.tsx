@@ -15,6 +15,8 @@ import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage
 import { TutorStudentSearchPage } from './pages/tutor/TutorStudentSearchPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
 import { TutorMyApplicationsPage } from './pages/tutor/TutorMyApplicationsPage';
+import { TutorContractsPage } from './pages/tutor/TutorContractsPage';
+import { TutorContractDetailPage } from './pages/tutor/TutorContractDetailPage';
 import { HomeLanding } from './components/home/HomeLanding';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
@@ -148,6 +150,8 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
+                <Route path="sections/contracts" element={<TutorContractsPage />} />
+                <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />

@@ -218,6 +218,18 @@ public class PaymentService {
     }
 
     @Transactional
+    public List<ContractPaymentInstallmentResponse> findTutorInstallments(UUID userId, UUID contractId) {
+        Contract contract = contractRepository.findByIdAndParticipantUserId(contractId, userId)
+                .orElseThrow(() -> notFound("CONTRACT_NOT_FOUND", "Contract not found"));
+        if (contract.getTutor() == null || contract.getTutor().getUser() == null
+                || !contract.getTutor().getUser().getId().equals(userId)) {
+            throw notFound("CONTRACT_NOT_FOUND", "Contract not found");
+        }
+        if (contract.getStatus() != ContractStatus.ACTIVE) return List.of();
+        return installmentService.ensureForActiveContract(contract).stream().map(this::toInstallmentResponse).toList();
+    }
+
+    @Transactional
     public PaymentInitiationResponse createTuitionPayment(
             UUID userId, UUID contractId, UUID installmentId, VnPayPaymentRequest request, String clientIp) {
         Contract contract = findStudentContract(userId, contractId);

@@ -112,7 +112,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
           <small className="lc-event-location">⌖ {contract.studentDetailAddress}</small>
         )}
         <span className="lc-event-status">
-          {event.disputed ? 'Đang khiếu nại / hoàn tiền' : (statusText[event.status] ?? event.status)}
+          {event.disputed ? 'Đang khiếu nại' : (statusText[event.status] ?? event.status)}
         </span>
       </button>
     );
@@ -180,7 +180,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
         </span>
         <span>
           <i className="disputed" />
-          Đang khiếu nại / hoàn tiền
+          Đang khiếu nại
         </span>
       </footer>
       {selectedEvent &&
@@ -289,7 +289,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                       <span>Trạng thái</span>
                       <strong>
                         {selectedEvent.disputed
-                          ? 'Đang khiếu nại / yêu cầu hoàn tiền'
+                          ? 'Đang khiếu nại'
                           : (statusText[selectedEvent.status] ?? selectedEvent.status)}
                       </strong>
                     </p>

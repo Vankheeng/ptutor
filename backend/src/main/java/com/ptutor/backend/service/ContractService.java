@@ -23,8 +23,10 @@ import com.ptutor.backend.dto.request.ContractScheduleRequest;
 import com.ptutor.backend.dto.request.ContractUpdateRequest;
 import com.ptutor.backend.dto.request.TutorContractCreateRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
+import com.ptutor.backend.dto.response.CancelContractRequestResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.Contract;
+import com.ptutor.backend.entity.CancelContractRequest;
 import com.ptutor.backend.entity.ContractSchedule;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -35,6 +37,7 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
+import com.ptutor.backend.entity.enums.CancelContractRequestStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
@@ -46,6 +49,7 @@ import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.ContractMapper;
 import com.ptutor.backend.repository.ContractRepository;
+import com.ptutor.backend.repository.CancelContractRequestRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.GradeTeachingRequestRepository;
 import com.ptutor.backend.repository.StudentRepository;
@@ -56,7 +60,11 @@ import com.ptutor.backend.repository.TutorStudentRequestRepository;
 @Service
 public class ContractService {
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
+
     private final ContractRepository contractRepository;
+    private final CancelContractRequestRepository cancelContractRequestRepository;
     private final StudentRepository studentRepository;
     private final TutorRepository tutorRepository;
     private final TutorStudentRequestRepository tutorStudentRequestRepository;
@@ -71,6 +79,7 @@ public class ContractService {
     @Autowired
     public ContractService(
             ContractRepository contractRepository,
+            CancelContractRequestRepository cancelContractRequestRepository,
             StudentRepository studentRepository,
             TutorRepository tutorRepository,
             TutorStudentRequestRepository tutorStudentRequestRepository,
@@ -82,6 +91,7 @@ public class ContractService {
             ContractPaymentInstallmentService installmentService,
             ApplicationEventPublisher eventPublisher) {
         this.contractRepository = contractRepository;
+        this.cancelContractRequestRepository = cancelContractRequestRepository;
         this.studentRepository = studentRepository;
         this.tutorRepository = tutorRepository;
         this.tutorStudentRequestRepository = tutorStudentRequestRepository;
@@ -96,6 +106,7 @@ public class ContractService {
 
     public ContractService(
             ContractRepository contractRepository,
+            CancelContractRequestRepository cancelContractRequestRepository,
             StudentRepository studentRepository,
             TutorRepository tutorRepository,
             TutorStudentRequestRepository tutorStudentRequestRepository,
@@ -105,9 +116,25 @@ public class ContractService {
             ContractMapper contractMapper,
             ContractTimeProvider contractTimeProvider,
             ContractPaymentInstallmentService installmentService) {
-        this(contractRepository, studentRepository, tutorRepository, tutorStudentRequestRepository,
+        this(contractRepository, cancelContractRequestRepository, studentRepository, tutorRepository, tutorStudentRequestRepository,
                 studentTutorRequestRepository, gradeRepository, gradeTeachingRequestRepository, contractMapper,
                 contractTimeProvider, installmentService, event -> { });
+    }
+
+    public ContractService(
+            ContractRepository contractRepository,
+            StudentRepository studentRepository,
+            TutorRepository tutorRepository,
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ContractMapper contractMapper,
+            ContractTimeProvider contractTimeProvider,
+            ContractPaymentInstallmentService installmentService) {
+        this(contractRepository, null, studentRepository, tutorRepository, tutorStudentRequestRepository,
+                studentTutorRequestRepository, gradeRepository, gradeTeachingRequestRepository, contractMapper,
+                contractTimeProvider, installmentService);
     }
 
     @Transactional
@@ -223,10 +250,11 @@ public class ContractService {
         return PageResponse.from(contracts, responses);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ContractResponse findMineById(UUID userId, UUID contractId) {
         Contract activated = findContractForParticipant(contractId, userId);
         installmentService.ensureForActiveContract(activated);
+        if (lessonProvisioningService != null) lessonProvisioningService.provision(activated);
         return contractMapper.toResponse(activated);
     }
 
@@ -274,6 +302,7 @@ public class ContractService {
         }
         Contract signed = findContractForParticipant(contractId, userId);
         installmentService.ensureForActiveContract(signed);
+        if (lessonProvisioningService != null) lessonProvisioningService.provision(signed);
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 signed.getCreatedBy().getId(),
                 NotificationEventType.CONTRACT_SIGNED,
@@ -334,6 +363,39 @@ public class ContractService {
     }
 
     @Transactional
+    public CancelContractRequestResponse requestStopByTutor(UUID userId, UUID contractId) {
+        Contract contract = findContractForParticipant(contractId, userId);
+        if (!contract.getTutor().getUser().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "CONTRACT_TUTOR_REQUIRED",
+                    "Only the tutor can request to stop this contract");
+        }
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw invalidTransition("Only ACTIVE contracts can be stopped");
+        }
+        if (cancelContractRequestRepository != null && cancelContractRequestRepository.existsByContract_IdAndStatus(
+                contractId, CancelContractRequestStatus.PENDING)) {
+            throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_CONTRACT_STOP_REQUEST",
+                    "A stop request is already pending for this contract");
+        }
+
+        CancelContractRequest request = cancelContractRequestRepository.saveAndFlush(
+                CancelContractRequest.builder()
+                        .contract(contract)
+                        .user(contract.getTutor().getUser())
+                        .status(CancelContractRequestStatus.PENDING)
+                        .build());
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                contract.getStudent().getUser().getId(),
+                NotificationEventType.CONTRACT_STOP_REQUESTED,
+                NotificationReferenceType.CONTRACT,
+                contract.getId(),
+                java.util.Map.of("subject", contract.getSubject().getName())));
+        return new CancelContractRequestResponse(
+                request.getId(), contractId, userId, request.getStatus(), request.getReason(),
+                request.getCreatedAt(), request.getUpdatedAt());
+    }
+
+    @Transactional
     public ContractResponse renew(UUID userId, UUID contractId, ContractTermsRequest source) {
         ContractTerms terms = normalizeTerms(source);
         Contract current = findContractForParticipant(contractId, userId);
@@ -373,6 +435,7 @@ public class ContractService {
     private ContractResponse saveNewContract(Contract contract) {
         try {
             Contract saved = contractRepository.saveAndFlush(contract);
+            if (lessonProvisioningService != null) lessonProvisioningService.provision(saved);
             eventPublisher.publishEvent(NotificationDomainEvent.of(
                     otherParticipantUser(saved, saved.getCreatedBy().getId()).getId(),
                     saved.getRenewedFromContract() == null
