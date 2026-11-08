@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.enums.NotificationReadStatus;
+import com.ptutor.backend.entity.enums.NotificationType;
 import com.ptutor.backend.dto.response.NotificationReadAllResponse;
 import com.ptutor.backend.dto.response.NotificationResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -38,10 +39,11 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<NotificationResponse>>> findMine(
             @RequestParam(required = false) NotificationReadStatus status,
+            @RequestParam(required = false) NotificationType type,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return ResponseEntity.ok(responseFactory.success(notificationService.findMine(
-                currentUserProvider.getCurrentUserId(), status,
+                currentUserProvider.getCurrentUserId(), status, type,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))),
                 "/api/v1/users/me/notifications"));
     }

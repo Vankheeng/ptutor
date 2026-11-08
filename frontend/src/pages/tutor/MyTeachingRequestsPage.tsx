@@ -184,7 +184,8 @@ export function MyTeachingRequestsPage() {
     }
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const submitAction = submitter?.value ?? 'draft';
-    const payImmediately = !editing && submitAction === 'pay';
+    const canPayImmediately = !editing || editing.status === 'DRAFT';
+    const payImmediately = canPayImmediately && submitAction === 'pay';
     const paymentMethod = payImmediately ? String(form.get('paymentMethod')) : '';
     const paymentTab = paymentMethod === 'vnpay' ? window.open('about:blank', '_blank') : null;
     let createdCount = 0;
@@ -205,14 +206,14 @@ export function MyTeachingRequestsPage() {
         setEditing(null);
         reload();
       }
-      if (!editing && paymentMethod === 'wallet') {
+      if (paymentMethod === 'wallet') {
         paymentStage = true;
         for (const request of savedRequests) {
           await payTeachingRequestByWallet(request.id);
           paidCount += 1;
         }
         setMessage(`Đã thanh toán bằng ví và đăng ${paidCount} yêu cầu thành công.`);
-      } else if (!editing && paymentMethod === 'vnpay') {
+      } else if (paymentMethod === 'vnpay') {
         paymentStage = true;
         const payment = await startTeachingRequestVnPay(savedRequests[0].id);
         if (!payment.paymentUrl) throw new Error('Không nhận được liên kết thanh toán VNPay.');
@@ -462,18 +463,20 @@ export function MyTeachingRequestsPage() {
             values={availabilities}
             onChange={setAvailabilities}
           />
-          {!editing && (
+          {(!editing || editing.status === 'DRAFT') && (
+            <div className="student-field-full common-payment-summary">
+              <strong>Số tiền cần thanh toán: {amountDue.toLocaleString('vi-VN')} VNĐ</strong>
+              <span>
+                {TEACHING_REQUEST_FEE_PER_STUDENT.toLocaleString('vi-VN')} VNĐ / 1 học viên × {learnerCount} học viên.
+              </span>
+              <span>
+                Phí đăng bài không được hoàn lại sau khi thanh toán. Yêu cầu có môn học chưa có trong danh mục sẽ chờ
+                duyệt; chỉ trường hợp này nếu bị quản trị viên từ chối do không hợp lệ mới được hoàn phí.
+              </span>
+            </div>
+          )}
+          {(!editing || editing.status === 'DRAFT') && (
             <>
-              <div className="student-field-full common-payment-summary">
-                <strong>Số tiền cần thanh toán: {amountDue.toLocaleString('vi-VN')} VNĐ</strong>
-                <span>
-                  {TEACHING_REQUEST_FEE_PER_STUDENT.toLocaleString('vi-VN')} VNĐ / 1 học viên × {learnerCount} học viên.
-                </span>
-                <span>
-                  Phí đăng bài không được hoàn lại sau khi thanh toán. Yêu cầu có môn học chưa có trong danh mục sẽ chờ
-                  duyệt; chỉ trường hợp này nếu bị quản trị viên từ chối do không hợp lệ mới được hoàn phí.
-                </span>
-              </div>
               <label className="common-payment-field">
                 Phương thức thanh toán
                 <select name="paymentMethod" defaultValue="wallet">
@@ -504,9 +507,20 @@ export function MyTeachingRequestsPage() {
               Hủy
             </button>
             {editing ? (
-              <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
-                {busy ? 'Đang xử lý…' : 'Lưu thay đổi'}
-              </button>
+              editing.status === 'DRAFT' ? (
+                <>
+                  <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
+                    {busy ? 'Đang xử lý…' : 'Lưu bản nháp'}
+                  </button>
+                  <button className="student-button draft" name="submitAction" value="pay" disabled={busy}>
+                    {busy ? 'Đang xử lý…' : 'Lưu và thanh toán'}
+                  </button>
+                </>
+              ) : (
+                <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
+                  {busy ? 'Đang xử lý…' : 'Lưu thay đổi'}
+                </button>
+              )
             ) : (
               <>
                 <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>

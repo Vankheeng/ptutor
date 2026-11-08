@@ -33,6 +33,7 @@ public record TeachingRequestResponse(
         RequestStatus status,
         UUID reviewedBy,
         LocalDateTime reviewedAt,
+        LocalDateTime paidAt,
         String rejectionReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {

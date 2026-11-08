@@ -735,7 +735,7 @@ public class PaymentService {
     private FinancialTransactionResponse toFinancialPayment(Payment value) {
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.PAYMENT,
                 value.getPaymentType().name(), value.getPaymentMethod().name(), value.getStatus().name(),
-                value.getAmount(), value.getReferenceId(), financialPaymentDescription(value), value.getCreatedAt());
+                value.getAmount(), value.getReferenceType(), value.getReferenceId(), financialPaymentDescription(value), value.getCreatedAt());
     }
 
     private String financialPaymentDescription(Payment value) {
@@ -748,9 +748,22 @@ public class PaymentService {
     }
 
     private FinancialTransactionResponse toFinancialWalletTransaction(WalletTransaction value) {
+        ReferenceType referenceType = value.getReferenceType() != null
+                ? value.getReferenceType()
+                : walletReferenceType(value);
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.WALLET_TRANSACTION,
                 value.getTransactionType().name(), "WALLET", value.getStatus().name(), value.getAmount(),
-                value.getReferenceId(), financialWalletDescription(value), value.getCreatedAt());
+                referenceType, value.getReferenceId(), financialWalletDescription(value), value.getCreatedAt());
+    }
+
+    private ReferenceType walletReferenceType(WalletTransaction value) {
+        return switch (value.getPurpose()) {
+            case TUITION_PAYMENT, CONTRACT_REFUND, TUTOR_EARNING -> ReferenceType.CONTRACT;
+            case STUDYING_REQUEST_FEE, STUDYING_REQUEST_REFUND -> ReferenceType.STUDYING_REQUEST;
+            case TEACHING_REQUEST_FEE, TEACHING_REQUEST_REFUND -> ReferenceType.TEACHING_REQUEST;
+            case WITHDRAWAL, WITHDRAWAL_REVERSAL -> ReferenceType.WITHDRAWAL_REQUEST;
+            case TOP_UP -> ReferenceType.PAYMENT;
+        };
     }
 
     private String financialWalletDescription(WalletTransaction value) {
@@ -770,7 +783,7 @@ public class PaymentService {
                 : destination + " · " + value.getNote();
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.WITHDRAWAL,
                 "WITHDRAWAL", "WALLET", value.getStatus().name(), value.getAmount(), null,
-                description, value.getCreatedAt());
+                null, description, value.getCreatedAt());
     }
 
     private ApiException badRequest(String code, String message) { return new ApiException(HttpStatus.BAD_REQUEST, code, message); }

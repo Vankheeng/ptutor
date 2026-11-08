@@ -29,12 +29,12 @@ export function TransactionSummary({
         <small>bản ghi phù hợp</small>
       </article>
       <article className="is-income">
-        <span>TIỀN VÀO VÍ</span>
+        <span>TỔNG THU</span>
         <b>{money(incoming)}</b>
         <small>trong khoảng thời gian đã chọn</small>
       </article>
       <article className="is-expense">
-        <span>TIỀN RA KHỎI VÍ</span>
+        <span>TỔNG CHI</span>
         <b>{money(outgoing)}</b>
         <small>trong khoảng thời gian đã chọn</small>
       </article>

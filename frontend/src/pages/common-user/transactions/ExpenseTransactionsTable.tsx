@@ -20,7 +20,7 @@ export function ExpenseTransactionsTable({ basePath, transactions, totalAmount, 
             <h2>
               {income ? 'Bảng kê chi tiết thu nhập & hợp đồng' : 'Bảng kê chi tiết các khoản chi, rút tiền & khấu trừ'}
             </h2>
-            <p>Danh sách giao dịch trong 6 tháng gần đây</p>
+            <p>Danh sách giao dịch trong 1 tháng gần đây</p>
           </div>
         </div>
         <span className={`analytics-total-expense ${income ? 'is-income' : ''}`}>

@@ -17,6 +17,7 @@ public record ContractResponse(
         String studentFirstName,
         String studentLastName,
         String studentEmail,
+        String studentDetailAddress,
         UUID tutorId,
         String tutorFirstName,
         String tutorLastName,

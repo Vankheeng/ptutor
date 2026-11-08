@@ -73,6 +73,13 @@ export function TutorProposalCard({
           },
           { label: 'Thời gian có thể dạy', value: tutorScheduleLabel(proposal.preferredSchedule) }
         ],
+        metadata: [
+          { label: 'Thời gian tạo', value: formatDateTime(proposal.createdAt) },
+          { label: 'Cập nhật lần cuối', value: formatDateTime(proposal.updatedAt) },
+          ...(proposal.status === 'ACCEPTED'
+            ? [{ label: 'Thời gian được duyệt', value: formatDateTime(proposal.updatedAt) }]
+            : [])
+        ],
         notes: [
           ...(proposal.teachingMode === 'OFFLINE' && (proposal.preferredProvinceName || proposal.preferredDistrictName)
             ? [
@@ -114,4 +121,8 @@ function formatBudget(min?: number | null, max?: number | null) {
   if (min !== null && min !== undefined && max !== null && max !== undefined)
     return `${format(min)}–${format(max)} VNĐ`;
   return `${format(min ?? max ?? 0)} VNĐ`;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
 }

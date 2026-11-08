@@ -14,6 +14,7 @@ interface ApplicationDetailPanelProps {
   price: number;
   fields: ApplicationDetailField[];
   notes?: Array<{ label: string; value: string }>;
+  metadata?: ApplicationDetailField[];
   actions?: ReactNode;
 }
 
@@ -25,6 +26,7 @@ export function ApplicationDetailPanel({
   price,
   fields,
   notes,
+  metadata,
   actions
 }: ApplicationDetailPanelProps) {
   return (
@@ -40,18 +42,24 @@ export function ApplicationDetailPanel({
       </div>
 
       <div className="tutor-apply-summary">
-        <small>{priceLabel}</small>
+        <small>{priceLabel}:</small>
         <strong className="tutor-proposed-price-value">{new Intl.NumberFormat('vi-VN').format(price)} VNĐ</strong>
         {fields.map((field) => (
           <span key={field.label} className="application-detail-field">
-            <small>{field.label}</small>
+            <small>{field.label}:</small>
             <strong className={field.className}>{field.value}</strong>
           </span>
         ))}
         {notes?.map((note) => (
           <span key={note.label} className="application-detail-field">
-            <small>{note.label}</small>
+            <small>{note.label}:</small>
             <strong>{note.value}</strong>
+          </span>
+        ))}
+        {metadata?.map((field) => (
+          <span key={field.label} className="application-detail-field application-detail-metadata">
+            <small>{field.label}:</small>
+            <strong className={field.className}>{field.value}</strong>
           </span>
         ))}
       </div>

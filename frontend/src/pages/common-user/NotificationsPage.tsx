@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -9,43 +9,51 @@ import {
   type Notification
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
+import { referenceNavigation } from '../../utils/referenceNavigation';
 import { NotificationFilters } from './components/NotificationFilters';
 import { NotificationList } from './components/NotificationList';
 import { NotificationPagination } from './components/NotificationPagination';
 import '../student/student.css';
+
+const NOTIFICATION_PAGE_SIZE = 10;
+type NotificationTypeFilter = 'ALL' | 'SYSTEM' | 'REQUEST' | 'CONTRACT' | 'PAYMENT' | 'COMPLAINT';
 
 export function NotificationsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const basePath = location.pathname.startsWith('/tutor/') ? '/tutor' : '/student';
   const [filter, setFilter] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL');
+  const [type, setType] = useState<NotificationTypeFilter>('ALL');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const load = useCallback(
-    (signal: AbortSignal) => getNotifications(filter === 'ALL' ? undefined : filter, page, 20, signal),
-    [filter, page]
+    (signal: AbortSignal) =>
+      getNotifications(
+        filter === 'ALL' ? undefined : filter,
+        type === 'ALL' ? undefined : type,
+        page,
+        NOTIFICATION_PAGE_SIZE,
+        signal
+      ),
+    [filter, page, type]
   );
   const loadUnread = useCallback((signal: AbortSignal) => getUnreadCount(signal), []);
   const query = useResource(load, revision);
   const unread = useResource(loadUnread, revision);
+  const notifications = useMemo(
+    () =>
+      type === 'ALL' ? query.data?.content : query.data?.content.filter((notification) => notification.type === type),
+    [query.data?.content, type]
+  );
   const read = async (notification: Notification) => {
     setError('');
-    const detailPath =
-      notification.referenceId &&
-      notification.referenceType === 'WITHDRAWAL_REQUEST' &&
-      ['WITHDRAWAL_REQUEST_CREATED', 'WITHDRAWAL_REQUEST_CANCELLED'].includes(notification.eventType ?? '')
-        ? `${basePath}/wallet/transactions/WITHDRAWAL/${encodeURIComponent(notification.referenceId)}`
-        : notification.referenceId &&
-            notification.referenceType === 'WALLET_TRANSACTION' &&
-            notification.eventType === 'WALLET_BALANCE_CHANGED'
-          ? `${basePath}/wallet/transactions/WALLET_TRANSACTION/${encodeURIComponent(notification.referenceId)}`
-          : null;
+    const detailPath = referenceNavigation(basePath, notification.referenceType, notification.referenceId)?.to ?? null;
     try {
       if (!notification.isRead) await markNotificationRead(notification.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not update this notification.');
+      setError(caught instanceof ApiError ? caught.message : 'Không thể cập nhật thông báo.');
     } finally {
       if (detailPath) navigate(detailPath);
     }
@@ -56,17 +64,17 @@ export function NotificationsPage() {
       await markAllNotificationsRead();
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not mark notifications as read.');
+      setError(caught instanceof Error ? caught.message : 'Không thể đánh dấu thông báo đã đọc.');
     }
   };
   return (
-    <>
+    <main className="student-notifications-page">
       <div className="student-page-heading">
         <div>
-          <h1>Notifications</h1>
+          <h1>Thông báo</h1>
         </div>
         <button className="student-button secondary" type="button" onClick={() => void readAll()}>
-          Mark all as read
+          Đánh dấu tất cả đã đọc
         </button>
       </div>
       {error && (
@@ -81,9 +89,14 @@ export function NotificationsPage() {
           setFilter(value);
           setPage(0);
         }}
+        notificationType={type}
+        onTypeChange={(value) => {
+          setType(value);
+          setPage(0);
+        }}
       />
       <NotificationList
-        notifications={query.data?.content}
+        notifications={notifications}
         isLoading={query.isLoading}
         error={query.error}
         onRead={(notification) => void read(notification)}
@@ -92,12 +105,11 @@ export function NotificationsPage() {
         <NotificationPagination
           page={query.data.page}
           totalPages={query.data.totalPages}
-          totalElements={query.data.totalElements}
           first={query.data.first}
           last={query.data.last}
           onPageChange={setPage}
         />
       )}
-    </>
+    </main>
   );
 }

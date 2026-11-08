@@ -44,9 +44,12 @@
 .transactions-table th:first-child, .transactions-table td:first-child { padding-left: 13px; }
 .transactions-id { display: block; color: #5b30c0; font-family: ui-monospace, monospace; font-size: 8px; font-weight: 850; white-space: nowrap; }
 .transaction-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0; }
+.transaction-detail-page { max-width: 980px; margin-inline: auto; }
+.transaction-detail-card-meta { position: absolute; top: 22px; right: 22px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.transaction-detail-category { display: inline-flex; align-items: center; min-height: 28px; border: 1px solid #ffffff80; border-radius: 7px; padding: 0 9px; background: #ffffff12; color: #fff; font-size: 10px; font-weight: 400; }
 .transaction-detail-heading h1 { margin: 6px 0; color: #211735; font-size: clamp(22px, 2.6vw, 30px); }
 .transaction-detail-heading p { margin: 0; color: #71687d; font-size: 11px; }
-.transaction-detail-card { display: grid; justify-items: start; gap: 9px; margin-bottom: 14px; padding: 22px; border-radius: 14px; background: linear-gradient(125deg, #39147c, #6736d6); color: white; }
+.transaction-detail-card { position: relative; display: grid; justify-items: start; gap: 9px; margin-bottom: 14px; padding: 22px; border-radius: 14px; background: linear-gradient(125deg, #39147c, #6736d6); color: white; }
 .transaction-detail-card .wallet-eyebrow, .transaction-detail-card > span:last-child { color: #ffffffc9; }
 .transaction-detail-card strong { font-size: clamp(24px, 4vw, 36px); }
 .transaction-detail-fields { padding: 18px; border: 1px solid #e7def2; border-radius: 12px; background: #fff; }
@@ -56,6 +59,7 @@
 .transaction-detail-fields dl > div.is-full { grid-column: 1 / -1; }
 .transaction-detail-fields dt { color: #80758f; font-size: 9px; font-weight: 800; }
 .transaction-detail-fields dd { margin: 5px 0 0; color: #2a203a; font-size: 11px; overflow-wrap: anywhere; }
+.transaction-reference-button{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border:1px solid #d9cbfa;border-radius:7px;background:#f4efff;color:#6736d6;font-size:9px;font-weight:500;text-decoration:none}.transaction-reference-button:hover{border-color:#a98bea;background:#eee5ff}
 .transactions-detail-back-button { min-height: 36px; margin-top: 14px; border: 0; border-radius: 8px; padding: 0 12px; background: #6736d6; color: white; font: inherit; font-size: 10px; font-weight: 500; cursor: pointer; }
 .transaction-detail-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .transaction-detail-actions .transactions-detail-back-button { margin-top: 14px; }

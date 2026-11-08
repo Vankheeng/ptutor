@@ -26,7 +26,6 @@ export function AnalyticsTabs({ activeTab, onChange }: Props) {
       >
         ↓ Chi tiêu &amp; Rút tiền
       </button>
-      <span>◈ Dữ liệu giao dịch trực tiếp</span>
     </div>
   );
 }

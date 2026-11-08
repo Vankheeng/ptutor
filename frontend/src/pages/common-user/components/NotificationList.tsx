@@ -11,7 +11,7 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
   if (isLoading) {
     return (
       <div className="student-empty">
-        <h3>Loading notifications…</h3>
+        <h3>Đang tải thông báo…</h3>
       </div>
     );
   }
@@ -26,8 +26,8 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
   if (!notifications?.length) {
     return (
       <div className="student-empty">
-        <h3>No notifications</h3>
-        <p>You are all caught up.</p>
+        <h3>Chưa có thông báo</h3>
+        <p>Bạn đã xem hết thông báo.</p>
       </div>
     );
   }
@@ -51,11 +51,11 @@ export function NotificationList({ notifications, isLoading, error, onRead }: No
             <p>
               {item.content}
               <br />
-              <span className="student-muted">{new Date(item.createdAt).toLocaleString('en-US')}</span>
+              <span className="student-muted">{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
             </p>
           </div>
           <span className={`student-status ${item.isRead ? 'completed' : 'unread'}`}>
-            {item.isRead ? 'Read' : 'Unread'}
+            {item.isRead ? 'Đã đọc' : 'Chưa đọc'}
           </span>
         </button>
       ))}

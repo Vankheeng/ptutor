@@ -21,6 +21,12 @@ import jakarta.persistence.LockModeType;
 
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
+    interface ReferencePaymentTime {
+        UUID getReferenceId();
+
+        LocalDateTime getPaidAt();
+    }
+
     @EntityGraph(attributePaths = { "paymentInstallment", "paymentInstallment.contract" })
     Optional<Payment> findByTransactionCode(String transactionCode);
 
@@ -35,6 +41,21 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             UUID userId, UUID paymentInstallmentId, PaymentStatus status);
 
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
+
+    @Query("""
+            select payment.referenceId as referenceId, max(payment.paidAt) as paidAt
+            from Payment payment
+            where payment.referenceType = :referenceType
+              and payment.paymentType = :paymentType
+              and payment.status = :status
+              and payment.referenceId in :referenceIds
+            group by payment.referenceId
+            """)
+    List<ReferencePaymentTime> findLatestPaidAtByReferenceIds(
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("status") PaymentStatus status,
+            @Param("referenceIds") List<UUID> referenceIds);
 
     @EntityGraph(attributePaths = { "paymentInstallment" })
     @Query("""

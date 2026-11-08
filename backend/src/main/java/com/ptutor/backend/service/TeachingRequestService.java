@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +27,9 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -33,6 +37,7 @@ import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
@@ -52,6 +57,7 @@ public class TeachingRequestService {
 
     private final TeachingRequestRepository teachingRequestRepository;
     private final StudentTutorRequestRepository studentTutorRequestRepository;
+    private final PaymentRepository paymentRepository;
     private final TeachingRequestMapper teachingRequestMapper;
     private final TutorRepository tutorRepository;
     private final SubjectRepository subjectRepository;
@@ -313,15 +319,28 @@ public class TeachingRequestService {
                 .collect(Collectors.toMap(
                         TeachingRequestStudentRequestCount::getTeachingRequestId,
                         count -> count));
+        Map<UUID, LocalDateTime> paidAtByTeachingRequestId = paymentRepository.findLatestPaidAtByReferenceIds(
+                        ReferenceType.TEACHING_REQUEST,
+                        PaymentType.TEACHING_REQUEST_FEE,
+                        PaymentStatus.PAID,
+                        requests.stream().map(TeachingRequest::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        PaymentRepository.ReferencePaymentTime::getReferenceId,
+                        PaymentRepository.ReferencePaymentTime::getPaidAt));
 
         return requests.stream()
-                .map(request -> toResponse(request, countsByTeachingRequestId.get(request.getId())))
+                .map(request -> toResponse(
+                        request,
+                        countsByTeachingRequestId.get(request.getId()),
+                        paidAtByTeachingRequestId.get(request.getId())))
                 .toList();
     }
 
     private TeachingRequestResponse toResponse(
             TeachingRequest request,
-            TeachingRequestStudentRequestCount studentRequestCount) {
+            TeachingRequestStudentRequestCount studentRequestCount,
+            LocalDateTime paidAt) {
         List<TeachingRequestResponse.Reference> grades = request.getGradeAssociations().stream()
                 .map(teachingRequestMapper::toReference)
                 .toList();
@@ -334,7 +353,7 @@ public class TeachingRequestService {
         long totalCount = studentRequestCount == null ? 0 : studentRequestCount.getStudentRequestCount();
         long pendingCount = studentRequestCount == null ? 0 : studentRequestCount.getPendingStudentRequestCount();
         return teachingRequestMapper.toResponse(
-                request, grades, districts, availabilities, totalCount, pendingCount);
+                request, grades, districts, availabilities, totalCount, pendingCount, paidAt);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

@@ -108,6 +108,9 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
         </strong>
         <span>{event.title}</span>
         <small>{person}</small>
+        {contract?.teachingMode === 'OFFLINE' && contract.studentDetailAddress && (
+          <small className="lc-event-location">⌖ {contract.studentDetailAddress}</small>
+        )}
         <span className="lc-event-status">
           {event.disputed ? 'Đang khiếu nại / hoàn tiền' : (statusText[event.status] ?? event.status)}
         </span>
@@ -174,6 +177,10 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
         <span>
           <i className="cancelled" />
           Đã hủy
+        </span>
+        <span>
+          <i className="disputed" />
+          Đang khiếu nại / hoàn tiền
         </span>
       </footer>
       {selectedEvent &&
@@ -286,6 +293,12 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                           : (statusText[selectedEvent.status] ?? selectedEvent.status)}
                       </strong>
                     </p>
+                    {contract?.teachingMode === 'OFFLINE' && contract.studentDetailAddress && (
+                      <p>
+                        <span>Địa chỉ</span>
+                        <strong>{contract.studentDetailAddress}</strong>
+                      </p>
+                    )}
                     {selectedEvent.note && (
                       <p className="lc-note-row">
                         <span>Ghi chú</span>

@@ -8,6 +8,8 @@
   --rf-brand-text: #5020a8;
   --rf-danger: #a1203a;
   max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;

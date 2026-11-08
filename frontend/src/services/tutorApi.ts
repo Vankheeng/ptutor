@@ -82,16 +82,19 @@ export interface TutorTeachingProposal {
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TutorContract {
   id: string;
   studentFirstName: string | null;
   studentLastName: string | null;
+  studentDetailAddress: string | null;
   subjectName: string | null;
   gradeName: string | null;
   teachingMode: 'ONLINE' | 'OFFLINE';
   price: number;
+  totalLessons: number | null;
   startDate: string;
   endDate: string;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
