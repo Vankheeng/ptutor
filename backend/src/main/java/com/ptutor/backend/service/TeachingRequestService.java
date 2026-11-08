@@ -112,6 +112,10 @@ public class TeachingRequestService {
                 && teachingRequest.getStatus() != RequestStatus.PENDING_REVIEW) {
             throw invalidTransition("Only DRAFT, OPEN or PENDING_REVIEW requests can be updated");
         }
+        if (!draft && !java.util.Objects.equals(teachingRequest.getQuantity(), request.quantity())) {
+            throw badRequest("PAID_REQUEST_QUANTITY_IMMUTABLE",
+                    "Student quantity cannot be changed after the request has been paid");
+        }
 
         Subject subject = resolveSubject(request);
         teachingRequest.setSubject(subject);
@@ -144,8 +148,9 @@ public class TeachingRequestService {
                 .orElseThrow(() -> requestNotFound(requestId));
         if ((targetStatus != RequestStatus.OPEN && targetStatus != RequestStatus.CLOSED)
                 || (teachingRequest.getStatus() != RequestStatus.OPEN
-                        && teachingRequest.getStatus() != RequestStatus.CLOSED)) {
-            throw invalidTransition("Only OPEN and CLOSED status transitions are allowed");
+                        && teachingRequest.getStatus() != RequestStatus.CLOSED)
+                || teachingRequest.getReviewedAt() != null) {
+            throw invalidTransition("Only requests that did not require review can be opened or closed");
         }
 
         teachingRequest.setStatus(targetStatus);
@@ -158,10 +163,8 @@ public class TeachingRequestService {
         TeachingRequest teachingRequest = teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
                 .orElseThrow(() -> requestNotFound(requestId));
         if (teachingRequest.getStatus() != RequestStatus.DRAFT
-                && teachingRequest.getStatus() != RequestStatus.OPEN
-                && teachingRequest.getStatus() != RequestStatus.CLOSED
                 && teachingRequest.getStatus() != RequestStatus.PENDING_REVIEW) {
-            throw invalidTransition("Only DRAFT, OPEN, CLOSED or PENDING_REVIEW requests can be cancelled");
+            throw invalidTransition("Only unpaid drafts or requests awaiting review can be cancelled");
         }
 
         teachingRequest.setStatus(RequestStatus.CANCELLED);

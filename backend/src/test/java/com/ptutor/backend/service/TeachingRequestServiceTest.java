@@ -250,9 +250,19 @@ class TeachingRequestServiceTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject()));
         when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
         TeachingRequestRequest update = new TeachingRequestRequest(
-                subjectId, null, List.of(gradeId), "Find math students", "Please review", 2,
-                List.of(), null, new BigDecimal("150000"), TeachingMode.ONLINE,
-                null, "Math tutoring", List.of());
+            subjectId,
+            null,
+            List.of(gradeId),
+            "Find math students",
+            "Please review",
+            1,
+            List.of(),
+            null,
+            new BigDecimal("150000"),
+            TeachingMode.ONLINE,
+            null,
+            "Math tutoring",
+            List.of());
 
         TeachingRequestResponse response = service.update(userId, request.getId(), update);
 
@@ -392,8 +402,19 @@ class TeachingRequestServiceTest {
 
     private TeachingRequestRequest requestWithCustomSubject() {
         return new TeachingRequestRequest(
-                null, " Advanced Robotics ", List.of(gradeId), "Find robotics students", null, 2, List.of(), null,
-                new BigDecimal("200000"), TeachingMode.ONLINE, null, "Robotics tutoring", List.of());
+            null,
+            " Advanced Robotics ",
+            List.of(gradeId),
+            "Find robotics students",
+            null,
+            1,
+            List.of(),
+            null,
+            new BigDecimal("200000"),
+            TeachingMode.ONLINE,
+            null,
+            "Robotics tutoring",
+            List.of());
     }
 
     private TeachingRequest existingRequest(RequestStatus status) {
