@@ -9,7 +9,8 @@ const navigation = [
   { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: '⌂' },
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm kiếm gia sư', icon: '⌕' },
   { section: 'LEARNING', to: '/student/studying-requests', label: 'Yêu cầu tìm gia sư', icon: '▤' },
-  { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: '↗' },
+  { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
+  { section: 'LEARNING', to: '/student/tutor-offers', label: 'Đề nghị từ gia sư', icon: 'send' },
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
@@ -68,7 +69,11 @@ export function StudentLayout() {
                     className={({ isActive }) => (isActive ? 'student-nav-link active' : 'student-nav-link')}
                   >
                     <span aria-hidden="true">
-                      {item.icon === 'bell' || item.icon === 'calendar' || item.icon === 'shield' ? (
+                      {item.icon === 'bell' ||
+                      item.icon === 'calendar' ||
+                      item.icon === 'shield' ||
+                      item.icon === 'edit' ||
+                      item.icon === 'send' ? (
                         <Icon name={item.icon} size={18} />
                       ) : (
                         item.icon

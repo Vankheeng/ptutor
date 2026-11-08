@@ -14,12 +14,14 @@ import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
 import { TutorStudentSearchPage } from './pages/tutor/TutorStudentSearchPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
+import { TutorMyApplicationsPage } from './pages/tutor/TutorMyApplicationsPage';
 import { HomeLanding } from './components/home/HomeLanding';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
 import { StudentStudyingRequestsPage } from './pages/student/StudentStudyingRequestsPage';
 import { StudentStudyingRequestDetailPage } from './pages/student/StudentStudyingRequestDetailPage';
-import { StudentTutorOfferDetailPage } from './pages/student/StudentTutorOfferDetailPage';
+import { OffersPage } from './pages/common-user/OffersPage';
+import { OfferDetailPage } from './pages/student/OfferDetailPage';
 import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyingRequestCreatePage';
 import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
@@ -145,6 +147,7 @@ export default function App() {
                 <Route path="students" element={<TutorStudentSearchPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
+                <Route path="applications" element={<TutorMyApplicationsPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
@@ -166,13 +169,14 @@ export default function App() {
                 <Route path="studying-requests/new" element={<StudentStudyingRequestCreatePage />} />
                 <Route
                   path="studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId"
-                  element={<StudentTutorOfferDetailPage />}
+                  element={<OfferDetailPage />}
                 />
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
                 <Route path="teaching-requests/:requestId" element={<StudentTeachingRequestDetailPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
+                <Route path="tutor-offers" element={<OffersPage />} />
                 <Route path="applications/:applicationId" element={<StudentApplicationDetailPage />} />
                 <Route path="contracts" element={<StudentContractsPage />} />
                 <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />

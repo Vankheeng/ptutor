@@ -4,7 +4,7 @@ import { useResource } from '../../hooks/useResource';
 import { getTutorOffer, type TutorOffer } from '../../services/studentApi';
 import { formatStudyingRequestDate, formatStudyingRequestMoney } from '../../components/student/studyingRequestUtils';
 
-export function StudentTutorOfferDetailPage() {
+export function OfferDetailPage() {
   const { studyingRequestId = '', tutorRequestId = '' } = useParams();
   const load = useCallback(() => getTutorOffer(studyingRequestId, tutorRequestId), [studyingRequestId, tutorRequestId]);
   const query = useResource(load);
