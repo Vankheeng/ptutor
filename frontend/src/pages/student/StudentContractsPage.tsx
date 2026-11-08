@@ -1,13 +1,18 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useAuth } from '../../auth/useAuth';
 import { getContracts, type ContractStatus } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
 import { StudentContractCard } from '../../components/student/StudentContractCard';
 
 const filters: Array<'ALL' | ContractStatus> = ['ALL', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
+type SignatureFilter = 'ALL' | 'WAITING_SIGNATURE' | 'CREATED_BY_ME';
 const PAGE_SIZE = 20;
 
 export function StudentContractsPage() {
+  const { user } = useAuth();
+  const currentUserId = user?.userId;
   const [filter, setFilter] = useState<'ALL' | ContractStatus>('ALL');
+  const [signatureFilter, setSignatureFilter] = useState<SignatureFilter>('ALL');
   const [subjectQuery, setSubjectQuery] = useState('');
   const [timeOrder, setTimeOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [page, setPage] = useState(0);
@@ -21,14 +26,24 @@ export function StudentContractsPage() {
     const normalizedQuery = subjectQuery.trim().toLocaleLowerCase('vi-VN');
     const multiplier = timeOrder === 'ASC' ? 1 : -1;
 
-    return (contractPage?.content ?? [])
+    return [...(contractPage?.content ?? [])]
+      .filter((contract) => {
+        const createdByYou = Boolean(currentUserId && contract.createdByUserId === currentUserId);
+        if (signatureFilter === 'WAITING_SIGNATURE') {
+          return contract.status === 'PENDING' && !createdByYou;
+        }
+        if (signatureFilter === 'CREATED_BY_ME') {
+          return createdByYou;
+        }
+        return true;
+      })
       .filter(
         (contract) => !normalizedQuery || contract.subjectName.toLocaleLowerCase('vi-VN').includes(normalizedQuery)
       )
       .sort(
         (first, second) => multiplier * (new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime())
       );
-  }, [contractPage?.content, subjectQuery, timeOrder]);
+  }, [contractPage?.content, currentUserId, signatureFilter, subjectQuery, timeOrder]);
   const totalPages = Math.max(1, Math.ceil(filteredContracts.length / PAGE_SIZE));
   const visibleContracts = filteredContracts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -77,6 +92,21 @@ export function StudentContractsPage() {
           </select>
         </label>
         <label className="student-contract-filter-select">
+          <span className="sr-only">Lọc theo vai trò ký</span>
+          <select
+            aria-label="Lọc theo vai trò ký"
+            value={signatureFilter}
+            onChange={(event) => {
+              setSignatureFilter(event.target.value as SignatureFilter);
+              setPage(0);
+            }}
+          >
+            <option value="ALL">Tất cả hợp đồng</option>
+            <option value="WAITING_SIGNATURE">Chờ tôi ký</option>
+            <option value="CREATED_BY_ME">Tôi đã tạo</option>
+          </select>
+        </label>
+        <label className="student-contract-filter-select">
           <span className="sr-only">Sắp xếp theo thời gian</span>
           <select
             aria-label="Sắp xếp theo thời gian"
@@ -98,7 +128,7 @@ export function StudentContractsPage() {
       ) : visibleContracts.length ? (
         <div className="student-list">
           {visibleContracts.map((contract) => (
-            <StudentContractCard contract={contract} key={contract.id} />
+            <StudentContractCard contract={contract} currentUserId={currentUserId} key={contract.id} />
           ))}
         </div>
       ) : (
