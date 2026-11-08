@@ -4,11 +4,8 @@ import { useResource } from '../../hooks/useResource';
 import { ApiError } from '../../services/httpClient';
 import { getContracts, type Contract } from '../../services/studentApi';
 import { createComplaint, type ComplaintCategory } from '../../services/studentComplaintApi';
-import {
-  StudentComplaintForm,
-  type StudentComplaintFormValues
-} from '../../components/student/complaint/StudentComplaintForm';
-import { complaintErrorMessage } from '../../components/student/complaint/studentComplaintFormat';
+import { ComplaintForm, type StudentComplaintFormValues } from '../../components/common-user/complaint/ComplaintForm';
+import { complaintErrorMessage } from '../../components/common-user/complaint/complaintFormat';
 import { Icon } from '../../components/ui/Icon';
 
 const emptyValues: StudentComplaintFormValues = {
@@ -19,7 +16,7 @@ const emptyValues: StudentComplaintFormValues = {
   evidences: []
 };
 
-export function StudentComplaintCreatePage() {
+export function ComplaintCreatePage({ basePath = '/student/complaints' }: { basePath?: string }) {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -38,7 +35,7 @@ export function StudentComplaintCreatePage() {
         content: values.content.trim(),
         evidences: values.evidences
       });
-      navigate(`/student/complaints/${created.id}`, { state: { notice: 'Đã gửi khiếu nại.' } });
+      navigate(`${basePath}/${created.id}`, { state: { notice: 'Đã gửi khiếu nại.' } });
     } catch (error) {
       setSubmitError(
         error instanceof ApiError || error instanceof Error ? complaintErrorMessage(error) : 'Không thể gửi khiếu nại.'
@@ -49,7 +46,7 @@ export function StudentComplaintCreatePage() {
 
   return (
     <div className="student-complaint-form-page">
-      <Link className="student-complaint-back" to="/student/complaints">
+      <Link className="student-complaint-back" to={basePath}>
         <span aria-hidden="true">←</span> Danh sách khiếu nại
       </Link>
       <div className="student-page-heading student-complaint-create-header">
@@ -73,14 +70,14 @@ export function StudentComplaintCreatePage() {
       ) : (
         <div className="student-complaint-create-layout">
           <section className="student-panel student-complaint-create-card">
-            <StudentComplaintForm
+            <ComplaintForm
               mode="create"
               contracts={contracts}
               initialValues={emptyValues}
               submitting={submitting}
               error={submitError}
               onSubmit={(values) => void submit(values as StudentComplaintFormValues)}
-              onCancel={() => navigate('/student/complaints')}
+              onCancel={() => navigate(basePath)}
             />
           </section>
           <aside className="student-panel student-complaint-guidance">

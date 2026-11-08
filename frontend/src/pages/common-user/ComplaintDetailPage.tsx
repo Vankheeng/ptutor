@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import { getContract, type Contract } from '../../services/studentApi';
 import {
@@ -13,24 +13,29 @@ import {
   type ComplaintUpdateInput,
   type StudentComplaint
 } from '../../services/studentComplaintApi';
-import { StudentComplaintDetailPanel } from '../../components/student/complaint/StudentComplaintDetailPanel';
-import {
-  StudentComplaintForm,
-  type StudentComplaintFormValues
-} from '../../components/student/complaint/StudentComplaintForm';
-import { StudentComplaintEvidenceField } from '../../components/student/complaint/StudentComplaintEvidenceField';
-import { StudentComplaintResponseForm } from '../../components/student/complaint/StudentComplaintResponseForm';
+import { ComplaintDetailPanel } from '../../components/common-user/complaint/ComplaintDetailPanel';
+import { ComplaintForm, type StudentComplaintFormValues } from '../../components/common-user/complaint/ComplaintForm';
+import { ComplaintEvidenceField } from '../../components/common-user/complaint/ComplaintEvidenceField';
+import { ComplaintResponseForm } from '../../components/common-user/complaint/ComplaintResponseForm';
 import {
   complaintErrorMessage,
   complaintFaultPartyLabels
-} from '../../components/student/complaint/studentComplaintFormat';
-import { StudentComplaintStatusBadge } from '../../components/student/complaint/StudentComplaintStatusBadge';
-import { formatComplaintDate } from '../../components/student/complaint/studentComplaintFormat';
+} from '../../components/common-user/complaint/complaintFormat';
+import { ComplaintStatusBadge } from '../../components/common-user/complaint/ComplaintStatusBadge';
+import { formatComplaintDate } from '../../components/common-user/complaint/complaintFormat';
 import { Icon } from '../../components/ui/Icon';
 
 type Mode = 'submitted' | 'received';
 
-export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode }) {
+export function ComplaintDetailPage({
+  mode = 'submitted',
+  basePath = '/student/complaints',
+  role = 'student'
+}: {
+  mode?: Mode;
+  basePath?: string;
+  role?: 'student' | 'tutor';
+}) {
   const { complaintId = '' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -152,7 +157,7 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
     }
   };
 
-  const backPath = mode === 'submitted' ? '/student/complaints' : '/student/complaints/received';
+  const backPath = mode === 'submitted' ? basePath : `${basePath}/received`;
 
   if (query.error && !complaint)
     return (
@@ -170,9 +175,9 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
 
   return (
     <div className="student-complaint-detail-page">
-      <Link className="student-complaint-back" to={backPath}>
+      <button className="student-complaint-back" type="button" onClick={() => navigate(backPath)}>
         <span aria-hidden="true">←</span> Quay lại danh sách khiếu nại
-      </Link>
+      </button>
       {notice && (
         <div className="student-notice" role="status">
           {notice}
@@ -207,7 +212,7 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
             </span>
             <div>
               <strong>
-                Trạng thái hiện tại: <StudentComplaintStatusBadge status={complaint.status} />
+                Trạng thái hiện tại: <ComplaintStatusBadge status={complaint.status} />
               </strong>
               <p>
                 Khiếu nại của bạn vừa được tạo và đang chờ Admin tiếp nhận. Bạn có thể chỉnh sửa nội dung hoặc hủy khiếu
@@ -221,7 +226,7 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
               <h2 className="student-complaint-card-title">
                 <Icon name="complaint" size={19} /> Thông tin khiếu nại
               </h2>
-              <StudentComplaintForm
+              <ComplaintForm
                 mode="edit"
                 formId="student-complaint-edit-form"
                 hideActions
@@ -263,7 +268,7 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
                       <Icon name="bell" size={15} /> Trạng thái
                     </span>
                     <strong>
-                      <StudentComplaintStatusBadge status={complaint.status} />
+                      <ComplaintStatusBadge status={complaint.status} />
                     </strong>
                   </div>
                 </div>
@@ -319,14 +324,19 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
             {mode === 'submitted' && complaint.status === 'PENDING' && (
               <div className="student-complaint-detail-header-actions">
                 <button
-                  className="student-button secondary"
+                  className="student-button"
                   type="button"
                   disabled={busy}
                   onClick={() => setSearchParams({ edit: '1' })}
                 >
                   <Icon name="edit" size={15} /> Chỉnh sửa
                 </button>
-                <button className="student-button danger" type="button" disabled={busy} onClick={() => void cancel()}>
+                <button
+                  className="student-button secondary"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void cancel()}
+                >
                   <Icon name="close" size={15} /> Hủy khiếu nại
                 </button>
               </div>
@@ -334,11 +344,17 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
           </header>
           <div className="student-complaint-detail-layout">
             <main>
-              <StudentComplaintDetailPanel complaint={complaint} contract={contract} mode={mode} />
+              <ComplaintDetailPanel
+                complaint={complaint}
+                contract={contract}
+                mode={mode}
+                role={role}
+                contractHref={`${basePath.startsWith('/tutor') ? '/tutor/sections/contracts' : '/student/contracts'}/${complaint.contractId}`}
+              />
               {mode === 'received' &&
                 (complaint.status === 'IN_REVIEW' || complaint.status === 'AWAITING_EVIDENCE') &&
                 !complaint.respondentRespondedAt && (
-                  <StudentComplaintResponseForm
+                  <ComplaintResponseForm
                     busy={busy}
                     error={responseError}
                     onSubmit={(response, evidences) => void respond(response, evidences)}
@@ -383,7 +399,7 @@ export function StudentComplaintDetailPage({ mode = 'submitted' }: { mode?: Mode
                           {evidenceError}
                         </div>
                       )}
-                      <StudentComplaintEvidenceField value={extraEvidence} onChange={setExtraEvidence} />
+                      <ComplaintEvidenceField value={extraEvidence} onChange={setExtraEvidence} />
                       <div className="student-form-actions">
                         <button
                           className="student-button"
@@ -424,7 +440,7 @@ function ComplaintCurrentStatus({ complaint }: { complaint: StudentComplaint }) 
         <Icon name="bell" size={18} /> Trạng thái hiện tại
       </h2>
       <div className="student-complaint-current-status-badge">
-        <StudentComplaintStatusBadge status={complaint.status} />
+        <ComplaintStatusBadge status={complaint.status} />
       </div>
       <p>{message}</p>
       {active && <small>Vui lòng theo dõi phản hồi từ Admin bên dưới.</small>}

@@ -1,10 +1,10 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth/useAuth';
-import logo from '../../assets/ptutor-logo.svg';
-import { Icon } from '../../components/ui/Icon';
-import './student-layout.css';
-import './student.css';
+export { CommonUserLayout as StudentLayout } from '../common-user/CommonUserLayout';
 
+/*
+ * Student routes keep this compatibility export while the shared shell lives
+ * in common-user and can be reused by other roles.
+ */
+/*
 const navigation = [
   { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: '⌂' },
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm kiếm gia sư', icon: '⌕' },
@@ -28,7 +28,7 @@ const sectionLabels = {
   ACCOUNT: 'TÀI KHOẢN'
 } as const;
 
-export function StudentLayout() {
+export function StudentLayoutLegacy() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fullName =
@@ -118,3 +118,4 @@ export function StudentLayout() {
     </div>
   );
 }
+*/

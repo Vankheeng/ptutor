@@ -2111,6 +2111,13 @@
   text-decoration: none;
 }
 .student-complaint-back:hover { text-decoration: underline; }
+.student-complaint-back { border: 1px solid #e2dff0; border-radius: 8px; padding: 8px 12px; background: #fff; cursor: pointer; }
+.student-complaint-back:hover { border-color: #c9b9ed; background: #faf8ff; text-decoration: none; }
+.student-complaint-detail-header > div > p { display: none; }
+.student-complaint-detail-header h1 { font-size: 24px; }
+.student-complaint-contract-link { font-size: 13px; }
+.student-complaint-category-pill { font-size: 12px; }
+.student-complaint-detail-header-actions .student-button { min-height: 36px; }
 .student-complaint-back span { font-size: 20px; line-height: .7; }
 .student-complaint-detail-header {
   margin-bottom: 17px;
@@ -2215,6 +2222,8 @@
 }
 .student-complaint-contract-link:hover { text-decoration: underline; }
 .student-complaint-contract-link svg:last-child { margin-left: 2px; }
+.student-complaint-summary-tags { justify-content: space-between; }
+.student-complaint-contract-link { margin-left: auto; }
 .student-complaint-long-value { white-space: pre-wrap; }
 .student-complaint-evidence-row strong {
   display: grid;
@@ -3093,7 +3102,7 @@
 }
 .student-complaints-page .student-page-heading h1 {
   margin-top: 6px;
-  font-size: 28px;
+  font-size: 24px;
 }
 .student-complaints-page .student-page-heading p {
   margin-top: 7px;
@@ -3209,6 +3218,7 @@
 .student-complaint-search {
   display: flex;
   flex: 0 0 165px;
+  margin-left: auto;
   align-items: center;
   gap: 7px;
   min-height: 31px;
@@ -4305,6 +4315,7 @@
   color: #38334b;
   font-size: 10px;
   line-height: 1.35;
+  font-weight: 400;
 }
 
 .student-complaint-content-card,

@@ -1,6 +1,6 @@
 import type { ComplaintStatus } from '../../../services/studentComplaintApi';
-import { complaintStatusLabels } from './studentComplaintFormat';
+import { complaintStatusLabels } from './complaintFormat';
 
-export function StudentComplaintStatusBadge({ status }: { status: ComplaintStatus }) {
+export function ComplaintStatusBadge({ status }: { status: ComplaintStatus }) {
   return <span className={`student-complaint-status ${status.toLowerCase()}`}>{complaintStatusLabels[status]}</span>;
 }

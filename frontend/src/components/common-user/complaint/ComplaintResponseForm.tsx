@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import type { ComplaintEvidenceInput } from '../../../services/studentComplaintApi';
-import { StudentComplaintEvidenceField } from './StudentComplaintEvidenceField';
+import { ComplaintEvidenceField } from './ComplaintEvidenceField';
 
-export function StudentComplaintResponseForm({
+export function ComplaintResponseForm({
   busy,
   error,
   onSubmit
@@ -43,7 +43,7 @@ export function StudentComplaintResponseForm({
         onChange={(event) => setResponse(event.target.value)}
       />
       {tried && !response.trim() && <small className="student-field-error">Vui lòng nhập nội dung phản hồi.</small>}
-      <StudentComplaintEvidenceField value={evidences} onChange={setEvidences} />
+      <ComplaintEvidenceField value={evidences} onChange={setEvidences} />
       <div className="student-form-actions">
         <button className="student-button" type="submit" disabled={busy}>
           {busy ? 'Đang gửi…' : 'Gửi phản hồi'}

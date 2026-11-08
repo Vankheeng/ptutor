@@ -58,9 +58,9 @@ import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
 import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
-import { StudentComplaintsPage } from './pages/student/StudentComplaintsPage';
-import { StudentComplaintCreatePage } from './pages/student/StudentComplaintCreatePage';
-import { StudentComplaintDetailPage } from './pages/student/StudentComplaintDetailPage';
+import { ComplaintsPage } from './pages/common-user/ComplaintsPage';
+import { ComplaintCreatePage } from './pages/common-user/ComplaintCreatePage';
+import { ComplaintDetailPage } from './pages/common-user/ComplaintDetailPage';
 import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
 import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
@@ -154,6 +154,20 @@ export default function App() {
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
+                <Route path="complaints" element={<ComplaintsPage basePath="/tutor/complaints" role="tutor" />} />
+                <Route path="complaints/new" element={<ComplaintCreatePage basePath="/tutor/complaints" />} />
+                <Route
+                  path="complaints/received"
+                  element={<ComplaintsPage mode="received" basePath="/tutor/complaints" role="tutor" />}
+                />
+                <Route
+                  path="complaints/received/:complaintId"
+                  element={<ComplaintDetailPage mode="received" basePath="/tutor/complaints" role="tutor" />}
+                />
+                <Route
+                  path="complaints/:complaintId"
+                  element={<ComplaintDetailPage basePath="/tutor/complaints" role="tutor" />}
+                />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
@@ -192,14 +206,11 @@ export default function App() {
                 <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
                 <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
-                <Route path="complaints" element={<StudentComplaintsPage />} />
-                <Route path="complaints/new" element={<StudentComplaintCreatePage />} />
-                <Route path="complaints/received" element={<StudentComplaintsPage mode="received" />} />
-                <Route
-                  path="complaints/received/:complaintId"
-                  element={<StudentComplaintDetailPage mode="received" />}
-                />
-                <Route path="complaints/:complaintId" element={<StudentComplaintDetailPage />} />
+                <Route path="complaints" element={<ComplaintsPage />} />
+                <Route path="complaints/new" element={<ComplaintCreatePage />} />
+                <Route path="complaints/received" element={<ComplaintsPage mode="received" />} />
+                <Route path="complaints/received/:complaintId" element={<ComplaintDetailPage mode="received" />} />
+                <Route path="complaints/:complaintId" element={<ComplaintDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
