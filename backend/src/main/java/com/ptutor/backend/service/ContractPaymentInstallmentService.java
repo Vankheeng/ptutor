@@ -47,22 +47,26 @@ public class ContractPaymentInstallmentService {
         List<ContractPaymentInstallment> values = new ArrayList<>();
         PaymentPeriod period = contract.getPaymentPeriod();
         if (period == PaymentPeriod.PACKAGE) {
-            values.add(newInstallment(contract, 1, null, contract.getStartDate()));
+            values.add(newInstallment(contract, 1, null, contract.getStartDate(), contract.getPrice()));
         } else if (period == PaymentPeriod.PER_LESSON) {
             for (int sequence = 1; sequence <= contract.getTotalLession(); sequence++) {
-                values.add(newInstallment(contract, sequence, null, null));
+                values.add(newInstallment(contract, sequence, null, null, contract.getPrice()));
             }
         } else {
             LocalDate cursor = contract.getStartDate();
             int sequence = 1;
-            while (cursor.isBefore(contract.getEndDate())) {
+            while (!cursor.isAfter(contract.getEndDate())) {
                 LocalDate nextCursor = nextCycleStart(cursor, period);
-                LocalDate cycleEndExclusive = nextCursor.isAfter(contract.getEndDate())
+                LocalDate cycleEndExclusive = !nextCursor.isBefore(contract.getEndDate())
                         ? contract.getEndDate().plusDays(1)
                         : nextCursor;
                 LocalDate firstLessonDate = firstScheduledDate(contract, cursor, cycleEndExclusive)
                         .orElse(cursor);
-                values.add(newInstallment(contract, sequence++, null, paymentDueDate(firstLessonDate)));
+                BigDecimal amount = calculateCycleAmount(contract, cursor, cycleEndExclusive);
+                values.add(newInstallment(contract, sequence++, null, paymentDueDate(firstLessonDate), amount));
+                if (!nextCursor.isBefore(contract.getEndDate())) {
+                    break;
+                }
                 cursor = nextCursor;
             }
         }
@@ -141,19 +145,45 @@ public class ContractPaymentInstallmentService {
             Contract contract, LocalDate lessonDate, List<ContractPaymentInstallment> installments) {
         LocalDate cursor = contract.getStartDate();
         int sequence = 1;
-        while (cursor.isBefore(contract.getEndDate())) {
+        while (!cursor.isAfter(contract.getEndDate())) {
             LocalDate nextCursor = nextCycleStart(cursor, contract.getPaymentPeriod());
-            if (!lessonDate.isBefore(cursor) && lessonDate.isBefore(nextCursor)) {
+            LocalDate cycleEndExclusive = !nextCursor.isBefore(contract.getEndDate())
+                    ? contract.getEndDate().plusDays(1)
+                    : nextCursor;
+            if (!lessonDate.isBefore(cursor) && lessonDate.isBefore(cycleEndExclusive)) {
                 final int matchingSequence = sequence;
                 return installments.stream()
                         .filter(installment -> installment.getSequenceNumber() == matchingSequence)
                         .findFirst()
                         .orElse(null);
             }
+            if (!nextCursor.isBefore(contract.getEndDate())) {
+                break;
+            }
             cursor = nextCursor;
             sequence++;
         }
         return null;
+    }
+
+    private BigDecimal calculateCycleAmount(
+            Contract contract, LocalDate cycleStart, LocalDate cycleEndExclusive) {
+        List<ContractSchedule> schedules = contract.getSchedules();
+        if (schedules == null || schedules.isEmpty()) {
+            // Legacy contracts only have a free-form preferred_schedule and cannot be
+            // reconstructed reliably. Keep their historical price semantics.
+            return contract.getPrice();
+        }
+
+        long lessonsInCycle = 0;
+        for (LocalDate date = cycleStart; date.isBefore(cycleEndExclusive); date = date.plusDays(1)) {
+            int dayOfWeek = date.getDayOfWeek().getValue();
+            lessonsInCycle += schedules.stream()
+                    .filter(schedule -> schedule.getDayOfWeek() != null
+                            && schedule.getDayOfWeek() == dayOfWeek)
+                    .count();
+        }
+        return contract.getPrice().multiply(BigDecimal.valueOf(lessonsInCycle));
     }
 
     private java.util.Optional<LocalDate> firstScheduledDate(
@@ -184,13 +214,13 @@ public class ContractPaymentInstallmentService {
     }
 
     private ContractPaymentInstallment newInstallment(
-            Contract contract, int sequence, Lesson lesson, LocalDate dueDate) {
+            Contract contract, int sequence, Lesson lesson, LocalDate dueDate, BigDecimal amount) {
         return ContractPaymentInstallment.builder()
                 .contract(contract)
                 .lesson(lesson)
                 .sequenceNumber(sequence)
                 .paymentPeriod(contract.getPaymentPeriod())
-                .amount(contract.getPrice())
+                .amount(amount)
                 .dueDate(dueDate)
                 .status(PaymentInstallmentStatus.PENDING)
                 .build();
