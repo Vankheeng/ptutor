@@ -11,7 +11,7 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/students', label: 'Tìm kiếm học viên', icon: 'search' },
   { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: 'book' },
   { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
-  { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'send' },
+  { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
   { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
