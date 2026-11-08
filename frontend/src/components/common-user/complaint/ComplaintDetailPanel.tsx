@@ -2,7 +2,6 @@ import type { Contract } from '../../../services/studentApi';
 import type { StudentComplaint } from '../../../services/studentComplaintApi';
 import { Link } from 'react-router-dom';
 import { complaintCategoryLabels, formatComplaintDate } from './complaintFormat';
-import { ComplaintStatusBadge } from './ComplaintStatusBadge';
 import { Icon } from '../../ui/Icon';
 import { useComplaintParties } from '../../../pages/common-user/useComplaintParties';
 
@@ -33,7 +32,11 @@ export function ComplaintDetailPanel({ complaint, contract, mode, role = 'studen
               </Link>
             </div>
           </div>
-          <ComplaintStatusBadge status={complaint.status} />
+          <div className="student-complaint-contract-summary">
+            <Link className="student-complaint-contract-summary-link" to={contractHref}>
+              Xem chi tiết hợp đồng <Icon name="arrow" size={13} />
+            </Link>
+          </div>
         </div>
         <div className="student-complaint-summary-meta">
           <div>

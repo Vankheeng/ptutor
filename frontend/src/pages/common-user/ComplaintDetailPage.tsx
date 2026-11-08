@@ -205,6 +205,9 @@ export function ComplaintDetailPage({
               </div>
             </div>
           </header>
+          <div className="student-complaint-edit-header-status">
+            <ComplaintStatusBadge status={complaint.status} />
+          </div>
 
           <section className="student-complaint-edit-status">
             <span className="student-complaint-edit-status-icon">
