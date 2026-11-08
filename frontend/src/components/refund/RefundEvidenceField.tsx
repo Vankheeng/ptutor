@@ -6,9 +6,11 @@ interface Props {
   value: EvidenceInput[];
   onChange: (value: EvidenceInput[]) => void;
   max?: number;
+  label?: string;
+  addLabel?: string;
 }
 
-export function RefundEvidenceField({ value, onChange, max = 5 }: Props) {
+export function RefundEvidenceField({ value, onChange, max = 5, label = 'Minh chứng', addLabel = 'Thêm' }: Props) {
   const id = useId();
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function RefundEvidenceField({ value, onChange, max = 5 }: Props) {
 
   return (
     <div className="rf-field">
-      <label htmlFor={id}>Minh chứng</label>
+      <label htmlFor={id}>{label}</label>
       {value.length > 0 && (
         <ul className="rf-files">
           {value.map((item, index) => (
@@ -62,7 +64,7 @@ export function RefundEvidenceField({ value, onChange, max = 5 }: Props) {
             }}
           />
           <button className="rf-button secondary" type="button" onClick={add}>
-            Thêm
+            {addLabel}
           </button>
         </div>
       )}

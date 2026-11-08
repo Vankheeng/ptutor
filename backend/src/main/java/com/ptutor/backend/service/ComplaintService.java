@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,10 +36,7 @@ import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.EvidenceRepository;
 import com.ptutor.backend.repository.UserRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class ComplaintService {
 
     // The complainant can still edit or cancel a PENDING complaint, so the respondent only sees it afterwards.
@@ -55,7 +53,37 @@ public class ComplaintService {
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final ComplaintMapper complaintMapper;
+    private final ComplaintFileStorageService fileStorageService;
     private final Clock clock;
+
+    @Autowired
+    public ComplaintService(
+            ComplaintRepository complaintRepository,
+            EvidenceRepository evidenceRepository,
+            ContractRepository contractRepository,
+            UserRepository userRepository,
+            ComplaintMapper complaintMapper,
+            ComplaintFileStorageService fileStorageService,
+            Clock clock) {
+        this.complaintRepository = complaintRepository;
+        this.evidenceRepository = evidenceRepository;
+        this.contractRepository = contractRepository;
+        this.userRepository = userRepository;
+        this.complaintMapper = complaintMapper;
+        this.fileStorageService = fileStorageService;
+        this.clock = clock;
+    }
+
+    public ComplaintService(
+            ComplaintRepository complaintRepository,
+            EvidenceRepository evidenceRepository,
+            ContractRepository contractRepository,
+            UserRepository userRepository,
+            ComplaintMapper complaintMapper,
+            Clock clock) {
+        this(complaintRepository, evidenceRepository, contractRepository, userRepository,
+                complaintMapper, null, clock);
+    }
 
     @Transactional
     public ComplaintResponse create(UUID userId, ComplaintCreateRequest source) {
@@ -235,7 +263,19 @@ public class ComplaintService {
     private ComplaintResponse toResponse(Complaint complaint, Collection<Evidence> evidences) {
         return complaintMapper.toResponse(
                 complaint,
-                evidences.stream().map(complaintMapper::toEvidenceResponse).toList());
+                evidences.stream().map(this::toEvidenceResponse).toList());
+    }
+
+    private ComplaintResponse.Evidence toEvidenceResponse(Evidence evidence) {
+        String fileUrl = evidence.getFileUrl();
+        if (fileStorageService != null) {
+            fileUrl = fileStorageService.accessUrl(fileUrl);
+        }
+        return new ComplaintResponse.Evidence(
+                evidence.getId(),
+                fileUrl,
+                evidence.getFileType(),
+                evidence.getUploadedBy() == null ? null : evidence.getUploadedBy().getId());
     }
 
     private User findUserById(UUID userId) {

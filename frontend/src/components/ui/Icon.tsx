@@ -14,12 +14,14 @@ export type IconName =
   | 'book'
   | 'eye'
   | 'eyeOff'
+  | 'edit'
   | 'bell'
   | 'dashboard'
   | 'calendar'
   | 'wallet'
   | 'history'
   | 'send'
+  | 'complaint'
   | 'refund'
   | 'award'
   | 'user'
@@ -103,6 +105,12 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.1 0 9.5 6 9.5 6a17.5 17.5 0 0 1-3.1 3.4M6.2 6.8C3.9 8.3 2.5 12 2.5 12s3.4 6 9.5 6c1.4 0 2.6-.3 3.7-.8" />
     </>
   ),
+  edit: (
+    <>
+      <path d="M4 20h4l11-11a2.2 2.2 0 0 0-4-4L4 16v4Z" />
+      <path d="m13.5 6.5 4 4" />
+    </>
+  ),
   bell: (
     <>
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
@@ -139,6 +147,14 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="m22 2-7 20-4-9-9-4Z" />
       <path d="M22 2 11 13" />
+    </>
+  ),
+  complaint: (
+    <>
+      <path d="M5 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+      <path d="M8 8h8M8 11h4" />
+      <circle cx="17" cy="18" r="3" />
+      <path d="M17 16.7v1.8M17 19.7h.01" />
     </>
   ),
   refund: (

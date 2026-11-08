@@ -13,6 +13,7 @@ const navigation = [
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
+  { section: 'LEARNING', to: '/student/complaints', label: 'Khiếu nại', icon: 'shield' },
   { section: 'ACCOUNT', to: '/student/notifications', label: 'Thông báo', icon: 'bell' },
   { section: 'ACCOUNT', to: '/student/wallet', label: 'Ví tiền & thanh toán', icon: '◈' },
   { section: 'ACCOUNT', to: '/student/wallet/transactions', label: 'Lịch sử giao dịch', icon: '▤' },
@@ -67,7 +68,7 @@ export function StudentLayout() {
                     className={({ isActive }) => (isActive ? 'student-nav-link active' : 'student-nav-link')}
                   >
                     <span aria-hidden="true">
-                      {item.icon === 'bell' || item.icon === 'calendar' ? (
+                      {item.icon === 'bell' || item.icon === 'calendar' || item.icon === 'shield' ? (
                         <Icon name={item.icon} size={18} />
                       ) : (
                         item.icon
