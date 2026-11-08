@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +22,14 @@ import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Lesson;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.Payment;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
@@ -36,6 +39,7 @@ import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -58,6 +62,12 @@ public class LessonService {
     private final Clock clock;
     private final ContractPaymentInstallmentService installmentService;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
+
+    @Autowired(required = false)
+    private PaymentRepository paymentRepository;
 
     @Transactional
     public LessonResponse create(UUID userId, UUID contractId, LessonRequest source) {
@@ -82,35 +92,41 @@ public class LessonService {
                 .build();
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.assignNextInstallment(contract, saved);
-        return lessonMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<LessonResponse> findByContractForStudent(UUID userId, UUID contractId) {
         Student student = findStudentByUserId(userId);
-        contractRepository.findById(contractId)
-                .filter(contract -> contract.getStudent() != null && student.getId().equals(contract.getStudent().getId()))
+        Contract contract = contractRepository.findById(contractId)
+                .filter(candidate -> candidate.getStudent() != null && student.getId().equals(candidate.getStudent().getId()))
                 .orElseThrow(() -> contractNotFound(contractId));
+        if (lessonProvisioningService != null) {
+            lessonProvisioningService.provision(contract);
+        }
         return lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId).stream()
-                .map(lessonMapper::toResponse)
+                .map(this::toResponse)
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResponse<LessonResponse> findByContract(
             UUID userId, UUID contractId, LessonStatus status, Pageable pageable) {
         Tutor tutor = findTutorByUserId(userId);
-        findOwnedContract(contractId, tutor.getId());
+        Contract contract = findOwnedContract(contractId, tutor.getId());
+        if (lessonProvisioningService != null) {
+            lessonProvisioningService.provision(contract);
+        }
         Page<Lesson> lessons = status == null
                 ? lessonRepository.findAllByContract_Id(contractId, pageable)
                 : lessonRepository.findAllByContract_IdAndStatus(contractId, status, pageable);
-        return PageResponse.from(lessons, lessons.getContent().stream().map(lessonMapper::toResponse).toList());
+        return PageResponse.from(lessons, lessons.getContent().stream().map(this::toResponse).toList());
     }
 
     @Transactional(readOnly = true)
     public LessonResponse findById(UUID userId, UUID lessonId) {
         Tutor tutor = findTutorByUserId(userId);
-        return lessonMapper.toResponse(findOwnedLesson(lessonId, tutor.getId()));
+        return toResponse(findOwnedLesson(lessonId, tutor.getId()));
     }
 
     @Transactional
@@ -129,7 +145,7 @@ public class LessonService {
         lesson.setNote(normalize(source.note()));
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.updatePendingLessonInstallmentDueDate(saved);
-        return lessonMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -168,7 +184,7 @@ public class LessonService {
                 targetStatus == LessonStatus.CANCELLED
                         ? NotificationEventType.LESSON_CANCELLED
                         : NotificationEventType.LESSON_MARKED_TAUGHT);
-        return lessonMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -189,7 +205,7 @@ public class LessonService {
         }
 
         lesson.setStatus(LessonStatus.CONFIRMED);
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        return toResponse(lessonRepository.saveAndFlush(lesson));
     }
 
     @Transactional
@@ -329,6 +345,16 @@ public class LessonService {
                 NotificationReferenceType.LESSON,
                 lesson.getId(),
                 java.util.Map.of("name", name)));
+    }
+
+    private LessonResponse toResponse(Lesson lesson) {
+        java.time.LocalDateTime paidAt = paymentRepository == null
+                ? null
+                : paymentRepository.findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
+                        lesson.getId(), PaymentStatus.PAID)
+                        .map(Payment::getPaidAt)
+                        .orElse(null);
+        return lessonMapper.toResponse(lesson, paidAt);
     }
 
     private String normalize(String value) {

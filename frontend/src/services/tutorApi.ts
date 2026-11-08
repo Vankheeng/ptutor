@@ -1,4 +1,5 @@
 import { del, get, patch, post, put } from './httpClient';
+import type { Installment } from './studentApi';
 
 export interface TutorAddress {
   detailAddress: string | null;
@@ -110,6 +111,7 @@ export interface TutorLesson {
   teachingMode: 'ONLINE' | 'OFFLINE';
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
+  paidAt: string | null;
 }
 
 export function getTutorProfile(signal?: AbortSignal) {
@@ -201,6 +203,14 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
   return get<PageResponse<TutorLesson>>(`/api/v1/tutors/me/contracts/${contractId}/lessons?page=0&size=100`, {
     signal
   });
+}
+
+export function getTutorContractInstallments(contractId: string, signal?: AbortSignal) {
+  return get<Installment[]>(`/api/v1/tutors/me/contracts/${contractId}/payment-installments`, { signal });
+}
+
+export function requestTutorContractStop(contractId: string) {
+  return post(`/api/v1/users/me/contracts/${contractId}/stop-requests`);
 }
 
 export function createTutorLesson(

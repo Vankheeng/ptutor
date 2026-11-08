@@ -40,6 +40,9 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findFirstByUser_IdAndPaymentInstallment_IdAndStatusOrderByCreatedAtDesc(
             UUID userId, UUID paymentInstallmentId, PaymentStatus status);
 
+    Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
+            UUID lessonId, PaymentStatus status);
+
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 
     @Query("""

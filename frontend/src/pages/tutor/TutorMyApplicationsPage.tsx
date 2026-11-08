@@ -19,7 +19,7 @@ export function TutorMyApplicationsPage() {
   const [selected, setSelected] = useState<TutorTeachingProposal | null>(null);
   const [busy, setBusy] = useState(false);
   const query = useTutorProposals(filter === 'ALL' ? undefined : filter, revision);
-  const proposals = query.data ?? [];
+  const proposals = useMemo(() => query.data ?? [], [query.data]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,7 +76,6 @@ export function TutorMyApplicationsPage() {
       <div className="tutor-page-heading">
         <div>
           <h1>Ứng tuyển của tôi</h1>
-          <p>Theo dõi các đề xuất giảng dạy bạn đã gửi cho học viên.</p>
         </div>
         <Link className="tutor-button tutor-heading-button" to="/tutor/students">
           Tìm học viên

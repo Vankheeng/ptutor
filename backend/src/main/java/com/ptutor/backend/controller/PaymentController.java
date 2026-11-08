@@ -109,6 +109,14 @@ public class PaymentController {
                 paymentService.findMyInstallments(currentUserProvider.getCurrentUserId(), contractId), path));
     }
 
+    @GetMapping("/tutors/me/contracts/{contractId}/payment-installments")
+    public ResponseEntity<ApiResponse<List<ContractPaymentInstallmentResponse>>> tutorInstallments(
+            @PathVariable UUID contractId) {
+        String path = "/api/v1/tutors/me/contracts/" + contractId + "/payment-installments";
+        return ResponseEntity.ok(responseFactory.success(
+                paymentService.findTutorInstallments(currentUserProvider.getCurrentUserId(), contractId), path));
+    }
+
     @PostMapping("/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> payTuition(
             @PathVariable UUID contractId,
