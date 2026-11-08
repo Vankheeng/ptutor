@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { confirmContractLesson } from '../services/refundApi';
 import { createTutorLesson, setTutorLessonStatus, updateTutorLesson } from '../services/tutorApi';
+import { refundErrorMessage } from '../components/refund/refundFormat';
 import type { CalendarEvent, CalendarRole } from './useLessonCalendarData';
 
 type FormValues = { title: string; date: string; startTime: string; endTime: string; note?: string };
@@ -22,8 +23,8 @@ export function useLessonCalendarActions(
       onNotice('Đã xác nhận buổi học.');
       onDismiss();
       onRefresh();
-    } catch {
-      onNotice('Không thể xác nhận buổi học. Vui lòng thử lại.');
+    } catch (failure) {
+      onNotice(refundErrorMessage(failure));
     } finally {
       setBusy('');
     }

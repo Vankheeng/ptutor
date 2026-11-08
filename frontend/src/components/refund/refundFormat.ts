@@ -156,7 +156,7 @@ const errorMessages: Record<string, string> = {
   REFUND_REQUEST_REVIEW_FORBIDDEN: 'Chỉ người đang phụ trách mới xử lý được yêu cầu này.',
   REFUND_REQUEST_ALREADY_ASSIGNED: 'Yêu cầu đã được người khác tiếp nhận.',
   INVALID_REFUND_REQUEST_STATUS_TRANSITION: 'Yêu cầu đã được xử lý. Vui lòng tải lại trang.',
-  LESSON_COMPLETION_ON_HOLD: 'Buổi học đang bị tạm giữ, chưa thể xác nhận.'
+  LESSON_COMPLETION_ON_HOLD: 'Buổi học đang bị tạm giữ vì có khiếu nại hoặc yêu cầu hoàn tiền đang được xử lý.'
 };
 
 export function refundErrorMessage(error: unknown) {
