@@ -12,6 +12,7 @@ const statusLabels: Record<string, string> = {
 
 type Props = {
   role: CalendarRole;
+  variant?: 'default' | 'student';
   cursor: Date;
   view: 'month' | 'week';
   contracts: Contract[];
@@ -30,34 +31,83 @@ type Props = {
 };
 
 export function LessonCalendarToolbar(props: Props) {
-  const { role, cursor, view, contracts, people, contractFilter, personFilter, statusFilter } = props;
+  const {
+    role,
+    variant = 'default',
+    cursor,
+    view,
+    contracts,
+    people,
+    contractFilter,
+    personFilter,
+    statusFilter
+  } = props;
+  const isStudentVariant = variant === 'student';
   return (
-    <section className="lc-toolbar">
-      <h1>{role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>
-      <button onClick={props.onToday}>Hôm nay</button>
-      <button aria-label="Tháng trước" onClick={() => props.onMove(-1)}>
-        ‹
-      </button>
-      <button aria-label="Tháng sau" onClick={() => props.onMove(1)}>
-        ›
-      </button>
-      <label className="lc-month-picker">
-        <span>Tháng</span>
-        <input
-          aria-label="Chọn tháng và năm"
-          type="month"
-          value={`${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`}
-          onChange={(event) => props.onMonthChange(event.target.value)}
-        />
-      </label>
-      <div className="lc-toggle">
-        <button className={view === 'month' ? 'active' : ''} onClick={() => props.onViewChange('month')}>
-          Tháng
-        </button>
-        <button className={view === 'week' ? 'active' : ''} onClick={() => props.onViewChange('week')}>
-          Tuần
-        </button>
-      </div>
+    <section className={`lc-toolbar${isStudentVariant ? ' student-calendar-toolbar' : ''}`}>
+      <h1>{isStudentVariant ? 'Bộ lọc' : role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>
+      {!isStudentVariant && (
+        <>
+          <button onClick={props.onToday}>Hôm nay</button>
+          <button aria-label="Tháng trước" onClick={() => props.onMove(-1)}>
+            ‹
+          </button>
+          <button aria-label="Tháng sau" onClick={() => props.onMove(1)}>
+            ›
+          </button>
+        </>
+      )}
+      {isStudentVariant ? (
+        <label className="lc-month-picker lc-filter-stack">
+          <span>Tháng</span>
+          <input
+            aria-label="Chọn tháng và năm"
+            type="month"
+            value={`${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`}
+            onChange={(event) => props.onMonthChange(event.target.value)}
+          />
+        </label>
+      ) : (
+        <label className="lc-month-picker">
+          <span>Tháng</span>
+          <input
+            aria-label="Chọn tháng và năm"
+            type="month"
+            value={`${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`}
+            onChange={(event) => props.onMonthChange(event.target.value)}
+          />
+        </label>
+      )}
+      {isStudentVariant ? (
+        <label className="lc-view-mode lc-filter-stack">
+          <span>Chế độ xem</span>
+          <div className="lc-toggle">
+            <button
+              type="button"
+              className={view === 'month' ? 'active' : ''}
+              onClick={() => props.onViewChange('month')}
+            >
+              Tháng
+            </button>
+            <button
+              type="button"
+              className={view === 'week' ? 'active' : ''}
+              onClick={() => props.onViewChange('week')}
+            >
+              Tuần
+            </button>
+          </div>
+        </label>
+      ) : (
+        <div className="lc-toggle">
+          <button className={view === 'month' ? 'active' : ''} onClick={() => props.onViewChange('month')}>
+            Tháng
+          </button>
+          <button className={view === 'week' ? 'active' : ''} onClick={() => props.onViewChange('week')}>
+            Tuần
+          </button>
+        </div>
+      )}
       <label className="lc-filter">
         <span>Hợp đồng</span>
         <select value={contractFilter} onChange={(event) => props.onContractChange(event.target.value)}>

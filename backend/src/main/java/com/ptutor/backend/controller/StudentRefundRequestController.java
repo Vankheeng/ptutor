@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -14,16 +15,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ptutor.backend.dto.request.RefundRequestCreateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.RefundRequestResponse;
+import com.ptutor.backend.dto.response.RefundEvidenceUploadResponse;
 import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.RefundRequestService;
+import com.ptutor.backend.service.RefundFileStorageService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -39,8 +44,21 @@ public class StudentRefundRequestController {
     private static final String BASE_PATH = "/api/v1/students/me/refund-requests";
 
     private final RefundRequestService refundRequestService;
+    private final RefundFileStorageService fileStorageService;
     private final ApiResponseFactory responseFactory;
     private final CurrentUserProvider currentUserProvider;
+
+    @PostMapping(path = "/evidence-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<RefundEvidenceUploadResponse>> uploadEvidence(
+            @RequestPart("file") MultipartFile file) {
+        String reference = fileStorageService.upload(file);
+        return ResponseEntity.status(201).body(responseFactory.success(
+                new RefundEvidenceUploadResponse(
+                        reference,
+                        fileStorageService.accessUrl(reference),
+                        file.getContentType()),
+                BASE_PATH + "/evidence-upload"));
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<RefundRequestResponse>> create(

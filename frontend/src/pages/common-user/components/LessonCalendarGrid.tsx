@@ -10,9 +10,83 @@ type Props = {
   view: 'month' | 'week';
   events: CalendarEvent[];
   renderEvent: (event: CalendarEvent) => ReactNode;
+  weekEventLayout?: 'single' | 'columns';
 };
 
-export function LessonCalendarGrid({ cursor, view, events, renderEvent }: Props) {
+const WEEK_START_MINUTES = 7 * 60;
+const WEEK_END_MINUTES = 24 * 60;
+const WEEK_HOUR_HEIGHT = 52;
+
+function minutesFromTime(value: string) {
+  const [hours, minutes] = value.slice(0, 5).split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function arrangeWeekEvents(events: CalendarEvent[]) {
+  const sorted = [...events].sort((left, right) => {
+    const startDifference = minutesFromTime(left.startTime) - minutesFromTime(right.startTime);
+    return startDifference || minutesFromTime(left.endTime) - minutesFromTime(right.endTime);
+  });
+  const groups: CalendarEvent[][] = [];
+  let currentGroup: CalendarEvent[] = [];
+  let currentGroupEnd = -Infinity;
+
+  sorted.forEach((event) => {
+    const start = minutesFromTime(event.startTime);
+    const end = minutesFromTime(event.endTime);
+    if (currentGroup.length > 0 && start >= currentGroupEnd) {
+      groups.push(currentGroup);
+      currentGroup = [];
+      currentGroupEnd = -Infinity;
+    }
+    currentGroup.push(event);
+    currentGroupEnd = Math.max(currentGroupEnd, end);
+  });
+  if (currentGroup.length > 0) groups.push(currentGroup);
+
+  return groups.flatMap((group) => {
+    const columns: CalendarEvent[][] = [];
+    const columnById = new Map<string, number>();
+
+    group.forEach((event) => {
+      const start = minutesFromTime(event.startTime);
+      const column = columns.findIndex((items) => {
+        const previous = items[items.length - 1];
+        return minutesFromTime(previous.endTime) <= start;
+      });
+      const columnIndex = column === -1 ? columns.length : column;
+      if (!columns[columnIndex]) columns[columnIndex] = [];
+      columns[columnIndex].push(event);
+      columnById.set(event.id, columnIndex);
+    });
+
+    return group.map((event) => ({
+      event,
+      column: columnById.get(event.id) ?? 0,
+      columnCount: columns.length
+    }));
+  });
+}
+
+function weekEventStyle(event: CalendarEvent, column = 0, columnCount = 1) {
+  const start = minutesFromTime(event.startTime);
+  const end = Math.max(start + 1, minutesFromTime(event.endTime));
+  const visibleStart = Math.max(start, WEEK_START_MINUTES);
+  const visibleEnd = Math.min(end, WEEK_END_MINUTES);
+  const top = Math.max(0, ((visibleStart - WEEK_START_MINUTES) / 60) * WEEK_HOUR_HEIGHT);
+  const height = Math.max(1, ((Math.max(visibleEnd, visibleStart + 1) - visibleStart) / 60) * WEEK_HOUR_HEIGHT);
+  const columnWidth = 100 / columnCount;
+
+  return {
+    top,
+    height,
+    left: `calc(${column * columnWidth}% + 4px)`,
+    width: `calc(${columnWidth}% - 8px)`,
+    right: 'auto'
+  };
+}
+
+export function LessonCalendarGrid({ cursor, view, events, renderEvent, weekEventLayout = 'single' }: Props) {
   const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthStart = new Date(firstOfMonth);
   monthStart.setDate(1 - ((firstOfMonth.getDay() + 6) % 7));
@@ -59,19 +133,18 @@ export function LessonCalendarGrid({ cursor, view, events, renderEvent }: Props)
                 {hours.map((hour) => (
                   <i key={hour} />
                 ))}
-                {events
-                  .filter((event) => event.date === key)
-                  .map((event) => {
-                    const startMinutes = Number(event.startTime.slice(0, 2)) * 60 + Number(event.startTime.slice(3, 5));
-                    const endMinutes = Number(event.endTime.slice(0, 2)) * 60 + Number(event.endTime.slice(3, 5));
-                    const top = Math.max(0, ((startMinutes - 7 * 60) / 60) * 52);
-                    const height = Math.max(40, ((endMinutes - startMinutes) / 60) * 52);
-                    return (
-                      <div className="lc-positioned-event" key={event.id} style={{ top, height }}>
-                        {renderEvent(event)}
-                      </div>
-                    );
-                  })}
+                {(weekEventLayout === 'columns'
+                  ? arrangeWeekEvents(events.filter((event) => event.date === key))
+                  : events.filter((event) => event.date === key).map((event) => ({ event, column: 0, columnCount: 1 }))
+                ).map(({ event, column, columnCount }) => (
+                  <div
+                    className="lc-positioned-event"
+                    key={event.id}
+                    style={weekEventStyle(event, column, columnCount)}
+                  >
+                    {renderEvent(event)}
+                  </div>
+                ))}
               </div>
             );
           })}

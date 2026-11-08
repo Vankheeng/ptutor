@@ -242,6 +242,33 @@
 .rf-field textarea {
   resize: vertical;
 }
+.student-refund-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+.student-refund-file-picker {
+  position: relative;
+}
+.student-refund-upload-field .rf-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.student-refund-upload-field .rf-files button {
+  border: 0;
+  background: transparent;
+  color: var(--rf-danger);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
 .rf-field [aria-invalid='true'] {
   border: 2px solid var(--rf-danger);
 }

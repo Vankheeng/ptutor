@@ -5,7 +5,8 @@ import {
   getStudentContractLessons,
   getTutorRefundRequests,
   type ContractLesson,
-  type RefundRequest
+  type RefundRequest,
+  type LessonStatus
 } from '../services/refundApi';
 import { getContracts } from '../services/studentApi';
 import { getTutorContractLessons, type TutorLesson } from '../services/tutorApi';
@@ -18,8 +19,9 @@ export type CalendarEvent = {
   date: string;
   startTime: string;
   endTime: string;
-  status: string;
+  status: LessonStatus;
   note: string | null;
+  markedTaughtAt: string | null;
   disputed: boolean;
   refundRequestId: string | null;
 };
@@ -53,6 +55,7 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
               endTime: lesson.endTime,
               status: lesson.status,
               note: lesson.note,
+              markedTaughtAt: 'markedTaughtAt' in lesson ? lesson.markedTaughtAt : null,
               disputed: disputeByLesson.has(lesson.id),
               refundRequestId: disputeByLesson.get(lesson.id) ?? null
             }));

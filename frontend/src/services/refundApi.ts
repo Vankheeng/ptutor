@@ -13,6 +13,12 @@ export interface EvidenceInput {
   fileType: string;
 }
 
+export interface RefundEvidenceUploadResponse {
+  fileUrl: string;
+  previewUrl: string;
+  fileType: string;
+}
+
 export interface RefundEvidence extends EvidenceInput {
   id: string;
   uploadedByUserId: string | null;
@@ -176,6 +182,12 @@ const adminPath = '/api/v1/admin/refund-requests';
 
 export const getStudentContractLessons = (contractId: string, signal?: AbortSignal) =>
   get<ContractLesson[]>(`/api/v1/students/me/contracts/${contractId}/lessons`, { signal });
+
+export const uploadRefundEvidence = (file: File) => {
+  const body = new FormData();
+  body.append('file', file);
+  return post<RefundEvidenceUploadResponse>('/api/v1/students/me/refund-requests/evidence-upload', body);
+};
 
 export const confirmContractLesson = (lessonId: string) =>
   post<ContractLesson>(`/api/v1/students/me/lessons/${lessonId}/confirm`);

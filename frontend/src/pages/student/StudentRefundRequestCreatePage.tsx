@@ -7,7 +7,7 @@ import {
   type AbsenceOutcome,
   type EvidenceInput
 } from '../../services/refundApi';
-import { RefundEvidenceField } from '../../components/refund/RefundEvidenceField';
+import { StudentRefundEvidenceField } from '../../components/student/lesson/StudentRefundEvidenceField';
 import {
   confirmationDeadline,
   formatClockTime,
@@ -150,7 +150,7 @@ export function StudentRefundRequestCreatePage() {
             </span>
           </div>
         </div>
-        <RefundEvidenceField value={evidences} onChange={setEvidences} />
+        <StudentRefundEvidenceField value={evidences} onChange={setEvidences} />
       </section>
 
       <div className="rf-actions">
