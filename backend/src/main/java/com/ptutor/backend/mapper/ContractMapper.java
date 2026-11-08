@@ -14,6 +14,7 @@ public interface ContractMapper {
     @Mapping(target = "studentFirstName", source = "student.user.firstName")
     @Mapping(target = "studentLastName", source = "student.user.lastName")
     @Mapping(target = "studentEmail", source = "student.user.email")
+    @Mapping(target = "studentDetailAddress", source = "student.user.detailAddress")
     @Mapping(target = "tutorId", source = "tutor.id")
     @Mapping(target = "tutorFirstName", source = "tutor.user.firstName")
     @Mapping(target = "tutorLastName", source = "tutor.user.lastName")

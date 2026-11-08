@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { cancelMyWithdrawal, getFinancialTransaction } from '../../services/studentApi';
 import { ApiError } from '../../services/httpClient';
 import { useResource } from '../../hooks/useResource';
+import { referenceNavigation } from '../../utils/referenceNavigation';
 import './wallet.css';
 import './transactions/transactions.css';
 
@@ -19,6 +20,13 @@ const typeName = (type: string) =>
     STUDYING_REQUEST_FEE: 'Phí yêu cầu học',
     TEACHING_REQUEST_FEE: 'Phí yêu cầu dạy'
   })[type] ?? type.replaceAll('_', ' ');
+const inferredReferenceType = (type: string) =>
+  ({
+    TUITION_PAYMENT: 'CONTRACT',
+    STUDYING_REQUEST_FEE: 'STUDYING_REQUEST',
+    TEACHING_REQUEST_FEE: 'TEACHING_REQUEST',
+    WALLET_TOP_UP: 'PAYMENT'
+  })[type] ?? null;
 const statusName = (status: string, source: string) =>
   source === 'WITHDRAWAL' && status === 'PENDING'
     ? 'Chờ duyệt'
@@ -47,6 +55,13 @@ export function WalletTransactionDetailPage() {
     [source, transactionId]
   );
   const transaction = useResource(load, refreshKey);
+  const referenceTarget = transaction.data
+    ? referenceNavigation(
+        basePath,
+        transaction.data.referenceType ?? inferredReferenceType(transaction.data.type),
+        transaction.data.referenceId
+      )
+    : null;
 
   const cancelWithdrawal = async () => {
     setCancelling(true);
@@ -70,7 +85,6 @@ export function WalletTransactionDetailPage() {
         <button type="button" onClick={() => navigate(`${basePath}/wallet/transactions`)}>
           ← Quay lại lịch sử
         </button>
-        <span>CHI TIẾT GIAO DỊCH</span>
       </div>
       {transaction.error ? (
         <div className="wallet-error" role="alert">
@@ -81,34 +95,19 @@ export function WalletTransactionDetailPage() {
       ) : (
         transaction.data && (
           <>
-            <header className="transaction-detail-heading">
-              <div>
-                <span className="wallet-eyebrow">PTUTOR LEDGER HUB / TRANSACTION DETAIL</span>
-                <h1>Chi tiết giao dịch</h1>
-                <p>
-                  Mã giao dịch <b>TX-{transaction.data.id.slice(0, 8).toUpperCase()}</b>
-                </p>
-              </div>
-              <span className={`transactions-status status-${transaction.data.status.toLowerCase()}`}>
-                {statusName(transaction.data.status, transaction.data.source)}
-              </span>
-            </header>
             <section className="transaction-detail-card">
+              <div className="transaction-detail-card-meta">
+                <span className={`transactions-status status-${transaction.data.status.toLowerCase()}`}>
+                  {statusName(transaction.data.status, transaction.data.source)}
+                </span>
+                <span className="transaction-detail-category">{typeName(transaction.data.type)}</span>
+              </div>
               <span className="wallet-eyebrow">SỐ TIỀN GIAO DỊCH</span>
               <strong>{money(transaction.data.amount)}</strong>
-              <span>{typeName(transaction.data.type)}</span>
             </section>
             <section className="transaction-detail-fields">
               <h2>Thông tin giao dịch</h2>
               <dl>
-                <div>
-                  <dt>Loại giao dịch</dt>
-                  <dd>{typeName(transaction.data.type)}</dd>
-                </div>
-                <div>
-                  <dt>Nguồn</dt>
-                  <dd>{transaction.data.source.replaceAll('_', ' ')}</dd>
-                </div>
                 <div>
                   <dt>Phương thức</dt>
                   <dd>
@@ -128,23 +127,24 @@ export function WalletTransactionDetailPage() {
                   <dd>{new Date(transaction.data.occurredAt).toLocaleString('vi-VN')}</dd>
                 </div>
                 <div>
-                  <dt>Mã tham chiếu</dt>
-                  <dd>{transaction.data.referenceId ?? '—'}</dd>
+                  <dt>Liên kết liên quan</dt>
+                  <dd>
+                    {referenceTarget ? (
+                      <Link className="transaction-reference-button" to={referenceTarget.to}>
+                        {referenceTarget.label} →
+                      </Link>
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
                 </div>
                 <div className="is-full">
                   <dt>Nội dung</dt>
                   <dd>{transaction.data.description || '—'}</dd>
                 </div>
               </dl>
-              <div className="transaction-detail-actions">
-                <button
-                  type="button"
-                  className="transactions-detail-back-button"
-                  onClick={() => navigate(`${basePath}/wallet/transactions`)}
-                >
-                  ← Trở lại danh sách giao dịch
-                </button>
-                {source === 'WITHDRAWAL' && transaction.data.status === 'PENDING' && (
+              {source === 'WITHDRAWAL' && transaction.data.status === 'PENDING' && (
+                <div className="transaction-detail-actions">
                   <button
                     className="transaction-cancel-detail-button"
                     type="button"
@@ -153,15 +153,8 @@ export function WalletTransactionDetailPage() {
                   >
                     {cancelling ? 'Đang thu hồi…' : 'Thu hồi yêu cầu rút tiền'}
                   </button>
-                )}
-              </div>
-              <button
-                type="button"
-                className="transactions-detail-back-button"
-                onClick={() => navigate(`${basePath}/wallet/transactions`)}
-              >
-                ← Trở lại danh sách giao dịch
-              </button>
+                </div>
+              )}
             </section>
             {source === 'WITHDRAWAL' && (transaction.data.status === 'PENDING' || cancelMessage !== '') && (
               <div className="transaction-withdrawal-cancel">

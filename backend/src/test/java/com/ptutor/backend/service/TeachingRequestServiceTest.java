@@ -42,6 +42,7 @@ import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -55,6 +56,7 @@ class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
+    @Mock PaymentRepository paymentRepository;
     @Mock TutorRepository tutorRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
@@ -73,6 +75,7 @@ class TeachingRequestServiceTest {
         service = new TeachingRequestService(
                 teachingRequestRepository,
                 studentTutorRequestRepository,
+                paymentRepository,
                 Mappers.getMapper(TeachingRequestMapper.class),
                 tutorRepository,
                 subjectRepository,
@@ -87,6 +90,8 @@ class TeachingRequestServiceTest {
         lenient().when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         lenient().when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
         lenient().when(studentTutorRequestRepository.countByTeachingRequestIds(any(), any()))
+                .thenReturn(List.of());
+        lenient().when(paymentRepository.findLatestPaidAtByReferenceIds(any(), any(), any(), any()))
                 .thenReturn(List.of());
     }
 

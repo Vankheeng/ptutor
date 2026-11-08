@@ -8,6 +8,7 @@ interface Props {
   rows: AnalyticsCategory[];
   total: number;
   pieBackground: string;
+  periodLabel?: string;
   monthOptions?: Pick<AnalyticsCategoryMonth, 'key' | 'label'>[];
   selectedMonth?: string;
   onMonthChange?: (month: string) => void;
@@ -19,6 +20,7 @@ export function ExpenseBreakdown({
   rows,
   total,
   pieBackground,
+  periodLabel,
   monthOptions,
   selectedMonth,
   onMonthChange
@@ -30,10 +32,14 @@ export function ExpenseBreakdown({
           <span>◉</span>
           <div>
             <h2>{title}</h2>
-            <p>{monthOptions?.length ? 'Phân loại giao dịch theo tháng' : 'Chưa có giao dịch để phân loại'}</p>
+            {periodLabel ? (
+              <span className="analytics-period-label">{periodLabel}</span>
+            ) : monthOptions?.length ? (
+              <p>Phân loại giao dịch theo tháng</p>
+            ) : null}
           </div>
         </div>
-        {monthOptions?.length && selectedMonth && onMonthChange && (
+        {monthOptions && monthOptions.length > 1 && selectedMonth && onMonthChange && (
           <label className="analytics-month-select">
             <span>Tháng</span>
             <select

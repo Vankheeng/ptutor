@@ -88,3 +88,4 @@
   .analytics-donut-layout { grid-template-columns: 1fr; justify-items: center; }
   .analytics-category-list { width: 100%; }
 }
+.analytics-period-label{display:block;margin-top:4px;color:#858a9a;font-size:10px;font-weight:500}

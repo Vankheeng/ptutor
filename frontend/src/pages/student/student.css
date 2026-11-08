@@ -1299,6 +1299,10 @@
   background: #6736d6;
   color: #fff;
 }
+.student-notifications-page{width:100%;max-width:900px;margin:0 auto}
+.student-notification-type-filter{display:flex;align-items:center;gap:7px;margin-left:auto;color:#7d8293;font-size:10px;font-weight:600}.student-notification-type-filter select{min-height:32px;padding:0 9px;border:1px solid #e3e5ed;border-radius:8px;background:#fff;color:#4a4e60;font:inherit;font-size:10px;outline:none}.student-notification-type-filter select:focus{border-color:#997be1;box-shadow:0 0 0 3px #8b68d21c}@media(max-width:700px){.student-notification-type-filter{margin-left:0}.student-section-heading:has(.student-notification-type-filter){align-items:flex-start;flex-wrap:wrap;gap:9px}}
+.student-notifications-page .student-button,.student-notifications-page .student-filter-tabs button,.student-notifications-page .student-notification-type-filter,.student-notifications-page .student-count,.student-notifications-page .student-status,.student-notifications-page .student-pagination button{font-weight:400}
+.student-notifications-page .student-list-row h3{font-weight:700}
 .student-contract-detail-topbar {
   display: flex;
   align-items: center;

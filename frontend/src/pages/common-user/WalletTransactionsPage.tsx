@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   cancelMyWithdrawal,
   getFinancialTransactions,
@@ -15,14 +15,25 @@ import './wallet.css';
 import './transactions/transactions.css';
 
 const PAGE_SIZES = [10, 20, 50];
+
+function toDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function defaultDateRange() {
+  const to = new Date();
+  const from = new Date(to);
+  from.setMonth(from.getMonth() - 1);
+  return { fromDate: toDateInputValue(from), toDate: toDateInputValue(to) };
+}
+
 export function WalletTransactionsPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const basePath = location.pathname.startsWith('/tutor/') ? '/tutor' : '/student';
   const [filters, setFilters] = useState<FinancialTransactionFilters>({});
   const [search, setSearch] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(() => defaultDateRange().fromDate);
+  const [toDate, setToDate] = useState(() => defaultDateRange().toDate);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -81,8 +92,9 @@ export function WalletTransactionsPage() {
   const clearFilters = () => {
     setFilters({});
     setSearch('');
-    setFromDate('');
-    setToDate('');
+    const dateRange = defaultDateRange();
+    setFromDate(dateRange.fromDate);
+    setToDate(dateRange.toDate);
     setPage(0);
   };
   const changePageSize = (size: number) => {
@@ -151,12 +163,6 @@ export function WalletTransactionsPage() {
 
   return (
     <div className="wallet-page transactions-page">
-      <div className="transactions-back-row">
-        <button type="button" onClick={() => navigate(`${basePath}/wallet`)}>
-          ← Quay lại ví
-        </button>
-        <span>LỊCH SỬ TÀI CHÍNH</span>
-      </div>
       <header className="transactions-page-heading">
         <div>
           <h1>Lịch Sử Giao Dịch</h1>
@@ -253,13 +259,6 @@ export function WalletTransactionsPage() {
           </nav>
         )}
       </section>
-      <footer className="transactions-footer-note">
-        <span aria-hidden="true">♢</span>
-        <p>
-          Dữ liệu giao dịch được đồng bộ từ PTutor. Các giao dịch ví, thanh toán và yêu cầu rút tiền có thể hiển thị
-          thành các dòng riêng để dễ đối soát.
-        </p>
-      </footer>
     </div>
   );
 }

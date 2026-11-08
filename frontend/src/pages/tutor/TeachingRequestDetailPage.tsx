@@ -220,8 +220,16 @@ export function TeachingRequestDetailPage() {
               <dd>{request.detailAddress || 'Chưa có'}</dd>
             </div>
             <div>
-              <dt>Ngày tạo</dt>
+              <dt>Thời gian tạo</dt>
               <dd>{new Date(request.createdAt).toLocaleString('vi-VN')}</dd>
+            </div>
+            <div>
+              <dt>Thời gian thanh toán</dt>
+              <dd>{request.paidAt ? new Date(request.paidAt).toLocaleString('vi-VN') : 'Chưa thanh toán'}</dd>
+            </div>
+            <div>
+              <dt>Cập nhật lần cuối</dt>
+              <dd>{new Date(request.updatedAt).toLocaleString('vi-VN')}</dd>
             </div>
           </dl>
           {request.status === 'REJECTED' && request.rejectionReason && (
@@ -231,8 +239,6 @@ export function TeachingRequestDetailPage() {
           )}
           {request.status === 'DRAFT' && (
             <div className="student-panel teaching-draft-payment">
-              <h2>Thanh toán để đăng yêu cầu</h2>
-              <p>Bản nháp đã được lưu. Bạn có thể chọn phương thức thanh toán và thực hiện sau.</p>
               <div className="teaching-payment-summary">
                 <strong>
                   Số tiền cần thanh toán:{' '}

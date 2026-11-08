@@ -1,6 +1,7 @@
 package com.ptutor.backend.mapper;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -20,13 +21,15 @@ public interface TeachingRequestMapper {
     @Mapping(target = "subjectId", source = "request.subject.id")
     @Mapping(target = "subjectName", source = "request.subject.name")
     @Mapping(target = "reviewedBy", source = "request.reviewedBy.id")
+    @Mapping(target = "paidAt", source = "paidAt")
     TeachingRequestResponse toResponse(
             TeachingRequest request,
             List<TeachingRequestResponse.Reference> grades,
             List<TeachingRequestResponse.Reference> districts,
             List<TeachingRequestResponse.Availability> availabilities,
             long studentRequestCount,
-            long pendingStudentRequestCount);
+            long pendingStudentRequestCount,
+            LocalDateTime paidAt);
 
     default String tutorName(TeachingRequest request) {
         if (request.getTutor() == null || request.getTutor().getUser() == null) {

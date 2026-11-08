@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { getAllFinancialTransactions, type FinancialTransaction } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
 import { AnalyticsTabs } from './transactions/AnalyticsTabs';
@@ -51,9 +51,7 @@ function getExpense(item: FinancialTransaction) {
 
 export function WalletAnalyticsPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('income');
-  const [selectedExpenseMonth, setSelectedExpenseMonth] = useState('');
   const basePath = location.pathname.startsWith('/tutor/') ? '/tutor' : '/student';
   const analyticsFromDate = useMemo(() => {
     const date = new Date();
@@ -76,17 +74,23 @@ export function WalletAnalyticsPage() {
     );
     const monthKeys = new Set(months.map(monthKey));
     const visible = transactions.filter((item) => monthKeys.has(item.occurredAt.slice(0, 7)));
+    const currentMonth = monthKey(now);
+    const detailVisible = visible.filter((item) => item.occurredAt.slice(0, 7) === currentMonth);
     const completedIncome = visible
       .filter((item) => getIncome(item) && successful(item.status))
       .reduce((sum, item) => sum + Number(item.amount), 0);
-    const incomeTransactions = visible
+    const incomeTransactions = detailVisible
       .filter((item) => getIncome(item) && successful(item.status))
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     const pendingIncome = visible
       .filter((item) => getIncome(item) && pending(item.status))
       .reduce((sum, item) => sum + Number(item.amount), 0);
     const expenses = visible.filter((item) => getExpense(item) && successful(item.status));
+    const detailExpenses = detailVisible.filter((item) => getExpense(item) && successful(item.status));
     const withdrawalRequests = visible.filter(
+      (item) => item.source === 'WITHDRAWAL' && !['CANCELLED', 'REJECTED', 'FAILED'].includes(item.status.toUpperCase())
+    );
+    const detailWithdrawalRequests = detailVisible.filter(
       (item) => item.source === 'WITHDRAWAL' && !['CANCELLED', 'REJECTED', 'FAILED'].includes(item.status.toUpperCase())
     );
     const pendingWithdrawals = withdrawalRequests
@@ -96,6 +100,8 @@ export function WalletAnalyticsPage() {
       .filter((item) => successful(item.status))
       .reduce((sum, item) => sum + Number(item.amount), 0);
     const totalWithdrawals = withdrawalRequests.reduce((sum, item) => sum + Number(item.amount), 0);
+    const detailTotalIncome = incomeTransactions.reduce((sum, item) => sum + Number(item.amount), 0);
+    const detailTotalWithdrawals = detailWithdrawalRequests.reduce((sum, item) => sum + Number(item.amount), 0);
     const refunds = visible
       .filter(
         (item) =>
@@ -103,6 +109,8 @@ export function WalletAnalyticsPage() {
       )
       .reduce((sum, item) => sum + Number(item.amount), 0);
     const totalExpense = expenses.reduce((sum, item) => sum + Number(item.amount), 0) + totalWithdrawals;
+    const detailTotalExpense =
+      detailExpenses.reduce((sum, item) => sum + Number(item.amount), 0) + detailTotalWithdrawals;
     const monthly = months.map((date) => {
       const rows = visible.filter((item) => item.occurredAt.slice(0, 7) === monthKey(date));
       return {
@@ -122,7 +130,7 @@ export function WalletAnalyticsPage() {
           .reduce((sum, item) => sum + Number(item.amount), 0)
       };
     });
-    const categories = expenses.reduce<Record<string, number>>((groups, item) => {
+    const categories = detailExpenses.reduce<Record<string, number>>((groups, item) => {
       const label = expenseLabel(item);
       groups[label] = (groups[label] ?? 0) + Number(item.amount);
       return groups;
@@ -133,13 +141,20 @@ export function WalletAnalyticsPage() {
       groups[label] = (groups[label] ?? 0) + Number(item.amount);
       return groups;
     }, {});
-    if (totalWithdrawals > 0) categories['Rút tiền ngân hàng'] = totalWithdrawals;
+    if (detailTotalWithdrawals > 0) categories['Rút tiền ngân hàng'] = detailTotalWithdrawals;
     const categoryRows: AnalyticsCategory[] = Object.entries(categories)
       .map(([label, amount]) => ({
         label,
         amount,
-        ...(label.toLowerCase().startsWith('r') && amount === totalWithdrawals
-          ? { completedAmount: completedWithdrawals, pendingAmount: pendingWithdrawals }
+        ...(label.toLowerCase().startsWith('r') && amount === detailTotalWithdrawals
+          ? {
+              completedAmount: detailWithdrawalRequests
+                .filter((item) => successful(item.status))
+                .reduce((sum, item) => sum + Number(item.amount), 0),
+              pendingAmount: detailWithdrawalRequests
+                .filter((item) => pending(item.status))
+                .reduce((sum, item) => sum + Number(item.amount), 0)
+            }
           : {})
       }))
       .sort((a, b) => b.amount - a.amount);
@@ -186,7 +201,7 @@ export function WalletAnalyticsPage() {
         };
       })
       .filter((month) => month.total > 0);
-    const outflowTransactions = [...expenses, ...withdrawalRequests].sort((a, b) =>
+    const outflowTransactions = [...detailExpenses, ...detailWithdrawalRequests].sort((a, b) =>
       b.occurredAt.localeCompare(a.occurredAt)
     );
     const largest = Math.max(
@@ -195,14 +210,16 @@ export function WalletAnalyticsPage() {
     );
     const totalExpenseCategories = categoryRows.reduce((sum, row) => sum + row.amount, 0);
     const pieStops = toConicStops(categoryRows, totalExpenseCategories);
-    const incomePieStops = toConicStops(incomeCategoryRows, completedIncome);
+    const incomePieStops = toConicStops(incomeCategoryRows, detailTotalIncome);
     return {
-      transactions,
+      transactions: visible,
       monthly,
       completedIncome,
       totalIncome: completedIncome,
       pendingIncome,
       totalExpense,
+      detailTotalIncome,
+      detailTotalExpense,
       totalWithdrawals,
       pendingWithdrawals,
       completedWithdrawals,
@@ -221,29 +238,12 @@ export function WalletAnalyticsPage() {
     };
   }, [result.data]);
 
-  const selectedExpenseData =
-    analytics.expenseMonths.find((month) => month.key === selectedExpenseMonth) ??
-    analytics.expenseMonths[analytics.expenseMonths.length - 1];
-
   return (
     <main className="wallet-page transactions-page analytics-page">
-      <div className="transactions-back-row">
-        <button type="button" onClick={() => navigate(`${basePath}/wallet`)}>
-          ← Quay lại ví
-        </button>
-        <span>PTUTOR FINANCIAL INSIGHTS</span>
-      </div>
       <header className="transactions-page-heading analytics-heading">
         <div>
           <h1>Phân tích &amp; thống kê dòng tiền</h1>
         </div>
-        <button
-          className="wallet-heading-button wallet-heading-button-light"
-          type="button"
-          onClick={() => navigate(`${basePath}/wallet/transactions`)}
-        >
-          ▤ Lịch sử giao dịch
-        </button>
       </header>
       {result.error && (
         <div className="wallet-error" role="alert">
@@ -263,13 +263,14 @@ export function WalletAnalyticsPage() {
                   title="Cơ cấu thu nhập theo hợp đồng & giao dịch"
                   amountLabel="Tổng thu nhập"
                   rows={analytics.incomeCategoryRows}
-                  total={analytics.totalIncome}
+                  total={analytics.detailTotalIncome}
                   pieBackground={analytics.incomePieBackground}
+                  periodLabel="Dữ liệu trong 1 tháng gần đây"
                 />
                 <ExpenseTransactionsTable
                   basePath={basePath}
                   transactions={analytics.incomeTransactions}
-                  totalAmount={analytics.totalIncome}
+                  totalAmount={analytics.detailTotalIncome}
                   variant="income"
                 />
               </>
@@ -278,28 +279,19 @@ export function WalletAnalyticsPage() {
                 <ExpenseBreakdown
                   title="Phân tích chi tiêu, rút tiền & khấu trừ"
                   amountLabel="Tổng chi tiêu"
-                  rows={selectedExpenseData?.rows ?? []}
-                  total={selectedExpenseData?.total ?? 0}
-                  pieBackground={selectedExpenseData?.pieBackground ?? 'conic-gradient(#e9e1f4 0 100%)'}
-                  monthOptions={analytics.expenseMonths}
-                  selectedMonth={selectedExpenseData?.key}
-                  onMonthChange={setSelectedExpenseMonth}
+                  rows={analytics.categoryRows}
+                  total={analytics.detailTotalExpense}
+                  pieBackground={analytics.pieBackground}
+                  periodLabel="Dữ liệu trong 1 tháng gần đây"
                 />
                 <ExpenseTransactionsTable
                   basePath={basePath}
                   transactions={analytics.outflowTransactions}
-                  totalAmount={analytics.totalExpense}
+                  totalAmount={analytics.detailTotalExpense}
                   variant="expense"
                 />
               </>
             )}
-            <aside className="analytics-note">
-              <b>◈ PTutor Trust &amp; Financial Insights</b>
-              <p>
-                Thu nhập và dòng tiền ra được thống kê riêng theo giao dịch đã ghi nhận. Yêu cầu rút tiền đang chờ duyệt
-                chỉ xuất hiện trong phần chi tiêu &amp; rút tiền; nạp tiền chưa hoàn tất được ẩn.
-              </p>
-            </aside>
           </section>
         </>
       )}

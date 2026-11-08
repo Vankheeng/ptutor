@@ -1,20 +1,12 @@
 interface NotificationPaginationProps {
   page: number;
   totalPages: number;
-  totalElements: number;
   first: boolean;
   last: boolean;
   onPageChange: (page: number) => void;
 }
 
-export function NotificationPagination({
-  page,
-  totalPages,
-  totalElements,
-  first,
-  last,
-  onPageChange
-}: NotificationPaginationProps) {
+export function NotificationPagination({ page, totalPages, first, last, onPageChange }: NotificationPaginationProps) {
   if (totalPages <= 1) return null;
 
   const start = Math.max(0, Math.min(page - 2, totalPages - 5));
@@ -55,9 +47,6 @@ export function NotificationPagination({
           </>
         )}
       </div>
-      <span aria-live="polite">
-        {totalElements} thông báo · Trang {page + 1}/{totalPages}
-      </span>
       <button type="button" disabled={last} onClick={() => onPageChange(page + 1)} aria-label="Trang sau">
         Sau ›
       </button>

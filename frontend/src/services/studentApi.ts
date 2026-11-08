@@ -132,6 +132,7 @@ export interface Contract {
   studentFirstName: string | null;
   studentLastName: string | null;
   studentEmail: string;
+  studentDetailAddress: string | null;
   tutorId: string;
   tutorFirstName: string | null;
   tutorLastName: string | null;
@@ -187,6 +188,7 @@ export interface FinancialTransaction {
   method: string;
   status: string;
   amount: number;
+  referenceType: string | null;
   referenceId: string | null;
   description: string | null;
   occurredAt: string;
@@ -418,8 +420,16 @@ export const renewContract = (id: string, terms: ContractTerms) =>
 
 export const confirmLesson = (id: string) => post(`/api/v1/students/me/lessons/${id}/confirm`);
 
-export function getNotifications(status?: 'READ' | 'UNREAD', page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<Notification>>(`/api/v1/users/me/notifications?${pageParams(page, size, status)}`, {
+export function getNotifications(
+  status?: 'READ' | 'UNREAD',
+  type?: Notification['type'],
+  page = 0,
+  size = 20,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams(pageParams(page, size, status));
+  if (type) params.set('type', type);
+  return get<PageResponse<Notification>>(`/api/v1/users/me/notifications?${params.toString()}`, {
     signal
   });
 }
@@ -480,6 +490,7 @@ export async function getFinancialTransaction(source: string, transactionId: str
       method: payment.paymentMethod,
       status: payment.status,
       amount: payment.amount,
+      referenceType: null,
       referenceId: payment.referenceId,
       description:
         payment.paymentType === 'WALLET_TOP_UP' ? 'Nạp tiền vào ví PTutor' : payment.paymentType.replaceAll('_', ' '),

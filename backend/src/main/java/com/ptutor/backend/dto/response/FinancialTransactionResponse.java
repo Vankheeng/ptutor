@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ptutor.backend.dto.enums.FinancialTransactionSource;
+import com.ptutor.backend.entity.enums.ReferenceType;
 
 public record FinancialTransactionResponse(
         UUID id,
@@ -13,6 +14,7 @@ public record FinancialTransactionResponse(
         String method,
         String status,
         BigDecimal amount,
+        ReferenceType referenceType,
         UUID referenceId,
         String description,
         LocalDateTime occurredAt) {

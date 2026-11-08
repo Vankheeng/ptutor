@@ -281,6 +281,13 @@ export function TutorStudyingRequestPage() {
                   : [])
               ]}
               notes={myProposal.message?.trim() ? [{ label: 'Lời nhắn', value: myProposal.message }] : undefined}
+              metadata={[
+                { label: 'Thời gian tạo', value: formatDateTime(myProposal.createdAt) },
+                { label: 'Cập nhật lần cuối', value: formatDateTime(myProposal.updatedAt) },
+                ...(myProposal.status === 'ACCEPTED'
+                  ? [{ label: 'Thời gian được duyệt', value: formatDateTime(myProposal.updatedAt) }]
+                  : [])
+              ]}
               actions={
                 myProposal.status === 'PENDING' ? (
                   <>
@@ -373,4 +380,8 @@ function formatPrice(min: number | null, max: number | null) {
   const format = (amount: number) => new Intl.NumberFormat('vi-VN').format(amount);
   if (min === null && max === null) return 'Có thể thương lượng';
   return min !== null && max !== null ? `${format(min)}–${format(max)} VNĐ` : `${format(min ?? max ?? 0)} VNĐ`;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
 }

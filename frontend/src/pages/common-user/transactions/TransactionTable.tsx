@@ -72,7 +72,6 @@ export function TransactionTable({
               >
                 <td>
                   <span className="transactions-id">TX-{item.id.slice(0, 8).toUpperCase()}</span>
-                  <small>{item.source.replaceAll('_', ' ')}</small>
                 </td>
                 <td>
                   {new Date(item.occurredAt).toLocaleString('vi-VN', {

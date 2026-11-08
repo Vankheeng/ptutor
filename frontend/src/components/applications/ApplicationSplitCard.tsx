@@ -19,6 +19,7 @@ export interface ApplicationModel {
   price: number;
   summary: Array<{ label: string; value: string }>;
   notes?: Array<{ label: string; value: string }>;
+  metadata?: Array<{ label: string; value: string }>;
   footerText: string;
   actions?: ReactNode;
 }
@@ -99,7 +100,7 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
         </div>
 
         <div className="tutor-proposal-offer-price">
-          <small>Giá đề xuất</small>
+          <small>Giá đề xuất:</small>
           <strong>
             {new Intl.NumberFormat('vi-VN').format(application.price)} <span>VNĐ</span>
           </strong>
@@ -108,7 +109,7 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
         <div className="tutor-proposal-summary tutor-proposal-my-summary">
           {application.summary.map((item, index) => (
             <span key={`${item.label}-${index}`}>
-              <small>{item.label}</small>
+              <small>{item.label}:</small>
               <strong>{item.value}</strong>
             </span>
           ))}
@@ -116,10 +117,21 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
 
         {application.notes?.map((note, index) => (
           <div className="tutor-application-note tutor-proposal-message" key={`${note.label}-${index}`}>
-            <span className="tutor-application-note-tag">{note.label}</span>
+            <span className="tutor-application-note-tag">{note.label}:</span>
             <p>{note.value}</p>
           </div>
         ))}
+
+        {application.metadata?.length ? (
+          <div className="tutor-proposal-summary tutor-proposal-metadata">
+            {application.metadata.map((item, index) => (
+              <span key={`${item.label}-${index}`}>
+                <small>{item.label}:</small>
+                <strong>{item.value}</strong>
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <div className="tutor-proposal-footer">
           <small>{application.footerText}</small>
