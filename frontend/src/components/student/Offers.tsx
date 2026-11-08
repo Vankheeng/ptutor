@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { TutorOffer } from '../../services/studentApi';
 import { formatStudyingRequestMoney } from './studyingRequestUtils';
+import { RequestOfferActions } from '../common-user/RequestOfferActions';
 
 interface Props {
   requestStatus: string;
@@ -10,7 +11,7 @@ interface Props {
   onCreateContract?: (offer: TutorOffer) => void;
 }
 
-export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onAction, onCreateContract }: Props) {
+export function Offers({ requestStatus, offers, busyOfferId, onAction, onCreateContract }: Props) {
   return (
     <section id="tutor-offers" className="student-panel student-tutor-offers">
       <div className="student-tutor-offers-heading">
@@ -39,22 +40,13 @@ export function StudentTutorOffers({ requestStatus, offers, busyOfferId, onActio
               <div className="student-offer-actions">
                 {offer.status === 'PENDING' && requestStatus === 'OPEN' && (
                   <div className="student-form-actions">
-                    <button
-                      className="student-button success"
-                      type="button"
-                      disabled={busyOfferId === offer.id}
-                      onClick={() => onAction(offer, 'accept')}
-                    >
-                      Chấp nhận
-                    </button>
-                    <button
-                      className="student-button danger"
-                      type="button"
-                      disabled={busyOfferId === offer.id}
-                      onClick={() => onAction(offer, 'reject')}
-                    >
-                      Từ chối
-                    </button>
+                    <RequestOfferActions
+                      role="student"
+                      status={offer.status}
+                      busy={busyOfferId === offer.id}
+                      onAccept={() => onAction(offer, 'accept')}
+                      onReject={() => onAction(offer, 'reject')}
+                    />
                   </div>
                 )}
                 {offer.status === 'ACCEPTED' && ['OPEN', 'MATCHED'].includes(requestStatus) && onCreateContract && (

@@ -10,7 +10,8 @@ const navigation = [
   { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: 'home' },
   { section: 'TEACHING', to: '/tutor/students', label: 'Tìm kiếm học viên', icon: 'search' },
   { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: 'book' },
-  { section: 'TEACHING', to: '/tutor/proposals', label: 'Ứng tuyển của tôi', icon: 'send' },
+  { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
+  { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'send' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
   { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
@@ -87,7 +88,9 @@ export function TutorLayout() {
                     end={item.to === '/tutor/wallet'}
                     className={({ isActive }) => (isActive ? 'tutor-nav-link active' : 'tutor-nav-link')}
                   >
-                    <span aria-hidden="true"><Icon name={item.icon as IconName} size={18} /></span>
+                    <span aria-hidden="true">
+                      <Icon name={item.icon as IconName} size={18} />
+                    </span>
                     {item.label}
                   </NavLink>
                 ))}
@@ -96,7 +99,10 @@ export function TutorLayout() {
         </nav>
         <div className="tutor-sidebar-bottom">
           <NavLink className="tutor-nav-link" to="/public">
-            <span aria-hidden="true"><Icon name="home" size={18} /></span>Trang chủ
+            <span aria-hidden="true">
+              <Icon name="home" size={18} />
+            </span>
+            Trang chủ
           </NavLink>
           <button
             className="tutor-nav-link tutor-logout"

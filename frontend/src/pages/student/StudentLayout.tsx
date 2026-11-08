@@ -10,6 +10,7 @@ const navigation = [
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm kiếm gia sư', icon: '⌕' },
   { section: 'LEARNING', to: '/student/studying-requests', label: 'Yêu cầu tìm gia sư', icon: '▤' },
   { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: '↗' },
+  { section: 'LEARNING', to: '/student/tutor-offers', label: 'Đề nghị từ gia sư', icon: '↗' },
   { section: 'LEARNING', to: '/student/contracts', label: 'Hợp đồng', icon: '▣' },
   { section: 'LEARNING', to: '/student/calendar', label: 'Lịch học', icon: 'calendar' },
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: '↺' },
