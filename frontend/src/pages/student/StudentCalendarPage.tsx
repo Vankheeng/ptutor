@@ -5,6 +5,7 @@ import { LessonCalendarGrid } from '../common-user/components/LessonCalendarGrid
 import { LessonCalendarToolbar } from '../common-user/components/LessonCalendarToolbar';
 import { StudentLessonDetailPanel } from '../../components/student/lesson/StudentLessonDetailPanel';
 import type { Contract } from '../../services/studentApi';
+import { filterStudentCalendarEvents } from './studentCalendarStats';
 import '../common-user/lesson-calendar.css';
 import './student-lessons.css';
 import './student-calendar.css';
@@ -74,6 +75,7 @@ export function StudentCalendarPage() {
       }),
     [allEvents, contractFilter, contracts, personFilter, statusFilter]
   );
+  const periodEvents = useMemo(() => filterStudentCalendarEvents(events, cursor, view), [cursor, events, view]);
 
   const selectedLesson = selectedLessonId ? (events.find((event) => event.id === selectedLessonId) ?? null) : null;
   const selectedContract = selectedLesson
@@ -87,11 +89,11 @@ export function StudentCalendarPage() {
     )
   ];
   const now = new Date();
-  const upcoming = events.filter(
+  const upcoming = periodEvents.filter(
     (event) => lessonDateTime(event) >= now && event.status !== 'CANCELLED' && event.status !== 'COMPLETED'
   ).length;
-  const awaiting = events.filter((event) => event.status === 'PENDING_CONFIRMATION').length;
-  const completed = events.filter((event) => event.status === 'CONFIRMED' || event.status === 'COMPLETED').length;
+  const awaiting = periodEvents.filter((event) => event.status === 'PENDING_CONFIRMATION').length;
+  const completed = periodEvents.filter((event) => event.status === 'CONFIRMED' || event.status === 'COMPLETED').length;
 
   const move = (amount: number) =>
     setCursor((current) => {
@@ -166,7 +168,13 @@ export function StudentCalendarPage() {
       />
 
       <section className="student-lesson-stats" aria-label="Tổng quan lịch học theo bộ lọc">
-        <Stat icon="▣" label="Tổng số buổi học" value={events.length} loading={isLoading && !data} tone="purple" />
+        <Stat
+          icon="▣"
+          label="Tổng số buổi học"
+          value={periodEvents.length}
+          loading={isLoading && !data}
+          tone="purple"
+        />
         <Stat icon="▣" label="Buổi sắp tới" value={upcoming} loading={isLoading && !data} tone="green" />
         <Stat icon="⌛" label="Chờ xác nhận" value={awaiting} loading={isLoading && !data} tone="yellow" />
         <Stat icon="✓" label="Đã hoàn tất" value={completed} loading={isLoading && !data} tone="green" />

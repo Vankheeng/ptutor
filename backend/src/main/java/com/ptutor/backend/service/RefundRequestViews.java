@@ -2,6 +2,7 @@ package com.ptutor.backend.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.ptutor.backend.dto.response.RefundRequestResponse;
@@ -14,17 +15,33 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.repository.EvidenceRepository;
 import com.ptutor.backend.repository.RefundRequestLessonRepository;
 
-import lombok.RequiredArgsConstructor;
 
 /**
  * Builds the refund request view shared by the student, tutor and reviewer APIs.
  */
 @Component
-@RequiredArgsConstructor
 public class RefundRequestViews {
 
     private final RefundRequestLessonRepository refundRequestLessonRepository;
     private final EvidenceRepository evidenceRepository;
+    private final RefundFileStorageService fileStorageService;
+
+    @Autowired
+    public RefundRequestViews(
+            RefundRequestLessonRepository refundRequestLessonRepository,
+            EvidenceRepository evidenceRepository,
+            RefundFileStorageService fileStorageService) {
+        this.refundRequestLessonRepository = refundRequestLessonRepository;
+        this.evidenceRepository = evidenceRepository;
+        this.fileStorageService = fileStorageService;
+    }
+
+    /** Backwards-compatible constructor for service tests that use URL evidence only. */
+    public RefundRequestViews(
+            RefundRequestLessonRepository refundRequestLessonRepository,
+            EvidenceRepository evidenceRepository) {
+        this(refundRequestLessonRepository, evidenceRepository, null);
+    }
 
     public List<RefundRequestLesson> disputedLessons(RefundRequest request) {
         return refundRequestLessonRepository
@@ -70,8 +87,11 @@ public class RefundRequestViews {
     }
 
     private RefundRequestResponse.Evidence toEvidence(Evidence evidence) {
+        String fileUrl = fileStorageService == null
+                ? evidence.getFileUrl()
+                : fileStorageService.accessUrl(evidence.getFileUrl());
         return new RefundRequestResponse.Evidence(
-                evidence.getId(), evidence.getFileUrl(), evidence.getFileType(),
+                evidence.getId(), fileUrl, evidence.getFileType(),
                 evidence.getUploadedBy() == null ? null : evidence.getUploadedBy().getId());
     }
 }

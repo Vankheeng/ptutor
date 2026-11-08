@@ -10,21 +10,26 @@ import {
 } from '../../services/refundApi';
 import { getContract, type Contract } from '../../services/studentApi';
 import { refundErrorMessage } from '../../components/refund/refundFormat';
-import {
-  StudentLessonDetailPanel,
-  type StudentLessonDetail
-} from '../../components/student/lesson/StudentLessonDetailPanel';
 import { StudentLessonCard } from '../../components/student/lesson/StudentLessonCard';
+import { StudentLessonRefundDialog } from '../../components/student/lesson/StudentLessonRefundDialog';
+import { isLessonFinished } from '../../components/student/lesson/studentLessonUtils';
 import './student-lessons.css';
+
+const PAGE_SIZE_OPTIONS = [6, 12, 24];
+const DEFAULT_PAGE_SIZE = 6;
 
 const filters = [
   ['ALL', 'Tất cả'],
   ['PENDING_CONFIRMATION', 'Chờ xác nhận'],
   ['SCHEDULED', 'Đã lên lịch'],
-  ['CONFIRMED', 'Đã xác nhận'],
+  ['CONFIRMED', 'Đã học'],
   ['COMPLETED', 'Đã hoàn tất'],
   ['CANCELLED', 'Đã hủy']
 ] as const;
+
+type LessonFilter = (typeof filters)[number][0];
+type TimeFilter = 'ALL' | 'UPCOMING' | 'PAST';
+type SortOrder = 'NEWEST' | 'OLDEST';
 
 const formatDate = (value: string) => {
   if (!value) return '—';
@@ -32,17 +37,30 @@ const formatDate = (value: string) => {
   return year && month && day ? `${day}/${month}/${year}` : value;
 };
 
-const toDetail = (lesson: ContractLesson, refundRequestId: string | null): StudentLessonDetail => ({
-  ...lesson,
-  disputed: Boolean(refundRequestId),
-  refundRequestId
-});
+const contractStatusLabels: Record<string, string> = {
+  ACTIVE: 'Đang hoạt động',
+  PENDING: 'Chờ ký',
+  COMPLETED: 'Đã hoàn tất',
+  CANCELLED: 'Đã hủy'
+};
+
+function sortLessons(lessons: ContractLesson[], order: SortOrder) {
+  return [...lessons].sort((left, right) => {
+    const leftKey = `${left.date}T${left.startTime}`;
+    const rightKey = `${right.date}T${right.startTime}`;
+    return order === 'NEWEST' ? rightKey.localeCompare(leftKey) : leftKey.localeCompare(rightKey);
+  });
+}
 
 export function StudentContractLessonsPage() {
   const { contractId = '' } = useParams();
   const [revision, setRevision] = useState(0);
-  const [filter, setFilter] = useState<(typeof filters)[number][0]>('ALL');
-  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<LessonFilter>('ALL');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('NEWEST');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [refundLessonId, setRefundLessonId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -67,22 +85,42 @@ export function StudentContractLessonsPage() {
     () => new Set(openRefund?.disputedLessons.map((lesson) => lesson.lessonId) ?? []),
     [openRefund]
   );
-  const filteredLessons = useMemo(
-    () => data?.lessons.filter((lesson) => filter === 'ALL' || lesson.status === filter) ?? [],
-    [data, filter]
-  );
-  const selectedLesson = data?.lessons.find((lesson) => lesson.id === selectedLessonId) ?? null;
-  const selectedDetail = selectedLesson
-    ? toDetail(selectedLesson, heldIds.has(selectedLesson.id) ? (openRefund?.id ?? null) : null)
-    : null;
+
+  const filteredLessons = useMemo(() => {
+    const lessons = data?.lessons ?? [];
+    const nowFiltered = lessons.filter((lesson) => {
+      if (filter !== 'ALL' && lesson.status !== filter) return false;
+      if (timeFilter === 'UPCOMING' && isLessonFinished(lesson)) return false;
+      if (timeFilter === 'PAST' && !isLessonFinished(lesson)) return false;
+      return true;
+    });
+    return sortLessons(nowFiltered, sortOrder);
+  }, [data, filter, sortOrder, timeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLessons.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageLessons = filteredLessons.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const refundLesson = data?.lessons.find((lesson) => lesson.id === refundLessonId) ?? null;
+  const lessons = data?.lessons ?? [];
+  const learnedCount = lessons.filter(
+    (lesson) => lesson.status === 'CONFIRMED' || lesson.status === 'COMPLETED'
+  ).length;
+  const awaitingCount = lessons.filter((lesson) => lesson.status === 'PENDING_CONFIRMATION').length;
+  const scheduledCount = lessons.filter((lesson) => lesson.status === 'SCHEDULED').length;
+  const cancelledCount = lessons.filter((lesson) => lesson.status === 'CANCELLED').length;
+  const expectedLessons = data?.contract.totalLessons ?? 0;
+  const progress = expectedLessons > 0 ? Math.min(100, Math.round((learnedCount / expectedLessons) * 100)) : 0;
 
   const confirm = async (lesson: ContractLesson) => {
+    if (!isLessonFinished(lesson)) {
+      setMessage({ tone: 'danger', text: 'Chỉ có thể xác nhận sau khi buổi học đã kết thúc.' });
+      return;
+    }
     setBusyId(lesson.id);
     setMessage(null);
     try {
       await confirmContractLesson(lesson.id);
       setMessage({ tone: 'success', text: 'Đã xác nhận buổi học.' });
-      setSelectedLessonId(null);
       setRevision((value) => value + 1);
     } catch (failure) {
       setMessage({ tone: 'danger', text: refundErrorMessage(failure) });
@@ -95,28 +133,17 @@ export function StudentContractLessonsPage() {
   const subject = contract?.subjectName || 'Hợp đồng học tập';
   const grade = contract?.gradeName ? ` · ${contract.gradeName}` : '';
   const tutor = [contract?.tutorFirstName, contract?.tutorLastName].filter(Boolean).join(' ') || 'Chưa có thông tin';
+  const firstVisible = filteredLessons.length === 0 ? 0 : safePage * pageSize + 1;
+  const lastVisible = Math.min((safePage + 1) * pageSize, filteredLessons.length);
 
   return (
-    <div className="student-lesson-page">
+    <div className="student-lesson-page student-contract-lessons-page">
       <Link className="student-lesson-back" to={`/student/contracts/${contractId}`}>
         ‹ Quay lại hợp đồng
       </Link>
+
       <header className="student-lesson-heading">
-        <div>
-          <span className="student-lesson-kicker">LỊCH HỌC</span>
-          <h1>Buổi học</h1>
-          <p>Danh sách các buổi học trong hợp đồng này.</p>
-        </div>
-        {data &&
-          (openRefund ? (
-            <Link className="student-lesson-view" to={`/student/refund-requests/${openRefund.id}`}>
-              Xem yêu cầu hoàn tiền
-            </Link>
-          ) : (
-            <Link className="student-lesson-refund" to={`/student/contracts/${contractId}/refund-request`}>
-              Yêu cầu hoàn tiền
-            </Link>
-          ))}
+        <h1>Danh sách buổi học</h1>
       </header>
 
       {message && (
@@ -135,7 +162,7 @@ export function StudentContractLessonsPage() {
       {isLoading && !data && <div className="student-lesson-empty">Đang tải danh sách buổi học…</div>}
 
       {contract && (
-        <section className="student-lesson-summary">
+        <section className="student-lesson-summary" aria-label="Thông tin hợp đồng">
           <div className="student-lesson-summary-subject">
             <span className="student-lesson-summary-icon" aria-hidden="true">
               ▤
@@ -146,6 +173,7 @@ export function StudentContractLessonsPage() {
                 {grade}
               </strong>
               <small>♙ Gia sư: {tutor}</small>
+              <small>Hợp đồng: {contract.id.slice(0, 8).toUpperCase()}</small>
             </div>
           </div>
           <div className="student-lesson-summary-fact">
@@ -158,29 +186,106 @@ export function StudentContractLessonsPage() {
             <span>Hình thức học</span>
             <strong>{contract.teachingMode === 'OFFLINE' ? 'Trực tiếp' : 'Trực tuyến'}</strong>
           </div>
-          <span className="student-lesson-badge success">
-            {contract.status === 'ACTIVE' ? 'Đang hoạt động' : contract.status}
-          </span>
+          <div className="student-lesson-summary-fact">
+            <span>Trạng thái</span>
+            <strong className="student-lesson-summary-status">
+              ● {contractStatusLabels[contract.status] ?? contract.status}
+            </strong>
+          </div>
+          <div className="student-lesson-summary-fact">
+            <span>Số buổi dự kiến</span>
+            <strong>{expectedLessons} buổi</strong>
+          </div>
         </section>
       )}
 
       {data && (
-        <div className="student-lesson-filter" aria-label="Lọc trạng thái buổi học">
-          {filters.map(([value, label]) => {
-            const count =
-              value === 'ALL' ? data.lessons.length : data.lessons.filter((lesson) => lesson.status === value).length;
-            return (
-              <button
-                key={value}
-                className={filter === value ? 'active' : ''}
-                type="button"
-                onClick={() => setFilter(value)}
-              >
-                {label}
-                <span>({count})</span>
-              </button>
-            );
-          })}
+        <section className="student-lesson-progress-card" aria-label="Tiến độ học tập">
+          <div className="student-lesson-progress-main">
+            <h2>
+              <span aria-hidden="true">▥</span> Tiến độ học tập
+            </h2>
+            <div className="student-lesson-progress-label">
+              <strong>
+                Đã học <b>{learnedCount}</b> / {expectedLessons} buổi
+              </strong>
+              <strong>{progress}%</strong>
+            </div>
+            <div className="student-lesson-progress-track">
+              <span style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+          <div className="student-lesson-progress-stats">
+            <div className="student-lesson-progress-stat success">
+              <span>✓</span>
+              <small>Đã học</small>
+              <strong>{learnedCount}</strong>
+            </div>
+            <div className="student-lesson-progress-stat pending">
+              <span>⌛</span>
+              <small>Chờ xác nhận</small>
+              <strong>{awaitingCount}</strong>
+            </div>
+            <div className="student-lesson-progress-stat info">
+              <span>▣</span>
+              <small>Đã lên lịch</small>
+              <strong>{scheduledCount}</strong>
+            </div>
+            <div className="student-lesson-progress-stat danger">
+              <span>×</span>
+              <small>Đã hủy</small>
+              <strong>{cancelledCount}</strong>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {data && (
+        <div className="student-lesson-controls">
+          <label>
+            <span>Trạng thái</span>
+            <select
+              value={filter}
+              onChange={(event) => {
+                setFilter(event.target.value as LessonFilter);
+                setPage(0);
+              }}
+            >
+              {filters.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label} (
+                  {value === 'ALL' ? lessons.length : lessons.filter((lesson) => lesson.status === value).length})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Khoảng thời gian</span>
+            <select
+              value={timeFilter}
+              onChange={(event) => {
+                setTimeFilter(event.target.value as TimeFilter);
+                setPage(0);
+              }}
+            >
+              <option value="ALL">Tất cả</option>
+              <option value="UPCOMING">Sắp tới</option>
+              <option value="PAST">Đã diễn ra</option>
+            </select>
+          </label>
+          <label className="student-lesson-sort-control">
+            <span>Sắp xếp</span>
+            <select
+              value={sortOrder}
+              onChange={(event) => {
+                setSortOrder(event.target.value as SortOrder);
+                setPage(0);
+              }}
+            >
+              <option value="NEWEST">Ngày mới nhất</option>
+              <option value="OLDEST">Ngày cũ nhất</option>
+            </select>
+          </label>
         </div>
       )}
 
@@ -193,38 +298,86 @@ export function StudentContractLessonsPage() {
       {data && data.lessons.length > 0 && filteredLessons.length === 0 && (
         <div className="student-lesson-empty">
           <h2>Không có buổi học phù hợp</h2>
-          <p>Không có buổi học nào thuộc trạng thái bạn đã chọn.</p>
+          <p>Không có buổi học nào thuộc điều kiện bạn đã chọn.</p>
         </div>
       )}
-      {filteredLessons.length > 0 && (
+      {pageLessons.length > 0 && (
         <section className="student-lesson-timeline" aria-label="Danh sách buổi học">
-          {filteredLessons.map((lesson) => (
+          {pageLessons.map((lesson) => (
             <StudentLessonCard
               key={lesson.id}
-              lesson={toDetail(lesson, heldIds.has(lesson.id) ? (openRefund?.id ?? null) : null)}
+              lesson={lesson}
               contract={contract}
               held={heldIds.has(lesson.id)}
               busy={busyId === lesson.id}
-              refundHref={
-                openRefund
-                  ? `/student/refund-requests/${openRefund.id}`
-                  : `/student/contracts/${contractId}/refund-request`
-              }
-              onSelect={() => setSelectedLessonId(lesson.id)}
               onConfirm={() => void confirm(lesson)}
+              onRefund={() => setRefundLessonId(lesson.id)}
             />
           ))}
         </section>
       )}
 
-      {selectedDetail && (
-        <StudentLessonDetailPanel
-          lesson={selectedDetail}
+      {filteredLessons.length > 0 && (
+        <footer className="student-lesson-pagination">
+          <span>
+            Hiển thị {firstVisible} – {lastVisible} trên tổng số {filteredLessons.length} buổi học
+          </span>
+          <div className="student-lesson-page-buttons">
+            <button
+              type="button"
+              aria-label="Trang trước"
+              disabled={safePage === 0}
+              onClick={() => setPage((value) => Math.max(0, value - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index}
+                type="button"
+                className={safePage === index ? 'active' : ''}
+                onClick={() => setPage(index)}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-label="Trang sau"
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))}
+            >
+              ›
+            </button>
+          </div>
+          <label className="student-lesson-page-size">
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(0);
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size} buổi / trang
+                </option>
+              ))}
+            </select>
+          </label>
+        </footer>
+      )}
+
+      {refundLesson && (
+        <StudentLessonRefundDialog
+          lesson={refundLesson}
           contract={contract}
-          dialog
-          busy={busyId === selectedDetail.id}
-          onClose={() => setSelectedLessonId(null)}
-          onConfirm={() => void confirm(selectedLesson!)}
+          onClose={() => setRefundLessonId(null)}
+          onSubmitted={() => {
+            setRefundLessonId(null);
+            setMessage({ tone: 'success', text: 'Đã gửi yêu cầu khiếu nại / hoàn tiền.' });
+            setRevision((value) => value + 1);
+          }}
         />
       )}
     </div>

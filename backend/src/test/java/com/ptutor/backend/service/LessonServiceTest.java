@@ -246,6 +246,21 @@ class LessonServiceTest {
     }
 
     @Test
+    void studentCannotConfirmPendingLessonBeforeItEnds() {
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
+        lesson.setEndTime(LocalTime.of(22, 0));
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+
+        assertThatThrownBy(() -> service.confirmByStudent(userId, lessonId))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("LESSON_NOT_FINISHED");
+                });
+    }
+
+    @Test
     void studentListsLessonsOfOwnContractOnly() {
         Contract own = contract();
         own.setStudent(student());

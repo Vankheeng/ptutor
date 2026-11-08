@@ -176,6 +176,11 @@ public class LessonService {
         Student student = findStudentByUserId(userId);
         Lesson lesson = findStudentLesson(lessonId, student.getId());
         ensurePendingConfirmation(lesson, "confirmed");
+        LocalDateTime lessonEnd = LocalDateTime.of(lesson.getDate(), lesson.getEndTime());
+        if (lessonEnd.isAfter(LocalDateTime.now(clock))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "LESSON_NOT_FINISHED",
+                    "A lesson can only be confirmed after it ends");
+        }
         ensureNoBlockingComplaint(lesson.getContract());
         if (refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(
                 lesson.getId(), OPEN_REFUND_STATUSES)) {
