@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.StudentTutorRequestCreateRequest;
+import com.ptutor.backend.dto.request.StudentTutorRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.dto.response.StudentTutorRequestMineResponse;
 import com.ptutor.backend.dto.response.StudentTutorRequestResponse;
@@ -236,6 +237,70 @@ public class StudentTutorRequestService {
                 .map(studentTutorRequestMapper::toMineResponse)
                 .toList();
         return PageResponse.from(requests, responses);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<StudentTutorRequestMineResponse> findMineForStudent(
+            UUID userId, ApplicationStatus status, String keyword, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        String normalizedKeyword = keyword == null ? "" : keyword.strip();
+        Page<StudentTutorRequest> requests = studentTutorRequestRepository.findAllForStudent(
+                student.getId(), status, normalizedKeyword, pageable);
+
+        List<StudentTutorRequestMineResponse> responses = requests.getContent().stream()
+                .map(studentTutorRequestMapper::toMineResponse)
+                .toList();
+        return PageResponse.from(requests, responses);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentTutorRequestMineResponse findMineById(UUID userId, UUID requestId) {
+        Student student = findStudentByUserId(userId);
+        StudentTutorRequest request = studentTutorRequestRepository.findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+        return studentTutorRequestMapper.toMineResponse(request);
+    }
+
+    @Transactional
+    public StudentTutorRequestMineResponse updateForStudent(
+            UUID userId, UUID requestId, StudentTutorRequestUpdateRequest source) {
+        Student student = findStudentByUserId(userId);
+        StudentTutorRequest request = studentTutorRequestRepository
+                .findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+
+        if (request.getStatus() != ApplicationStatus.PENDING) {
+            throw invalidStudentTransition("Only PENDING requests can be updated");
+        }
+
+        Grade grade = gradeRepository.findById(source.gradeId())
+                .filter(candidate -> candidate.getStatus() == CatalogStatus.ACTIVE)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_GRADE",
+                        "Grade is not available: " + source.gradeId()));
+
+        if (!gradeTeachingRequestRepository.existsByTeachingRequest_IdAndGrade_Id(
+                request.getTeachingRequest().getId(), source.gradeId())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_GRADE",
+                    "Grade is not associated with the teaching request");
+        }
+
+        request.setGrade(grade);
+        request.setProposedPrice(source.proposedPrice());
+        request.setLearningMode(source.learningMode());
+        request.setPreferredSchedule(normalize(source.preferredSchedule()));
+        request.setMessage(normalize(source.message()));
+        return studentTutorRequestMapper.toMineResponse(
+                studentTutorRequestRepository.saveAndFlush(request));
     }
 
     @Transactional

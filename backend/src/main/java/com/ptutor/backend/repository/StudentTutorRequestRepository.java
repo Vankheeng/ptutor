@@ -23,6 +23,64 @@ public interface StudentTutorRequestRepository extends JpaRepository<StudentTuto
             "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
             "teachingRequest.tutor", "teachingRequest.tutor.user"
     })
+    @Query(value = """
+            select application
+            from StudentTutorRequest application
+            join application.teachingRequest teachingRequest
+            left join teachingRequest.subject subject
+            join teachingRequest.tutor tutor
+            join tutor.user tutorUser
+            join application.grade grade
+            where application.student.id = :studentId
+              and (:status is null or application.status = :status)
+              and (
+                   :keyword = ''
+                   or lower(coalesce(teachingRequest.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(teachingRequest.note, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(teachingRequest.customSubjectName, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(tutorUser.email, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(concat(coalesce(tutorUser.firstName, ''), ' ', coalesce(tutorUser.lastName, '')))
+                      like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(grade.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(application.preferredSchedule, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(application.message, '')) like lower(concat('%', :keyword, '%'))
+              )
+            order by application.createdAt desc
+            """, countQuery = """
+            select count(application)
+            from StudentTutorRequest application
+            join application.teachingRequest teachingRequest
+            left join teachingRequest.subject subject
+            join teachingRequest.tutor tutor
+            join tutor.user tutorUser
+            join application.grade grade
+            where application.student.id = :studentId
+              and (:status is null or application.status = :status)
+              and (
+                   :keyword = ''
+                   or lower(coalesce(teachingRequest.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(teachingRequest.note, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(teachingRequest.customSubjectName, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(tutorUser.email, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(concat(coalesce(tutorUser.firstName, ''), ' ', coalesce(tutorUser.lastName, '')))
+                      like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(grade.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(application.preferredSchedule, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(application.message, '')) like lower(concat('%', :keyword, '%'))
+              )
+            """)
+    Page<StudentTutorRequest> findAllForStudent(
+            @Param("studentId") UUID studentId,
+            @Param("status") ApplicationStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
+            "teachingRequest.tutor", "teachingRequest.tutor.user"
+    })
     Page<StudentTutorRequest> findAllByStudent_IdOrderByCreatedAtDesc(UUID studentId, Pageable pageable);
 
     @EntityGraph(attributePaths = {

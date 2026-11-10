@@ -2,13 +2,12 @@ package com.ptutor.backend.dto.request;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import com.ptutor.backend.entity.enums.PaymentPeriod;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -24,11 +23,8 @@ public record ContractTermsRequest(
         @NotNull(message = "Payment period is required")
         PaymentPeriod paymentPeriod,
 
-        @NotNull(message = "Total lessons is required")
-        @Positive(message = "Total lessons must be greater than zero")
         Integer totalLessons,
 
-        @NotBlank(message = "Preferred schedule is required")
         @Size(max = 500, message = "Preferred schedule must not exceed 500 characters")
         String preferredSchedule,
 
@@ -36,5 +32,12 @@ public record ContractTermsRequest(
         LocalDate startDate,
 
         @NotNull(message = "End date is required")
-        LocalDate endDate) {
+        LocalDate endDate,
+
+        List<ContractScheduleRequest> schedules) {
+
+    public ContractTermsRequest(BigDecimal price, PaymentPeriod paymentPeriod, Integer totalLessons,
+            String preferredSchedule, LocalDate startDate, LocalDate endDate) {
+        this(price, paymentPeriod, totalLessons, preferredSchedule, startDate, endDate, null);
+    }
 }

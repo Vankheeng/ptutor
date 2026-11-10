@@ -2,11 +2,16 @@ package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -170,7 +175,7 @@ public class PaymentService {
             throw conflict("INVALID_TEACHING_REQUEST_PAYMENT_STATUS", "Only DRAFT teaching requests can be paid");
         }
         return initiate(userId, PaymentType.TEACHING_REQUEST_FEE, ReferenceType.TEACHING_REQUEST,
-                teachingRequest.getId(), requirePositiveFee(teachingRequestFee, "teaching request"), null, request, clientIp);
+                teachingRequest.getId(), calculateTeachingRequestFee(teachingRequest), null, request, clientIp);
     }
 
     @Transactional
@@ -196,7 +201,7 @@ public class PaymentService {
                 PaymentType.TEACHING_REQUEST_FEE,
                 ReferenceType.TEACHING_REQUEST,
                 requestId,
-                requirePositiveFee(teachingRequestFee, "teaching request"),
+                calculateTeachingRequestFee(teachingRequest),
                 null,
                 WalletTransactionPurpose.TEACHING_REQUEST_FEE,
                 "Teaching request publication fee",
@@ -209,6 +214,18 @@ public class PaymentService {
         if (contract.getStatus() != ContractStatus.ACTIVE) {
             throw conflict("CONTRACT_NOT_ACTIVE", "Payments are available only for ACTIVE contracts");
         }
+        return installmentService.ensureForActiveContract(contract).stream().map(this::toInstallmentResponse).toList();
+    }
+
+    @Transactional
+    public List<ContractPaymentInstallmentResponse> findTutorInstallments(UUID userId, UUID contractId) {
+        Contract contract = contractRepository.findByIdAndParticipantUserId(contractId, userId)
+                .orElseThrow(() -> notFound("CONTRACT_NOT_FOUND", "Contract not found"));
+        if (contract.getTutor() == null || contract.getTutor().getUser() == null
+                || !contract.getTutor().getUser().getId().equals(userId)) {
+            throw notFound("CONTRACT_NOT_FOUND", "Contract not found");
+        }
+        if (contract.getStatus() != ContractStatus.ACTIVE) return List.of();
         return installmentService.ensureForActiveContract(contract).stream().map(this::toInstallmentResponse).toList();
     }
 
@@ -276,8 +293,25 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
+    public FinancialTransactionResponse findMyFinancialTransaction(
+            UUID userId, FinancialTransactionSource source, UUID transactionId) {
+        return switch (source) {
+            case PAYMENT -> paymentRepository.findByIdAndUser_Id(transactionId, userId)
+                    .map(this::toFinancialPayment)
+                    .orElseThrow(() -> notFound("TRANSACTION_NOT_FOUND", "Transaction not found"));
+            case WALLET_TRANSACTION -> walletTransactionRepository.findByIdAndWallet_User_Id(transactionId, userId)
+                    .map(this::toFinancialWalletTransaction)
+                    .orElseThrow(() -> notFound("TRANSACTION_NOT_FOUND", "Transaction not found"));
+            case WITHDRAWAL -> withdrawalRequestRepository.findByIdAndWallet_User_Id(transactionId, userId)
+                    .map(this::toFinancialWithdrawal)
+                    .orElseThrow(() -> notFound("TRANSACTION_NOT_FOUND", "Transaction not found"));
+        };
+    }
+
+    @Transactional(readOnly = true)
     public PageResponse<FinancialTransactionResponse> findMyTransactions(
-            UUID userId, FinancialTransactionSource source, String status, String type, String method, Pageable pageable) {
+            UUID userId, FinancialTransactionSource source, String status, String type, String method,
+            LocalDate fromDate, LocalDate toDate, Pageable pageable) {
         Stream<FinancialTransactionResponse> values = Stream.concat(
                 paymentRepository.findAllByUser_IdOrderByCreatedAtDesc(userId).stream().map(this::toFinancialPayment),
                 Stream.concat(
@@ -285,17 +319,116 @@ public class PaymentService {
                                 .map(this::toFinancialWalletTransaction),
                         withdrawalRequestRepository.findAllByWallet_User_IdOrderByCreatedAtDesc(userId).stream()
                                 .map(this::toFinancialWithdrawal)));
-        List<FinancialTransactionResponse> all = values
+        List<FinancialTransactionResponse> raw = values.toList();
+        Map<String, Integer> walletPaymentLedgerCounts = new HashMap<>();
+        raw.stream()
+                .filter(value -> value.source() == FinancialTransactionSource.WALLET_TRANSACTION)
+                .filter(value -> "DEBIT".equals(value.type()) && isSuccessfulFinancialStatus(value.status()))
+                .forEach(value -> {
+                    String paymentType = walletPaymentType(value.description());
+                    if (paymentType != null) {
+                        String key = financialPaymentKey(paymentType, value.referenceId(), value.amount());
+                        walletPaymentLedgerCounts.merge(key, 1, Integer::sum);
+                    }
+                });
+        Set<UUID> walletPaymentDuplicates = new HashSet<>();
+        raw.stream()
+                .filter(value -> value.source() == FinancialTransactionSource.PAYMENT)
+                .filter(value -> "WALLET".equals(value.method()) && isSuccessfulFinancialStatus(value.status()))
+                .forEach(value -> {
+                    String key = financialPaymentKey(value.type(), value.referenceId(), value.amount());
+                    int matchingLedgerEntries = walletPaymentLedgerCounts.getOrDefault(key, 0);
+                    if (matchingLedgerEntries > 0) {
+                        walletPaymentDuplicates.add(value.id());
+                        walletPaymentLedgerCounts.put(key, matchingLedgerEntries - 1);
+                    }
+                });
+        Set<UUID> creditedTopUpIds = new HashSet<>();
+        raw.stream()
+                .filter(value -> value.source() == FinancialTransactionSource.WALLET_TRANSACTION)
+                .filter(value -> value.description() != null && value.description().toLowerCase(Locale.ROOT).contains("top-up"))
+                .map(FinancialTransactionResponse::referenceId)
+                .filter(java.util.Objects::nonNull)
+                .forEach(creditedTopUpIds::add);
+        Set<UUID> withdrawalRequestIds = new HashSet<>();
+        raw.stream()
+                .filter(value -> value.source() == FinancialTransactionSource.WITHDRAWAL)
+                .map(FinancialTransactionResponse::id)
+                .forEach(withdrawalRequestIds::add);
+
+        List<FinancialTransactionResponse> all = raw.stream()
+                .filter(value -> !isTopUp(value) || isSuccessfulFinancialStatus(value.status()))
+                // A successful top-up is represented by its wallet credit; hide the matching payment row.
+                .filter(value -> !(value.source() == FinancialTransactionSource.PAYMENT
+                        && "WALLET_TOP_UP".equals(value.type()) && creditedTopUpIds.contains(value.id())))
+                // A successful wallet debit is the ledger record for a payment; hide its matching Payment row.
+                .filter(value -> source != null || !walletPaymentDuplicates.contains(value.id()))
+                // Keep the wallet ledger entry for accounting, but show the linked withdrawal request only once.
+                .filter(value -> source == FinancialTransactionSource.WALLET_TRANSACTION
+                        || value.source() != FinancialTransactionSource.WALLET_TRANSACTION
+                        || !withdrawalRequestIds.contains(value.referenceId())
+                        || !"DEBIT".equals(value.type()))
                 .filter(value -> source == null || value.source() == source)
-                .filter(value -> status == null || value.status().equalsIgnoreCase(status))
-                .filter(value -> type == null || value.type().equalsIgnoreCase(type))
+                .filter(value -> matchesFinancialStatus(value.status(), status))
+                .filter(value -> matchesFinancialType(value, type))
                 .filter(value -> method == null || value.method().equalsIgnoreCase(method))
+                .filter(value -> fromDate == null || !value.occurredAt().toLocalDate().isBefore(fromDate))
+                .filter(value -> toDate == null || !value.occurredAt().toLocalDate().isAfter(toDate))
                 .sorted(Comparator.comparing(FinancialTransactionResponse::occurredAt).reversed())
                 .toList();
         int from = Math.min((int) pageable.getOffset(), all.size());
         int to = Math.min(from + pageable.getPageSize(), all.size());
         PageImpl<FinancialTransactionResponse> page = new PageImpl<>(all.subList(from, to), pageable, all.size());
         return PageResponse.from(page, page.getContent());
+    }
+
+    private boolean isTopUp(FinancialTransactionResponse value) {
+        return "WALLET_TOP_UP".equals(value.type())
+                || (value.source() == FinancialTransactionSource.WALLET_TRANSACTION
+                        && value.description() != null
+                        && value.description().toLowerCase(Locale.ROOT).contains("top-up"));
+    }
+
+    private String walletPaymentType(String description) {
+        if (description == null) return null;
+        return switch (description) {
+            case "Teaching request publication fee", "Phí đăng yêu cầu dạy" -> PaymentType.TEACHING_REQUEST_FEE.name();
+            case "Studying request publication fee", "Phí đăng yêu cầu học" -> PaymentType.STUDYING_REQUEST_FEE.name();
+            case "Contract tuition installment payment", "Thanh toán học phí" -> PaymentType.TUITION_PAYMENT.name();
+            default -> null;
+        };
+    }
+
+    private String financialPaymentKey(String type, UUID referenceId, BigDecimal amount) {
+        return type + ":" + referenceId + ":" + amount.stripTrailingZeros().toPlainString();
+    }
+
+    private boolean isSuccessfulFinancialStatus(String status) {
+        return List.of("PAID", "COMPLETED", "SUCCESS", "SUCCEEDED").contains(status.toUpperCase(Locale.ROOT));
+    }
+
+    private boolean matchesFinancialStatus(String actual, String requested) {
+        if (requested == null || requested.isBlank()) return true;
+        if ("COMPLETED".equalsIgnoreCase(requested)) {
+            return List.of("COMPLETED", "PAID", "SUCCESS", "SUCCEEDED").contains(actual.toUpperCase(Locale.ROOT));
+        }
+        return actual.equalsIgnoreCase(requested);
+    }
+
+    private boolean matchesFinancialType(FinancialTransactionResponse value, String requested) {
+        if (requested == null || requested.isBlank()) return true;
+        String filter = requested.toUpperCase(Locale.ROOT);
+        String description = value.description() == null ? "" : value.description().toLowerCase(Locale.ROOT);
+        return switch (filter) {
+            case "TOP_UP" -> "WALLET_TOP_UP".equals(value.type())
+                    || (value.source() == FinancialTransactionSource.WALLET_TRANSACTION && description.contains("top-up"));
+            case "WITHDRAWAL" -> value.source() == FinancialTransactionSource.WITHDRAWAL || "WITHDRAWAL".equals(value.type())
+                    || description.contains("thu hồi yêu cầu rút tiền") || description.contains("withdrawal request cancelled");
+            case "DEBIT" -> value.source() == FinancialTransactionSource.WALLET_TRANSACTION && "DEBIT".equals(value.type());
+            case "REFUND" -> "REFUNDED".equals(value.status()) || value.type().toUpperCase(Locale.ROOT).contains("REFUND")
+                    || description.contains("refund") || description.contains("hoàn tiền");
+            default -> value.type().equalsIgnoreCase(filter);
+        };
     }
 
     @Transactional
@@ -494,6 +627,10 @@ public class PaymentService {
     }
 
     private void publishPaymentSucceeded(Payment payment) {
+        if (payment.getPaymentType() == PaymentType.WALLET_TOP_UP
+                || payment.getPaymentMethod() == PaymentMethod.WALLET) {
+            return;
+        }
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 payment.getUser().getId(),
                 NotificationEventType.PAYMENT_SUCCEEDED,
@@ -551,6 +688,15 @@ public class PaymentService {
         return value;
     }
 
+    private BigDecimal calculateTeachingRequestFee(TeachingRequest request) {
+        Integer quantity = request.getQuantity();
+        if (quantity == null || quantity < 1) {
+            throw new IllegalStateException("Teaching request must have at least one student");
+        }
+        return requirePositiveFee(teachingRequestFee, "teaching request")
+                .multiply(BigDecimal.valueOf(quantity));
+    }
+
     private BigDecimal requireValidTopUpAmount(BigDecimal value) {
         BigDecimal amount;
         try {
@@ -601,19 +747,55 @@ public class PaymentService {
     private FinancialTransactionResponse toFinancialPayment(Payment value) {
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.PAYMENT,
                 value.getPaymentType().name(), value.getPaymentMethod().name(), value.getStatus().name(),
-                value.getAmount(), value.getReferenceId(), value.getNote(), value.getCreatedAt());
+                value.getAmount(), value.getReferenceType(), value.getReferenceId(), financialPaymentDescription(value), value.getCreatedAt());
+    }
+
+    private String financialPaymentDescription(Payment value) {
+        return switch (value.getPaymentType()) {
+            case WALLET_TOP_UP -> "Nạp tiền vào ví PTutor";
+            case TUITION_PAYMENT -> "Thanh toán học phí";
+            case STUDYING_REQUEST_FEE -> "Phí đăng yêu cầu học";
+            case TEACHING_REQUEST_FEE -> "Phí đăng yêu cầu dạy";
+        };
     }
 
     private FinancialTransactionResponse toFinancialWalletTransaction(WalletTransaction value) {
+        ReferenceType referenceType = value.getReferenceType() != null
+                ? value.getReferenceType()
+                : walletReferenceType(value);
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.WALLET_TRANSACTION,
                 value.getTransactionType().name(), "WALLET", value.getStatus().name(), value.getAmount(),
-                value.getReferenceId(), value.getDescription(), value.getCreatedAt());
+                referenceType, value.getReferenceId(), financialWalletDescription(value), value.getCreatedAt());
+    }
+
+    private ReferenceType walletReferenceType(WalletTransaction value) {
+        return switch (value.getPurpose()) {
+            case TUITION_PAYMENT, CONTRACT_REFUND, TUTOR_EARNING -> ReferenceType.CONTRACT;
+            case STUDYING_REQUEST_FEE, STUDYING_REQUEST_REFUND -> ReferenceType.STUDYING_REQUEST;
+            case TEACHING_REQUEST_FEE, TEACHING_REQUEST_REFUND -> ReferenceType.TEACHING_REQUEST;
+            case WITHDRAWAL, WITHDRAWAL_REVERSAL -> ReferenceType.WITHDRAWAL_REQUEST;
+            case TOP_UP -> ReferenceType.PAYMENT;
+        };
+    }
+
+    private String financialWalletDescription(WalletTransaction value) {
+        return switch (value.getPurpose()) {
+            case TUITION_PAYMENT -> "Thanh toán học phí";
+            case STUDYING_REQUEST_FEE -> "Phí đăng yêu cầu học";
+            case TEACHING_REQUEST_FEE -> "Phí đăng yêu cầu dạy";
+            default -> value.getDescription();
+        };
     }
 
     private FinancialTransactionResponse toFinancialWithdrawal(WithdrawalRequest value) {
+        String destination = "Rút về " + value.getBankName() + " ••••" + value.getAccountNumberLastFour()
+                + " · " + value.getAccountHolderName();
+        String description = value.getNote() == null || value.getNote().isBlank()
+                ? destination
+                : destination + " · " + value.getNote();
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.WITHDRAWAL,
                 "WITHDRAWAL", "WALLET", value.getStatus().name(), value.getAmount(), null,
-                value.getNote(), value.getCreatedAt());
+                null, description, value.getCreatedAt());
     }
 
     private ApiException badRequest(String code, String message) { return new ApiException(HttpStatus.BAD_REQUEST, code, message); }

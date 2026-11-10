@@ -5,11 +5,9 @@ interface NotificationListProps {
   isLoading: boolean;
   error: string | null;
   onRead: (notification: Notification) => void;
-  /** The notification leads to a page: clicking it opens that page. */
-  canOpen?: (notification: Notification) => boolean;
 }
 
-export function NotificationList({ notifications, isLoading, error, onRead, canOpen }: NotificationListProps) {
+export function NotificationList({ notifications, isLoading, error, onRead }: NotificationListProps) {
   if (isLoading) {
     return (
       <div className="student-empty">
@@ -42,7 +40,7 @@ export function NotificationList({ notifications, isLoading, error, onRead, canO
           style={{
             textAlign: 'left',
             border: item.isRead ? undefined : '1px solid #c7b4ff',
-            cursor: item.isRead && !canOpen?.(item) ? 'default' : 'pointer'
+            cursor: 'pointer'
           }}
           key={item.id}
           type="button"
@@ -54,12 +52,6 @@ export function NotificationList({ notifications, isLoading, error, onRead, canO
               {item.content}
               <br />
               <span className="student-muted">{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
-              {canOpen?.(item) && (
-                <>
-                  {' · '}
-                  <span className="student-muted">Bấm để xem</span>
-                </>
-              )}
             </p>
           </div>
           <span className={`student-status ${item.isRead ? 'completed' : 'unread'}`}>

@@ -5,21 +5,32 @@ interface Props {
   last: boolean;
   onPrevious: () => void;
   onNext: () => void;
+  previousLabel?: string;
+  nextLabel?: string;
 }
 
-export function StudentPagination({ page, totalPages, first, last, onPrevious, onNext }: Props) {
+export function StudentPagination({
+  page,
+  totalPages,
+  first,
+  last,
+  onPrevious,
+  onNext,
+  previousLabel = 'Previous',
+  nextLabel = 'Next'
+}: Props) {
   if (totalPages <= 1) return null;
 
   return (
     <div className="student-pagination">
       <button type="button" disabled={first} onClick={onPrevious}>
-        Trang trước
+        {previousLabel}
       </button>
       <span>
-        Trang {page + 1} / {totalPages}
+        Page {page + 1} of {totalPages}
       </span>
       <button type="button" disabled={last} onClick={onNext}>
-        Trang sau
+        {nextLabel}
       </button>
     </div>
   );

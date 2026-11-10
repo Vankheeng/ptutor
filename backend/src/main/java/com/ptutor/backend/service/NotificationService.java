@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.enums.NotificationReadStatus;
+import com.ptutor.backend.entity.enums.NotificationType;
 import com.ptutor.backend.dto.response.NotificationReadAllResponse;
 import com.ptutor.backend.dto.response.NotificationResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -92,10 +93,24 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public PageResponse<NotificationResponse> findMine(
             UUID userId, NotificationReadStatus status, Pageable pageable) {
-        Page<Notification> notifications = status == null
-                ? notificationRepository.findAllByUser_IdOrderByCreatedAtDesc(userId, pageable)
-                : notificationRepository.findAllByUser_IdAndIsReadOrderByCreatedAtDesc(
-                        userId, status == NotificationReadStatus.READ, pageable);
+        return findMine(userId, status, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NotificationResponse> findMine(
+            UUID userId, NotificationReadStatus status, NotificationType type, Pageable pageable) {
+        Page<Notification> notifications;
+        if (status != null && type != null) {
+            notifications = notificationRepository.findAllByUser_IdAndIsReadAndTypeOrderByCreatedAtDesc(
+                    userId, status == NotificationReadStatus.READ, type, pageable);
+        } else if (status != null) {
+            notifications = notificationRepository.findAllByUser_IdAndIsReadOrderByCreatedAtDesc(
+                    userId, status == NotificationReadStatus.READ, pageable);
+        } else if (type != null) {
+            notifications = notificationRepository.findAllByUser_IdAndTypeOrderByCreatedAtDesc(userId, type, pageable);
+        } else {
+            notifications = notificationRepository.findAllByUser_IdOrderByCreatedAtDesc(userId, pageable);
+        }
         return PageResponse.from(notifications, notifications.getContent().stream()
                 .map(this::toResponse)
                 .toList());

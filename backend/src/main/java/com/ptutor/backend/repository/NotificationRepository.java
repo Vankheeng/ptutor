@@ -20,6 +20,7 @@ import com.ptutor.backend.entity.enums.NotificationAudience;
 import com.ptutor.backend.entity.enums.NotificationCampaignStatus;
 import com.ptutor.backend.entity.enums.NotificationCategory;
 import com.ptutor.backend.entity.enums.NotificationRecordType;
+import com.ptutor.backend.entity.enums.NotificationType;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
@@ -27,6 +28,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     Page<Notification> findAllByUser_IdAndIsReadOrderByCreatedAtDesc(
             UUID userId, boolean isRead, Pageable pageable);
+
+    Page<Notification> findAllByUser_IdAndTypeOrderByCreatedAtDesc(
+            UUID userId, NotificationType type, Pageable pageable);
+
+    Page<Notification> findAllByUser_IdAndIsReadAndTypeOrderByCreatedAtDesc(
+            UUID userId, boolean isRead, NotificationType type, Pageable pageable);
 
     java.util.Optional<Notification> findByIdAndUser_Id(UUID notificationId, UUID userId);
 

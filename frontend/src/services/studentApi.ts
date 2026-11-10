@@ -1,4 +1,4 @@
-import { get, patch, post } from './httpClient';
+import { ApiError, get, patch, post } from './httpClient';
 import type { TeachingRequest } from '../types/api';
 
 export interface PageResponse<T> {
@@ -120,12 +120,19 @@ export interface StudentApplication {
 
 export type PaymentPeriod = 'PER_LESSON' | 'WEEKLY' | 'MONTHLY' | 'PACKAGE';
 
+export interface ContractSchedule {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
 export interface Contract {
   id: string;
   studentId: string;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentEmail: string;
+  studentDetailAddress: string | null;
   tutorId: string;
   tutorFirstName: string | null;
   tutorLastName: string | null;
@@ -139,6 +146,7 @@ export interface Contract {
   paymentPeriod: PaymentPeriod;
   totalLessons: number;
   preferredSchedule: string;
+  schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
   status: ContractStatus;
@@ -180,9 +188,40 @@ export interface FinancialTransaction {
   method: string;
   status: string;
   amount: number;
+  referenceType: string | null;
   referenceId: string | null;
   description: string | null;
   occurredAt: string;
+}
+
+export interface BankAccount {
+  bankAccountId: string;
+  userId: string;
+  bankCode: string;
+  bankName: string;
+  maskedAccountNumber: string;
+  accountHolderName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletSecurityChallenge {
+  challengeId: string;
+  maskedAccountNumber: string;
+  expiresAt: string;
+}
+
+export interface Withdrawal {
+  withdrawalId: string;
+  amount: number;
+  bankCode: string;
+  bankName: string;
+  maskedAccountNumber: string;
+  accountHolderName: string;
+  note: string | null;
+  status: string;
+  rejectionReason: string | null;
+  createdAt: string;
 }
 
 export interface Installment {
@@ -190,7 +229,7 @@ export interface Installment {
   sequenceNumber: number;
   paymentPeriod: PaymentPeriod;
   amount: number;
-  dueDate: string;
+  dueDate: string | null;
   lessonId: string | null;
   status: 'PENDING' | 'PAID' | 'CANCELLED';
 }
@@ -257,8 +296,9 @@ export interface StudyingRequestInput {
 export interface ContractTerms {
   price: number;
   paymentPeriod: PaymentPeriod;
-  totalLessons: number;
-  preferredSchedule: string;
+  totalLessons?: number;
+  preferredSchedule?: string;
+  schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
 }
@@ -319,7 +359,8 @@ export const rejectTutorOffer = (requestId: string, offerId: string) =>
 
 export const getTeachingRequests = (signal?: AbortSignal) =>
   get<TeachingRequest[]>('/api/v1/teaching-requests', { signal });
-export const getTeachingRequest = (id: string) => get<TeachingRequest>(`/api/v1/teaching-requests/${id}`);
+export const getTeachingRequest = (id: string, signal?: AbortSignal) =>
+  get<TeachingRequest>(`/api/v1/teaching-requests/${id}`, { signal });
 export const createStudentApplication = (
   teachingRequestId: string,
   values: {
@@ -331,12 +372,32 @@ export const createStudentApplication = (
   }
 ) =>
   post<StudentApplication>(`/api/v1/students/me/teaching-requests/${teachingRequestId}/student-tutor-requests`, values);
-export function getStudentApplications(status?: ApplicationStatus, page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<StudentApplication>>(
-    `/api/v1/students/me/student-tutor-requests?${pageParams(page, size, status)}`,
-    { signal }
-  );
+export function getStudentApplications(
+  status?: ApplicationStatus,
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  keyword = ''
+) {
+  const params = pageParams(page, size, status);
+  const query = new URLSearchParams(params);
+  if (keyword.trim()) query.set('keyword', keyword.trim());
+  return get<PageResponse<StudentApplication>>(`/api/v1/students/me/student-tutor-requests?${query.toString()}`, {
+    signal
+  });
 }
+export const getStudentApplication = (id: string, signal?: AbortSignal) =>
+  get<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, { signal });
+export const updateStudentApplication = (
+  id: string,
+  values: {
+    gradeId: string;
+    proposedPrice: number;
+    learningMode: LearningMode;
+    preferredSchedule?: string;
+    message?: string;
+  }
+) => patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, values);
 export const cancelStudentApplication = (id: string) =>
   patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}/status`, { status: 'CANCELLED' });
 
@@ -359,8 +420,16 @@ export const renewContract = (id: string, terms: ContractTerms) =>
 
 export const confirmLesson = (id: string) => post(`/api/v1/students/me/lessons/${id}/confirm`);
 
-export function getNotifications(status?: 'READ' | 'UNREAD', page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<Notification>>(`/api/v1/users/me/notifications?${pageParams(page, size, status)}`, {
+export function getNotifications(
+  status?: 'READ' | 'UNREAD',
+  type?: Notification['type'],
+  page = 0,
+  size = 20,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams(pageParams(page, size, status));
+  if (type) params.set('type', type);
+  return get<PageResponse<Notification>>(`/api/v1/users/me/notifications?${params.toString()}`, {
     signal
   });
 }
@@ -375,14 +444,95 @@ export function getWalletTransactions(page = 0, size = 20, signal?: AbortSignal)
     signal
   });
 }
-export function getFinancialTransactions(page = 0, size = 20, signal?: AbortSignal) {
-  return get<PageResponse<FinancialTransaction>>(`/api/v1/users/me/transactions?page=${page}&size=${size}`, { signal });
+export interface FinancialTransactionFilters {
+  status?: string;
+  type?: string;
+  method?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+export function getFinancialTransactions(
+  page = 0,
+  size = 20,
+  signal?: AbortSignal,
+  filters: FinancialTransactionFilters = {}
+) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return get<PageResponse<FinancialTransaction>>(`/api/v1/users/me/transactions?${params.toString()}`, { signal });
+}
+export async function getAllFinancialTransactions(signal?: AbortSignal, filters: FinancialTransactionFilters = {}) {
+  const firstPage = await getFinancialTransactions(0, 100, signal, filters);
+  if (firstPage.totalPages <= 1) return firstPage.content;
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      getFinancialTransactions(index + 1, 100, signal, filters)
+    )
+  );
+  return [...firstPage.content, ...remainingPages.flatMap((page) => page.content)];
+}
+export async function getFinancialTransaction(source: string, transactionId: string, signal?: AbortSignal) {
+  try {
+    return await get<FinancialTransaction>(
+      `/api/v1/users/me/transactions/${encodeURIComponent(source)}/${encodeURIComponent(transactionId)}`,
+      { signal }
+    );
+  } catch (error) {
+    // Older backend deployments have the payment detail route but not the combined ledger route yet.
+    if (source !== 'PAYMENT' || !(error instanceof ApiError) || error.status !== 404) throw error;
+    const payment = await getPayment(transactionId);
+    return {
+      id: payment.id,
+      source: 'PAYMENT',
+      type: payment.paymentType,
+      method: payment.paymentMethod,
+      status: payment.status,
+      amount: payment.amount,
+      referenceType: null,
+      referenceId: payment.referenceId,
+      description:
+        payment.paymentType === 'WALLET_TOP_UP' ? 'Nạp tiền vào ví PTutor' : payment.paymentType.replaceAll('_', ' '),
+      occurredAt: payment.paidAt ?? payment.createdAt
+    } satisfies FinancialTransaction;
+  }
 }
 export const getPayment = (id: string) => get<Payment>(`/api/v1/users/me/payments/${id}`);
 export const getInstallments = (contractId: string) =>
   get<Installment[]>(`/api/v1/students/me/contracts/${contractId}/payment-installments`);
 export const createWalletTopUp = (amount: number) =>
   post<PaymentInitiation>('/api/v1/users/me/wallet/top-ups/vnpay', { amount, locale: 'vn' });
+export const getMyBankAccount = (signal?: AbortSignal) =>
+  get<BankAccount>('/api/v1/users/me/bank-account', { signal, cache: 'no-store' });
+export const getMyWithdrawals = (page = 0, size = 20, signal?: AbortSignal) =>
+  get<PageResponse<Withdrawal>>(`/api/v1/users/me/wallet/withdrawals?page=${page}&size=${size}`, { signal });
+export const cancelMyWithdrawal = (withdrawalId: string) =>
+  patch<Withdrawal>(`/api/v1/users/me/wallet/withdrawals/${withdrawalId}/cancel`);
+export const requestWithdrawalOtp = (amount: number, note: string, idempotencyKey: string) =>
+  post<WalletSecurityChallenge>(
+    '/api/v1/users/me/wallet/withdrawals/otp',
+    { amount, note },
+    {
+      headers: { 'Idempotency-Key': idempotencyKey }
+    }
+  );
+export const confirmWithdrawalOtp = (challengeId: string, otp: string, idempotencyKey: string) =>
+  post<Withdrawal>(
+    '/api/v1/users/me/wallet/withdrawals/confirm',
+    { challengeId, otp },
+    {
+      headers: { 'Idempotency-Key': idempotencyKey }
+    }
+  );
+export const requestBankAccountOtp = (details: {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+}) => post<WalletSecurityChallenge>('/api/v1/users/me/bank-account/otp', details);
+export const confirmBankAccountOtp = (challengeId: string, otp: string) =>
+  post<BankAccount>('/api/v1/users/me/bank-account/confirm', { challengeId, otp });
 export const payStudyingRequest = (id: string) =>
   post<PaymentInitiation>(`/api/v1/students/me/studying-requests/${id}/payments/vnpay`, { locale: 'vn' });
 export const payInstallment = (contractId: string, installmentId: string) =>
@@ -390,3 +540,5 @@ export const payInstallment = (contractId: string, installmentId: string) =>
     `/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/vnpay`,
     { locale: 'vn' }
   );
+export const payInstallmentWithWallet = (contractId: string, installmentId: string) =>
+  post<Payment>(`/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/wallet`);

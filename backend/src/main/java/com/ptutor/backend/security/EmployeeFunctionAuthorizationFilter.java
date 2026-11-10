@@ -2,11 +2,11 @@ package com.ptutor.backend.security;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -31,6 +31,18 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @RequiredArgsConstructor
 public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
+
+    private static final List<String> CUSTOMER_SERVICE_PATHS = List.of(
+            "/api/v1/admin/notifications",
+            "/api/v1/admin/complaints",
+            "/api/v1/admin/certificates",
+            "/api/v1/admin/teaching-requests",
+            "/api/v1/admin/studying-requests",
+            "/api/v1/admin/tutor-profiles",
+            "/api/v1/admin/subjects",
+            "/api/v1/admin/grades",
+            "/api/v1/admin/users",
+            "/api/v1/admin/tutors");
 
     private final EmployeeRepository employeeRepository;
     private final ApiResponseFactory responseFactory;
@@ -84,26 +96,11 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
 
     private Set<EmployeeJobFunction> allowedFunctions(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/v1/admin/notifications")) {
-            return EnumSet.of(EmployeeJobFunction.GENERAL_OPERATIONS);
+        if (path.startsWith("/api/v1/admin/refund-requests")) {
+            return EnumSet.of(EmployeeJobFunction.ACCOUNTANT);
         }
-        if (path.startsWith("/api/v1/admin/complaints")) {
-            return EnumSet.of(EmployeeJobFunction.COMPLAINT_HANDLER);
-        }
-        if (path.startsWith("/api/v1/admin/certificates")
-                || path.startsWith("/api/v1/admin/teaching-requests")
-                || path.startsWith("/api/v1/admin/tutor-profiles")
-                || path.startsWith("/api/v1/admin/subjects")
-                || path.startsWith("/api/v1/admin/recommendation-tags")
-                || path.startsWith("/api/v1/admin/grades")) {
-            return EnumSet.of(EmployeeJobFunction.CONTENT_REVIEWER);
-        }
-        if (path.startsWith("/api/v1/admin/tutors") && HttpMethod.GET.matches(request.getMethod())) {
-            // Content reviewers must read a tutor's profile and certificates to review it.
-            return EnumSet.of(EmployeeJobFunction.USER_SUPPORT, EmployeeJobFunction.CONTENT_REVIEWER);
-        }
-        if (path.startsWith("/api/v1/admin/users") || path.startsWith("/api/v1/admin/tutors")) {
-            return EnumSet.of(EmployeeJobFunction.USER_SUPPORT);
+        if (CUSTOMER_SERVICE_PATHS.stream().anyMatch(path::startsWith)) {
+            return EnumSet.of(EmployeeJobFunction.CUSTOMER_SERVICE);
         }
         return EnumSet.noneOf(EmployeeJobFunction.class);
     }

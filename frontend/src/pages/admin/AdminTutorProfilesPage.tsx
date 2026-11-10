@@ -13,13 +13,22 @@ import { AdminReviewTabs } from './components/AdminReviewTabs';
 
 type StatusTab = TutorProfileStatus | 'ALL';
 const sortOptions = ['createdAt', 'recommendationScore', 'averageRating'] as const;
+const reviewTabs: { value: StatusTab; label: string }[] = [
+  { value: 'PENDING', label: 'Chờ duyệt' },
+  { value: 'VERIFIED', label: 'Đã duyệt' },
+  { value: 'REJECTED', label: 'Đã từ chối' },
+  { value: 'ALL', label: 'Tất cả' }
+];
 
-function readTab(params: URLSearchParams): StatusTab {
-  return (params.get('status') as StatusTab | null) ?? 'PENDING';
+/** `review` is the profile review queue; `manage` lists every tutor under the Gia sư menu. */
+type Mode = 'review' | 'manage';
+
+function readTab(params: URLSearchParams, mode: Mode): StatusTab {
+  return (params.get('status') as StatusTab | null) ?? (mode === 'review' ? 'PENDING' : 'ALL');
 }
 
-function readFilters(params: URLSearchParams): AdminTutorFilters {
-  const tab = readTab(params);
+function readFilters(params: URLSearchParams, mode: Mode): AdminTutorFilters {
+  const tab = readTab(params, mode);
   const number = (key: string) => (params.get(key) ? Number(params.get(key)) : undefined);
   const sortBy = params.get('sortBy') as AdminTutorFilters['sortBy'] | null;
   return {
@@ -35,16 +44,18 @@ function readFilters(params: URLSearchParams): AdminTutorFilters {
   };
 }
 
-export function AdminTutorProfilesPage() {
+export function AdminTutorProfilesPage({ mode = 'review' }: { mode?: Mode }) {
   const [params, setParams] = useSearchParams();
-  const tab = readTab(params);
-  const filters = readFilters(params);
+  const defaultTab: StatusTab = mode === 'review' ? 'PENDING' : 'ALL';
+  const tab = readTab(params, mode);
+  const filters = readFilters(params, mode);
+  const basePath = mode === 'review' ? '/admin/tutor-profiles' : '/admin/tutors';
   const [formError, setFormError] = useState('');
   const queryKey = params.toString();
 
   const load = useCallback(
-    (signal: AbortSignal) => getAdminTutors(readFilters(new URLSearchParams(queryKey)), signal),
-    [queryKey]
+    (signal: AbortSignal) => getAdminTutors(readFilters(new URLSearchParams(queryKey), mode), signal),
+    [mode, queryKey]
   );
   const { data, error, isLoading } = useResource(load);
 
@@ -84,17 +95,12 @@ export function AdminTutorProfilesPage() {
 
   return (
     <div className="admin-page">
-      <AdminReviewTabs />
+      {mode === 'review' ? <AdminReviewTabs /> : <h1 className="admin-title">Gia sư</h1>}
       <FilterChips<StatusTab>
         label="Trạng thái hồ sơ"
         value={tab}
-        options={[
-          { value: 'PENDING', label: 'Chờ duyệt' },
-          { value: 'VERIFIED', label: 'Đã duyệt' },
-          { value: 'REJECTED', label: 'Đã từ chối' },
-          { value: 'ALL', label: 'Tất cả' }
-        ]}
-        onChange={(tab) => update({ status: tab === 'PENDING' ? undefined : tab })}
+        options={mode === 'review' ? reviewTabs : [reviewTabs[3], ...reviewTabs.slice(0, 3)]}
+        onChange={(tab) => update({ status: tab === defaultTab ? undefined : tab })}
       />
 
       <section className="admin-card">
@@ -167,7 +173,7 @@ export function AdminTutorProfilesPage() {
             <button
               className="admin-button ghost"
               type="button"
-              onClick={() => setParams(tab === 'PENDING' ? {} : { status: tab })}
+              onClick={() => setParams(tab === defaultTab ? {} : { status: tab })}
             >
               Xóa bộ lọc
             </button>
@@ -205,7 +211,7 @@ export function AdminTutorProfilesPage() {
               <tbody>
                 {data.content.map((tutor) => {
                   const name = fullName(tutor.firstName, tutor.lastName, tutor.email);
-                  const pending = tutor.profileStatus === 'PENDING';
+                  const pending = mode === 'review' && tutor.profileStatus === 'PENDING';
                   return (
                     <tr key={tutor.userId}>
                       <td>
@@ -235,7 +241,7 @@ export function AdminTutorProfilesPage() {
                       <td className="admin-cell-action">
                         <Link
                           className={`admin-button small${pending ? '' : ' secondary'}`}
-                          to={`/admin/tutor-profiles/${tutor.userId}`}
+                          to={`${basePath}/${tutor.userId}`}
                         >
                           {pending ? 'Xem & duyệt' : 'Xem chi tiết'}
                         </Link>
@@ -262,7 +268,7 @@ export function AdminTutorProfilesPage() {
               page={data.page}
               totalPages={data.totalPages}
               totalElements={data.totalElements}
-              unit="hồ sơ"
+              unit={mode === 'review' ? 'hồ sơ' : 'gia sư'}
               onChange={(page) => update({ page }, true)}
             />
           </div>

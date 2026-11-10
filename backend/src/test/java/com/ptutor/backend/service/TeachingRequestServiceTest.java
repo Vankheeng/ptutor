@@ -44,6 +44,7 @@ import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -57,6 +58,7 @@ class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
+    @Mock PaymentRepository paymentRepository;
     @Mock TutorRepository tutorRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
@@ -75,6 +77,7 @@ class TeachingRequestServiceTest {
         service = new TeachingRequestService(
                 teachingRequestRepository,
                 studentTutorRequestRepository,
+                paymentRepository,
                 Mappers.getMapper(TeachingRequestMapper.class),
                 tutorRepository,
                 subjectRepository,
@@ -89,6 +92,8 @@ class TeachingRequestServiceTest {
         lenient().when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         lenient().when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
         lenient().when(studentTutorRequestRepository.countByTeachingRequestIds(any(), any()))
+                .thenReturn(List.of());
+        lenient().when(paymentRepository.findLatestPaidAtByReferenceIds(any(), any(), any(), any()))
                 .thenReturn(List.of());
     }
 
@@ -255,9 +260,19 @@ class TeachingRequestServiceTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject()));
         when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
         TeachingRequestRequest update = new TeachingRequestRequest(
-                subjectId, null, List.of(gradeId), "Find math students", "Please review", 2,
-                List.of(), null, new BigDecimal("150000"), TeachingMode.ONLINE,
-                null, "Math tutoring", List.of());
+            subjectId,
+            null,
+            List.of(gradeId),
+            "Find math students",
+            "Please review",
+            1,
+            List.of(),
+            null,
+            new BigDecimal("150000"),
+            TeachingMode.ONLINE,
+            null,
+            "Math tutoring",
+            List.of());
 
         TeachingRequestResponse response = service.update(userId, request.getId(), update);
 
@@ -412,8 +427,19 @@ class TeachingRequestServiceTest {
 
     private TeachingRequestRequest requestWithCustomSubject() {
         return new TeachingRequestRequest(
-                null, " Advanced Robotics ", List.of(gradeId), "Find robotics students", null, 2, List.of(), null,
-                new BigDecimal("200000"), TeachingMode.ONLINE, null, "Robotics tutoring", List.of());
+            null,
+            " Advanced Robotics ",
+            List.of(gradeId),
+            "Find robotics students",
+            null,
+            1,
+            List.of(),
+            null,
+            new BigDecimal("200000"),
+            TeachingMode.ONLINE,
+            null,
+            "Robotics tutoring",
+            List.of());
     }
 
     private TeachingRequest existingRequest(RequestStatus status) {

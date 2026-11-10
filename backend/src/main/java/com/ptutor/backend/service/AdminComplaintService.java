@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.dto.response.AdminComplaintDetailResponse;
@@ -43,10 +44,7 @@ import com.ptutor.backend.repository.EvidenceRepository;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.PaymentRepository;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class AdminComplaintService {
 
     private final ComplaintRepository complaintRepository;
@@ -56,7 +54,43 @@ public class AdminComplaintService {
     private final ContractPaymentInstallmentRepository installmentRepository;
     private final PaymentRepository paymentRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ComplaintFileStorageService fileStorageService;
     private final Clock clock;
+
+    @Autowired
+    public AdminComplaintService(
+            ComplaintRepository complaintRepository,
+            EvidenceRepository evidenceRepository,
+            EmployeeRepository employeeRepository,
+            LessonRepository lessonRepository,
+            ContractPaymentInstallmentRepository installmentRepository,
+            PaymentRepository paymentRepository,
+            ApplicationEventPublisher eventPublisher,
+            ComplaintFileStorageService fileStorageService,
+            Clock clock) {
+        this.complaintRepository = complaintRepository;
+        this.evidenceRepository = evidenceRepository;
+        this.employeeRepository = employeeRepository;
+        this.lessonRepository = lessonRepository;
+        this.installmentRepository = installmentRepository;
+        this.paymentRepository = paymentRepository;
+        this.eventPublisher = eventPublisher;
+        this.fileStorageService = fileStorageService;
+        this.clock = clock;
+    }
+
+    public AdminComplaintService(
+            ComplaintRepository complaintRepository,
+            EvidenceRepository evidenceRepository,
+            EmployeeRepository employeeRepository,
+            LessonRepository lessonRepository,
+            ContractPaymentInstallmentRepository installmentRepository,
+            PaymentRepository paymentRepository,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock) {
+        this(complaintRepository, evidenceRepository, employeeRepository, lessonRepository,
+                installmentRepository, paymentRepository, eventPublisher, null, clock);
+    }
 
     @Transactional(readOnly = true)
     public PageResponse<AdminComplaintSummaryResponse> findAll(
@@ -137,9 +171,9 @@ public class AdminComplaintService {
                     "The target employee account must be active");
         }
         if (targetEmployee.getRole() != EmployeeRole.ADMIN
-                && targetEmployee.getJobFunction() != EmployeeJobFunction.COMPLAINT_HANDLER) {
+                && targetEmployee.getJobFunction() != EmployeeJobFunction.CUSTOMER_SERVICE) {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_EMPLOYEE_FUNCTION",
-                    "The target employee must be assigned to complaint handling");
+                    "The target employee must be a customer service employee");
         }
         if (complaint.getEmployee().getId().equals(targetEmployee.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "COMPLAINT_ALREADY_ASSIGNED_TO_EMPLOYEE",
@@ -298,8 +332,12 @@ public class AdminComplaintService {
     }
 
     private AdminComplaintDetailResponse.EvidenceDetail toEvidenceDetail(Evidence evidence) {
+        String fileUrl = evidence.getFileUrl();
+        if (fileStorageService != null) {
+            fileUrl = fileStorageService.accessUrl(fileUrl);
+        }
         return new AdminComplaintDetailResponse.EvidenceDetail(
-                evidence.getId(), evidence.getFileUrl(), evidence.getFileType(),
+                evidence.getId(), fileUrl, evidence.getFileType(),
                 evidence.getUploadedBy() == null ? null : evidence.getUploadedBy().getId(),
                 evidence.getCreatedAt());
     }

@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth/useAuth';
-import { errorMessage } from '../../services/errorMessages';
+import { useCallback, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ApiError } from '../../services/httpClient';
 import {
   getNotifications,
   getUnreadCount,
@@ -10,47 +9,54 @@ import {
   type Notification
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
+import { referenceNavigation } from '../../utils/referenceNavigation';
 import { NotificationFilters } from './components/NotificationFilters';
 import { NotificationList } from './components/NotificationList';
 import { NotificationPagination } from './components/NotificationPagination';
 import '../student/student.css';
 
-/** Where a notification leads, when it points to something the user can open. */
-function targetOf(notification: Notification, role: string | undefined): string | null {
-  if (notification.eventType !== 'RECOMMENDATION_MATCH_FOUND' || !notification.referenceId) return null;
-  if (role === 'STUDENT' && notification.referenceType === 'TEACHING_REQUEST') {
-    return `/student/teaching-requests?posting=${encodeURIComponent(notification.referenceId)}`;
-  }
-  if (role === 'TUTOR' && notification.referenceType === 'STUDYING_REQUEST') {
-    return `/tutor/studying-requests/${encodeURIComponent(notification.referenceId)}`;
-  }
-  return null;
-}
+const NOTIFICATION_PAGE_SIZE = 10;
+type NotificationTypeFilter = 'ALL' | 'SYSTEM' | 'REQUEST' | 'CONTRACT' | 'PAYMENT' | 'COMPLAINT';
 
 export function NotificationsPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const basePath = location.pathname.startsWith('/tutor/') ? '/tutor' : '/student';
   const [filter, setFilter] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL');
+  const [type, setType] = useState<NotificationTypeFilter>('ALL');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const load = useCallback(
-    (signal: AbortSignal) => getNotifications(filter === 'ALL' ? undefined : filter, page, 20, signal),
-    [filter, page]
+    (signal: AbortSignal) =>
+      getNotifications(
+        filter === 'ALL' ? undefined : filter,
+        type === 'ALL' ? undefined : type,
+        page,
+        NOTIFICATION_PAGE_SIZE,
+        signal
+      ),
+    [filter, page, type]
   );
   const loadUnread = useCallback((signal: AbortSignal) => getUnreadCount(signal), []);
   const query = useResource(load, revision);
   const unread = useResource(loadUnread, revision);
+  const notifications = useMemo(
+    () =>
+      type === 'ALL' ? query.data?.content : query.data?.content.filter((notification) => notification.type === type),
+    [query.data?.content, type]
+  );
   const read = async (notification: Notification) => {
     setError('');
+    const detailPath = referenceNavigation(basePath, notification.referenceType, notification.referenceId)?.to ?? null;
     try {
       if (!notification.isRead) await markNotificationRead(notification.id);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(errorMessage(caught, 'Chưa cập nhật được thông báo này.'));
+      setError(caught instanceof ApiError ? caught.message : 'Không thể cập nhật thông báo.');
+    } finally {
+      if (detailPath) navigate(detailPath);
     }
-    const target = targetOf(notification, user?.role);
-    if (target) navigate(target);
   };
   const readAll = async () => {
     setError('');
@@ -58,16 +64,14 @@ export function NotificationsPage() {
       await markAllNotificationsRead();
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(errorMessage(caught, 'Chưa đánh dấu được các thông báo là đã đọc.'));
+      setError(caught instanceof Error ? caught.message : 'Không thể đánh dấu thông báo đã đọc.');
     }
   };
   return (
-    <>
+    <main className="student-notifications-page">
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">CẬP NHẬT</span>
           <h1>Thông báo</h1>
-          <p>Tin về đơn, hợp đồng, thanh toán, tài khoản và các gợi ý mới phù hợp với bạn.</p>
         </div>
         <button className="student-button secondary" type="button" onClick={() => void readAll()}>
           Đánh dấu tất cả đã đọc
@@ -85,13 +89,17 @@ export function NotificationsPage() {
           setFilter(value);
           setPage(0);
         }}
+        notificationType={type}
+        onTypeChange={(value) => {
+          setType(value);
+          setPage(0);
+        }}
       />
       <NotificationList
-        notifications={query.data?.content}
+        notifications={notifications}
         isLoading={query.isLoading}
         error={query.error}
         onRead={(notification) => void read(notification)}
-        canOpen={(notification) => targetOf(notification, user?.role) !== null}
       />
       {query.data && (
         <NotificationPagination
@@ -102,6 +110,6 @@ export function NotificationsPage() {
           onPageChange={setPage}
         />
       )}
-    </>
+    </main>
   );
 }

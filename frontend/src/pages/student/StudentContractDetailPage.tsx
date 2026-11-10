@@ -1,30 +1,46 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
   cancelContract,
   getContract,
   getInstallments,
+  getWalletBalance,
   payInstallment,
+  payInstallmentWithWallet,
   rejectContract,
   renewContract,
   signContract,
   updateContract,
   type Contract,
   type ContractTerms,
-  type Installment
+  type Installment,
+  type WalletBalance
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
-import { dateLabel, moneyLabel, paymentPeriodLabel, statusLabel } from '../../utils/labels';
+import { StudentContractActionBar } from '../../components/student/StudentContractActionBar';
+import { StudentContractEditForm } from '../../components/student/StudentContractEditForm';
+import { StudentContractOverview } from '../../components/student/StudentContractOverview';
+import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
+import { StudentContractStatusBadge } from '../../components/student/StudentContractStatusBadge';
+import { StudentPaymentInstallments } from '../../components/student/StudentPaymentInstallments';
+import { StudentPaymentMethodDialog } from '../../components/student/StudentPaymentMethodDialog';
+import { Icon } from '../../components/ui/Icon';
 
 export function StudentContractDetailPage() {
   const { contractId = '' } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [busy, setBusy] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   const load = useCallback(async () => {
     const item = await getContract(contractId);
     const installments = item.status === 'ACTIVE' ? await getInstallments(contractId) : [];
@@ -33,6 +49,7 @@ export function StudentContractDetailPage() {
   const query = useResource(load, revision);
   const contract: Contract | null = query.data?.item ?? null;
   const installments: Installment[] = query.data?.installments ?? [];
+
   const action = async (callback: () => Promise<unknown>, message: string) => {
     setBusy(true);
     setError('');
@@ -41,88 +58,151 @@ export function StudentContractDetailPage() {
       setNotice(message);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Chưa cập nhật được hợp đồng.'
-      );
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
     } finally {
       setBusy(false);
     }
   };
-  const edit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+
+  const saveTerms = async (values: {
+    price: number;
+    preferredSchedule?: string;
+    schedules?: import('../../services/studentApi').ContractSchedule[];
+  }) => {
     if (!contract) return;
-    const values = new FormData(event.currentTarget);
-    const payload = {
-      price: Number(values.get('price')),
-      preferredSchedule: String(values.get('preferredSchedule') ?? ''),
-      startDate: String(values.get('startDate') ?? ''),
-      endDate: String(values.get('endDate') ?? '')
-    };
-    await action(() => updateContract(contract.id, payload), 'Đã cập nhật hợp đồng.');
+    await action(() => updateContract(contract.id, values), 'Đã cập nhật hợp đồng.');
   };
-  const renew = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+
+  const proposeRenewal = async (terms: ContractTerms) => {
     if (!contract) return;
-    const values = new FormData(event.currentTarget);
-    const terms: ContractTerms = {
-      price: Number(values.get('price')),
-      paymentPeriod: contract.paymentPeriod,
-      totalLessons: Number(values.get('totalLessons')),
-      preferredSchedule: String(values.get('preferredSchedule') ?? ''),
-      startDate: String(values.get('startDate') ?? ''),
-      endDate: String(values.get('endDate') ?? '')
-    };
-    await action(() => renewContract(contract.id, terms), 'Đã gửi đề xuất gia hạn.');
+    await action(() => renewContract(contract.id, terms), 'Đã tạo đề xuất gia hạn.');
   };
-  const pay = async (installmentId: string) => {
-    setBusy(true);
-    setError('');
+
+  const openPaymentDialog = async (installment: Installment) => {
+    setSelectedInstallment(installment);
+    setWalletBalance(null);
+    setWalletError('');
+    setPaymentError('');
+    setWalletLoading(true);
     try {
-      const payment = await payInstallment(contractId, installmentId);
+      setWalletBalance(await getWalletBalance());
+    } catch (caught) {
+      setWalletError(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tải số dư ví.'
+      );
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const closePaymentDialog = () => {
+    if (busy) return;
+    setSelectedInstallment(null);
+    setPaymentError('');
+  };
+
+  const pay = async () => {
+    if (!selectedInstallment) return;
+    setBusy(true);
+    setPaymentError('');
+    try {
+      const payment = await payInstallment(contractId, selectedInstallment.id);
+      if (!payment.paymentUrl) throw new Error('Không nhận được liên kết thanh toán VNPay.');
+      setSelectedInstallment(null);
       window.open(payment.paymentUrl, '_blank', 'noopener,noreferrer');
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught.message
-          : caught instanceof Error
-            ? caught.message
-            : 'Chưa tạo được giao dịch thanh toán.'
+      setPaymentError(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tạo thanh toán.'
       );
     } finally {
       setBusy(false);
     }
   };
-  if (!contract)
+
+  const payWithWallet = async () => {
+    if (!selectedInstallment) return;
+    setBusy(true);
+    setPaymentError('');
+    try {
+      await payInstallmentWithWallet(contractId, selectedInstallment.id);
+      setSelectedInstallment(null);
+      setNotice('Đã thanh toán kỳ học bằng Ví PTutor.');
+      setRevision((value) => value + 1);
+    } catch (caught) {
+      setPaymentError(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể thanh toán bằng Ví.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!contract) {
     return query.error ? (
       <div className="student-error" role="alert">
         {query.error}
       </div>
     ) : (
       <div className="student-empty">
-        <h3>Đang tải hợp đồng…</h3>
+        <h3>Đang tải hợp đồng...</h3>
       </div>
     );
+  }
+
+  const createdByYou = contract.createdByUserId === user?.userId;
+  const pendingForSignature = contract.status === 'PENDING' && Boolean(user?.userId) && !createdByYou;
+  const pendingCreatedByYou = contract.status === 'PENDING' && Boolean(user?.userId) && createdByYou;
+  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
+  const tutorInitials = tutorName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <>
-      <Link className="student-link" to="/student/contracts">
-        ← Quay lại danh sách hợp đồng
-      </Link>
-      <div className="student-page-heading">
-        <div>
-          <span className="student-eyebrow">CHI TIẾT HỢP ĐỒNG</span>
-          <h1>
-            {contract.subjectName} · {contract.gradeName}
-          </h1>
-          <p>Gia sư: {[contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'chưa rõ'}</p>
-        </div>
-        <span className={`student-status ${contract.status.toLowerCase()}`}>
-          {statusLabel(contract.status, 'contract')}
-        </span>
+      <div className="student-contract-detail-topbar">
+        <Link className="student-link" to="/student/contracts">
+          <span aria-hidden="true">&larr;</span> Quay lại danh sách hợp đồng
+        </Link>
       </div>
+
+      <section className="student-contract-hero">
+        <div className="student-contract-hero-main">
+          <span className="student-contract-subject-icon" aria-hidden="true">
+            <Icon name="contract" size={24} />
+          </span>
+          <div>
+            <span className="student-contract-hero-eyebrow">
+              {contract.status === 'PENDING' ? 'YÊU CẦU KÝ HỢP ĐỒNG' : 'HỢP ĐỒNG'}
+            </span>
+            <h1>{contract.subjectName || 'Môn học'}</h1>
+            <span>{contract.gradeName || 'Chưa có lớp'}</span>
+          </div>
+        </div>
+        <div className="student-contract-hero-tutor">
+          <span className="student-contract-tutor-avatar" aria-hidden="true">
+            {tutorInitials}
+          </span>
+          <div>
+            <strong>{tutorName}</strong>
+            <span>
+              {contract.status === 'PENDING'
+                ? pendingCreatedByYou
+                  ? 'Gia sư · Bên cần ký'
+                  : 'Gia sư · Người tạo hợp đồng'
+                : 'Gia sư'}
+            </span>
+          </div>
+        </div>
+        <StudentContractStatusBadge
+          status={contract.status}
+          label={pendingForSignature ? 'Chờ bạn ký' : pendingCreatedByYou ? 'Chờ gia sư ký' : undefined}
+          variant={pendingCreatedByYou ? 'outgoing' : undefined}
+        />
+      </section>
+
       {notice && (
         <div className="student-notice" role="status">
           {notice}
@@ -133,168 +213,60 @@ export function StudentContractDetailPage() {
           {error}
         </div>
       )}
-      <section className="student-panel">
-        <div className="student-detail-facts">
-          <span>
-            <small>Học phí</small>
-            <strong>{formatMoney(contract.price)}</strong>
-          </span>
-          <span>
-            <small>Kỳ thanh toán</small>
-            <strong>{paymentPeriodLabel(contract.paymentPeriod)}</strong>
-          </span>
-          <span>
-            <small>Số buổi</small>
-            <strong>{contract.totalLessons}</strong>
-          </span>
-          <span>
-            <small>Lịch học</small>
-            <strong>{contract.preferredSchedule}</strong>
-          </span>
-          <span>
-            <small>Thời gian</small>
-            <strong>
-              {dateLabel(contract.startDate)} → {dateLabel(contract.endDate)}
-            </strong>
-          </span>
-          <span>
-            <small>Người tạo</small>
-            <strong>{contract.createdByUserId === user?.userId ? 'Bạn' : 'Gia sư'}</strong>
-          </span>
-        </div>
-        <div className="student-form-actions">
-          {contract.status === 'PENDING' && contract.createdByUserId !== user?.userId && (
-            <button
-              className="student-button"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
-            >
-              Ký hợp đồng
-            </button>
-          )}
-          {contract.status === 'PENDING' && contract.createdByUserId !== user?.userId && (
-            <button
-              className="student-button secondary"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
-            >
-              Từ chối
-            </button>
-          )}
-          {contract.status === 'PENDING' && contract.createdByUserId === user?.userId && (
-            <button
-              className="student-button secondary"
-              disabled={busy}
-              type="button"
-              onClick={() => void action(() => cancelContract(contract.id), 'Đã huỷ hợp đồng.')}
-            >
-              Huỷ hợp đồng
-            </button>
-          )}
-        </div>
-      </section>
-      {contract.status === 'PENDING' && contract.createdByUserId === user?.userId && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Sửa điều khoản hợp đồng</h2>
-          <form className="student-form-grid" onSubmit={(event) => void edit(event)}>
-            <label>
-              Học phí
-              <input name="price" type="number" min="0" defaultValue={contract.price} />
-            </label>
-            <label>
-              Lịch học mong muốn
-              <input name="preferredSchedule" defaultValue={contract.preferredSchedule} required />
-            </label>
-            <label>
-              Ngày bắt đầu
-              <input name="startDate" type="date" defaultValue={contract.startDate} required />
-            </label>
-            <label>
-              Ngày kết thúc
-              <input name="endDate" type="date" defaultValue={contract.endDate} required />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button" disabled={busy} type="submit">
-                Lưu thay đổi
-              </button>
-            </div>
-          </form>
+      <StudentContractOverview contract={contract} createdByYou={createdByYou} />
+      <StudentContractActionBar
+        contract={contract}
+        currentUserId={user?.userId}
+        busy={busy}
+        onSign={() => void action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
+        onReject={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
+        onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
+      />
+      {contract.status === 'PENDING' && (
+        <p className="student-contract-pending-note">
+          Các khoản thanh toán sẽ khả dụng sau khi hợp đồng được ký và kích hoạt.
+        </p>
+      )}
+
+      {contract.status === 'PENDING' && createdByYou && (
+        <section className="student-panel student-contract-section">
+          <h2 className="student-contract-panel-heading">
+            <Icon name="contract" size={16} /> Chỉnh sửa điều khoản hợp đồng
+          </h2>
+          <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
         </section>
       )}
-      {contract.status === 'ACTIVE' && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Các đợt thanh toán</h2>
-          {installments.length ? (
-            <div className="student-list">
-              {installments.map((item) => (
-                <div className="student-list-row" key={item.id}>
-                  <div>
-                    <h3>Đợt {item.sequenceNumber}</h3>
-                    <p>
-                      Hạn {dateLabel(item.dueDate)} · {formatMoney(item.amount)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className={`student-status ${item.status.toLowerCase()}`}>
-                      {statusLabel(item.status, 'payment')}
-                    </span>
-                    {item.status === 'PENDING' && (
-                      <button
-                        className="student-button"
-                        style={{ marginTop: 8 }}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void pay(item.id)}
-                      >
-                        Thanh toán qua VNPay
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="student-muted">Chưa có đợt thanh toán nào.</p>
-          )}
-        </section>
+      {contract.status !== 'PENDING' && (
+        <div className="student-form-actions student-contract-related-actions">
+          <Link className="student-button secondary" to={`/student/contracts/${contract.id}/lessons`}>
+            Buổi học và hoàn tiền
+          </Link>
+        </div>
       )}
       {contract.status === 'ACTIVE' && (
-        <section className="student-panel" style={{ marginTop: 15 }}>
-          <h2>Gia hạn hợp đồng</h2>
-          <form className="student-form-grid" onSubmit={(event) => void renew(event)}>
-            <label>
-              Học phí
-              <input name="price" type="number" min="0" defaultValue={contract.price} required />
-            </label>
-            <label>
-              Tổng số buổi
-              <input name="totalLessons" type="number" min="1" defaultValue={contract.totalLessons} required />
-            </label>
-            <label>
-              Ngày bắt đầu
-              <input name="startDate" type="date" required />
-            </label>
-            <label>
-              Ngày kết thúc
-              <input name="endDate" type="date" required />
-            </label>
-            <label className="student-field-full">
-              Lịch học mong muốn
-              <input name="preferredSchedule" defaultValue={contract.preferredSchedule} required />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button" disabled={busy} type="submit">
-                Gửi đề xuất gia hạn
-              </button>
-            </div>
-          </form>
-        </section>
+        <StudentPaymentInstallments
+          installments={installments}
+          loading={busy}
+          onPay={(item) => void openPaymentDialog(item)}
+        />
+      )}
+      {contract.status === 'ACTIVE' && (
+        <StudentContractRenewalForm contract={contract} loading={busy} onSubmit={proposeRenewal} />
+      )}
+      {selectedInstallment && (
+        <StudentPaymentMethodDialog
+          contract={contract}
+          installment={selectedInstallment}
+          walletBalance={walletBalance}
+          walletLoading={walletLoading}
+          walletError={walletError}
+          busy={busy}
+          error={paymentError}
+          onClose={closePaymentDialog}
+          onPayVnpay={() => void pay()}
+          onPayWallet={() => void payWithWallet()}
+        />
       )}
     </>
   );
-}
-function formatMoney(value: number) {
-  return moneyLabel(value);
 }

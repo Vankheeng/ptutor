@@ -1,4 +1,5 @@
 import { del, get, patch, post, put } from './httpClient';
+import type { Installment } from './studentApi';
 import type { TeachingRequest } from '../types/api';
 
 export interface TutorAddress {
@@ -83,16 +84,19 @@ export interface TutorTeachingProposal {
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TutorContract {
   id: string;
   studentFirstName: string | null;
   studentLastName: string | null;
+  studentDetailAddress: string | null;
   subjectName: string | null;
   gradeName: string | null;
   teachingMode: 'ONLINE' | 'OFFLINE';
   price: number;
+  totalLessons: number | null;
   startDate: string;
   endDate: string;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -108,6 +112,7 @@ export interface TutorLesson {
   teachingMode: 'ONLINE' | 'OFFLINE';
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
+  paidAt: string | null;
 }
 
 export function getTutorProfile(signal?: AbortSignal) {
@@ -201,7 +206,32 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
   });
 }
 
-/** The tutor's own teaching postings, for example the OPEN ones to search with. */
+export function getTutorContractInstallments(contractId: string, signal?: AbortSignal) {
+  return get<Installment[]>(`/api/v1/tutors/me/contracts/${contractId}/payment-installments`, { signal });
+}
+
+export function requestTutorContractStop(contractId: string) {
+  return post(`/api/v1/users/me/contracts/${contractId}/stop-requests`);
+}
+
+export function createTutorLesson(
+  contractId: string,
+  values: { title: string; date: string; startTime: string; endTime: string }
+) {
+  return post<TutorLesson>(`/api/v1/tutors/me/contracts/${contractId}/lessons`, values);
+}
+
+export function updateTutorLesson(
+  id: string,
+  values: { title: string; date: string; startTime: string; endTime: string; note?: string }
+) {
+  return put<TutorLesson>(`/api/v1/tutors/me/lessons/${id}`, values);
+}
+
+export function setTutorLessonStatus(id: string, status: TutorLesson['status']) {
+  return patch<TutorLesson>(`/api/v1/tutors/me/lessons/${id}/status`, { status });
+}
+
 export function getMyTeachingRequests(status?: 'OPEN' | 'MATCHED' | 'CLOSED' | 'DRAFT', signal?: AbortSignal) {
   const query = status ? `?status=${status}` : '';
   return get<TeachingRequest[]>(`/api/v1/tutors/me/teaching-requests${query}`, { signal });

@@ -39,7 +39,7 @@ export interface TutorDashboardData {
   upcomingLessons: TutorLesson[];
 }
 
-export function useTutorDashboard() {
+export function useTutorDashboard(revision = 0) {
   const load = useCallback(async (signal: AbortSignal): Promise<TutorDashboardData> => {
     const page = await getTutorContracts(signal);
     const contracts = page.content;
@@ -47,7 +47,7 @@ export function useTutorDashboard() {
     const lessonsByContract = await Promise.all(active.map((contract) => getTutorContractLessons(contract.id, signal)));
     const start = localDateString(new Date());
     const endDate = new Date();
-    endDate.setDate(endDate.getDate() + 7);
+    endDate.setDate(endDate.getDate() + 6);
     const end = localDateString(endDate);
     const upcomingLessons = lessonsByContract
       .flatMap((lessonPage) => lessonPage.content)
@@ -55,7 +55,7 @@ export function useTutorDashboard() {
       .sort((left, right) => `${left.date}T${left.startTime}`.localeCompare(`${right.date}T${right.startTime}`));
     return { contracts, upcomingLessons };
   }, []);
-  return useResource<TutorDashboardData>(load);
+  return useResource<TutorDashboardData>(load, revision);
 }
 
 function localDateString(date: Date) {

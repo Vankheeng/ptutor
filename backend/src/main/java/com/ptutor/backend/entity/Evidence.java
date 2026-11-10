@@ -48,4 +48,9 @@ public class Evidence extends BaseEntity {
     @JoinColumn(name = "uploaded_by_user_id")
     @NonFinal
     private User uploadedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refund_request_id")
+    @NonFinal
+    private RefundRequest refundRequest;
 }

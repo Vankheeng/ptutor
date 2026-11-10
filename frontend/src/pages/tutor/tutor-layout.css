@@ -172,4 +172,5 @@
 
 /* Once the workspace header scrolls away, keep navigation flush with the viewport top. */
 .tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:0;height:100vh}
+.tutor-topbar{position:sticky;top:0;z-index:5}
 @media(max-width:700px){.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:56px;height:auto}}

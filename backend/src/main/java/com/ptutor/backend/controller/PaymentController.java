@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.net.URI;
+import java.time.LocalDate;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -107,6 +109,14 @@ public class PaymentController {
                 paymentService.findMyInstallments(currentUserProvider.getCurrentUserId(), contractId), path));
     }
 
+    @GetMapping("/tutors/me/contracts/{contractId}/payment-installments")
+    public ResponseEntity<ApiResponse<List<ContractPaymentInstallmentResponse>>> tutorInstallments(
+            @PathVariable UUID contractId) {
+        String path = "/api/v1/tutors/me/contracts/" + contractId + "/payment-installments";
+        return ResponseEntity.ok(responseFactory.success(
+                paymentService.findTutorInstallments(currentUserProvider.getCurrentUserId(), contractId), path));
+    }
+
     @PostMapping("/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> payTuition(
             @PathVariable UUID contractId,
@@ -145,11 +155,22 @@ public class PaymentController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String method,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return ResponseEntity.ok(responseFactory.success(paymentService.findMyTransactions(
-                currentUserProvider.getCurrentUserId(), source, status, type, method,
+                currentUserProvider.getCurrentUserId(), source, status, type, method, fromDate, toDate,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))), "/api/v1/users/me/transactions"));
+    }
+
+    @GetMapping("/users/me/transactions/{source}/{transactionId}")
+    public ResponseEntity<ApiResponse<FinancialTransactionResponse>> transaction(
+            @PathVariable FinancialTransactionSource source,
+            @PathVariable UUID transactionId) {
+        String path = "/api/v1/users/me/transactions/" + source + "/" + transactionId;
+        return ResponseEntity.ok(responseFactory.success(
+                paymentService.findMyFinancialTransaction(currentUserProvider.getCurrentUserId(), source, transactionId), path));
     }
 
     @GetMapping("/payments/vnpay/ipn")

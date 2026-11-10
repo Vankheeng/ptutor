@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
@@ -24,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.ptutor.backend.dto.response.EmployeeOpenAssignmentsResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -57,6 +59,18 @@ class AdminEmployeeControllerTest {
     }
 
     @Test
+    void listsOpenAssignmentsOfEmployee() throws Exception {
+        UUID employeeId = UUID.randomUUID();
+        when(employeeService.findOpenAssignments(employeeId))
+                .thenReturn(new EmployeeOpenAssignmentsResponse(List.of(), List.of()));
+
+        mockMvc.perform(get("/api/v1/admin/employees/" + employeeId + "/open-assignments"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.complaints").isArray())
+                .andExpect(jsonPath("$.data.refundRequests").isArray());
+    }
+
+    @Test
     void createsEmployeeUsingAuthenticatedAdmin() throws Exception {
         UUID adminUserId = UUID.randomUUID();
         when(currentUserProvider.getCurrentUserId()).thenReturn(adminUserId);
@@ -75,7 +89,7 @@ class AdminEmployeeControllerTest {
                                   "citizenId": "012345678901",
                                   "provinceId": "11111111-1111-1111-1111-111111111111",
                                   "districtId": "22222222-2222-2222-2222-222222222222",
-                                  "jobFunction": "COMPLAINT_HANDLER"
+                                  "jobFunction": "CUSTOMER_SERVICE"
                                 }
                                 """))
                 .andExpect(status().isCreated());
@@ -99,7 +113,7 @@ class AdminEmployeeControllerTest {
                                   "citizenId": "012345678901",
                                   "provinceId": "11111111-1111-1111-1111-111111111111",
                                   "districtId": "22222222-2222-2222-2222-222222222222",
-                                  "jobFunction": "COMPLAINT_HANDLER"
+                                  "jobFunction": "CUSTOMER_SERVICE"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());

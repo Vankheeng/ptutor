@@ -37,7 +37,8 @@ public final class SecurityConstants {
     public static final String[] PAYMENT_SELF_SERVICE_API = {
             "/api/v1/users/me/payments",
             "/api/v1/users/me/payments/**",
-            "/api/v1/users/me/transactions"
+            "/api/v1/users/me/transactions",
+            "/api/v1/users/me/transactions/**"
     };
 
     public static final String[] NOTIFICATION_SELF_SERVICE_API = {
@@ -70,6 +71,11 @@ public final class SecurityConstants {
     public static final String[] ADMIN_COMPLAINT_API = {
             "/api/v1/admin/complaints",
             "/api/v1/admin/complaints/**"
+    };
+
+    public static final String[] ADMIN_REFUND_REQUEST_API = {
+            "/api/v1/admin/refund-requests",
+            "/api/v1/admin/refund-requests/**"
     };
 
     public static final String[] ADMIN_SUBJECT_API = {
@@ -121,6 +127,10 @@ public final class SecurityConstants {
             "/api/v1/admin/notifications/**"
     };
 
+    public static final String[] EMPLOYEE_SELF_SERVICE_API = {
+            "/api/v1/employees/me"
+    };
+
     public static final String[] STUDENT_SELF_SERVICE_API = {
             "/api/v1/students/me",
             "/api/v1/students/me/**"
@@ -150,7 +160,8 @@ public final class SecurityConstants {
     public static final String[] WALLET_SELF_SERVICE_API = {
             "/api/v1/users/me/wallet",
             "/api/v1/users/me/wallet/**",
-            "/api/v1/users/me/bank-account"
+            "/api/v1/users/me/bank-account",
+            "/api/v1/users/me/bank-account/**"
     };
 
     public static final String[] TUTOR_CERTIFICATE_READ_API = {

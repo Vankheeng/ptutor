@@ -19,6 +19,10 @@ tags:
     description: Tutor teaching proposals and student responses for studying requests
   - name: Complaints
     description: Complaints from student or tutor contract participants
+  - name: Refund Requests
+    description: Contract refund requests submitted by students and answered by tutors
+  - name: Admin Refund Requests
+    description: Refund review and wallet refunds for accountants and administrators
   - name: Contracts
     description: Contract creation, signing, renewal and lifecycle operations for student and tutor participants
   - name: Lessons
@@ -49,12 +53,8 @@ tags:
     description: Active subject catalog used by teaching requests
   - name: Grades
     description: Active grade catalog used by teaching requests
-  - name: Recommendations
-    description: Personalised tutor and student recommendations
   - name: Reviews
     description: Review operations for the Ptutor platform
-  - name: Admin Recommendation Tags
-    description: Tag vocabulary used by recommendations, for administrators and content reviewers
   - name: Admin Subjects
     description: Subject operations for employees and administrators
   - name: Admin Grades
@@ -494,11 +494,12 @@ paths:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-    put:
+  /api/v1/users/me/bank-account/otp:
+    post:
       tags: [Wallet]
-      summary: Create or update my bank account
-      description: Creates the user's receiving account on first use or replaces it. The account number is encrypted at rest.
-      operationId: updateCurrentBankAccount
+      summary: Request OTP to create or update my bank account
+      description: Sends a six-digit one-time code to the authenticated user's email. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. The proposed account is saved only after OTP confirmation.
+      operationId: requestBankAccountUpdateOtp
       requestBody:
         required: true
         content:
@@ -506,7 +507,27 @@ paths:
             schema: { $ref: '#/components/schemas/UpdateBankAccountRequest' }
       responses:
         '200':
-          description: Bank account saved successfully
+          description: Verification code sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /api/v1/users/me/bank-account/confirm:
+    post:
+      tags: [Wallet]
+      summary: Confirm bank account update with OTP
+      operationId: confirmBankAccountUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '200':
+          description: Bank account updated
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
@@ -953,6 +974,12 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/StudentTutorRequestStatus'
+        - name: keyword
+          in: query
+          required: false
+          description: Search by teaching request, subject, tutor, grade, schedule or message.
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -985,6 +1012,67 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/student-tutor-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorRequestId'
+    get:
+      tags:
+        - Student Tutor Requests
+      summary: Get my study application detail
+      description: Returns a student application only when it belongs to the authenticated student.
+      operationId: getMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student application detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Student Tutor Requests
+      summary: Update my pending study application
+      description: Updates the application fields only when it belongs to the authenticated student and is still PENDING.
+      operationId: updateMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTutorRequestUpdateRequest'
+      responses:
+        '200':
+          description: Student application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1314,6 +1402,33 @@ paths:
                 $ref: '#/components/schemas/ComplaintPageResponseEnvelope'
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/complaints/evidence-upload:
+    post:
+      tags: [Complaints]
+      summary: Upload complaint evidence file
+      operationId: uploadComplaintEvidence
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Complaint evidence uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintEvidenceUploadResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '503': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/users/me/complaints/{complaintId}:
     parameters:
@@ -2901,8 +3016,8 @@ paths:
   /api/v1/users/me/wallet/withdrawals:
     post:
       tags: [Wallets]
-      summary: Request a wallet withdrawal
-      description: Moves the requested amount from available balance to pending balance and snapshots the configured destination bank account. Reusing an Idempotency-Key returns the original request without reserving funds again.
+      summary: Legacy withdrawal endpoint (OTP required)
+      description: This endpoint is retired and always returns 410. Use the OTP request and confirmation endpoints.
       operationId: createMyWithdrawal
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -2915,11 +3030,7 @@ paths:
               amount: 500000.00
               note: Withdraw tutoring earnings
       responses:
-        '201':
-          description: Withdrawal requested or an identical idempotent request returned
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '410': { description: Request an OTP and confirm it to withdraw }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -2951,11 +3062,61 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/users/me/wallet/withdrawals/otp:
+    post:
+      tags: [Wallets]
+      summary: Send OTP for a wallet withdrawal
+      description: Sends a six-digit email code bound to the amount and a snapshot of the current destination bank account. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. An Idempotency-Key is required and must be repeated for confirmation.
+      operationId: requestMyWithdrawalOtp
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestWithdrawalOtpRequest' }
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Wait before requesting another code }
+  /api/v1/users/me/wallet/withdrawals/confirm:
+    post:
+      tags: [Wallets]
+      summary: Confirm withdrawal with OTP
+      description: Creates the withdrawal and reserves funds atomically after validating the OTP. The withdrawal amount must be at least 50,000 VND. Repeated confirmation with the same challenge and idempotency key returns the original withdrawal.
+      operationId: confirmMyWithdrawal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '201':
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Verification attempt limit reached }
+
   /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel:
     patch:
       tags: [Wallets]
       summary: Cancel my pending withdrawal
-      description: Cancels an owned PENDING withdrawal and returns its reserved amount from pending balance to available balance.
+      description: Cancels an owned PENDING withdrawal and releases its reserved amount to the available balance. The existing withdrawal transaction is marked CANCELLED; no separate refund transaction is created.
       operationId: cancelMyWithdrawal
       parameters:
         - name: withdrawalId
@@ -3074,715 +3235,6 @@ paths:
         '201':
           description: Teaching request fee paid
           content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-        '409': { $ref: '#/components/responses/ConflictError' }
-
-  /api/v1/recommendation-tags:
-    get:
-      tags: [Recommendations]
-      summary: Tags a user can pick as search filters
-      description: >-
-        Requires authentication. Returns ACTIVE tags only. Style, goal and level tags apply to every
-        subject. Topics are returned only when subjectId is given, and only those of that subject.
-      operationId: listSelectableRecommendationTags
-      parameters:
-        - name: group
-          in: query
-          schema: { $ref: '#/components/schemas/RecommendationTagGroup' }
-        - name: subjectId
-          in: query
-          schema: { type: string, format: uuid }
-      responses:
-        '200':
-          description: Selectable tags ordered by group and code
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
-  /api/v1/admin/recommendation-tags:
-    get:
-      tags: [Admin Recommendation Tags]
-      summary: List the tag vocabulary
-      description: Requires ADMIN, or EMPLOYEE with the CONTENT_REVIEWER function. Includes inactive tags.
-      operationId: listRecommendationTagsForAdmin
-      parameters:
-        - name: group
-          in: query
-          schema: { $ref: '#/components/schemas/RecommendationTagGroup' }
-        - name: subjectId
-          in: query
-          schema: { type: string, format: uuid }
-        - name: status
-          in: query
-          schema: { type: string, enum: [ACTIVE, INACTIVE] }
-      responses:
-        '200':
-          description: Tags ordered by group and code
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-    post:
-      tags: [Admin Recommendation Tags]
-      summary: Create one or more tags
-      description: >-
-        Tags typed by the administrator and / or kept from the suggestions. All or nothing: one invalid
-        item rejects the whole request. Codes are unique over the whole vocabulary and never change.
-        TOPIC needs an active subject; other groups have none. SEGMENT tags cannot be added because the
-        four levels are part of the ranking formula. A parent is a top-level tag of the same group and
-        subject and may be created in the same request, before its children. New topics queue the
-        published postings of that subject for tag extraction again.
-      operationId: createRecommendationTags
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecommendationTagCreateRequest'
-      responses:
-        '201':
-          description: Created tags, in request order
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagListResponseEnvelope'
-        '400':
-          description: >-
-            Validation error, or SEGMENT_TAGS_ARE_FIXED, SUBJECT_REQUIRED, SUBJECT_NOT_ALLOWED,
-            INVALID_SUBJECT, INVALID_TAG_PARENT
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '409':
-          description: TAG_CODE_ALREADY_EXISTS
-
-  /api/v1/admin/recommendation-tags/{tagId}:
-    put:
-      tags: [Admin Recommendation Tags]
-      summary: Rename a tag, change its description or parent
-      description: >-
-        The code, group and subject cannot be changed. Omitting parentCode removes the parent. Renaming
-        queues the profiles and postings that carry the tag for a new embedding; the LLM is not called.
-      operationId: updateRecommendationTag
-      parameters:
-        - name: tagId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecommendationTagUpdateRequest'
-      responses:
-        '200':
-          description: Updated tag
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagResponseEnvelope'
-        '400':
-          description: Validation error or INVALID_TAG_PARENT
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: TAG_NOT_FOUND
-
-  /api/v1/admin/recommendation-tags/{tagId}/status:
-    patch:
-      tags: [Admin Recommendation Tags]
-      summary: Switch a tag on or off
-      description: >-
-        Tags are never deleted. An inactive tag is hidden from users, no longer offered to the LLM and
-        ignored by ranking; what was attached to it counts again when it is switched back on. SEGMENT
-        tags cannot be switched off. Changing a topic queues the published postings of its subject for
-        tag extraction again.
-      operationId: changeRecommendationTagStatus
-      parameters:
-        - name: tagId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status: { type: string, enum: [ACTIVE, INACTIVE] }
-      responses:
-        '200':
-          description: Tag with its new status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagResponseEnvelope'
-        '400':
-          description: Validation error or SEGMENT_TAGS_ARE_FIXED
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: TAG_NOT_FOUND
-
-  /api/v1/admin/recommendation-tags/suggestions:
-    post:
-      tags: [Admin Recommendation Tags]
-      summary: Ask the LLM for topic ideas for one subject
-      description: >-
-        Nothing is saved. The administrator reviews the list, edits it freely and creates the tags they
-        want with POST /api/v1/admin/recommendation-tags. The LLM receives the subject name, the topics
-        that already exist and short excerpts of published postings of the subject with phone numbers and
-        e-mails removed. Codes that already exist or are malformed are dropped from the answer.
-      operationId: suggestRecommendationTags
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [subjectId]
-              properties:
-                subjectId: { type: string, format: uuid }
-                maxTags: { type: integer, minimum: 1, maximum: 20, default: 10 }
-      responses:
-        '200':
-          description: Suggested topics
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecommendationTagSuggestionResponseEnvelope'
-        '400':
-          description: Validation error or INVALID_SUBJECT
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '503':
-          description: TAG_SUGGESTION_UNAVAILABLE - the AI service or the LLM is not available; tags can still be typed
-
-  /api/v1/admin/recommendations/weights:
-    get:
-      tags: [Admin Recommendation Weights]
-      summary: Learned ranking weights of every model
-      description: >-
-        For each of the four L1 models (A_S2T, A_T2S, B_S2T, B_T2S): the hand-set prior, the configured mode, the
-        mode set by an administrator (null when the configuration decides), the mode in force, the active version
-        and every version, newest first, with its weights and its comparison with the prior. ADMIN only.
-      operationId: getRecommendationWeights
-      responses:
-        '200':
-          description: All models
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminRecommendationWeightsResponseEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-
-  /api/v1/admin/recommendations/weights/learn:
-    post:
-      tags: [Admin Recommendation Weights]
-      summary: Run the nightly weight learning now
-      description: >-
-        Runs the same update as the nightly WeightLearningJob for every model whose mode is not OFF, at the current
-        time, and returns what each model's update did. The job and this endpoint share one lock: while a run is
-        going on, the call is refused with 409. ADMIN only.
-      operationId: learnRecommendationWeights
-      responses:
-        '200':
-          description: One outcome per model that ran (code WEIGHT_LEARNING_DONE)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WeightLearningOutcomesEnvelope'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '409':
-          description: WEIGHT_LEARNING_RUNNING
-
-  /api/v1/admin/recommendations/weights/{model}/activate/{version}:
-    post:
-      tags: [Admin Recommendation Weights]
-      summary: Activate a version of a model
-      description: >-
-        Makes the version the active one, for example to roll back; the previous active version is kept,
-        inactive. It is served only while the model's mode is ACTIVE. ADMIN only.
-      operationId: activateRecommendationWeights
-      parameters:
-        - $ref: '#/components/parameters/WeightModelPath'
-        - name: version
-          in: path
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '200':
-          description: The model after the change (code LEARNED_WEIGHTS_ACTIVATED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminRecommendationWeightModelEnvelope'
-        '400':
-          description: Unknown model
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: LEARNED_WEIGHTS_VERSION_NOT_FOUND
-
-  /api/v1/admin/recommendations/weights/{model}/mode:
-    put:
-      tags: [Admin Recommendation Weights]
-      summary: Set the mode of a model
-      description: >-
-        OFF serves the prior and stops learning; SHADOW learns but serves the prior; ACTIVE serves the active
-        version. The mode is stored and wins over the configuration until it is changed again. ADMIN only.
-      operationId: setRecommendationWeightMode
-      parameters:
-        - $ref: '#/components/parameters/WeightModelPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [mode]
-              properties:
-                mode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
-      responses:
-        '200':
-          description: The model after the change (code LEARNED_WEIGHTS_MODE_UPDATED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminRecommendationWeightModelEnvelope'
-        '400':
-          description: Unknown model or missing mode
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-
-  /api/v1/recommendations/parse-query:
-    post:
-      tags: [Recommendations]
-      summary: Turn a typed sentence into filter values
-      description: >-
-        Requires STUDENT or TUTOR. Nothing is searched: the client fills the form with the returned filters,
-        the user reviews it and then searches. Phone numbers and e-mails are removed before the sentence
-        reaches the LLM. Only values found in the catalogue are returned, already as IDs. When the sentence
-        cannot be analysed (LLM unavailable or too slow) the answer is still 200 with empty filters,
-        understood = false and the whole sentence as semanticText. Answers are cached for 24 hours.
-      operationId: parseRecommendationQuery
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [text, direction]
-              properties:
-                text: { type: string, maxLength: 500 }
-                direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
-      responses:
-        '200':
-          description: Recognised filter values
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponseMetadata'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          filters:
-                            type: object
-                            description: >-
-                              Only the recognised fields, in the shape of "filters" of the search of that
-                              direction (tutor search for STUDENT_TO_TUTOR, student search for TUTOR_TO_STUDENT).
-                          semanticText:
-                            type: string
-                            nullable: true
-                            description: >-
-                              The sentence itself without contact details, to be sent as semanticText of the
-                              search. It is the user's own wording, never a rewording by the LLM.
-                          notes: { type: array, items: { type: string }, description: What was not recognised }
-                          understood: { type: boolean }
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-
-  /api/v1/users/me/saved-searches:
-    get:
-      tags: [Recommendations]
-      summary: List my saved searches
-      description: Requires STUDENT or TUTOR. Newest first.
-      operationId: listSavedSearches
-      responses:
-        '200':
-          description: Saved searches of the caller
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponseMetadata'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items: { $ref: '#/components/schemas/SavedSearchResponse' }
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-    post:
-      tags: [Recommendations]
-      summary: Save a search
-      description: >-
-        A student saves a search for tutors (STUDENT_TO_TUTOR), a tutor a search for students
-        (TUTOR_TO_STUDENT). The filters are checked like a search checks them and must contain what a search
-        needs (subject and grade). At most 5 per user. With notifyEnabled (the default) the user is told when
-        a new posting is among the three best results of this search and scores 0.65 or more, at most once
-        a day. Run it with savedSearchId in the search request.
-      operationId: createSavedSearch
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [direction, filters]
-              properties:
-                direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
-                name: { type: string, maxLength: 120 }
-                filters:
-                  type: object
-                  description: The "filters" object of the search request of that direction.
-                semanticText: { type: string, maxLength: 500, description: Used by student searches only }
-                notifyEnabled: { type: boolean, default: true }
-      responses:
-        '201':
-          description: Saved
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponseMetadata'
-                  - type: object
-                    properties:
-                      data: { $ref: '#/components/schemas/SavedSearchResponse' }
-        '400':
-          description: >-
-            Validation error, INVALID_SAVED_SEARCH, SAVED_SEARCH_INCOMPLETE, SAVED_SEARCH_DIRECTION_NOT_ALLOWED,
-            or an error of the filters themselves such as INVALID_SUBJECT
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '409':
-          description: SAVED_SEARCH_LIMIT_REACHED
-
-  /api/v1/users/me/saved-searches/{savedSearchId}:
-    put:
-      tags: [Recommendations]
-      summary: Rename a saved search or switch its notifications
-      description: Only the fields that are sent change. The criteria cannot be edited; save a new search instead.
-      operationId: updateSavedSearch
-      parameters:
-        - name: savedSearchId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name: { type: string, maxLength: 120 }
-                notifyEnabled: { type: boolean }
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponseMetadata'
-                  - type: object
-                    properties:
-                      data: { $ref: '#/components/schemas/SavedSearchResponse' }
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: SAVED_SEARCH_NOT_FOUND (also for someone else's)
-    delete:
-      tags: [Recommendations]
-      summary: Delete a saved search
-      operationId: deleteSavedSearch
-      parameters:
-        - name: savedSearchId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        '200':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: SAVED_SEARCH_NOT_FOUND
-
-  /api/v1/recommendations/{logId}/events:
-    post:
-      tags: [Recommendations]
-      summary: Record what the user did with one result of their search
-      description: >-
-        Requires STUDENT or TUTOR and only works on the caller's own search (logId). VIEWED, CLICKED, FAVORITED
-        and CONTACTED are signs of interest, DISMISSED the opposite. FAVORITED on a student's search also adds
-        the tutor to the student's favourites. The rank recorded is the one the search gave the result; the
-        rank in the body is ignored. Every event queues a rebuild of the caller's preference profile.
-      operationId: recordRecommendationEvent
-      parameters:
-        - name: logId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [action, candidateId]
-              properties:
-                action: { type: string, enum: [VIEWED, CLICKED, FAVORITED, CONTACTED, DISMISSED] }
-                rank: { type: integer, description: Ignored }
-                candidateId:
-                  type: string
-                  format: uuid
-                  description: teachingRequestId (student's search) or studyingRequestId (tutor's search) of a result
-      responses:
-        '200':
-          description: Event recorded
-        '400':
-          description: Validation error or CANDIDATE_NOT_IN_RESULTS
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: RECOMMENDATION_LOG_NOT_FOUND (also for someone else's search) or CANDIDATE_NOT_FOUND
-
-  /api/v1/recommendations/{logId}/refine:
-    post:
-      tags: [Recommendations]
-      summary: Score again the results the user has not seen yet
-      description: >-
-        Uses the events recorded for this search: results the user opened pull the remaining ones towards
-        similar postings, dismissed and passed-over ones push away. Results up to seenUpToRank never move.
-        Needs at least one sign of interest; otherwise the stored order is returned unchanged. The new order
-        replaces the stored one, so later pages read with logId follow it.
-      operationId: refineRecommendations
-      parameters:
-        - name: logId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [seenUpToRank]
-              properties:
-                seenUpToRank: { type: integer, minimum: 0, maximum: 50 }
-      responses:
-        '200':
-          description: >-
-            The results after seenUpToRank in their new order, in the same shape as the search that produced
-            the log (tutor recommendations for a student, student recommendations for a tutor).
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: '#/components/schemas/TutorRecommendationResponseEnvelope'
-                  - $ref: '#/components/schemas/StudentRecommendationResponseEnvelope'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          description: RECOMMENDATION_LOG_NOT_FOUND
-
-  /api/v1/users/me/recommendation-profile:
-    delete:
-      tags: [Recommendations]
-      summary: Delete my recommendation history
-      description: >-
-        Requires STUDENT or TUTOR. Empties the preference profile built from past behaviour and ignores
-        everything done before this moment, so results are no longer influenced by it. Favourites,
-        applications and contracts themselves are not deleted.
-      operationId: deleteRecommendationHistory
-      responses:
-        '200':
-          description: History deleted
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-
-  /api/v1/students/me/tutor-recommendations:
-    post:
-      tags: [Recommendations]
-      summary: Find tutors that fit my criteria
-      description: >-
-        Ranks OPEN teaching requests of verified tutors for the current student. The filters are the main
-        input; missing ones are filled from the student's own studying request (useStudyingRequestId) and
-        then from the profile. Without logId a new search is run and logged. With logId the request body is
-        ignored and another page of that earlier search is returned in the order computed back then
-        (at most 50 results are kept per search).
-      operationId: recommendTutorsForStudent
-      parameters:
-        - name: page
-          in: query
-          schema: { type: integer, minimum: 0, default: 0 }
-        - name: size
-          in: query
-          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
-        - name: logId
-          in: query
-          description: logId returned by the first page; required to read the following pages.
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TutorRecommendationRequest'
-            example:
-              filters:
-                subjectId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                gradeId: 3fa85f64-5717-4562-b3fc-2c963f66afa7
-                learningMode: ANY
-                area: { scope: DISTRICTS, districtIds: [3fa85f64-5717-4562-b3fc-2c963f66afa8] }
-                price: { max: 200000 }
-                availabilities:
-                  - { dayOfWeek: 2, startTime: '19:00', endTime: '21:00' }
-              semanticText: ôn thi vào lớp 10
-      responses:
-        '200':
-          description: >-
-            Ranked teaching requests. When subject or grade is still missing, needsInput lists them and
-            items is empty.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/TutorRecommendationResponseEnvelope' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-
-  /api/v1/tutors/me/student-recommendations:
-    post:
-      tags: [Recommendations]
-      summary: Find students that fit what I teach
-      description: >-
-        Ranks OPEN studying requests for the current tutor, who does not need a teaching request but must
-        have a verified profile (403 TUTOR_PROFILE_NOT_VERIFIED otherwise). Missing
-        filters are filled from the tutor's own teaching request (useTeachingRequestId) and then from the
-        profile; an empty expected price defaults to the median price of the tutor's teaching requests.
-        Only limited information about each student is returned. Paging works as for tutor recommendations:
-        pass the logId of the first page to read the following pages.
-      operationId: recommendStudentsForTutor
-      parameters:
-        - name: page
-          in: query
-          schema: { type: integer, minimum: 0, default: 0 }
-        - name: size
-          in: query
-          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
-        - name: logId
-          in: query
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StudentRecommendationRequest'
-      responses:
-        '200':
-          description: Ranked studying requests. needsInput lists subjectId / gradeIds when they are missing.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/StudentRecommendationResponseEnvelope' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '401': { $ref: '#/components/responses/UnauthorizedError' }
-        '403': { $ref: '#/components/responses/ForbiddenError' }
-        '404': { $ref: '#/components/responses/NotFoundError' }
-
-  /api/v1/students/me/contracts/{contractId}/review:
-    parameters:
-      - name: contractId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-    post:
-      tags: [Reviews]
-      summary: Review the tutor of my completed contract
-      description: Only the student of a COMPLETED contract can review its tutor, once per contract. Returns 409 CONTRACT_NOT_COMPLETED or REVIEW_ALREADY_EXISTS otherwise.
-      operationId: createMyContractReview
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReviewCreateRequest'
-            example:
-              rating: 5
-              comment: Thầy dạy dễ hiểu, đúng giờ.
-      responses:
-        '201':
-          description: Review created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ReviewResponseEnvelope' }
-        '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -4655,7 +4107,7 @@ paths:
     get:
       tags: [Admin User Accounts]
       summary: List complaint summaries related to a student
-      description: USER_SUPPORT receives summaries only; complaint evidence remains in the complaint workflow.
+      description: Customer service receives summaries only; complaint evidence remains in the complaint workflow.
       operationId: listManagedStudentComplaints
       parameters:
         - $ref: '#/components/parameters/UserId'
@@ -4763,11 +4215,62 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/employees/me:
+    get:
+      tags: [Admin Employees]
+      summary: Get the signed-in staff member's role and job function
+      description: Available to ADMIN and EMPLOYEE accounts. jobFunction is null for administrators.
+      operationId: getMyEmployeeProfile
+      responses:
+        '200':
+          description: Own employee profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [employeeId, role]
+                        properties:
+                          employeeId: { type: string, format: uuid }
+                          role: { type: string, enum: [ADMIN, EMPLOYEE] }
+                          jobFunction:
+                            allOf:
+                              - $ref: '#/components/schemas/EmployeeJobFunction'
+                            nullable: true
+                          firstName: { type: string, nullable: true }
+                          lastName: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/employees/{employeeId}/open-assignments:
+    get:
+      tags: [Admin Employees]
+      summary: List work the employee must hand over
+      description: Complaints in IN_REVIEW or AWAITING_EVIDENCE and refund requests in IN_REVIEW assigned to the employee, oldest first. These block deactivation and job-function changes until reassigned.
+      operationId: getEmployeeOpenAssignments
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Open assignments
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/admin/employees/{employeeId}/deactivate:
     patch:
       tags: [Admin Employees]
       summary: Revoke employee access
-      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints must be reassigned first.
+      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints and refund requests must be reassigned first.
       operationId: deactivateEmployee
       parameters:
         - name: employeeId
@@ -4815,6 +4318,320 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
+  /api/v1/students/me/contracts/{contractId}/lessons:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Lessons]
+      summary: List the lessons of one of my contracts
+      operationId: listStudentContractLessons
+      responses:
+        '200':
+          description: Lessons ordered by date and start time
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LessonResponse' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/students/me/refund-requests:
+    post:
+      tags: [Refund Requests]
+      summary: Submit a refund request for one of my contracts
+      description: >-
+        lessons may only contain PENDING_CONFIRMATION lessons of the contract, each claimed as TUTOR_ABSENT or
+        STUDENT_ABSENT.
+      operationId: createMyRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundRequestCreateRequest' }
+      responses:
+        '201':
+          description: Refund request created as PENDING; the tutor and accountants are notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+    get:
+      tags: [Refund Requests]
+      summary: List my refund requests
+      operationId: listMyRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/students/me/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Refund Requests]
+      summary: Get one of my refund requests
+      operationId: getMyRefundRequest
+      responses:
+        '200':
+          description: Refund request detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/students/me/refund-requests/{refundRequestId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Refund Requests]
+      summary: Cancel a PENDING refund request
+      operationId: cancelMyRefundRequest
+      responses:
+        '200':
+          description: Refund request cancelled; disputed lessons return to normal confirmation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/refund-requests:
+    get:
+      tags: [Refund Requests]
+      summary: List refund requests on my contracts
+      operationId: listTutorRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/tutors/me/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Refund Requests]
+      summary: Get a refund request on one of my contracts
+      operationId: getTutorRefundRequest
+      responses:
+        '200':
+          description: Refund request detail with the response deadline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/tutors/me/refund-requests/{refundRequestId}/response:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    post:
+      tags: [Refund Requests]
+      summary: Submit the tutor's single response
+      description: >-
+        Allowed once while the request is PENDING or IN_REVIEW and before tutorResponseDeadline. Returns
+        TUTOR_RESPONSE_ALREADY_SUBMITTED or TUTOR_RESPONSE_NOT_ALLOWED (409) otherwise.
+      operationId: respondToRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TutorRefundResponseRequest' }
+      responses:
+        '200':
+          description: Tutor response saved; the assigned accountant is notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests:
+    get:
+      tags: [Admin Refund Requests]
+      summary: List refund requests for review
+      description: Defaults to PENDING requests, oldest first.
+      operationId: listAdminRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: contractId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund review queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Admin Refund Requests]
+      summary: Get a refund request with contract data and the suggested calculation
+      operationId: getAdminRefundRequest
+      responses:
+        '200':
+          description: Refund review detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/start-review:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Assign the current employee and move PENDING to IN_REVIEW
+      operationId: startRefundReview
+      responses:
+        '200':
+          description: Refund request moved to IN_REVIEW
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Decide the disputed lessons, refund the student and pay the tutor's share
+      description: >-
+        Requires the tutor's response or an expired response window, a decision for every disputed lesson and no
+        open complaint on the contract. The backend recalculates the refund and rejects the call with
+        REFUND_AMOUNT_CHANGED when it differs from expectedAmount, or NOTHING_TO_REFUND when every lesson is TAUGHT.
+      operationId: approveRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundApprovalRequest' }
+      responses:
+        '200':
+          description: Student credited with CONTRACT_REFUND, tutor with TUTOR_EARNING for skipped lessons, request moved to REFUNDED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Reject a refund request
+      operationId: rejectRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundRejectionRequest' }
+      responses:
+        '200':
+          description: Refund request rejected; the wallet is unchanged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/reassign:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Reassign an IN_REVIEW refund request to another accountant
+      description: Only an ADMIN can reassign; the target must be an active ADMIN or ACCOUNTANT employee.
+      operationId: reassignRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintReassignmentRequest' }
+      responses:
+        '200':
+          description: Refund request assigned to the target employee
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
 
 components:
   securitySchemes:
@@ -4824,12 +4641,15 @@ components:
       bearerFormat: JWT
 
   parameters:
-    WeightModelPath:
-      name: model
+    RefundRequestId:
+      name: refundRequestId
       in: path
       required: true
-      schema: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
-
+      schema: { type: string, format: uuid }
+    RefundRequestStatus:
+      name: status
+      in: query
+      schema: { $ref: '#/components/schemas/RefundRequestStatus' }
     UserId:
       name: userId
       in: path
@@ -4996,9 +4816,315 @@ components:
       example: withdrawal-2026-09-07-001
 
   schemas:
+    LessonOutcome:
+      type: string
+      enum: [TAUGHT, TUTOR_ABSENT, STUDENT_ABSENT]
+      description: >-
+        What happened in a disputed lesson. TUTOR_ABSENT refunds the tutor-absent share (100%) of the lesson price;
+        STUDENT_ABSENT refunds the student-absent share (80%) and pays the rest to the tutor; TAUGHT refunds nothing.
+
+    RefundRequestStatus:
+      type: string
+      enum: [PENDING, IN_REVIEW, REFUNDED, REJECTED, CANCELLED]
+
+    RefundRequestCreateRequest:
+      type: object
+      required: [contractId, description, lessons]
+      properties:
+        contractId: { type: string, format: uuid }
+        description: { type: string, minLength: 1, maxLength: 2000 }
+        lessons:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: PENDING_CONFIRMATION lessons of the contract that did not take place.
+          items:
+            type: object
+            required: [lessonId, claimedOutcome]
+            properties:
+              lessonId: { type: string, format: uuid }
+              claimedOutcome: { type: string, enum: [TUTOR_ABSENT, STUDENT_ABSENT] }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
+    TutorRefundResponseRequest:
+      type: object
+      required: [message, lessonPositions]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 2000 }
+        lessonPositions:
+          type: array
+          description: Exactly one entry per disputed lesson, otherwise LESSON_POSITION_REQUIRED (400).
+          items:
+            type: object
+            required: [lessonId, position]
+            properties:
+              lessonId: { type: string, format: uuid }
+              position: { $ref: '#/components/schemas/LessonOutcome' }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
+    RefundApprovalRequest:
+      type: object
+      required: [expectedAmount, lessonDecisions]
+      properties:
+        expectedAmount: { type: number, minimum: 0, description: The student refund the reviewer saw; must match the recalculated amount. }
+        lessonDecisions:
+          type: array
+          description: Exactly one entry per disputed lesson awaiting confirmation.
+          items:
+            type: object
+            required: [lessonId, decision]
+            properties:
+              lessonId: { type: string, format: uuid }
+              decision: { $ref: '#/components/schemas/LessonOutcome' }
+        note: { type: string, maxLength: 2000, nullable: true }
+
+    RefundRejectionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 500 }
+
+    RefundDisputedLesson:
+      type: object
+      properties:
+        lessonId: { type: string, format: uuid }
+        title: { type: string, nullable: true }
+        date: { type: string, format: date }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+        markedTaughtAt: { type: string, format: date-time }
+        claimedOutcome: { type: string, enum: [TUTOR_ABSENT, STUDENT_ABSENT] }
+        tutorPosition: { allOf: [{ $ref: '#/components/schemas/LessonOutcome' }], nullable: true }
+        decision: { allOf: [{ $ref: '#/components/schemas/LessonOutcome' }], nullable: true }
+
+    RefundRequestResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeName: { type: string }
+        studentUserId: { type: string, format: uuid }
+        studentName: { type: string }
+        tutorUserId: { type: string, format: uuid }
+        tutorName: { type: string }
+        status: { $ref: '#/components/schemas/RefundRequestStatus' }
+        description: { type: string }
+        disputedLessons:
+          type: array
+          items: { $ref: '#/components/schemas/RefundDisputedLesson' }
+        evidences:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              fileUrl: { type: string }
+              fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid }
+        tutorResponse: { type: string, nullable: true }
+        tutorRespondedAt: { type: string, format: date-time, nullable: true }
+        tutorResponseDeadline: { type: string, format: date-time }
+        refundAmount: { type: number, nullable: true, description: Set once the request is REFUNDED. }
+        tutorShareAmount: { type: number, nullable: true, description: Credited to the tutor for lessons the student skipped. }
+        rejectionReason: { type: string, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RefundRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/RefundRequestResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    RefundCalculation:
+      type: object
+      description: >-
+        Before approval the amounts preview the reviewer's decisions where given and the student's claims otherwise;
+        after approval they are the snapshot.
+      properties:
+        unitPrice: { type: number, description: Sum of non-cancelled installments / total lessons, whole đồng. }
+        tutorAbsentRate: { type: integer }
+        studentAbsentRate: { type: integer }
+        paidAmount: { type: number }
+        previouslyRefundedAmount: { type: number }
+        refundableAmount: { type: number, description: Paid tuition minus earlier refunds; the refund never exceeds it. }
+        refundAmount: { type: number }
+        tutorShareAmount: { type: number }
+        undecidedLessons: { type: integer }
+        blockers:
+          type: array
+          description: Reasons approval is not possible yet.
+          items:
+            type: string
+            enum: [TUTOR_RESPONSE_WINDOW_OPEN, CONTRACT_HAS_OPEN_COMPLAINT, NOTHING_TO_REFUND]
+
+    AdminRefundRequestSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentUserId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        contractId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeName: { type: string }
+        tutorName: { type: string }
+        status: { $ref: '#/components/schemas/RefundRequestStatus' }
+        disputedLessonCount: { type: integer }
+        awaitingTutorResponse: { type: boolean }
+        hasOpenComplaint: { type: boolean }
+        assignedEmployeeId: { type: string, format: uuid, nullable: true }
+        assignedEmployeeName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    AdminRefundRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminRefundRequestSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminRefundRequestDetailResponse:
+      description: >-
+        Request fields as in RefundRequestResponse, except that the participants are given in student and tutor and the
+        subject and grade in contract.
+      allOf:
+        - $ref: '#/components/schemas/RefundRequestResponse'
+        - type: object
+          properties:
+            student:
+              type: object
+              properties:
+                userId: { type: string, format: uuid }
+                name: { type: string }
+                email: { type: string, format: email }
+            tutor:
+              type: object
+              properties:
+                userId: { type: string, format: uuid }
+                name: { type: string }
+                email: { type: string, format: email }
+            reviewer:
+              type: object
+              nullable: true
+              properties:
+                employeeId: { type: string, format: uuid }
+                userId: { type: string, format: uuid }
+                name: { type: string }
+            contract:
+              type: object
+              description: Contract summary including subject, grade, price, payment period, total lessons, dates and status.
+            payments:
+              type: array
+              items: { type: object, description: Tuition payments including refundedAmount. }
+            complaints:
+              type: array
+              description: Complaints on the contract that are open or linked to this request.
+              items:
+                type: object
+                properties:
+                  complaintId: { type: string, format: uuid }
+                  title: { type: string }
+                  status: { type: string, enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED] }
+                  faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
+            calculation: { $ref: '#/components/schemas/RefundCalculation' }
+            note: { type: string, nullable: true }
+
+    RefundRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/RefundRequestResponse' }
+
+    RefundRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/RefundRequestPageResponse' }
+
+    AdminRefundRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminRefundRequestDetailResponse' }
+
+    AdminRefundRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminRefundRequestPageResponse' }
+
+    EmployeeOpenAssignmentsResponse:
+      type: object
+      required: [complaints, refundRequests]
+      properties:
+        complaints:
+          type: array
+          items:
+            type: object
+            required: [id, title, status, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+              complainantName: { type: string, nullable: true }
+              status: { type: string, enum: [IN_REVIEW, AWAITING_EVIDENCE] }
+              createdAt: { type: string, format: date-time }
+        refundRequests:
+          type: array
+          items:
+            type: object
+            required: [id, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              studentName: { type: string, nullable: true }
+              subjectName: { type: string, nullable: true }
+              createdAt: { type: string, format: date-time }
+
+    EmployeeOpenAssignmentsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponse' }
+
     EmployeeJobFunction:
       type: string
-      enum: [GENERAL_OPERATIONS, COMPLAINT_HANDLER, ACCOUNTANT, CONTENT_REVIEWER, USER_SUPPORT]
+      enum: [CUSTOMER_SERVICE, ACCOUNTANT]
 
     CreateEmployeeRequest:
       type: object
@@ -5139,8 +5265,10 @@ components:
         suspendedAt: { type: string, format: date-time, nullable: true }
         suspendedUntil: { type: string, format: date-time, nullable: true }
         suspendedByUserId: { type: string, format: uuid, nullable: true }
+        suspendedByName: { type: string, nullable: true }
         reactivatedAt: { type: string, format: date-time, nullable: true }
         reactivatedByUserId: { type: string, format: uuid, nullable: true }
+        reactivatedByName: { type: string, nullable: true }
         reactivationReason: { type: string, nullable: true }
         suspensionCount: { type: integer, minimum: 0 }
         createdAt: { type: string, format: date-time }
@@ -5919,6 +6047,32 @@ components:
           enum: [CANCELLED]
           description: The only status a student can set through this endpoint.
 
+    StudentTutorRequestUpdateRequest:
+      type: object
+      required:
+        - gradeId
+        - proposedPrice
+        - learningMode
+      properties:
+        gradeId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+          minimum: 0
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        message:
+          type: string
+          maxLength: 10000
+          nullable: true
+
     TutorStudentRequestCreateRequest:
       type: object
       required:
@@ -6113,6 +6267,28 @@ components:
           type: string
           maxLength: 500
           nullable: true
+
+    RequestWithdrawalOtpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 50000, multipleOf: 0.01, description: Minimum withdrawal amount is 50,000 VND. }
+        note: { type: string, maxLength: 500, nullable: true }
+
+    ConfirmWalletSecurityChallengeRequest:
+      type: object
+      required: [challengeId, otp]
+      properties:
+        challengeId: { type: string, format: uuid }
+        otp: { type: string, pattern: '^[0-9]{6}$' }
+
+    WalletSecurityChallengeResponse:
+      type: object
+      required: [challengeId, maskedAccountNumber, expiresAt]
+      properties:
+        challengeId: { type: string, format: uuid }
+        maskedAccountNumber: { type: string, example: '****7890' }
+        expiresAt: { type: string, format: date-time }
 
     WithdrawalResponse:
       type: object
@@ -6313,7 +6489,6 @@ components:
       properties:
         dayOfWeek:
           type: integer
-          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
           minimum: 1
           maximum: 7
         startTime:
@@ -6361,7 +6536,7 @@ components:
           items:
             type: object
             properties:
-              dayOfWeek: { type: integer, description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.' }
+              dayOfWeek: { type: integer }
               startTime: { type: string, format: time }
               endTime: { type: string, format: time }
         createdAt: { type: string, format: date-time }
@@ -6515,260 +6690,6 @@ components:
           type: string
           format: date-time
 
-    TutorRecommendationRequest:
-      type: object
-      properties:
-        filters:
-          type: object
-          properties:
-            subjectId: { type: string, format: uuid }
-            gradeId: { type: string, format: uuid }
-            learningMode:
-              type: string
-              enum: [ONLINE, OFFLINE, ANY]
-              description: Defaults to ANY (both).
-            area:
-              type: object
-              description: Where to look for offline lessons. Defaults to the district the student lives in.
-              properties:
-                scope: { type: string, enum: [DISTRICTS, PROVINCE, ANY] }
-                districtIds:
-                  type: array
-                  description: Required when scope is DISTRICTS.
-                  items: { type: string, format: uuid }
-                provinceId:
-                  type: string
-                  format: uuid
-                  description: Used when scope is PROVINCE; defaults to the student's province.
-            price:
-              type: object
-              properties:
-                min: { type: number, minimum: 0 }
-                max:
-                  type: number
-                  minimum: 0
-                  description: Budget per lesson. Postings above 1.5 times the budget are not returned.
-            availabilities:
-              type: array
-              maxItems: 42
-              items:
-                type: object
-                required: [dayOfWeek, startTime, endTime]
-                properties:
-                  dayOfWeek:
-                    type: integer
-                    minimum: 1
-                    maximum: 7
-                    description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
-                  startTime: { type: string, format: time }
-                  endTime: { type: string, format: time, description: Must be after startTime. }
-            styleTagCodes: { type: array, items: { type: string } }
-            goalTagCodes: { type: array, items: { type: string } }
-            topicTagCodes: { type: array, items: { type: string } }
-        semanticText:
-          type: string
-          maxLength: 500
-          description: Free text describing the need; used for semantic matching.
-        queryText:
-          type: string
-          maxLength: 500
-          description: The original sentence typed by the user; only stored in the log.
-        useStudyingRequestId:
-          type: string
-          format: uuid
-          description: One of the student's own studying requests, used to fill criteria left empty.
-        savedSearchId:
-          type: string
-          format: uuid
-          description: >-
-            Run one of the caller's saved searches: its filters and semanticText replace those of this body.
-            404 SAVED_SEARCH_NOT_FOUND when it is not the caller's or is a tutor search.
-
-    TutorRecommendationResponse:
-      type: object
-      properties:
-        logId: { type: string, format: uuid, nullable: true }
-        algorithmVersion: { type: string, example: v2.2-rcx }
-        queryContext:
-          type: object
-          description: Final criteria after merging, with the source of each one (FILTER, STUDYING_REQUEST, PROFILE, DEFAULT).
-        needsInput:
-          type: array
-          items: { type: string, enum: [subjectId, gradeId] }
-        lowConfidence:
-          type: boolean
-          description: True when little is known about the match; the UI should ask for more criteria.
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              rank: { type: integer }
-              teachingRequestId: { type: string, format: uuid }
-              tutor:
-                type: object
-                properties:
-                  userId: { type: string, format: uuid }
-                  displayName: { type: string }
-                  avatarUrl: { type: string, nullable: true }
-                  averageRating: { type: number }
-                  totalReviews: { type: integer }
-              title: { type: string }
-              expectedPrice: { type: number, nullable: true }
-              teachingMode: { type: string, enum: [ONLINE, OFFLINE] }
-              districts: { type: array, items: { type: string } }
-              score: { type: number, minimum: 0, maximum: 1 }
-              isExploration: { type: boolean }
-              reasons: { type: array, items: { type: string } }
-              caution: { type: string, nullable: true }
-        relaxations:
-          type: array
-          description: >-
-            Ways to loosen the search that would bring more good results (at most 3, best gain first). Empty
-            when at least 5 results score 0.50 or more and there are at least 10 results. The results themselves
-            are never changed; the client overwrites the filters in "apply" and searches again.
-          items: { $ref: '#/components/schemas/RecommendationRelaxation' }
-        page: { type: integer }
-        size: { type: integer }
-        totalElements: { type: integer, format: int64 }
-
-    SavedSearchResponse:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        direction: { type: string, enum: [STUDENT_TO_TUTOR, TUTOR_TO_STUDENT] }
-        name: { type: string, nullable: true }
-        filters: { type: object }
-        semanticText: { type: string, nullable: true }
-        notifyEnabled: { type: boolean }
-        lastNotifiedAt: { type: string, format: date-time, nullable: true }
-        createdAt: { type: string, format: date-time }
-
-    RecommendationRelaxation:
-      type: object
-      properties:
-        code:
-          type: string
-          enum: [PRICE_15, AREA_PROVINCE, MODE_ANY, AREA_ANY, PRICE_30]
-        message: { type: string, description: Sentence to show next to the apply button }
-        gain: { type: integer, description: How many more people would score 0.50 or more }
-        apply:
-          type: object
-          description: >-
-            Filter values to overwrite, in the shape of the request filters: area, learningMode, price
-            (student) or expectedPrice (tutor), availabilities (an empty list means no schedule).
-
-    StudentRecommendationRequest:
-      type: object
-      properties:
-        filters:
-          type: object
-          properties:
-            subjectId: { type: string, format: uuid }
-            gradeIds:
-              type: array
-              description: One or more grades the tutor wants to teach.
-              items: { type: string, format: uuid }
-            learningMode: { type: string, enum: [ONLINE, OFFLINE, ANY] }
-            area:
-              type: object
-              description: Where the tutor can teach offline. Defaults to the district the tutor lives in.
-              properties:
-                scope: { type: string, enum: [DISTRICTS, PROVINCE, ANY] }
-                districtIds: { type: array, items: { type: string, format: uuid } }
-                provinceId: { type: string, format: uuid }
-            expectedPrice:
-              type: number
-              minimum: 0
-              description: Price per lesson the tutor hopes for. Students whose budget is far below it are not returned.
-            availabilities:
-              type: array
-              items:
-                type: object
-                required: [dayOfWeek, startTime, endTime]
-                properties:
-                  dayOfWeek: { type: integer, minimum: 1, maximum: 7, description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.' }
-                  startTime: { type: string, format: time }
-                  endTime: { type: string, format: time }
-            targetSegmentCodes: { type: array, items: { type: string } }
-        useTeachingRequestId:
-          type: string
-          format: uuid
-          description: One of the tutor's own teaching requests, used to fill criteria left empty.
-        savedSearchId:
-          type: string
-          format: uuid
-          description: Run one of the caller's saved searches; its filters replace those of this body.
-
-    StudentRecommendationResponse:
-      type: object
-      properties:
-        logId: { type: string, format: uuid, nullable: true }
-        algorithmVersion: { type: string, example: v2.2-rcx }
-        queryContext: { type: object }
-        needsInput:
-          type: array
-          items: { type: string, enum: [subjectId, gradeIds] }
-        lowConfidence: { type: boolean }
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              rank: { type: integer }
-              studyingRequestId: { type: string, format: uuid }
-              student:
-                type: object
-                description: Limited on purpose. No name, photo, phone number or detailed address.
-                properties:
-                  displayName: { type: string, example: Học sinh Lớp 9 }
-                  district: { type: string, nullable: true }
-              title: { type: string }
-              learningGoals: { type: string, nullable: true }
-              priceRange:
-                type: object
-                properties:
-                  min: { type: number, nullable: true }
-                  max: { type: number, nullable: true }
-              learningMode: { type: string, enum: [ONLINE, OFFLINE] }
-              score: { type: number, minimum: 0, maximum: 1 }
-              isExploration: { type: boolean }
-              reasons: { type: array, items: { type: string } }
-              caution: { type: string, nullable: true }
-        relaxations:
-          type: array
-          description: >-
-            Ways to loosen the search that would bring more good results (at most 3, best gain first). Empty
-            when at least 5 results score 0.50 or more and there are at least 10 results. The results themselves
-            are never changed; the client overwrites the filters in "apply" and searches again.
-          items: { $ref: '#/components/schemas/RecommendationRelaxation' }
-        page: { type: integer }
-        size: { type: integer }
-        totalElements: { type: integer, format: int64 }
-
-    ReviewCreateRequest:
-      type: object
-      required: [rating]
-      properties:
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comment:
-          type: string
-          maxLength: 2000
-          nullable: true
-
-    ReviewResponse:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        contractId: { type: string, format: uuid }
-        tutorId: { type: string, format: uuid }
-        rating: { type: integer, example: 5 }
-        comment: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-
     PublicReviewResponse:
       type: object
       properties:
@@ -6842,6 +6763,14 @@ components:
               uploadedByUserId: { type: string, format: uuid, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    ComplaintEvidenceUploadResponse:
+      type: object
+      required: [fileUrl, previewUrl, fileType]
+      properties:
+        fileUrl: { type: string, description: S3 reference stored with the complaint evidence }
+        previewUrl: { type: string, format: uri, description: Temporary URL for previewing the uploaded file }
+        fileType: { type: string }
 
     ComplaintPageResponse:
       type: object
@@ -7021,6 +6950,11 @@ components:
           type: string
           enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
         note: { type: string, nullable: true }
+        markedTaughtAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the lesson moved to PENDING_CONFIRMATION; the auto-completion grace period starts here.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -7042,7 +6976,6 @@ components:
       properties:
         dayOfWeek:
           type: integer
-          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
         startTime:
           type: string
           format: time
@@ -7059,7 +6992,6 @@ components:
       properties:
         dayOfWeek:
           type: integer
-          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
           minimum: 1
           maximum: 7
         startTime:
@@ -7297,7 +7229,6 @@ components:
       properties:
         dayOfWeek:
           type: integer
-          description: 'ISO-8601 day of week: 1 = Monday, 2 = Tuesday, ... 7 = Sunday.'
         startTime:
           type: string
           format: time
@@ -8129,6 +8060,13 @@ components:
           properties:
             data: { $ref: '#/components/schemas/ComplaintResponse' }
 
+    ComplaintEvidenceUploadResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ComplaintEvidenceUploadResponse' }
+
     ComplaintPageResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8442,165 +8380,6 @@ components:
               items:
                 $ref: '#/components/schemas/CertificateResponse'
 
-    RecommendationTagGroup:
-      type: string
-      enum: [TOPIC, STYLE, GOAL, SEGMENT]
-
-    RecommendationTagResponse:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        group: { $ref: '#/components/schemas/RecommendationTagGroup' }
-        subjectId: { type: string, format: uuid, nullable: true, description: Set for TOPIC tags only }
-        subjectName: { type: string, nullable: true }
-        code: { type: string }
-        name: { type: string }
-        description: { type: string, nullable: true }
-        parentId: { type: string, format: uuid, nullable: true }
-        parentCode: { type: string, nullable: true }
-        status: { type: string, enum: [ACTIVE, INACTIVE] }
-
-    RecommendationTagCreateRequest:
-      type: object
-      required: [tags]
-      properties:
-        tags:
-          type: array
-          minItems: 1
-          maxItems: 30
-          items:
-            type: object
-            required: [group, code, name]
-            properties:
-              group: { $ref: '#/components/schemas/RecommendationTagGroup' }
-              subjectId: { type: string, format: uuid, description: Required for TOPIC and not allowed otherwise }
-              code: { type: string, pattern: '^[a-z0-9_]{3,40}$' }
-              name: { type: string, maxLength: 120 }
-              description: { type: string, maxLength: 500 }
-              parentCode: { type: string }
-
-    RecommendationTagUpdateRequest:
-      type: object
-      required: [name]
-      properties:
-        name: { type: string, maxLength: 120 }
-        description: { type: string, maxLength: 500 }
-        parentCode: { type: string }
-
-    RecommendationTagListResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/RecommendationTagResponse'
-
-    RecommendationTagResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              $ref: '#/components/schemas/RecommendationTagResponse'
-
-    AdminRecommendationWeightVersion:
-      type: object
-      properties:
-        version: { type: integer }
-        active: { type: boolean }
-        sampleCount: { type: integer }
-        trainedUntil: { type: string, format: date-time }
-        createdAt: { type: string, format: date-time }
-        weights:
-          type: object
-          additionalProperties: { type: number }
-          description: Clamped and normalised weights by feature, as served
-        evaluation:
-          type: object
-          description: >-
-            Comparison with the prior on held-out data: metric (ndcg10 or logloss), learned, prior, n, newSamples,
-            searches, enoughData, clamped
-
-    AdminRecommendationWeightModel:
-      type: object
-      properties:
-        model: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
-        features: { type: array, items: { type: string } }
-        prior:
-          type: object
-          additionalProperties: { type: number }
-        configuredMode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
-        overrideMode: { type: string, enum: [OFF, SHADOW, ACTIVE], nullable: true }
-        mode: { type: string, enum: [OFF, SHADOW, ACTIVE] }
-        activeVersion: { type: integer, nullable: true }
-        versions:
-          type: array
-          items:
-            $ref: '#/components/schemas/AdminRecommendationWeightVersion'
-
-    AdminRecommendationWeightsResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              type: object
-              properties:
-                models:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/AdminRecommendationWeightModel'
-
-    AdminRecommendationWeightModelEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              $ref: '#/components/schemas/AdminRecommendationWeightModel'
-
-    WeightLearningOutcome:
-      type: object
-      properties:
-        model: { type: string, enum: [A_S2T, A_T2S, B_S2T, B_T2S] }
-        version: { type: integer, nullable: true, description: The new version, or null when nothing was learned }
-        newSamples: { type: integer }
-        activated: { type: boolean }
-        note: { type: string, example: activated }
-
-    WeightLearningOutcomesEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/WeightLearningOutcome'
-
-    RecommendationTagSuggestionResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data:
-              type: object
-              properties:
-                subjectId: { type: string, format: uuid }
-                subjectName: { type: string }
-                model: { type: string }
-                suggestions:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      code: { type: string }
-                      name: { type: string }
-                      description: { type: string, nullable: true }
-                      parentCode: { type: string, nullable: true }
-
     SubjectListResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8658,27 +8437,6 @@ components:
               nullable: true
               example: null
 
-    TutorRecommendationResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data: { $ref: '#/components/schemas/TutorRecommendationResponse' }
-
-    StudentRecommendationResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data: { $ref: '#/components/schemas/StudentRecommendationResponse' }
-
-    ReviewResponseEnvelope:
-      allOf:
-        - $ref: '#/components/schemas/ApiResponseMetadata'
-        - type: object
-          properties:
-            data: { $ref: '#/components/schemas/ReviewResponse' }
-
     ContractResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8720,6 +8478,13 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/BankAccountResponse' }
+
+    WalletSecurityChallengeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletSecurityChallengeResponse' }
 
     WalletTransactionResponseEnvelope:
       allOf:
@@ -8882,9 +8647,12 @@ components:
             - LESSON_MARKED_TAUGHT
             - LESSON_CANCELLED
             - WITHDRAWAL_REVIEW_REQUIRED
+            - WITHDRAWAL_REQUEST_CREATED
+            - WITHDRAWAL_REQUEST_CANCELLED
+            - WALLET_BALANCE_CHANGED
         referenceType:
           type: string
-          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WITHDRAWAL_REQUEST]
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WALLET_TRANSACTION, WITHDRAWAL_REQUEST, REFUND_REQUEST]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }

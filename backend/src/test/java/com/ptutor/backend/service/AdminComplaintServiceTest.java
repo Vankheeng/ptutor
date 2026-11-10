@@ -220,7 +220,7 @@ class AdminComplaintServiceTest {
         Employee targetEmployee = Employee.builder()
                 .user(targetUser)
                 .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.COMPLAINT_HANDLER)
+                .jobFunction(EmployeeJobFunction.CUSTOMER_SERVICE)
                 .build();
         targetEmployee.setId(UUID.randomUUID());
         when(complaintRepository.findByIdForUpdate(complaintId)).thenReturn(Optional.of(complaint));

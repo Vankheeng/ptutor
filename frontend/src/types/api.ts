@@ -68,6 +68,10 @@ export interface TeachingRequest {
   subjectName: string | null;
   customSubjectName: string | null;
   grades: Reference[];
+  status?: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
+  reviewedAt?: string | null;
+  paidAt?: string | null;
+  rejectionReason?: string | null;
   districts: Reference[];
   title: string | null;
   note: string | null;

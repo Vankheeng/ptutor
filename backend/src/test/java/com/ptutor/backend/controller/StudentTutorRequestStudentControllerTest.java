@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.ptutor.backend.dto.request.StudentTutorRequestCreateRequest;
 import com.ptutor.backend.dto.request.StudentTutorRequestStatusRequest;
+import com.ptutor.backend.dto.request.StudentTutorRequestUpdateRequest;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -71,17 +72,46 @@ class StudentTutorRequestStudentControllerTest {
     @Test
     void listUsesCurrentStudentStatusAndPagination() throws Exception {
         when(studentTutorRequestService.findMineForStudent(
-                eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class)))
+                eq(userId), eq(ApplicationStatus.PENDING), eq("math"), any(Pageable.class)))
                 .thenReturn(null);
 
         mockMvc.perform(get("/api/v1/students/me/student-tutor-requests")
                         .param("status", "PENDING")
+                        .param("keyword", "math")
                         .param("page", "1")
                         .param("size", "10"))
                 .andExpect(status().isOk());
 
         verify(studentTutorRequestService).findMineForStudent(
-                eq(userId), eq(ApplicationStatus.PENDING), any(Pageable.class));
+                eq(userId), eq(ApplicationStatus.PENDING), eq("math"), any(Pageable.class));
+    }
+
+    @Test
+    void detailUsesCurrentStudentAndRequestId() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        when(studentTutorRequestService.findMineById(userId, requestId)).thenReturn(null);
+
+        mockMvc.perform(get("/api/v1/students/me/student-tutor-requests/{requestId}", requestId))
+                .andExpect(status().isOk());
+
+        verify(studentTutorRequestService).findMineById(userId, requestId);
+    }
+
+    @Test
+    void updateUsesCurrentStudentAndRequestId() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        when(studentTutorRequestService.updateForStudent(
+                eq(userId), eq(requestId), any(StudentTutorRequestUpdateRequest.class)))
+                .thenReturn(null);
+
+        mockMvc.perform(patch("/api/v1/students/me/student-tutor-requests/{requestId}", requestId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"gradeId\":\"11111111-1111-1111-1111-111111111111\","
+                                + "\"proposedPrice\":150000,\"learningMode\":\"ONLINE\"}"))
+                .andExpect(status().isOk());
+
+        verify(studentTutorRequestService).updateForStudent(
+                eq(userId), eq(requestId), any(StudentTutorRequestUpdateRequest.class));
     }
 
     @Test

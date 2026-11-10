@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
   acceptTutorOffer,
@@ -10,11 +10,12 @@ import {
   type TutorOffer
 } from '../../services/studentApi';
 import { StudentStudyingRequestDetails } from '../../components/student/StudentStudyingRequestDetails';
-import { StudentTutorOffers } from '../../components/student/StudentTutorOffers';
+import { Offers } from '../../components/student/Offers';
 import { useResource } from '../../hooks/useResource';
 
 export function StudentStudyingRequestDetailPage() {
   const { requestId = '' } = useParams();
+  const navigate = useNavigate();
   const location = useLocation();
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
@@ -84,7 +85,15 @@ export function StudentStudyingRequestDetailPage() {
       )}
       <div className="student-detail-layout">
         <StudentStudyingRequestDetails request={request} />
-        <StudentTutorOffers requestStatus={request.status} offers={offers} busyOfferId={busy} onAction={act} />
+        <Offers
+          requestStatus={request.status}
+          offers={offers}
+          busyOfferId={busy}
+          onAction={act}
+          onCreateContract={(offer) =>
+            navigate(`/student/studying-requests/${request.id}/tutor-requests/${offer.id}/contracts/new`)
+          }
+        />
       </div>
     </>
   );

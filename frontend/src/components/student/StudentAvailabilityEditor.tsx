@@ -3,9 +3,10 @@ import type { Availability } from '../../services/studentApi';
 interface Props {
   values: Availability[];
   onChange: (values: Availability[]) => void;
+  title?: string;
 }
 
-export function StudentAvailabilityEditor({ values, onChange }: Props) {
+export function StudentAvailabilityEditor({ values, onChange, title = 'Thời gian rảnh (không bắt buộc)' }: Props) {
   const slots = values.length ? values : [{ dayOfWeek: 0, startTime: '', endTime: '' }];
   const update = (index: number, key: keyof Availability, value: string) => {
     const next = slots.map((slot) => ({ ...slot }));
@@ -16,17 +17,17 @@ export function StudentAvailabilityEditor({ values, onChange }: Props) {
 
   return (
     <div className="student-field-full student-availability-editor">
-      <span>Lịch rảnh (không bắt buộc)</span>
-      <p className="student-muted">Thêm một hoặc vài khung giờ bạn học được, hoặc để trống.</p>
+      <span>{title}</span>
+      <p className="student-muted">Thêm một hoặc nhiều khung giờ phù hợp, hoặc để trống mục này.</p>
       {slots.map((slot, index) => (
         <div className="student-availability-row" key={index}>
           <select
-            aria-label={`Thứ của khung giờ ${index + 1}`}
+            aria-label={`Thứ trong tuần ${index + 1}`}
             value={slot.dayOfWeek || ''}
             onChange={(event) => update(index, 'dayOfWeek', event.target.value)}
           >
             <option value="">Chọn thứ</option>
-            {['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'].map((day, dayIndex) => (
+            {['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'].map((day, dayIndex) => (
               <option key={day} value={dayIndex + 1}>
                 {day}
               </option>
@@ -45,7 +46,7 @@ export function StudentAvailabilityEditor({ values, onChange }: Props) {
             type="time"
           />
           <button className="student-button secondary" type="button" onClick={() => remove(index)}>
-            Xoá
+            Xóa
           </button>
         </div>
       ))}

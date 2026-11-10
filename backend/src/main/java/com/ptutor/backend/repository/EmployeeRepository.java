@@ -51,4 +51,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     Optional<Employee> findByIdForUpdate(@Param("employeeId") UUID employeeId);
     @Query("select employee.user.id from Employee employee where employee.user is not null")
     List<UUID> findAllUserIds();
+
+    @Query("""
+            select employee.user.id
+            from Employee employee
+            where employee.user.status = com.ptutor.backend.entity.enums.UserStatus.ACTIVE
+              and (employee.role = com.ptutor.backend.entity.enums.EmployeeRole.ADMIN
+                   or employee.jobFunction = :jobFunction)
+            """)
+    List<UUID> findActiveUserIdsForJobFunction(@Param("jobFunction") EmployeeJobFunction jobFunction);
 }

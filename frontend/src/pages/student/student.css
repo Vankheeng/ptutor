@@ -322,6 +322,81 @@
   background: #6736d6;
   color: white;
 }
+.student-contract-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(145px, 1fr));
+  gap: 10px;
+  margin: 0 0 17px;
+}
+.student-contract-filter-search,
+.student-contract-filter-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.student-contract-filter-search::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  width: 11px;
+  height: 11px;
+  border: 1.7px solid #7b87a4;
+  border-radius: 50%;
+  transform: translateY(-60%);
+  pointer-events: none;
+}
+.student-contract-filter-search::after {
+  content: '';
+  position: absolute;
+  top: 54%;
+  left: 24px;
+  width: 6px;
+  border-top: 1.7px solid #7b87a4;
+  transform: rotate(45deg);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.student-contract-filter-search input,
+.student-contract-filter-select select {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #dfe4ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #394568;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+}
+.student-contract-filter-search input {
+  padding: 0 13px 0 37px;
+}
+.student-contract-filter-select select {
+  padding: 0 34px 0 13px;
+  cursor: pointer;
+}
+.student-contract-filter-search input::placeholder {
+  color: #8b94a9;
+  font-weight: 500;
+}
+.student-contract-filter-search input:focus,
+.student-contract-filter-select select:focus {
+  border-color: #6f9fdb;
+  box-shadow: 0 0 0 3px #4d9edb1a;
+}
+.student-contract-filters .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .student-notice,
 .student-error {
   margin: 13px 0;
@@ -495,7 +570,7 @@
 }
 .student-detail-layout {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px;
 }
 .student-detail-table {
@@ -574,6 +649,398 @@
   border: 1px solid #eceef4;
   border-radius: 14px;
 }
+.student-contract-card {
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.student-contract-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px #27335f16;
+}
+.student-contract-list-card {
+  display: grid;
+  grid-template-columns: minmax(155px, 1.05fr) minmax(165px, 1.15fr) minmax(210px, 1.4fr) minmax(92px, 0.65fr) minmax(145px, auto);
+  align-items: center;
+  gap: 0;
+  min-height: 108px;
+  padding: 18px 19px;
+  border: 1px solid #e8ebf3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 20px #27335f08;
+}
+.student-contract-subject,
+.student-contract-tutor,
+.student-contract-terms,
+.student-contract-status,
+.student-contract-action {
+  min-width: 0;
+}
+.student-contract-subject,
+.student-contract-tutor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.student-contract-tutor,
+.student-contract-terms,
+.student-contract-status,
+.student-contract-action {
+  min-height: 62px;
+  padding-left: 20px;
+  border-left: 1px solid #e5eaf4;
+}
+.student-contract-subject-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eee9ff;
+  color: #6538d2;
+}
+.student-contract-subject > div,
+.student-contract-tutor > div,
+.student-contract-terms {
+  display: grid;
+  gap: 4px;
+}
+.student-contract-subject strong,
+.student-contract-tutor strong,
+.student-contract-terms strong {
+  overflow: hidden;
+  color: #26304e;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-subject span:not(.student-contract-subject-icon),
+.student-contract-tutor span:not(.student-contract-tutor-avatar),
+.student-contract-terms span {
+  overflow: hidden;
+  color: #76809a;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.student-contract-calendar-icon {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  box-sizing: border-box;
+  border: 1.5px solid #7e89a5;
+  border-radius: 2px;
+}
+.student-contract-calendar-icon::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 0;
+  left: 0;
+  border-top: 1.5px solid #7e89a5;
+}
+.student-contract-calendar-icon::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  width: 5px;
+  height: 4px;
+  border-right: 1.5px solid #7e89a5;
+  border-left: 1.5px solid #7e89a5;
+}
+.student-contract-tutor-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edff;
+  color: #5363aa;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-contract-terms strong {
+  color: #36436f;
+}
+.student-contract-status {
+  display: grid;
+  place-items: center;
+  padding-left: 0;
+}
+.student-contract-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0;
+}
+.student-contract-view.student-button.secondary {
+  min-height: 32px;
+  padding: 0 12px;
+  border-color: #2587bd;
+  background: #2587bd;
+  color: #fff;
+  font-size: 10px;
+  gap: 16px;
+  white-space: nowrap;
+}
+.student-contract-view.student-button.secondary:hover:not(:disabled) {
+  border-color: #14729f;
+  background: #14729f;
+  color: #fff;
+}
+.student-contract-list-card .student-status {
+  padding: 6px 11px;
+  font-size: 10px;
+}
+.student-contract-section,
+.student-contract-source {
+  margin-top: 15px;
+}
+.student-contract-create-layout {
+  display: grid;
+  grid-template-columns: minmax(235px, 0.85fr) minmax(0, 1.35fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  align-items: stretch;
+}
+.student-contract-create-student {
+  grid-column: 1;
+  grid-row: 1;
+}
+.student-contract-create-tutor {
+  grid-column: 1;
+  grid-row: 2;
+}
+.student-contract-create-student > .student-contract-participant-card,
+.student-contract-create-tutor > .student-contract-participant-card {
+  height: 100%;
+  box-sizing: border-box;
+}
+.student-contract-create-terms {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.student-contract-create-help {
+  margin: -5px 0 17px;
+  color: #71809c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-contract-participant-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-contract-participant-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-participant-heading h2 {
+  margin: 0;
+}
+.student-contract-participant-details > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.student-contract-participant-details > div > span::after {
+  content: none;
+}
+.student-contract-participant-details strong {
+  min-width: 0;
+}
+.student-contract-source-tag {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eee9ff;
+  color: #6736d6;
+  font-size: 10px;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-schedule-editor {
+  display: grid;
+  gap: 10px;
+}
+.student-contract-schedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #555a6e;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-schedule-heading small {
+  color: #8b91a2;
+  font-size: 10px;
+  font-weight: 400;
+}
+.student-contract-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #e5ebf5;
+  border-radius: 9px;
+  background: #fbfcff;
+}
+.student-contract-schedule-row label {
+  min-width: 0;
+}
+.student-contract-schedule-row .student-button {
+  min-height: 38px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.student-contract-schedule-row .schedule-remove {
+  border-color: #f1c8cc;
+  background: #fff5f5;
+  color: #bd4e58;
+}
+.student-contract-schedule-editor .schedule-add {
+  justify-self: start;
+  border-color: #b9a2ff;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-calculated-lessons {
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #f4f1ff;
+  color: #53618c;
+  font-size: 11px;
+}
+.student-contract-calculated-lessons strong {
+  color: #6736d6;
+}
+.student-contract-schedule-summary {
+  display: grid;
+  gap: 3px;
+}
+.student-contract-participant-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edff;
+  color: #5363aa;
+  font-size: 12px;
+  font-weight: 800;
+}
+.student-contract-participant-heading > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-contract-participant-heading h2 {
+  margin: 0 0 2px;
+  color: #303d67;
+  font-size: 15px;
+}
+.student-contract-participant-heading strong {
+  overflow: hidden;
+  color: #283657;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-participant-heading > div > span {
+  color: #76809a;
+  font-size: 10px;
+}
+.student-contract-participant-details {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  padding-top: 15px;
+}
+.student-contract-participant-details > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.student-contract-participant-details span:not(.student-status) {
+  color: #71809c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-participant-details strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.student-contract-participant-details .student-status {
+  justify-self: start;
+  padding: 5px 9px;
+  font-size: 9px;
+}
+.student-contract-fixed-terms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.student-contract-fixed-term {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #e5ebf5;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+.student-contract-fixed-term span {
+  color: #71809c;
+  font-size: 9px;
+  font-weight: 700;
+}
+.student-contract-fixed-term strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.student-contract-source h2,
+.student-contract-section h2 {
+  margin: 0 0 15px;
+  color: #303448;
+  font-size: 17px;
+}
+.student-contract-actions {
+  justify-content: flex-end;
+}
 .student-list-row h3 {
   margin: 0 0 5px;
   color: #303448;
@@ -584,6 +1051,164 @@
   color: #777c8e;
   font-size: 10px;
   line-height: 1.6;
+}
+.student-tutor-offers-heading {
+  margin-bottom: 18px;
+}
+.student-tutor-offers-heading h2 {
+  margin: 0;
+  color: #20243a;
+  font-size: 18px;
+}
+.student-tutor-offers-heading p {
+  margin: 5px 0 0;
+  color: #81879b;
+  font-size: 10px;
+}
+.student-offer-list {
+  display: grid;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+.student-offer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 0.45fr) minmax(180px, auto);
+  align-items: center;
+  min-height: 82px;
+  gap: 12px;
+  padding: 13px 4px;
+  border-top: 1px solid #e9edf5;
+}
+.student-offer-tutor {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+.student-offer-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edf5;
+  color: #526382;
+  font-size: 12px;
+  font-weight: 800;
+}
+.student-offer-tutor > div {
+  min-width: 0;
+}
+.student-offer-tutor h3 {
+  margin: 0 0 4px;
+  overflow: hidden;
+  color: #283657;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-tutor p {
+  margin: 0;
+  overflow: hidden;
+  color: #76809a;
+  font-size: 10px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-tutor time {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #8b91a2;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-offer-status {
+  justify-self: end;
+}
+.student-offer-status .student-status {
+  padding: 6px 12px;
+  font-size: 10px;
+}
+.student-offer-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.student-offer-actions .student-form-actions {
+  margin: 0;
+}
+.student-offer-create {
+  min-width: 120px;
+  background: #6736d6;
+  border-color: #6736d6;
+}
+.student-offer-view {
+  min-width: 76px;
+  border-color: #dce5f1;
+  background: #f7f9fc;
+  color: #737b8c;
+  text-decoration: none;
+}
+.student-offer-actions .student-button.success {
+  border-color: #2da66b;
+  background: #2da66b;
+  color: #fff;
+}
+.student-offer-actions .student-button.danger {
+  border-color: #e05b62;
+  background: #e05b62;
+  color: #fff;
+}
+.student-tutor-offer-detail {
+  max-width: 900px;
+}
+.student-tutor-offer-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e9edf5;
+}
+.student-tutor-offer-detail-header h2 {
+  margin: 0 0 4px;
+  color: #283657;
+  font-size: 18px;
+}
+.student-tutor-offer-detail-header p {
+  margin: 0;
+  color: #76809a;
+  font-size: 11px;
+}
+.student-tutor-offer-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 28px;
+  padding-top: 20px;
+}
+.student-tutor-offer-detail-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.student-tutor-offer-detail-item span {
+  color: #71809c;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-tutor-offer-detail-item strong {
+  overflow-wrap: anywhere;
+  color: #283657;
+  font-size: 12px;
+  line-height: 1.5;
 }
 .student-status {
   padding: 5px 8px;
@@ -599,6 +1224,10 @@
   background: #fff6e6;
   color: #a9791a;
 }
+.student-status.pending.outgoing {
+  background: #f1f3f7;
+  color: #697287;
+}
 .student-status.pending_review { background: #fff6e6; color: #a9791a; }
 .student-status.open { background: #eaf6ff; color: #2673a8; }
 .student-status.matched { background: #eaf8f2; color: #27815b; }
@@ -612,6 +1241,10 @@
 .student-status.cancelled {
   background: #fff0ef;
   color: #ab4039;
+}
+.student-status.completed {
+  background: #edf0ff;
+  color: #5962bd;
 }
 .student-pagination {
   display: flex;
@@ -632,6 +1265,507 @@
 .student-pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.student-contract-pagination {
+  justify-content: center;
+  gap: 7px;
+  margin-top: 21px;
+}
+.student-contract-pagination > button,
+.student-pagination-pages button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #63708e;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-contract-pagination > button:hover:not(:disabled),
+.student-pagination-pages button:hover:not(.active) {
+  background: #f2efff;
+  color: #6033c5;
+}
+.student-contract-pagination .student-pagination-arrow {
+  border-color: #e3e4eb;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+.student-pagination-pages {
+  display: flex;
+  gap: 4px;
+}
+.student-pagination-pages button.active {
+  border-color: #6736d6;
+  background: #6736d6;
+  color: #fff;
+}
+.student-notifications-page{width:100%;max-width:900px;margin:0 auto}
+.student-notification-type-filter{display:flex;align-items:center;gap:7px;margin-left:auto;color:#7d8293;font-size:10px;font-weight:600}.student-notification-type-filter select{min-height:32px;padding:0 9px;border:1px solid #e3e5ed;border-radius:8px;background:#fff;color:#4a4e60;font:inherit;font-size:10px;outline:none}.student-notification-type-filter select:focus{border-color:#997be1;box-shadow:0 0 0 3px #8b68d21c}@media(max-width:700px){.student-notification-type-filter{margin-left:0}.student-section-heading:has(.student-notification-type-filter){align-items:flex-start;flex-wrap:wrap;gap:9px}}
+.student-notifications-page .student-button,.student-notifications-page .student-filter-tabs button,.student-notifications-page .student-notification-type-filter,.student-notifications-page .student-count,.student-notifications-page .student-status,.student-notifications-page .student-pagination button{font-weight:400}
+.student-notifications-page .student-list-row h3{font-weight:700}
+.student-contract-detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+.student-contract-detail-topbar .student-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #536486;
+  font-size: 10px;
+}
+.student-contract-more {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e2e9f4;
+  border-radius: 8px;
+  color: #7786a5;
+  font-size: 16px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.student-contract-hero {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.2fr) minmax(190px, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 108px;
+  padding: 18px 20px;
+  border: 1px solid #e1e8f4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 20px #27335f08;
+}
+.student-contract-hero-main,
+.student-contract-hero-tutor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.student-contract-hero-main h1 {
+  margin: 0 0 5px;
+  overflow: hidden;
+  color: #26304e;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-hero-main > div,
+.student-contract-hero-tutor > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-contract-hero-main > div > span,
+.student-contract-hero-tutor > div > span {
+  color: #76809a;
+  font-size: 10px;
+}
+.student-contract-hero-eyebrow {
+  color: #6d63ba !important;
+  font-size: 8px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.student-contract-hero-tutor {
+  padding-left: 20px;
+  border-left: 1px solid #e5eaf4;
+}
+.student-contract-hero-tutor strong {
+  overflow: hidden;
+  color: #26304e;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-contract-hero > .student-status {
+  justify-self: end;
+  padding: 6px 13px;
+  font-size: 10px;
+}
+.student-contract-overview {
+  margin-top: 15px;
+}
+.student-contract-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+  color: #303d67;
+  font-size: 16px;
+}
+.student-contract-panel-heading svg {
+  color: #5d63c6;
+}
+.student-contract-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.student-contract-overview-grid > div + div {
+  padding-left: 24px;
+  border-left: 1px solid #e8edf5;
+}
+.student-contract-overview .student-detail-row {
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 14px;
+  padding: 8px 0;
+}
+.student-contract-overview .student-detail-row > span,
+.student-contract-overview .student-detail-value {
+  color: #536486;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.student-contract-overview .student-detail-row > span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.student-contract-overview .student-detail-value {
+  color: #283657;
+  font-weight: 600;
+}
+.student-contract-actions-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 15px;
+  padding: 16px 18px;
+  border: 1px solid #dfeaf8;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #f2f7ff, #eef5ff);
+}
+.student-contract-actions-copy {
+  min-width: 0;
+}
+.student-contract-actions-copy h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+  color: #304067;
+  font-size: 13px;
+}
+.student-contract-actions-copy h2 svg {
+  color: #5967c7;
+}
+.student-contract-actions-copy p {
+  margin: 0;
+  color: #71809c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-contract-actions-buttons {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.student-button.success {
+  border-color: #13a86d;
+  background: #13a86d;
+  color: #fff;
+}
+.student-contract-actions-buttons .student-button {
+  min-height: 32px;
+  padding: 0 13px;
+  font-size: 10px;
+}
+.student-contract-pending-note {
+  margin: 10px 0 0;
+  color: #71809c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-installment-table {
+  overflow: hidden;
+  border: 1px solid #e4ebf5;
+  border-radius: 9px;
+}
+.student-installment-note {
+  margin: -7px 0 12px;
+  color: #77829a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-installment-row {
+  display: grid;
+  grid-template-columns: 40px minmax(125px, 1.2fr) minmax(130px, 1fr) minmax(100px, 0.9fr) minmax(130px, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 49px;
+  padding: 0 13px;
+  border-top: 1px solid #edf1f7;
+  color: #536486;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-installment-row:first-child {
+  border-top: 0;
+}
+.student-installment-header {
+  min-height: 39px;
+  border-top: 0;
+  background: #f3f7fd;
+  color: #526487;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-installment-header > span:last-child {
+  text-align: center;
+}
+.student-installment-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.student-installment-status .student-status {
+  font-size: 9px;
+}
+.student-installment-action {
+  display: flex;
+  justify-content: center;
+}
+.student-installment-pay {
+  min-height: 29px;
+  padding: 0 10px;
+  font-size: 9px;
+}
+.student-payment-dialog-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #17213b66;
+}
+.student-payment-dialog {
+  width: min(100%, 560px);
+  max-height: min(720px, calc(100vh - 40px));
+  overflow: auto;
+  border: 1px solid #e0e7f3;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 70px #17213b3d;
+}
+.student-payment-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 23px 17px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-payment-dialog-header h2 {
+  margin: 7px 0 0;
+  color: #283657;
+  font-size: 18px;
+}
+.student-payment-dialog-close {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f5fa;
+  color: #66718b;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+.student-payment-dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.student-payment-dialog-body {
+  padding: 20px 23px 8px;
+}
+.student-payment-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 22px;
+  margin: 0;
+}
+.student-payment-summary > div {
+  display: grid;
+  grid-template-columns: minmax(100px, auto) minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f3f8;
+}
+.student-payment-summary dt,
+.student-payment-summary dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.student-payment-summary dt {
+  color: #71809c;
+}
+.student-payment-summary dd {
+  color: #283657;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.student-payment-summary-total {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(130px, auto) minmax(0, 1fr) !important;
+  border-bottom: 0 !important;
+}
+.student-payment-summary-total dd {
+  color: #6736d6;
+  font-size: 15px;
+}
+.student-payment-dialog-note {
+  margin: 15px 0;
+  color: #77829a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-payment-dialog-warning,
+.student-payment-dialog-error {
+  margin: 12px 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-payment-methods {
+  display: grid;
+  gap: 9px;
+  margin: 17px 0 0;
+  padding: 0;
+  border: 0;
+}
+.student-payment-methods legend {
+  margin-bottom: 8px;
+  color: #303d67;
+  font-size: 12px;
+  font-weight: 800;
+}
+.student-payment-method {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid #e1e7f1;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.student-payment-method.selected {
+  border-color: #7652d8;
+  background: #faf8ff;
+  box-shadow: 0 0 0 2px #7652d81c;
+}
+.student-payment-method.unavailable {
+  background: #f7f8fb;
+  color: #8991a4;
+  cursor: not-allowed;
+}
+.student-payment-method input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: #6736d6;
+}
+.student-payment-method span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.student-payment-method strong {
+  color: #303d67;
+  font-size: 11px;
+}
+.student-payment-method small {
+  color: #77829a;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.student-payment-wallet-shortfall {
+  margin: 10px 0 0;
+  color: #ab4039;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-payment-wallet-shortfall a {
+  color: #6736d6;
+  font-weight: 700;
+}
+.student-payment-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 16px 23px 21px;
+}
+.student-payment-dialog-actions .student-button {
+  min-height: 36px;
+  font-size: 10px;
+}
+.student-contract-renewal {
+  margin-top: 15px;
+  border-color: #e3dcff;
+  background: #faf9ff;
+}
+.student-contract-renewal-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.student-contract-renewal-copy {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.student-contract-renewal-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee9ff;
+  color: #6736d6;
+}
+.student-contract-renewal-copy h2 {
+  margin: 0 0 4px;
+  color: #303d67;
+  font-size: 13px;
+}
+.student-contract-renewal-copy p {
+  margin: 0;
+  color: #71809c;
+  font-size: 10px;
+}
+.student-contract-renewal-callout .student-button {
+  flex: none;
+  min-height: 32px;
+  font-size: 10px;
+}
+.student-contract-renewal-form {
+  margin-top: 17px;
+  padding-top: 17px;
+  border-top: 1px solid #e8e1ff;
+}
+.student-status.paid {
+  background: #eaf8f2;
+  color: #27815b;
+}
+.student-status.overdue {
+  background: #fff0ef;
+  color: #ab4039;
 }
 .student-balance {
   display: grid;
@@ -679,6 +1813,44 @@
   }
   .student-detail-layout {
     grid-template-columns: 1fr;
+  }
+  .student-contract-list-card {
+    grid-template-columns: minmax(145px, 1fr) minmax(145px, 1fr) minmax(180px, 1.2fr) minmax(80px, 0.65fr) minmax(125px, auto);
+    gap: 0;
+    padding: 16px;
+  }
+  .student-contract-tutor,
+  .student-contract-terms,
+  .student-contract-status,
+  .student-contract-action {
+    padding-left: 12px;
+  }
+  .student-contract-status,
+  .student-contract-action {
+    padding-left: 0;
+  }
+  .student-contract-hero {
+    grid-template-columns: minmax(170px, 1fr) minmax(170px, 1fr) auto;
+    gap: 12px;
+  }
+  .student-contract-hero-tutor {
+    padding-left: 12px;
+  }
+}
+@media (max-width: 900px) {
+  .student-contract-create-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .student-contract-create-student,
+  .student-contract-create-tutor,
+  .student-contract-create-terms {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .student-contract-create-student > .student-contract-participant-card,
+  .student-contract-create-tutor > .student-contract-participant-card {
+    height: auto;
   }
 }
 @media (max-width: 700px) {
@@ -740,6 +1912,20 @@
   .student-form-grid {
     grid-template-columns: 1fr;
   }
+  .student-contract-schedule-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .student-contract-schedule-row .schedule-remove {
+    justify-self: start;
+  }
+  .student-contract-schedule-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .student-contract-fixed-terms {
+    grid-template-columns: 1fr;
+  }
   .student-detail-row {
     grid-template-columns: 1fr;
     gap: 3px;
@@ -765,7 +1951,2719 @@
     display: flex;
     justify-content: space-between;
   }
+  .student-offer-row {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .student-offer-status {
+    justify-self: end;
+  }
+  .student-offer-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .student-tutor-offer-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-tutor-offer-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-contract-filters {
+    grid-template-columns: 1fr;
+  }
+  .student-payment-dialog-backdrop {
+    padding: 10px;
+  }
+  .student-payment-dialog {
+    max-height: calc(100vh - 20px);
+    border-radius: 13px;
+  }
+  .student-payment-dialog-header,
+  .student-payment-dialog-body,
+  .student-payment-dialog-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .student-payment-dialog-header h2 {
+    font-size: 16px;
+  }
+  .student-payment-summary {
+    grid-template-columns: 1fr;
+  }
+  .student-payment-summary-total {
+    grid-column: auto;
+  }
+  .student-payment-dialog-actions {
+    flex-direction: column-reverse;
+  }
+  .student-payment-dialog-actions .student-button {
+    width: 100%;
+  }
+  .student-contract-list-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .student-contract-tutor,
+  .student-contract-terms,
+  .student-contract-status,
+  .student-contract-action {
+    min-height: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .student-contract-date {
+    white-space: normal;
+  }
+  .student-contract-status {
+    display: flex;
+    justify-content: center;
+  }
+  .student-contract-action {
+    justify-content: center;
+  }
+  .student-contract-hero {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    padding: 16px;
+  }
+  .student-contract-hero-tutor {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    padding-left: 0;
+    border-top: 1px solid #e8edf5;
+    border-left: 0;
+  }
+  .student-contract-hero > .student-status {
+    justify-self: end;
+  }
+  .student-contract-overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-contract-overview-grid > div + div {
+    padding-top: 8px;
+    padding-left: 0;
+    border-top: 1px solid #e8edf5;
+    border-left: 0;
+  }
+  .student-contract-actions-panel,
+  .student-contract-renewal-callout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .student-contract-actions-buttons,
+  .student-contract-renewal-callout .student-button {
+    width: 100%;
+  }
+  .student-contract-actions-buttons .student-button {
+    flex: 1;
+  }
+  .student-installment-header {
+    display: none;
+  }
+  .student-installment-row {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 9px;
+    min-height: 0;
+    padding: 12px;
+  }
+  .student-installment-row + .student-installment-row {
+    border-top: 1px solid #edf1f7;
+  }
+  .student-installment-row > span:nth-child(2),
+  .student-installment-row > span:nth-child(3),
+  .student-installment-row > span:nth-child(4),
+  .student-installment-row > span:nth-child(5) {
+    display: flex;
+    align-items: center;
+  }
+  .student-installment-row > span:nth-child(2) {
+    grid-column: 2 / -1;
+  }
+  .student-installment-row > span:nth-child(3) {
+    grid-column: 2;
+  }
+  .student-installment-row > span:nth-child(4) {
+    grid-column: 3;
+  }
+  .student-installment-row > span:nth-child(5) {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+  .student-installment-action {
+    justify-content: flex-start;
+  }
   .student-pagination {
     gap: 8px;
   }
+}
+
+/* Complaint detail visual refinement */
+.student-complaint-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 13px 2px;
+  color: #5c24d1;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.student-complaint-back:hover { text-decoration: underline; }
+.student-complaint-back { border: 1px solid #e2dff0; border-radius: 8px; padding: 8px 12px; background: #fff; cursor: pointer; }
+.student-complaint-back:hover { border-color: #c9b9ed; background: #faf8ff; text-decoration: none; }
+.student-complaint-detail-header > div > p { display: none; }
+.student-complaint-detail-header h1 { font-size: 24px; }
+.student-complaint-contract-link { font-size: 13px; }
+.student-complaint-category-pill { font-size: 12px; }
+.student-complaint-detail-header-actions .student-button { min-height: 36px; }
+.student-complaint-back span { font-size: 20px; line-height: .7; }
+.student-complaint-detail-header {
+  margin-bottom: 17px;
+}
+.student-complaint-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.student-complaint-detail-title-row h1 {
+  margin: 0;
+  color: #261347;
+  font-size: clamp(23px, 3vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+}
+.student-complaint-detail-title-row h1 span {
+  color: #4e258d;
+}
+.student-complaint-detail-header p {
+  margin: 7px 0 0;
+  color: #77718d;
+  font-size: 11px;
+}
+.student-complaint-detail-header p b {
+  margin: 0 5px;
+  color: #aaa5b7;
+}
+.student-complaint-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.28fr) minmax(330px, .9fr);
+  gap: 17px;
+  align-items: start;
+}
+.student-complaint-detail-main-stack,
+.student-complaint-detail-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.student-complaint-info-card,
+.student-complaint-result-card,
+.student-complaint-progress,
+.student-complaint-note,
+.student-complaint-action-panel {
+  border-color: #e4e2ec;
+  box-shadow: 0 5px 20px #27335f08;
+}
+.student-complaint-card-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebe9f1;
+  color: #2b1550;
+  font-size: 16px;
+}
+.student-complaint-card-title svg { color: #6736d6; }
+.student-complaint-info-rows {
+  display: grid;
+}
+.student-complaint-info-rows > div {
+  display: grid;
+  grid-template-columns: minmax(135px, .45fr) minmax(0, 1.5fr);
+  gap: 15px;
+  align-items: start;
+  min-width: 0;
+  padding: 9px 1px;
+  border-bottom: 1px solid #eeeef3;
+}
+.student-complaint-info-rows > div:last-child { border-bottom: 0; }
+.student-complaint-info-rows > div.wide { grid-template-columns: minmax(135px, .45fr) minmax(0, 1.5fr); }
+.student-complaint-info-rows span {
+  color: #48445c;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-complaint-info-rows strong {
+  min-width: 0;
+  color: #474259;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.student-complaint-category-pill {
+  width: max-content;
+  padding: 4px 10px;
+  border-radius: 7px;
+  background: #eee7ff;
+  color: #6736d6 !important;
+  font-weight: 700 !important;
+}
+.student-complaint-contract-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6736d6;
+  font-weight: 700;
+  text-decoration: none;
+}
+.student-complaint-contract-link:hover { text-decoration: underline; }
+.student-complaint-contract-link svg:last-child { margin-left: 2px; }
+.student-complaint-summary-tags { justify-content: space-between; }
+.student-complaint-contract-link { margin-left: auto; }
+.student-complaint-long-value { white-space: pre-wrap; }
+.student-complaint-evidence-row strong {
+  display: grid;
+  gap: 7px;
+}
+.student-complaint-evidence-row a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #6736d6;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.student-complaint-evidence-row a:hover { text-decoration: underline; }
+.student-complaint-evidence-row a svg { flex: none; transform: rotate(-45deg); }
+.student-complaint-response-message {
+  margin-top: 0;
+  padding: 17px 21px;
+  border: 1px solid #dfe7f8;
+  background: #fbfcff;
+}
+.student-complaint-response-message p { margin-top: 14px; }
+.student-complaint-response-message small { margin-top: 10px; }
+.student-complaint-result-card {
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+  border-color: #ccebdc;
+  background: #f6fcf8;
+}
+.student-complaint-result-card .student-complaint-card-title {
+  padding: 14px 20px 11px;
+  border-color: #d9eee2;
+}
+.student-complaint-result-card .student-complaint-info-rows { padding: 0 20px 7px; }
+.student-complaint-result-card.rejected {
+  border-color: #f4d1d1;
+  background: #fffafa;
+}
+.student-complaint-result-card.rejected .student-complaint-card-title { border-color: #f4dddd; }
+.student-complaint-result-card.evidence-request {
+  border-color: #ddd2ff;
+  background: #faf8ff;
+}
+.student-complaint-result-card.evidence-request .student-complaint-card-title { border-color: #e8e0ff; }
+.student-complaint-progress {
+  padding-bottom: 17px;
+}
+.student-complaint-progress ol {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 17px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.student-complaint-progress ol::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  bottom: 25px;
+  left: 12px;
+  width: 2px;
+  background: #e3e3eb;
+}
+.student-complaint-progress li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 11px;
+  min-height: 76px;
+}
+.student-complaint-step-dot {
+  z-index: 1;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #e0e2eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+.student-complaint-progress li.done .student-complaint-step-dot { background: #11ad69; }
+.student-complaint-progress li.current .student-complaint-step-dot {
+  border-color: #ece8ff;
+  background: #fff;
+  box-shadow: inset 0 0 0 3px #6722ed;
+  color: #6722ed;
+}
+.student-complaint-progress li.current.done .student-complaint-step-dot {
+  border-color: #fff;
+  background: #11ad69;
+  box-shadow: none;
+  color: #fff;
+}
+.student-complaint-progress li > div {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding-bottom: 13px;
+}
+.student-complaint-progress strong {
+  color: #38334b;
+  font-size: 12px;
+}
+.student-complaint-progress li.current strong { color: #6722ed; }
+.student-complaint-progress small {
+  color: #8b8798;
+  font-size: 10px;
+}
+.student-complaint-progress p {
+  margin: 0;
+  color: #77718d;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.student-complaint-note {
+  padding: 14px 17px;
+  border-color: #dfd3ff;
+  background: #faf8ff;
+}
+.student-complaint-note h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: #5021bd;
+  font-size: 13px;
+}
+.student-complaint-note ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 17px;
+  color: #625b78;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-complaint-action-panel {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.student-complaint-action-panel .student-button { min-height: 38px; }
+.student-complaint-action-panel .student-button.warning {
+  border-color: #e0e2eb;
+  background: #fff;
+  color: #3e3950;
+}
+.student-complaint-action-panel .student-button.danger {
+  background: #fff;
+  border-color: #efaaa5;
+  color: #d4473e;
+}
+.student-complaint-evidence-action {
+  display: grid;
+  justify-content: stretch;
+  padding: 17px;
+  border: 1px solid #dfd3ff;
+  border-radius: 13px;
+  background: #faf8ff;
+}
+.student-complaint-evidence-action > .student-button { width: 100%; }
+.student-complaint-evidence-action h2 { margin: 0; color: #3a285b; font-size: 14px; }
+.student-complaint-evidence-action p { margin: 0; color: #77718d; font-size: 11px; }
+
+@media (max-width: 900px) {
+  .student-complaint-detail-layout { grid-template-columns: 1fr; }
+  .student-complaint-detail-side { grid-row: 1; }
+  .student-complaint-detail-layout main { grid-row: 2; }
+}
+
+@media (max-width: 600px) {
+  .student-complaint-detail-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .student-complaint-info-rows > div,
+  .student-complaint-info-rows > div.wide {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .student-complaint-action-panel { flex-direction: column; }
+  .student-complaint-action-panel .student-button { width: 100%; }
+}
+
+.student-application-toolbar {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(0, 1.7fr);
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+.student-application-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e5e6ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #8c91a1;
+}
+.student-application-search:focus-within {
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
+}
+.student-application-search > span {
+  font-size: 20px;
+}
+.student-application-search input {
+  width: 100%;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #34394d;
+  font: inherit;
+  font-size: 11px;
+}
+.student-application-toolbar .student-filter-tabs {
+  margin: 0;
+  justify-content: flex-end;
+}
+.student-application-list {
+  display: grid;
+  gap: 12px;
+}
+.student-application-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(250px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+}
+.student-application-card-main,
+.student-application-card-summary,
+.student-application-card-actions {
+  min-width: 0;
+}
+.student-application-card-heading,
+.student-application-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.student-application-card-heading .student-eyebrow {
+  margin: 0;
+}
+.student-application-card h2 {
+  margin: 9px 0 5px;
+  color: #303448;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.student-application-meta {
+  margin: 4px 0 0;
+  color: #777c8e;
+  font-size: 10px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.student-application-card-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 15px;
+  padding-left: 18px;
+  border-left: 1px solid #eceef4;
+}
+.student-application-card-summary > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.student-application-card-summary span {
+  color: #999dad;
+  font-size: 9px;
+}
+.student-application-card-summary strong {
+  color: #3d4255;
+  font-size: 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.student-application-card-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 118px;
+}
+.student-application-card-actions .student-button {
+  justify-content: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.student-application-detail {
+  margin-top: 16px;
+}
+.student-application-detail-header {
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-application-detail-header h2 {
+  margin: 8px 0 5px;
+  color: #303448;
+  font-size: 19px;
+}
+.student-application-detail-header p {
+  margin: 0;
+  color: #777c8e;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.student-application-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 30px;
+  margin-top: 8px;
+}
+.student-application-detail-grid .student-detail-row {
+  grid-template-columns: minmax(105px, 0.45fr) minmax(0, 1fr);
+  gap: 13px;
+}
+.student-application-detail-actions {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #edf1f7;
+}
+
+@media (max-width: 1050px) {
+  .student-application-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .student-application-toolbar .student-filter-tabs {
+    justify-content: flex-start;
+  }
+  .student-application-card {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
+  }
+  .student-application-card-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-application-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .student-application-card-summary {
+    padding-top: 13px;
+    padding-left: 0;
+    border-top: 1px solid #eceef4;
+    border-left: 0;
+  }
+  .student-application-card-actions {
+    display: grid;
+    grid-column: auto;
+  }
+  .student-application-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-application-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shared Tutor-style application presentation used by Student applications. */
+.application-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.application-card-clickable {
+  cursor: pointer;
+}
+
+.application-card-clickable:focus-visible {
+  outline: 2px solid #8b68d2;
+  outline-offset: 3px;
+}
+
+.student-application-card {
+  border-color: #c4b5fd;
+}
+
+.tutor-application-detail-panel .tutor-application-panel-heading p {
+  margin: 0;
+  color: #9599a8;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.tutor-application-detail-panel .tutor-detail-facts {
+  margin-top: 0;
+}
+
+.tutor-application-detail-actions {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+
+@media (max-width: 700px) {
+  .tutor-application-detail-panel .tutor-application-panel-heading {
+    align-items: flex-start;
+  }
+
+  .tutor-application-detail-panel .tutor-application-panel-heading .tutor-cert-status {
+    margin-left: auto;
+  }
+}
+
+/* Student complaints */
+.student-complaints-page,
+.student-complaint-form-page,
+.student-complaint-detail-page {
+  min-width: 0;
+}
+.student-complaint-tabs {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 16px;
+  padding: 4px;
+  border: 1px solid #e2dcf2;
+  border-radius: 11px;
+  background: #fff;
+  overflow-x: auto;
+}
+.student-complaint-tabs a {
+  padding: 9px 14px;
+  border-radius: 8px;
+  color: #777c8e;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.student-complaint-tabs a.active {
+  background: #eee7ff;
+  color: #6736d6;
+}
+.student-complaint-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+}
+.student-complaint-toolbar label {
+  color: #777c8e;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-complaint-toolbar select,
+.student-complaint-form select,
+.student-complaint-form input,
+.student-complaint-form textarea,
+.student-complaint-response-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #e0e3ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #303448;
+  font: inherit;
+  font-size: 11px;
+  outline: none;
+}
+.student-complaint-toolbar select {
+  width: auto;
+  min-width: 185px;
+  padding: 9px 12px;
+}
+.student-complaint-toolbar select:focus,
+.student-complaint-form select:focus,
+.student-complaint-form input:focus,
+.student-complaint-form textarea:focus,
+.student-complaint-response-form textarea:focus {
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
+}
+.student-complaint-list {
+  display: grid;
+  gap: 12px;
+}
+.student-complaint-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(220px, .85fr) auto;
+  gap: 20px;
+  align-items: center;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid #d9cdf6;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 20px #27335f08;
+  cursor: pointer;
+}
+.student-complaint-card:hover {
+  border-color: #a98ce7;
+  box-shadow: 0 9px 25px #6736d616;
+}
+.student-complaint-card:focus-visible {
+  outline: 2px solid #8b68d2;
+  outline-offset: 3px;
+}
+.student-complaint-card-main,
+.student-complaint-card-meta {
+  min-width: 0;
+}
+.student-complaint-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.student-complaint-category {
+  color: #6736d6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.student-complaint-card h2 {
+  margin: 8px 0 5px;
+  color: #303448;
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.student-complaint-card-main p {
+  display: -webkit-box;
+  margin: 0;
+  color: #777c8e;
+  font-size: 11px;
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.student-complaint-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-left: 20px;
+  border-left: 1px solid #ece8f6;
+}
+.student-complaint-card-meta > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.student-complaint-card-meta span {
+  color: #999dad;
+  font-size: 9px;
+}
+.student-complaint-card-meta strong {
+  color: #3d4255;
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.student-complaint-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  min-width: 130px;
+}
+.student-complaint-card-actions .student-button {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 10px;
+}
+.student-complaint-card-hint {
+  min-width: 130px;
+  color: #a9791a;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+.student-complaint-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.student-complaint-status.pending { background: #fff5cf; color: #a9791a; }
+.student-complaint-status.in_review { background: #e8f1ff; color: #3970b6; }
+.student-complaint-status.awaiting_evidence { background: #eee7ff; color: #6736d6; }
+.student-complaint-status.resolved { background: #e4f7ed; color: #23835b; }
+.student-complaint-status.rejected { background: #ffe7e6; color: #c34b48; }
+.student-complaint-status.cancelled { background: #f0f1f4; color: #74798b; }
+.student-complaint-state {
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  border: 1px dashed #dcdeea;
+  border-radius: 14px;
+  background: #fff;
+  color: #777c8e;
+  font-size: 12px;
+}
+.student-complaint-form-page > .student-link,
+.student-complaint-detail-page > .student-link {
+  display: inline-flex;
+  margin-bottom: 15px;
+}
+.student-complaint-form-page .student-page-heading,
+.student-complaint-detail-page .student-page-heading {
+  margin-bottom: 17px;
+}
+.student-complaint-form {
+  display: grid;
+  gap: 15px;
+}
+.student-form-field {
+  display: grid;
+  gap: 6px;
+}
+.student-form-field label,
+.student-complaint-response-form label {
+  color: #555a6e;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-form-field label span,
+.student-complaint-response-form label span {
+  color: #c34b48;
+}
+.student-complaint-form select,
+.student-complaint-form input,
+.student-complaint-form textarea,
+.student-complaint-response-form textarea {
+  padding: 11px 12px;
+}
+.student-complaint-form textarea,
+.student-complaint-response-form textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+.student-complaint-form select option[value=""] {
+  color: #a2a6b3;
+  font-weight: 400;
+}
+.student-form-counter {
+  color: #999dad;
+  font-size: 10px;
+  text-align: right;
+}
+.student-field-error {
+  color: #b33f3b;
+  font-size: 10px;
+}
+.student-complaint-readonly-contract {
+  display: grid;
+  gap: 6px;
+  padding: 11px 12px;
+  border: 1px solid #e9e5f4;
+  border-radius: 9px;
+  background: #faf9fe;
+}
+.student-complaint-readonly-contract span {
+  color: #8c91a1;
+  font-size: 10px;
+}
+.student-complaint-readonly-contract strong {
+  color: #3d4255;
+  font-size: 11px;
+}
+.student-complaint-detail-panel {
+  margin-top: 4px;
+}
+.student-complaint-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-complaint-detail-heading h1 {
+  margin: 8px 0 0;
+  color: #20243a;
+  font-size: 24px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.student-complaint-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 22px;
+  margin-top: 18px;
+}
+.student-complaint-detail-facts > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.student-complaint-detail-facts span {
+  color: #777c8e;
+  font-size: 10px;
+}
+.student-complaint-detail-facts strong {
+  color: #3d4255;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.student-complaint-detail-copy,
+.student-complaint-evidence-list,
+.student-complaint-message {
+  margin-top: 21px;
+  padding-top: 17px;
+  border-top: 1px solid #edf1f7;
+}
+.student-complaint-detail-copy h2,
+.student-complaint-evidence-list h2,
+.student-complaint-message h2,
+.student-complaint-response-form h2,
+.student-complaint-extra-evidence h2 {
+  margin: 0 0 8px;
+  color: #34384a;
+  font-size: 14px;
+}
+.student-complaint-detail-copy p,
+.student-complaint-message p,
+.student-complaint-response-form p,
+.student-complaint-extra-evidence p {
+  margin: 0;
+  color: #555a6e;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.student-complaint-evidence-list ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+}
+.student-complaint-evidence-list a {
+  color: #6736d6;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.student-complaint-message small {
+  display: block;
+  margin-top: 8px;
+  color: #8c91a1;
+  font-size: 10px;
+}
+.student-complaint-message.evidence-request {
+  padding: 13px 15px;
+  border: 1px solid #e6ddff;
+  border-radius: 10px;
+  background: #faf8ff;
+}
+.student-complaint-message.resolution {
+  padding: 13px 15px;
+  border: 1px solid #d9eee2;
+  border-radius: 10px;
+  background: #f5fcf8;
+}
+.student-complaint-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.student-complaint-extra-evidence,
+.student-complaint-response-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.student-complaint-response-form p,
+.student-complaint-extra-evidence p {
+  font-size: 11px;
+}
+.student-complaint-response-form .student-form-actions,
+.student-complaint-extra-evidence .student-form-actions {
+  margin-top: 0;
+}
+
+@media (max-width: 1050px) {
+  .student-complaint-card {
+    grid-template-columns: minmax(0, 1fr) minmax(210px, .9fr);
+  }
+  .student-complaint-card-actions,
+  .student-complaint-card-hint {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-complaint-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .student-complaint-toolbar select {
+    width: 100%;
+  }
+  .student-complaint-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .student-complaint-card-meta {
+    grid-template-columns: 1fr 1fr;
+    padding-top: 13px;
+    padding-left: 0;
+    border-top: 1px solid #ece8f6;
+    border-left: 0;
+  }
+  .student-complaint-card-actions,
+  .student-complaint-card-hint {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+  .student-complaint-card-actions .student-button {
+    flex: 1;
+  }
+  .student-complaint-detail-heading {
+    flex-direction: column;
+  }
+  .student-complaint-detail-facts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 460px) {
+  .student-complaint-detail-facts {
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-card-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Complaint list visual refinement */
+.student-complaints-page .student-page-heading {
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.student-complaints-page .student-page-heading h1 {
+  margin-top: 6px;
+  font-size: 24px;
+}
+.student-complaints-page .student-page-heading p {
+  margin-top: 7px;
+  color: #686d86;
+  font-size: 12px;
+}
+.complaint-create-button {
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 17px;
+  border-radius: 9px;
+  box-shadow: 0 7px 16px #6736d62b;
+}
+.complaint-create-button > span {
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 0;
+}
+.student-complaint-tabs {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  border-bottom: 1px solid #e7e1f2;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+.student-complaint-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: 8px 8px 0 0;
+  color: #25213e;
+  font-size: 12px;
+}
+.student-complaint-tabs a svg {
+  color: #6c6a7a;
+}
+.student-complaint-tabs a.active {
+  position: relative;
+  background: #f1edff;
+  color: #5d24d4;
+}
+.student-complaint-tabs a.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #6f21ed;
+}
+.student-complaint-tabs a.active svg {
+  color: #6f21ed;
+}
+.student-complaint-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 11px;
+  margin: 0 0 20px;
+}
+.student-complaint-status-filters {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.student-complaint-status-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 31px;
+  padding: 0 11px;
+  border: 1px solid #e0dcec;
+  border-radius: 999px;
+  background: #fff;
+  color: #39334d;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.student-complaint-status-filters button:hover {
+  border-color: #b8a3ee;
+}
+.student-complaint-status-filters button.active {
+  border-color: #5c18e8;
+  background: #6519e9;
+  color: #fff;
+}
+.student-complaint-status-filters button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8e92a7;
+}
+.student-complaint-status-filters button i.pending { background: #f0bd00; }
+.student-complaint-status-filters button i.in_review { background: #7b83ff; }
+.student-complaint-status-filters button i.awaiting_evidence { background: #efbe00; }
+.student-complaint-status-filters button i.resolved { background: #2cab50; }
+.student-complaint-status-filters button i.rejected { background: #ef563d; }
+.student-complaint-status-filters button i.cancelled { background: #ef563d; }
+.student-complaint-status-filters button.active i { background: #fff; }
+.student-complaint-search {
+  display: flex;
+  flex: 0 0 165px;
+  margin-left: auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 31px;
+  padding: 0 10px;
+  border: 1px solid #e0dcec;
+  border-radius: 999px;
+  background: #fff;
+  color: #85889a;
+}
+.student-complaint-search:focus-within {
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
+}
+.student-complaint-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #303448;
+  font: inherit;
+  font-size: 10px;
+}
+.student-complaint-search input::placeholder {
+  color: #999dad;
+}
+.student-complaint-card {
+  grid-template-columns: 50px minmax(0, 1fr) minmax(155px, .35fr);
+  gap: 15px;
+  min-height: 88px;
+  padding: 13px 15px;
+  border-color: #dfe1ee;
+  border-radius: 13px;
+}
+.student-complaint-card-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 11px;
+  background: #edf0ff;
+  color: #6241ed;
+}
+.student-complaint-card-icon.absence,
+.student-complaint-card-icon.late_or_short { background: #e8eaff; color: #6241ed; }
+.student-complaint-card-icon.teaching_quality { background: #eee8ff; color: #6a39db; }
+.student-complaint-card-icon.misconduct,
+.student-complaint-card-icon.serious_misconduct { background: #fff0f0; color: #e34e4e; }
+.student-complaint-card-icon.other { background: #e9f1ff; color: #4477d8; }
+.student-complaint-card-main {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+}
+.student-complaint-card-heading {
+  display: block;
+}
+.student-complaint-category {
+  color: #6b6881;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.student-complaint-card h2 {
+  margin: 2px 0 5px;
+  font-size: 14px;
+}
+.student-complaint-card-main p {
+  display: none;
+}
+.student-complaint-card-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 13px;
+  color: #6b6f85;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.student-complaint-card-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.student-complaint-card-line svg {
+  flex: none;
+  color: #72768e;
+}
+.student-complaint-card-line.created {
+  margin-top: 3px;
+}
+.student-complaint-card-right {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  min-width: 0;
+}
+.student-complaint-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  min-width: 0;
+}
+.student-complaint-card-actions .student-button,
+.student-complaint-view-button {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+.student-complaint-card-actions .student-button.danger {
+  border-color: #f18b8b;
+  background: #fff;
+  color: #d74444;
+}
+.student-complaint-view-button {
+  border-color: #dfe2ee;
+  background: #fff;
+  color: #39334d;
+}
+.student-complaint-view-button:hover:not(:disabled) {
+  border-color: #7651e8;
+  background: #f4f0ff;
+  color: #5c24d1;
+}
+.student-complaint-status {
+  padding: 5px 10px;
+  font-size: 10px;
+}
+.student-complaint-empty {
+  display: grid;
+  min-height: 285px;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  padding: 30px 18px;
+  border: 1px solid #e6e0f3;
+  border-radius: 14px;
+  background: #fff;
+  text-align: center;
+}
+.student-complaint-empty-icon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 22px;
+  background: #f1efff;
+  color: #7560e8;
+}
+.student-complaint-empty h3 {
+  margin: 0 0 6px;
+  color: #21183b;
+  font-size: 15px;
+}
+.student-complaint-empty p {
+  max-width: 320px;
+  margin: 0 0 16px;
+  color: #77718d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.student-complaint-footer {
+  margin-top: 13px;
+  color: #77718d;
+  font-size: 10px;
+}
+
+@media (max-width: 900px) {
+  .student-complaint-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-complaint-status-filters,
+  .student-complaint-search {
+    width: 100%;
+  }
+  .student-complaint-search {
+    flex-basis: auto;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-complaints-page .student-page-heading {
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .student-complaint-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .student-complaint-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .student-complaint-card-right {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid #edf0f6;
+  }
+  .student-complaint-card-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Complaint create form visual refinement */
+.student-complaint-create-header {
+  align-items: flex-start;
+  margin-bottom: 17px;
+}
+.student-complaint-create-header h1 {
+  margin-top: 0;
+  color: #29134f;
+  font-size: 28px;
+}
+.student-complaint-create-header p {
+  margin-top: 5px;
+  color: #69657d;
+  font-size: 12px;
+}
+.student-complaint-create-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.student-complaint-create-title-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 12px;
+  background: #f0ecff;
+  color: #6f21ed;
+}
+.student-complaint-create-card {
+  padding: 17px 20px 20px;
+  border-color: #e3dff0;
+  box-shadow: 0 7px 24px #27335f0b;
+}
+.student-complaint-create-card .student-complaint-form {
+  gap: 11px;
+}
+.student-complaint-create-card .student-complaint-form > .student-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.student-complaint-create-card .student-complaint-form > .student-form-field,
+.student-complaint-create-card .student-complaint-form > .rf-field {
+  display: grid;
+  grid-template-columns: minmax(135px, 150px) minmax(0, 1fr);
+  gap: 0 24px;
+  align-items: start;
+}
+.student-complaint-create-card .student-form-field > label,
+.student-complaint-create-card .rf-field > label {
+  grid-column: 1;
+  padding-top: 10px;
+  color: #3d3455;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.student-complaint-create-card .student-form-field > select,
+.student-complaint-create-card .student-form-field > input,
+.student-complaint-create-card .student-form-field > textarea,
+.student-complaint-create-card .student-form-field > .student-form-counter,
+.student-complaint-create-card .student-form-field > .student-field-error,
+.student-complaint-create-card .rf-field > .rf-files,
+.student-complaint-create-card .rf-field > .rf-inline,
+.student-complaint-create-card .rf-field > .rf-error {
+  grid-column: 2;
+}
+.student-complaint-create-card .student-form-field > select,
+.student-complaint-create-card .student-form-field > input,
+.student-complaint-create-card .student-form-field > textarea {
+  min-height: 37px;
+  padding: 9px 11px;
+  border-color: #dfe1ed;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.student-complaint-create-card .student-form-field > textarea {
+  min-height: 104px;
+}
+.student-complaint-create-card .student-form-field > .student-form-counter {
+  margin-top: 3px;
+}
+.student-complaint-create-card .student-field-error,
+.student-complaint-create-card .rf-error {
+  margin-top: 4px;
+}
+.student-complaint-create-card .rf-files {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+.student-complaint-create-card .rf-files li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 37px;
+  padding: 0 4px 0 11px;
+  border-color: #dfe1ed;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11px;
+}
+.student-complaint-create-card .rf-files a {
+  min-width: 0;
+  overflow: hidden;
+  color: #4c3bc1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-complaint-create-card .rf-files li > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #4c3bc1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-complaint-create-card .rf-files button {
+  width: 27px;
+  height: 27px;
+  color: #d84f4b;
+  font-size: 20px;
+}
+.student-complaint-create-card .rf-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  width: 100%;
+}
+.student-complaint-create-card .rf-inline input {
+  min-height: 37px;
+  padding: 9px 11px;
+  border-color: #dfe1ed;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.student-complaint-create-card .rf-button.secondary {
+  min-height: 37px;
+  padding: 0 12px;
+  border-color: #d8c8ff;
+  border-radius: 8px;
+  background: #f1ebff;
+  color: #641bd3;
+  font-size: 10px;
+}
+.student-complaint-create-card .student-form-actions {
+  grid-column: 2;
+  margin-top: 7px;
+  padding-top: 13px;
+  border-top: 1px solid #eeeaf5;
+}
+.student-complaint-create-card .student-form-actions .student-button {
+  min-width: 90px;
+  min-height: 38px;
+}
+.student-complaint-create-card .student-form-actions .student-button:last-child {
+  min-width: 138px;
+}
+
+@media (max-width: 650px) {
+  .student-complaint-create-card {
+    padding: 16px;
+  }
+  .student-complaint-create-card .student-complaint-form > .student-form-field,
+  .student-complaint-create-card .student-complaint-form > .rf-field {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .student-complaint-create-card .student-form-field > label,
+  .student-complaint-create-card .rf-field > label,
+  .student-complaint-create-card .student-form-field > select,
+  .student-complaint-create-card .student-form-field > input,
+  .student-complaint-create-card .student-form-field > textarea,
+  .student-complaint-create-card .student-form-field > .student-form-counter,
+  .student-complaint-create-card .student-form-field > .student-field-error,
+  .student-complaint-create-card .rf-field > .rf-files,
+  .student-complaint-create-card .rf-field > .rf-inline,
+  .student-complaint-create-card .rf-field > .rf-error {
+    grid-column: 1;
+  }
+  .student-complaint-create-card .student-form-field > label,
+  .student-complaint-create-card .rf-field > label {
+    padding-top: 0;
+  }
+  .student-complaint-create-card .student-form-actions {
+    grid-column: 1;
+  }
+  .student-complaint-create-card .student-form-actions .student-button {
+    flex: 1;
+  }
+}
+
+/* Complaint create page - reference layout */
+.student-complaint-create-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(270px, .75fr);
+  gap: 19px;
+  align-items: start;
+}
+.student-complaint-create-card {
+  min-width: 0;
+}
+.student-complaint-create-card .student-complaint-form > .student-form-field,
+.student-complaint-create-card .student-complaint-form > .rf-field {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.student-complaint-create-card .student-form-field > label,
+.student-complaint-create-card .rf-field > label,
+.student-complaint-create-card .student-form-field > select,
+.student-complaint-create-card .student-form-field > input,
+.student-complaint-create-card .student-form-field > textarea,
+.student-complaint-create-card .student-form-field > .student-form-counter,
+.student-complaint-create-card .student-form-field > .student-field-error,
+.student-complaint-create-card .rf-field > .rf-files,
+.student-complaint-create-card .rf-field > .rf-inline,
+.student-complaint-create-card .rf-field > .rf-error {
+  grid-column: 1;
+}
+.student-complaint-create-card .student-form-field > label,
+.student-complaint-create-card .rf-field > label {
+  padding-top: 0;
+}
+.student-complaint-create-card .student-form-field > select,
+.student-complaint-create-card .student-form-field > input,
+.student-complaint-create-card .student-form-field > textarea,
+.student-complaint-create-card .rf-inline input {
+  background: #fff;
+}
+.student-complaint-create-card .student-complaint-category-field {
+  gap: 8px;
+}
+.student-complaint-field-label {
+  grid-column: 1;
+  color: #3d3455;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.student-complaint-field-label > span,
+.student-form-field > label > span {
+  color: #e44848;
+}
+.student-complaint-category-options {
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px 9px;
+}
+.student-complaint-category-options label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 37px;
+  padding: 0 12px;
+  border: 1px solid #dfe1ed;
+  border-radius: 8px;
+  background: #fff;
+  color: #39334d;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.student-complaint-category-options label:hover {
+  border-color: #bba7ef;
+  background: #fcfaff;
+}
+.student-complaint-category-options label.selected {
+  border-color: #7927eb;
+  background: #f7f2ff;
+  box-shadow: 0 0 0 2px #7927eb1a;
+}
+.student-complaint-category-options label > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.student-complaint-radio {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #aeb2c3;
+  border-radius: 50%;
+  background: #fff;
+}
+.student-complaint-category-options label.selected .student-complaint-radio {
+  border: 4px solid #7021eb;
+}
+.student-complaint-category-options label > svg {
+  flex: none;
+  color: #6f21ed;
+}
+.student-complaint-category-options label.absence > svg { color: #7655ea; }
+.student-complaint-category-options label.late_or_short > svg { color: #9a51ee; }
+.student-complaint-category-options label.teaching_quality > svg { color: #6637df; }
+.student-complaint-category-options label.misconduct > svg { color: #5d42e6; }
+.student-complaint-category-options label.serious_misconduct > svg { color: #eb514f; }
+.student-complaint-category-options label.other > svg { color: #8551e4; }
+.student-complaint-category-options label > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-complaint-category-field > .student-field-error {
+  grid-column: 1;
+}
+.student-complaint-create-card .student-form-actions {
+  grid-column: 1;
+}
+.student-complaint-create-card .student-complaint-form > .rf-field {
+  margin-top: 1px;
+}
+.student-complaint-create-card .rf-field > label {
+  margin-bottom: 1px;
+}
+.student-complaint-create-card .rf-inline {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.student-complaint-file-picker {
+  display: flex !important;
+  justify-content: flex-start;
+}
+.student-complaint-file-picker .student-complaint-file-input {
+  display: none !important;
+}
+.student-complaint-file-picker .rf-button {
+  width: auto;
+}
+.student-complaint-guidance {
+  min-width: 0;
+  min-height: 375px;
+  padding: 25px 22px 21px;
+  border-color: #e2ddf0;
+  background: linear-gradient(180deg, #fff 0%, #fcfbff 100%);
+  text-align: left;
+}
+.student-complaint-guidance-illustration {
+  display: grid;
+  width: 91px;
+  height: 91px;
+  place-items: center;
+  margin: 0 auto 14px;
+  border-radius: 27px;
+  background: #f0ecff;
+  color: #6f21ed;
+}
+.student-complaint-guidance h2 {
+  margin: 0 0 17px;
+  color: #2e1558;
+  font-size: 17px;
+  text-align: center;
+}
+.student-complaint-guidance ul {
+  display: grid;
+  gap: 15px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.student-complaint-guidance li {
+  position: relative;
+  padding-left: 29px;
+  color: #514a68;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.student-complaint-guidance li::before {
+  content: '✓';
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eee9ff;
+  color: #6b29e8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 850px) {
+  .student-complaint-create-layout {
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-guidance {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .student-complaint-category-options {
+    grid-template-columns: 1fr 1fr;
+  }
+  .student-complaint-create-card .rf-inline {
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-create-card .rf-inline .rf-button {
+    width: 100%;
+  }
+}
+
+.student-complaint-upload-field .student-complaint-file-input {
+  display: none !important;
+}
+.student-complaint-upload-field .student-complaint-file-picker {
+  display: flex;
+  justify-content: flex-start;
+}
+.student-complaint-upload-field .rf-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.student-complaint-upload-field .rf-files li > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Complaint edit page - reference layout */
+.student-complaint-edit-page {
+  min-width: 0;
+}
+.student-complaint-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+}
+.student-complaint-edit-header-status {
+  display: none;
+}
+.student-complaint-edit-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.student-complaint-edit-title-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 12px;
+  background: #f0ecff;
+  color: #6f21ed;
+}
+.student-complaint-edit-title h1 {
+  margin: 0;
+  color: #29134f;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+.student-complaint-edit-title p {
+  display: none;
+  margin: 5px 0 0;
+  color: #69657d;
+  font-size: 12px;
+}
+.student-complaint-edit-status {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid #f0d879;
+  border-radius: 12px;
+  background: #fffdf0;
+}
+.student-complaint-edit-status-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff2b9;
+  color: #d29200;
+}
+.student-complaint-edit-status strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #4a3710;
+  font-size: 12px;
+}
+.student-complaint-edit-status p {
+  margin: 3px 0 0;
+  color: #796b3c;
+  font-size: 10px;
+}
+.student-complaint-edit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(270px, .8fr);
+  gap: 17px;
+  align-items: start;
+}
+.student-complaint-edit-card {
+  min-width: 0;
+  padding: 18px 20px 20px;
+  border-color: #ddd3f6;
+  box-shadow: 0 7px 24px #27335f0b;
+}
+.student-complaint-edit-card > .student-complaint-card-title {
+  margin-bottom: 15px;
+}
+.student-complaint-edit-card .student-complaint-form > .student-error {
+  grid-column: 1 / -1;
+}
+.student-complaint-edit-card .student-complaint-form {
+  gap: 12px;
+}
+.student-complaint-edit-card .student-complaint-form > .student-form-field,
+.student-complaint-edit-card .student-complaint-form > .student-complaint-readonly-contract,
+.student-complaint-edit-card .student-complaint-form > .rf-field {
+  display: grid;
+  grid-template-columns: minmax(135px, 150px) minmax(0, 1fr);
+  gap: 0 20px;
+  align-items: start;
+}
+.student-complaint-edit-card .student-form-field > label,
+.student-complaint-edit-card .student-complaint-field-label,
+.student-complaint-edit-card .student-complaint-readonly-contract > span,
+.student-complaint-edit-card .rf-field > label {
+  grid-column: 1;
+  padding-top: 9px;
+  color: #39324e;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.student-complaint-edit-card .student-complaint-readonly-contract > strong,
+.student-complaint-edit-card .student-form-field > select,
+.student-complaint-edit-card .student-form-field > input,
+.student-complaint-edit-card .student-form-field > textarea,
+.student-complaint-edit-card .student-form-field > .student-form-counter,
+.student-complaint-edit-card .student-form-field > .student-field-error,
+.student-complaint-edit-card .student-complaint-category-options,
+.student-complaint-edit-card .rf-field > .rf-files,
+.student-complaint-edit-card .rf-field > .rf-inline,
+.student-complaint-edit-card .rf-field > .rf-error {
+  grid-column: 2;
+}
+.student-complaint-edit-card .student-complaint-readonly-contract {
+  min-height: 37px;
+}
+.student-complaint-edit-card .student-complaint-readonly-contract > strong {
+  display: block;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #dfe1ed;
+  border-radius: 8px;
+  background: #f8f9fd;
+  color: #4f5062;
+  font-size: 11px;
+  font-weight: 500;
+}
+.student-complaint-edit-card .student-form-field > input,
+.student-complaint-edit-card .student-form-field > textarea,
+.student-complaint-edit-card .student-form-field > select {
+  min-height: 37px;
+  padding: 9px 11px;
+  border-color: #dfe1ed;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.student-complaint-edit-card .student-form-field > textarea {
+  min-height: 104px;
+}
+.student-complaint-edit-card .student-form-field > .student-form-counter {
+  margin-top: 3px;
+}
+.student-complaint-edit-card .student-complaint-category-field {
+  display: grid;
+}
+.student-complaint-edit-card .student-complaint-category-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.student-complaint-edit-card .student-complaint-category-options label {
+  min-height: 35px;
+  padding: 0 8px;
+  font-size: 10px;
+}
+.student-complaint-edit-card .student-complaint-category-options label svg {
+  width: 14px;
+  height: 14px;
+}
+.student-complaint-edit-card .rf-files {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+.student-complaint-edit-card .rf-files li {
+  min-height: 37px;
+  box-sizing: border-box;
+  padding: 0 8px 0 11px;
+  border: 1px solid #dfe1ed;
+  border-radius: 8px;
+  background: #fff;
+}
+.student-complaint-edit-card .rf-inline {
+  display: flex;
+  width: 100%;
+}
+.student-complaint-edit-card .rf-button.secondary {
+  min-height: 35px;
+  padding: 0 12px;
+  border: 1px dashed #bfa9ed;
+  border-radius: 8px;
+  background: #fbf9ff;
+  color: #6a27da;
+  font-size: 10px;
+}
+.student-complaint-edit-side {
+  display: grid;
+  gap: 17px;
+  min-width: 0;
+}
+.student-complaint-edit-summary {
+  padding: 17px;
+}
+.student-complaint-edit-summary-rows {
+  display: grid;
+}
+.student-complaint-edit-summary-rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #eeeaf5;
+}
+.student-complaint-edit-summary-rows > div:last-child {
+  border-bottom: 0;
+}
+.student-complaint-edit-summary-rows span,
+.student-complaint-edit-summary-rows strong {
+  min-width: 0;
+  color: #4f4b60;
+  font-size: 10px;
+}
+.student-complaint-edit-summary-rows span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.student-complaint-edit-summary-rows span svg {
+  flex: none;
+  color: #6c5c97;
+}
+.student-complaint-edit-summary-rows strong {
+  overflow: hidden;
+  color: #373247;
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-complaint-edit-note {
+  padding: 17px;
+  border: 1px solid #dcd2ff;
+  border-radius: 13px;
+  background: #f7f5ff;
+}
+.student-complaint-edit-note h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #4e22bc;
+  font-size: 14px;
+}
+.student-complaint-edit-note ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 17px;
+  color: #514b70;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.student-complaint-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e9e5f1;
+}
+.student-complaint-edit-footer > div {
+  display: flex;
+  gap: 9px;
+}
+.student-button.danger.outline {
+  background: #fff;
+  border-color: #ef8d87;
+  color: #d4473e;
+}
+
+@media (max-width: 900px) {
+  .student-complaint-edit-layout {
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-edit-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .student-complaint-edit-title {
+    align-items: flex-start;
+  }
+  .student-complaint-edit-title h1 {
+    font-size: 24px;
+  }
+  .student-complaint-edit-title p {
+    font-size: 11px;
+  }
+  .student-complaint-edit-status {
+    align-items: flex-start;
+  }
+  .student-complaint-edit-status strong {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-complaint-edit-side {
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-edit-card .student-complaint-form > .student-form-field,
+  .student-complaint-edit-card .student-complaint-form > .student-complaint-readonly-contract,
+  .student-complaint-edit-card .student-complaint-form > .rf-field {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .student-complaint-edit-card .student-form-field > label,
+  .student-complaint-edit-card .student-complaint-field-label,
+  .student-complaint-edit-card .student-complaint-readonly-contract > span,
+  .student-complaint-edit-card .rf-field > label,
+  .student-complaint-edit-card .student-complaint-readonly-contract > strong,
+  .student-complaint-edit-card .student-form-field > select,
+  .student-complaint-edit-card .student-form-field > input,
+  .student-complaint-edit-card .student-form-field > textarea,
+  .student-complaint-edit-card .student-form-field > .student-form-counter,
+  .student-complaint-edit-card .student-form-field > .student-field-error,
+  .student-complaint-edit-card .student-complaint-category-options,
+  .student-complaint-edit-card .rf-field > .rf-files,
+  .student-complaint-edit-card .rf-field > .rf-inline,
+  .student-complaint-edit-card .rf-field > .rf-error {
+    grid-column: 1;
+  }
+  .student-complaint-edit-card .student-form-field > label,
+  .student-complaint-edit-card .student-complaint-field-label,
+  .student-complaint-edit-card .student-complaint-readonly-contract > span,
+  .student-complaint-edit-card .rf-field > label {
+    padding-top: 0;
+  }
+  .student-complaint-edit-card .student-complaint-category-options {
+    grid-template-columns: 1fr 1fr;
+  }
+  .student-complaint-edit-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .student-complaint-edit-footer > div {
+    width: 100%;
+  }
+  .student-complaint-edit-footer .student-button {
+    flex: 1;
+  }
+}
+
+/* Complaint detail page - reference layout */
+.student-complaint-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.student-complaint-detail-header h1 {
+  margin: 0;
+  color: #29134f;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.student-complaint-detail-header-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  padding-top: 2px;
+}
+.student-complaint-detail-header-actions .student-button:first-child {
+  min-height: 32px;
+  padding: 7px 12px;
+  font-size: 11px;
+}
+
+.student-complaint-detail-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(290px, .82fr);
+  gap: 17px;
+}
+
+.student-complaint-summary-card {
+  padding: 14px 17px 0;
+  border-color: #ddd3f6;
+}
+
+.student-complaint-summary-main {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+.student-complaint-summary-tags .student-complaint-contract-link {
+  display: none;
+}
+.student-complaint-contract-summary {
+  display: grid;
+  min-width: 170px;
+  gap: 3px;
+  align-content: center;
+  justify-items: end;
+  text-align: right;
+}
+.student-complaint-contract-summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #77718d;
+  font-size: 9px;
+}
+.student-complaint-contract-summary > strong {
+  max-width: 230px;
+  overflow: hidden;
+  color: #39334f;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-complaint-contract-summary-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid #ddd3f6;
+  border-radius: 7px;
+  background: #fff;
+  color: #6736d6;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.student-complaint-contract-summary-link:hover { text-decoration: underline; }
+
+.student-complaint-summary-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 12px;
+  background: #f0ecff;
+  color: #6f21ed;
+}
+
+.student-complaint-summary-copy {
+  min-width: 0;
+}
+
+.student-complaint-summary-copy h2 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: #29134f;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.student-complaint-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.student-complaint-summary-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #eeeaf5;
+}
+
+.student-complaint-summary-meta > div {
+  min-width: 0;
+  padding: 11px 10px 12px;
+  border-right: 1px solid #eeeaf5;
+}
+
+.student-complaint-summary-meta > div:last-child {
+  border-right: 0;
+}
+
+.student-complaint-summary-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #77718d;
+  font-size: 9px;
+}
+
+.student-complaint-summary-meta span svg {
+  flex: none;
+  color: #6c5c97;
+}
+
+.student-complaint-summary-meta strong {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+  color: #38334b;
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.student-complaint-content-card,
+.student-complaint-evidence-card {
+  padding: 17px 20px;
+}
+
+.student-complaint-content-box {
+  margin-top: 13px;
+  padding: 13px 15px;
+  border-radius: 8px;
+  background: #f4f2fb;
+  color: #39344d;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.student-complaint-evidence-list {
+  display: grid;
+  gap: 0;
+  margin-top: 13px;
+  padding: 0 10px;
+  border: 1px solid #e7e1f5;
+  border-radius: 9px;
+}
+
+.student-complaint-evidence-list a {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 15px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eeeaf5;
+  color: #6736d6;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.student-complaint-evidence-list a:last-child {
+  border-bottom: 0;
+}
+
+.student-complaint-evidence-list a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-complaint-evidence-list a svg:last-child {
+  transform: rotate(-45deg);
+}
+
+.student-complaint-empty-detail {
+  margin: 13px 0 0;
+  color: #77718d;
+  font-size: 11px;
+}
+
+.student-complaint-current-status {
+  padding: 15px 17px;
+  text-align: center;
+}
+
+.student-complaint-current-status .student-complaint-card-title {
+  text-align: left;
+}
+
+.student-complaint-current-status-badge {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #eee9ff;
+}
+
+.student-complaint-current-status-badge .student-complaint-status {
+  font-size: 12px;
+}
+
+.student-complaint-current-status p {
+  margin: 0;
+  color: #57516b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.student-complaint-current-status small {
+  display: block;
+  margin-top: 4px;
+  color: #8b8798;
+  font-size: 9px;
+}
+
+.student-complaint-side-result {
+  padding: 15px 17px;
+}
+
+.student-complaint-result-highlight {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f0effa;
+  color: #39334f;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.student-complaint-result-highlight svg {
+  flex: none;
+  color: #6736d6;
+}
+
+.student-complaint-side-result.resolved .student-complaint-result-highlight {
+  background: #e9f8ef;
+  color: #23835b;
+}
+
+.student-complaint-side-result.rejected .student-complaint-result-highlight {
+  background: #fff0f0;
+  color: #c34b48;
+}
+
+.student-complaint-result-party {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid #eeeaf5;
+  color: #57516b;
+  font-size: 10px;
+}
+
+.student-complaint-result-party span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-complaint-result-party span svg {
+  color: #6c5c97;
+}
+
+.student-complaint-result-party strong {
+  color: #39334f;
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .student-complaint-detail-header-actions {
+    padding-top: 0;
+  }
+
+  .student-complaint-summary-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-complaint-summary-meta > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .student-complaint-summary-meta > div:nth-child(-n + 2) {
+    border-bottom: 1px solid #eeeaf5;
+  }
+}
+
+@media (max-width: 600px) {
+  .student-complaint-detail-header {
+    flex-direction: column;
+  }
+
+  .student-complaint-detail-header-actions {
+    width: 100%;
+  }
+
+  .student-complaint-detail-header-actions .student-button {
+    flex: 1;
+  }
+
+  .student-complaint-summary-main {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .student-complaint-summary-main > .student-complaint-status {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .student-complaint-summary-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .student-complaint-summary-meta > div {
+    border-right: 0 !important;
+    border-bottom: 1px solid #eeeaf5;
+  }
+
+  .student-complaint-summary-meta > div:last-child {
+    border-bottom: 0;
+  }
+}
+
+.student-complaint-response-body {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+  border: 1px solid #d9c8ff;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.student-complaint-response-author {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.student-complaint-response-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #dfcfff;
+  color: #7c32de;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.student-complaint-response-author strong {
+  display: block;
+  color: #31204f;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.student-complaint-response-author small {
+  display: block;
+  margin-top: 2px;
+  color: #756b89;
+  font-size: 9px;
+}
+
+.student-complaint-response-body p {
+  margin: 9px 0 0;
+  color: #39344d;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.student-complaint-pagination {
+  justify-content: center;
+  gap: 7px;
+  margin-top: 21px;
+}
+
+.student-complaint-pagination > button,
+.student-complaint-pagination .student-pagination-pages button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #63708e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.student-complaint-pagination > button:hover:not(:disabled),
+.student-complaint-pagination .student-pagination-pages button:hover:not(.active) {
+  background: #f2efff;
+  color: #6033c5;
+}
+
+.student-complaint-pagination .student-pagination-arrow {
+  border-color: #e3e4eb;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.student-complaint-pagination .student-pagination-pages button.active {
+  border-color: #6736d6;
+  background: #6736d6;
+  color: #fff;
 }
