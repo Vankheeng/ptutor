@@ -9,7 +9,7 @@ import './tutor-layout.css';
 const navigation = [
   { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: 'home' },
   { section: 'TEACHING', to: '/tutor/students', label: 'Tìm kiếm học viên', icon: 'search' },
-  { section: 'TEACHING', to: '/tutor/student-recommendations', label: 'Gợi ý học viên', icon: 'sparkles' },
+  { section: 'TEACHING', to: '/tutor/student-recommendations', label: 'Gợi ý học viên', icon: 'match' },
   { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: 'book' },
   { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
   { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },

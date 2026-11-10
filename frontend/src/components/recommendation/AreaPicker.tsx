@@ -25,6 +25,7 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   // Until the user picks a province, the one they live in is shown.
   const provinceId = chosenProvinceId || homeProvinceId || '';
   const [keyword, setKeyword] = useState('');
+  const [districtsOpen, setDistrictsOpen] = useState(false);
   const scope = value?.scope ?? 'DEFAULT';
   const selected = useMemo(() => value?.districtIds ?? [], [value]);
 
@@ -55,6 +56,7 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   }, [districts, keyword]);
 
   const chooseScope = (next: AreaScope | 'DEFAULT') => {
+    setDistrictsOpen(false);
     if (next === 'DEFAULT') onChange(undefined);
     else if (next === 'ANY') onChange({ scope: 'ANY' });
     else if (next === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: provinceId || null });
@@ -64,10 +66,13 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   const toggleDistrict = (districtId: string) => {
     const next = selected.includes(districtId) ? selected.filter((id) => id !== districtId) : [...selected, districtId];
     onChange({ scope: 'DISTRICTS', districtIds: next });
+    setDistrictsOpen(false);
+    setKeyword('');
   };
 
   const chooseProvince = (next: string) => {
     setProvinceId(next);
+    if (scope === 'DISTRICTS') onChange({ scope: 'DISTRICTS', districtIds: [] });
     if (scope === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: next || null });
   };
 
@@ -99,32 +104,32 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
       )}
       {scope === 'DISTRICTS' && (
         <>
-          <input
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Tìm quận / phường"
-            aria-label="Tìm quận / phường"
-          />
-          <div className="rec-checklist">
-            {selected.length > 0 && (
-              <small>
-                Đã chọn {selected.length}
-                {selected.some((id) => !districts.some((district) => district.id === id)) &&
-                  ' (có nơi thuộc tỉnh / thành khác)'}
-              </small>
-            )}
-            {visible.map((district) => (
-              <label key={district.id}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(district.id)}
-                  onChange={() => toggleDistrict(district.id)}
-                />
-                {district.name}
-              </label>
-            ))}
-            {!visible.length && <small>{provinceId ? 'Không có kết quả' : 'Chọn tỉnh / thành trước'}</small>}
-          </div>
+          {selected.length > 0 && (
+            <div className="rec-selected-districts" aria-label="Quận đã chọn">
+              {selected.map((id) => (
+                <button key={id} type="button" onClick={() => toggleDistrict(id)} title="Bỏ chọn quận này">
+                  {districts.find((district) => district.id === id)?.name ?? id} <span aria-hidden="true">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <button className="rec-district-toggle" type="button" aria-expanded={districtsOpen} onClick={() => setDistrictsOpen(!districtsOpen)}>
+            {selected.length ? `Đổi / thêm quận (${selected.length} đã chọn)` : 'Chọn quận / phường'}
+          </button>
+          {districtsOpen && (
+            <div className="rec-district-panel">
+              <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm quận / phường" aria-label="Tìm quận / phường" />
+              <div className="rec-checklist">
+                {visible.map((district) => (
+                  <label key={district.id}>
+                    <input type="checkbox" checked={selected.includes(district.id)} onChange={() => toggleDistrict(district.id)} />
+                    {district.name}
+                  </label>
+                ))}
+                {!visible.length && <small>{provinceId ? 'Không có kết quả' : 'Chọn tỉnh / thành trước'}</small>}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

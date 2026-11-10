@@ -60,7 +60,8 @@ export async function patch<T>(path: string, body?: unknown, options: HttpReques
 
 export async function request<T>(path: string, options: HttpRequestOptions = {}, retry = true): Promise<T> {
   const { skipAuthRefresh, ...fetchOptions } = options;
-  const storedTokens = getStoredTokens();
+  const isAuthEndpoint = path.startsWith('/api/v1/auth/');
+  const storedTokens = isAuthEndpoint ? null : getStoredTokens();
   const headers = new Headers(fetchOptions.headers);
   headers.set('Accept', 'application/json');
   if (fetchOptions.body !== undefined && !(fetchOptions.body instanceof FormData)) {
@@ -71,7 +72,6 @@ export async function request<T>(path: string, options: HttpRequestOptions = {},
   const response = await fetch(`${apiBaseUrl}${path}`, { ...fetchOptions, headers });
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
-  const isAuthEndpoint = path.startsWith('/api/v1/auth/');
   if (response.status === 401 && retry && !skipAuthRefresh && !isAuthEndpoint && storedTokens?.refreshToken) {
     const refreshed = await refreshTokensOnce(storedTokens.refreshToken);
     if (refreshed) return request<T>(path, options, false);

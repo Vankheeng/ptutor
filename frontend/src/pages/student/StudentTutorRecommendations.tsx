@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AreaPicker } from '../../components/recommendation/AreaPicker';
 import { AvailabilityEditor } from '../../components/recommendation/AvailabilityEditor';
 import { SavedSearchControls } from '../../components/recommendation/SavedSearches';
@@ -27,11 +28,14 @@ import {
   createStudentApplication,
   getMyStudyingRequests,
   getStudentProfile,
+  getTeachingRequest,
   type StudyingRequest
 } from '../../services/studentApi';
 import { getSubjects } from '../../services/subjectApi';
-import type { Grade, Subject } from '../../types/api';
+import type { Grade, Subject, TeachingRequest } from '../../types/api';
 import { formatCurrency, getInitials } from '../../utils/formatters';
+import { tutorScheduleLabel } from '../../utils/tutorDisplay';
+import { formatDate, learningModeLabel } from '../../components/student/studentApplicationUtils';
 
 const PAGE_SIZE = 20;
 const MODES: { value: ModePreference; label: string }[] = [
@@ -43,6 +47,7 @@ const NEEDS_INPUT: Record<string, string> = { subjectId: 'môn học', gradeId: 
 
 /** "Gợi ý cho bạn": tutors ranked for this student. The filters are the input; the sentence only fills them. */
 export function StudentTutorRecommendations() {
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [styleTags, setStyleTags] = useState<RecommendationTag[]>([]);
@@ -62,6 +67,8 @@ export function StudentTutorRecommendations() {
 
   const [result, setResult] = useState<TutorRecommendationResponse | null>(null);
   const [items, setItems] = useState<TutorRecommendationItem[]>([]);
+  const [requestDetails, setRequestDetails] = useState<Record<string, TeachingRequest | null>>({});
+  const requestedDetails = useRef(new Set<string>());
   const [pagesLoaded, setPagesLoaded] = useState(0);
   const [allLoaded, setAllLoaded] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -74,6 +81,17 @@ export function StudentTutorRecommendations() {
   const [active, setActive] = useState<TutorRecommendationItem | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    for (const item of items) {
+      const id = item.teachingRequestId;
+      if (requestedDetails.current.has(id)) continue;
+      requestedDetails.current.add(id);
+      getTeachingRequest(id)
+        .then((request) => setRequestDetails((previous) => ({ ...previous, [id]: request })))
+        .catch(() => setRequestDetails((previous) => ({ ...previous, [id]: null })));
+    }
+  }, [items]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -199,6 +217,14 @@ export function StudentTutorRecommendations() {
     }
   };
 
+  const viewPosting = (item: TutorRecommendationItem) => {
+    if (!viewed.has(item.teachingRequestId)) {
+      setViewed((previous) => new Set(previous).add(item.teachingRequestId));
+      send(item, 'VIEWED');
+    }
+    navigate(`/student/teaching-requests/${item.teachingRequestId}`);
+  };
+
   const favorite = (item: TutorRecommendationItem) => {
     if (favorites.has(item.teachingRequestId)) return;
     setFavorites((previous) => new Set(previous).add(item.teachingRequestId));
@@ -277,7 +303,7 @@ export function StudentTutorRecommendations() {
   const slots = filters.availabilities ?? [];
 
   return (
-    <div className="rec-layout">
+    <div className="rec-layout student-rec-layout">
       <form
         className="student-panel rec-filters"
         onSubmit={(event) => {
@@ -588,11 +614,25 @@ export function StudentTutorRecommendations() {
             )}
 
             <div className="rec-list">
-              {visible.map((item) => (
+              {visible.map((item) => {
+                const detail = requestDetails[item.teachingRequestId];
+                const subject = detail?.subjectName || detail?.customSubjectName || 'Môn học';
+                const gradeNames = detail?.grades.map((grade) => grade.name).join(', ') || 'Chưa xác định';
+                const location = detail
+                  ? [detail.detailAddress, ...detail.districts.map((district) => district.name)].filter(Boolean).join(', ')
+                  : item.districts.join(', ');
+                const schedule = detail?.preferredSchedule || formatAvailabilities(detail?.availabilities ?? []) || 'Lịch linh hoạt';
+                return (
                 <article
                   className={item.isExploration ? 'student-panel rec-card exploration' : 'student-panel rec-card'}
                   key={item.teachingRequestId}
                 >
+                  {detail && (
+                    <div className="rec-posting-top">
+                      <span className="rec-posting-subject">{subject}</span>
+                      <span>{formatDate(detail.createdAt)}</span>
+                    </div>
+                  )}
                   <div className="rec-card-head">
                     <span className="rec-avatar">
                       {item.tutor.avatarUrl ? (
@@ -614,15 +654,31 @@ export function StudentTutorRecommendations() {
                       <small>điểm phù hợp</small>
                     </span>
                   </div>
-                  <p className="rec-title">{item.title || 'Tin dạy'}</p>
-                  <div className="rec-facts">
-                    <span>
-                      {item.expectedPrice ? `${formatCurrency(item.expectedPrice)} / buổi` : 'Học phí thoả thuận'}
-                    </span>
-                    <span>{item.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}</span>
-                    {item.districts.length > 0 && <span>{item.districts.slice(0, 3).join(', ')}</span>}
-                    {item.isExploration && <span className="rec-badge">Gợi ý mới</span>}
-                  </div>
+                  <button className="rec-title rec-title-button" type="button" onClick={() => viewPosting(item)}>{detail?.title || item.title || 'Tin dạy'}</button>
+                  {detail ? (
+                    <>
+                      <p className="rec-posting-meta">
+                        Gia sư: {detail.tutorName || item.tutor.displayName} · Khối {gradeNames}
+                        {detail.districts.length > 0 ? ` · ${detail.districts.map((district) => district.name).join(', ')}` : ''}
+                      </p>
+                      <p className="rec-posting-description">
+                        {detail.description || detail.note || 'Gia sư chưa bổ sung mô tả cho yêu cầu này.'}
+                      </p>
+                      <div className="rec-posting-details">
+                        <span><small>Học phí dự kiến</small><strong>{detail.expectedPrice === null ? 'Thỏa thuận' : `${formatCurrency(detail.expectedPrice)} VNĐ`}</strong></span>
+                        <span><small>Lịch mong muốn</small><strong>{tutorScheduleLabel(schedule, 'Lịch linh hoạt')}</strong></span>
+                        <span><small>Hình thức</small><strong>{learningModeLabel(detail.teachingMode)}</strong></span>
+                        <span><small>Địa điểm</small><strong>{detail.teachingMode === 'ONLINE' ? 'Trực tuyến' : location || 'Chưa cung cấp'}</strong></span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rec-facts">
+                      <span>{item.expectedPrice ? `${formatCurrency(item.expectedPrice)} / buổi` : 'Học phí thoả thuận'}</span>
+                      <span>{item.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}</span>
+                      {item.districts.length > 0 && <span>{item.districts.slice(0, 3).join(', ')}</span>}
+                    </div>
+                  )}
+                  {item.isExploration && <span className="rec-badge">Gợi ý mới</span>}
                   {item.reasons.length > 0 && (
                     <ul className="rec-reasons">
                       {item.reasons.map((reason) => (
@@ -632,6 +688,7 @@ export function StudentTutorRecommendations() {
                   )}
                   {item.caution && <p className="rec-caution">{item.caution}</p>}
                   <div className="rec-card-actions">
+                    <button className="rec-link" type="button" onClick={() => viewPosting(item)}>Xem chi tiết tin</button>
                     <button className="rec-link" type="button" onClick={() => dismiss(item)}>
                       Không quan tâm
                     </button>
@@ -648,7 +705,8 @@ export function StudentTutorRecommendations() {
                     </button>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
 
             {!visible.length && (
@@ -681,4 +739,11 @@ function priceOf(min: number | string | null | undefined, max: number | string |
   const low = min === '' || min === null || min === undefined ? null : Number(min);
   const high = max === '' || max === null || max === undefined ? null : Number(max);
   return low === null && high === null ? undefined : { min: low, max: high };
+}
+
+function formatAvailabilities(slots: TeachingRequest['availabilities']) {
+  const weekdays = ['', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
+  return slots
+    .map((slot) => `${weekdays[slot.dayOfWeek] || `Thứ ${slot.dayOfWeek}`}, ${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}`)
+    .join('; ');
 }

@@ -9,6 +9,8 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 25px 17px 18px;
   background: #fff;
   border-right: 1px solid #e9ebf2;
@@ -199,6 +201,7 @@
     top: 0;
     width: 100%;
     height: auto;
+    overflow-y: visible;
     padding: 9px 12px;
     display: grid;
     grid-template-columns: auto 1fr;

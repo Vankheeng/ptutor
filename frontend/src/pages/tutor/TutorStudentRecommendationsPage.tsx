@@ -485,7 +485,7 @@ export function TutorStudentRecommendationsPage() {
                         <small>điểm phù hợp</small>
                       </span>
                     </div>
-                    <p className="rec-title">{item.title || 'Tin tìm gia sư'}</p>
+                    <button className="rec-title rec-title-button" type="button" onClick={() => open(item)}>{item.title || 'Tin tìm gia sư'}</button>
                     {item.learningGoals && <p className="rec-hint">{item.learningGoals}</p>}
                     <div className="rec-facts">
                       <span>{priceText(item.priceRange)}</span>
@@ -501,6 +501,7 @@ export function TutorStudentRecommendationsPage() {
                     )}
                     {item.caution && <p className="rec-caution">{item.caution}</p>}
                     <div className="rec-card-actions">
+                      <button className="rec-link" type="button" onClick={() => open(item)}>Xem chi tiết tin</button>
                       <button className="rec-link" type="button" onClick={() => dismiss(item)}>
                         Không quan tâm
                       </button>

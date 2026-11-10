@@ -11,6 +11,7 @@ type NavigationItem = { section: Section; to: string; label: string; icon: IconN
 const navigation: NavigationItem[] = [
   { section: 'WORKSPACE', to: '/student/dashboard', label: 'Tổng quan', icon: 'home' },
   { section: 'LEARNING', to: '/student/teaching-requests', label: 'Tìm kiếm gia sư', icon: 'search' },
+  { section: 'LEARNING', to: '/student/tutor-recommendations', label: 'Gợi ý gia sư', icon: 'match' },
   { section: 'LEARNING', to: '/student/studying-requests', label: 'Yêu cầu tìm gia sư', icon: 'book' },
   { section: 'LEARNING', to: '/student/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
   { section: 'LEARNING', to: '/student/tutor-offers', label: 'Đề nghị từ gia sư', icon: 'send' },

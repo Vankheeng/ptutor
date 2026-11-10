@@ -122,6 +122,10 @@
   flex-direction: column;
   gap: 7px;
 }
+.rec-selected-districts { display: flex; flex-wrap: wrap; gap: 6px; }
+.rec-selected-districts button { border: 1px solid #d9ccfb; border-radius: 999px; background: #f5f0ff; color: #5020a8; padding: 5px 10px; cursor: pointer; }
+.rec-district-toggle { align-self: flex-start; border: 1px solid #d9ccfb; border-radius: 8px; background: #fff; color: #5020a8; padding: 8px 12px; cursor: pointer; }
+.rec-district-panel { display: flex; flex-direction: column; gap: 7px; }
 .rec-checklist {
   display: flex;
   flex-direction: column;
@@ -249,6 +253,8 @@
   border-style: dashed;
   border-color: #cdbdf7;
 }
+.rec-title-button { display: block; width: fit-content; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.rec-title-button:hover, .rec-title-button:focus-visible { text-decoration: underline; }
 .rec-card-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -361,6 +367,84 @@
 }
 .rec-tabs {
   margin-top: -6px;
+}
+
+/* The student recommendation cards show the same posting details as tutor search. */
+.student-rec-layout .rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.student-rec-layout .rec-card {
+  min-width: 0;
+}
+.student-rec-layout .rec-posting-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9195a4;
+  font-size: 10px;
+}
+.student-rec-layout .rec-posting-subject,
+.student-rec-layout .rec-card > .rec-badge {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #f1edff;
+  color: #7049c8;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-rec-layout .rec-posting-meta {
+  margin: 0;
+  color: #7d8293;
+  font-size: 11px;
+}
+.student-rec-layout .rec-title {
+  color: #272b3d;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.student-rec-layout .rec-posting-description {
+  margin: 0;
+  color: #74798b;
+  font-size: 11px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.student-rec-layout .rec-posting-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f1f5;
+}
+.student-rec-layout .rec-posting-details span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.student-rec-layout .rec-posting-details small {
+  color: #a1a4b2;
+  font-size: 10px;
+}
+.student-rec-layout .rec-posting-details strong {
+  color: #44495c;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.student-rec-layout .rec-card-actions {
+  margin-top: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.student-rec-layout .rec-card-actions .student-button {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 960px) {
