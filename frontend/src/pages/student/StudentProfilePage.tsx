@@ -20,7 +20,7 @@ export function StudentProfilePage() {
         setProvinceId(value.address?.provinceId || '');
         setDistrictId(value.address?.districtId || '');
       })
-      .catch((caught) => setError(caught instanceof Error ? caught.message : 'Could not load your profile.'));
+      .catch((caught) => setError(caught instanceof Error ? caught.message : 'Không tải được hồ sơ của bạn.'));
     getProvinces()
       .then(setProvinces)
       .catch(() => undefined);
@@ -58,14 +58,14 @@ export function StudentProfilePage() {
         weakPoints: text('weakPoints')
       });
       setProfile(updated);
-      setNotice('Your profile has been saved.');
+      setNotice('Đã lưu hồ sơ.');
     } catch (caught) {
       setError(
         caught instanceof ApiError
           ? Object.values(caught.fieldErrors).join(' ') || caught.message
           : caught instanceof Error
             ? caught.message
-            : 'Could not save your profile.'
+            : 'Chưa lưu được hồ sơ.'
       );
     } finally {
       setSaving(false);
@@ -78,16 +78,16 @@ export function StudentProfilePage() {
       </div>
     ) : (
       <div className="student-empty">
-        <h3>Loading profile…</h3>
+        <h3>Đang tải hồ sơ…</h3>
       </div>
     );
   return (
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR ACCOUNT</span>
-          <h1>My Profile</h1>
-          <p>Keep your personal and learning information up to date.</p>
+          <span className="student-eyebrow">TÀI KHOẢN</span>
+          <h1>Hồ sơ của tôi</h1>
+          <p>Cập nhật thông tin cá nhân và nhu cầu học của bạn.</p>
         </div>
       </div>
       {notice && (
@@ -103,11 +103,11 @@ export function StudentProfilePage() {
       <form className="student-panel" onSubmit={(event) => void save(event)}>
         <div className="student-form-grid">
           <label>
-            First name
+            Tên
             <input name="firstName" defaultValue={profile.firstName || ''} />
           </label>
           <label>
-            Last name
+            Họ
             <input name="lastName" defaultValue={profile.lastName || ''} />
           </label>
           <label>
@@ -115,24 +115,24 @@ export function StudentProfilePage() {
             <input value={profile.email} readOnly />
           </label>
           <label>
-            Phone
+            Số điện thoại
             <input name="phone" defaultValue={profile.phone || ''} />
           </label>
           <label>
-            Date of birth
+            Ngày sinh
             <input name="dateOfBirth" type="date" defaultValue={profile.dateOfBirth || ''} />
           </label>
           <label>
-            Gender
+            Giới tính
             <select name="gender" defaultValue={profile.gender || ''}>
-              <option value="">Choose</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
+              <option value="">Chọn</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
             </select>
           </label>
           <label>
-            Province
+            Tỉnh / thành
             <select
               value={provinceId}
               onChange={(event) => {
@@ -140,7 +140,7 @@ export function StudentProfilePage() {
                 setDistrictId('');
               }}
             >
-              <option value="">Choose a province</option>
+              <option value="">Chọn tỉnh / thành</option>
               {provinces.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -149,9 +149,9 @@ export function StudentProfilePage() {
             </select>
           </label>
           <label>
-            District
+            Quận / huyện
             <select value={districtId} onChange={(event) => setDistrictId(event.target.value)} disabled={!provinceId}>
-              <option value="">Choose a district</option>
+              <option value="">Chọn quận / huyện</option>
               {districts.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -160,37 +160,37 @@ export function StudentProfilePage() {
             </select>
           </label>
           <label className="student-field-full">
-            Avatar URL
+            Đường dẫn ảnh đại diện
             <input name="avatarUrl" type="url" defaultValue={profile.avatarUrl || ''} />
           </label>
           <label className="student-field-full">
-            Introduction
+            Giới thiệu
             <textarea name="introduction" rows={3} defaultValue={profile.introduction || ''} />
           </label>
           <label>
-            Learning style
+            Phong cách học
             <input name="learningStyle" defaultValue={profile.learningStyle || ''} />
           </label>
           <label>
-            Current level
+            Trình độ hiện tại
             <input name="currentLevel" defaultValue={profile.currentLevel || ''} />
           </label>
           <label className="student-field-full">
-            Goals
+            Mục tiêu
             <textarea name="goalsDescription" rows={3} defaultValue={profile.goalsDescription || ''} />
           </label>
           <label>
-            Personality tags
+            Tính cách
             <input name="personalityTags" defaultValue={profile.personalityTags || ''} />
           </label>
           <label>
-            Weak points
+            Điểm yếu cần cải thiện
             <input name="weakPoints" defaultValue={profile.weakPoints || ''} />
           </label>
         </div>
         <div className="student-form-actions">
           <button className="student-button" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save profile'}
+            {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
           </button>
         </div>
       </form>

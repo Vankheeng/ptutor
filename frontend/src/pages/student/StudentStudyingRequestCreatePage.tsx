@@ -11,7 +11,7 @@ export function StudentStudyingRequestCreatePage() {
 
   const startPayment = async (requestId: string) => {
     const payment = await payStudyingRequest(requestId);
-    if (!payment.paymentUrl) throw new Error('Payment URL was not returned.');
+    if (!payment.paymentUrl) throw new Error('Chưa nhận được đường dẫn thanh toán.');
     window.location.assign(payment.paymentUrl);
   };
 
@@ -23,28 +23,28 @@ export function StudentStudyingRequestCreatePage() {
         setPaymentError('');
         await startPayment(created.id);
       } catch (caught) {
-        setPaymentError(caught instanceof Error ? caught.message : 'Payment could not be started.');
+        setPaymentError(caught instanceof Error ? caught.message : 'Chưa mở được trang thanh toán.');
         throw caught;
       }
       return;
     }
-    navigate('/student/studying-requests', { state: { notice: 'Studying request draft created.' } });
+    navigate('/student/studying-requests', { state: { notice: 'Đã lưu bản nháp tin tìm gia sư.' } });
   };
   return (
     <>
       <Link className="student-link" to="/student/studying-requests">
-        ← Back to studying requests
+        ← Quay lại danh sách tin
       </Link>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">YOUR LEARNING NEEDS</span>
-          <h1>Create a studying request</h1>
-          <p>Tell tutors what and how you want to learn.</p>
+          <span className="student-eyebrow">NHU CẦU HỌC CỦA BẠN</span>
+          <h1>Đăng tin tìm gia sư</h1>
+          <p>Cho gia sư biết bạn muốn học gì và học như thế nào.</p>
         </div>
       </div>
       {paymentError && draftId && (
         <div className="student-payment-retry" role="alert">
-          <span>{paymentError} Your draft has been saved.</span>
+          <span>{paymentError} Bản nháp của bạn đã được lưu.</span>
           <button
             className="student-button payment"
             type="button"
@@ -54,12 +54,12 @@ export function StudentStudyingRequestCreatePage() {
               setPaymentError('');
               void startPayment(draftId)
                 .catch((caught: unknown) =>
-                  setPaymentError(caught instanceof Error ? caught.message : 'Payment could not be started.')
+                  setPaymentError(caught instanceof Error ? caught.message : 'Chưa mở được trang thanh toán.')
                 )
                 .finally(() => setRetryingPayment(false));
             }}
           >
-            {retryingPayment ? 'Opening payment…' : 'Retry payment'}
+            {retryingPayment ? 'Đang mở trang thanh toán…' : 'Thanh toán lại'}
           </button>
         </div>
       )}

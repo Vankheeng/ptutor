@@ -7,10 +7,14 @@ import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import com.ptutor.backend.entity.enums.RecommendationDataSource;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,4 +53,10 @@ public class StudyingRequestAvailability extends BaseEntity {
     @Column(name = "end_time", nullable = false)
     @NonFinal
     private LocalTime endTime;
+
+    @Column(name = "source", nullable = false, length = 10)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private RecommendationDataSource source = RecommendationDataSource.USER;
 }

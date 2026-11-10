@@ -58,4 +58,14 @@ public class RecommendationClickLog extends BaseEntity {
     @NonFinal
     @Enumerated(EnumType.STRING)
     private RecommendationAction action;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidate_teaching_request_id")
+    @NonFinal
+    private TeachingRequest candidateTeachingRequest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidate_studying_request_id")
+    @NonFinal
+    private StudyingRequest candidateStudyingRequest;
 }

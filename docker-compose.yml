@@ -12,6 +12,36 @@ services:
     volumes:
       - ${POSTGRES_VOLUME_NAME:-ptutor_postgres_data}:/var/lib/postgresql/data
 
+  # Internal AI service (embedding). Opt-in: docker compose --profile ai up -d ai-service
+  ai-service:
+    profiles: ["ai"]
+    build: ./ai-service
+    container_name: ${AI_SERVICE_CONTAINER_NAME:-ptutor-ai-service}
+    restart: ${AI_SERVICE_RESTART:-unless-stopped}
+    environment:
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
+      AI_AUTO_DOWNLOAD: ${AI_AUTO_DOWNLOAD:-true}
+      AI_THREADS: ${AI_THREADS:-0}
+      AI_RERANK_THREADS: ${AI_RERANK_THREADS:-2}
+      AI_RERANK_BATCH_SIZE: ${AI_RERANK_BATCH_SIZE:-1}
+      # Cross-encoder for /rerank (another ~590 MB model and ~1 GB of RAM); embedding works without it. Off since
+      # 26/10/2026 like the backend's app.recommendation.rerank.mode; set true together with mode ASYNC.
+      AI_RERANK_ENABLED: ${AI_RERANK_ENABLED:-false}
+      # LLM for /enrich; without a key that endpoint is disabled and embedding still works.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_LLM_MODEL: ${AI_LLM_MODEL:-gpt-6-luna}
+    ports:
+      # Bound to localhost only: the service must not be reachable from the Internet.
+      - "127.0.0.1:${AI_SERVICE_PORT:-8000}:8000"
+    volumes:
+      - ${AI_MODEL_DIR:-./ai-service/models}:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request,sys; sys.exit(0 if json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3))['status'] == 'ready' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
 volumes:
   ptutor_postgres_data:
     name: ${POSTGRES_VOLUME_NAME:-ptutor_postgres_data}

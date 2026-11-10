@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,9 +28,11 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.PaymentRepository;
@@ -51,6 +54,7 @@ public class AdminStudyingRequestService {
     private final EmployeeRepository employeeRepository;
     private final WalletService walletService;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -86,6 +90,9 @@ public class AdminStudyingRequestService {
         request.setReviewedBy(reviewer);
         request.setReviewedAt(LocalDateTime.now(clock));
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(request);
+        // The posting is live and now has a catalogue subject: tags and vector are computed for it.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         notificationService.createStudyingRequestReviewNotification(
                 saved.getStudent().getUser(), saved.getId().toString(), saved.getTitle(), true, null, null);
         return toDetailResponse(saved);

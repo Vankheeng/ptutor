@@ -1,0 +1,644 @@
+/* Search-by-criteria screens ("Gợi ý cho bạn"). Colours and sizes follow the student / tutor workspace. */
+.rec-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.rec-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.rec-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: #4f5468;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rec-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rec-filters input,
+.rec-filters select,
+.rec-filters textarea {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #20243a;
+  font: inherit;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+.rec-filters textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+.rec-filters input:focus,
+.rec-filters select:focus,
+.rec-filters textarea:focus {
+  outline: 2px solid #d9ccfb;
+  border-color: #6736d6;
+}
+.rec-filters input[type='checkbox'] {
+  width: auto;
+  min-height: 0;
+}
+.rec-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.rec-divider {
+  height: 1px;
+  background: #eceef4;
+}
+.rec-hint {
+  color: #8a8fa1;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.rec-from-sentence {
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #f0eafd;
+  color: #6736d6;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+.rec-notes {
+  margin: 0;
+  padding: 9px 12px 9px 26px;
+  border-radius: 8px;
+  background: #fff8e6;
+  color: #7a5a12;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.rec-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.rec-segmented button,
+.rec-chip {
+  padding: 6px 10px;
+  border: 1px solid #e5e6ee;
+  border-radius: 16px;
+  background: #fff;
+  color: #6c7186;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rec-segmented button.active,
+.rec-chip.active {
+  border-color: #6736d6;
+  background: #6736d6;
+  color: #fff;
+}
+.rec-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.rec-area {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.rec-selected-districts { display: flex; flex-wrap: wrap; gap: 6px; }
+.rec-selected-districts button { border: 1px solid #d9ccfb; border-radius: 999px; background: #f5f0ff; color: #5020a8; padding: 5px 10px; cursor: pointer; }
+.rec-district-toggle { align-self: flex-start; border: 1px solid #d9ccfb; border-radius: 8px; background: #fff; color: #5020a8; padding: 8px 12px; cursor: pointer; }
+.rec-district-panel { display: flex; flex-direction: column; gap: 7px; }
+.rec-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 150px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  border: 1px solid #eceef4;
+  border-radius: 8px;
+  font-weight: 500;
+}
+.rec-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.rec-checklist small {
+  color: #8a8fa1;
+}
+.rec-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rec-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  gap: 5px;
+  align-items: center;
+  font-weight: 500;
+}
+.rec-icon-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #8a8fa1;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rec-add,
+.rec-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6736d6;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rec-link {
+  color: #777c8e;
+}
+.rec-link.active {
+  color: #d6336c;
+}
+.rec-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.rec-results {
+  min-width: 0;
+}
+.rec-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: #20243a;
+  font-size: 13px;
+}
+.rec-low-confidence {
+  color: #9a6a12;
+  font-size: 10px;
+}
+.rec-relaxations {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 14px;
+  border-color: #dfd3fb;
+  background: #faf8ff;
+  color: #20243a;
+  font-size: 11px;
+}
+.rec-relaxation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.rec-relaxation .student-button {
+  min-height: 30px;
+  color: #6736d6;
+  border-color: #d9ccfb;
+  white-space: nowrap;
+}
+.rec-apply {
+  margin-bottom: 14px;
+}
+.rec-apply h2 {
+  margin: 0 0 4px;
+  color: #20243a;
+  font-size: 15px;
+}
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rec-card.exploration {
+  border-style: dashed;
+  border-color: #cdbdf7;
+}
+.rec-title-button { display: block; width: fit-content; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.rec-title-button:hover, .rec-title-button:focus-visible { text-decoration: underline; }
+.rec-card-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+}
+.rec-card-head h3 {
+  margin: 0;
+  color: #20243a;
+  font-size: 14px;
+}
+.rec-card-head small {
+  color: #8a8fa1;
+  font-size: 10px;
+}
+.rec-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f0eafd;
+  color: #6736d6;
+  font-size: 12px;
+  font-weight: 800;
+}
+.rec-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rec-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #6736d6;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.rec-score small {
+  margin-top: 3px;
+  color: #8a8fa1;
+  font-size: 9px;
+  font-weight: 600;
+}
+.rec-title {
+  margin: 0;
+  color: #353a50;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rec-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rec-facts span {
+  padding: 4px 9px;
+  border-radius: 12px;
+  background: #f5f6fa;
+  color: #5d6277;
+  font-size: 10px;
+  font-weight: 600;
+}
+.rec-facts .rec-badge {
+  background: #f0eafd;
+  color: #6736d6;
+}
+.rec-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #217450;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.rec-reasons li::before {
+  content: '✓ ';
+  font-weight: 800;
+}
+.rec-caution {
+  margin: 0;
+  color: #9a6a12;
+  font-size: 11px;
+}
+.rec-caution::before {
+  content: '! ';
+  font-weight: 800;
+}
+.rec-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f1f6;
+}
+.rec-card-actions .rec-link {
+  align-self: center;
+}
+.rec-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+.rec-tabs {
+  margin-top: -6px;
+}
+
+/* The student recommendation cards show the same posting details as tutor search. */
+.student-rec-layout .rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.student-rec-layout .rec-card {
+  min-width: 0;
+}
+.student-rec-layout .rec-posting-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9195a4;
+  font-size: 10px;
+}
+.student-rec-layout .rec-posting-subject,
+.student-rec-layout .rec-card > .rec-badge {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #f1edff;
+  color: #7049c8;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-rec-layout .rec-posting-meta {
+  margin: 0;
+  color: #7d8293;
+  font-size: 11px;
+}
+.student-rec-layout .rec-title {
+  color: #272b3d;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.student-rec-layout .rec-posting-description {
+  margin: 0;
+  color: #74798b;
+  font-size: 11px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.student-rec-layout .rec-posting-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f1f5;
+}
+.student-rec-layout .rec-posting-details span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.student-rec-layout .rec-posting-details small {
+  color: #a1a4b2;
+  font-size: 10px;
+}
+.student-rec-layout .rec-posting-details strong {
+  color: #44495c;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.student-rec-layout .rec-card-actions {
+  margin-top: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.student-rec-layout .rec-card-actions .student-button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 960px) {
+  .rec-layout {
+    grid-template-columns: 1fr;
+  }
+  .rec-filters {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* The tutor workspace: its panels have no padding of their own. */
+.tutor-panel.rec-filters,
+.tutor-panel.rec-card,
+.tutor-panel.rec-relaxations {
+  padding: 21px;
+}
+.rec-relaxation .tutor-button {
+  min-height: 30px;
+  color: #6736d6;
+  border-color: #d9ccfb;
+  white-space: nowrap;
+}
+.tutor-empty .tutor-button {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+/* The toolbar above the results: the count, the save icon and the "Đã lưu" menu. */
+.rec-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  margin-bottom: 10px;
+  color: #20243a;
+  font-size: 13px;
+}
+.rec-saved-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.rec-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6736d6;
+  cursor: pointer;
+}
+.rec-icon-button:hover:not(:disabled) {
+  border-color: #cdbdf7;
+  background: #faf8ff;
+}
+.rec-icon-button:disabled {
+  color: #b8bccb;
+  cursor: default;
+}
+.rec-icon-button.active:disabled {
+  color: #6736d6;
+}
+/* The hint shows on hover and keyboard focus, even when the button is disabled. */
+.rec-icon-button[data-tooltip]:hover::after,
+.rec-icon-button[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #20243a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  pointer-events: none;
+}
+.rec-menu-button {
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #4f5468;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rec-menu-button:hover,
+.rec-menu-button.open {
+  border-color: #cdbdf7;
+  color: #6736d6;
+}
+.rec-saved-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, 90vw);
+  padding: 14px;
+  border: 1px solid #eceef4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px #27335f22;
+  color: #20243a;
+  font-size: 11px;
+}
+.rec-saved-flash {
+  font-size: 11px;
+}
+.rec-saved-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.rec-saved-head small {
+  color: #8a8fa3;
+}
+.rec-saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-saved-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  border: 1px solid #eceef4;
+  border-radius: 9px;
+}
+.rec-saved-name {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6736d6;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.rec-saved-notify {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4f5468;
+}
+.rec-saved-actions {
+  display: inline-flex;
+  gap: 10px;
+}
+.rec-saved-edit,
+.rec-saved-forget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rec-saved-edit input {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  font: inherit;
+}
+.rec-saved-message {
+  color: #217450;
+}
+.rec-saved-error {
+  color: #ab4039;
+}

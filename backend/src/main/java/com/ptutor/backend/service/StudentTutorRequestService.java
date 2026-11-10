@@ -1,5 +1,6 @@
 package com.ptutor.backend.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,6 +48,8 @@ public class StudentTutorRequestService {
     private final GradeRepository gradeRepository;
     private final GradeTeachingRequestRepository gradeTeachingRequestRepository;
     private final ApplicationEventPublisher eventPublisher;
+    /** Null when the service is built without one (unit tests): no willingness snapshots are written. */
+    private final DecisionSnapshotRecorder snapshotRecorder;
 
     @Autowired
     public StudentTutorRequestService(
@@ -57,7 +60,8 @@ public class StudentTutorRequestService {
             StudentRepository studentRepository,
             GradeRepository gradeRepository,
             GradeTeachingRequestRepository gradeTeachingRequestRepository,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            DecisionSnapshotRecorder snapshotRecorder) {
         this.studentTutorRequestRepository = studentTutorRequestRepository;
         this.teachingRequestRepository = teachingRequestRepository;
         this.tutorRepository = tutorRepository;
@@ -66,6 +70,7 @@ public class StudentTutorRequestService {
         this.gradeRepository = gradeRepository;
         this.gradeTeachingRequestRepository = gradeTeachingRequestRepository;
         this.eventPublisher = eventPublisher;
+        this.snapshotRecorder = snapshotRecorder;
     }
 
     public StudentTutorRequestService(
@@ -77,7 +82,7 @@ public class StudentTutorRequestService {
             GradeRepository gradeRepository,
             GradeTeachingRequestRepository gradeTeachingRequestRepository) {
         this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
-                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { });
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { }, null);
     }
 
     @Transactional(readOnly = true)
@@ -122,6 +127,7 @@ public class StudentTutorRequestService {
                 throw invalidTransition("Only OPEN teaching requests can accept student applications");
             }
             request.setStatus(ApplicationStatus.ACCEPTED);
+            request.setRespondedAt(LocalDateTime.now());
             StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
             long acceptedCount = studentTutorRequestRepository
                     .countByTeachingRequest_IdAndStatus(teachingRequestId, ApplicationStatus.ACCEPTED);
@@ -137,6 +143,7 @@ public class StudentTutorRequestService {
             return studentTutorRequestMapper.toResponse(savedRequest);
         } else {
             request.setStatus(ApplicationStatus.REJECTED);
+            request.setRespondedAt(LocalDateTime.now());
         }
 
         StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
@@ -188,6 +195,10 @@ public class StudentTutorRequestService {
                     "A pending student tutor request already exists");
         }
 
+        // What the tutor's willingness was made of before this application (design 12, 12.6).
+        DecisionSnapshotRecorder.Prepared snapshots = snapshotRecorder == null ? null
+                : snapshotRecorder.prepareStudentApplication(
+                        student, teachingRequest, grade, source.proposedPrice(), source.learningMode());
         StudentTutorRequest request = StudentTutorRequest.builder()
                 .student(student)
                 .grade(grade)
@@ -200,6 +211,9 @@ public class StudentTutorRequestService {
                 .build();
 
         StudentTutorRequest saved = studentTutorRequestRepository.saveAndFlush(request);
+        if (snapshotRecorder != null) {
+            snapshotRecorder.record(snapshots, saved.getId());
+        }
         if (teachingRequest.getTutor() != null && teachingRequest.getTutor().getUser() != null) {
             eventPublisher.publishEvent(NotificationDomainEvent.of(
                     teachingRequest.getTutor().getUser().getId(),

@@ -50,6 +50,9 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_REFUND_REQUEST_A
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_STUDYING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_TAG_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_RECOMMENDATION_WEIGHT_API;
+import static com.ptutor.backend.config.SecurityConstants.RECOMMENDATION_INTERACTION_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_USER_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_API;
@@ -168,6 +171,7 @@ public class SecurityConfig {
                         .requestMatchers(API_DOCUMENTATION).access((authentication, context) ->
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
+                        .requestMatchers(ADMIN_RECOMMENDATION_WEIGHT_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
@@ -176,6 +180,7 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_STUDYING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_SUBJECT_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_GRADE_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_RECOMMENDATION_TAG_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_PROFILE_REVIEW_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_USER_API).hasAnyRole("ADMIN", "EMPLOYEE")
@@ -184,6 +189,7 @@ public class SecurityConfig {
                         .requestMatchers(STUDYING_REQUEST_READ_API).hasAnyRole("TUTOR", "EMPLOYEE")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
+                        .requestMatchers(RECOMMENDATION_INTERACTION_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(COMPLAINT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(WALLET_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")

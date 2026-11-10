@@ -41,6 +41,11 @@ public class Review extends BaseEntity {
     @NonFinal
     private Tutor tutor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contract_id")
+    @NonFinal
+    private Contract contract;
+
     @Column(name = "rating")
     @NonFinal
     private Integer rating;

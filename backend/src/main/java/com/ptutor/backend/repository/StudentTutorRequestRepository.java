@@ -16,6 +16,9 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 
 public interface StudentTutorRequestRepository extends JpaRepository<StudentTutorRequest, UUID> {
 
+    @Query("select request.teachingRequest.tutor.id from StudentTutorRequest request where request.id = :requestId")
+    Optional<UUID> findTutorIdByRequestId(@Param("requestId") UUID requestId);
+
     @EntityGraph(attributePaths = {
             "student", "student.user", "grade", "teachingRequest", "teachingRequest.subject",
             "teachingRequest.tutor", "teachingRequest.tutor.user"

@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
@@ -137,6 +140,7 @@ class StudyingRequestServiceTest {
                 });
 
         StudyingRequestResponse response = service.create(userId, request());
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(response.status()).isEqualTo(RequestStatus.DRAFT);
         assertThat(response.subjectId()).isEqualTo(subjectId);
@@ -286,6 +290,7 @@ class StudyingRequestServiceTest {
                 null, null, null, null, null);
 
         StudyingRequestResponse response = service.update(userId, request.getId(), update);
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(request.getTitle()).isEqualTo("Updated title");
         assertThat(request.getDescription()).isEqualTo("Keep this description");
@@ -339,6 +344,21 @@ class StudyingRequestServiceTest {
 
         assertThat(request.getStatus()).isEqualTo(RequestStatus.CLOSED);
         assertThat(response.status()).isEqualTo(RequestStatus.CLOSED);
+        verify(eventPublisher, never()).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
+    }
+
+    @Test
+    void reopeningClosedRequestQueuesItsEmbedding() {
+        StudyingRequest request = existingRequest(RequestStatus.CLOSED);
+        when(studyingRequestRepository.findByIdAndStudent_Id(request.getId(), studentId))
+                .thenReturn(Optional.of(request));
+        when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        StudyingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.OPEN);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.STUDYING_REQUEST, request.getId()));
     }
 
     @Test
@@ -402,13 +422,14 @@ class StudyingRequestServiceTest {
     }
 
     @Test
-    void activateAfterPaymentChangesDraftToOpen() {
+    void activateAfterPaymentChangesDraftToOpenAndQueuesTagsAndVector() {
         StudyingRequest request = existingRequest(RequestStatus.DRAFT);
         when(studyingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         assertThat(service.activateAfterPayment(request.getId()).status()).isEqualTo(RequestStatus.OPEN);
-        verify(eventPublisher, never()).publishEvent(any());
+        verify(eventPublisher).publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, request.getId()));
     }
 
     @Test
@@ -427,6 +448,8 @@ class StudyingRequestServiceTest {
                         && notification.recipientUserId().equals(employeeUserId)
                         && notification.eventType() == NotificationEventType.STUDYING_REQUEST_REVIEW_REQUIRED
                         && notification.referenceId().equals(request.getId().toString())));
+        // Not live yet: nothing is sent to the AI service, and the posting cannot be recommended.
+        verify(eventPublisher, never()).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
     }
 
     private StudyingRequestRequest request() {

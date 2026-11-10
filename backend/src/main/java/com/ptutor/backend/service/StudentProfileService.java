@@ -1,6 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ public class StudentProfileService {
     private final DistrictRepository districtRepository;
     private final StudentProfileMapper studentProfileMapper;
     private final CurrentUserProvider currentUserProvider;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public StudentProfileResponse getCurrentProfile() {
@@ -49,6 +53,8 @@ public class StudentProfileService {
         updateAddress(request, user);
         studentProfileMapper.updateUser(request, user);
         studentProfileMapper.updateStudent(request, student);
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDENT, student.getId()));
         return studentProfileMapper.toResponse(student);
     }
 

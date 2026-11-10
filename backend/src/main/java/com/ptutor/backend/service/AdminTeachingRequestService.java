@@ -1,6 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.time.Clock;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -51,6 +54,7 @@ public class AdminTeachingRequestService {
     private final WalletService walletService;
     private final NotificationService notificationService;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public PageResponse<AdminTeachingRequestSummaryResponse> findAll(
@@ -84,6 +88,9 @@ public class AdminTeachingRequestService {
         request.setReviewedBy(reviewer);
         request.setReviewedAt(LocalDateTime.now(clock));
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(request);
+        // Approval may replace a custom subject by a catalogue subject, which changes the embedded text.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         notificationService.createTeachingRequestReviewNotification(
                 saved.getTutor().getUser(), saved.getId().toString(), saved.getTitle(), true, null, null);
         return toDetailResponse(saved);

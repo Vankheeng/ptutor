@@ -17,6 +17,7 @@ import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
 import { TutorMyApplicationsPage } from './pages/tutor/TutorMyApplicationsPage';
 import { TutorContractsPage } from './pages/tutor/TutorContractsPage';
 import { TutorContractDetailPage } from './pages/tutor/TutorContractDetailPage';
+import { TutorStudentRecommendationsPage } from './pages/tutor/TutorStudentRecommendationsPage';
 import { HomeLanding } from './components/home/HomeLanding';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
@@ -27,6 +28,7 @@ import { OfferDetailPage } from './pages/student/OfferDetailPage';
 import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyingRequestCreatePage';
 import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
+import { StudentTutorRecommendations } from './pages/student/StudentTutorRecommendations';
 import { StudentTeachingRequestDetailPage } from './pages/student/StudentTeachingRequestDetailPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
@@ -79,6 +81,7 @@ import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
 import { AdminNotificationDetailPage } from './pages/admin/AdminNotificationDetailPage';
 import { AdminEmployeesPage } from './pages/admin/AdminEmployeesPage';
+import { AdminRecommendationWeightsPage } from './pages/admin/AdminRecommendationWeightsPage';
 import { AdminEmployeeDetailPage } from './pages/admin/AdminEmployeeDetailPage';
 import { AdminEmployeeFormPage } from './pages/admin/AdminEmployeeFormPage';
 
@@ -127,6 +130,7 @@ export default function App() {
                 <Route path="accounts" element={<AdminUserAccountsPage />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
+                <Route path="recommendation-weights" element={<AdminRecommendationWeightsPage />} />
                 <Route path="notifications/new" element={<AdminNotificationFormPage />} />
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
@@ -150,6 +154,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
+                 <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
@@ -192,6 +197,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
+                <Route path="tutor-recommendations" element={<StudentTutorRecommendations />} />
                 <Route path="teaching-requests/:requestId" element={<StudentTeachingRequestDetailPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="tutor-offers" element={<OffersPage />} />

@@ -1,0 +1,9 @@
+.rec-weights-page { color: var(--admin-ink); }
+.rec-weights-intro { margin: -12px 0 0; color: var(--admin-muted); font-size: 14px; }
+.rec-weights-model h2 { margin: 0 0 4px; }
+.rec-weights-model span, .rec-weights-card td small { color: var(--admin-muted); font-size: 12px; }
+.rec-weights-card .admin-key-values { max-width: 650px; }
+.rec-weights-history { border-top: 1px solid var(--admin-border); padding: 16px 20px; color: var(--admin-ink); }
+.rec-weights-history summary { cursor: pointer; color: var(--admin-brand-ink); font-size: 14px; font-weight: 600; }
+.rec-weights-history .admin-table-wrap { margin: 16px -20px 0; }
+.rec-weights-history p { color: var(--admin-muted); font-size: 14px; }

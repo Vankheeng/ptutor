@@ -1,6 +1,8 @@
 package com.ptutor.backend.service;
 
 import java.util.Collections;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -89,6 +91,8 @@ public class TeachingRequestService {
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
         replaceAssociations(saved, request);
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -141,6 +145,8 @@ public class TeachingRequestService {
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
         replaceAssociations(saved, request);
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         if (!draft && saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
         }
@@ -160,7 +166,13 @@ public class TeachingRequestService {
         }
 
         teachingRequest.setStatus(targetStatus);
-        return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        if (targetStatus == RequestStatus.OPEN) {
+            // A reopened posting may never have been embedded: closed postings are skipped.
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -194,6 +206,9 @@ public class TeachingRequestService {
                 : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        // A posting that needs no review is live from now on; one awaiting review is skipped by the workers.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
         }

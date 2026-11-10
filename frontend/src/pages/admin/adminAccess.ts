@@ -18,6 +18,7 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
       { to: '/admin/students', label: 'Học viên', functions: CUSTOMER_SERVICE },
       { to: '/admin/tutors', label: 'Gia sư', functions: CUSTOMER_SERVICE },
       { to: '/admin/notifications', label: 'Thông báo', functions: CUSTOMER_SERVICE },
+      { to: '/admin/recommendation-weights', label: 'Trọng số gợi ý', functions: [] },
       { to: '/admin/employees', label: 'Nhân viên', functions: [] }
     ]
   },

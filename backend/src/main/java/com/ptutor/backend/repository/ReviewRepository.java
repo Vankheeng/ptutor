@@ -12,6 +12,8 @@ import com.ptutor.backend.entity.Review;
 
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
+    boolean existsByContract_Id(UUID contractId);
+
     @EntityGraph(attributePaths = { "student", "student.user", "tutor", "tutor.user" })
     List<Review> findAllByRatingOrderByCreatedAtDesc(Integer rating, Pageable pageable);
 

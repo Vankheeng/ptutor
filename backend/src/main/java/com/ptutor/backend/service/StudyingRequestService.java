@@ -1,6 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -134,6 +137,8 @@ public class StudyingRequestService {
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
         replaceAvailabilities(saved, toAvailabilityValues(request.availabilities()));
         availabilityRepository.flush();
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -211,6 +216,8 @@ public class StudyingRequestService {
         if (request.availabilities() != null) {
             availabilityRepository.flush();
         }
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -228,7 +235,13 @@ public class StudyingRequestService {
         }
 
         studyingRequest.setStatus(targetStatus);
-        return toResponse(studyingRequestRepository.saveAndFlush(studyingRequest));
+        StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
+        if (targetStatus == RequestStatus.OPEN) {
+            // A reopened posting may never have been embedded: closed postings are skipped.
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -275,10 +288,16 @@ public class StudyingRequestService {
             throw invalidTransition("Only DRAFT requests can be activated after payment");
         }
 
+        // A subject outside the catalogue has to be reviewed before the posting goes live.
         studyingRequest.setStatus(requiresReview(studyingRequest) ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
         StudyingRequest saved = studyingRequestRepository.saveAndFlush(studyingRequest);
         if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
+        }
+        if (saved.getStatus() == RequestStatus.OPEN) {
+            // The posting is live from now on: tags and vector are computed for it.
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.STUDYING_REQUEST, saved.getId()));
         }
         return toResponse(saved);
     }

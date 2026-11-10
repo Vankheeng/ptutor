@@ -37,6 +37,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     java.util.Optional<Notification> findByIdAndUser_Id(UUID notificationId, UUID userId);
 
+    Optional<Notification> findByDeduplicationKey(String deduplicationKey);
+
     long countByUser_IdAndIsRead(UUID userId, boolean isRead);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

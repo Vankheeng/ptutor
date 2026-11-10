@@ -1,5 +1,6 @@
 import { del, get, patch, post, put } from './httpClient';
 import type { Installment } from './studentApi';
+import type { TeachingRequest } from '../types/api';
 
 export interface TutorAddress {
   detailAddress: string | null;
@@ -229,4 +230,9 @@ export function updateTutorLesson(
 
 export function setTutorLessonStatus(id: string, status: TutorLesson['status']) {
   return patch<TutorLesson>(`/api/v1/tutors/me/lessons/${id}/status`, { status });
+}
+
+export function getMyTeachingRequests(status?: 'OPEN' | 'MATCHED' | 'CLOSED' | 'DRAFT', signal?: AbortSignal) {
+  const query = status ? `?status=${status}` : '';
+  return get<TeachingRequest[]>(`/api/v1/tutors/me/teaching-requests${query}`, { signal });
 }

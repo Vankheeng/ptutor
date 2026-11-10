@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (request: LoginRequest) => {
+      clearStoredTokens();
       const tokens = await loginRequest(request);
       storeTokens(tokens);
       setUser(userFromTokens(tokens));

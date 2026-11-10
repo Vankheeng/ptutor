@@ -6,6 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import com.ptutor.backend.dto.response.PublicReviewResponse;
+import com.ptutor.backend.dto.response.ReviewResponse;
 import com.ptutor.backend.entity.Review;
 
 @Mapper(componentModel = "spring")
@@ -15,6 +16,10 @@ public interface ReviewMapper {
     @Mapping(target = "tutorName", expression = "java(toTutorName(review))")
     @Mapping(target = "tutorAvatarUrl", source = "tutor.user.avatarUrl")
     PublicReviewResponse toPublicResponse(Review review);
+
+    @Mapping(target = "contractId", source = "contract.id")
+    @Mapping(target = "tutorId", source = "tutor.id")
+    ReviewResponse toResponse(Review review);
 
     default String toTutorName(Review review) {
         if (review.getTutor() == null || review.getTutor().getUser() == null) {

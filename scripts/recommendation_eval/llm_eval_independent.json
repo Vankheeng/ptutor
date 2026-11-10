@@ -1,0 +1,43 @@
+{
+  "note": "Bộ câu độc lập 26/10/2026: ChatGPT sinh câu, nhóm sửa và duyệt nhãn. Chỉ dùng để kiểm tra, không dùng để chỉnh prompt (13 mục 13.6). Sửa cùng ngày theo nhóm: câu 15 Nam Từ Liêm -> Từ Liêm (danh mục theo đơn vị hành chính mới), câu 18 Hoá -> Hóa học (có trong danh mục); thêm câu 23 (tiếng Nhật, môn không có trong danh mục); câu 6 thêm mode OFFLINE (quy ước T10: có quận mà không nói hình thức).",
+  "schedule": [
+    {"text": "t2 t4 t6 tối e học dc từ 7h đến 9h nha", "expected": [[1, "19:00", "21:00"], [3, "19:00", "21:00"], [5, "19:00", "21:00"]]},
+    {"text": "Dạ chiều t3 hoặc t5 em rảnh từ 2 rưỡi trở đi ạ", "expected": [[2, "14:30", "16:30"], [4, "14:30", "16:30"]]},
+    {"text": "T7 sáng nhé, cn thì tối mới học dc", "expected": [[6, "08:00", "11:00"], [7, "19:00", "21:00"]]},
+    {"text": "các tối trong tuần đều học dc trừ t4 nha, t2 t3 t5 t6 đều ok", "expected": [[1, "19:00", "21:00"], [2, "19:00", "21:00"], [4, "19:00", "21:00"], [5, "19:00", "21:00"]]},
+    {"text": "lịch học trên trường kín hết chiều r, em học dc t2-t6 từ 19h30 khoảng 2 tiếng, riêng t6 nghỉ", "expected": [[1, "19:30", "21:30"], [2, "19:30", "21:30"], [3, "19:30", "21:30"], [4, "19:30", "21:30"]]},
+    {"text": "sau 9h tối t2 với t7 thôi ạ, trước đấy em chưa về đến nhà", "expected": [[1, "21:00", "22:00"], [6, "21:00", "22:00"]]},
+    {"text": "tối nào cũng ok trừ t6, nhà e ăn cơm xong tầm 7h", "expected": [[1, "19:00", "21:00"], [2, "19:00", "21:00"], [3, "19:00", "21:00"], [4, "19:00", "21:00"], [6, "19:00", "21:00"], [7, "19:00", "21:00"]]},
+    {"text": "t3 từ 6h tối, t5 8h tối a", "expected": [[2, "18:00", "20:00"], [4, "20:00", "22:00"]]},
+    {"text": "nhà em cuối tuần mới sắp xếp được, cn cả ngày đều ok", "expected": [[7, "08:00", "21:00"]]},
+    {"text": "ngày thường chiều từ 2 rưỡi, riêng t2 với t6 bận đón em nên ko học dc", "expected": [[2, "14:30", "16:30"], [3, "14:30", "16:30"], [4, "14:30", "16:30"]]},
+    {"text": "e chỉ rảnh t7 8h sáng đến 10h thôi nha, cn ko học", "expected": [[6, "08:00", "10:00"]]},
+    {"text": "t2 sáng, t4 chiều, t6 tối nhé. mấy hôm còn lại kín lịch mất r", "expected": [[1, "08:00", "11:00"], [3, "14:00", "17:00"], [5, "19:00", "21:00"]]},
+    {"text": "e rảnh buổi tối thôi a, ngày nào thì tuỳ thầy", "expected": []}
+  ],
+  "search": [
+    {"text": "gs toan 9 cau giay day tai nha toi da 200k", "expected": {"side": "S", "subject": "Toán", "grades": [9], "mode": "OFFLINE", "districts": ["Cầu Giấy"], "price_max": 200000}},
+    {"text": "can gs ielts lop 10 hoc onl toi 2 4 6 tam 200-350k", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [10], "mode": "ONLINE", "price_min": 200000, "price_max": 350000, "days": [1, 3, 5], "goalTags": ["chung_chi_ngoai_ngu"]}},
+    {"text": "bé lớp 8 học lý, nhà Thanh Xuân. học trực tiếp hay zoom đều dc, cần người giảng dễ hiểu, kiên nhẫn chút", "expected": {"side": "S", "subject": "Vật lý", "grades": [8], "districts": ["Thanh Xuân"], "styleTags": ["kien_nhan"]}},
+    {"text": "con lớp 6 mất gốc toán, cần kèm lại từ đầu, dạy chắc chắn với giải thích kỹ từng dạng. học tại nhà Hà Đông, tầm 250k/buổi", "expected": {"side": "S", "subject": "Toán", "grades": [6], "mode": "OFFLINE", "districts": ["Hà Đông"], "price_min": 200000, "price_max": 300000, "styleTags": ["cham_chac", "giai_thich_ky"], "segmentTags": ["mat_goc"]}},
+    {"text": "em cần gs tiếng Anh lớp 11 học online để luyện thi chứng chỉ, học phí khoảng 250k, thích học qua các tình huống giao tiếp thực tế", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [11], "mode": "ONLINE", "price_min": 200000, "price_max": 300000, "goalTags": ["chung_chi_ngoai_ngu"], "styleTags": ["giao_tiep"]}},
+    {"text": "Tìm thầy Toán lớp 9 ở Đống Đa luyện thi vào 10, cần có lộ trình rõ ràng, thầy giỏi càng tốt", "expected": {"side": "S", "subject": "Toán", "grades": [9], "mode": "OFFLINE", "districts": ["Đống Đa"], "goalTags": ["thi_vao_10"], "styleTags": ["ke_hoach_ro"]}},
+    {"text": "lý 11, học meet, em học khá rồi muốn luyện bài khó để thi đh", "expected": {"side": "S", "subject": "Vật lý", "grades": [11], "mode": "ONLINE", "goalTags": ["thi_dai_hoc"], "styleTags": ["luyen_tap_nhieu"], "segmentTags": ["kha"]}},
+    {"text": "toán lớp 7, ở đâu cũng được nha, giá 150k, thầy cô vui tính tí với có dùng app học tương tác", "expected": {"side": "S", "subject": "Toán", "grades": [7], "scope": "ANY", "price_min": 120000, "price_max": 180000, "styleTags": ["vui_ve", "tuong_tac_cong_nghe"]}},
+    {"text": "chị cần cô tiếng Anh dạy trực tiếp bé lớp 3, nhà Hoàng Mai. bé học mức trung bình, muốn cải thiện điểm, cô kiên nhẫn giúp chị", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [3], "mode": "OFFLINE", "districts": ["Hoàng Mai"], "goalTags": ["cai_thien_diem"], "styleTags": ["kien_nhan"], "segmentTags": ["trung_binh"]}},
+    {"text": "toán 12 học vượt chương trình, đừng bắt học thuộc công thức, cần luyện tư duy. giá trên 400k/buổi cũng dc", "expected": {"side": "S", "subject": "Toán", "grades": [12], "price_min": 400000, "goalTags": ["hoc_vuot"], "styleTags": ["tu_duy"]}},
+    {"text": "cần gs TA lớp 5 ở Hoàng Mai, dạy nhà, khoảng 200k. mong cô vui vẻ, tạo không khí thoải mái", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [5], "mode": "OFFLINE", "districts": ["Hoàng Mai"], "price_min": 160000, "price_max": 240000, "styleTags": ["vui_ve"]}},
+    {"text": "lớp 9 học khá, muốn thi HSG quận môn toán, cần người kèm sát với nghiêm khắc, cho nhiều bài luyện", "expected": {"side": "S", "subject": "Toán", "grades": [9], "goalTags": ["hoc_sinh_gioi"], "styleTags": ["nghiem_khac", "luyen_tap_nhieu"], "segmentTags": ["kha"]}},
+    {"text": "vật lý lớp 10, học online zoom, ở Bắc Từ Liêm, khoảng 300-350k/buổi, dạy chắc từ nền tảng nhé", "expected": {"side": "S", "subject": "Vật lý", "grades": [10], "mode": "ONLINE", "price_min": 300000, "price_max": 350000, "styleTags": ["cham_chac"]}},
+    {"text": "toán lớp 2 Ba Đình, ko học online, giá từ 180k trở lên, cần giải thích kỹ và có kế hoạch rõ", "expected": {"side": "S", "subject": "Toán", "grades": [2], "mode": "OFFLINE", "districts": ["Ba Đình"], "price_min": 180000, "styleTags": ["giai_thich_ky", "ke_hoach_ro"]}},
+    {"text": "em lớp 12 cần gs tiếng Anh thi đại học, tối t3 t5. học ở nhà Nam Từ Liêm hoặc online đều dc, 2tr/tháng", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [12], "districts": ["Từ Liêm"], "days": [2, 4], "goalTags": ["thi_dai_hoc"]}},
+    {"text": "Em là gia sư Toán, đang tìm học sinh lớp 6-8 khu Cầu Giấy hoặc dạy online, ưu tiên các bạn cần củng cố kiến thức.", "expected": {"side": "T", "subject": "Toán", "grades": [6, 7, 8], "districts": ["Cầu Giấy"]}},
+    {"text": "tìm gia sư giỏi giúp em với, học phí tầm 200k", "expected": {"side": "S", "price_min": 160000, "price_max": 240000}},
+    {"text": "cần người dạy Hoá lớp 11 tại nhà ở Hai Bà Trưng, tối đa 300k/buổi", "expected": {"side": "S", "subject": "Hóa học", "grades": [11], "mode": "OFFLINE", "districts": ["Hai Bà Trưng"], "price_max": 300000}},
+    {"text": "tìm gs Toán lớp 8, học ngày thường thôi, không học cuối tuần, ưu tiên dạy vui vẻ và dùng app, bảng điện tử", "expected": {"side": "S", "subject": "Toán", "grades": [8], "days": [1, 2, 3, 4, 5], "styleTags": ["tuong_tac_cong_nghe", "vui_ve"]}},
+    {"text": "Mình cần gia sư Tiếng Anh lớp 4, có thể học online hoặc trực tiếp ở nhà tại Tây Hồ, giá 180k/buổi.", "expected": {"side": "S", "subject": "Tiếng Anh", "grades": [4], "districts": ["Tây Hồ"], "price_min": 144000, "price_max": 216000}},
+    {"text": "tìm gia sư Toán lớp 9 học trực tiếp tại nhà, cần ôn thi vào 10, lịch t2 t4 t6, học phí từ 300k đến 400k", "expected": {"side": "S", "subject": "Toán", "grades": [9], "mode": "OFFLINE", "price_min": 300000, "price_max": 400000, "days": [1, 3, 5], "goalTags": ["thi_vao_10"]}},
+    {"text": "Em muốn học Vật lý lớp 12, em đang mất gốc nên cần người kiên nhẫn, giải thích kỹ, mục tiêu thi tốt nghiệp THPT.", "expected": {"side": "S", "subject": "Vật lý", "grades": [12], "goalTags": ["thi_tot_nghiep_thpt"], "styleTags": ["kien_nhan", "giai_thich_ky"], "segmentTags": ["mat_goc"]}},
+    {"text": "tìm gs tiếng Nhật cho con lớp 7, online", "expected": {"side": "S", "grades": [7], "mode": "ONLINE"}}
+  ]
+}

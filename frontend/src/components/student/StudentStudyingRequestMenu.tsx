@@ -28,12 +28,12 @@ export function StudentStudyingRequestMenu({ status, requestId, busy, onAction, 
   return (
     <div className="student-request-menu" onClick={(event) => event.stopPropagation()}>
       {(status === 'DRAFT' || status === 'OPEN') &&
-        item('Edit information', () => onNavigate(`/student/studying-requests/${requestId}/edit`), 'warning')}
-      {status === 'DRAFT' && item('Pay to publish', () => onAction(requestId, 'pay'), 'payment')}
-      {status === 'OPEN' && item('Close request', () => onAction(requestId, 'close'))}
-      {status === 'CLOSED' && item('Reopen request', () => onAction(requestId, 'open'))}
+        item('Sửa thông tin', () => onNavigate(`/student/studying-requests/${requestId}/edit`), 'warning')}
+      {status === 'DRAFT' && item('Thanh toán để đăng tin', () => onAction(requestId, 'pay'), 'payment')}
+      {status === 'OPEN' && item('Đóng tin', () => onAction(requestId, 'close'))}
+      {status === 'CLOSED' && item('Mở lại tin', () => onAction(requestId, 'open'))}
       {['DRAFT', 'OPEN', 'MATCHED', 'CLOSED'].includes(status) &&
-        item('Cancel request', () => onAction(requestId, 'cancel'), 'danger')}
+        item('Huỷ tin', () => onAction(requestId, 'cancel'), 'danger')}
     </div>
   );
 }
