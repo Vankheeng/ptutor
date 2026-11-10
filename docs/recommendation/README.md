@@ -8,7 +8,7 @@
 
 > Bộ tài liệu này thay thế bộ `docs/01–08` cũ (nằm ngoài repo, tại `D:\DATN\AI_Tutor_Recommendation\docs`),
 > vốn phân tích file `Đồ án .sql` và không còn khớp schema thật. Mọi tên bảng, cột, enum dưới đây lấy theo
-> migration Flyway trên nhánh `dev` (V1–V30) và của nhánh tính năng (V31–V35).
+> migration Flyway trên nhánh `dev` (đến `V37`) và của nhánh tính năng (`V38`–`V42`).
 >
 > Lịch sử thay đổi và việc còn mở: `NHAT-KY.md` cùng thư mục (chỉ có trên máy, không đưa lên Git).
 >

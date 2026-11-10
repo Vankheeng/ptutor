@@ -88,7 +88,7 @@ WHERE tr.deleted_at IS NULL
                          OR (s.status = 'REJECTED' AND s.updated_at > CURRENT_TIMESTAMP - INTERVAL '30 days')));
 ```
 
-Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V31); câu
+Ghi chú triển khai: mốc thời gian từ chối dùng `COALESCE(s.responded_at, s.updated_at)` (có từ V38); câu
 truy vấn trả thêm `1 − (tr.embedding <=> :queryVector)` để gộp pha 1 và pha 2 trong một lần đọc.
 
 ## 6.3. Pha 2 — Lấy ứng viên theo vector

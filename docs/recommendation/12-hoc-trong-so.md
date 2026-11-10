@@ -444,7 +444,7 @@ Với mỗi mô hình có chế độ ≠ OFF:
 - `evaluation` lưu `metric`, `learned`, `prior`, `n` (số mẫu giữ riêng), `newSamples`, `searches` (cộng dồn),
   `enoughData`, `clamped` (các đặc trưng có μ nằm ngoài biên kẹp).
 
-## 12.8. Lưu trữ — migration V34
+## 12.8. Lưu trữ — migration V41
 
 > 💡 Hai bảng mới: một bảng lưu các phiên bản trọng số (kèm A, c và cờ đang dùng), một bảng lưu ảnh chụp thành phần b lúc tạo đơn; cộng các trường thêm vào nhật ký tìm kiếm.
 
@@ -488,7 +488,7 @@ CREATE TABLE recommendation_decision_snapshots (
 Chế độ của từng mô hình (`OFF` / `SHADOW` / `ACTIVE`) nằm trong cấu hình (`learning.models.<key>.mode`) để
 đổi được khi khởi động; admin có thể ghi đè lúc chạy (12.9). **Quyết định (20/10/2026, người dùng chọn):** dự án
 không có bảng cấu hình hệ thống, nên giá trị ghi đè lưu trong bảng mới `recommendation_learning_modes` (migration
-`V35`: `model_key` khoá chính, `mode`, `updated_by`, `updated_at`). Mô hình không có dòng nào dùng chế độ của cấu hình.
+`V42`: `model_key` khoá chính, `mode`, `updated_by`, `updated_at`). Mô hình không có dòng nào dùng chế độ của cấu hình.
 
 **Bổ sung vào log tìm kiếm** (`recommendation_logs`):
 - `query_context.weights`: `{"A": {"model":"A_S2T","version":14,"mode":"ACTIVE","sampled":true,
@@ -497,7 +497,7 @@ không có bảng cấu hình hệ thống, nên giá trị ghi đè lưu trong 
   `fitPrice`) bên cạnh `willingness.hist/fit/cap` đang có — để phân tích và tái hiện điểm.
 - `log-candidate-limit` giữ 50 khi chạy thật; khi chạy thí nghiệm mô phỏng nâng lên 200.
 
-**Ghi chú triển khai (20/10/2026):** đã tạo `V34__add_recommendation_weight_learning.sql` đúng hai bảng trên, thêm
+**Ghi chú triển khai (20/10/2026; nay là `V41`):** đã tạo `V41__add_recommendation_weight_learning.sql` đúng hai bảng trên, thêm
 ràng buộc `ck_decision_snapshot_request_type` và chỉ mục `(request_type, request_id)` để đọc ảnh chụp theo đơn khi
 dựng dữ liệu học. Entity `RecommendationLearnedWeights`, `RecommendationDecisionSnapshot` và repository tương ứng.
 Log tìm kiếm đã có `query_context.weights` (`version = null` khi phục vụ prior) và `fitSegment`, `fitSched`,

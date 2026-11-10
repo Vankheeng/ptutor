@@ -1,8 +1,8 @@
 # 3. Dữ liệu và schema bổ sung
 
-> 💡 **File này nói về gì:** Thuật toán đọc những dữ liệu nào, văn bản nào được biến thành vector, và các bảng / cột mới phải thêm vào database. "Schema" là cấu trúc database; "migration" là file SQL có đánh số (V31, V32…) mà công cụ **Flyway** chạy lần lượt để thay đổi cấu trúc đó. Đọc khi cần biết dữ liệu nằm ở bảng nào.
+> 💡 **File này nói về gì:** Thuật toán đọc những dữ liệu nào, văn bản nào được biến thành vector, và các bảng / cột mới phải thêm vào database. "Schema" là cấu trúc database; "migration" là file SQL có đánh số (V38, V39…) mà công cụ **Flyway** chạy lần lượt để thay đổi cấu trúc đó. Đọc khi cần biết dữ liệu nằm ở bảng nào.
 
-Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V31` (điều kiện tiên quyết P2, P5, mục 3.3) chạy trước `V32` (dữ liệu cho đề xuất, mục 3.4), rồi `V33` (mốc xoá lịch sử); `V34` (dự kiến — học trọng số L1, mục 3.6) thiết kế ngày 13/10/2026, chưa tạo file. Số hiện tại là sau lần đổi số thứ ba (20/10/2026, xem ghi chú bên dưới).
+Phần này mô tả **dữ liệu đầu vào** của thuật toán và **migration bổ sung**: `V38` (điều kiện tiên quyết P2, P5, mục 3.3), `V39` (dữ liệu cho đề xuất, mục 3.4), `V40` (mốc xoá lịch sử), `V41` (học trọng số L1) và `V42` (chế độ học trọng số). Các số cũ trong ghi chú lịch sử bên dưới phản ánh thời điểm tài liệu được viết.
 Mọi tên bảng/cột hiện có lấy theo migration V1–V24 trên nhánh `dev` (cập nhật 09/10/2026).
 
 > Lưu ý đánh số: `dev` đã có `V22` (đối chiếu lại ràng buộc notification/wallet), `V23`, `V24` (thanh
@@ -74,7 +74,7 @@ dùng khi người tìm không có tiêu chí văn bản nào.
 Quy tắc chung: bỏ trường rỗng; cắt ≤ 512 token; không đưa họ tên, SĐT, email, địa chỉ chi tiết,
 ngày sinh; lọc regex SĐT/email trong văn bản tự do; lưu `content_hash` để chỉ embed lại khi đổi.
 
-## 3.3. Migration V31 — điều kiện tiên quyết P2, P5
+## 3.3. Migration V38 — điều kiện tiên quyết P2, P5
 
 > 💡 Hai thay đổi nhỏ: gắn mỗi đánh giá với đúng một hợp đồng (để mỗi hợp đồng chỉ được đánh giá một lần) và thêm cột `responded_at` ghi lúc phía kia trả lời đơn (để đo tốc độ phản hồi chính xác). Lưu ý số migration đã phải đổi mấy lần vì nhánh khác dùng trùng số (xem khung ghi chú đầu file).
 
@@ -90,7 +90,7 @@ ALTER TABLE student_tutor_requests ADD COLUMN responded_at timestamp;
 ALTER TABLE tutor_student_requests ADD COLUMN responded_at timestamp;
 ```
 
-## 3.4. Migration V32 — dữ liệu cho đề xuất
+## 3.4. Migration V39 — dữ liệu cho đề xuất
 
 > 💡 Toàn bộ bảng mới cho tính năng, đánh số từ 1 đến 13 trong file SQL: cột vector cho tin đăng (1024 số mỗi vector, theo mô hình `bge-m3`), bộ từ vựng **tag** (mã chuẩn như `kien_nhan`, `hinh_hoc_phang`), hàng đợi job nền, bộ nhớ đệm điểm rerank, tìm kiếm đã lưu, thông báo đã gửi, hồ sơ sở thích, thống kê lượt hiển thị, và các cột thêm vào bảng nhật ký. Không cần đọc hết SQL; mỗi khối có dòng chú thích `-- =====` nói nó là gì.
 
@@ -248,7 +248,7 @@ CREATE TABLE recommendation_user_profiles (
 );
 
 -- ===== 11. Thống kê hiển thị (R6) =====
--- Bổ sung 13/10/2026 (migration V33): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
+-- Bổ sung 13/10/2026 (nay là migration V40): mốc "Xoá lịch sử gợi ý"; tín hiệu trước mốc bị bỏ qua.
 ALTER TABLE recommendation_user_profiles ADD COLUMN history_reset_at timestamp;
 
 CREATE TABLE recommendation_exposure_stats (
@@ -377,12 +377,12 @@ trung lập); `avg_response_time_hours` dùng `updated_at` cho dữ liệu cũ (
 quyết định đơn nào (`LEAST` của PostgreSQL bỏ qua `NULL` nên phải bọc `CASE`, nếu không sẽ thành 9999,99).
 Thời gian phản hồi âm (hai mốc thời gian lệch nguồn giờ) được tính là 0 nhờ `GREATEST(…, 0)`.
 
-## 3.6. Migration V34 — học trọng số (L1)
+## 3.6. Migration V41 — học trọng số (L1)
 
 > 💡 Hai bảng cho việc tự học trọng số — một bảng lưu các phiên bản trọng số đã học, một bảng lưu "ảnh chụp" các con số tại lúc đơn được tạo (để sau này biết lúc đó hệ thống đã ước lượng gì). File migration đã tạo ngày 20/10/2026.
 
 Hai bảng mới: `recommendation_learned_weights` (mỗi lần cập nhật một dòng, có version, thống kê A, c và
 cờ `is_active`) và `recommendation_decision_snapshots` (ảnh chụp thành phần b khi đơn / đề nghị được tạo).
 SQL đầy đủ và các trường bổ sung vào `recommendation_logs` ở 12, mục 12.8. File:
-`V34__add_recommendation_weight_learning.sql` (`dev` dừng ở `V30` khi tạo, kiểm tra ngày 20/10/2026).
-`V35__add_recommendation_learning_modes.sql`: chế độ admin đặt cho từng mô hình (12, mục 12.8).
+`V41__add_recommendation_weight_learning.sql` (`dev` hiện dùng đến `V37`).
+`V42__add_recommendation_learning_modes.sql`: chế độ admin đặt cho từng mô hình (12, mục 12.8).
