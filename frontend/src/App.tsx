@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { GuestRoute, ProtectedRoute, RoleGuard } from './auth/RouteGuards';
 import HomePage from './pages/HomePage';
+import AdminStatisticsPage from './pages/AdminStatisticsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -131,6 +132,7 @@ export default function App() {
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
                 <Route element={<RoleGuard roles={['ADMIN']} />}>
+                  <Route path="statistics" element={<AdminStatisticsPage />} />
                   <Route path="employees" element={<AdminEmployeesPage />} />
                   <Route path="employees/new" element={<AdminEmployeeFormPage />} />
                   <Route path="employees/:employeeId" element={<AdminEmployeeDetailPage />} />

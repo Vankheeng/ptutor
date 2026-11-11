@@ -110,6 +110,11 @@ public final class SecurityConstants {
             "/api/v1/admin/notifications/**"
     };
 
+    public static final String[] ADMIN_STATISTICS_API = {
+            "/api/v1/admin/statistics",
+            "/api/v1/admin/statistics/**"
+    };
+
     public static final String[] EMPLOYEE_SELF_SERVICE_API = {
             "/api/v1/employees/me"
     };

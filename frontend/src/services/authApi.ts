@@ -1,5 +1,14 @@
 import { post } from './httpClient';
+import { clearStoredTokens, getStoredTokens } from '../auth/authStorage';
 import type { AuthTokenResponse, LoginRequest, RegisterRequest, RegisterResponse } from '../types/auth';
+
+export function getAdminAccessToken(): string | undefined {
+  return getStoredTokens()?.accessToken;
+}
+
+export function clearAdminSession(): void {
+  clearStoredTokens();
+}
 
 export function register(request: RegisterRequest): Promise<RegisterResponse> {
   return post<RegisterResponse>('/api/v1/auth/register', request, { skipAuthRefresh: true });
