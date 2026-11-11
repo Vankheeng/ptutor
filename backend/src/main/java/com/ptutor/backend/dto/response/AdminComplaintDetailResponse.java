@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 import com.ptutor.backend.dto.enums.UserRole;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
@@ -22,10 +24,13 @@ public record AdminComplaintDetailResponse(
         UUID id,
         String title,
         String content,
+        ComplaintCategory category,
         ComplaintStatus status,
         String resolution,
+        ComplaintFaultParty faultParty,
         LocalDateTime resolvedAt,
         Complainant complainant,
+        Respondent respondent,
         Reviewer reviewer,
         ContractDetail contract,
         List<EvidenceDetail> evidences,
@@ -36,6 +41,15 @@ public record AdminComplaintDetailResponse(
         LocalDateTime updatedAt) {
 
     public record Complainant(UUID userId, String name, String email, UserRole role) {
+    }
+
+    public record Respondent(
+            UUID userId,
+            String name,
+            String email,
+            UserRole role,
+            String response,
+            LocalDateTime respondedAt) {
     }
 
     public record Reviewer(UUID employeeId, UUID userId, String name) {
@@ -58,7 +72,8 @@ public record AdminComplaintDetailResponse(
             ContractStatus status) {
     }
 
-    public record EvidenceDetail(UUID id, String fileUrl, String fileType, LocalDateTime createdAt) {
+    public record EvidenceDetail(
+            UUID id, String fileUrl, String fileType, UUID uploadedByUserId, LocalDateTime createdAt) {
     }
 
     public record LessonDetail(

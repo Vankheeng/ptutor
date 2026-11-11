@@ -14,5 +14,7 @@ public interface WalletTransactionRepository
 
     List<WalletTransaction> findAllByWallet_User_IdOrderByCreatedAtDesc(UUID userId);
 
+    Optional<WalletTransaction> findByIdAndWallet_User_Id(UUID id, UUID userId);
+
     Optional<WalletTransaction> findByWallet_IdAndIdempotencyKey(UUID walletId, String idempotencyKey);
 }

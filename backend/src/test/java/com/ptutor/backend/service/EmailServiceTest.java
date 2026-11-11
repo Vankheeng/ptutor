@@ -41,7 +41,7 @@ class EmailServiceTest {
         SimpleMailMessage message = captor.getValue();
         assertThat(message.getFrom()).isEqualTo("no-reply@ptutor.local");
         assertThat(message.getTo()).containsExactly("student@example.com");
-        assertThat(message.getText()).contains("123456", "5 minutes");
+        assertThat(message.getText()).contains("123456", "5 phút");
     }
 
     @Test
@@ -66,7 +66,7 @@ class EmailServiceTest {
 
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
-        assertThat(captor.getValue().getSubject()).contains("suspended");
+        assertThat(captor.getValue().getSubject()).contains("tạm khóa");
         assertThat(captor.getValue().getText())
                 .contains("Repeated platform abuse", "2026-10-01T00:00:00Z");
     }

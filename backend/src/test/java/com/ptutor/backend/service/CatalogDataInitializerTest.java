@@ -48,11 +48,12 @@ class CatalogDataInitializerTest {
         ArgumentCaptor<Subject> subjectCaptor = ArgumentCaptor.forClass(Subject.class);
         ArgumentCaptor<Grade> gradeCaptor = ArgumentCaptor.forClass(Grade.class);
         verify(subjectRepository, times(16)).save(subjectCaptor.capture());
-        verify(gradeRepository, times(12)).save(gradeCaptor.capture());
+        verify(gradeRepository, times(13)).save(gradeCaptor.capture());
         assertThat(subjectCaptor.getAllValues()).extracting(Subject::getName).contains("Toán", "Ngữ văn");
         assertThat(subjectCaptor.getAllValues()).allMatch(subject -> subject.getStatus() == CatalogStatus.ACTIVE);
         assertThat(gradeCaptor.getAllValues()).extracting(Grade::getName).contains("Lớp 1", "Lớp 12");
         assertThat(gradeCaptor.getAllValues()).extracting(Grade::getLevel).contains(1, 12);
+        assertThat(gradeCaptor.getAllValues()).extracting(Grade::getName).contains("Khác");
     }
 
     @Test

@@ -24,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -48,23 +50,27 @@ class AdminComplaintControllerTest {
     @Test
     void listUsesFiltersAndOldestFirst() throws Exception {
         UUID contractId = UUID.randomUUID();
-        when(service.findAll(eq(ComplaintStatus.PENDING), eq(contractId), eq("schedule"), any(Pageable.class)))
+        when(service.findAll(eq(ComplaintStatus.PENDING), eq(contractId), eq(ComplaintCategory.ABSENCE),
+                eq(ComplaintFaultParty.RESPONDENT), eq("schedule"), any(Pageable.class)))
                 .thenReturn(new PageResponse<>(List.of(), 0, 20, 0, 0, true, true));
 
         mockMvc.perform(get("/api/v1/admin/complaints")
                         .param("status", "PENDING")
                         .param("contractId", contractId.toString())
+                        .param("category", "ABSENCE")
+                        .param("faultParty", "RESPONDENT")
                         .param("keyword", "schedule"))
                 .andExpect(status().isOk());
 
-        verify(service).findAll(eq(ComplaintStatus.PENDING), eq(contractId), eq("schedule"),
+        verify(service).findAll(eq(ComplaintStatus.PENDING), eq(contractId), eq(ComplaintCategory.ABSENCE),
+                eq(ComplaintFaultParty.RESPONDENT), eq("schedule"),
                 org.mockito.ArgumentMatchers.argThat(pageable ->
                         pageable.getSort().getOrderFor("createdAt").isAscending()));
     }
 
     @Test
     void listAllowsEmptyFilters() throws Exception {
-        when(service.findAll(isNull(), isNull(), isNull(), any(Pageable.class)))
+        when(service.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageResponse<>(List.of(), 0, 20, 0, 0, true, true));
 
         mockMvc.perform(get("/api/v1/admin/complaints"))
@@ -86,8 +92,43 @@ class AdminComplaintControllerTest {
     void acceptRequiresResolution() throws Exception {
         mockMvc.perform(patch("/api/v1/admin/complaints/{id}/accept", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"resolution\":\"   \"}"))
+                        .content("{\"resolution\":\"   \",\"faultParty\":\"NONE\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void acceptRequiresFaultParty() throws Exception {
+        mockMvc.perform(patch("/api/v1/admin/complaints/{id}/accept", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resolution\":\"The tutor missed the lesson\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void acceptPassesResolutionAndFaultParty() throws Exception {
+        UUID complaintId = UUID.randomUUID();
+        when(currentUserProvider.getCurrentUserId()).thenReturn(reviewerUserId);
+
+        mockMvc.perform(patch("/api/v1/admin/complaints/{id}/accept", complaintId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resolution\":\"The tutor missed the lesson\",\"faultParty\":\"RESPONDENT\"}"))
+                .andExpect(status().isOk());
+
+        verify(service).accept(reviewerUserId, complaintId, "The tutor missed the lesson",
+                ComplaintFaultParty.RESPONDENT);
+    }
+
+    @Test
+    void rejectDoesNotNeedFaultParty() throws Exception {
+        UUID complaintId = UUID.randomUUID();
+        when(currentUserProvider.getCurrentUserId()).thenReturn(reviewerUserId);
+
+        mockMvc.perform(patch("/api/v1/admin/complaints/{id}/reject", complaintId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resolution\":\"Insufficient evidence\"}"))
+                .andExpect(status().isOk());
+
+        verify(service).reject(reviewerUserId, complaintId, "Insufficient evidence");
     }
 
     @Test

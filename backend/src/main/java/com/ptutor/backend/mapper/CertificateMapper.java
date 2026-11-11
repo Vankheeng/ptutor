@@ -11,4 +11,8 @@ public interface CertificateMapper {
 
     @Mapping(target = "tutorId", source = "tutor.id")
     CertificateResponse toResponse(Certificate certificate);
+
+    @Mapping(target = "tutorId", source = "certificate.tutor.id")
+    @Mapping(target = "certificateUrl", source = "certificateUrl")
+    CertificateResponse toResponse(Certificate certificate, String certificateUrl);
 }

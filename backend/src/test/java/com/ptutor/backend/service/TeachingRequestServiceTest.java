@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
@@ -33,10 +35,14 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.SubjectRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -50,10 +56,13 @@ class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
+    @Mock PaymentRepository paymentRepository;
     @Mock TutorRepository tutorRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock EmployeeRepository employeeRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private TeachingRequestService service;
     private UUID userId;
@@ -66,11 +75,14 @@ class TeachingRequestServiceTest {
         service = new TeachingRequestService(
                 teachingRequestRepository,
                 studentTutorRequestRepository,
+                paymentRepository,
                 Mappers.getMapper(TeachingRequestMapper.class),
                 tutorRepository,
                 subjectRepository,
                 gradeRepository,
-                districtRepository);
+                districtRepository,
+                employeeRepository,
+                eventPublisher);
         userId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
         subjectId = UUID.randomUUID();
@@ -78,6 +90,8 @@ class TeachingRequestServiceTest {
         lenient().when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor()));
         lenient().when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
         lenient().when(studentTutorRequestRepository.countByTeachingRequestIds(any(), any()))
+                .thenReturn(List.of());
+        lenient().when(paymentRepository.findLatestPaidAtByReferenceIds(any(), any(), any(), any()))
                 .thenReturn(List.of());
     }
 
@@ -164,13 +178,33 @@ class TeachingRequestServiceTest {
     void activatePaidCustomSubjectWithoutNoteAsPendingReview() {
         TeachingRequest request = existingRequest(RequestStatus.DRAFT);
         request.setCustomSubjectName("Advanced Robotics");
+        UUID employeeUserId = UUID.randomUUID();
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+        when(employeeRepository.findAllUserIds()).thenReturn(List.of(employeeUserId));
+
+        TeachingRequestResponse response = service.activateAfterPayment(request.getId());
+
+        assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
+        verify(teachingRequestRepository).findById(request.getId());
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(employeeUserId);
+        assertThat(captor.getValue().eventType())
+                .isEqualTo(NotificationEventType.TEACHING_REQUEST_REVIEW_REQUIRED);
+    }
+
+    @Test
+    void activatePaidCatalogSubjectWithNoteAsPendingReview() {
+        TeachingRequest request = existingRequest(RequestStatus.DRAFT);
+        request.setSubject(subject());
+        request.setNote("Please review this note");
         when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
         when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         TeachingRequestResponse response = service.activateAfterPayment(request.getId());
 
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
-        verify(teachingRequestRepository).findById(request.getId());
     }
 
     @Test
@@ -221,9 +255,19 @@ class TeachingRequestServiceTest {
         when(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject()));
         when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
         TeachingRequestRequest update = new TeachingRequestRequest(
-                subjectId, null, List.of(gradeId), "Find math students", "Please review", 2,
-                List.of(), null, new BigDecimal("150000"), TeachingMode.ONLINE,
-                null, "Math tutoring", List.of());
+            subjectId,
+            null,
+            List.of(gradeId),
+            "Find math students",
+            "Please review",
+            1,
+            List.of(),
+            null,
+            new BigDecimal("150000"),
+            TeachingMode.ONLINE,
+            null,
+            "Math tutoring",
+            List.of());
 
         TeachingRequestResponse response = service.update(userId, request.getId(), update);
 
@@ -363,8 +407,19 @@ class TeachingRequestServiceTest {
 
     private TeachingRequestRequest requestWithCustomSubject() {
         return new TeachingRequestRequest(
-                null, " Advanced Robotics ", List.of(gradeId), "Find robotics students", null, 2, List.of(), null,
-                new BigDecimal("200000"), TeachingMode.ONLINE, null, "Robotics tutoring", List.of());
+            null,
+            " Advanced Robotics ",
+            List.of(gradeId),
+            "Find robotics students",
+            null,
+            1,
+            List.of(),
+            null,
+            new BigDecimal("200000"),
+            TeachingMode.ONLINE,
+            null,
+            "Robotics tutoring",
+            List.of());
     }
 
     private TeachingRequest existingRequest(RequestStatus status) {

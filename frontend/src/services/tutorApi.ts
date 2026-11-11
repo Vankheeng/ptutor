@@ -1,0 +1,232 @@
+import { del, get, patch, post, put } from './httpClient';
+import type { Installment } from './studentApi';
+
+export interface TutorAddress {
+  detailAddress: string | null;
+  districtId: string | null;
+  districtName: string | null;
+  provinceId: string | null;
+  provinceName: string | null;
+}
+
+export interface TutorProfile {
+  tutorId: string;
+  userId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  dateOfBirth: string | null;
+  avatarUrl: string | null;
+  address: TutorAddress | null;
+  introduction: string | null;
+  experienceYears: number | null;
+  education: string | null;
+  teachingStyleTags: string | null;
+  teachingMethodology: string | null;
+  strengthSubjects: string | null;
+  targetStudentType: string | null;
+  averageRating: number | null;
+  totalReviews: number;
+  completedContractsCount: number;
+  totalStudentsTaught: number;
+  acceptanceRate: number | null;
+  avgResponseTimeHours: number | null;
+  profileStatus: TutorProfileStatus;
+  profileReviewedAt: string | null;
+  profileRejectionReason: string | null;
+}
+
+export type TutorProfileStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface TutorCertificate {
+  id: string;
+  tutorId: string;
+  name: string;
+  issuingOrganization: string | null;
+  description: string | null;
+  issueDate: string | null;
+  expiryDate: string | null;
+  certificateUrl: string | null;
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED';
+  rejectionReason: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface TutorTeachingProposal {
+  id: string;
+  studyingRequestId: string;
+  studyingRequestTitle: string | null;
+  subjectName: string;
+  gradeName: string;
+  proposedPrice: number;
+  teachingMode: 'ONLINE' | 'OFFLINE';
+  preferredSchedule: string | null;
+  preferredProvinceId: string | null;
+  preferredProvinceName: string | null;
+  preferredDistrictId: string | null;
+  preferredDistrictName: string | null;
+  message: string | null;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  nextStep: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TutorContract {
+  id: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentDetailAddress: string | null;
+  subjectName: string | null;
+  gradeName: string | null;
+  teachingMode: 'ONLINE' | 'OFFLINE';
+  price: number;
+  totalLessons: number | null;
+  startDate: string;
+  endDate: string;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface TutorLesson {
+  id: string;
+  contractId: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  teachingMode: 'ONLINE' | 'OFFLINE';
+  status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  note: string | null;
+  paidAt: string | null;
+}
+
+export function getTutorProfile(signal?: AbortSignal) {
+  return get<TutorProfile>('/api/v1/tutors/me', { signal });
+}
+
+export function updateTutorProfile(values: Record<string, unknown>) {
+  return patch<TutorProfile>('/api/v1/tutors/me', values);
+}
+
+export function getTutorCertificates(signal?: AbortSignal) {
+  return get<TutorCertificate[]>('/api/v1/tutors/me/certificates', { signal });
+}
+
+export function filterTutorCertificates(status?: TutorCertificate['status'], signal?: AbortSignal) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return get<TutorCertificate[]>(`/api/v1/tutors/me/certificates${query}`, { signal });
+}
+
+export function getTutorCertificate(id: string) {
+  return get<TutorCertificate>(`/api/v1/tutors/me/certificates/${id}`);
+}
+
+export function uploadCertificateFile(file: File) {
+  const body = new FormData();
+  body.append('file', file);
+  return post<{ certificateUrl: string; previewUrl: string }>('/api/v1/tutors/me/certificates/upload', body);
+}
+
+export function createTutorCertificate(values: {
+  name: string;
+  issuingOrganization?: string;
+  description?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  certificateUrl: string;
+}) {
+  return post<TutorCertificate>('/api/v1/tutors/me/certificates', values);
+}
+
+export function updateTutorCertificate(
+  id: string,
+  values: {
+    name: string;
+    issuingOrganization?: string;
+    description?: string;
+    issueDate?: string;
+    expiryDate?: string;
+    certificateUrl?: string;
+  }
+) {
+  return put<TutorCertificate>(`/api/v1/tutors/me/certificates/${id}`, values);
+}
+
+export function deleteTutorCertificate(id: string) {
+  return del<void>(`/api/v1/tutors/me/certificates/${id}`);
+}
+
+export function getTutorProposals(status?: TutorTeachingProposal['status'], signal?: AbortSignal) {
+  const params = new URLSearchParams({ page: '0', size: '100' });
+  if (status) params.set('status', status);
+  return get<PageResponse<TutorTeachingProposal>>(`/api/v1/tutors/me/tutor-student-requests?${params}`, { signal });
+}
+
+export function cancelTutorProposal(id: string) {
+  return post(`/api/v1/tutors/me/tutor-student-requests/${id}/cancel`);
+}
+
+export function updateTutorProposal(
+  id: string,
+  values: {
+    gradeId: string;
+    proposedPrice: number;
+    teachingMode: 'ONLINE' | 'OFFLINE';
+    preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    message?: string;
+  }
+) {
+  return put<TutorTeachingProposal>(`/api/v1/tutors/me/tutor-student-requests/${id}`, values);
+}
+
+export function getTutorContracts(signal?: AbortSignal) {
+  return get<PageResponse<TutorContract>>('/api/v1/users/me/contracts?page=0&size=100', { signal });
+}
+
+export function getTutorContractLessons(contractId: string, signal?: AbortSignal) {
+  return get<PageResponse<TutorLesson>>(`/api/v1/tutors/me/contracts/${contractId}/lessons?page=0&size=100`, {
+    signal
+  });
+}
+
+export function getTutorContractInstallments(contractId: string, signal?: AbortSignal) {
+  return get<Installment[]>(`/api/v1/tutors/me/contracts/${contractId}/payment-installments`, { signal });
+}
+
+export function requestTutorContractStop(contractId: string) {
+  return post(`/api/v1/users/me/contracts/${contractId}/stop-requests`);
+}
+
+export function createTutorLesson(
+  contractId: string,
+  values: { title: string; date: string; startTime: string; endTime: string }
+) {
+  return post<TutorLesson>(`/api/v1/tutors/me/contracts/${contractId}/lessons`, values);
+}
+
+export function updateTutorLesson(
+  id: string,
+  values: { title: string; date: string; startTime: string; endTime: string; note?: string }
+) {
+  return put<TutorLesson>(`/api/v1/tutors/me/lessons/${id}`, values);
+}
+
+export function setTutorLessonStatus(id: string, status: TutorLesson['status']) {
+  return patch<TutorLesson>(`/api/v1/tutors/me/lessons/${id}/status`, { status });
+}

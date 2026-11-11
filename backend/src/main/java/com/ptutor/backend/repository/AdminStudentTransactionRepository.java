@@ -130,6 +130,7 @@ public class AdminStudentTransactionRepository {
                 row[3].toString(),
                 row[4].toString(),
                 (BigDecimal) row[5],
+                null,
                 uuid(row[6]),
                 row[7] == null ? null : row[7].toString(),
                 localDateTime(row[8]));

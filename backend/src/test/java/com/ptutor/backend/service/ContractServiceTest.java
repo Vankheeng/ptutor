@@ -187,7 +187,7 @@ class ContractServiceTest {
     void studentCannotCreateContractFromAnotherStudentsStudyingRequest() {
         Student otherStudent = student(UUID.randomUUID());
         StudyingRequest studyingRequest = StudyingRequest.builder()
-                .student(otherStudent).subject(subject).grade(grade).quantity(1)
+                .student(otherStudent).subject(subject).grade(grade)
                 .learningMode(LearningMode.ONLINE).status(RequestStatus.OPEN).build();
         studyingRequest.setId(studyingRequestId);
         TutorStudentRequest tutorRequest = TutorStudentRequest.builder()
@@ -360,10 +360,12 @@ class ContractServiceTest {
     @Test
     void counterpartySignsPendingContractAtomically() {
         Contract contract = studentOriginContract(ContractStatus.PENDING);
+        Contract activeContract = studentOriginContract(ContractStatus.ACTIVE);
+        activeContract.setId(contract.getId());
         when(contractTimeProvider.today()).thenReturn(LocalDate.of(2026, 9, 1));
         when(contractTimeProvider.now()).thenReturn(java.time.LocalDateTime.of(2026, 9, 1, 10, 0));
         when(contractRepository.findDetailedByIdAndParticipantUserId(contract.getId(), tutorUserId))
-                .thenReturn(Optional.of(contract));
+                .thenReturn(Optional.of(contract), Optional.of(activeContract));
         when(contractRepository.activatePendingByCounterparty(
                 eq(contract.getId()), eq(tutorUserId), eq(tutor.getUser()), eq(ContractStatus.PENDING),
                 eq(ContractStatus.ACTIVE), any(), any())).thenReturn(1);
@@ -373,6 +375,7 @@ class ContractServiceTest {
         verify(contractRepository).activatePendingByCounterparty(
                 eq(contract.getId()), eq(tutorUserId), eq(tutor.getUser()), eq(ContractStatus.PENDING),
                 eq(ContractStatus.ACTIVE), any(), any());
+        verify(installmentService).ensureForActiveContract(activeContract);
     }
 
     @Test
@@ -540,7 +543,7 @@ class ContractServiceTest {
 
     private StudyingRequest studyingRequest(RequestStatus status) {
         StudyingRequest request = StudyingRequest.builder()
-                .student(student).subject(subject).grade(grade).quantity(1)
+                .student(student).subject(subject).grade(grade)
                 .learningMode(LearningMode.ONLINE).status(status).build();
         request.setId(studyingRequestId);
         return request;

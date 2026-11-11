@@ -16,6 +16,8 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
 
     Optional<WithdrawalRequest> findByIdAndWallet_Id(UUID withdrawalId, UUID walletId);
 
+    Optional<WithdrawalRequest> findByIdAndWallet_User_Id(UUID withdrawalId, UUID userId);
+
     Page<WithdrawalRequest> findAllByWallet_User_Id(UUID userId, Pageable pageable);
 
     List<WithdrawalRequest> findAllByWallet_User_IdOrderByCreatedAtDesc(UUID userId);

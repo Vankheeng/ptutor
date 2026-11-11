@@ -11,6 +11,7 @@ import static org.mockito.Mockito.lenient;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -20,10 +21,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.dto.request.LessonRequest;
 import com.ptutor.backend.dto.response.LessonResponse;
@@ -36,6 +39,8 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.entity.enums.PaymentPeriod;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
 import com.ptutor.backend.repository.ContractRepository;
@@ -53,6 +58,8 @@ class LessonServiceTest {
     @Mock StudentRepository studentRepository;
     @Mock ComplaintRepository complaintRepository;
     @Mock ContractPaymentInstallmentService installmentService;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock com.ptutor.backend.repository.RefundRequestLessonRepository refundRequestLessonRepository;
 
     private LessonService service;
     private UUID userId;
@@ -72,9 +79,11 @@ class LessonServiceTest {
                 tutorRepository,
                 studentRepository,
                 complaintRepository,
+                refundRequestLessonRepository,
                 testMapper(),
                 Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
-                installmentService);
+                installmentService,
+                eventPublisher);
         lenient().when(installmentService.canCreateLesson(any(Contract.class))).thenReturn(true);
     }
 
@@ -92,11 +101,12 @@ class LessonServiceTest {
 
         assertThat(response.contractId()).isEqualTo(contractId);
         assertThat(response.status()).isEqualTo(LessonStatus.SCHEDULED);
+        assertThat(response.markedTaughtAt()).isNull();
         assertThat(response.teachingMode()).isEqualTo(TeachingMode.ONLINE);
     }
 
     @Test
-    void createsPendingConfirmationLessonForFinishedSchedule() {
+    void createsScheduledLessonForFinishedScheduleUntilTutorMarksItTaught() {
         stubTutor();
         when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract()));
         when(lessonRepository.saveAndFlush(any(Lesson.class))).thenAnswer(invocation -> {
@@ -113,7 +123,8 @@ class LessonServiceTest {
                 null,
                 null));
 
-        assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.status()).isEqualTo(LessonStatus.SCHEDULED);
+        assertThat(response.markedTaughtAt()).isNull();
     }
 
     @Test
@@ -174,6 +185,50 @@ class LessonServiceTest {
                 new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION));
 
         assertThat(response.status()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(response.markedTaughtAt()).isEqualTo(LocalDateTime.of(2026, 9, 12, 21, 0));
+        verify(installmentService).requirePaidForLesson(lesson);
+    }
+
+    @Test
+    void cancellingLessonNotifiesStudent() {
+        stubTutor();
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.SCHEDULED);
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(lessonRepository.saveAndFlush(lesson)).thenReturn(lesson);
+
+        LessonResponse response = service.updateStatus(
+                userId, lessonId,
+                new LessonRequest(null, null, null, null, null, LessonStatus.CANCELLED));
+
+        assertThat(response.status()).isEqualTo(LessonStatus.CANCELLED);
+        verify(installmentService).releasePendingLessonInstallment(lesson);
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.LESSON_CANCELLED);
+    }
+
+    @Test
+    void doesNotMarkLessonTaughtWhenRelatedInstallmentIsUnpaid() {
+        stubTutor();
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.SCHEDULED);
+        lesson.setDate(LocalDate.of(2026, 9, 12));
+        lesson.setEndTime(LocalTime.of(19, 0));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        org.mockito.Mockito.doThrow(new ApiException(HttpStatus.CONFLICT, "INSTALLMENT_PAYMENT_REQUIRED",
+                "The related tuition installment must be paid before this lesson can be marked as taught"))
+                .when(installmentService).requirePaidForLesson(lesson);
+
+        assertThatThrownBy(() -> service.updateStatus(userId, lessonId,
+                new LessonRequest(null, null, null, null, null, LessonStatus.PENDING_CONFIRMATION)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(exception.getCode()).isEqualTo("INSTALLMENT_PAYMENT_REQUIRED");
+                });
+
+        assertThat(lesson.getStatus()).isEqualTo(LessonStatus.SCHEDULED);
+        org.mockito.Mockito.verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -188,6 +243,72 @@ class LessonServiceTest {
         LessonResponse response = service.confirmByStudent(userId, lessonId);
 
         assertThat(response.status()).isEqualTo(LessonStatus.CONFIRMED);
+    }
+
+    @Test
+    void studentCannotConfirmPendingLessonBeforeItEnds() {
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
+        lesson.setEndTime(LocalTime.of(22, 0));
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+
+        assertThatThrownBy(() -> service.confirmByStudent(userId, lessonId))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("LESSON_NOT_FINISHED");
+                });
+    }
+
+    @Test
+    void studentListsLessonsOfOwnContractOnly() {
+        Contract own = contract();
+        own.setStudent(student());
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(own));
+        when(lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId))
+                .thenReturn(java.util.List.of(lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION)));
+
+        assertThat(service.findByContractForStudent(userId, contractId)).hasSize(1);
+
+        Contract other = contract();
+        Student someoneElse = Student.builder().build();
+        someoneElse.setId(UUID.randomUUID());
+        other.setStudent(someoneElse);
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(other));
+        assertThatThrownBy(() -> service.findByContractForStudent(userId, contractId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void studentCannotConfirmLessonDisputedInOpenRefundRequest() {
+        UUID lessonId = UUID.randomUUID();
+        Lesson lesson = lesson(lessonId, LessonStatus.PENDING_CONFIRMATION);
+        when(studentRepository.findByUser_Id(userId)).thenReturn(Optional.of(student()));
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+        when(refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(eq(lessonId), any()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.confirmByStudent(userId, lessonId))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("LESSON_COMPLETION_ON_HOLD"));
+    }
+
+    @Test
+    void autoCompletionSkipsLessonsDisputedInOpenRefundRequest() {
+        Lesson held = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        Lesson free = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of(held, free));
+        when(refundRequestLessonRepository.findHeldLessonIds(any(), any())).thenReturn(java.util.List.of(held.getId()));
+        when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
+
+        int completedCount = service.completeExpiredPendingLessons(3);
+
+        assertThat(completedCount).isEqualTo(1);
+        assertThat(held.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        assertThat(free.getStatus()).isEqualTo(LessonStatus.COMPLETED);
     }
 
     @Test
@@ -210,8 +331,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(false);
 
@@ -227,8 +349,9 @@ class LessonServiceTest {
         Lesson lesson = lesson(UUID.randomUUID(), LessonStatus.PENDING_CONFIRMATION);
         lesson.setDate(LocalDate.of(2026, 9, 9));
         lesson.setEndTime(LocalTime.of(20, 0));
-        when(lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, LocalDate.of(2026, 9, 9), LocalTime.of(21, 0)))
+        lesson.setMarkedTaughtAt(LocalDateTime.of(2026, 9, 9, 20, 30));
+        when(lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0)))
                 .thenReturn(java.util.List.of(lesson));
         when(complaintRepository.existsByContract_IdAndStatusIn(eq(contractId), any())).thenReturn(true);
 
@@ -236,6 +359,18 @@ class LessonServiceTest {
 
         assertThat(completedCount).isZero();
         assertThat(lesson.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+    }
+
+    @Test
+    void autoCompletionCountsGracePeriodFromMarkedTaughtTime() {
+        when(lessonRepository.findAllMarkedTaughtBefore(any(), any())).thenReturn(java.util.List.of());
+
+        service.completeExpiredPendingLessons(3);
+
+        // A lesson that ended weeks ago but was only marked as taught today is not a candidate:
+        // the repository is asked for lessons marked as taught at least 3 days before now.
+        verify(lessonRepository).findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, LocalDateTime.of(2026, 9, 9, 21, 0));
     }
 
     private LessonRequest createRequest() {
@@ -317,6 +452,7 @@ class LessonServiceTest {
                 lesson.getTeachingMode(),
                 lesson.getStatus(),
                 lesson.getNote(),
+                lesson.getMarkedTaughtAt(),
                 lesson.getCreatedAt(),
                 lesson.getUpdatedAt());
     }

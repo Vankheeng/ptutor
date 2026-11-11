@@ -7,9 +7,11 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,16 +22,24 @@ import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Lesson;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.Payment;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.RefundRequestLessonRepository;
 import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +47,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LessonService {
 
+    private static final List<RefundRequestStatus> OPEN_REFUND_STATUSES =
+            List.of(RefundRequestStatus.PENDING, RefundRequestStatus.IN_REVIEW);
     private static final List<ComplaintStatus> BLOCKING_COMPLAINT_STATUSES =
             List.of(ComplaintStatus.PENDING, ComplaintStatus.IN_REVIEW, ComplaintStatus.AWAITING_EVIDENCE);
 
@@ -45,9 +57,17 @@ public class LessonService {
     private final TutorRepository tutorRepository;
     private final StudentRepository studentRepository;
     private final ComplaintRepository complaintRepository;
+    private final RefundRequestLessonRepository refundRequestLessonRepository;
     private final LessonMapper lessonMapper;
     private final Clock clock;
     private final ContractPaymentInstallmentService installmentService;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
+
+    @Autowired(required = false)
+    private PaymentRepository paymentRepository;
 
     @Transactional
     public LessonResponse create(UUID userId, UUID contractId, LessonRequest source) {
@@ -68,28 +88,45 @@ public class LessonService {
                 .endTime(source.endTime())
                 .teachingMode(contract.getTeachingMode())
                 .note(normalize(source.note()))
-                .status(initialStatus(source.date(), source.endTime()))
+                .status(LessonStatus.SCHEDULED)
                 .build();
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.assignNextInstallment(contract, saved);
-        return lessonMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
+    public List<LessonResponse> findByContractForStudent(UUID userId, UUID contractId) {
+        Student student = findStudentByUserId(userId);
+        Contract contract = contractRepository.findById(contractId)
+                .filter(candidate -> candidate.getStudent() != null && student.getId().equals(candidate.getStudent().getId()))
+                .orElseThrow(() -> contractNotFound(contractId));
+        if (lessonProvisioningService != null) {
+            lessonProvisioningService.provision(contract);
+        }
+        return lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
     public PageResponse<LessonResponse> findByContract(
             UUID userId, UUID contractId, LessonStatus status, Pageable pageable) {
         Tutor tutor = findTutorByUserId(userId);
-        findOwnedContract(contractId, tutor.getId());
+        Contract contract = findOwnedContract(contractId, tutor.getId());
+        if (lessonProvisioningService != null) {
+            lessonProvisioningService.provision(contract);
+        }
         Page<Lesson> lessons = status == null
                 ? lessonRepository.findAllByContract_Id(contractId, pageable)
                 : lessonRepository.findAllByContract_IdAndStatus(contractId, status, pageable);
-        return PageResponse.from(lessons, lessons.getContent().stream().map(lessonMapper::toResponse).toList());
+        return PageResponse.from(lessons, lessons.getContent().stream().map(this::toResponse).toList());
     }
 
     @Transactional(readOnly = true)
     public LessonResponse findById(UUID userId, UUID lessonId) {
         Tutor tutor = findTutorByUserId(userId);
-        return lessonMapper.toResponse(findOwnedLesson(lessonId, tutor.getId()));
+        return toResponse(findOwnedLesson(lessonId, tutor.getId()));
     }
 
     @Transactional
@@ -106,7 +143,9 @@ public class LessonService {
         lesson.setStartTime(source.startTime());
         lesson.setEndTime(source.endTime());
         lesson.setNote(normalize(source.note()));
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        Lesson saved = lessonRepository.saveAndFlush(lesson);
+        installmentService.updatePendingLessonInstallmentDueDate(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -122,6 +161,7 @@ public class LessonService {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "LESSON_NOT_FINISHED",
                         "A lesson can only be marked as taught after it ends");
             }
+            installmentService.requirePaidForLesson(lesson);
         } else if (targetStatus == LessonStatus.CANCELLED) {
             if (lesson.getStatus() != LessonStatus.SCHEDULED
                     && lesson.getStatus() != LessonStatus.PENDING_CONFIRMATION) {
@@ -133,7 +173,18 @@ public class LessonService {
         }
 
         lesson.setStatus(targetStatus);
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        if (targetStatus == LessonStatus.PENDING_CONFIRMATION) {
+            lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
+        }
+        Lesson saved = lessonRepository.saveAndFlush(lesson);
+        if (targetStatus == LessonStatus.CANCELLED) {
+            installmentService.releasePendingLessonInstallment(saved);
+        }
+        publishStudentNotification(saved,
+                targetStatus == LessonStatus.CANCELLED
+                        ? NotificationEventType.LESSON_CANCELLED
+                        : NotificationEventType.LESSON_MARKED_TAUGHT);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -141,18 +192,35 @@ public class LessonService {
         Student student = findStudentByUserId(userId);
         Lesson lesson = findStudentLesson(lessonId, student.getId());
         ensurePendingConfirmation(lesson, "confirmed");
+        LocalDateTime lessonEnd = LocalDateTime.of(lesson.getDate(), lesson.getEndTime());
+        if (lessonEnd.isAfter(LocalDateTime.now(clock))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "LESSON_NOT_FINISHED",
+                    "A lesson can only be confirmed after it ends");
+        }
         ensureNoBlockingComplaint(lesson.getContract());
+        if (refundRequestLessonRepository.existsByLesson_IdAndRefundRequest_StatusIn(
+                lesson.getId(), OPEN_REFUND_STATUSES)) {
+            throw new ApiException(HttpStatus.CONFLICT, "LESSON_COMPLETION_ON_HOLD",
+                    "Lesson completion is on hold while it is disputed in a refund request");
+        }
 
         lesson.setStatus(LessonStatus.CONFIRMED);
-        return lessonMapper.toResponse(lessonRepository.saveAndFlush(lesson));
+        return toResponse(lessonRepository.saveAndFlush(lesson));
     }
 
     @Transactional
     public int completeExpiredPendingLessons(int graceDays) {
+        // The grace period starts when the tutor marks the lesson as taught, not when it ends,
+        // so a late report still leaves the student the full window to confirm or dispute it.
         LocalDateTime deadline = LocalDateTime.now(clock).minusDays(graceDays);
-        List<Lesson> candidates = lessonRepository.findAllFinishedBefore(
-                LessonStatus.PENDING_CONFIRMATION, deadline.toLocalDate(), deadline.toLocalTime());
+        List<Lesson> candidates = lessonRepository.findAllMarkedTaughtBefore(
+                LessonStatus.PENDING_CONFIRMATION, deadline);
+        // Lessons disputed in an open refund request wait for the reviewer's decision.
+        java.util.Set<UUID> heldLessonIds = candidates.isEmpty() ? java.util.Set.of()
+                : java.util.Set.copyOf(refundRequestLessonRepository.findHeldLessonIds(
+                        candidates.stream().map(Lesson::getId).toList(), OPEN_REFUND_STATUSES));
         List<Lesson> completedLessons = candidates.stream()
+                .filter(lesson -> !heldLessonIds.contains(lesson.getId()))
                 .filter(lesson -> !hasBlockingComplaint(lesson.getContract()))
                 .toList();
         if (completedLessons.isEmpty()) {
@@ -253,13 +321,6 @@ public class LessonService {
         return complaintRepository.existsByContract_IdAndStatusIn(contract.getId(), BLOCKING_COMPLAINT_STATUSES);
     }
 
-    private LessonStatus initialStatus(LocalDate date, LocalTime endTime) {
-        LocalDateTime lessonEnd = LocalDateTime.of(date, endTime);
-        return lessonEnd.isAfter(LocalDateTime.now(clock))
-                ? LessonStatus.SCHEDULED
-                : LessonStatus.PENDING_CONFIRMATION;
-    }
-
     private ApiException contractNotFound(UUID contractId) {
         return new ApiException(HttpStatus.NOT_FOUND, "CONTRACT_NOT_FOUND", "Contract not found: " + contractId);
     }
@@ -270,6 +331,30 @@ public class LessonService {
 
     private ApiException invalidStatusTransition(String message) {
         return new ApiException(HttpStatus.CONFLICT, "INVALID_LESSON_STATUS_TRANSITION", message);
+    }
+
+    private void publishStudentNotification(Lesson lesson, NotificationEventType eventType) {
+        Contract contract = lesson.getContract();
+        if (contract == null || contract.getStudent() == null || contract.getStudent().getUser() == null) {
+            return;
+        }
+        String name = lesson.getTitle() == null ? "Lesson" : lesson.getTitle();
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                contract.getStudent().getUser().getId(),
+                eventType,
+                NotificationReferenceType.LESSON,
+                lesson.getId(),
+                java.util.Map.of("name", name)));
+    }
+
+    private LessonResponse toResponse(Lesson lesson) {
+        java.time.LocalDateTime paidAt = paymentRepository == null
+                ? null
+                : paymentRepository.findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
+                        lesson.getId(), PaymentStatus.PAID)
+                        .map(Payment::getPaidAt)
+                        .orElse(null);
+        return lessonMapper.toResponse(lesson, paidAt);
     }
 
     private String normalize(String value) {

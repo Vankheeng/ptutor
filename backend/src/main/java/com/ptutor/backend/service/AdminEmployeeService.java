@@ -19,16 +19,19 @@ import com.ptutor.backend.dto.request.UpdateEmployeeRequest;
 import com.ptutor.backend.dto.response.AddressResponse;
 import com.ptutor.backend.dto.response.AdminEmployeeDetailResponse;
 import com.ptutor.backend.dto.response.AdminEmployeeSummaryResponse;
+import com.ptutor.backend.dto.response.EmployeeOpenAssignmentsResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.entity.enums.EmployeeJobFunction;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.EmployeeRole;
 import com.ptutor.backend.entity.enums.UserStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.RefundRequestRepository;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.ProvinceRepository;
@@ -49,6 +52,7 @@ public class AdminEmployeeService {
     private final ProvinceRepository provinceRepository;
     private final DistrictRepository districtRepository;
     private final ComplaintRepository complaintRepository;
+    private final RefundRequestRepository refundRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final CitizenIdCryptoService citizenIdCryptoService;
     private final RefreshTokenService refreshTokenService;
@@ -71,6 +75,27 @@ public class AdminEmployeeService {
     @Transactional(readOnly = true)
     public AdminEmployeeDetailResponse findById(UUID employeeId) {
         return toDetail(findDetailedEmployee(employeeId));
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeOpenAssignmentsResponse findOpenAssignments(UUID employeeId) {
+        Employee employee = findDetailedEmployee(employeeId);
+        return new EmployeeOpenAssignmentsResponse(
+                complaintRepository.findAllByEmployee_IdAndStatusInOrderByCreatedAtAsc(
+                                employee.getId(), OPEN_COMPLAINT_STATUSES).stream()
+                        .map(complaint -> new EmployeeOpenAssignmentsResponse.OpenComplaint(
+                                complaint.getId(), complaint.getTitle(), fullName(complaint.getUser()),
+                                complaint.getStatus().name(), complaint.getCreatedAt()))
+                        .toList(),
+                refundRequestRepository.findAllByEmployee_IdAndStatusOrderByCreatedAtAsc(
+                                employee.getId(), RefundRequestStatus.IN_REVIEW).stream()
+                        .map(refund -> new EmployeeOpenAssignmentsResponse.OpenRefundRequest(
+                                refund.getId(),
+                                refund.getStudent() == null ? null : fullName(refund.getStudent().getUser()),
+                                refund.getContract() == null || refund.getContract().getSubject() == null
+                                        ? null : refund.getContract().getSubject().getName(),
+                                refund.getCreatedAt()))
+                        .toList());
     }
 
     @Transactional
@@ -266,16 +291,18 @@ public class AdminEmployeeService {
     }
 
     private void ensureFunctionCanChange(Employee employee, EmployeeJobFunction newFunction) {
-        if (employee.getJobFunction() == EmployeeJobFunction.COMPLAINT_HANDLER
-                && newFunction != EmployeeJobFunction.COMPLAINT_HANDLER) {
+        // Customer service owns complaints and accountants own refunds, so any change of function
+        // must first hand over the employee's open work.
+        if (employee.getJobFunction() != newFunction) {
             ensureNoOpenAssignments(employee);
         }
     }
 
     private void ensureNoOpenAssignments(Employee employee) {
-        if (complaintRepository.existsByEmployee_IdAndStatusIn(employee.getId(), OPEN_COMPLAINT_STATUSES)) {
+        if (complaintRepository.existsByEmployee_IdAndStatusIn(employee.getId(), OPEN_COMPLAINT_STATUSES)
+                || refundRequestRepository.existsByEmployee_IdAndStatus(employee.getId(), RefundRequestStatus.IN_REVIEW)) {
             throw new ApiException(HttpStatus.CONFLICT, "EMPLOYEE_HAS_OPEN_ASSIGNMENTS",
-                    "Reassign the employee's open complaints before changing access");
+                    "Reassign the employee's open complaints and refund requests before changing access");
         }
     }
 
@@ -309,6 +336,16 @@ public class AdminEmployeeService {
         String citizenId = citizenIdCryptoService.decrypt(user.getEncryptedCitizenId());
         return citizenId.length() <= 4 ? citizenId : "*".repeat(citizenId.length() - 4)
                 + citizenId.substring(citizenId.length() - 4);
+    }
+
+    private String fullName(User user) {
+        if (user == null) {
+            return null;
+        }
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName().strip();
+        String lastName = user.getLastName() == null ? "" : user.getLastName().strip();
+        String name = (firstName + " " + lastName).strip();
+        return name.isEmpty() ? user.getEmail() : name;
     }
 
     private String normalizeOptional(String value) {

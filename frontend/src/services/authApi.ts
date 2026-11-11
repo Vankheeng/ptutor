@@ -1,48 +1,27 @@
-const SESSION_STORAGE_KEY = 'ptutor.admin.session';
-
-interface StoredSession {
-  accessToken: string;
-  role?: string;
-}
-
-interface JwtClaims {
-  role?: string;
-  exp?: number;
-}
+import { post } from './httpClient';
+import { clearStoredTokens, getStoredTokens } from '../auth/authStorage';
+import type { AuthTokenResponse, LoginRequest, RegisterRequest, RegisterResponse } from '../types/auth';
 
 export function getAdminAccessToken(): string | undefined {
-  const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-  if (!rawSession) return undefined;
-
-  try {
-    const session = JSON.parse(rawSession) as StoredSession;
-    if (!session.accessToken) return undefined;
-
-    const claims = decodeJwtClaims(session.accessToken);
-    const isExpired = typeof claims.exp === 'number' && claims.exp * 1000 <= Date.now();
-    if (claims.role !== 'ADMIN' || isExpired) {
-      clearAdminSession();
-      return undefined;
-    }
-
-    return session.accessToken;
-  } catch {
-    clearAdminSession();
-    return undefined;
-  }
+  return getStoredTokens()?.accessToken;
 }
 
 export function clearAdminSession(): void {
-  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  clearStoredTokens();
 }
 
-function decodeJwtClaims(token: string): JwtClaims {
-  const payload = token.split('.')[1];
-  if (!payload) throw new Error('Invalid access token');
+export function register(request: RegisterRequest): Promise<RegisterResponse> {
+  return post<RegisterResponse>('/api/v1/auth/register', request, { skipAuthRefresh: true });
+}
 
-  const normalizedPayload = payload
-    .replaceAll('-', '+')
-    .replaceAll('_', '/')
-    .padEnd(Math.ceil(payload.length / 4) * 4, '=');
-  return JSON.parse(atob(normalizedPayload)) as JwtClaims;
+export function login(request: LoginRequest): Promise<AuthTokenResponse> {
+  return post<AuthTokenResponse>('/api/v1/auth/login', request, { skipAuthRefresh: true });
+}
+
+export function refresh(refreshToken: string): Promise<AuthTokenResponse> {
+  return post<AuthTokenResponse>('/api/v1/auth/refresh', { refreshToken }, { skipAuthRefresh: true });
+}
+
+export function logout(refreshToken: string): Promise<void> {
+  return post<void>('/api/v1/auth/logout', { refreshToken }, { skipAuthRefresh: true });
 }

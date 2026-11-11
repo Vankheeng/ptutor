@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.ComplaintEvidenceRequest;
 import com.ptutor.backend.dto.request.ComplaintReassignmentRequest;
+import com.ptutor.backend.dto.request.ComplaintAcceptRequest;
 import com.ptutor.backend.dto.request.ComplaintResolutionRequest;
 import com.ptutor.backend.dto.response.AdminComplaintDetailResponse;
 import com.ptutor.backend.dto.response.AdminComplaintSummaryResponse;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -48,13 +51,15 @@ public class AdminComplaintController {
     public ResponseEntity<ApiResponse<PageResponse<AdminComplaintSummaryResponse>>> findAll(
             @RequestParam(required = false) ComplaintStatus status,
             @RequestParam(required = false) UUID contractId,
+            @RequestParam(required = false) ComplaintCategory category,
+            @RequestParam(required = false) ComplaintFaultParty faultParty,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
         return ResponseEntity.ok(responseFactory.success(
-                complaintService.findAll(status, contractId, keyword, pageable), BASE_PATH));
+                complaintService.findAll(status, contractId, category, faultParty, keyword, pageable), BASE_PATH));
     }
 
     @GetMapping("/{complaintId}")
@@ -95,9 +100,10 @@ public class AdminComplaintController {
     @PatchMapping("/{complaintId}/accept")
     public ResponseEntity<ApiResponse<AdminComplaintDetailResponse>> accept(
             @PathVariable UUID complaintId,
-            @Valid @RequestBody ComplaintResolutionRequest request) {
+            @Valid @RequestBody ComplaintAcceptRequest request) {
         return ResponseEntity.ok(responseFactory.success(
-                complaintService.accept(currentUserProvider.getCurrentUserId(), complaintId, request.resolution()),
+                complaintService.accept(currentUserProvider.getCurrentUserId(), complaintId,
+                        request.resolution(), request.faultParty()),
                 BASE_PATH + "/" + complaintId + "/accept"));
     }
 

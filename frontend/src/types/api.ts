@@ -8,6 +8,24 @@ export interface ApiResponse<T> {
   path: string;
 }
 
+export type UserRole = 'STUDENT' | 'TUTOR' | 'EMPLOYEE' | 'ADMIN';
+
+export interface Province {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface District {
+  id: string;
+  name: string;
+  provinceId: string;
+  provinceName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Subject {
   id: string;
   name: string;
@@ -50,6 +68,10 @@ export interface TeachingRequest {
   subjectName: string | null;
   customSubjectName: string | null;
   grades: Reference[];
+  status?: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
+  reviewedAt?: string | null;
+  paidAt?: string | null;
+  rejectionReason?: string | null;
   districts: Reference[];
   title: string | null;
   note: string | null;

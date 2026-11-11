@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -43,10 +44,13 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
@@ -67,6 +71,8 @@ class StudyingRequestServiceTest {
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
     @Mock DistrictRepository districtRepository;
+    @Mock EmployeeRepository employeeRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private StudyingRequestService service;
     private UUID userId;
@@ -90,7 +96,9 @@ class StudyingRequestServiceTest {
                 subjectRepository,
                 gradeRepository,
                 districtRepository,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                employeeRepository,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                eventPublisher);
 
         userId = UUID.randomUUID();
         studentId = UUID.randomUUID();
@@ -184,7 +192,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidPriceRange() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, 1, "Find a tutor", null, null, districtId, null,
+                subjectId, gradeId, "Find a tutor", null, null, districtId, null,
                 java.math.BigDecimal.valueOf(200), java.math.BigDecimal.valueOf(100),
                 null, LearningMode.ONLINE, null, null);
 
@@ -196,7 +204,7 @@ class StudyingRequestServiceTest {
     @Test
     void createRejectsInvalidAvailability() {
         StudyingRequestRequest invalid = new StudyingRequestRequest(
-                subjectId, gradeId, 1, "Find a tutor", null, null, null, null,
+                subjectId, gradeId, "Find a tutor", null, null, null, null,
                 null, null, null, LearningMode.ONLINE, null,
                 List.of(new StudyingRequestRequest.Availability(8, LocalTime.of(19, 0), LocalTime.of(18, 0))));
 
@@ -251,17 +259,17 @@ class StudyingRequestServiceTest {
     }
 
     @Test
-    void findMineRejectsUnsupportedStatusFilter() {
-        assertThatThrownBy(() -> service.findMine(
-                userId,
-                RequestStatus.PENDING_REVIEW,
-                PageRequest.of(0, 20)))
-                .isInstanceOfSatisfying(ApiException.class, exception -> {
-                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(exception.getCode()).isEqualTo("INVALID_STUDYING_REQUEST_STATUS");
-                });
-        verify(studyingRequestRepository, never())
-                .findAllByStudent_IdOrderByCreatedAtDesc(any(), any());
+    void findMineAcceptsReviewStatusFilter() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(studyingRequestRepository.findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                studentId, RequestStatus.PENDING_REVIEW, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        var response = service.findMine(userId, RequestStatus.PENDING_REVIEW, pageable);
+
+        assertThat(response.totalElements()).isZero();
+        verify(studyingRequestRepository).findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                studentId, RequestStatus.PENDING_REVIEW, pageable);
     }
 
     @Test
@@ -274,8 +282,8 @@ class StudyingRequestServiceTest {
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, null, "Updated title", null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, "Updated title", null, null, null, null, null,
+                null, null, null, null, null);
 
         StudyingRequestResponse response = service.update(userId, request.getId(), update);
 
@@ -290,7 +298,7 @@ class StudyingRequestServiceTest {
     void updateRejectsEmptyPatch() {
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, UUID.randomUUID(), update))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -308,8 +316,8 @@ class StudyingRequestServiceTest {
                 .thenReturn(Optional.of(request));
 
         StudyingRequestUpdateRequest update = new StudyingRequestUpdateRequest(
-                null, null, null, "Updated title", null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, "Updated title", null, null, null, null, null,
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(userId, request.getId(), update))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -400,14 +408,40 @@ class StudyingRequestServiceTest {
         when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
 
         assertThat(service.activateAfterPayment(request.getId()).status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void activateAfterPaymentSendsCustomSubjectToReviewAndNotifiesEmployees() {
+        StudyingRequest request = customSubjectRequest(RequestStatus.DRAFT);
+        UUID employeeUserId = UUID.randomUUID();
+        when(studyingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(studyingRequestRepository.saveAndFlush(request)).thenReturn(request);
+        when(employeeRepository.findAllUserIds()).thenReturn(List.of(employeeUserId));
+
+        assertThat(service.activateAfterPayment(request.getId()).status())
+                .isEqualTo(RequestStatus.PENDING_REVIEW);
+
+        verify(eventPublisher).publishEvent(org.mockito.ArgumentMatchers.<Object>argThat(event ->
+                event instanceof NotificationDomainEvent notification
+                        && notification.recipientUserId().equals(employeeUserId)
+                        && notification.eventType() == NotificationEventType.STUDYING_REQUEST_REVIEW_REQUIRED
+                        && notification.referenceId().equals(request.getId().toString())));
     }
 
     private StudyingRequestRequest request() {
         return new StudyingRequestRequest(
-                subjectId, gradeId, 1, "  Find an English tutor  ", "Description", "Note", districtId,
+                subjectId, gradeId, "  Find an English tutor  ", "Description", "Note", districtId,
                 "Address", java.math.BigDecimal.valueOf(100), java.math.BigDecimal.valueOf(200),
                 "Improve speaking", LearningMode.ONLINE, "Evenings",
                 List.of(new StudyingRequestRequest.Availability(2, LocalTime.of(18, 0), LocalTime.of(20, 0))));
+    }
+
+    private StudyingRequest customSubjectRequest(RequestStatus status) {
+        StudyingRequest request = existingRequest(status);
+        request.setSubject(null);
+        request.setNote("Korean");
+        return request;
     }
 
     private StudyingRequest existingRequest(RequestStatus status) {
@@ -415,7 +449,6 @@ class StudyingRequestServiceTest {
                 .student(student)
                 .subject(subject)
                 .grade(grade)
-                .quantity(1)
                 .district(district)
                 .title("Find an English tutor")
                 .learningMode(LearningMode.ONLINE)

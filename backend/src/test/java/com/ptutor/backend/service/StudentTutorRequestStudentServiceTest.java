@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.dto.request.StudentTutorRequestCreateRequest;
+import com.ptutor.backend.dto.request.StudentTutorRequestUpdateRequest;
 import com.ptutor.backend.dto.response.StudentTutorRequestMineResponse;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -153,6 +154,83 @@ class StudentTutorRequestStudentServiceTest {
         assertThat(result.content()).containsExactly(response);
         assertThat(result.totalElements()).isEqualTo(1);
         verify(requestRepository).findAllByStudent_IdOrderByCreatedAtDesc(studentId, page.getPageable());
+    }
+
+    @Test
+    void searchesStudentRequestsWithNormalizedKeyword() {
+        StudentTutorRequest request = StudentTutorRequest.builder().student(student).status(ApplicationStatus.PENDING).build();
+        request.setId(requestId);
+        StudentTutorRequestMineResponse response = org.mockito.Mockito.mock(StudentTutorRequestMineResponse.class);
+        var page = new PageImpl<>(List.of(request), PageRequest.of(0, 20), 1);
+        when(requestRepository.findAllForStudent(studentId, null, "math", page.getPageable())).thenReturn(page);
+        when(mapper.toMineResponse(request)).thenReturn(response);
+
+        var result = service.findMineForStudent(userId, null, "  math  ", page.getPageable());
+
+        assertThat(result.content()).containsExactly(response);
+        verify(requestRepository).findAllForStudent(studentId, null, "math", page.getPageable());
+    }
+
+    @Test
+    void findsApplicationDetailOnlyForCurrentStudent() {
+        StudentTutorRequest request = StudentTutorRequest.builder().student(student).status(ApplicationStatus.PENDING).build();
+        request.setId(requestId);
+        StudentTutorRequestMineResponse response = org.mockito.Mockito.mock(StudentTutorRequestMineResponse.class);
+        when(requestRepository.findByIdAndStudent_Id(requestId, studentId)).thenReturn(Optional.of(request));
+        when(mapper.toMineResponse(request)).thenReturn(response);
+
+        assertThat(service.findMineById(userId, requestId)).isSameAs(response);
+        verify(requestRepository).findByIdAndStudent_Id(requestId, studentId);
+    }
+
+    @Test
+    void updatesOnlyPendingRequestOwnedByCurrentStudent() {
+        StudentTutorRequest request = StudentTutorRequest.builder()
+                .student(student)
+                .teachingRequest(teachingRequest)
+                .grade(grade)
+                .status(ApplicationStatus.PENDING)
+                .build();
+        request.setId(requestId);
+        StudentTutorRequestMineResponse response = org.mockito.Mockito.mock(StudentTutorRequestMineResponse.class);
+        when(requestRepository.findByIdAndStudent_Id(requestId, studentId)).thenReturn(Optional.of(request));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade));
+        when(gradeTeachingRequestRepository.existsByTeachingRequest_IdAndGrade_Id(teachingRequestId, gradeId))
+                .thenReturn(true);
+        when(requestRepository.saveAndFlush(request)).thenReturn(request);
+        when(mapper.toMineResponse(request)).thenReturn(response);
+
+        var source = new StudentTutorRequestUpdateRequest(
+                gradeId, BigDecimal.valueOf(180_000), LearningMode.OFFLINE, "Saturday morning", "Updated message");
+
+        assertThat(service.updateForStudent(userId, requestId, source)).isSameAs(response);
+        assertThat(request.getProposedPrice()).isEqualByComparingTo("180000");
+        assertThat(request.getLearningMode()).isEqualTo(LearningMode.OFFLINE);
+        assertThat(request.getPreferredSchedule()).isEqualTo("Saturday morning");
+        assertThat(request.getMessage()).isEqualTo("Updated message");
+    }
+
+    @Test
+    void refusesToUpdateAlreadyProcessedRequest() {
+        StudentTutorRequest request = StudentTutorRequest.builder()
+                .student(student)
+                .teachingRequest(teachingRequest)
+                .status(ApplicationStatus.ACCEPTED)
+                .build();
+        request.setId(requestId);
+        when(requestRepository.findByIdAndStudent_Id(requestId, studentId)).thenReturn(Optional.of(request));
+
+        assertThatThrownBy(() -> service.updateForStudent(
+                userId,
+                requestId,
+                new StudentTutorRequestUpdateRequest(
+                        gradeId, BigDecimal.valueOf(180_000), LearningMode.ONLINE, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(exception.getCode())
+                            .isEqualTo("INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION");
+                });
+        verify(requestRepository, never()).saveAndFlush(any());
     }
 
     @Test

@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
+import java.time.LocalTime;
 
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
@@ -15,6 +17,7 @@ public record ContractResponse(
         String studentFirstName,
         String studentLastName,
         String studentEmail,
+        String studentDetailAddress,
         UUID tutorId,
         String tutorFirstName,
         String tutorLastName,
@@ -28,6 +31,7 @@ public record ContractResponse(
         PaymentPeriod paymentPeriod,
         Integer totalLessons,
         String preferredSchedule,
+        List<Schedule> schedules,
         LocalDate startDate,
         LocalDate endDate,
         ContractStatus status,
@@ -39,4 +43,7 @@ public record ContractResponse(
         LocalDateTime signedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
+
+    public record Schedule(Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
+    }
 }

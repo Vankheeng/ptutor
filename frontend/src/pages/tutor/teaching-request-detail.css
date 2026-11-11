@@ -1,0 +1,44 @@
+.teaching-detail-top-actions { display:flex; justify-content:space-between; gap:10px; margin:0 0 14px; }
+.teaching-detail-actions-right { display:flex; align-items:center; gap:8px; }
+.teaching-detail-layout { align-items:start; }
+.teaching-detail-info h1 { margin:0 0 18px; color:#252a3d; font-size:20px; }
+.teaching-detail-info dl { display:grid; gap:0; margin:0; }
+.teaching-detail-info dl > div { display:grid; grid-template-columns:minmax(105px,.75fr) minmax(0,1.4fr); gap:14px; padding:12px 0; border-bottom:1px solid #f0f1f5; font-size:11px; }
+.teaching-detail-info dt { color:#555a6e; font-weight:700; }
+.teaching-detail-info dd { margin:0; color:#303448; overflow-wrap:anywhere; }
+.teaching-detail-applications h2 { margin:0 0 6px; color:#252a3d; font-size:17px; }
+.teaching-detail-applications > p { margin:0 0 16px; color:#818597; font-size:10px; }
+.teaching-application { display:grid; grid-template-columns:40px minmax(0,1fr) auto; align-items:center; gap:10px; padding:12px 0; border-top:1px solid #eceef4; }
+.teaching-application-avatar { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#e9edf5; color:#52617d; font-size:11px; font-weight:800; }
+.teaching-application-content { display:grid; gap:4px; min-width:0; color:#303448; font-size:10px; }
+.teaching-application-content > span { color:#818597; overflow-wrap:anywhere; }
+.teaching-application-actions { grid-column:2/-1; display:flex; gap:8px; }
+.teaching-application > .student-button { white-space: nowrap; min-width: max-content; }
+.teaching-contract-backdrop { position:fixed; z-index:100; inset:0; display:grid; place-items:center; padding:18px; background:#15152a66; }
+.teaching-contract-form { width:min(560px,100%); display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.teaching-contract-form h2,.teaching-contract-form p,.teaching-contract-form .student-form-actions { grid-column:1/-1; }
+.teaching-contract-form h2 { margin:0; color:#252a3d; font-size:17px; }
+.teaching-contract-form p { margin:0; color:#72778a; font-size:11px; }
+.teaching-contract-form label { display:grid; gap:5px; color:#555a6e; font-size:10px; font-weight:700; }
+.teaching-contract-form input,.teaching-contract-form select { width:100%; min-width:0; padding:9px 10px; border:1px solid #e3e5ed; border-radius:8px; background:white; color:#303448; font:inherit; font-size:11px; }
+@media(max-width:720px) { .teaching-detail-layout { grid-template-columns:1fr; }.teaching-application { grid-template-columns:36px minmax(0,1fr); }.teaching-application > .student-status,.teaching-application > .student-button { grid-column:2; justify-self:start; }.teaching-contract-form { grid-template-columns:1fr; }.teaching-contract-form h2,.teaching-contract-form p,.teaching-contract-form .student-form-actions { grid-column:auto; } }
+.student-panel.teaching-draft-payment { display: grid; gap: 7px; margin-top: 16px; padding: 10px; border: 1px solid #e6ddf5; border-radius: 9px; background: #faf8ff; box-shadow: none; }
+.teaching-draft-payment h2, .teaching-draft-payment p { margin: 0; }
+.teaching-draft-payment h2 { color: #30234b; font-size: 11px; }
+.teaching-draft-payment p { color: #746b82; font-size: 11px; }
+.teaching-draft-payment label { display: grid; gap: 4px; color: #4f4660; font-size: 11px; font-weight: 700; }
+.teaching-draft-payment select { min-height: 32px; padding: 5px 8px; border: 1px solid #ded5ed; border-radius: 7px; background: white; font-size: 11px; font-weight: 400; }
+.teaching-draft-payment > button { justify-self: start; min-height: 32px; padding: 7px 11px; font-size: 11px; }
+.teaching-payment-summary { display: grid; gap: 5px; padding: 0; border: 0; background: transparent; color: #746b82; font-size: 11px; line-height: 1.45; }
+.teaching-payment-summary strong { color: #392458; font-size: 11px; }
+.teaching-rejection-reason {
+  border: 1px solid #f2c7c7;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #8f2525;
+  padding: 12px 14px;
+}
+
+.teaching-rejection-reason { margin-top: 12px; font-size: 11px; line-height: 1.5; }
+.teaching-detail-info .student-status.rejected,
+.student-request-card .student-status.rejected { font-weight: 400; }

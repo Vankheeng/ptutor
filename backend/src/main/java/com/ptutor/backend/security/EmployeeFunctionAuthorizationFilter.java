@@ -1,7 +1,10 @@
 package com.ptutor.backend.security;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -29,6 +32,18 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
 
+    private static final List<String> CUSTOMER_SERVICE_PATHS = List.of(
+            "/api/v1/admin/notifications",
+            "/api/v1/admin/complaints",
+            "/api/v1/admin/certificates",
+            "/api/v1/admin/teaching-requests",
+            "/api/v1/admin/studying-requests",
+            "/api/v1/admin/tutor-profiles",
+            "/api/v1/admin/subjects",
+            "/api/v1/admin/grades",
+            "/api/v1/admin/users",
+            "/api/v1/admin/tutors");
+
     private final EmployeeRepository employeeRepository;
     private final ApiResponseFactory responseFactory;
     private final ObjectMapper objectMapper;
@@ -38,8 +53,8 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-        EmployeeJobFunction requiredFunction = requiredFunction(request.getRequestURI());
-        if (requiredFunction == null) {
+        Set<EmployeeJobFunction> allowedFunctions = allowedFunctions(request);
+        if (allowedFunctions.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -63,7 +78,7 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
         try {
             UUID userId = UUID.fromString(jwt.getToken().getSubject());
             Employee employee = employeeRepository.findByUser_Id(userId).orElse(null);
-            if (employee != null && employee.getJobFunction() == requiredFunction) {
+            if (employee != null && allowedFunctions.contains(employee.getJobFunction())) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -79,23 +94,14 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
                 Map.of(), request.getRequestURI()));
     }
 
-    private EmployeeJobFunction requiredFunction(String path) {
-        if (path.startsWith("/api/v1/admin/notifications")) {
-            return EmployeeJobFunction.GENERAL_OPERATIONS;
+    private Set<EmployeeJobFunction> allowedFunctions(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/v1/admin/refund-requests")) {
+            return EnumSet.of(EmployeeJobFunction.ACCOUNTANT);
         }
-        if (path.startsWith("/api/v1/admin/complaints")) {
-            return EmployeeJobFunction.COMPLAINT_HANDLER;
+        if (CUSTOMER_SERVICE_PATHS.stream().anyMatch(path::startsWith)) {
+            return EnumSet.of(EmployeeJobFunction.CUSTOMER_SERVICE);
         }
-        if (path.startsWith("/api/v1/admin/certificates")
-                || path.startsWith("/api/v1/admin/teaching-requests")
-                || path.startsWith("/api/v1/admin/tutor-profiles")
-                || path.startsWith("/api/v1/admin/subjects")
-                || path.startsWith("/api/v1/admin/grades")) {
-            return EmployeeJobFunction.CONTENT_REVIEWER;
-        }
-        if (path.startsWith("/api/v1/admin/users") || path.startsWith("/api/v1/admin/tutors")) {
-            return EmployeeJobFunction.USER_SUPPORT;
-        }
-        return null;
+        return EnumSet.noneOf(EmployeeJobFunction.class);
     }
 }

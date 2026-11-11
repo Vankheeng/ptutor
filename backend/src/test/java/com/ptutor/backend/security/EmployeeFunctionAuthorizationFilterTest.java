@@ -1,5 +1,7 @@
 package com.ptutor.backend.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +16,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -44,15 +48,22 @@ class EmployeeFunctionAuthorizationFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    @Test
-    void allowsEmployeeWithMatchingFunction() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.COMPLAINT_HANDLER)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/complaints");
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /api/v1/admin/complaints",
+            "POST, /api/v1/admin/notifications",
+            "PATCH, /api/v1/admin/tutor-profiles/00000000-0000-0000-0000-000000000001/approve",
+            "PATCH, /api/v1/admin/certificates/00000000-0000-0000-0000-000000000001/approve",
+            "GET, /api/v1/admin/teaching-requests",
+            "PATCH, /api/v1/admin/studying-requests/00000000-0000-0000-0000-000000000001/approve",
+            "POST, /api/v1/admin/subjects",
+            "POST, /api/v1/admin/grades",
+            "GET, /api/v1/admin/users/00000000-0000-0000-0000-000000000001/contracts",
+            "PATCH, /api/v1/admin/tutors/00000000-0000-0000-0000-000000000001"
+    })
+    void allowsCustomerServiceIntoItsModules(String method, String path) throws Exception {
+        givenEmployee(EmployeeJobFunction.CUSTOMER_SERVICE);
+        MockHttpServletRequest request = new MockHttpServletRequest(method, path);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter().doFilter(request, response, filterChain);
@@ -61,15 +72,20 @@ class EmployeeFunctionAuthorizationFilterTest {
     }
 
     @Test
-    void allowsUserSupportToReadManagedStudentSubresources() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.USER_SUPPORT)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+    void blocksCustomerServiceFromRefundRequests() throws Exception {
+        givenEmployee(EmployeeJobFunction.CUSTOMER_SERVICE);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter().doFilter(new MockHttpServletRequest("GET", "/api/v1/admin/refund-requests"), response, filterChain);
+
+        assertForbidden(response);
+    }
+
+    @Test
+    void allowsAccountantToHandleRefundRequests() throws Exception {
+        givenEmployee(EmployeeJobFunction.ACCOUNTANT);
         MockHttpServletRequest request = new MockHttpServletRequest(
-                "GET", "/api/v1/admin/users/00000000-0000-0000-0000-000000000001/contracts");
+                "PATCH", "/api/v1/admin/refund-requests/00000000-0000-0000-0000-000000000001/approve");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter().doFilter(request, response, filterChain);
@@ -77,71 +93,21 @@ class EmployeeFunctionAuthorizationFilterTest {
         verify(filterChain).doFilter(request, response);
     }
 
-    @Test
-    void allowsUserSupportToManageTutors() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.USER_SUPPORT)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/tutors");
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /api/v1/admin/complaints",
+            "POST, /api/v1/admin/notifications",
+            "GET, /api/v1/admin/users",
+            "GET, /api/v1/admin/studying-requests",
+            "GET, /api/v1/admin/tutors"
+    })
+    void blocksAccountantFromCustomerServiceModules(String method, String path) throws Exception {
+        givenEmployee(EmployeeJobFunction.ACCOUNTANT);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter().doFilter(request, response, filterChain);
+        filter().doFilter(new MockHttpServletRequest(method, path), response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void allowsContentReviewerToReviewTutorProfiles() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.CONTENT_REVIEWER)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
-        MockHttpServletRequest request = new MockHttpServletRequest(
-                "PATCH", "/api/v1/admin/tutor-profiles/00000000-0000-0000-0000-000000000001/approve");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        filter().doFilter(request, response, filterChain);
-
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void allowsGeneralOperationsToManageNotifications() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.GENERAL_OPERATIONS)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/admin/notifications");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        filter().doFilter(request, response, filterChain);
-
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void blocksEmployeeWithDifferentFunction() throws Exception {
-        UUID userId = authenticate("EMPLOYEE");
-        Employee employee = Employee.builder()
-                .role(EmployeeRole.EMPLOYEE)
-                .jobFunction(EmployeeJobFunction.ACCOUNTANT)
-                .build();
-        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        filter().doFilter(
-                new MockHttpServletRequest("GET", "/api/v1/admin/complaints"), response, filterChain);
-
-        verify(filterChain, never()).doFilter(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
-        org.assertj.core.api.Assertions.assertThat(response.getStatus()).isEqualTo(403);
+        assertForbidden(response);
     }
 
     @Test
@@ -153,7 +119,21 @@ class EmployeeFunctionAuthorizationFilterTest {
         filter().doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
-        verify(employeeRepository, never()).findByUser_Id(org.mockito.ArgumentMatchers.any());
+        verify(employeeRepository, never()).findByUser_Id(any());
+    }
+
+    private void givenEmployee(EmployeeJobFunction jobFunction) {
+        UUID userId = authenticate("EMPLOYEE");
+        Employee employee = Employee.builder()
+                .role(EmployeeRole.EMPLOYEE)
+                .jobFunction(jobFunction)
+                .build();
+        when(employeeRepository.findByUser_Id(userId)).thenReturn(Optional.of(employee));
+    }
+
+    private void assertForbidden(MockHttpServletResponse response) throws Exception {
+        verify(filterChain, never()).doFilter(any(), any());
+        assertThat(response.getStatus()).isEqualTo(403);
     }
 
     private UUID authenticate(String role) {

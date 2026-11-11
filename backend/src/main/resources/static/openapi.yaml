@@ -19,6 +19,10 @@ tags:
     description: Tutor teaching proposals and student responses for studying requests
   - name: Complaints
     description: Complaints from student or tutor contract participants
+  - name: Refund Requests
+    description: Contract refund requests submitted by students and answered by tutors
+  - name: Admin Refund Requests
+    description: Refund review and wallet refunds for accountants and administrators
   - name: Contracts
     description: Contract creation, signing, renewal and lifecycle operations for student and tutor participants
   - name: Lessons
@@ -41,6 +45,8 @@ tags:
     description: Manual certificate review operations for employees and administrators
   - name: Admin Teaching Request Review
     description: Teaching request review operations for employees and administrators
+  - name: Admin Studying Request Review
+    description: Studying request review operations for employees and administrators
   - name: Teaching Requests
     description: Tutor teaching-request management and authenticated request browsing
   - name: Subjects
@@ -65,6 +71,8 @@ tags:
     description: Administrator-only operational and financial reports
   - name: Districts
     description: District catalog used by profile and teaching-request forms
+  - name: Provinces
+    description: Province catalog used by registration and profile forms
 security:
   - bearerAuth: []
 paths:
@@ -488,11 +496,12 @@ paths:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
-    put:
+  /api/v1/users/me/bank-account/otp:
+    post:
       tags: [Wallet]
-      summary: Create or update my bank account
-      description: Creates the user's receiving account on first use or replaces it. The account number is encrypted at rest.
-      operationId: updateCurrentBankAccount
+      summary: Request OTP to create or update my bank account
+      description: Sends a six-digit one-time code to the authenticated user's email. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. The proposed account is saved only after OTP confirmation.
+      operationId: requestBankAccountUpdateOtp
       requestBody:
         required: true
         content:
@@ -500,7 +509,27 @@ paths:
             schema: { $ref: '#/components/schemas/UpdateBankAccountRequest' }
       responses:
         '200':
-          description: Bank account saved successfully
+          description: Verification code sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+  /api/v1/users/me/bank-account/confirm:
+    post:
+      tags: [Wallet]
+      summary: Confirm bank account update with OTP
+      operationId: confirmBankAccountUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '200':
+          description: Bank account updated
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BankAccountResponseEnvelope' }
@@ -594,6 +623,81 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/studying-requests:
+    get:
+      tags: [Studying Requests]
+      summary: Search studying requests
+      description: Tutors and employees can filter requests by status, subject, grade, district, and learning mode. Tutor results are always restricted to OPEN requests. Private student contact details and street addresses are omitted.
+      operationId: searchStudyingRequests
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED] }
+          description: Applied for employees; tutors always receive OPEN requests.
+        - name: subjectId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: gradeId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: districtId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: learningMode
+          in: query
+          schema: { type: string, enum: [ONLINE, OFFLINE] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Filtered studying requests with pagination metadata
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StudyingRequestSearchPage'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/studying-requests/{studyingRequestId}:
+    get:
+      tags: [Studying Requests]
+      summary: Get a studying request
+      description: Tutors can retrieve OPEN requests only. Employees can retrieve requests in any status. Private student contact details and street addresses are omitted.
+      operationId: getStudyingRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studyingRequestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Studying request details without private contact or street address
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StudyingRequestSearchResponse' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 
   /api/v1/students/me/studying-requests:
     get:
@@ -872,6 +976,12 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/StudentTutorRequestStatus'
+        - name: keyword
+          in: query
+          required: false
+          description: Search by teaching request, subject, tutor, grade, schedule or message.
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -904,6 +1014,67 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/student-tutor-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentTutorRequestId'
+    get:
+      tags:
+        - Student Tutor Requests
+      summary: Get my study application detail
+      description: Returns a student application only when it belongs to the authenticated student.
+      operationId: getMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student application detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Student Tutor Requests
+      summary: Update my pending study application
+      description: Updates the application fields only when it belongs to the authenticated student and is still PENDING.
+      operationId: updateMyStudentTutorRequest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTutorRequestUpdateRequest'
+      responses:
+        '200':
+          description: Student application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTutorRequestMineResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1138,7 +1309,7 @@ paths:
       tags:
         - Tutor Student Requests
       summary: Accept a tutor offer
-      description: Accepts a PENDING tutor offer. When the accepted count reaches quantity, the studying request becomes MATCHED.
+      description: Accepts a PENDING tutor offer. The studying request becomes MATCHED after the first tutor offer is accepted. Other PENDING offers remain unchanged and can be rejected manually by the student.
       operationId: acceptTutorStudentRequest
       security:
         - bearerAuth: []
@@ -1234,6 +1405,33 @@ paths:
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
 
+  /api/v1/users/me/complaints/evidence-upload:
+    post:
+      tags: [Complaints]
+      summary: Upload complaint evidence file
+      operationId: uploadComplaintEvidence
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Complaint evidence uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintEvidenceUploadResponseEnvelope'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '503': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/users/me/complaints/{complaintId}:
     parameters:
       - $ref: '#/components/parameters/ComplaintId'
@@ -1317,6 +1515,75 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/users/me/complaints/against-me:
+    get:
+      tags: [Complaints]
+      summary: List complaints submitted about me
+      description: >-
+        Returns complaints where the current user is the other contract participant. Complaints are visible
+        from IN_REVIEW onwards; while a complaint is open its resolution is hidden.
+      operationId: listComplaintsAgainstMe
+      parameters:
+        - $ref: '#/components/parameters/ComplaintStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated complaints about the current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/users/me/complaints/against-me/{complaintId}:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    get:
+      tags: [Complaints]
+      summary: Get a complaint submitted about me
+      operationId: getComplaintAgainstMe
+      responses:
+        '200':
+          description: Complaint detail for the respondent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/users/me/complaints/against-me/{complaintId}/responses:
+    parameters:
+      - $ref: '#/components/parameters/ComplaintId'
+    post:
+      tags: [Complaints]
+      summary: Submit the respondent's single response
+      description: >-
+        Allowed once while the complaint is IN_REVIEW or AWAITING_EVIDENCE. Returns
+        RESPONDENT_RESPONSE_NOT_ALLOWED or RESPONDENT_RESPONSE_ALREADY_SUBMITTED (409) otherwise.
+      operationId: respondToComplaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintRespondentResponseRequest' }
+      responses:
+        '200':
+          description: Response and evidence saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplaintResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/admin/complaints:
     get:
       tags: [Admin Complaints]
@@ -1327,6 +1594,12 @@ paths:
         - name: contractId
           in: query
           schema: { type: string, format: uuid }
+        - name: category
+          in: query
+          schema: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
+        - name: faultParty
+          in: query
+          schema: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE] }
         - name: keyword
           in: query
           schema: { type: string }
@@ -1410,12 +1683,13 @@ paths:
     patch:
       tags: [Admin Complaints]
       summary: Accept a complaint
+      description: Stores the resolution and the party at fault, then notifies both participants.
       operationId: acceptComplaint
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ComplaintResolutionRequest' }
+            schema: { $ref: '#/components/schemas/ComplaintAcceptRequest' }
       responses:
         '200':
           description: Complaint resolved
@@ -2025,6 +2299,22 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/provinces:
+    get:
+      tags:
+        - Provinces
+      summary: Get provinces
+      description: Returns all provinces ordered by name. This endpoint is public so guests can complete registration.
+      operationId: listProvinces
+      security: []
+      responses:
+        '200':
+          description: Provinces retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvinceListResponseEnvelope'
+
   /api/v1/districts:
     get:
       tags:
@@ -2032,6 +2322,7 @@ paths:
       summary: Get districts
       description: Returns all districts ordered by province and district name. Use provinceId to filter districts belonging to one province.
       operationId: listDistricts
+      security: []
       parameters:
         - name: provinceId
           in: query
@@ -2120,6 +2411,44 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/tutors/me/certificates/upload:
+    post:
+      tags: [Tutor Certificates]
+      summary: Upload a certificate file to configured object storage
+      operationId: uploadMyCertificateFile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File uploaded; use certificateUrl when creating or updating the certificate record
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          certificateUrl: { type: string }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '503':
+          description: Object storage is not configured
 
   /api/v1/tutors/{tutorId}/certificates:
     parameters:
@@ -2220,6 +2549,10 @@ paths:
       parameters:
         - { name: status, in: query, schema: { type: string, default: PENDING, enum: [PENDING, VERIFIED, REJECTED, EXPIRED] } }
         - { name: keyword, in: query, schema: { type: string } }
+        - name: excludePendingProfiles
+          in: query
+          description: Leave out certificates whose tutor profile is still PENDING; those are reviewed with the profile.
+          schema: { type: boolean, default: false }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
@@ -2351,6 +2684,90 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AdminTeachingRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/studying-requests:
+    get:
+      tags: [Admin Studying Request Review]
+      summary: List studying requests for administration
+      description: Lists PENDING_REVIEW, OPEN or REJECTED studying requests. Defaults to the pending review queue, oldest first.
+      parameters:
+        - { name: status, in: query, schema: { type: string, default: PENDING_REVIEW, enum: [PENDING_REVIEW, OPEN, REJECTED] } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Studying requests retrieved successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Admin Studying Request Review]
+      summary: Get studying request review details
+      responses:
+        '200':
+          description: Studying request details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}/approve:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Admin Studying Request Review]
+      summary: Approve a pending studying request
+      description: A studying request is reviewed because its subject is outside the catalogue; the student's proposed subject is in the note. The reviewer must create a catalogue subject or link an existing active subject in the same transaction that opens the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudyingRequestApprovalRequest' }
+      responses:
+        '200':
+          description: Studying request opened and student notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/studying-requests/{studyingRequestId}/reject:
+    parameters:
+      - name: studyingRequestId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Admin Studying Request Review]
+      summary: Reject a pending studying request and refund its posting fee to the student wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudyingRequestRejectionRequest' }
+      responses:
+        '200':
+          description: Studying request rejected, posting fee refunded, and student notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponseEnvelope' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
@@ -2601,8 +3018,8 @@ paths:
   /api/v1/users/me/wallet/withdrawals:
     post:
       tags: [Wallets]
-      summary: Request a wallet withdrawal
-      description: Moves the requested amount from available balance to pending balance and snapshots the configured destination bank account. Reusing an Idempotency-Key returns the original request without reserving funds again.
+      summary: Legacy withdrawal endpoint (OTP required)
+      description: This endpoint is retired and always returns 410. Use the OTP request and confirmation endpoints.
       operationId: createMyWithdrawal
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -2615,11 +3032,7 @@ paths:
               amount: 500000.00
               note: Withdraw tutoring earnings
       responses:
-        '201':
-          description: Withdrawal requested or an identical idempotent request returned
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '410': { description: Request an OTP and confirm it to withdraw }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
@@ -2651,11 +3064,61 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/users/me/wallet/withdrawals/otp:
+    post:
+      tags: [Wallets]
+      summary: Send OTP for a wallet withdrawal
+      description: Sends a six-digit email code bound to the amount and a snapshot of the current destination bank account. The code expires after five minutes, permits five failed attempts, and requesting another code invalidates the previous one. An Idempotency-Key is required and must be repeated for confirmation.
+      operationId: requestMyWithdrawalOtp
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestWithdrawalOtpRequest' }
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletSecurityChallengeResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Wait before requesting another code }
+  /api/v1/users/me/wallet/withdrawals/confirm:
+    post:
+      tags: [Wallets]
+      summary: Confirm withdrawal with OTP
+      description: Creates the withdrawal and reserves funds atomically after validating the OTP. The withdrawal amount must be at least 50,000 VND. Repeated confirmation with the same challenge and idempotency key returns the original withdrawal.
+      operationId: confirmMyWithdrawal
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmWalletSecurityChallengeRequest' }
+      responses:
+        '201':
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { description: Verification attempt limit reached }
+
   /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel:
     patch:
       tags: [Wallets]
       summary: Cancel my pending withdrawal
-      description: Cancels an owned PENDING withdrawal and returns its reserved amount from pending balance to available balance.
+      description: Cancels an owned PENDING withdrawal and releases its reserved amount to the available balance. The existing withdrawal transaction is marked CANCELLED; no separate refund transaction is created.
       operationId: cancelMyWithdrawal
       parameters:
         - name: withdrawalId
@@ -2668,6 +3131,33 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/WithdrawalResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/users/me/wallet/top-ups/vnpay:
+    post:
+      tags: [Payments, Wallets]
+      summary: Create a VNPay wallet top-up
+      description: >-
+        Creates a pending WALLET_TOP_UP payment and returns a VNPay checkout URL.
+        The wallet balance is credited only after a valid successful VNPay IPN is received.
+        Reprocessing the same successful payment does not credit the wallet twice.
+      operationId: createWalletTopUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletTopUpRequest' }
+      responses:
+        '201':
+          description: VNPay top-up URL created; wallet balance is not credited yet
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentInitiationResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -2695,6 +3185,22 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/students/me/studying-requests/{requestId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my studying request fee with wallet balance
+      operationId: payStudyingRequestWithWallet
+      parameters:
+        - $ref: '#/components/parameters/StudyingRequestId'
+      responses:
+        '201':
+          description: Studying request fee paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
   /api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay:
     post:
       tags: [Payments]
@@ -2712,6 +3218,25 @@ paths:
             schema: { $ref: '#/components/schemas/VnPayPaymentRequest' }
       responses:
         '201': { description: VNPay payment URL created }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/teaching-requests/{requestId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my teaching request fee with wallet balance
+      operationId: payTeachingRequestWithWallet
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Teaching request fee paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -2755,6 +3280,29 @@ paths:
             schema: { $ref: '#/components/schemas/VnPayPaymentRequest' }
       responses:
         '201': { description: VNPay payment URL created }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/wallet:
+    post:
+      tags: [Payments]
+      summary: Pay my contract installment with wallet balance
+      operationId: payTuitionWithWallet
+      parameters:
+        - name: contractId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: installmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Contract installment paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaymentResponseEnvelope' } } }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
@@ -3561,7 +4109,7 @@ paths:
     get:
       tags: [Admin User Accounts]
       summary: List complaint summaries related to a student
-      description: USER_SUPPORT receives summaries only; complaint evidence remains in the complaint workflow.
+      description: Customer service receives summaries only; complaint evidence remains in the complaint workflow.
       operationId: listManagedStudentComplaints
       parameters:
         - $ref: '#/components/parameters/UserId'
@@ -3669,11 +4217,62 @@ paths:
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
 
+  /api/v1/employees/me:
+    get:
+      tags: [Admin Employees]
+      summary: Get the signed-in staff member's role and job function
+      description: Available to ADMIN and EMPLOYEE accounts. jobFunction is null for administrators.
+      operationId: getMyEmployeeProfile
+      responses:
+        '200':
+          description: Own employee profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [employeeId, role]
+                        properties:
+                          employeeId: { type: string, format: uuid }
+                          role: { type: string, enum: [ADMIN, EMPLOYEE] }
+                          jobFunction:
+                            allOf:
+                              - $ref: '#/components/schemas/EmployeeJobFunction'
+                            nullable: true
+                          firstName: { type: string, nullable: true }
+                          lastName: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/employees/{employeeId}/open-assignments:
+    get:
+      tags: [Admin Employees]
+      summary: List work the employee must hand over
+      description: Complaints in IN_REVIEW or AWAITING_EVIDENCE and refund requests in IN_REVIEW assigned to the employee, oldest first. These block deactivation and job-function changes until reassigned.
+      operationId: getEmployeeOpenAssignments
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Open assignments
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/admin/employees/{employeeId}/deactivate:
     patch:
       tags: [Admin Employees]
       summary: Revoke employee access
-      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints must be reassigned first.
+      description: Changes the account to INACTIVE and revokes all refresh tokens. Open complaints and refund requests must be reassigned first.
       operationId: deactivateEmployee
       parameters:
         - name: employeeId
@@ -3721,6 +4320,320 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
+  /api/v1/students/me/contracts/{contractId}/lessons:
+    parameters:
+      - name: contractId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Lessons]
+      summary: List the lessons of one of my contracts
+      operationId: listStudentContractLessons
+      responses:
+        '200':
+          description: Lessons ordered by date and start time
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponseMetadata'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LessonResponse' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/students/me/refund-requests:
+    post:
+      tags: [Refund Requests]
+      summary: Submit a refund request for one of my contracts
+      description: >-
+        lessons may only contain PENDING_CONFIRMATION lessons of the contract, each claimed as TUTOR_ABSENT or
+        STUDENT_ABSENT.
+      operationId: createMyRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundRequestCreateRequest' }
+      responses:
+        '201':
+          description: Refund request created as PENDING; the tutor and accountants are notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+    get:
+      tags: [Refund Requests]
+      summary: List my refund requests
+      operationId: listMyRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/students/me/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Refund Requests]
+      summary: Get one of my refund requests
+      operationId: getMyRefundRequest
+      responses:
+        '200':
+          description: Refund request detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/students/me/refund-requests/{refundRequestId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Refund Requests]
+      summary: Cancel a PENDING refund request
+      operationId: cancelMyRefundRequest
+      responses:
+        '200':
+          description: Refund request cancelled; disputed lessons return to normal confirmation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/tutors/me/refund-requests:
+    get:
+      tags: [Refund Requests]
+      summary: List refund requests on my contracts
+      operationId: listTutorRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/tutors/me/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Refund Requests]
+      summary: Get a refund request on one of my contracts
+      operationId: getTutorRefundRequest
+      responses:
+        '200':
+          description: Refund request detail with the response deadline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/tutors/me/refund-requests/{refundRequestId}/response:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    post:
+      tags: [Refund Requests]
+      summary: Submit the tutor's single response
+      description: >-
+        Allowed once while the request is PENDING or IN_REVIEW and before tutorResponseDeadline. Returns
+        TUTOR_RESPONSE_ALREADY_SUBMITTED or TUTOR_RESPONSE_NOT_ALLOWED (409) otherwise.
+      operationId: respondToRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TutorRefundResponseRequest' }
+      responses:
+        '200':
+          description: Tutor response saved; the assigned accountant is notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefundRequestResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests:
+    get:
+      tags: [Admin Refund Requests]
+      summary: List refund requests for review
+      description: Defaults to PENDING requests, oldest first.
+      operationId: listAdminRefundRequests
+      parameters:
+        - $ref: '#/components/parameters/RefundRequestStatus'
+        - name: contractId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated refund review queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestPageResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    get:
+      tags: [Admin Refund Requests]
+      summary: Get a refund request with contract data and the suggested calculation
+      operationId: getAdminRefundRequest
+      responses:
+        '200':
+          description: Refund review detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/start-review:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Assign the current employee and move PENDING to IN_REVIEW
+      operationId: startRefundReview
+      responses:
+        '200':
+          description: Refund request moved to IN_REVIEW
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Decide the disputed lessons, refund the student and pay the tutor's share
+      description: >-
+        Requires the tutor's response or an expired response window, a decision for every disputed lesson and no
+        open complaint on the contract. The backend recalculates the refund and rejects the call with
+        REFUND_AMOUNT_CHANGED when it differs from expectedAmount, or NOTHING_TO_REFUND when every lesson is TAUGHT.
+      operationId: approveRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundApprovalRequest' }
+      responses:
+        '200':
+          description: Student credited with CONTRACT_REFUND, tutor with TUTOR_EARNING for skipped lessons, request moved to REFUNDED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Reject a refund request
+      operationId: rejectRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundRejectionRequest' }
+      responses:
+        '200':
+          description: Refund request rejected; the wallet is unchanged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/refund-requests/{refundRequestId}/reassign:
+    parameters:
+      - $ref: '#/components/parameters/RefundRequestId'
+    patch:
+      tags: [Admin Refund Requests]
+      summary: Reassign an IN_REVIEW refund request to another accountant
+      description: Only an ADMIN can reassign; the target must be an active ADMIN or ACCOUNTANT employee.
+      operationId: reassignRefundRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintReassignmentRequest' }
+      responses:
+        '200':
+          description: Refund request assigned to the target employee
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminRefundRequestDetailResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
 
   /api/v1/admin/statistics/{report}:
     get:
@@ -3791,6 +4704,15 @@ components:
       bearerFormat: JWT
 
   parameters:
+    RefundRequestId:
+      name: refundRequestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RefundRequestStatus:
+      name: status
+      in: query
+      schema: { $ref: '#/components/schemas/RefundRequestStatus' }
     UserId:
       name: userId
       in: path
@@ -3957,9 +4879,315 @@ components:
       example: withdrawal-2026-09-07-001
 
   schemas:
+    LessonOutcome:
+      type: string
+      enum: [TAUGHT, TUTOR_ABSENT, STUDENT_ABSENT]
+      description: >-
+        What happened in a disputed lesson. TUTOR_ABSENT refunds the tutor-absent share (100%) of the lesson price;
+        STUDENT_ABSENT refunds the student-absent share (80%) and pays the rest to the tutor; TAUGHT refunds nothing.
+
+    RefundRequestStatus:
+      type: string
+      enum: [PENDING, IN_REVIEW, REFUNDED, REJECTED, CANCELLED]
+
+    RefundRequestCreateRequest:
+      type: object
+      required: [contractId, description, lessons]
+      properties:
+        contractId: { type: string, format: uuid }
+        description: { type: string, minLength: 1, maxLength: 2000 }
+        lessons:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: PENDING_CONFIRMATION lessons of the contract that did not take place.
+          items:
+            type: object
+            required: [lessonId, claimedOutcome]
+            properties:
+              lessonId: { type: string, format: uuid }
+              claimedOutcome: { type: string, enum: [TUTOR_ABSENT, STUDENT_ABSENT] }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
+    TutorRefundResponseRequest:
+      type: object
+      required: [message, lessonPositions]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 2000 }
+        lessonPositions:
+          type: array
+          description: Exactly one entry per disputed lesson, otherwise LESSON_POSITION_REQUIRED (400).
+          items:
+            type: object
+            required: [lessonId, position]
+            properties:
+              lessonId: { type: string, format: uuid }
+              position: { $ref: '#/components/schemas/LessonOutcome' }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
+
+    RefundApprovalRequest:
+      type: object
+      required: [expectedAmount, lessonDecisions]
+      properties:
+        expectedAmount: { type: number, minimum: 0, description: The student refund the reviewer saw; must match the recalculated amount. }
+        lessonDecisions:
+          type: array
+          description: Exactly one entry per disputed lesson awaiting confirmation.
+          items:
+            type: object
+            required: [lessonId, decision]
+            properties:
+              lessonId: { type: string, format: uuid }
+              decision: { $ref: '#/components/schemas/LessonOutcome' }
+        note: { type: string, maxLength: 2000, nullable: true }
+
+    RefundRejectionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 500 }
+
+    RefundDisputedLesson:
+      type: object
+      properties:
+        lessonId: { type: string, format: uuid }
+        title: { type: string, nullable: true }
+        date: { type: string, format: date }
+        startTime: { type: string, format: time }
+        endTime: { type: string, format: time }
+        markedTaughtAt: { type: string, format: date-time }
+        claimedOutcome: { type: string, enum: [TUTOR_ABSENT, STUDENT_ABSENT] }
+        tutorPosition: { allOf: [{ $ref: '#/components/schemas/LessonOutcome' }], nullable: true }
+        decision: { allOf: [{ $ref: '#/components/schemas/LessonOutcome' }], nullable: true }
+
+    RefundRequestResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        contractId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeName: { type: string }
+        studentUserId: { type: string, format: uuid }
+        studentName: { type: string }
+        tutorUserId: { type: string, format: uuid }
+        tutorName: { type: string }
+        status: { $ref: '#/components/schemas/RefundRequestStatus' }
+        description: { type: string }
+        disputedLessons:
+          type: array
+          items: { $ref: '#/components/schemas/RefundDisputedLesson' }
+        evidences:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              fileUrl: { type: string }
+              fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid }
+        tutorResponse: { type: string, nullable: true }
+        tutorRespondedAt: { type: string, format: date-time, nullable: true }
+        tutorResponseDeadline: { type: string, format: date-time }
+        refundAmount: { type: number, nullable: true, description: Set once the request is REFUNDED. }
+        tutorShareAmount: { type: number, nullable: true, description: Credited to the tutor for lessons the student skipped. }
+        rejectionReason: { type: string, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RefundRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/RefundRequestResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    RefundCalculation:
+      type: object
+      description: >-
+        Before approval the amounts preview the reviewer's decisions where given and the student's claims otherwise;
+        after approval they are the snapshot.
+      properties:
+        unitPrice: { type: number, description: Sum of non-cancelled installments / total lessons, whole đồng. }
+        tutorAbsentRate: { type: integer }
+        studentAbsentRate: { type: integer }
+        paidAmount: { type: number }
+        previouslyRefundedAmount: { type: number }
+        refundableAmount: { type: number, description: Paid tuition minus earlier refunds; the refund never exceeds it. }
+        refundAmount: { type: number }
+        tutorShareAmount: { type: number }
+        undecidedLessons: { type: integer }
+        blockers:
+          type: array
+          description: Reasons approval is not possible yet.
+          items:
+            type: string
+            enum: [TUTOR_RESPONSE_WINDOW_OPEN, CONTRACT_HAS_OPEN_COMPLAINT, NOTHING_TO_REFUND]
+
+    AdminRefundRequestSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentUserId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        contractId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeName: { type: string }
+        tutorName: { type: string }
+        status: { $ref: '#/components/schemas/RefundRequestStatus' }
+        disputedLessonCount: { type: integer }
+        awaitingTutorResponse: { type: boolean }
+        hasOpenComplaint: { type: boolean }
+        assignedEmployeeId: { type: string, format: uuid, nullable: true }
+        assignedEmployeeName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    AdminRefundRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminRefundRequestSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    AdminRefundRequestDetailResponse:
+      description: >-
+        Request fields as in RefundRequestResponse, except that the participants are given in student and tutor and the
+        subject and grade in contract.
+      allOf:
+        - $ref: '#/components/schemas/RefundRequestResponse'
+        - type: object
+          properties:
+            student:
+              type: object
+              properties:
+                userId: { type: string, format: uuid }
+                name: { type: string }
+                email: { type: string, format: email }
+            tutor:
+              type: object
+              properties:
+                userId: { type: string, format: uuid }
+                name: { type: string }
+                email: { type: string, format: email }
+            reviewer:
+              type: object
+              nullable: true
+              properties:
+                employeeId: { type: string, format: uuid }
+                userId: { type: string, format: uuid }
+                name: { type: string }
+            contract:
+              type: object
+              description: Contract summary including subject, grade, price, payment period, total lessons, dates and status.
+            payments:
+              type: array
+              items: { type: object, description: Tuition payments including refundedAmount. }
+            complaints:
+              type: array
+              description: Complaints on the contract that are open or linked to this request.
+              items:
+                type: object
+                properties:
+                  complaintId: { type: string, format: uuid }
+                  title: { type: string }
+                  status: { type: string, enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED] }
+                  faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
+            calculation: { $ref: '#/components/schemas/RefundCalculation' }
+            note: { type: string, nullable: true }
+
+    RefundRequestResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/RefundRequestResponse' }
+
+    RefundRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/RefundRequestPageResponse' }
+
+    AdminRefundRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminRefundRequestDetailResponse' }
+
+    AdminRefundRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminRefundRequestPageResponse' }
+
+    EmployeeOpenAssignmentsResponse:
+      type: object
+      required: [complaints, refundRequests]
+      properties:
+        complaints:
+          type: array
+          items:
+            type: object
+            required: [id, title, status, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+              complainantName: { type: string, nullable: true }
+              status: { type: string, enum: [IN_REVIEW, AWAITING_EVIDENCE] }
+              createdAt: { type: string, format: date-time }
+        refundRequests:
+          type: array
+          items:
+            type: object
+            required: [id, createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              studentName: { type: string, nullable: true }
+              subjectName: { type: string, nullable: true }
+              createdAt: { type: string, format: date-time }
+
+    EmployeeOpenAssignmentsResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/EmployeeOpenAssignmentsResponse' }
+
     EmployeeJobFunction:
       type: string
-      enum: [GENERAL_OPERATIONS, COMPLAINT_HANDLER, ACCOUNTANT, CONTENT_REVIEWER, USER_SUPPORT]
+      enum: [CUSTOMER_SERVICE, ACCOUNTANT]
 
     CreateEmployeeRequest:
       type: object
@@ -4100,8 +5328,10 @@ components:
         suspendedAt: { type: string, format: date-time, nullable: true }
         suspendedUntil: { type: string, format: date-time, nullable: true }
         suspendedByUserId: { type: string, format: uuid, nullable: true }
+        suspendedByName: { type: string, nullable: true }
         reactivatedAt: { type: string, format: date-time, nullable: true }
         reactivatedByUserId: { type: string, format: uuid, nullable: true }
+        reactivatedByName: { type: string, nullable: true }
         reactivationReason: { type: string, nullable: true }
         suspensionCount: { type: integer, minimum: 0 }
         createdAt: { type: string, format: date-time }
@@ -4880,6 +6110,32 @@ components:
           enum: [CANCELLED]
           description: The only status a student can set through this endpoint.
 
+    StudentTutorRequestUpdateRequest:
+      type: object
+      required:
+        - gradeId
+        - proposedPrice
+        - learningMode
+      properties:
+        gradeId:
+          type: string
+          format: uuid
+        proposedPrice:
+          type: number
+          format: double
+          minimum: 0
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        preferredSchedule:
+          type: string
+          maxLength: 500
+          nullable: true
+        message:
+          type: string
+          maxLength: 10000
+          nullable: true
+
     TutorStudentRequestCreateRequest:
       type: object
       required:
@@ -5075,6 +6331,28 @@ components:
           maxLength: 500
           nullable: true
 
+    RequestWithdrawalOtpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 50000, multipleOf: 0.01, description: Minimum withdrawal amount is 50,000 VND. }
+        note: { type: string, maxLength: 500, nullable: true }
+
+    ConfirmWalletSecurityChallengeRequest:
+      type: object
+      required: [challengeId, otp]
+      properties:
+        challengeId: { type: string, format: uuid }
+        otp: { type: string, pattern: '^[0-9]{6}$' }
+
+    WalletSecurityChallengeResponse:
+      type: object
+      required: [challengeId, maskedAccountNumber, expiresAt]
+      properties:
+        challengeId: { type: string, format: uuid }
+        maskedAccountNumber: { type: string, example: '****7890' }
+        expiresAt: { type: string, format: date-time }
+
     WithdrawalResponse:
       type: object
       required:
@@ -5150,9 +6428,10 @@ components:
 
     ComplaintCreateRequest:
       type: object
-      required: [contractId, title, content]
+      required: [contractId, category, title, content]
       properties:
         contractId: { type: string, format: uuid }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
         title: { type: string, maxLength: 255 }
         content: { type: string, maxLength: 10000 }
         evidences:
@@ -5166,8 +6445,9 @@ components:
 
     ComplaintUpdateRequest:
       type: object
-      required: [title, content]
+      required: [category, title, content]
       properties:
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER] }
         title: { type: string, maxLength: 255 }
         content: { type: string, maxLength: 10000 }
         evidences:
@@ -5200,6 +6480,33 @@ components:
       required: [resolution]
       properties:
         resolution: { type: string, minLength: 1, maxLength: 5000 }
+
+    ComplaintAcceptRequest:
+      type: object
+      required: [resolution, faultParty]
+      properties:
+        resolution: { type: string, minLength: 1, maxLength: 5000 }
+        faultParty:
+          type: string
+          enum: [RESPONDENT, COMPLAINANT, BOTH, NONE]
+          description: >-
+            RESPONDENT means the other contract participant is at fault, COMPLAINANT means the submitter is
+            at fault, BOTH or NONE otherwise.
+
+    ComplaintRespondentResponseRequest:
+      type: object
+      required: [response]
+      properties:
+        response: { type: string, minLength: 1, maxLength: 5000 }
+        evidences:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [fileUrl, fileType]
+            properties:
+              fileUrl: { type: string, maxLength: 2048 }
+              fileType: { type: string, maxLength: 100 }
 
     ComplaintEvidenceRequest:
       type: object
@@ -5254,6 +6561,48 @@ components:
           type: string
           format: time
           description: Must be after startTime.
+
+    StudyingRequestSearchPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/StudyingRequestSearchResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
+    StudyingRequestSearchResponse:
+      type: object
+      required: [id, subjectId, subjectName, gradeId, gradeName, learningMode, status, availabilities, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        subjectId: { type: string, format: uuid }
+        subjectName: { type: string }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        districtId: { type: string, format: uuid, nullable: true }
+        districtName: { type: string, nullable: true }
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        preferredSchedule: { type: string, nullable: true }
+        status: { type: string, enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED] }
+        availabilities:
+          type: array
+          items:
+            type: object
+            properties:
+              dayOfWeek: { type: integer }
+              startTime: { type: string, format: time }
+              endTime: { type: string, format: time }
+        createdAt: { type: string, format: date-time }
 
     StudyingRequestResponse:
       type: object
@@ -5315,7 +6664,7 @@ components:
             $ref: '#/components/schemas/StudyingRequestAvailabilityResponse'
         status:
           type: string
-          enum: [DRAFT, OPEN, MATCHED, CLOSED, CANCELLED]
+          enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
         createdAt:
           type: string
           format: date-time
@@ -5457,11 +6806,15 @@ components:
         contractId: { type: string, format: uuid }
         title: { type: string }
         content: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
         resolution: { type: string, nullable: true }
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         resolvedAt: { type: string, format: date-time, nullable: true }
+        respondentResponse: { type: string, nullable: true }
+        respondentRespondedAt: { type: string, format: date-time, nullable: true }
         evidences:
           type: array
           items:
@@ -5470,8 +6823,17 @@ components:
               id: { type: string, format: uuid }
               fileUrl: { type: string }
               fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    ComplaintEvidenceUploadResponse:
+      type: object
+      required: [fileUrl, previewUrl, fileType]
+      properties:
+        fileUrl: { type: string, description: S3 reference stored with the complaint evidence }
+        previewUrl: { type: string, format: uri, description: Temporary URL for previewing the uploaded file }
+        fileType: { type: string }
 
     ComplaintPageResponse:
       type: object
@@ -5496,9 +6858,11 @@ components:
         complainantRole: { type: string, enum: [STUDENT, TUTOR] }
         contractId: { type: string, format: uuid }
         title: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         assignedEmployeeId: { type: string, format: uuid, nullable: true }
         assignedEmployeeName: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
@@ -5510,10 +6874,12 @@ components:
         id: { type: string, format: uuid }
         title: { type: string }
         content: { type: string }
+        category: { type: string, enum: [ABSENCE, LATE_OR_SHORT, TEACHING_QUALITY, MISCONDUCT, SERIOUS_MISCONDUCT, OTHER], nullable: true }
         status:
           type: string
           enum: [PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED]
         resolution: { type: string, nullable: true }
+        faultParty: { type: string, enum: [RESPONDENT, COMPLAINANT, BOTH, NONE], nullable: true }
         resolvedAt: { type: string, format: date-time, nullable: true }
         complainant:
           type: object
@@ -5522,6 +6888,16 @@ components:
             name: { type: string }
             email: { type: string, format: email }
             role: { type: string, enum: [STUDENT, TUTOR] }
+        respondent:
+          type: object
+          description: The other contract participant and their single response, if any.
+          properties:
+            userId: { type: string, format: uuid }
+            name: { type: string }
+            email: { type: string, format: email }
+            role: { type: string, enum: [STUDENT, TUTOR] }
+            response: { type: string, nullable: true }
+            respondedAt: { type: string, format: date-time, nullable: true }
         reviewer:
           type: object
           nullable: true
@@ -5540,6 +6916,7 @@ components:
               id: { type: string, format: uuid }
               fileUrl: { type: string }
               fileType: { type: string }
+              uploadedByUserId: { type: string, format: uuid, nullable: true }
               createdAt: { type: string, format: date-time }
         lessons:
           type: array
@@ -5636,6 +7013,11 @@ components:
           type: string
           enum: [SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED]
         note: { type: string, nullable: true }
+        markedTaughtAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the lesson moved to PENDING_CONFIRMATION; the auto-completion grace period starts here.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -6097,6 +7479,16 @@ components:
               nullable: true
             address:
               $ref: '#/components/schemas/AddressResponse'
+            profileStatus:
+              type: string
+              enum: [PENDING, VERIFIED, REJECTED]
+            profileReviewedAt:
+              type: string
+              format: date-time
+              nullable: true
+            profileRejectionReason:
+              type: string
+              nullable: true
 
     CertificateResponse:
       type: object
@@ -6148,6 +7540,85 @@ components:
       required: [rejectionReason]
       properties:
         rejectionReason: { type: string, minLength: 1, maxLength: 500 }
+
+    StudyingRequestRejectionRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason: { type: string, minLength: 1, maxLength: 500 }
+
+    StudyingRequestApprovalRequest:
+      type: object
+      required: [subjectResolution]
+      properties:
+        subjectResolution:
+          $ref: '#/components/schemas/TeachingRequestSubjectResolution'
+
+    AdminStudyingRequestSummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        subjectName: { type: string, nullable: true, description: Null until a reviewer resolves the custom subject. }
+        gradeName: { type: string }
+        title: { type: string, nullable: true }
+        note: { type: string, nullable: true, description: Holds the student's proposed subject for a custom subject. }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        status: { type: string, enum: [PENDING_REVIEW, OPEN, REJECTED] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+
+    AdminStudyingRequestDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        studentName: { type: string }
+        studentEmail: { type: string, format: email }
+        studentAvatarUrl: { type: string, nullable: true }
+        subjectId: { type: string, format: uuid, nullable: true }
+        subjectName: { type: string, nullable: true }
+        grade: { $ref: '#/components/schemas/TeachingRequestReferenceResponse' }
+        district:
+          allOf:
+            - $ref: '#/components/schemas/TeachingRequestReferenceResponse'
+          nullable: true
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        detailAddress: { type: string, nullable: true }
+        minPrice: { type: number, nullable: true }
+        maxPrice: { type: number, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        learningMode: { type: string, enum: [ONLINE, OFFLINE] }
+        preferredSchedule: { type: string, nullable: true }
+        availabilities:
+          type: array
+          items: { $ref: '#/components/schemas/TeachingRequestAvailabilityResponse' }
+        status: { type: string, enum: [PENDING_REVIEW, OPEN, REJECTED] }
+        reviewer:
+          allOf:
+            - $ref: '#/components/schemas/CertificateReviewerResponse'
+          nullable: true
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        rejectionReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    AdminStudyingRequestPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminStudyingRequestSummaryResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
 
     TeachingRequestRejectionRequest:
       type: object
@@ -6252,6 +7723,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         tutorId: { type: string, format: uuid }
+        tutorUserId: { type: string, format: uuid, description: "Tutor's users.id, used by /api/v1/admin/tutors/{userId}" }
         tutorName: { type: string }
         tutorEmail: { type: string, format: email }
         name: { type: string }
@@ -6508,11 +7980,24 @@ components:
       properties:
         bankCode: { type: string, maxLength: 20, nullable: true }
         locale: { type: string, enum: [vn, en], nullable: true }
+    WalletTopUpRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          minimum: 10000
+          maximum: 100000000
+          multipleOf: 1
+          example: 250000
+          description: Whole VND amount to add to the authenticated user's wallet after successful VNPay IPN confirmation.
+        bankCode: { type: string, maxLength: 20, pattern: '^[A-Za-z0-9]*$', nullable: true, example: NCB }
+        locale: { type: string, enum: [vn, en], nullable: true, example: vn }
     PaymentInitiationResponse:
       type: object
       properties:
         paymentId: { type: string, format: uuid }
-        paymentType: { type: string, enum: [TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
+        paymentType: { type: string, enum: [WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
         amount: { type: number, format: double }
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         paymentUrl: { type: string, format: uri }
@@ -6568,6 +8053,22 @@ components:
           properties:
             data: { $ref: '#/components/schemas/StatisticsReportResponse' }
 
+    PaymentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        paymentType: { type: string, enum: [WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE] }
+        paymentMethod: { type: string, enum: [VNPAY, WALLET] }
+        status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
+        amount: { type: number, format: double }
+        referenceType: { type: string, nullable: true }
+        referenceId: { type: string, format: uuid, nullable: true }
+        paymentInstallmentId: { type: string, format: uuid, nullable: true }
+        transactionCode: { type: string }
+        providerTransactionNo: { type: string, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
     ApiResponseMetadata:
       type: object
       required:
@@ -6672,6 +8173,13 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/ComplaintResponse' }
+
+    ComplaintEvidenceUploadResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ComplaintEvidenceUploadResponse' }
 
     ComplaintPageResponseEnvelope:
       allOf:
@@ -6948,6 +8456,20 @@ components:
           properties:
             data: { $ref: '#/components/schemas/AdminCertificatePageResponse' }
 
+    AdminStudyingRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudyingRequestDetailResponse' }
+
+    AdminStudyingRequestPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminStudyingRequestPageResponse' }
+
     AdminTeachingRequestDetailResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -7002,6 +8524,24 @@ components:
               items:
                 $ref: '#/components/schemas/DistrictResponse'
 
+    ProvinceListResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProvinceResponse'
+
+    ProvinceResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
     CertificateDeleteResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -7039,12 +8579,26 @@ components:
           properties:
             data: { $ref: '#/components/schemas/PaymentInitiationResponse' }
 
+    PaymentResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/PaymentResponse' }
+
     BankAccountResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
         - type: object
           properties:
             data: { $ref: '#/components/schemas/BankAccountResponse' }
+
+    WalletSecurityChallengeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/WalletSecurityChallengeResponse' }
 
     WalletTransactionResponseEnvelope:
       allOf:
@@ -7191,8 +8745,11 @@ components:
             - CONTRACT_REJECTED
             - CONTRACT_CANCELLED
             - CONTRACT_RENEWAL_PROPOSED
+            - CERTIFICATE_REVIEW_REQUIRED
             - CERTIFICATE_APPROVED
             - CERTIFICATE_REJECTED
+            - TUTOR_PROFILE_APPROVED
+            - TUTOR_PROFILE_REJECTED
             - TEACHING_REQUEST_APPROVED
             - TEACHING_REQUEST_REJECTED
             - COMPLAINT_EVIDENCE_REQUESTED
@@ -7200,10 +8757,16 @@ components:
             - COMPLAINT_REJECTED
             - ACCOUNT_SUSPENDED
             - ACCOUNT_REACTIVATED
+            - TEACHING_REQUEST_REVIEW_REQUIRED
+            - LESSON_MARKED_TAUGHT
+            - LESSON_CANCELLED
+            - WITHDRAWAL_REVIEW_REQUIRED
+            - WITHDRAWAL_REQUEST_CREATED
+            - WITHDRAWAL_REQUEST_CANCELLED
+            - WALLET_BALANCE_CHANGED
         referenceType:
           type: string
-          nullable: true
-          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER]
+          enum: [PAYMENT, CONTRACT, STUDYING_REQUEST, TEACHING_REQUEST, TUTOR_STUDENT_REQUEST, STUDENT_TUTOR_REQUEST, CERTIFICATE, INSTALLMENT, COMPLAINT, USER, LESSON, WALLET_TRANSACTION, WITHDRAWAL_REQUEST, REFUND_REQUEST]
         referenceId: { type: string, nullable: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }

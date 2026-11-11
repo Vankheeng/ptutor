@@ -22,6 +22,7 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CertificateStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CertificateRepository;
@@ -38,6 +39,22 @@ public class AdminCertificateService {
     private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
+    private final CertificateFileStorageService certificateFileStorageService;
+
+    public AdminCertificateService(
+            CertificateRepository certificateRepository,
+            EmployeeRepository employeeRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock,
+            CertificateFileStorageService certificateFileStorageService) {
+        this.certificateRepository = certificateRepository;
+        this.employeeRepository = employeeRepository;
+        this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
+        this.certificateFileStorageService = certificateFileStorageService;
+    }
 
     @Autowired
     public AdminCertificateService(
@@ -46,11 +63,7 @@ public class AdminCertificateService {
             NotificationService notificationService,
             ApplicationEventPublisher eventPublisher,
             Clock clock) {
-        this.certificateRepository = certificateRepository;
-        this.employeeRepository = employeeRepository;
-        this.notificationService = notificationService;
-        this.eventPublisher = eventPublisher;
-        this.clock = clock;
+        this(certificateRepository, employeeRepository, notificationService, eventPublisher, clock, null);
     }
 
     /** Compatibility constructor for focused unit tests from before domain events. */
@@ -59,15 +72,17 @@ public class AdminCertificateService {
             EmployeeRepository employeeRepository,
             NotificationService notificationService,
             Clock clock) {
-        this(certificateRepository, employeeRepository, notificationService, null, clock);
+        this(certificateRepository, employeeRepository, notificationService, null, clock, null);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<AdminCertificateSummaryResponse> findAll(
-            CertificateStatus status, String keyword, Pageable pageable) {
+            CertificateStatus status, String keyword, boolean excludePendingProfiles, Pageable pageable) {
         String normalizedKeyword = keyword == null ? "" : keyword.strip();
+        // Certificates of a profile still under review are checked together with that profile.
+        TutorProfileStatus excludedProfileStatus = excludePendingProfiles ? TutorProfileStatus.PENDING : null;
         Page<Certificate> certificates = certificateRepository.findAllForReview(
-                status, normalizedKeyword, pageable);
+                status, excludedProfileStatus, normalizedKeyword, pageable);
         return PageResponse.from(certificates, certificates.getContent().stream()
                 .map(this::toSummaryResponse)
                 .toList());
@@ -137,7 +152,7 @@ public class AdminCertificateService {
     private AdminCertificateSummaryResponse toSummaryResponse(Certificate certificate) {
         User user = certificate.getTutor().getUser();
         return new AdminCertificateSummaryResponse(
-                certificate.getId(), certificate.getTutor().getId(), fullName(user), user.getEmail(),
+                certificate.getId(), certificate.getTutor().getId(), user.getId(), fullName(user), user.getEmail(),
                 certificate.getName(), certificate.getIssuingOrganization(), certificate.getIssueDate(),
                 certificate.getExpiryDate(), certificate.getStatus(), certificate.getCreatedAt());
     }
@@ -150,10 +165,13 @@ public class AdminCertificateService {
             reviewer = new CertificateReviewerResponse(reviewedBy.getId(), fullName(reviewedBy.getUser()));
         }
         return new AdminCertificateDetailResponse(
-                certificate.getId(), certificate.getTutor().getId(), fullName(tutorUser), tutorUser.getEmail(),
+                certificate.getId(), certificate.getTutor().getId(), tutorUser.getId(), fullName(tutorUser),
+                tutorUser.getEmail(),
                 tutorUser.getAvatarUrl(), certificate.getName(), certificate.getIssuingOrganization(),
                 certificate.getDescription(), certificate.getIssueDate(), certificate.getExpiryDate(),
-                certificate.getCertificateUrl(), certificate.getStatus(), certificate.getRejectionReason(), reviewer,
+                certificateFileStorageService == null ? certificate.getCertificateUrl()
+                        : certificateFileStorageService.accessUrl(certificate.getCertificateUrl()),
+                certificate.getStatus(), certificate.getRejectionReason(), reviewer,
                 certificate.getReviewedAt(), certificate.getCreatedAt(), certificate.getUpdatedAt());
     }
 

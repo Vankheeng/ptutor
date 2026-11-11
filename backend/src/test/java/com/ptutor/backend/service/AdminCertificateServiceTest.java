@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,14 +19,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.dto.response.AdminCertificateDetailResponse;
+import com.ptutor.backend.dto.response.AdminCertificateSummaryResponse;
+import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.Certificate;
 import com.ptutor.backend.entity.Employee;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.CertificateRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
@@ -68,8 +75,24 @@ class AdminCertificateServiceTest {
         assertThat(certificate.getReviewedAt()).isEqualTo(LocalDateTime.ofInstant(NOW, ZoneOffset.UTC));
         assertThat(certificate.getRejectionReason()).isNull();
         assertThat(response.status()).isEqualTo(CertificateStatus.VERIFIED);
+        assertThat(response.tutorUserId()).isEqualTo(certificate.getTutor().getUser().getId());
         verify(notificationService).createCertificateReviewNotification(
                 certificate.getTutor().getUser(), certificateId.toString(), certificate.getName(), true, null);
+    }
+
+    @Test
+    void listExcludesCertificatesOfPendingProfilesWhenRequested() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(certificateRepository.findAllForReview(
+                CertificateStatus.PENDING, TutorProfileStatus.PENDING, "", pageable))
+                .thenReturn(new PageImpl<>(List.of(certificate), pageable, 1));
+
+        PageResponse<AdminCertificateSummaryResponse> response =
+                service.findAll(CertificateStatus.PENDING, null, true, pageable);
+
+        assertThat(response.content()).singleElement()
+                .satisfies(summary -> assertThat(summary.tutorUserId())
+                        .isEqualTo(certificate.getTutor().getUser().getId()));
     }
 
     @Test
@@ -141,6 +164,7 @@ class AdminCertificateServiceTest {
                 .lastName("Nguyen")
                 .email("tutor@example.com")
                 .build();
+        tutorUser.setId(UUID.randomUUID());
         Tutor tutor = Tutor.builder().user(tutorUser).build();
         tutor.setId(UUID.randomUUID());
         Certificate value = Certificate.builder()

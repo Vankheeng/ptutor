@@ -46,6 +46,8 @@ import static com.ptutor.backend.config.SecurityConstants.API_PUBLIC;
 import static com.ptutor.backend.config.SecurityConstants.API_DOCUMENTATION;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_CERTIFICATE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_COMPLAINT_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_REFUND_REQUEST_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_STUDYING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_SUBJECT_API;
@@ -59,10 +61,12 @@ import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.GRADE_READ_API;
+import static com.ptutor.backend.config.SecurityConstants.EMPLOYEE_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.STUDENT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_CERTIFICATE_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_PROFILE_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TUTOR_SELF_SERVICE_API;
+import static com.ptutor.backend.config.SecurityConstants.STUDYING_REQUEST_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.SUBJECT_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.TEACHING_REQUEST_READ_API;
 import static com.ptutor.backend.config.SecurityConstants.WALLET_SELF_SERVICE_API;
@@ -169,13 +173,17 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_REFUND_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TEACHING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_STUDYING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_SUBJECT_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_GRADE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_PROFILE_REVIEW_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TUTOR_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_USER_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(EMPLOYEE_SELF_SERVICE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(STUDENT_SELF_SERVICE_API).hasRole("STUDENT")
+                        .requestMatchers(STUDYING_REQUEST_READ_API).hasAnyRole("TUTOR", "EMPLOYEE")
                         .requestMatchers(TUTOR_SELF_SERVICE_API).hasRole("TUTOR")
                         .requestMatchers(CONTRACT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(COMPLAINT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")

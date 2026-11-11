@@ -1,6 +1,7 @@
 package com.ptutor.backend.repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.ptutor.backend.entity.Complaint;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 
 import jakarta.persistence.LockModeType;
@@ -30,6 +33,12 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     boolean existsByEmployee_IdAndStatusIn(UUID employeeId, Collection<ComplaintStatus> statuses);
 
+    @EntityGraph(attributePaths = { "user" })
+    List<Complaint> findAllByEmployee_IdAndStatusInOrderByCreatedAtAsc(
+            UUID employeeId, Collection<ComplaintStatus> statuses);
+
+    List<Complaint> findAllByContract_IdOrderByCreatedAtDesc(UUID contractId);
+
     @EntityGraph(attributePaths = {
             "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
             "contract.tutor.user", "employee", "employee.user"
@@ -39,6 +48,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
             from Complaint complaint
             where (:status is null or complaint.status = :status)
               and (:contractId is null or complaint.contract.id = :contractId)
+              and (:category is null or complaint.category = :category)
+              and (:faultParty is null or complaint.faultParty = :faultParty)
               and (:keyword = ''
                    or lower(complaint.title) like lower(concat('%', :keyword, '%'))
                    or lower(complaint.user.email) like lower(concat('%', :keyword, '%'))
@@ -50,6 +61,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
                     from Complaint complaint
                     where (:status is null or complaint.status = :status)
                       and (:contractId is null or complaint.contract.id = :contractId)
+                      and (:category is null or complaint.category = :category)
+                      and (:faultParty is null or complaint.faultParty = :faultParty)
                       and (:keyword = ''
                            or lower(complaint.title) like lower(concat('%', :keyword, '%'))
                            or lower(complaint.user.email) like lower(concat('%', :keyword, '%'))
@@ -59,7 +72,34 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
     Page<Complaint> findAllForReview(
             @Param("status") ComplaintStatus status,
             @Param("contractId") UUID contractId,
+            @Param("category") ComplaintCategory category,
+            @Param("faultParty") ComplaintFaultParty faultParty,
             @Param("keyword") String keyword,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "user", "contract", "contract.student", "contract.student.user", "contract.tutor",
+            "contract.tutor.user"
+    })
+    @Query(value = """
+            select complaint
+            from Complaint complaint
+            where complaint.status in :statuses
+              and complaint.user.id <> :userId
+              and (complaint.contract.student.user.id = :userId
+                   or complaint.contract.tutor.user.id = :userId)
+            """,
+            countQuery = """
+                    select count(complaint)
+                    from Complaint complaint
+                    where complaint.status in :statuses
+                      and complaint.user.id <> :userId
+                      and (complaint.contract.student.user.id = :userId
+                           or complaint.contract.tutor.user.id = :userId)
+                    """)
+    Page<Complaint> findAllAgainstUser(
+            @Param("userId") UUID userId,
+            @Param("statuses") Collection<ComplaintStatus> statuses,
             Pageable pageable);
 
     @EntityGraph(attributePaths = {

@@ -23,7 +23,10 @@ public final class SecurityConstants {
             "/api/v1/reviews",
             "/api/v1/auth/password-reset/otp",
             "/api/v1/auth/password-reset/verify",
-            "/api/v1/auth/password-reset/reset"
+            "/api/v1/auth/password-reset/reset",
+            "/api/v1/provinces",
+            "/api/v1/districts",
+            "/api/v1/districts/**"
     };
 
     public static final String[] PAYMENT_CALLBACK_API = {
@@ -34,7 +37,8 @@ public final class SecurityConstants {
     public static final String[] PAYMENT_SELF_SERVICE_API = {
             "/api/v1/users/me/payments",
             "/api/v1/users/me/payments/**",
-            "/api/v1/users/me/transactions"
+            "/api/v1/users/me/transactions",
+            "/api/v1/users/me/transactions/**"
     };
 
     public static final String[] NOTIFICATION_SELF_SERVICE_API = {
@@ -59,9 +63,19 @@ public final class SecurityConstants {
             "/api/v1/admin/teaching-requests/**"
     };
 
+    public static final String[] ADMIN_STUDYING_REQUEST_API = {
+            "/api/v1/admin/studying-requests",
+            "/api/v1/admin/studying-requests/**"
+    };
+
     public static final String[] ADMIN_COMPLAINT_API = {
             "/api/v1/admin/complaints",
             "/api/v1/admin/complaints/**"
+    };
+
+    public static final String[] ADMIN_REFUND_REQUEST_API = {
+            "/api/v1/admin/refund-requests",
+            "/api/v1/admin/refund-requests/**"
     };
 
     public static final String[] ADMIN_SUBJECT_API = {
@@ -101,6 +115,10 @@ public final class SecurityConstants {
             "/api/v1/admin/statistics/**"
     };
 
+    public static final String[] EMPLOYEE_SELF_SERVICE_API = {
+            "/api/v1/employees/me"
+    };
+
     public static final String[] STUDENT_SELF_SERVICE_API = {
             "/api/v1/students/me",
             "/api/v1/students/me/**"
@@ -109,6 +127,12 @@ public final class SecurityConstants {
     public static final String[] TUTOR_SELF_SERVICE_API = {
             "/api/v1/tutors/me",
             "/api/v1/tutors/me/**"
+    };
+
+    // Shared studying request reads are available to tutors and employees.
+    public static final String[] STUDYING_REQUEST_READ_API = {
+            "/api/v1/studying-requests",
+            "/api/v1/studying-requests/*"
     };
 
     public static final String[] CONTRACT_SELF_SERVICE_API = {
@@ -124,7 +148,8 @@ public final class SecurityConstants {
     public static final String[] WALLET_SELF_SERVICE_API = {
             "/api/v1/users/me/wallet",
             "/api/v1/users/me/wallet/**",
-            "/api/v1/users/me/bank-account"
+            "/api/v1/users/me/bank-account",
+            "/api/v1/users/me/bank-account/**"
     };
 
     public static final String[] TUTOR_CERTIFICATE_READ_API = {

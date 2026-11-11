@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.Gender;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 public record TutorSelfProfileResponse(
         UUID tutorId,
@@ -31,6 +32,17 @@ public record TutorSelfProfileResponse(
         Integer totalStudentsTaught,
         BigDecimal acceptanceRate,
         BigDecimal avgResponseTimeHours,
+        TutorProfileStatus profileStatus,
+        LocalDateTime profileReviewedAt,
+        String profileRejectionReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
+
+    public TutorSelfProfileResponse withAvatarUrl(String value) {
+        return new TutorSelfProfileResponse(tutorId, userId, email, firstName, lastName, phone, gender, dateOfBirth,
+                value, address, introduction, experienceYears, education, teachingStyleTags, teachingMethodology,
+                strengthSubjects, targetStudentType, averageRating, totalReviews, completedContractsCount,
+                totalStudentsTaught, acceptanceRate, avgResponseTimeHours, profileStatus, profileReviewedAt,
+                profileRejectionReason, createdAt, updatedAt);
+    }
 }

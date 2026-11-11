@@ -18,13 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.entity.Grade;
+import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
 import com.ptutor.backend.entity.Subject;
@@ -35,9 +39,12 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
 import com.ptutor.backend.repository.TutorRepository;
@@ -50,7 +57,9 @@ class TutorStudentRequestServiceTest {
     @Mock StudyingRequestRepository studyingRequestRepository;
     @Mock TutorRepository tutorRepository;
     @Mock GradeRepository gradeRepository;
+    @Mock DistrictRepository districtRepository;
     @Mock StudentRepository studentRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     private TutorStudentRequestService service;
     private UUID tutorUserId;
@@ -68,8 +77,10 @@ class TutorStudentRequestServiceTest {
                 studyingRequestRepository,
                 tutorRepository,
                 gradeRepository,
+                districtRepository,
                 studentRepository,
-                Mappers.getMapper(TutorStudentRequestMapper.class));
+                Mappers.getMapper(TutorStudentRequestMapper.class),
+                eventPublisher);
 
         tutorUserId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
@@ -105,6 +116,44 @@ class TutorStudentRequestServiceTest {
         assertThat(response.gradeId()).isEqualTo(gradeId);
         assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(response.preferredSchedule()).isEqualTo("Weekday evenings");
+        ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().recipientUserId()).isEqualTo(studentUserId);
+        assertThat(captor.getValue().eventType()).isEqualTo(NotificationEventType.TUTOR_REQUEST_RECEIVED);
+    }
+
+    @Test
+    void createsOfflineProposalWithValidatedProvinceAndDistrict() {
+        UUID provinceId = UUID.randomUUID();
+        UUID districtId = UUID.randomUUID();
+        Province province = Province.builder().name("Hanoi").build();
+        province.setId(provinceId);
+        District district = District.builder().name("Ba Dinh").province(province).build();
+        district.setId(districtId);
+
+        when(studyingRequestRepository.findById(studyingRequestId))
+                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
+        when(tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
+                tutorId, studyingRequestId, ApplicationStatus.PENDING)).thenReturn(false);
+        when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
+                .thenAnswer(invocation -> {
+                    TutorStudentRequest value = invocation.getArgument(0);
+                    value.setId(requestId);
+                    return value;
+                });
+
+        var request = new TutorStudentRequestCreateRequest(
+                gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
+                "Saturday mornings", "", provinceId, districtId);
+
+        service.create(tutorUserId, studyingRequestId, request);
+
+        ArgumentCaptor<TutorStudentRequest> captor = ArgumentCaptor.forClass(TutorStudentRequest.class);
+        verify(tutorStudentRequestRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getPreferredProvince()).isSameAs(province);
+        assertThat(captor.getValue().getPreferredDistrict()).isSameAs(district);
     }
 
     @Test
@@ -212,9 +261,8 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void acceptsPendingRequestAndKeepsStudyingRequestOpenWhenCapacityRemains() {
+    void acceptsPendingRequestAndMarksStudyingRequestMatched() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
-        request.setQuantity(2);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
                 .thenReturn(Optional.of(request));
@@ -227,14 +275,13 @@ class TutorStudentRequestServiceTest {
         service.accept(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
-        assertThat(request.getStatus()).isEqualTo(RequestStatus.OPEN);
-        verify(studyingRequestRepository, never()).saveAndFlush(any());
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
+        verify(studyingRequestRepository).saveAndFlush(request);
     }
 
     @Test
     void acceptsPendingRequestAndMarksStudyingRequestMatchedAtCapacity() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
-        request.setQuantity(1);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
                 .thenReturn(Optional.of(request));
@@ -253,7 +300,7 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void doesNotAcceptWhenQuantityHasAlreadyBeenReached() {
+    void doesNotAcceptWhenStudyingRequestAlreadyHasAnAcceptedTutor() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
         when(studyingRequestRepository.findByIdAndStudentIdForUpdate(studyingRequestId, studentId))
@@ -261,14 +308,30 @@ class TutorStudentRequestServiceTest {
         when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
                 .thenReturn(Optional.of(tutorRequest));
         when(tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
-                studyingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(2L);
+                studyingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(1L);
 
         assertThatThrownBy(() -> service.accept(studentUserId, studyingRequestId, requestId))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(exception.getCode()).isEqualTo("STUDYING_REQUEST_QUANTITY_REACHED");
+                    assertThat(exception.getCode()).isEqualTo("STUDYING_REQUEST_ALREADY_MATCHED");
                 });
         verify(tutorStudentRequestRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void allowsStudentToRejectAnotherPendingOfferAfterOneOfferWasAccepted() {
+        StudyingRequest request = studyingRequest(RequestStatus.MATCHED);
+        TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.PENDING);
+        when(studyingRequestRepository.findByIdAndStudent_Id(studyingRequestId, studentId))
+                .thenReturn(Optional.of(request));
+        when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
+                .thenReturn(Optional.of(tutorRequest));
+        when(tutorStudentRequestRepository.saveAndFlush(tutorRequest)).thenReturn(tutorRequest);
+
+        service.reject(studentUserId, studyingRequestId, requestId);
+
+        assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
     }
 
     @Test
@@ -358,7 +421,6 @@ class TutorStudentRequestServiceTest {
                 .student(student())
                 .subject(subject)
                 .grade(grade())
-                .quantity(2)
                 .title("Need an English tutor")
                 .learningMode(com.ptutor.backend.entity.enums.LearningMode.ONLINE)
                 .status(status)

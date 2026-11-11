@@ -1,0 +1,133 @@
+import type { Contract } from '../../../services/studentApi';
+import type { StudentComplaint } from '../../../services/studentComplaintApi';
+import { Link } from 'react-router-dom';
+import { complaintCategoryLabels, formatComplaintDate } from './complaintFormat';
+import { Icon } from '../../ui/Icon';
+import { useComplaintParties } from '../../../pages/common-user/useComplaintParties';
+
+interface Props {
+  complaint: StudentComplaint;
+  contract: Contract | null;
+  mode: 'submitted' | 'received';
+  role?: 'student' | 'tutor';
+  contractHref: string;
+}
+
+export function ComplaintDetailPanel({ complaint, contract, mode, role = 'student', contractHref }: Props) {
+  const { senderName, respondentName, respondentRole } = useComplaintParties(contract, mode, role);
+
+  return (
+    <div className="student-complaint-detail-main-stack">
+      <section className="student-panel student-complaint-summary-card">
+        <div className="student-complaint-summary-main">
+          <div className="student-complaint-summary-icon">
+            <Icon name="complaint" size={25} />
+          </div>
+          <div className="student-complaint-summary-copy">
+            <h2>{complaint.title}</h2>
+            <div className="student-complaint-summary-tags">
+              <span className="student-complaint-category-pill">{complaintCategoryLabels[complaint.category]}</span>
+              <Link className="student-complaint-contract-link" to={contractHref}>
+                <Icon name="contract" size={14} /> Chi tiết hợp đồng <Icon name="arrow" size={13} />
+              </Link>
+            </div>
+          </div>
+          <div className="student-complaint-contract-summary">
+            <Link className="student-complaint-contract-summary-link" to={contractHref}>
+              Xem chi tiết hợp đồng <Icon name="arrow" size={13} />
+            </Link>
+          </div>
+        </div>
+        <div className="student-complaint-summary-meta">
+          <div>
+            <span>
+              <Icon name="user" size={15} /> Người gửi
+            </span>
+            <strong>{senderName}</strong>
+          </div>
+          <div>
+            <span>
+              <Icon name="user" size={15} /> Đối tượng bị khiếu nại
+            </span>
+            <strong>
+              {respondentName} ({respondentRole})
+            </strong>
+          </div>
+          <div>
+            <span>
+              <Icon name="calendar" size={15} /> Thời gian tạo
+            </span>
+            <strong>{formatComplaintDate(complaint.createdAt)}</strong>
+          </div>
+          <div>
+            <span>
+              <Icon name="history" size={15} /> Cập nhật gần nhất
+            </span>
+            <strong>{formatComplaintDate(complaint.updatedAt)}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="student-panel student-complaint-content-card">
+        <h2 className="student-complaint-card-title">
+          <Icon name="complaint" size={19} /> Nội dung khiếu nại
+        </h2>
+        <div className="student-complaint-content-box">{complaint.content}</div>
+      </section>
+
+      <section className="student-panel student-complaint-evidence-card">
+        <h2 className="student-complaint-card-title">
+          <Icon name="send" size={19} /> Minh chứng ({complaint.evidences.length})
+        </h2>
+        {complaint.evidences.length > 0 ? (
+          <div className="student-complaint-evidence-list">
+            {complaint.evidences.map((evidence, index) => (
+              <a
+                key={evidence.id ?? `${evidence.fileUrl}-${index}`}
+                href={evidence.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="arrow" size={13} /> <span>{evidence.fileUrl}</span>
+                <Icon name="arrow" size={13} />
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="student-complaint-empty-detail">Chưa có minh chứng.</p>
+        )}
+      </section>
+
+      {complaint.respondentResponse && (
+        <section className="student-panel student-complaint-message student-complaint-response-message">
+          <h2 className="student-complaint-card-title">
+            <Icon name="support" size={19} /> Phản hồi của bên bị khiếu nại
+          </h2>
+          <div className="student-complaint-response-body">
+            <div className="student-complaint-response-author">
+              <span className="student-complaint-response-avatar" aria-hidden="true">
+                {getInitials(respondentName)}
+              </span>
+              <div>
+                <strong>
+                  {respondentName} ({respondentRole})
+                </strong>
+                <small>Phản hồi lúc: {formatComplaintDate(complaint.respondentRespondedAt)}</small>
+              </div>
+            </div>
+            <p>{complaint.respondentResponse}</p>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function getInitials(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+  return initials.slice(0, 2) || '?';
+}

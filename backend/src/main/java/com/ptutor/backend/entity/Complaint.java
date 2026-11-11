@@ -22,6 +22,8 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 
+import com.ptutor.backend.entity.enums.ComplaintCategory;
+import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
 
 @Entity
@@ -72,4 +74,22 @@ public class Complaint extends BaseEntity {
     @Column(name = "resolved_at")
     @NonFinal
     private LocalDateTime resolvedAt;
+
+    @Column(name = "category", length = 30)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    private ComplaintCategory category;
+
+    @Column(name = "fault_party", length = 20)
+    @NonFinal
+    @Enumerated(EnumType.STRING)
+    private ComplaintFaultParty faultParty;
+
+    @Column(name = "respondent_response", columnDefinition = "text")
+    @NonFinal
+    private String respondentResponse;
+
+    @Column(name = "respondent_responded_at")
+    @NonFinal
+    private LocalDateTime respondentRespondedAt;
 }

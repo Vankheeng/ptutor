@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.enums.NotificationReadStatus;
+import com.ptutor.backend.entity.enums.NotificationType;
 import com.ptutor.backend.dto.response.NotificationReadAllResponse;
 import com.ptutor.backend.dto.response.NotificationResponse;
 import com.ptutor.backend.dto.response.PageResponse;
@@ -92,10 +93,24 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public PageResponse<NotificationResponse> findMine(
             UUID userId, NotificationReadStatus status, Pageable pageable) {
-        Page<Notification> notifications = status == null
-                ? notificationRepository.findAllByUser_IdOrderByCreatedAtDesc(userId, pageable)
-                : notificationRepository.findAllByUser_IdAndIsReadOrderByCreatedAtDesc(
-                        userId, status == NotificationReadStatus.READ, pageable);
+        return findMine(userId, status, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NotificationResponse> findMine(
+            UUID userId, NotificationReadStatus status, NotificationType type, Pageable pageable) {
+        Page<Notification> notifications;
+        if (status != null && type != null) {
+            notifications = notificationRepository.findAllByUser_IdAndIsReadAndTypeOrderByCreatedAtDesc(
+                    userId, status == NotificationReadStatus.READ, type, pageable);
+        } else if (status != null) {
+            notifications = notificationRepository.findAllByUser_IdAndIsReadOrderByCreatedAtDesc(
+                    userId, status == NotificationReadStatus.READ, pageable);
+        } else if (type != null) {
+            notifications = notificationRepository.findAllByUser_IdAndTypeOrderByCreatedAtDesc(userId, type, pageable);
+        } else {
+            notifications = notificationRepository.findAllByUser_IdOrderByCreatedAtDesc(userId, pageable);
+        }
         return PageResponse.from(notifications, notifications.getContent().stream()
                 .map(this::toResponse)
                 .toList());
@@ -159,6 +174,36 @@ public class NotificationService {
                 .type(template.type())
                 .eventType(eventType)
                 .referenceType(NotificationReferenceType.TEACHING_REQUEST)
+                .isRead(false)
+                .build());
+    }
+
+    @Transactional
+    public void createStudyingRequestReviewNotification(
+            User recipient,
+            String studyingRequestId,
+            String requestTitle,
+            boolean approved,
+            String rejectionReason,
+            BigDecimal refundedAmount) {
+        NotificationEventType eventType = approved
+                ? NotificationEventType.STUDYING_REQUEST_APPROVED
+                : NotificationEventType.STUDYING_REQUEST_REJECTED;
+        NotificationContent template = templateFactory.create(new NotificationDomainEvent(
+                recipient.getId(), eventType, NotificationReferenceType.STUDYING_REQUEST, studyingRequestId,
+                java.util.Map.of(
+                        "name", requestTitle == null ? "" : requestTitle,
+                        "reason", rejectionReason == null ? "" : rejectionReason,
+                        "amount", refundedAmount == null ? "" : refundedAmount.toPlainString()),
+                null));
+        notificationRepository.save(Notification.builder()
+                .user(recipient)
+                .title(template.title())
+                .content(template.content())
+                .referenceId(studyingRequestId)
+                .type(template.type())
+                .eventType(eventType)
+                .referenceType(NotificationReferenceType.STUDYING_REQUEST)
                 .isRead(false)
                 .build());
     }

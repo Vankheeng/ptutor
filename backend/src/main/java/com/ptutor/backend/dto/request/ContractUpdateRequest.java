@@ -3,6 +3,7 @@ package com.ptutor.backend.dto.request;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 import com.ptutor.backend.entity.enums.PaymentPeriod;
 
@@ -30,7 +31,14 @@ public record ContractUpdateRequest(
 
         LocalDate endDate,
 
-        UUID gradeId) {
+        UUID gradeId,
+
+        List<ContractScheduleRequest> schedules) {
+
+    public ContractUpdateRequest(BigDecimal price, PaymentPeriod paymentPeriod, Integer totalLessons,
+            String preferredSchedule, LocalDate startDate, LocalDate endDate, UUID gradeId) {
+        this(price, paymentPeriod, totalLessons, preferredSchedule, startDate, endDate, gradeId, null);
+    }
 
     public boolean isEmpty() {
         return price == null
@@ -39,6 +47,7 @@ public record ContractUpdateRequest(
                 && preferredSchedule == null
                 && startDate == null
                 && endDate == null
-                && gradeId == null;
+                && gradeId == null
+                && schedules == null;
     }
 }
