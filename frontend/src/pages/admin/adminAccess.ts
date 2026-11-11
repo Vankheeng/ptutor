@@ -13,6 +13,10 @@ const ACCOUNTANT = ['ACCOUNTANT'] as const;
 /** Mirrors the backend's EmployeeFunctionAuthorizationFilter so the menu only offers modules the API allows. */
 export const adminNavigation: { label: string; items: AdminModule[] }[] = [
   {
+    label: 'Tổng quan',
+    items: [{ to: '/admin/statistics', label: 'Thống kê', functions: [] }]
+  },
+  {
     label: 'Quản lý',
     items: [
       { to: '/admin/students', label: 'Học viên', functions: CUSTOMER_SERVICE },

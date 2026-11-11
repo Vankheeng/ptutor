@@ -352,6 +352,11 @@
   color: #5f2cc9;
   box-shadow: 0 2px 8px rgba(47, 34, 64, 0.08);
 }
+.statistics-presets button.is-active {
+  background: #fff;
+  color: #5f2cc9;
+  box-shadow: 0 2px 8px rgba(47, 34, 64, 0.12);
+}
 .statistics-apply {
   height: 34px;
   padding: 0 15px;
@@ -376,6 +381,9 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+@media (min-width: 1181px) {
+  .statistics-metrics.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .statistics-metric {
   overflow: hidden;
@@ -917,3 +925,46 @@
     min-width: calc(100% - 55px);
   }
 }
+
+/* The admin layout already owns navigation; keep this page focused on the report. */
+.statistics-sidebar, .statistics-overlay, .statistics-menu-button { display: none !important; }
+.statistics-main { margin-left: 0; min-height: auto; }
+.statistics-shell { min-height: 0; background: transparent; }
+.statistics-topbar { position: static; height: auto; min-height: 96px; padding: 22px 28px; border: 0; background: transparent; }
+.statistics-topbar h1 { font-size: 28px; }
+.statistics-topbar p { margin-top: 5px; font-size: 13px; }
+.statistics-topbar > div:first-of-type > span { font-size: 11px; }
+.statistics-top-actions { padding: 0; border: 0; background: transparent; }
+.statistics-report-picker { display: grid; gap: 5px; color: #777080; font-size: 11px; }
+.statistics-report-picker select { min-width: 150px; padding: 9px 12px; border: 1px solid #dcd5e7; border-radius: 8px; background: #fff; color: #30293d; font: inherit; font-size: 13px; }
+.statistics-content { padding: 0 28px 32px; }
+.statistics-filter { flex-wrap: wrap; padding: 16px; gap: 12px; }
+.statistics-filter label > span, .statistics-card-heading > div > span, .statistics-section-heading > div > span { font-size: 11px; }
+.statistics-filter input, .statistics-filter select, .statistics-presets button, .statistics-apply { font-size: 12px; }
+.statistics-metrics { gap: 14px; }
+.statistics-metric { min-height: 145px; padding: 20px; border-radius: 14px; }
+.statistics-metric-top { font-size: 13px; }
+.statistics-metric > strong { margin: 18px 0 12px; }
+.statistics-change, .statistics-detail-row > span, .statistics-detail-row strong, .statistics-bar-row > div:first-child, .statistics-bar-row b { font-size: 12px; }
+.statistics-analysis-grid { grid-template-columns: minmax(0, 1.65fr) minmax(260px, .8fr); gap: 14px; }
+.statistics-card { border-radius: 14px; }
+.statistics-chart-section, .statistics-detail-card, .statistics-breakdown { padding: 21px; }
+.statistics-series-tabs button, .statistics-card-heading.compact h3, .statistics-section-heading p, .statistics-generated { font-size: 12px; }
+.statistics-detail-row { min-height: 49px; }
+.statistics-breakdown-grid { grid-template-columns: 1fr; }
+@media (max-width: 1100px) { .statistics-analysis-grid { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .statistics-topbar { padding: 18px; align-items: flex-start; } .statistics-content { padding: 0 18px 25px; } .statistics-topbar h1 { font-size: 23px; } .statistics-report-picker select { min-width: 115px; } }
+.statistics-column-chart rect { fill: #7551d2; }
+.statistics-column-chart rect:hover { fill: #5630b5; }
+.statistics-column-chart text { font-size: 11px; }
+.statistics-metric-top b { color: #6940bd; font-size: 11px; white-space: nowrap; }
+.statistics-drilldown { padding: 20px 22px; }
+.statistics-detail-close { border: 0; background: transparent; color: #777080; cursor: pointer; font-size: 18px; }
+.statistics-period-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 18px; max-height: 205px; overflow-y: auto; }
+.statistics-period-list > div { display: flex; justify-content: space-between; gap: 10px; padding: 11px 12px; border-radius: 8px; background: #f7f5fb; font-size: 12px; }
+.statistics-period-list strong { color: #312744; }
+.statistics-period-empty { color: #837c8d; font-size: 13px; }
+.statistics-drilldown-actions { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 16px; }
+.statistics-drilldown-actions button, .statistics-drilldown-actions a { padding: 0; border: 0; background: transparent; color: #6436c1; font: inherit; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.statistics-column-chart .statistics-axis-title { fill: #665f72; font-size: 12px; font-weight: 700; }
+.statistics-column-chart .statistics-axis-line { stroke: #bfb8c9; }

@@ -25,52 +25,30 @@ interface ReportGroup {
 }
 
 const REPORT_GROUPS: ReportGroup[] = [
-  {
-    label: 'Tổng quan',
-    items: [{ id: 'overview', label: 'Tổng quan', description: 'Bức tranh toàn hệ thống' }]
-  },
-  {
-    label: 'Người dùng',
-    items: [
-      { id: 'students', label: 'Học viên', description: 'Tăng trưởng và chuyển đổi' },
-      { id: 'tutors', label: 'Gia sư', description: 'Hồ sơ và hiệu suất' },
-      { id: 'employees', label: 'Nhân viên', description: 'Hoạt động kiểm duyệt' }
-    ]
-  },
-  {
-    label: 'Kết nối & học tập',
-    items: [
-      { id: 'studying-requests', label: 'Nhu cầu học', description: 'Yêu cầu từ học viên' },
-      { id: 'teaching-requests', label: 'Nhu cầu dạy', description: 'Đề xuất từ gia sư' },
-      { id: 'matching', label: 'Ghép lớp', description: 'Hiệu quả kết nối' },
-      { id: 'contracts', label: 'Hợp đồng', description: 'Ký kết và thực hiện' },
-      { id: 'lessons', label: 'Buổi học', description: 'Tiến độ giảng dạy' }
-    ]
-  },
-  {
-    label: 'Tài chính',
-    items: [
-      { id: 'finance', label: 'Doanh thu', description: 'Tổng hợp dòng tiền' },
-      { id: 'payments', label: 'Thanh toán', description: 'Giao dịch học phí' },
-      { id: 'installments', label: 'Kỳ thanh toán', description: 'Tiến độ thu học phí' },
-      { id: 'wallets', label: 'Ví điện tử', description: 'Số dư và biến động' },
-      { id: 'withdrawals', label: 'Rút tiền', description: 'Yêu cầu và xử lý' }
-    ]
-  }
+  { label: 'Tổng quan', items: [{ id: 'overview', label: 'Tổng quan', description: 'Các kết quả quan trọng' }] },
+  { label: 'Người dùng', items: [
+    { id: 'students', label: 'Học viên', description: 'Tăng trưởng học viên' },
+    { id: 'tutors', label: 'Gia sư', description: 'Phát triển gia sư' }
+  ] },
+  { label: 'Hoạt động', items: [
+    { id: 'contracts', label: 'Hợp đồng', description: 'Ký kết lớp học' },
+    { id: 'lessons', label: 'Buổi học', description: 'Kết quả giảng dạy' }
+  ] },
+  { label: 'Tài chính', items: [{ id: 'finance', label: 'Tài chính', description: 'Phí nền tảng và học phí' }] }
 ];
 
 const ALL_REPORTS = REPORT_GROUPS.flatMap((group) => group.items);
 
 const PRIMARY_METRICS: Record<StatisticsReport, string[]> = {
-  overview: ['platform_revenue_gross', 'new_students', 'new_tutors', 'signed_contracts'],
-  students: ['total_students', 'new_students', 'paying_students', 'tuition_volume'],
-  tutors: ['total_tutors', 'verified_tutors', 'average_rating', 'tuition_volume'],
+  overview: ['platform_revenue_gross', 'signed_contracts', 'completed_lessons', 'new_students'],
+  students: ['new_students', 'students_with_signed_contract', 'paying_students'],
+  tutors: ['new_tutors', 'verified_tutors', 'tutors_with_signed_contract'],
   'studying-requests': ['created_requests', 'matched_requests', 'cancelled_requests', 'average_maximum_price'],
   'teaching-requests': ['created_requests', 'matched_requests', 'cancelled_requests', 'average_maximum_price'],
   matching: ['offers', 'accepted_offers', 'acceptance_rate', 'average_proposed_price'],
-  contracts: ['created_contracts', 'signed_contracts', 'active_contracts', 'signing_rate'],
-  lessons: ['scheduled_lessons', 'completed_lessons', 'completion_rate', 'cancellation_rate'],
-  finance: ['platform_revenue_gross', 'platform_revenue_current_net', 'tuition_volume', 'successful_payments'],
+  contracts: ['signed_contracts', 'active_contracts', 'signing_rate'],
+  lessons: ['completed_lessons', 'completion_rate', 'cancelled_lessons'],
+  finance: ['platform_revenue_current_net', 'tuition_volume', 'successful_payments'],
   payments: ['initiated_payments', 'successful_payments', 'success_rate', 'initiated_value'],
   installments: ['installments', 'paid_installments', 'pending_installments', 'collection_rate'],
   wallets: ['wallets', 'available_balance', 'pending_balance', 'transactions'],
@@ -91,6 +69,16 @@ const METRIC_REPORTS: Record<string, StatisticsReport> = {
   signed_contracts: 'contracts',
   completed_lessons: 'lessons',
   pending_withdrawals: 'withdrawals'
+};
+
+const METRIC_SERIES: Record<string, string> = {
+  platform_revenue_gross: 'platformRevenue',
+  platform_revenue_current_net: 'platformRevenue',
+  tuition_volume: 'tuitionVolume',
+  signed_contracts: 'signedContracts',
+  completed_lessons: 'completedLessons',
+  new_students: 'newStudents',
+  new_tutors: 'newTutors'
 };
 
 const METRIC_LABELS: Record<string, string> = {
@@ -374,6 +362,7 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
   const [activeReport, setActiveReport] = useState<StatisticsReport>(getInitialReport);
   const [filters, setFilters] = useState<StatisticsFilters>(createInitialFilters);
   const [draftFilters, setDraftFilters] = useState<StatisticsFilters>(filters);
+  const [activePreset, setActivePreset] = useState<number | null>(30);
   const [data, setData] = useState<StatisticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -413,6 +402,7 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
   }
 
   function selectReport(nextReport: StatisticsReport) {
+    if (nextReport === activeReport) return;
     prepareReload();
     setActiveReport(nextReport);
     setMenuOpen(false);
@@ -426,6 +416,7 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
     from.setDate(from.getDate() - days + 1);
     const nextFilters = { ...draftFilters, fromDate: toDateInput(from), toDate: toDateInput(to) };
     prepareReload();
+    setActivePreset(days);
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
   }
@@ -437,7 +428,8 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
       return;
     }
     prepareReload();
-    setFilters(draftFilters);
+    setActivePreset(null);
+    setFilters({ ...draftFilters });
   }
 
   return (
@@ -499,23 +491,27 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
               Quản trị <i>/</i> Thống kê
             </span>
             <h1>{report.label}</h1>
-            <p>{report.description} · So sánh với kỳ liền trước</p>
           </div>
           <div className="statistics-top-actions">
-            <span className="statistics-live-dot" /> Dữ liệu hệ thống
+            <label className="statistics-report-picker">
+              Xem báo cáo
+              <select value={activeReport} onChange={(event) => selectReport(event.target.value as StatisticsReport)}>
+                {ALL_REPORTS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </label>
           </div>
         </header>
 
         <section className="statistics-content">
           <form className="statistics-filter" onSubmit={applyFilters}>
             <div className="statistics-presets" aria-label="Khoảng thời gian nhanh">
-              <button type="button" onClick={() => applyPreset(7)}>
+              <button type="button" className={activePreset === 7 ? 'is-active' : ''} aria-pressed={activePreset === 7} onClick={() => applyPreset(7)}>
                 7 ngày
               </button>
-              <button type="button" onClick={() => applyPreset(30)}>
+              <button type="button" className={activePreset === 30 ? 'is-active' : ''} aria-pressed={activePreset === 30} onClick={() => applyPreset(30)}>
                 30 ngày
               </button>
-              <button type="button" onClick={() => applyPreset(90)}>
+              <button type="button" className={activePreset === 90 ? 'is-active' : ''} aria-pressed={activePreset === 90} onClick={() => applyPreset(90)}>
                 90 ngày
               </button>
             </div>
@@ -599,40 +595,48 @@ function ReportContent({
   activeReport: StatisticsReport;
   onSelectReport: (report: StatisticsReport) => void;
 }) {
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const metrics = Object.entries(data.metrics);
-  const series = Object.entries(data.series).filter(([, values]) => values.length > 0);
-  const breakdowns = Object.entries(data.breakdowns).filter(([, values]) => values.length > 0);
+  const series = Object.entries(data.series)
+    .filter(([, values]) => values.length > 0)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 3);
+  const breakdowns = Object.entries(data.breakdowns).filter(([key, values]) =>
+    values.length > 0 && ['status', 'profileStatus', 'paymentType'].includes(key)
+  ).slice(0, 1);
   const primaryMetricKeys = new Set(PRIMARY_METRICS[activeReport]);
   const primaryMetrics = PRIMARY_METRICS[activeReport]
     .map((key) => metrics.find(([metricKey]) => metricKey === key))
     .filter((metric): metric is [string, StatisticsMetric] => Boolean(metric));
-  const secondaryMetrics = metrics.filter(([key]) => !primaryMetricKeys.has(key));
-  const generatedAt = new Intl.DateTimeFormat('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(new Date(data.generatedAt));
+  const secondaryMetrics = metrics.filter(([key]) => !primaryMetricKeys.has(key)).slice(0, 3);
 
   return (
     <div className="statistics-report">
-      <section className="statistics-metrics" aria-label="Chỉ số chính">
+      <section className={`statistics-metrics${primaryMetrics.length === 3 ? ' is-three' : ''}`} aria-label="Chỉ số chính">
         {primaryMetrics.map(([key, metric]) => (
           <MetricCard
             key={key}
             metricKey={key}
             metric={metric}
             onClick={
-              activeReport === 'overview' && METRIC_REPORTS[key] ? () => onSelectReport(METRIC_REPORTS[key]) : undefined
+              activeReport === 'overview' && METRIC_SERIES[key] ? () => setSelectedMetric(selectedMetric === key ? null : key) : undefined
             }
           />
         ))}
       </section>
 
+      {selectedMetric && activeReport === 'overview' && (
+        <MetricDetail
+          metricKey={selectedMetric}
+          data={data}
+          onClose={() => setSelectedMetric(null)}
+          onSelectReport={onSelectReport}
+        />
+      )}
+
       {(series.length > 0 || secondaryMetrics.length > 0) && (
         <section className={series.length > 0 ? 'statistics-analysis-grid' : 'statistics-analysis-grid no-chart'}>
-          {series.length > 0 && <TrendPanel key={data.report} series={series} />}
+          {series.length > 0 && <TrendPanel key={data.report} series={series} report={activeReport} granularity={data.range.granularity} />}
           {secondaryMetrics.length > 0 && <MetricTable metrics={secondaryMetrics} />}
         </section>
       )}
@@ -683,11 +687,31 @@ function ReportContent({
           <p>Hãy chọn một khoảng thời gian khác để xem báo cáo.</p>
         </div>
       )}
-      <p className="statistics-generated">
-        Cập nhật lúc {generatedAt} · Múi giờ {data.range.timezone} · Nhóm theo {humanize(data.range.granularity)}
-      </p>
     </div>
   );
+}
+
+function MetricDetail({ metricKey, data, onClose, onSelectReport }: {
+  metricKey: string;
+  data: StatisticsResponse;
+  onClose: () => void;
+  onSelectReport: (report: StatisticsReport) => void;
+}) {
+  const values = data.series[METRIC_SERIES[metricKey]] ?? [];
+  const report = METRIC_REPORTS[metricKey];
+  return <section className="statistics-card statistics-drilldown" aria-label={`Chi tiết ${METRIC_LABELS[metricKey]}`}>
+    <div className="statistics-card-heading">
+      <div><span>CHI TIẾT THEO THỜI GIAN</span><h3>{METRIC_LABELS[metricKey]}</h3></div>
+      <button type="button" className="statistics-detail-close" onClick={onClose} aria-label="Đóng chi tiết">✕</button>
+    </div>
+    {values.length ? <div className="statistics-period-list">
+      {values.map((item) => <div key={item.period}><span>{formatPeriod(item.period)}</span><strong>{formatMetricValue(metricKey, item.value)}</strong></div>)}
+    </div> : <p className="statistics-period-empty">Không có phát sinh trong khoảng thời gian này.</p>}
+    <div className="statistics-drilldown-actions">
+      {report && <button type="button" onClick={() => { onClose(); onSelectReport(report); }}>Xem báo cáo {ALL_REPORTS.find((item) => item.id === report)?.label.toLowerCase()} →</button>}
+      {metricKey === 'new_students' && <a href="/admin/students">Mở danh sách học viên →</a>}
+    </div>
+  </section>;
 }
 
 function MetricCard({
@@ -705,7 +729,7 @@ function MetricCard({
     <>
       <div className="statistics-metric-top">
         <span>{METRIC_LABELS[metricKey] ?? humanize(metricKey)}</span>
-        {onClick && <b aria-hidden="true">→</b>}
+        {onClick && <b aria-hidden="true">Xem chi tiết ↓</b>}
       </div>
       <strong title={String(metric.value)}>{formatMetricValue(metricKey, metric.value)}</strong>
       <div className={`statistics-change ${trend}`}>
@@ -757,15 +781,40 @@ function MetricTable({ metrics }: { metrics: [string, StatisticsMetric][] }) {
   );
 }
 
-function TrendPanel({ series }: { series: [string, StatisticsSeriesItem[]][] }) {
+function chartDescription(report: StatisticsReport, key: string) {
+  const descriptions: Record<string, { title: string; unit: string }> = {
+    platformRevenue: { title: 'Phí nền tảng ghi nhận', unit: 'Đồng (VND)' },
+    tuitionVolume: { title: 'Học phí đã thanh toán', unit: 'Đồng (VND)' },
+    signedContracts: { title: 'Hợp đồng đã ký', unit: 'Hợp đồng' },
+    newStudents: { title: 'Học viên đăng ký mới', unit: 'Học viên' },
+    newTutors: { title: 'Gia sư đăng ký mới', unit: 'Gia sư' },
+    completedLessons: { title: 'Buổi học hoàn thành', unit: 'Buổi học' },
+    registrations: report === 'tutors'
+      ? { title: 'Gia sư đăng ký mới', unit: 'Gia sư' }
+      : { title: 'Học viên đăng ký mới', unit: 'Học viên' },
+    created: { title: 'Hợp đồng được tạo', unit: 'Hợp đồng' },
+    signed: { title: 'Hợp đồng đã ký', unit: 'Hợp đồng' },
+    lessons: { title: 'Buổi học đã lên lịch', unit: 'Buổi học' },
+    completed: { title: 'Buổi học hoàn thành', unit: 'Buổi học' }
+  };
+  return descriptions[key] ?? { title: METRIC_LABELS[key] ?? humanize(key), unit: 'Lượt' };
+}
+
+function TrendPanel({ series, report, granularity }: {
+  series: [string, StatisticsSeriesItem[]][];
+  report: StatisticsReport;
+  granularity: Exclude<StatisticsGranularity, 'AUTO'>;
+}) {
   const [activeKey, setActiveKey] = useState(series[0][0]);
   const activeSeries = series.find(([key]) => key === activeKey) ?? series[0];
+  const chart = chartDescription(report, activeSeries[0]);
+  const period = { DAY: 'ngày', WEEK: 'tuần', MONTH: 'tháng' }[granularity];
   return (
     <section className="statistics-card statistics-chart-section">
       <div className="statistics-card-heading statistics-chart-heading">
         <div>
-          <span>DIỄN BIẾN THEO THỜI GIAN</span>
-          <h3>{METRIC_LABELS[activeSeries[0]] ?? humanize(activeSeries[0])}</h3>
+          <span>BIỂU ĐỒ HOẠT ĐỘNG</span>
+          <h3>{chart.title} theo {period}</h3>
         </div>
         {series.length > 1 && (
           <div className="statistics-series-tabs" aria-label="Chọn chỉ số biểu đồ">
@@ -776,68 +825,60 @@ function TrendPanel({ series }: { series: [string, StatisticsSeriesItem[]][] }) 
                 onClick={() => setActiveKey(key)}
                 key={key}
               >
-                {METRIC_LABELS[key] ?? humanize(key)}
+                {chartDescription(report, key).title}
               </button>
             ))}
           </div>
         )}
       </div>
-      <TrendChart series={[activeSeries]} />
+      <TrendChart series={[activeSeries]} unit={chart.unit} period={period} />
     </section>
   );
 }
 
-function TrendChart({ series }: { series: [string, StatisticsSeriesItem[]][] }) {
+function TrendChart({ series, unit, period }: {
+  series: [string, StatisticsSeriesItem[]][];
+  unit: string;
+  period: string;
+}) {
+  const [key, values] = series[0];
   const width = 900;
-  const height = 230;
-  const padding = { top: 14, right: 18, bottom: 34, left: 54 };
-  const allValues = series.flatMap(([, values]) => values.map((item) => item.value));
-  const maximum = Math.max(...allValues, 1);
-  const periods = series.reduce(
-    (longest, [, values]) => (values.length > longest.length ? values : longest),
-    [] as StatisticsSeriesItem[]
-  );
-  const x = (index: number, length: number) =>
-    padding.left + (index * (width - padding.left - padding.right)) / Math.max(length - 1, 1);
-  const y = (value: number) => height - padding.bottom - (value / maximum) * (height - padding.top - padding.bottom);
-  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const height = 285;
+  const left = 86;
+  const right = 18;
+  const top = 24;
+  const bottom = 62;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const maximum = Math.max(...values.map((item) => item.value), 1);
+  const slot = plotWidth / Math.max(values.length, 1);
+  const barWidth = Math.min(slot * 0.58, 58);
+  const labelStep = Math.max(1, Math.ceil(values.length / 7));
 
   return (
     <div className="statistics-chart-wrap">
-      <svg className="statistics-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ xu hướng">
-        {ticks.map((tick) => {
-          const tickY = y(maximum * tick);
-          return (
-            <g key={tick}>
-              <line x1={padding.left} y1={tickY} x2={width - padding.right} y2={tickY} />
-              <text x={padding.left - 10} y={tickY + 4} textAnchor="end">
-                {formatAxisValue(series[0][0], maximum * tick)}
-              </text>
-            </g>
-          );
+      <svg className="statistics-chart statistics-column-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Biểu đồ ${METRIC_LABELS[key] ?? humanize(key)} theo thời gian`}>
+        <text className="statistics-axis-title" transform={`translate(17 ${top + plotHeight / 2}) rotate(-90)`} textAnchor="middle">{unit}</text>
+        <line className="statistics-axis-line" x1={left} y1={top} x2={left} y2={top + plotHeight} />
+        {[0, 0.5, 1].map((tick) => {
+          const y = top + plotHeight * (1 - tick);
+          return <g key={tick}>
+            <line x1={left} y1={y} x2={width - right} y2={y} />
+            <text x={left - 9} y={y + 4} textAnchor="end">{formatAxisValue(key, maximum * tick)}</text>
+          </g>;
         })}
-        {series.map(([key, values], seriesIndex) => {
-          const points = values.map((item, index) => `${x(index, values.length)},${y(item.value)}`).join(' ');
-          return (
-            <g key={key} className={`chart-series color-${seriesIndex}`}>
-              <polyline points={points} />
-              {values.map((item, index) => (
-                <circle key={`${item.period}-${index}`} cx={x(index, values.length)} cy={y(item.value)} r="4">
-                  <title>{`${METRIC_LABELS[key] ?? humanize(key)} · ${formatPeriod(item.period)}: ${formatMetricValue(key, item.value)}`}</title>
-                </circle>
-              ))}
-            </g>
-          );
+        {values.map((item, index) => {
+          const center = left + slot * (index + 0.5);
+          const barHeight = Math.max(3, item.value / maximum * plotHeight);
+          return <g key={`${item.period}-${index}`}>
+            <rect x={center - barWidth / 2} y={top + plotHeight - barHeight} width={barWidth} height={barHeight} rx="5">
+              <title>{`${formatPeriod(item.period)}: ${formatMetricValue(key, item.value)}`}</title>
+            </rect>
+            {(index % labelStep === 0 || index === values.length - 1) &&
+              <text x={center} y={height - 32} textAnchor="middle">{formatPeriod(item.period)}</text>}
+          </g>;
         })}
-        {periods.map((item, index) => {
-          if (periods.length > 7 && index % Math.ceil(periods.length / 7) !== 0 && index !== periods.length - 1)
-            return null;
-          return (
-            <text key={item.period} x={x(index, periods.length)} y={height - 12} textAnchor="middle">
-              {formatPeriod(item.period)}
-            </text>
-          );
-        })}
+        <text className="statistics-axis-title" x={left + plotWidth / 2} y={height - 2} textAnchor="middle">Thời gian (theo {period})</text>
       </svg>
     </div>
   );

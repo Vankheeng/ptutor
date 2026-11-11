@@ -47,7 +47,17 @@ html:has(.admin-shell) {
     top: 0;
     align-self: flex-start;
     height: 100vh;
+    overflow: hidden;
+  }
+  .admin-brand,
+  .admin-sidebar-footer {
+    flex-shrink: 0;
+  }
+  .admin-nav {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    align-content: start;
   }
 }
 .admin-brand {
