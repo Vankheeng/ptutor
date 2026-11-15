@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import type { ContractSchedule, ContractTerms, PaymentPeriod } from '../../services/studentApi';
+import type { ContractSchedule, ContractTerms, PaymentPeriod } from '../../../services/studentApi';
+import { ContractPdfLink, type ContractPdfDetails } from './ContractPdfLink';
 
 const days = [
   ['1', 'Thứ Hai'],
@@ -26,26 +27,32 @@ interface Props {
   onCancel?: () => void;
   onSubmit: (terms: ContractTerms) => Promise<void>;
   includePackage?: boolean;
+  includeAgreement?: boolean;
+  pdfDetails?: ContractPdfDetails;
 }
 
-export function StudentContractTermsForm({
+export function ContractTermsForm({
   initial,
   submitLabel,
   loading,
   onCancel,
   onSubmit,
-  includePackage = true
+  includePackage = true,
+  includeAgreement = false,
+  pdfDetails
 }: Props) {
   const [price, setPrice] = useState(initial?.price === undefined ? '' : String(initial.price));
-  const [paymentPeriod, setPaymentPeriod] = useState<PaymentPeriod>(initial?.paymentPeriod ?? 'PER_LESSON');
+  const [paymentPeriod, setPaymentPeriod] = useState<PaymentPeriod>(
+    initial?.paymentPeriod === 'PACKAGE' ? 'PACKAGE' : 'MONTHLY'
+  );
   const [startDate, setStartDate] = useState(initial?.startDate ?? '');
   const [endDate, setEndDate] = useState(initial?.endDate ?? '');
   const [schedules, setSchedules] = useState<ContractSchedule[]>(
     initial?.schedules?.length ? initial.schedules : [{ dayOfWeek: 0, startTime: '', endTime: '' }]
   );
   const [error, setError] = useState('');
-  const calculatedLessons = useMemo(() => countLessons(schedules, startDate, endDate), [schedules, startDate, endDate]);
-
+  const [agreed, setAgreed] = useState(false);
+  const lessons = useMemo(() => buildLessonPreview(schedules, startDate, endDate), [endDate, schedules, startDate]);
   const updateSchedule = (index: number, patch: Partial<ContractSchedule>) => {
     setSchedules((current) => current.map((schedule, row) => (row === index ? { ...schedule, ...patch } : schedule)));
   };
@@ -61,6 +68,12 @@ export function StudentContractTermsForm({
       setError('Ngày kết thúc phải sau ngày bắt đầu.');
       return;
     }
+    const today = new Date();
+    const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (startDate < todayValue) {
+      setError('Ngày bắt đầu không được ở trong quá khứ.');
+      return;
+    }
     if (
       !schedules.length ||
       schedules.some((schedule) => !schedule.dayOfWeek || !schedule.startTime || !schedule.endTime)
@@ -72,8 +85,12 @@ export function StudentContractTermsForm({
       setError('Thời gian kết thúc của mỗi khung phải sau thời gian bắt đầu.');
       return;
     }
-    if (!calculatedLessons) {
-      setError('Lịch đã chọn không có buổi học nào trong khoảng thời gian này.');
+    if (!lessons.length) {
+      setError('Khoảng thời gian đã chọn không có buổi học nào. Vui lòng kiểm tra lại ngày và lịch học.');
+      return;
+    }
+    if (includeAgreement && !agreed) {
+      setError('Vui lòng xác nhận đồng ý với các điều khoản hợp đồng.');
       return;
     }
     await onSubmit({
@@ -81,8 +98,7 @@ export function StudentContractTermsForm({
       paymentPeriod,
       schedules,
       startDate,
-      endDate,
-      totalLessons: calculatedLessons
+      endDate
     });
   };
 
@@ -95,8 +111,6 @@ export function StudentContractTermsForm({
       <label>
         Chu kỳ thanh toán
         <select value={paymentPeriod} onChange={(event) => setPaymentPeriod(event.target.value as PaymentPeriod)}>
-          <option value="PER_LESSON">Mỗi buổi</option>
-          <option value="WEEKLY">Hàng tuần</option>
           <option value="MONTHLY">Hàng tháng</option>
           {includePackage && <option value="PACKAGE">Theo gói</option>}
         </select>
@@ -171,15 +185,67 @@ export function StudentContractTermsForm({
       </div>
       <label>
         Ngày bắt đầu
-        <input value={startDate} type="date" onChange={(event) => setStartDate(event.target.value)} required />
+        <input
+          value={startDate}
+          min={todayValue()}
+          type="date"
+          onChange={(event) => setStartDate(event.target.value)}
+          required
+        />
       </label>
       <label>
         Ngày kết thúc
-        <input value={endDate} type="date" onChange={(event) => setEndDate(event.target.value)} required />
+        <input
+          value={endDate}
+          min={startDate || todayValue()}
+          type="date"
+          onChange={(event) => setEndDate(event.target.value)}
+          required
+        />
       </label>
-      <div className="student-field-full student-contract-calculated-lessons">
-        Tổng số buổi dự kiến: <strong>{calculatedLessons || '—'}</strong>
+      <div className="student-field-full contract-lesson-preview">
+        <strong>
+          {lessons.length > 0 ? `Dự kiến ${lessons.length} buổi học` : 'Thêm lịch học để hiển thị số buổi dự kiến'}
+        </strong>
+        <details>
+          <summary>Mở rộng để xem danh sách buổi học</summary>
+          {lessons.length ? (
+            <ol>
+              {lessons.map((lesson) => (
+                <li key={`${lesson.date}-${lesson.startTime}`}>{formatLesson(lesson)}</li>
+              ))}
+            </ol>
+          ) : (
+            <p>Chưa có buổi học phù hợp với khoảng ngày và lịch đã chọn.</p>
+          )}
+        </details>
       </div>
+      {includeAgreement && (
+        <div className="student-field-full contract-create-terms-note">
+          <strong>Điều khoản hợp đồng</strong>
+          <ul>
+            <li>Đồng ý với các điều khoản đã ghi trong hợp đồng.</li>
+            <li>Nghỉ học phải thông báo trước; hai bên có thể đổi lịch hoặc trao đổi về hoàn tiền.</li>
+            <li>Học phí của buổi đã được xác nhận tham gia không được hoàn lại.</li>
+            <li>Hai bên có thể khiếu nại hoặc yêu cầu dừng hợp đồng khi đã thỏa thuận.</li>
+            <li>Buổi học bị đánh dấu đã dạy nhưng thực tế không diễn ra có thể được yêu cầu hoàn tiền.</li>
+          </ul>
+          {pdfDetails && (
+            <ContractPdfLink
+              {...pdfDetails}
+              price={price}
+              paymentPeriod={paymentPeriod}
+              startDate={startDate}
+              endDate={endDate}
+              schedules={schedules}
+            />
+          )}
+          <label className="contract-agreement-checkbox">
+            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
+            <span>Tôi đồng ý với các điều khoản đã ghi trong hợp đồng.</span>
+          </label>
+        </div>
+      )}
       {error && (
         <p className="student-form-error student-field-full" role="alert">
           {error}
@@ -191,7 +257,11 @@ export function StudentContractTermsForm({
             Hủy
           </button>
         )}
-        <button className="student-button" disabled={loading} type="submit">
+        <button
+          className="student-button"
+          disabled={loading || lessons.length < 1 || (includeAgreement && !agreed)}
+          type="submit"
+        >
           {submitLabel}
         </button>
       </div>
@@ -199,24 +269,43 @@ export function StudentContractTermsForm({
   );
 }
 
-function countLessons(schedules: ContractSchedule[], startDate: string, endDate: string) {
+function todayValue() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+}
+
+interface LessonPreview {
+  date: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+function buildLessonPreview(schedules: ContractSchedule[], startDate: string, endDate: string): LessonPreview[] {
+  if (!startDate || !endDate || endDate <= startDate) return [];
   if (
-    !startDate ||
-    !endDate ||
-    endDate <= startDate ||
     schedules.some(
       (schedule) =>
         !schedule.dayOfWeek || !schedule.startTime || !schedule.endTime || schedule.endTime <= schedule.startTime
     )
-  ) {
-    return 0;
+  )
+    return [];
+  const result: LessonPreview[] = [];
+  const cursor = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
+  while (cursor <= end) {
+    const dayOfWeek = cursor.getDay() === 0 ? 7 : cursor.getDay();
+    const date = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+    schedules
+      .filter((schedule) => schedule.dayOfWeek === dayOfWeek)
+      .forEach((schedule) => {
+        result.push({ date, dayOfWeek, startTime: schedule.startTime, endTime: schedule.endTime });
+      });
+    cursor.setDate(cursor.getDate() + 1);
   }
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
-  let total = 0;
-  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-    const isoDay = cursor.getDay() === 0 ? 7 : cursor.getDay();
-    total += schedules.filter((schedule) => schedule.dayOfWeek === isoDay).length;
-  }
-  return total;
+  return result;
+}
+
+function formatLesson(lesson: LessonPreview) {
+  return `${new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${lesson.date}T12:00:00`))} · ${lesson.startTime}–${lesson.endTime}`;
 }

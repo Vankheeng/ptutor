@@ -289,7 +289,11 @@ export function TeachingRequestDetailPage() {
                   <span>
                     {application.gradeName} · {application.proposedPrice.toLocaleString('vi-VN')} VNĐ
                   </span>
-                  <span>{application.message || application.preferredSchedule || 'Chưa có lời nhắn.'}</span>
+                  <span>
+                    {application.message ||
+                      formatPreferredSchedule(application.preferredSchedule) ||
+                      'Chưa có lời nhắn.'}
+                  </span>
                 </div>
                 <span className={`student-status ${application.status.toLowerCase()}`}>
                   {applicationStatusText(application.status)}
@@ -313,7 +317,14 @@ export function TeachingRequestDetailPage() {
                   </div>
                 )}
                 {application.status === 'ACCEPTED' && (
-                  <button className="student-button draft" onClick={() => setContractFor(application)}>
+                  <button
+                    className="student-button draft"
+                    onClick={() =>
+                      navigate(
+                        `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                      )
+                    }
+                  >
                     Tạo hợp đồng
                   </button>
                 )}
@@ -394,5 +405,22 @@ function applicationStatusText(status: string) {
         string
       >
     )[status] ?? status
+  );
+}
+
+function formatPreferredSchedule(value: string | null) {
+  if (!value) return '';
+  const labels: Record<string, string> = {
+    Sunday: 'Chủ Nhật',
+    Monday: 'Thứ Hai',
+    Tuesday: 'Thứ Ba',
+    Wednesday: 'Thứ Tư',
+    Thursday: 'Thứ Năm',
+    Friday: 'Thứ Sáu',
+    Saturday: 'Thứ Bảy'
+  };
+  return value.replace(
+    /Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday/gi,
+    (day) => labels[day[0].toUpperCase() + day.slice(1).toLowerCase()] ?? day
   );
 }
