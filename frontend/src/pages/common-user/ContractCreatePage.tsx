@@ -198,6 +198,10 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
             <ul>
               <li>Đồng ý với các điều khoản đã ghi trong hợp đồng.</li>
               <li>Nghỉ học phải thông báo trước; hai bên có thể đổi lịch hoặc trao đổi về hoàn tiền.</li>
+              <li>
+                Các buổi học cần được thanh toán trước khi bắt đầu. Với chu kỳ thanh toán theo tháng, học phí phải được
+                thanh toán trước khi buổi học đầu tiên của tháng đó bắt đầu.
+              </li>
               <li>Học phí của buổi đã được xác nhận tham gia không được hoàn lại.</li>
               <li>Hai bên có thể khiếu nại hoặc yêu cầu dừng hợp đồng khi đã thỏa thuận.</li>
               <li>Buổi học bị đánh dấu đã dạy nhưng thực tế không diễn ra có thể được yêu cầu hoàn tiền.</li>

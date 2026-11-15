@@ -70,6 +70,10 @@ export function ContractActionBar({ contract, currentUserId, busy, onSign, onRej
             <ul className="student-contract-terms-summary">
               <li>Đồng ý với các điều khoản đã ghi trong hợp đồng.</li>
               <li>Nghỉ học cần báo trước; hai bên có thể đổi lịch hoặc đề nghị hoàn tiền theo thỏa thuận.</li>
+              <li>
+                Các buổi học cần được thanh toán trước khi bắt đầu. Với chu kỳ theo tháng, học phí phải được thanh toán
+                trước buổi học đầu tiên của tháng đó.
+              </li>
               <li>Học phí của buổi đã được hai bên xác nhận tham gia không được hoàn lại.</li>
               <li>Hai bên có quyền khiếu nại hoặc yêu cầu dừng hợp đồng khi đã thỏa thuận.</li>
               <li>Buổi học bị đánh dấu đã dạy nhưng thực tế không diễn ra có thể được yêu cầu hoàn tiền.</li>

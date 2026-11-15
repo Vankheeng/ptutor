@@ -52,6 +52,7 @@ function createContractDocument(props: Props) {
   const terms = [
     '\u0048ai b\u00ean \u0111\u1ed3ng \u00fd v\u1edbi c\u00e1c \u0111i\u1ec1u kho\u1ea3n \u0111\u00e3 ghi trong h\u1ee3p \u0111\u1ed3ng.',
     '\u004egh\u1ec9 h\u1ecdc ph\u1ea3i th\u00f4ng b\u00e1o tr\u01b0\u1edbc; hai b\u00ean c\u00f3 th\u1ec3 \u0111\u1ed5i l\u1ecbch ho\u1eb7c trao \u0111\u1ed5i v\u1ec1 ho\u00e0n ti\u1ec1n.',
+    '\u0043\u00e1c bu\u1ed5i h\u1ecdc c\u1ea7n \u0111\u01b0\u1ee3c thanh to\u00e1n tr\u01b0\u1edbc khi b\u1eaft \u0111\u1ea7u. V\u1edbi chu k\u1ef3 thanh to\u00e1n theo th\u00e1ng, h\u1ecdc ph\u00ed ph\u1ea3i \u0111\u01b0\u1ee3c thanh to\u00e1n tr\u01b0\u1edbc khi bu\u1ed5i h\u1ecdc \u0111\u1ea7u ti\u00ean c\u1ee7a th\u00e1ng \u0111\u00f3 b\u1eaft \u0111\u1ea7u.',
     '\u0048\u1ecdc ph\u00ed c\u1ee7a bu\u1ed5i \u0111\u00e3 \u0111\u01b0\u1ee3c x\u00e1c nh\u1eadn tham gia kh\u00f4ng \u0111\u01b0\u1ee3c ho\u00e0n l\u1ea1i.',
     '\u0048ai b\u00ean c\u00f3 th\u1ec3 khi\u1ebfu n\u1ea1i theo quy tr\u00ecnh c\u1ee7a PTutor.',
     '\u0048ai b\u00ean c\u00f3 th\u1ec3 y\u00eau c\u1ea7u d\u1eebng h\u1ee3p \u0111\u1ed3ng khi \u0111\u00e3 trao \u0111\u1ed5i v\u00e0 th\u1ed1ng nh\u1ea5t.',
