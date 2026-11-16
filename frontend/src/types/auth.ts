@@ -19,6 +19,9 @@ export interface AuthProfile {
   avatarUrl?: string | null;
   /** Staff only: decides which admin modules the account may open. Null for administrators. */
   jobFunction?: EmployeeJobFunction | null;
+  phone?: string | null;
+  detailAddress?: string | null;
+  address?: { detailAddress?: string | null } | null;
 }
 
 export interface AuthUser {

@@ -19,7 +19,7 @@ import {
   type WalletBalance
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
-import { StudentContractActionBar } from '../../components/student/StudentContractActionBar';
+import { ContractActionBar } from '../common-user/components/ContractActionBar';
 import { StudentContractEditForm } from '../../components/student/StudentContractEditForm';
 import { StudentContractOverview } from '../../components/student/StudentContractOverview';
 import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
@@ -214,7 +214,7 @@ export function StudentContractDetailPage() {
         </div>
       )}
       <StudentContractOverview contract={contract} createdByYou={createdByYou} />
-      <StudentContractActionBar
+      <ContractActionBar
         contract={contract}
         currentUserId={user?.userId}
         busy={busy}

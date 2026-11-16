@@ -34,6 +34,7 @@ import { StudentApplicationDetailPage } from './pages/student/StudentApplication
 import { StudentContractsPage } from './pages/student/StudentContractsPage';
 import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
 import { StudentContractCreatePage } from './pages/student/StudentContractCreatePage';
+import { TutorContractCreatePage } from './pages/tutor/TutorContractCreatePage';
 import { NotificationsPage } from './pages/common-user/NotificationsPage';
 import { WalletPage } from './pages/common-user/WalletPage';
 import { WalletTransactionsPage } from './pages/common-user/WalletTransactionsPage';
@@ -177,6 +178,10 @@ export default function App() {
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
                 <Route path="sections/teaching-requests" element={<MyTeachingRequestsPage />} />
                 <Route path="sections/teaching-requests/:requestId" element={<TeachingRequestDetailPage />} />
+                <Route
+                  path="sections/teaching-requests/:requestId/student-requests/:applicationId/contracts/new"
+                  element={<TutorContractCreatePage />}
+                />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
               </Route>
             </Route>
