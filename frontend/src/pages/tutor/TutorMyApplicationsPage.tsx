@@ -123,6 +123,8 @@ export function TutorMyApplicationsPage() {
           key={selected.id}
           subjectName={details[selected.studyingRequestId]?.subjectName ?? selected.subjectName}
           requestMode={details[selected.studyingRequestId]?.learningMode ?? selected.teachingMode}
+          requestProvinceId={details[selected.studyingRequestId]?.provinceId}
+          requestDistrictId={details[selected.studyingRequestId]?.districtId}
           proposal={selected}
           editing
           sending={busy}

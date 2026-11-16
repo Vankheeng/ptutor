@@ -16,13 +16,27 @@ public record StudentTutorRequestResponse(
         UUID gradeId,
         String gradeName,
         UUID teachingRequestId,
+        UUID contractId,
         BigDecimal proposedPrice,
         LearningMode learningMode,
         String preferredSchedule,
+        UUID preferredProvinceId,
+        String preferredProvinceName,
+        UUID preferredDistrictId,
+        String preferredDistrictName,
+        String detailAddress,
         String message,
         ApplicationStatus status,
         String nextStep,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
+
+    public StudentTutorRequestResponse withContractId(UUID value) {
+        return new StudentTutorRequestResponse(
+                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                teachingRequestId, value, proposedPrice, learningMode, preferredSchedule,
+                preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
+                detailAddress, message, status, nextStep, createdAt, updatedAt);
+    }
 
 }

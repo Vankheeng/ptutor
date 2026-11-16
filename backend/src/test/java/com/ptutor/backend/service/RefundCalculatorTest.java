@@ -36,6 +36,17 @@ class RefundCalculatorTest {
     }
 
     @Test
+    void refundsOnlyTheMissingShareOfAShortLesson() {
+        var result = RefundCalculator.calculate(VALUE, 16, PAID, BigDecimal.ZERO,
+                List.of(LessonOutcome.TUTOR_LATE_OR_SHORT), RATES,
+                List.of(new RefundCalculator.ShortLesson(30, 90)));
+
+        assertThat(result.unitPrice()).isEqualByComparingTo("250000");
+        assertThat(result.refundAmount()).isEqualByComparingTo("83333");
+        assertThat(result.tutorShareAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
     void taughtLessonsRefundNothing() {
         var result = RefundCalculator.calculate(VALUE, 16, PAID, BigDecimal.ZERO,
                 List.of(LessonOutcome.TAUGHT, LessonOutcome.TAUGHT), RATES);

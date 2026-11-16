@@ -29,6 +29,7 @@ export interface StudentTeachingApplication {
   gradeId: string;
   gradeName: string;
   teachingRequestId: string;
+  contractId: string | null;
   proposedPrice: number;
   learningMode: 'ONLINE' | 'OFFLINE';
   preferredSchedule: string | null;

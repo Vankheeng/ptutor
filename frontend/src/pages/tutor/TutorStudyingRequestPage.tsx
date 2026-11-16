@@ -1,23 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
-import { useStudyingRequest, useStudyingRequests } from '../../hooks/useStudyingRequests';
+import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
 import { cancelTutorProposal, updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
-import { TutorStudyingRequestCard } from './components/TutorStudyingRequestCard';
 import { tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
 import { ApplicationDetailPanel } from '../../components/applications/ApplicationDetailPanel';
-
-const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function TutorStudyingRequestPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
-  const relatedQuery = useStudyingRequests({ page: 0, size: 30 });
   const [proposalRevision, setProposalRevision] = useState(0);
   const proposalsQuery = useTutorProposals(undefined, proposalRevision);
   const myProposal = proposalsQuery.data?.find((proposal) => proposal.studyingRequestId === requestId);
@@ -29,15 +25,6 @@ export function TutorStudyingRequestPage() {
   const [cancellingProposal, setCancellingProposal] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-
-  const recommendations = useMemo(
-    () =>
-      (relatedQuery.data?.content ?? [])
-        .filter((item) => item.id !== requestId)
-        .sort((a, b) => Number(b.subjectId === request?.subjectId) - Number(a.subjectId === request?.subjectId))
-        .slice(0, 3),
-    [relatedQuery.data, requestId, request?.subjectId]
-  );
 
   const propose = async (values: TutorApplicationValues) => {
     if (!request) return;
@@ -206,41 +193,6 @@ export function TutorStudyingRequestPage() {
               <p className="tutor-detail-copy">Học viên chưa bổ sung thêm thông tin.</p>
             )}
           </section>
-          {request.availabilities.length > 0 && (
-            <section className="tutor-detail-section">
-              <h2 className="tutor-detail-title">Thời gian học viên có thể học</h2>
-              <div className="tutor-availability-list">
-                {request.availabilities.map((slot, index) => (
-                  <span key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}>
-                    {weekdays[slot.dayOfWeek % 7]} · {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-          <section className="tutor-recommendations">
-            <div className="tutor-section-heading">
-              <div>
-                <span className="tutor-eyebrow">KHÁM PHÁ THÊM</span>
-              </div>
-              <button
-                className="tutor-button secondary tutor-navigation-compact tutor-see-all-proposals"
-                type="button"
-                onClick={() => navigate('/tutor/students')}
-              >
-                See all →
-              </button>
-            </div>
-            {recommendations.length ? (
-              <div className="tutor-recommendation-list">
-                {recommendations.map((item) => (
-                  <TutorStudyingRequestCard key={item.id} request={item} actionLabel="Xem yêu cầu" />
-                ))}
-              </div>
-            ) : (
-              <p className="tutor-muted">Yêu cầu mới sẽ hiển thị tại đây khi học viên đăng bài.</p>
-            )}
-          </section>
         </article>
         <aside className="tutor-panel tutor-apply-sidebar">
           {proposalsQuery.isLoading ? (
@@ -336,12 +288,6 @@ export function TutorStudyingRequestPage() {
           ) : (
             <>
               <h2>Gửi đề xuất giảng dạy</h2>
-              <div className="tutor-apply-summary">
-                <small>Ngân sách học viên</small>
-                <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
-                <small>Thời gian mong muốn</small>
-                <strong>{tutorScheduleLabel(request.preferredSchedule, 'Lịch linh hoạt')}</strong>
-              </div>
               <button className="tutor-button tutor-apply-button" type="button" onClick={() => openApplication(false)}>
                 Ứng tuyển yêu cầu này <span>→</span>
               </button>
@@ -361,6 +307,8 @@ export function TutorStudyingRequestPage() {
           key={`${editingProposal ? 'edit' : 'apply'}-${myProposal?.id ?? request.id}`}
           subjectName={request.subjectName}
           requestMode={request.learningMode}
+          requestProvinceId={request.provinceId}
+          requestDistrictId={request.districtId}
           proposal={myProposal}
           editing={editingProposal}
           sending={sending}

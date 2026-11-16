@@ -39,6 +39,9 @@ export function complaintErrorMessage(error: unknown) {
     const messages: Record<string, string> = {
       COMPLAINT_NOT_FOUND: 'Không tìm thấy khiếu nại.',
       CONTRACT_NOT_FOUND: 'Không tìm thấy hợp đồng hoặc bạn không có quyền sử dụng hợp đồng này.',
+      COMPLAINT_CONTRACT_NOT_ELIGIBLE:
+        'Chỉ có thể khiếu nại hợp đồng đang còn hiệu lực hoặc trong vòng 7 ngày sau ngày kết thúc.',
+      REFUND_REQUEST_REQUIRED: 'Vắng mặt hoặc dạy muộn, thiếu giờ cần tạo yêu cầu hoàn tiền.',
       INVALID_COMPLAINT_STATUS_TRANSITION: 'Khiếu nại đã thay đổi trạng thái. Vui lòng tải lại trang.',
       RESPONDENT_RESPONSE_NOT_ALLOWED: 'Khiếu nại không còn nhận phản hồi.',
       RESPONDENT_RESPONSE_ALREADY_SUBMITTED: 'Bạn đã gửi phản hồi cho khiếu nại này.',

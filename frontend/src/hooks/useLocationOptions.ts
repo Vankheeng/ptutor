@@ -4,7 +4,8 @@ import type { District, Province } from '../types/api';
 
 export function useLocationOptions(provinceId: string) {
   const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
+  const [districtResult, setDistrictResult] = useState<{ provinceId: string; items: District[] } | null>(null);
+  const districts = districtResult?.provinceId === provinceId ? districtResult.items : [];
 
   useEffect(() => {
     let active = true;
@@ -22,18 +23,13 @@ export function useLocationOptions(provinceId: string) {
 
   useEffect(() => {
     let active = true;
-    if (!provinceId) {
-      setDistricts([]);
-      return () => {
-        active = false;
-      };
-    }
+    if (!provinceId) return;
     getDistricts(provinceId)
       .then((items) => {
-        if (active) setDistricts(items);
+        if (active) setDistrictResult({ provinceId, items });
       })
       .catch(() => {
-        if (active) setDistricts([]);
+        if (active) setDistrictResult({ provinceId, items: [] });
       });
     return () => {
       active = false;

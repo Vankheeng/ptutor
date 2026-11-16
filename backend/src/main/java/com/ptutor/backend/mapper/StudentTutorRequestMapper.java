@@ -10,6 +10,8 @@ import com.ptutor.backend.entity.StudentTutorRequest;
 @Mapper(componentModel = "spring")
 public interface StudentTutorRequestMapper {
 
+    @Mapping(target = "contractId", ignore = true)
+
     @Mapping(target = "studentId", source = "student.id")
     @Mapping(target = "studentFirstName", source = "student.user.firstName")
     @Mapping(target = "studentLastName", source = "student.user.lastName")
@@ -17,6 +19,11 @@ public interface StudentTutorRequestMapper {
     @Mapping(target = "gradeId", source = "grade.id")
     @Mapping(target = "gradeName", source = "grade.name")
     @Mapping(target = "teachingRequestId", source = "teachingRequest.id")
+    @Mapping(target = "preferredProvinceId", source = "preferredProvince.id")
+    @Mapping(target = "preferredProvinceName", source = "preferredProvince.name")
+    @Mapping(target = "preferredDistrictId", source = "preferredDistrict.id")
+    @Mapping(target = "preferredDistrictName", source = "preferredDistrict.name")
+    @Mapping(target = "detailAddress", source = "detailAddress")
     @Mapping(
             target = "nextStep",
             expression = "java(request.getStatus() == com.ptutor.backend.entity.enums.ApplicationStatus.ACCEPTED ? \"CONTRACT_SIGNING\" : null)")
@@ -33,6 +40,11 @@ public interface StudentTutorRequestMapper {
     @Mapping(target = "tutorEmail", source = "teachingRequest.tutor.user.email")
     @Mapping(target = "gradeId", source = "grade.id")
     @Mapping(target = "gradeName", source = "grade.name")
+    @Mapping(target = "preferredProvinceId", source = "preferredProvince.id")
+    @Mapping(target = "preferredProvinceName", source = "preferredProvince.name")
+    @Mapping(target = "preferredDistrictId", source = "preferredDistrict.id")
+    @Mapping(target = "preferredDistrictName", source = "preferredDistrict.name")
+    @Mapping(target = "detailAddress", source = "detailAddress")
     @Mapping(
             target = "nextStep",
             expression = "java(request.getStatus() == com.ptutor.backend.entity.enums.ApplicationStatus.ACCEPTED ? \"CONTRACT_SIGNING\" : null)")

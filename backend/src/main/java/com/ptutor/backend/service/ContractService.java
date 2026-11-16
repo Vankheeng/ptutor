@@ -278,7 +278,12 @@ public class ContractService {
             throw new ApiException(HttpStatus.CONFLICT, "INVALID_CONTRACT_ORIGIN", "Contract origin is invalid");
         }
 
-        return contractMapper.toResponse(contractRepository.saveAndFlush(contract));
+        Contract saved = contractRepository.saveAndFlush(contract);
+        if (lessonProvisioningService != null
+                && (source.schedules() != null || source.startDate() != null || source.endDate() != null)) {
+            lessonProvisioningService.syncPendingLessons(saved);
+        }
+        return contractMapper.toResponse(saved);
     }
 
     @Transactional
@@ -450,24 +455,14 @@ public class ContractService {
     }
 
     private void updateStudentCreatedContract(Contract contract, ContractUpdateRequest source) {
-        if (source.paymentPeriod() != null
-                || source.totalLessons() != null
-                || source.startDate() != null
-                || source.endDate() != null
-                || source.gradeId() != null) {
+        if (source.gradeId() != null) {
             throw nonEditableField();
         }
-        applyPriceAndSchedule(contract, source);
+        applyEditableTerms(contract, source);
     }
 
     private void updateTutorCreatedContract(Contract contract, ContractUpdateRequest source) {
-        if (source.paymentPeriod() != null
-                || source.totalLessons() != null
-                || source.startDate() != null
-                || source.endDate() != null) {
-            throw nonEditableField();
-        }
-        applyPriceAndSchedule(contract, source);
+        applyEditableTerms(contract, source);
         if (source.gradeId() != null) {
             StudentTutorRequest origin = contract.getStudentTutorRequest();
             contract.setGrade(resolveTutorContractGrade(origin.getTeachingRequest(), origin, source.gradeId()));
@@ -478,6 +473,15 @@ public class ContractService {
         if (source.gradeId() != null) {
             throw nonEditableField();
         }
+        applyEditableTerms(contract, source);
+        LocalDate startDate = source.startDate() == null ? contract.getStartDate() : source.startDate();
+        if (startDate.isBefore(contract.getRenewedFromContract().getEndDate())) {
+            throw badRequest("INVALID_CONTRACT_DATE_RANGE",
+                    "Renewal start date must not be before the previous contract end date");
+        }
+    }
+
+    private void applyEditableTerms(Contract contract, ContractUpdateRequest source) {
         if (source.price() != null) {
             validatePrice(source.price());
             contract.setPrice(source.price());
@@ -485,39 +489,26 @@ public class ContractService {
         if (source.paymentPeriod() != null) {
             contract.setPaymentPeriod(source.paymentPeriod());
         }
-        if (source.totalLessons() != null) {
-            validateTotalLessons(source.totalLessons());
-            contract.setTotalLession(source.totalLessons());
-        }
         LocalDate startDate = source.startDate() == null ? contract.getStartDate() : source.startDate();
         LocalDate endDate = source.endDate() == null ? contract.getEndDate() : source.endDate();
         validateDateRange(startDate, endDate);
-        if (startDate.isBefore(contract.getRenewedFromContract().getEndDate())) {
-            throw badRequest("INVALID_CONTRACT_DATE_RANGE",
-                    "Renewal start date must not be before the previous contract end date");
-        }
-        if (source.startDate() != null) {
-            contract.setStartDate(startDate);
-        }
-        if (source.endDate() != null) {
-            contract.setEndDate(endDate);
-        }
+        contract.setStartDate(startDate);
+        contract.setEndDate(endDate);
         if (source.schedules() != null) {
             applyStructuredSchedules(contract, source.schedules(), startDate, endDate);
         } else if (source.preferredSchedule() != null) {
             contract.setPreferredSchedule(requireText(source.preferredSchedule(), "Preferred schedule is required"));
-        }
-    }
-
-    private void applyPriceAndSchedule(Contract contract, ContractUpdateRequest source) {
-        if (source.price() != null) {
-            validatePrice(source.price());
-            contract.setPrice(source.price());
-        }
-        if (source.schedules() != null) {
-            applyStructuredSchedules(contract, source.schedules(), contract.getStartDate(), contract.getEndDate());
-        } else if (source.preferredSchedule() != null) {
-            contract.setPreferredSchedule(requireText(source.preferredSchedule(), "Preferred schedule is required"));
+            if (source.totalLessons() != null) {
+                validateTotalLessons(source.totalLessons());
+                contract.setTotalLession(source.totalLessons());
+            }
+        } else if (source.totalLessons() != null) {
+            validateTotalLessons(source.totalLessons());
+            contract.setTotalLession(source.totalLessons());
+        } else if ((source.startDate() != null || source.endDate() != null) && !contract.getSchedules().isEmpty()) {
+            contract.setTotalLession(calculateTotalLessons(contract.getSchedules().stream()
+                    .map(schedule -> new ScheduleValue(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()))
+                    .toList(), startDate, endDate));
         }
     }
 
@@ -705,6 +696,11 @@ public class ContractService {
         if (!contract.getEndDate().isAfter(contractTimeProvider.today())) {
             throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_EXPIRED",
                     "Contract has reached its end date");
+        }
+        if (contract.getCreatedAt() != null
+                && !contract.getCreatedAt().plusDays(7).isAfter(contractTimeProvider.now())) {
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_SIGNING_DEADLINE_PASSED",
+                    "Contract signing deadline has passed");
         }
     }
 

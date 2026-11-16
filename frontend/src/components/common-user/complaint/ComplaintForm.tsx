@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import type { Contract } from '../../../services/studentApi';
 import type {
   ComplaintCategory,
@@ -19,6 +20,7 @@ export interface StudentComplaintFormValues {
 
 interface Props {
   mode: 'create' | 'edit';
+  role?: 'student' | 'tutor';
   contracts: Contract[];
   initialValues: StudentComplaintFormValues;
   submitting: boolean;
@@ -27,11 +29,14 @@ interface Props {
   hideActions?: boolean;
   cancelLabel?: string;
   submitLabel?: string;
+  onContractChange?: (contractId: string) => void;
   onSubmit: (values: StudentComplaintFormValues | ComplaintUpdateInput) => void;
   onCancel: () => void;
 }
 
-const categories = Object.keys(complaintCategoryLabels) as ComplaintCategory[];
+const categories = (Object.keys(complaintCategoryLabels) as ComplaintCategory[]).filter(
+  (category) => category !== 'ABSENCE' && category !== 'LATE_OR_SHORT'
+);
 const categoryIcons: Record<ComplaintCategory, IconName> = {
   ABSENCE: 'calendar',
   LATE_OR_SHORT: 'bell',
@@ -43,6 +48,7 @@ const categoryIcons: Record<ComplaintCategory, IconName> = {
 
 export function ComplaintForm({
   mode,
+  role = 'student',
   contracts,
   initialValues,
   submitting,
@@ -51,12 +57,12 @@ export function ComplaintForm({
   hideActions = false,
   cancelLabel = 'Hủy',
   submitLabel,
+  onContractChange,
   onSubmit,
   onCancel
 }: Props) {
   const [values, setValues] = useState(initialValues);
   const [tried, setTried] = useState(false);
-
   const titleError = tried && !values.title.trim();
   const contentError = tried && !values.content.trim();
   const categoryError = tried && !values.category;
@@ -67,7 +73,8 @@ export function ComplaintForm({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setTried(true);
-    if (titleError || contentError || categoryError || contractError) return;
+    if (!values.title.trim() || !values.content.trim() || !values.category || (mode === 'create' && !values.contractId))
+      return;
 
     if (mode === 'edit') {
       onSubmit({
@@ -104,7 +111,11 @@ export function ComplaintForm({
             id="student-complaint-contract"
             value={values.contractId}
             aria-invalid={contractError}
-            onChange={(event) => setValues((current) => ({ ...current, contractId: event.target.value }))}
+            onChange={(event) => {
+              const contractId = event.target.value;
+              setValues((current) => ({ ...current, contractId }));
+              onContractChange?.(contractId);
+            }}
           >
             <option value="">Chọn hợp đồng</option>
             {contracts.map((contract) => (
@@ -147,6 +158,15 @@ export function ComplaintForm({
         </div>
         {categoryError && <small className="student-field-error">Vui lòng chọn loại khiếu nại.</small>}
       </div>
+
+      {mode === 'create' && role === 'student' && values.contractId && (
+        <div className="student-form-field">
+          <span className="student-complaint-field-label">Vắng mặt hoặc dạy muộn, thiếu giờ?</span>
+          <Link className="student-button secondary" to={`/student/contracts/${values.contractId}/refund-request`}>
+            Tạo yêu cầu hoàn tiền
+          </Link>
+        </div>
+      )}
 
       <div className="student-form-field">
         <label htmlFor="student-complaint-title">

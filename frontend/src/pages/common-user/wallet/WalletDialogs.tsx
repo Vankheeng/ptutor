@@ -451,7 +451,7 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
                     maxLength={150}
                     value={accountHolderName}
                     onChange={(event) => setAccountHolderName(event.target.value)}
-                    placeholder="Tên in trên tài khoản"
+                    placeholder="Tên chủ tài khoản"
                   />
                 </label>
               </>

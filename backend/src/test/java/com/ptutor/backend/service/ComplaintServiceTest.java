@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -38,6 +39,7 @@ import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ComplaintCategory;
 import com.ptutor.backend.entity.enums.ComplaintFaultParty;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.ComplaintMapper;
 import com.ptutor.backend.repository.ComplaintRepository;
@@ -83,13 +85,82 @@ class ComplaintServiceTest {
 
         assertThat(response.contractId()).isEqualTo(contractId);
         assertThat(response.status()).isEqualTo(ComplaintStatus.PENDING);
-        assertThat(response.category()).isEqualTo(ComplaintCategory.ABSENCE);
+        assertThat(response.category()).isEqualTo(ComplaintCategory.OTHER);
         assertThat(response.evidences()).singleElement()
                 .satisfies(value -> {
                     assertThat(value.fileType()).isEqualTo("image/png");
                     assertThat(value.uploadedByUserId()).isEqualTo(userId);
                 });
         verify(evidenceRepository).flush();
+    }
+
+    @Test
+    void rejectsComplaintForUnsignedContract() {
+        Contract pending = contract();
+        pending.setStatus(ContractStatus.PENDING);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+        when(contractRepository.findByIdAndParticipantUserId(contractId, userId)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.create(userId, complaintWithoutLesson()))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("COMPLAINT_CONTRACT_NOT_ELIGIBLE");
+                });
+    }
+
+    @Test
+    void acceptsComplaintOnSeventhDayAfterContractEnds() {
+        Contract completed = contract();
+        completed.setStatus(ContractStatus.COMPLETED);
+        completed.setEndDate(LocalDate.of(2026, 10, 8));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+        when(contractRepository.findByIdAndParticipantUserId(contractId, userId)).thenReturn(Optional.of(completed));
+        when(complaintRepository.saveAndFlush(any(Complaint.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.create(userId, complaintWithoutLesson()).contractId()).isEqualTo(contractId);
+    }
+
+    @Test
+    void rejectsComplaintAfterSeventhDayFollowingContractEnd() {
+        Contract completed = contract();
+        completed.setStatus(ContractStatus.COMPLETED);
+        completed.setEndDate(LocalDate.of(2026, 10, 7));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+        when(contractRepository.findByIdAndParticipantUserId(contractId, userId)).thenReturn(Optional.of(completed));
+
+        assertThatThrownBy(() -> service.create(userId, complaintWithoutLesson()))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("COMPLAINT_CONTRACT_NOT_ELIGIBLE");
+                });
+    }
+
+    @Test
+    void directsAbsenceComplaintToRefundRequest() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+        when(contractRepository.findByIdAndParticipantUserId(contractId, userId)).thenReturn(Optional.of(contract()));
+        var source = new ComplaintCreateRequest(contractId, ComplaintCategory.ABSENCE,
+                "Vắng mặt", "Gia sư không đến buổi học", List.of());
+
+        assertThatThrownBy(() -> service.create(userId, source))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("REFUND_REQUEST_REQUIRED");
+                });
+    }
+
+    @Test
+    void directsLateComplaintToRefundRequest() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user()));
+        when(contractRepository.findByIdAndParticipantUserId(contractId, userId)).thenReturn(Optional.of(contract()));
+        var source = new ComplaintCreateRequest(contractId, ComplaintCategory.LATE_OR_SHORT,
+                "Dạy muộn", "Buổi học thiếu giờ", List.of());
+
+        assertThatThrownBy(() -> service.create(userId, source))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("REFUND_REQUEST_REQUIRED");
+                });
     }
 
     @Test
@@ -159,7 +230,7 @@ class ComplaintServiceTest {
         var response = service.update(userId, complaintId, updateRequest());
 
         assertThat(response.title()).isEqualTo("Updated schedule issue");
-        assertThat(response.category()).isEqualTo(ComplaintCategory.LATE_OR_SHORT);
+        assertThat(response.category()).isEqualTo(ComplaintCategory.TEACHING_QUALITY);
         assertThat(response.evidences()).singleElement()
                 .extracting(ComplaintResponse.Evidence::fileUrl)
                 .isEqualTo("https://cdn.example.com/new.png");
@@ -378,14 +449,19 @@ class ComplaintServiceTest {
     }
 
     private ComplaintCreateRequest request() {
-        return new ComplaintCreateRequest(contractId, ComplaintCategory.ABSENCE,
+        return new ComplaintCreateRequest(contractId, ComplaintCategory.OTHER,
                 "Schedule issue", "Lesson was cancelled without notice",
                 List.of(new ComplaintCreateRequest.Evidence(
                         "https://cdn.example.com/evidence.png", "image/png")));
     }
 
+    private ComplaintCreateRequest complaintWithoutLesson() {
+        return new ComplaintCreateRequest(contractId, ComplaintCategory.OTHER,
+                "Vấn đề hợp đồng", "Nội dung khiếu nại", List.of());
+    }
+
     private ComplaintUpdateRequest updateRequest() {
-        return new ComplaintUpdateRequest(ComplaintCategory.LATE_OR_SHORT, "Updated schedule issue", "Updated content",
+        return new ComplaintUpdateRequest(ComplaintCategory.TEACHING_QUALITY, "Updated schedule issue", "Updated content",
                 List.of(new ComplaintCreateRequest.Evidence("https://cdn.example.com/new.png", "image/png")));
     }
 
@@ -396,7 +472,8 @@ class ComplaintServiceTest {
     }
 
     private Contract contract() {
-        Contract contract = Contract.builder().build();
+        Contract contract = Contract.builder().status(ContractStatus.ACTIVE)
+                .endDate(LocalDate.of(2026, 11, 15)).build();
         contract.setId(contractId);
         return contract;
     }

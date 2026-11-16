@@ -9,6 +9,7 @@ import './contracts.css';
 export type ContractRole = 'student' | 'tutor';
 const statuses: Array<'ALL' | ContractStatus> = ['ALL', 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
 const PAGE_SIZE = 8;
+const EMPTY_CONTRACTS: Contract[] = [];
 
 export function ContractsPage({ role }: { role: ContractRole }) {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ export function ContractsPage({ role }: { role: ContractRole }) {
   const [order, setOrder] = useState<'NEWEST' | 'OLDEST'>('NEWEST');
   const [page, setPage] = useState(0);
   const query = useResource(useCallback((signal: AbortSignal) => getContracts(undefined, 0, 100, signal), []));
-  const allContracts = query.data?.content ?? [];
+  const allContracts = query.data?.content ?? EMPTY_CONTRACTS;
   const subjects = [...new Set(allContracts.map((item) => item.subjectName).filter(Boolean))] as string[];
   const contracts = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('vi-VN');
@@ -43,10 +44,6 @@ export function ContractsPage({ role }: { role: ContractRole }) {
   const pageCount = Math.max(1, Math.ceil(contracts.length / PAGE_SIZE));
   const visible = contracts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const resetPage = () => setPage(0);
-  const currentName =
-    role === 'student'
-      ? [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || 'Học viên'
-      : [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || 'Gia sư';
   const basePath = role === 'student' ? '/student/contracts' : '/tutor/sections/contracts';
 
   return (
@@ -143,7 +140,7 @@ export function ContractsPage({ role }: { role: ContractRole }) {
             <ContractRow
               contract={contract}
               role={role}
-              currentName={currentName}
+              currentUserId={user?.userId}
               basePath={basePath}
               key={contract.id}
             />
@@ -153,7 +150,7 @@ export function ContractsPage({ role }: { role: ContractRole }) {
       {!query.isLoading && contracts.length > 0 && (
         <div className="tutor-contract-list-pagination">
           <button type="button" disabled={page === 0} onClick={() => setPage((value) => value - 1)}>
-            ‹
+            &lsaquo;
           </button>
           <div>
             {Array.from({ length: pageCount }, (_, index) => (
@@ -168,7 +165,7 @@ export function ContractsPage({ role }: { role: ContractRole }) {
             ))}
           </div>
           <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((value) => value + 1)}>
-            ›
+            &rsaquo;
           </button>
         </div>
       )}
@@ -179,19 +176,21 @@ export function ContractsPage({ role }: { role: ContractRole }) {
 function ContractRow({
   contract,
   role,
-  currentName,
+  currentUserId,
   basePath
 }: {
   contract: Contract;
   role: ContractRole;
-  currentName: string;
+  currentUserId?: string;
   basePath: string;
 }) {
   const otherName =
     role === 'student'
       ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'
-      : currentName;
-  const otherRole = role === 'student' ? 'Gia sư' : 'Gia sư';
+      : [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || 'Học viên';
+  const otherRole = role === 'student' ? 'Gia sư' : 'Học viên';
+  const pendingForSignature = contract.status === 'PENDING' && contract.createdByUserId !== currentUserId;
+  const detailPath = `${basePath}/${contract.id}`;
   return (
     <article className="tutor-contract-row-card">
       <div className="tutor-contract-row-subject">
@@ -216,15 +215,20 @@ function ContractRow({
         </strong>
         <small>{contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</small>
         <small>
-          ▣ {formatDate(contract.startDate)} – {formatDate(contract.endDate)}
+          - {formatDate(contract.startDate)} - {formatDate(contract.endDate)}
         </small>
       </div>
-      <span className={`tutor-contract-status status-${contract.status.toLowerCase()}`}>
-        {statusLabel(contract.status)}
-      </span>
-      <Link className="tutor-contract-row-action" to={`${basePath}/${contract.id}`}>
-        Xem hợp đồng <span>→</span>
-      </Link>
+      <div className="tutor-contract-row-status">
+        <span className={`tutor-contract-status status-${contract.status.toLowerCase()}`}>
+          {statusLabel(contract.status)}
+        </span>
+        {contract.status === 'PENDING' && <small>Hạn ký: {formatSigningDeadline(contract)}</small>}
+      </div>
+      <div className="tutor-contract-row-actions">
+        <Link className={`tutor-contract-row-action${pendingForSignature ? ' pending-signature' : ''}`} to={detailPath}>
+          {pendingForSignature ? 'Ký hợp đồng' : 'Xem hợp đồng'}
+        </Link>
+      </div>
     </article>
   );
 }
@@ -241,10 +245,14 @@ function paymentLabel(value: Contract['paymentPeriod']) {
   return ({ PER_LESSON: 'buổi', WEEKLY: 'tuần', MONTHLY: 'tháng', PACKAGE: 'gói' } as Record<string, string>)[value];
 }
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VNĐ`;
+  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));
+}
+function formatSigningDeadline(contract: Contract) {
+  const deadline = new Date(new Date(contract.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(deadline);
 }
 function initials(value: string) {
   return value

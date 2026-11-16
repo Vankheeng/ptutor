@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.LessonRequest;
+import com.ptutor.backend.dto.command.WalletTransactionCommand;
 import com.ptutor.backend.dto.response.LessonResponse;
+import com.ptutor.backend.dto.response.LessonResponse.RefundSummary;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Lesson;
@@ -30,6 +32,9 @@ import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentInstallmentStatus;
+import com.ptutor.backend.entity.enums.ReferenceType;
+import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.LessonMapper;
@@ -68,6 +73,9 @@ public class LessonService {
 
     @Autowired(required = false)
     private PaymentRepository paymentRepository;
+
+    @Autowired(required = false)
+    private WalletService walletService;
 
     @Transactional
     public LessonResponse create(UUID userId, UUID contractId, LessonRequest source) {
@@ -177,13 +185,17 @@ public class LessonService {
             lesson.setMarkedTaughtAt(LocalDateTime.now(clock));
         }
         Lesson saved = lessonRepository.saveAndFlush(lesson);
+        java.math.BigDecimal refundAmount = targetStatus == LessonStatus.CANCELLED
+                ? refundPaidLesson(saved)
+                : null;
         if (targetStatus == LessonStatus.CANCELLED) {
             installmentService.releasePendingLessonInstallment(saved);
         }
         publishStudentNotification(saved,
                 targetStatus == LessonStatus.CANCELLED
                         ? NotificationEventType.LESSON_CANCELLED
-                        : NotificationEventType.LESSON_MARKED_TAUGHT);
+                        : NotificationEventType.LESSON_MARKED_TAUGHT,
+                refundAmount);
         return toResponse(saved);
     }
 
@@ -334,27 +346,69 @@ public class LessonService {
     }
 
     private void publishStudentNotification(Lesson lesson, NotificationEventType eventType) {
+        publishStudentNotification(lesson, eventType, null);
+    }
+
+    private void publishStudentNotification(
+            Lesson lesson, NotificationEventType eventType, java.math.BigDecimal refundAmount) {
         Contract contract = lesson.getContract();
         if (contract == null || contract.getStudent() == null || contract.getStudent().getUser() == null) {
             return;
         }
         String name = lesson.getTitle() == null ? "Lesson" : lesson.getTitle();
+        java.util.Map<String, String> data = refundAmount == null
+                ? java.util.Map.of("name", name)
+                : java.util.Map.of("name", name, "amount", refundAmount.stripTrailingZeros().toPlainString());
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 contract.getStudent().getUser().getId(),
                 eventType,
                 NotificationReferenceType.LESSON,
                 lesson.getId(),
-                java.util.Map.of("name", name)));
+                data));
+    }
+
+    private java.math.BigDecimal refundPaidLesson(Lesson lesson) {
+        if (paymentRepository == null || walletService == null) {
+            return null;
+        }
+        return installmentService.findByLesson(lesson)
+                .filter(installment -> installment.getStatus() == PaymentInstallmentStatus.PAID)
+                .flatMap(installment -> paymentRepository.findFirstByPaymentInstallment_IdAndStatusOrderByPaidAtDesc(
+                        installment.getId(), PaymentStatus.PAID))
+                .map(payment -> {
+                    java.math.BigDecimal amount = payment.getAmount();
+                    walletService.credit(new WalletTransactionCommand(
+                            lesson.getContract().getStudent().getUser().getId(),
+                            amount,
+                            WalletTransactionPurpose.CONTRACT_REFUND,
+                            ReferenceType.LESSON,
+                            lesson.getId(),
+                            "Hoàn tiền buổi học đã hủy",
+                            "lesson-cancel-refund-" + lesson.getId()));
+                    payment.setStatus(PaymentStatus.REFUNDED);
+                    payment.setRefundedAmount(amount);
+                    paymentRepository.saveAndFlush(payment);
+                    return amount;
+                })
+                .orElse(null);
     }
 
     private LessonResponse toResponse(Lesson lesson) {
         java.time.LocalDateTime paidAt = paymentRepository == null
                 ? null
-                : paymentRepository.findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
-                        lesson.getId(), PaymentStatus.PAID)
+                : paymentRepository.findFirstByPaymentInstallment_Lesson_IdAndStatusInOrderByPaidAtDesc(
+                        lesson.getId(), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))
                         .map(Payment::getPaidAt)
                         .orElse(null);
-        return lessonMapper.toResponse(lesson, paidAt);
+        RefundSummary refund = refundRequestLessonRepository.findFirstByLesson_IdOrderByCreatedAtDesc(lesson.getId())
+                .map(dispute -> new RefundSummary(
+                        dispute.getRefundRequest().getId(),
+                        dispute.getRefundRequest().getStatus(),
+                        dispute.getRefundRequest().getRefundAmount(),
+                        dispute.getRefundRequest().getDescription(),
+                        dispute.getRefundRequest().getCreatedAt()))
+                .orElse(null);
+        return lessonMapper.toResponse(lesson, paidAt, refund);
     }
 
     private String normalize(String value) {

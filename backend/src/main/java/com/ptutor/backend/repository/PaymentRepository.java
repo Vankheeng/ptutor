@@ -2,6 +2,7 @@ package com.ptutor.backend.repository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,6 +43,12 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
             UUID lessonId, PaymentStatus status);
+
+    Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusInOrderByPaidAtDesc(
+            UUID lessonId, Collection<PaymentStatus> statuses);
+
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusOrderByPaidAtDesc(
+            UUID installmentId, PaymentStatus status);
 
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 

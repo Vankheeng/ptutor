@@ -665,7 +665,7 @@ export function MyTeachingRequestsPage() {
                       </div>
                     </div>
                     <h3>{request.title}</h3>
-                    <p>{request.description || request.note || 'Chưa có mô tả.'}</p>
+                    {(request.description || request.note) && <p>{request.description || request.note}</p>}
                     {requestStatus === 'REJECTED' && request.rejectionReason && (
                       <p className="teaching-rejection-reason" role="alert">
                         <strong>Lý do từ chối:</strong> {request.rejectionReason}

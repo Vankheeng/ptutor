@@ -97,18 +97,32 @@ public class RefundRequestService {
         if (refundRequestRepository.existsByContract_IdAndStatusIn(contract.getId(), OPEN_STATUSES)) {
             throw alreadyOpen();
         }
-        Map<UUID, LessonOutcome> claims = new LinkedHashMap<>();
+        Map<UUID, RefundRequestCreateRequest.DisputedLesson> claims = new LinkedHashMap<>();
         for (RefundRequestCreateRequest.DisputedLesson item : source.lessons()) {
-            if (!RefundPolicy.isAbsence(item.claimedOutcome())) {
+            if (!RefundPolicy.isRefundClaim(item.claimedOutcome())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CLAIMED_OUTCOME",
-                        "A disputed lesson must be claimed as TUTOR_ABSENT or STUDENT_ABSENT");
+                        "A disputed lesson must have a refundable outcome");
             }
-            if (claims.put(item.lessonId(), item.claimedOutcome()) != null) {
+            if ((item.claimedOutcome() == LessonOutcome.TUTOR_LATE_OR_SHORT) != (item.missedMinutes() != null)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_MISSED_MINUTES",
+                        "Missing minutes are required only for a late or shortened lesson");
+            }
+            if (claims.put(item.lessonId(), item) != null) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "DUPLICATE_DISPUTED_LESSON",
                         "Each lesson can be disputed only once: " + item.lessonId());
             }
         }
         List<Lesson> disputed = lockDisputableLessons(contract, claims.keySet());
+        for (Lesson lesson : disputed) {
+            RefundRequestCreateRequest.DisputedLesson claim = claims.get(lesson.getId());
+            if (claim.missedMinutes() != null) {
+                long duration = java.time.Duration.between(lesson.getStartTime(), lesson.getEndTime()).toMinutes();
+                if (claim.missedMinutes() < 1 || claim.missedMinutes() >= duration) {
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_MISSED_MINUTES",
+                            "Missing minutes must be less than the scheduled lesson duration");
+                }
+            }
+        }
 
         RefundRequest request;
         try {
@@ -128,7 +142,8 @@ public class RefundRequestService {
                 .map(lesson -> RefundRequestLesson.builder()
                         .refundRequest(saved)
                         .lesson(lesson)
-                        .claimedOutcome(claims.get(lesson.getId()))
+                        .claimedOutcome(claims.get(lesson.getId()).claimedOutcome())
+                        .missedMinutes(claims.get(lesson.getId()).missedMinutes())
                         .build())
                 .toList());
         saveEvidences(saved, student.getUser(), source.evidences());

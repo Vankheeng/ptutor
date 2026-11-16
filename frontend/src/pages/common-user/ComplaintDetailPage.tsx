@@ -230,6 +230,7 @@ export function ComplaintDetailPage({
                 <Icon name="complaint" size={19} /> Thông tin khiếu nại
               </h2>
               <ComplaintForm
+                role={role}
                 mode="edit"
                 formId="student-complaint-edit-form"
                 hideActions

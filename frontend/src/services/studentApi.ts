@@ -111,6 +111,11 @@ export interface StudentApplication {
   proposedPrice: number;
   learningMode: LearningMode;
   preferredSchedule: string | null;
+  preferredProvinceId: string | null;
+  preferredProvinceName: string | null;
+  preferredDistrictId: string | null;
+  preferredDistrictName: string | null;
+  detailAddress: string | null;
   message: string | null;
   status: ApplicationStatus;
   nextStep: string | null;
@@ -368,6 +373,9 @@ export const createStudentApplication = (
     proposedPrice: number;
     learningMode: LearningMode;
     preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    detailAddress?: string | null;
     message?: string;
   }
 ) =>
@@ -395,6 +403,9 @@ export const updateStudentApplication = (
     proposedPrice: number;
     learningMode: LearningMode;
     preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    detailAddress?: string | null;
     message?: string;
   }
 ) => patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, values);

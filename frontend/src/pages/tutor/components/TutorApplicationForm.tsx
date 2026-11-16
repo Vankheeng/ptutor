@@ -1,6 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { getDistricts, getProvinces } from '../../../services/locationApi';
-import type { District, Province } from '../../../types/api';
+import { useState, type FormEvent } from 'react';
 import type { TutorTeachingProposal } from '../../../services/tutorApi';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -31,6 +29,8 @@ export interface TutorApplicationValues {
 interface TutorApplicationFormProps {
   subjectName: string | null;
   requestMode: 'ONLINE' | 'OFFLINE';
+  requestProvinceId?: string | null;
+  requestDistrictId?: string | null;
   proposal?: TutorTeachingProposal;
   editing: boolean;
   sending: boolean;
@@ -40,7 +40,6 @@ interface TutorApplicationFormProps {
 }
 
 export function TutorApplicationForm({
-  subjectName,
   requestMode,
   proposal,
   editing,
@@ -53,45 +52,7 @@ export function TutorApplicationForm({
     parseAvailableTimes(proposal?.preferredSchedule)
   );
   const [teachingMode, setTeachingMode] = useState<'ONLINE' | 'OFFLINE'>(proposal?.teachingMode ?? requestMode);
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [provinceId, setProvinceId] = useState(proposal?.preferredProvinceId ?? '');
-  const [districtId, setDistrictId] = useState(proposal?.preferredDistrictId ?? '');
-  const [locationLoading, setLocationLoading] = useState((proposal?.teachingMode ?? requestMode) === 'OFFLINE');
   const [validationError, setValidationError] = useState('');
-
-  useEffect(() => {
-    if (teachingMode !== 'OFFLINE') return;
-    let active = true;
-    getProvinces()
-      .then((items) => {
-        if (active) setProvinces(items);
-      })
-      .catch(() => {
-        if (active) setProvinces([]);
-      })
-      .finally(() => {
-        if (active) setLocationLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [teachingMode]);
-
-  useEffect(() => {
-    if (teachingMode !== 'OFFLINE' || !provinceId) return;
-    let active = true;
-    getDistricts(provinceId)
-      .then((items) => {
-        if (active) setDistricts(items);
-      })
-      .catch(() => {
-        if (active) setDistricts([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [teachingMode, provinceId]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,17 +61,13 @@ export function TutorApplicationForm({
       setValidationError('Giờ kết thúc phải sau giờ bắt đầu.');
       return;
     }
-    if (teachingMode === 'OFFLINE' && (!provinceId || !districtId)) {
-      setValidationError('Vui lòng chọn tỉnh/thành và quận/huyện để dạy trực tiếp.');
-      return;
-    }
     setValidationError('');
     onSubmit({
       proposedPrice: Number(data.get('proposedPrice')),
       teachingMode,
       preferredSchedule: availableTimes.map((slot) => `${slot.day}, ${slot.start}–${slot.end}`).join('; '),
-      preferredProvinceId: teachingMode === 'OFFLINE' ? provinceId : null,
-      preferredDistrictId: teachingMode === 'OFFLINE' ? districtId : null,
+      preferredProvinceId: null,
+      preferredDistrictId: null,
       message: String(data.get('message') ?? '')
     });
   };
@@ -139,9 +96,7 @@ export function TutorApplicationForm({
         <button className="tutor-modal-close" type="button" aria-label="Đóng" onClick={onClose}>
           ×
         </button>
-        <h2 id="tutor-apply-title">
-          {editing ? 'Chỉnh sửa chi tiết ứng tuyển' : 'Chi tiết ứng tuyển'}
-        </h2>
+        <h2 id="tutor-apply-title">{editing ? 'Chỉnh sửa chi tiết ứng tuyển' : 'Chi tiết ứng tuyển'}</h2>
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}
@@ -160,7 +115,6 @@ export function TutorApplicationForm({
               onChange={(event) => {
                 const mode = event.target.value as 'ONLINE' | 'OFFLINE';
                 setTeachingMode(mode);
-                if (mode === 'OFFLINE' && provinces.length === 0) setLocationLoading(true);
               }}
             >
               <option value="ONLINE">Trực tuyến</option>
@@ -223,48 +177,6 @@ export function TutorApplicationForm({
               </div>
             ))}
           </div>
-          {teachingMode === 'OFFLINE' && (
-            <div className="tutor-offline-location">
-              <strong>Địa điểm dạy</strong>
-              <div className="tutor-location-fields">
-                <label>
-                  Tỉnh/thành phố
-                  <select
-                    value={provinceId}
-                    onChange={(event) => {
-                      setProvinceId(event.target.value);
-                      setDistrictId('');
-                      setDistricts([]);
-                    }}
-                    required
-                  >
-                    <option value="">{locationLoading ? 'Đang tải tỉnh/thành…' : 'Chọn tỉnh/thành'}</option>
-                    {provinces.map((province) => (
-                      <option key={province.id} value={province.id}>
-                        {province.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Quận/huyện
-                  <select
-                    value={districtId}
-                    onChange={(event) => setDistrictId(event.target.value)}
-                    disabled={!provinceId || districts.length === 0}
-                    required
-                  >
-                    <option value="">{provinceId ? 'Chọn quận/huyện' : 'Chọn tỉnh/thành trước'}</option>
-                    {districts.map((district) => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          )}
           <label>
             Lời nhắn cho học viên
             <textarea

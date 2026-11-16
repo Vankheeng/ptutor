@@ -19,6 +19,9 @@ export interface ContractPdfDetails {
 }
 
 interface Props extends ContractPdfDetails {
+  id?: string;
+  className?: string;
+  label?: string;
   price: number | string;
   paymentPeriod: PaymentPeriod;
   startDate: string;
@@ -37,13 +40,15 @@ export function ContractPdfLink(props: Props) {
 
   return (
     <a
+      id={props.id}
+      className={props.className}
       href="#contract-pdf"
       onClick={(event) => {
         event.preventDefault();
         openDocument();
       }}
     >
-      {'\u0043hi ti\u1ebft h\u1ee3p \u0111\u1ed3ng PDF'}
+      {props.label ?? 'Chi tiết hợp đồng PDF'}
     </a>
   );
 }

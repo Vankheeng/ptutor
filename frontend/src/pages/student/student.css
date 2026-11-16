@@ -173,7 +173,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 15px;
-  align-items: start;
+  align-items: stretch;
 }
 .student-request-card,
 .student-contract-card {
@@ -181,6 +181,9 @@
 }
 .student-request-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   box-sizing: border-box;
   cursor: pointer;
   transition: transform 0.18s, box-shadow 0.18s;
@@ -277,8 +280,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin-top: 15px;
-  padding-top: 12px;
+  margin-top: auto;
+  padding-top: 15px;
   border-top: 1px solid #f0f1f5;
 }
 .student-card-actions > span:first-child {
@@ -3159,67 +3162,39 @@
 .student-complaint-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 11px;
   margin: 0 0 20px;
 }
-.student-complaint-status-filters {
+.student-complaint-search {
   display: flex;
-  flex: 1;
-  gap: 8px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-.student-complaint-status-filters button {
-  display: inline-flex;
+  flex: 0 1 260px;
   align-items: center;
   gap: 7px;
-  min-height: 31px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #e0dcec;
+  border-radius: 8px;
+  background: #fff;
+  color: #85889a;
+}
+.student-complaint-status-select {
+  flex: 0 0 200px;
+  min-width: 0;
+  height: 38px;
   padding: 0 11px;
   border: 1px solid #e0dcec;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #fff;
   color: #39334d;
   font: inherit;
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
+  font-size: 11px;
   cursor: pointer;
 }
-.student-complaint-status-filters button:hover {
-  border-color: #b8a3ee;
-}
-.student-complaint-status-filters button.active {
-  border-color: #5c18e8;
-  background: #6519e9;
-  color: #fff;
-}
-.student-complaint-status-filters button i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #8e92a7;
-}
-.student-complaint-status-filters button i.pending { background: #f0bd00; }
-.student-complaint-status-filters button i.in_review { background: #7b83ff; }
-.student-complaint-status-filters button i.awaiting_evidence { background: #efbe00; }
-.student-complaint-status-filters button i.resolved { background: #2cab50; }
-.student-complaint-status-filters button i.rejected { background: #ef563d; }
-.student-complaint-status-filters button i.cancelled { background: #ef563d; }
-.student-complaint-status-filters button.active i { background: #fff; }
-.student-complaint-search {
-  display: flex;
-  flex: 0 0 165px;
-  margin-left: auto;
-  align-items: center;
-  gap: 7px;
-  min-height: 31px;
-  padding: 0 10px;
-  border: 1px solid #e0dcec;
-  border-radius: 999px;
-  background: #fff;
-  color: #85889a;
+.student-complaint-status-select:focus {
+  outline: none;
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
 }
 .student-complaint-search:focus-within {
   border-color: #997be1;
@@ -3344,7 +3319,7 @@
 }
 .student-complaint-empty {
   display: grid;
-  min-height: 285px;
+  min-height: 160px;
   place-items: center;
   align-content: center;
   justify-items: center;
@@ -3354,27 +3329,10 @@
   background: #fff;
   text-align: center;
 }
-.student-complaint-empty-icon {
-  display: grid;
-  width: 76px;
-  height: 76px;
-  place-items: center;
-  margin-bottom: 14px;
-  border-radius: 22px;
-  background: #f1efff;
-  color: #7560e8;
-}
 .student-complaint-empty h3 {
-  margin: 0 0 6px;
+  margin: 0;
   color: #21183b;
   font-size: 15px;
-}
-.student-complaint-empty p {
-  max-width: 320px;
-  margin: 0 0 16px;
-  color: #77718d;
-  font-size: 11px;
-  line-height: 1.55;
 }
 .student-complaint-footer {
   margin-top: 13px;
@@ -3384,15 +3342,25 @@
 
 @media (max-width: 900px) {
   .student-complaint-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
   }
-  .student-complaint-status-filters,
   .student-complaint-search {
+    flex: 1 1 auto;
+  }
+  .student-complaint-status-select {
+    flex: 0 0 190px;
+  }
+}
+
+@media (max-width: 520px) {
+  .student-complaint-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .student-complaint-search,
+  .student-complaint-status-select {
     width: 100%;
-  }
-  .student-complaint-search {
-    flex-basis: auto;
     box-sizing: border-box;
   }
 }
@@ -3431,7 +3399,7 @@
 .student-complaint-create-header h1 {
   margin-top: 0;
   color: #29134f;
-  font-size: 28px;
+  font-size: 22px;
 }
 .student-complaint-create-header p {
   margin-top: 5px;
@@ -3626,6 +3594,58 @@
 .student-complaint-create-card {
   min-width: 0;
 }
+.student-complaint-create-side {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+}
+.student-complaint-respondent {
+  min-width: 0;
+  padding: 18px 20px;
+  border-color: #e2ddf0;
+}
+.student-complaint-respondent h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #2e1558;
+  font-size: 14px;
+}
+.student-complaint-respondent h2 svg {
+  color: #6f21ed;
+}
+.student-complaint-respondent > div {
+  display: grid;
+  gap: 3px;
+  padding: 9px 0;
+  border-top: 1px solid #f0edf7;
+}
+.student-complaint-respondent > div span {
+  color: #77718d;
+  font-size: 10px;
+}
+.student-complaint-respondent > div strong {
+  color: #303448;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.student-complaint-form .student-complaint-lesson-note {
+  display: block;
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  color: #c54b45;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.student-complaint-form .student-complaint-lesson-hint {
+  display: block;
+  grid-column: 1 / -1;
+  color: #6b5ca0;
+  font-size: 10px;
+  line-height: 1.45;
+}
 .student-complaint-create-card .student-complaint-form > .student-form-field,
 .student-complaint-create-card .student-complaint-form > .rf-field {
   grid-template-columns: 1fr;
@@ -3670,7 +3690,7 @@
 .student-complaint-category-options {
   display: grid;
   grid-column: 1;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px 9px;
 }
 .student-complaint-category-options label {
@@ -3679,8 +3699,8 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
-  min-height: 37px;
-  padding: 0 12px;
+  min-height: 42px;
+  padding: 8px 12px;
   border: 1px solid #dfe1ed;
   border-radius: 8px;
   background: #fff;
@@ -3729,9 +3749,9 @@
 .student-complaint-category-options label.other > svg { color: #8551e4; }
 .student-complaint-category-options label > span:last-child {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 .student-complaint-category-field > .student-field-error {
   grid-column: 1;
@@ -4012,12 +4032,12 @@
 }
 .student-complaint-edit-card .student-complaint-category-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 .student-complaint-edit-card .student-complaint-category-options label {
-  min-height: 35px;
-  padding: 0 8px;
+  min-height: 42px;
+  padding: 8px;
   font-size: 10px;
 }
 .student-complaint-edit-card .student-complaint-category-options label svg {
@@ -4659,4 +4679,51 @@
   border-color: #6736d6;
   background: #6736d6;
   color: #fff;
+}
+
+.contract-signing-view:not(.contract-owner-edit-view) .student-contract-schedule-row {
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
+}
+
+.contract-signing-view .contract-signing-heading {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contract-signing-view .contract-signing-heading h1 {
+  margin: 0;
+}
+
+.contract-signing-view .contract-signing-heading p {
+  margin: 0 0 0 auto;
+  color: #795aa9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.contract-signing-view .contract-create-back {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.contract-signing-view .contract-signing-value {
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid #e3e5ed;
+  border-radius: 8px;
+  color: #283657;
+  background: #f8f9fd;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .contract-signing-view .student-contract-schedule-row {
+    grid-template-columns: 1fr;
+  }
 }

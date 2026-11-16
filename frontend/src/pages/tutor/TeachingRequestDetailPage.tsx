@@ -1,8 +1,7 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import {
-  createTeachingRequestContract,
   getMyTeachingRequest,
   getTeachingRequestApplications,
   payTeachingRequestByWallet,
@@ -14,6 +13,7 @@ import {
   type StudentTeachingApplication
 } from '../../services/myTeachingRequestApi';
 import type { TeachingRequest } from '../../types/api';
+import { getTutorContracts } from '../../services/tutorApi';
 import '../student/student.css';
 import './teaching-request-detail.css';
 
@@ -24,21 +24,26 @@ export function TeachingRequestDetailPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [contractFor, setContractFor] = useState<StudentTeachingApplication | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'vnpay'>('wallet');
   const load = useCallback(
     async (signal: AbortSignal) => {
-      const [request, applications] = await Promise.all([
+      const [request, applications, contracts] = await Promise.all([
         getMyTeachingRequest(requestId, signal),
-        getTeachingRequestApplications(requestId, signal)
+        getTeachingRequestApplications(requestId, signal),
+        getTutorContracts(signal)
       ]);
-      return { request, applications };
+      return { request, applications, contracts: contracts.content };
     },
     [requestId]
   );
   const query = useResource(load, revision);
   const request: TeachingRequest | null = query.data?.request ?? null;
   const applications = query.data?.applications ?? [];
+  const contractByApplicationId = new Map(
+    (query.data?.contracts ?? [])
+      .filter((contract) => contract.studentTutorRequestId)
+      .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+  );
 
   const toggleRequestStatus = async () => {
     if (!request || !['OPEN', 'CLOSED'].includes(request.status ?? '') || request.reviewedAt) return;
@@ -67,30 +72,6 @@ export function TeachingRequestDetailPage() {
       setRevision((value) => value + 1);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Không thể cập nhật đề nghị.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const createContract = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!contractFor) return;
-    setBusy(contractFor.id);
-    setError('');
-    const data = new FormData(event.currentTarget);
-    try {
-      await createTeachingRequestContract(requestId, contractFor.id, {
-        price: Number(data.get('price')),
-        paymentPeriod: String(data.get('paymentPeriod')) as 'PER_LESSON' | 'WEEKLY' | 'MONTHLY' | 'PACKAGE',
-        startDate: String(data.get('startDate')),
-        endDate: String(data.get('endDate')),
-        totalLessons: data.get('totalLessons') ? Number(data.get('totalLessons')) : undefined,
-        preferredSchedule: String(data.get('preferredSchedule') ?? '') || undefined
-      });
-      setContractFor(null);
-      setNotice('Đã tạo hợp đồng và gửi cho học viên ký.');
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể tạo hợp đồng.');
     } finally {
       setBusy(null);
     }
@@ -187,10 +168,12 @@ export function TeachingRequestDetailPage() {
                 </span>
               </dd>
             </div>
-            <div>
-              <dt>Mô tả</dt>
-              <dd>{request.description || request.note || 'Chưa có mô tả.'}</dd>
-            </div>
+            {(request.description || request.note) && (
+              <div>
+                <dt>Mô tả</dt>
+                <dd>{request.description || request.note}</dd>
+              </div>
+            )}
             <div>
               <dt>Môn học</dt>
               <dd>{request.subjectName || request.customSubjectName || 'Môn học tùy chỉnh'}</dd>
@@ -271,11 +254,9 @@ export function TeachingRequestDetailPage() {
         </section>
         <section className="student-panel teaching-detail-applications">
           <h2>Đề nghị từ học viên</h2>
-          <p>Xem và quản lý các đề nghị nhận được cho yêu cầu này.</p>
           {!applications.length ? (
             <div className="student-empty">
-              <h3>Chưa có đề nghị nào</h3>
-              <p>Đề nghị từ học viên sẽ xuất hiện ở đây.</p>
+              <h3>Chưa có đề nghị từ học viên</h3>
             </div>
           ) : (
             applications.map((application) => (
@@ -316,9 +297,26 @@ export function TeachingRequestDetailPage() {
                     </button>
                   </div>
                 )}
-                {application.status === 'ACCEPTED' && (
+                {application.status === 'ACCEPTED' &&
+                (application.contractId ?? contractByApplicationId.get(application.id)) ? (
+                  <div className="teaching-application-actions">
+                    <Link
+                      className="student-button draft"
+                      to={`/tutor/sections/contracts/${application.contractId ?? contractByApplicationId.get(application.id)}`}
+                    >
+                      Xem chi tiết
+                    </Link>
+                    <Link
+                      className="student-button secondary"
+                      to={`/tutor/complaints/new?contractId=${application.contractId ?? contractByApplicationId.get(application.id)}`}
+                    >
+                      Khiếu nại
+                    </Link>
+                  </div>
+                ) : application.status === 'ACCEPTED' ? (
                   <button
                     className="student-button draft"
+                    type="button"
                     onClick={() =>
                       navigate(
                         `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
@@ -327,57 +325,12 @@ export function TeachingRequestDetailPage() {
                   >
                     Tạo hợp đồng
                   </button>
-                )}
+                ) : null}
               </article>
             ))
           )}
         </section>
       </div>
-      {contractFor && (
-        <div className="teaching-contract-backdrop">
-          <form className="student-panel teaching-contract-form" onSubmit={(event) => void createContract(event)}>
-            <h2>Tạo hợp đồng</h2>
-            <p>Học viên: {[contractFor.studentFirstName, contractFor.studentLastName].filter(Boolean).join(' ')}</p>
-            <label>
-              Học phí (VNĐ)
-              <input name="price" type="number" min="0" defaultValue={contractFor.proposedPrice} required />
-            </label>
-            <label>
-              Chu kỳ thanh toán
-              <select name="paymentPeriod">
-                <option value="PER_LESSON">Theo buổi</option>
-                <option value="WEEKLY">Hàng tuần</option>
-                <option value="MONTHLY">Hàng tháng</option>
-                <option value="PACKAGE">Trọn gói</option>
-              </select>
-            </label>
-            <label>
-              Ngày bắt đầu
-              <input name="startDate" type="date" required />
-            </label>
-            <label>
-              Ngày kết thúc
-              <input name="endDate" type="date" required />
-            </label>
-            <label>
-              Số buổi
-              <input name="totalLessons" type="number" min="1" />
-            </label>
-            <label>
-              Lịch học
-              <input name="preferredSchedule" defaultValue={contractFor.preferredSchedule ?? ''} />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button draft" disabled={busy === contractFor.id}>
-                Tạo hợp đồng
-              </button>
-              <button type="button" className="student-button secondary" onClick={() => setContractFor(null)}>
-                Hủy
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </>
   );
 }
@@ -397,6 +350,7 @@ function statusText(status: string) {
     )[status] ?? status
   );
 }
+
 function applicationStatusText(status: string) {
   return (
     (
