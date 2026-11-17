@@ -85,16 +85,30 @@ function ResponseForm({ request, onSent }: { request: RefundRequest; onSent: () 
                   Bạn báo đã dạy lúc {formatClockTime(lesson.markedTaughtAt)} · Học viên:{' '}
                   {outcomeLabels[lesson.claimedOutcome].toLowerCase()}
                 </small>
+                {lesson.missedMinutes !== null && <small>Học viên báo dạy thiếu {lesson.missedMinutes} phút</small>}
               </div>
               <div className="rf-seg" role="group" aria-label={`Phản hồi buổi ${lesson.date}`}>
-                {(['TAUGHT', 'TUTOR_ABSENT', 'STUDENT_ABSENT'] as const).map((value) => (
+                {(
+                  [
+                    'TAUGHT',
+                    'TUTOR_ABSENT',
+                    'STUDENT_ABSENT',
+                    ...(lesson.missedMinutes !== null ? (['TUTOR_LATE_OR_SHORT'] as const) : [])
+                  ] as const
+                ).map((value) => (
                   <button
                     key={value}
                     type="button"
                     aria-pressed={positions[lesson.lessonId] === value}
                     onClick={() => setPositions((current) => ({ ...current, [lesson.lessonId]: value }))}
                   >
-                    {value === 'TAUGHT' ? 'Tôi đã dạy' : value === 'TUTOR_ABSENT' ? 'Tôi không dạy' : 'Học viên nghỉ'}
+                    {value === 'TAUGHT'
+                      ? 'Tôi đã dạy'
+                      : value === 'TUTOR_ABSENT'
+                        ? 'Tôi không dạy'
+                        : value === 'STUDENT_ABSENT'
+                          ? 'Học viên nghỉ'
+                          : 'Tôi dạy muộn/thiếu giờ'}
                   </button>
                 ))}
               </div>

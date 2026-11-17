@@ -221,11 +221,11 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
               tutorEmail,
               studentPhone: role === 'student' ? user?.profile?.phone : undefined,
               studentAddress:
-                role === 'student'
+                teachingMode === 'OFFLINE' && role === 'student'
                   ? (user?.profile?.detailAddress ?? user?.profile?.address?.detailAddress)
-                  : undefined,
+                  : null,
               tutorPhone: role === 'tutor' ? user?.profile?.phone : undefined,
-              tutorAddress: role === 'tutor' ? request.detailAddress : undefined,
+              tutorAddress: teachingMode === 'OFFLINE' && role === 'tutor' ? request.detailAddress : null,
               subject: subjectName,
               grade: gradeName,
               teachingMode: teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'

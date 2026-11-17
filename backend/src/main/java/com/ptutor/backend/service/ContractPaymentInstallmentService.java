@@ -5,6 +5,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -114,6 +115,14 @@ public class ContractPaymentInstallmentService {
                     installment.setDueDate(null);
                     installmentRepository.save(installment);
                 });
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ContractPaymentInstallment> findByLesson(Lesson lesson) {
+        if (lesson == null || lesson.getId() == null) {
+            return Optional.empty();
+        }
+        return installmentRepository.findByLesson_Id(lesson.getId());
     }
 
     @Transactional

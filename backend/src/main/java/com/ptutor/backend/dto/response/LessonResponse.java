@@ -4,8 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.RefundRequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
 
 public record LessonResponse(
@@ -21,7 +23,8 @@ public record LessonResponse(
         LocalDateTime markedTaughtAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        LocalDateTime paidAt) {
+        LocalDateTime paidAt,
+        RefundSummary refund) {
 
     public LessonResponse(
             UUID id,
@@ -37,6 +40,14 @@ public record LessonResponse(
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
         this(id, contractId, title, date, startTime, endTime, teachingMode, status, note,
-                markedTaughtAt, createdAt, updatedAt, null);
+                markedTaughtAt, createdAt, updatedAt, null, null);
+    }
+
+    public record RefundSummary(
+            UUID id,
+            RefundRequestStatus status,
+            BigDecimal refundAmount,
+            String description,
+            LocalDateTime createdAt) {
     }
 }

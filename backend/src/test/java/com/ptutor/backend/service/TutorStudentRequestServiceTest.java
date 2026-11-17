@@ -123,7 +123,7 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void createsOfflineProposalWithValidatedProvinceAndDistrict() {
+    void createsOfflineProposalUsingStudyingRequestLocation() {
         UUID provinceId = UUID.randomUUID();
         UUID districtId = UUID.randomUUID();
         Province province = Province.builder().name("Hanoi").build();
@@ -131,10 +131,12 @@ class TutorStudentRequestServiceTest {
         District district = District.builder().name("Ba Dinh").province(province).build();
         district.setId(districtId);
 
+        StudyingRequest studyingRequest = studyingRequest(RequestStatus.OPEN);
+        studyingRequest.setLearningMode(com.ptutor.backend.entity.enums.LearningMode.OFFLINE);
+        studyingRequest.setDistrict(district);
         when(studyingRequestRepository.findById(studyingRequestId))
-                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+                .thenReturn(Optional.of(studyingRequest));
         when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
-        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
         when(tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
                 tutorId, studyingRequestId, ApplicationStatus.PENDING)).thenReturn(false);
         when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
@@ -146,7 +148,7 @@ class TutorStudentRequestServiceTest {
 
         var request = new TutorStudentRequestCreateRequest(
                 gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
-                "Saturday mornings", "", provinceId, districtId);
+                "Saturday mornings", "", null, null);
 
         service.create(tutorUserId, studyingRequestId, request);
 
@@ -154,6 +156,23 @@ class TutorStudentRequestServiceTest {
         verify(tutorStudentRequestRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getPreferredProvince()).isSameAs(province);
         assertThat(captor.getValue().getPreferredDistrict()).isSameAs(district);
+    }
+
+    @Test
+    void rejectsOfflineProposalWhenStudyingRequestHasNoLocation() {
+        when(studyingRequestRepository.findById(studyingRequestId))
+                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        var request = new TutorStudentRequestCreateRequest(
+                gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
+                "Saturday mornings", "", null, null);
+
+        assertThatThrownBy(() -> service.create(tutorUserId, studyingRequestId, request))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("INVALID_PREFERRED_LOCATION");
+                });
+        verify(tutorStudentRequestRepository, never()).saveAndFlush(any());
     }
 
     @Test

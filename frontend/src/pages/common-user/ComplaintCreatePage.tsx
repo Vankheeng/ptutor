@@ -18,11 +18,29 @@ const emptyValues: StudentComplaintFormValues = {
 
 export function ComplaintCreatePage({ basePath = '/student/complaints' }: { basePath?: string }) {
   const navigate = useNavigate();
+  const role = basePath.startsWith('/tutor') ? 'tutor' : 'student';
+  const [selectedContractId, setSelectedContractId] = useState(
+    () => new URLSearchParams(window.location.search).get('contractId') ?? ''
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const load = useCallback((signal: AbortSignal) => getContracts(undefined, 0, 100, signal), []);
   const query = useResource(load);
-  const contracts: Contract[] = query.data?.content ?? [];
+  const contracts: Contract[] = (query.data?.content ?? []).filter(isComplaintContractEligible);
+  const eligibleSelectedId = contracts.some((contract) => contract.id === selectedContractId) ? selectedContractId : '';
+  const selectedContract = contracts.find((contract) => contract.id === eligibleSelectedId);
+  const respondentName = selectedContract
+    ? role === 'student'
+      ? [selectedContract.tutorFirstName, selectedContract.tutorLastName].filter(Boolean).join(' ') ||
+        selectedContract.tutorEmail
+      : [selectedContract.studentFirstName, selectedContract.studentLastName].filter(Boolean).join(' ') ||
+        selectedContract.studentEmail
+    : '';
+  const respondentEmail = selectedContract
+    ? role === 'student'
+      ? selectedContract.tutorEmail
+      : selectedContract.studentEmail
+    : '';
 
   const submit = async (values: StudentComplaintFormValues) => {
     setSubmitting(true);
@@ -56,7 +74,6 @@ export function ComplaintCreatePage({ basePath = '/student/complaints' }: { base
           </div>
           <div>
             <h1>Tạo khiếu nại mới</h1>
-            <p>Gửi khiếu nại về vấn đề phát sinh trong quá trình học tập hoặc hợp đồng.</p>
           </div>
         </div>
       </div>
@@ -66,34 +83,83 @@ export function ComplaintCreatePage({ basePath = '/student/complaints' }: { base
         </div>
       )}
       {query.isLoading && !query.data ? (
-        <div className="student-complaint-state">Đang tải danh sách hợp đồng…</div>
+        <div className="student-complaint-state">Đang tải danh sách hợp đồng.</div>
       ) : (
         <div className="student-complaint-create-layout">
           <section className="student-panel student-complaint-create-card">
             <ComplaintForm
               mode="create"
+              role={role}
               contracts={contracts}
-              initialValues={emptyValues}
+              initialValues={{ ...emptyValues, contractId: eligibleSelectedId }}
+              onContractChange={setSelectedContractId}
               submitting={submitting}
               error={submitError}
               onSubmit={(values) => void submit(values as StudentComplaintFormValues)}
               onCancel={() => navigate(basePath)}
             />
           </section>
-          <aside className="student-panel student-complaint-guidance">
-            <div className="student-complaint-guidance-illustration">
-              <Icon name="complaint" size={52} />
-            </div>
-            <h2>Lưu ý khi gửi khiếu nại</h2>
-            <ul>
-              <li>Chọn đúng hợp đồng liên quan đến vấn đề bạn gặp phải.</li>
-              <li>Cung cấp tiêu đề và mô tả cụ thể, rõ ràng, khách quan.</li>
-              <li>Đính kèm đường dẫn minh chứng để hỗ trợ quá trình xử lý.</li>
-              <li>Khiếu nại của bạn sẽ được quản trị viên tiếp nhận và xử lý theo quy định.</li>
-            </ul>
-          </aside>
+          <div className="student-complaint-create-side">
+            {selectedContract && (
+              <section className="student-panel student-complaint-respondent">
+                <h2>
+                  <Icon name="user" size={17} /> Người bị khiếu nại
+                </h2>
+                <div>
+                  <span>Họ và tên</span>
+                  <strong>{respondentName}</strong>
+                </div>
+                <div>
+                  <span>Vai trò</span>
+                  <strong>{role === 'student' ? 'Gia sư' : 'Học viên'}</strong>
+                </div>
+                <div>
+                  <span>Email</span>
+                  <strong>{respondentEmail}</strong>
+                </div>
+              </section>
+            )}
+            <aside className="student-panel student-complaint-guidance">
+              <div className="student-complaint-guidance-illustration">
+                <Icon name="complaint" size={52} />
+              </div>
+              <h2>Lưu ý khi gửi khiếu nại</h2>
+              <ul>
+                {role === 'student' && (
+                  <li>Gia sư vắng mặt hoặc dạy muộn, thiếu giờ: chọn buổi học và tạo yêu cầu hoàn tiền.</li>
+                )}
+                <li>
+                  Chỉ có thể khiếu nại hợp đồng đang còn hiệu lực hoặc trong vòng 7 ngày sau ngày kết thúc hợp đồng.
+                </li>
+                <li>Chọn đúng hợp đồng liên quan đến vấn đề bạn gặp phải.</li>
+                <li>Cung cấp tiêu đề và mô tả cụ thể, rõ ràng, khách quan.</li>
+                <li>Đính kèm bằng chứng để hỗ trợ quá trình xử lý.</li>
+                <li>Khiếu nại của bạn sẽ được quản trị viên tiếp nhận và xử lý theo quy định.</li>
+              </ul>
+            </aside>
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+function isComplaintContractEligible(contract: Contract) {
+  if (contract.status !== 'ACTIVE' && contract.status !== 'COMPLETED') return false;
+  if (!contract.endDate) return false;
+  const todayParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+  const part = (type: string) => todayParts.find((item) => item.type === type)?.value ?? '';
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
+  const todayDate = new Date(`${today}T00:00:00+07:00`);
+  const endDate = new Date(`${contract.endDate}T00:00:00+07:00`);
+  if (Number.isNaN(todayDate.getTime()) || Number.isNaN(endDate.getTime())) return false;
+  return (
+    todayDate.getTime() <= endDate.getTime() + 7 * 24 * 60 * 60 * 1000 &&
+    (contract.status === 'ACTIVE' || todayDate.getTime() >= endDate.getTime())
   );
 }

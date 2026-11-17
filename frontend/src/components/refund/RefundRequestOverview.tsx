@@ -87,6 +87,9 @@ export function RefundRequestOverview({ request }: { request: RefundRequest }) {
               <div className="rf-row-main">
                 <strong>{formatLessonDate(lesson.date, lesson.startTime, lesson.endTime)}</strong>
                 <small>Gia sư báo đã dạy lúc {formatClockTime(lesson.markedTaughtAt)}</small>
+                {lesson.missedMinutes !== null && (
+                  <small>Thời lượng học viên báo bị thiếu: {lesson.missedMinutes} phút</small>
+                )}
               </div>
               <div className="rf-row-side">
                 <OutcomeBadge label="Học viên" outcome={lesson.claimedOutcome} />

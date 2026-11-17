@@ -88,6 +88,7 @@ export interface TutorTeachingProposal {
 
 export interface TutorContract {
   id: string;
+  studentTutorRequestId: string | null;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentDetailAddress: string | null;
@@ -112,6 +113,13 @@ export interface TutorLesson {
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
   paidAt: string | null;
+  refund: {
+    id: string;
+    status: 'PENDING' | 'IN_REVIEW' | 'REFUNDED' | 'REJECTED' | 'CANCELLED';
+    refundAmount: number | null;
+    description: string;
+    createdAt: string;
+  } | null;
 }
 
 export function getTutorProfile(signal?: AbortSignal) {

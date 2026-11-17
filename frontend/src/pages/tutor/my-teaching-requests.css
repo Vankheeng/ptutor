@@ -41,8 +41,8 @@
 .student-form-grid .multi-select-option input { width:15px; height:15px; flex:0 0 15px; margin:0; accent-color:#7049c8; }
 .multi-select-empty { margin:0; padding:8px; color:#777185; font-size:11px; }
 .common-create-button { min-height:39px; padding:0 15px; border-radius:8px; font-size:11px; }
-.common-request-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:15px; }
-.common-request-card { display:flex; min-width:0; min-height:186px; flex-direction:column; gap:0; padding:20px; margin:0; border-radius:15px; }
+.common-request-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:15px; }
+.common-request-card { display:flex; min-width:0; min-height:186px; height:100%; flex-direction:column; gap:0; padding:20px; margin:0; border-radius:15px; }
 .common-request-card.status-open { background:#f2f9ff; border-color:#b9dcf5; }
 .common-request-card.status-draft { background:#faf7ff; border-color:#d9caff; }
 .common-request-card.status-pending_review { background:#fffaf0; border-color:#efd49b; }

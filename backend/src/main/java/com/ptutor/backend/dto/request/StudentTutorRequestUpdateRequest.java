@@ -24,5 +24,17 @@ public record StudentTutorRequestUpdateRequest(
         String preferredSchedule,
 
         @Size(max = 10000, message = "Message must not exceed 10000 characters")
-        String message) {
+        String message,
+
+        UUID preferredProvinceId,
+        UUID preferredDistrictId,
+
+        @Size(max = 255, message = "Detail address must not exceed 255 characters")
+        String detailAddress) {
+
+    public StudentTutorRequestUpdateRequest(
+            UUID gradeId, BigDecimal proposedPrice, LearningMode learningMode,
+            String preferredSchedule, String message) {
+        this(gradeId, proposedPrice, learningMode, preferredSchedule, message, null, null, null);
+    }
 }

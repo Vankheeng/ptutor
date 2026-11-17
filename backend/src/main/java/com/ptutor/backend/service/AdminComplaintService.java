@@ -304,7 +304,8 @@ public class AdminComplaintService {
         UserRole complainantRole = complainantRole(complaint);
 
         return new AdminComplaintDetailResponse(
-                complaint.getId(), complaint.getTitle(), complaint.getContent(), complaint.getCategory(),
+                complaint.getId(),
+                complaint.getTitle(), complaint.getContent(), complaint.getCategory(),
                 complaint.getStatus(), complaint.getResolution(), complaint.getFaultParty(), complaint.getResolvedAt(),
                 new AdminComplaintDetailResponse.Complainant(
                         complainant.getId(), fullName(complainant), complainant.getEmail(), complainantRole),

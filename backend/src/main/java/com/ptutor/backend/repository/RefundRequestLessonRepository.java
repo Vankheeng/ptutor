@@ -2,6 +2,7 @@ package com.ptutor.backend.repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -18,6 +19,9 @@ public interface RefundRequestLessonRepository extends JpaRepository<RefundReque
     List<RefundRequestLesson> findAllByRefundRequest_IdOrderByLesson_DateAscLesson_StartTimeAsc(UUID refundRequestId);
 
     long countByRefundRequest_Id(UUID refundRequestId);
+
+    @EntityGraph(attributePaths = { "refundRequest" })
+    Optional<RefundRequestLesson> findFirstByLesson_IdOrderByCreatedAtDesc(UUID lessonId);
 
     boolean existsByLesson_IdAndRefundRequest_StatusIn(UUID lessonId, Collection<RefundRequestStatus> statuses);
 

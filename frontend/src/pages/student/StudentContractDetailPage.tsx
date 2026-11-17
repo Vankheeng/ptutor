@@ -20,7 +20,7 @@ import {
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
 import { ContractActionBar } from '../common-user/components/ContractActionBar';
-import { StudentContractEditForm } from '../../components/student/StudentContractEditForm';
+import { PendingContractSignView } from '../common-user/components/PendingContractSignView';
 import { StudentContractOverview } from '../../components/student/StudentContractOverview';
 import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
 import { StudentContractStatusBadge } from '../../components/student/StudentContractStatusBadge';
@@ -64,11 +64,7 @@ export function StudentContractDetailPage() {
     }
   };
 
-  const saveTerms = async (values: {
-    price: number;
-    preferredSchedule?: string;
-    schedules?: import('../../services/studentApi').ContractSchedule[];
-  }) => {
+  const saveTerms = async (values: Partial<ContractTerms>) => {
     if (!contract) return;
     await action(() => updateContract(contract.id, values), 'Đã cập nhật hợp đồng.');
   };
@@ -152,6 +148,36 @@ export function StudentContractDetailPage() {
   const createdByYou = contract.createdByUserId === user?.userId;
   const pendingForSignature = contract.status === 'PENDING' && Boolean(user?.userId) && !createdByYou;
   const pendingCreatedByYou = contract.status === 'PENDING' && Boolean(user?.userId) && createdByYou;
+  if (pendingForSignature) {
+    return (
+      <PendingContractSignView
+        mode="sign"
+        viewerRole="student"
+        contract={contract}
+        backPath="/student/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSign={() => action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
+        onReject={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
+      />
+    );
+  }
+  if (pendingCreatedByYou) {
+    return (
+      <PendingContractSignView
+        mode="edit"
+        viewerRole="student"
+        contract={contract}
+        backPath="/student/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSave={saveTerms}
+        onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
+      />
+    );
+  }
   const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const tutorInitials = tutorName
     .split(/\s+/)
@@ -228,14 +254,6 @@ export function StudentContractDetailPage() {
         </p>
       )}
 
-      {contract.status === 'PENDING' && createdByYou && (
-        <section className="student-panel student-contract-section">
-          <h2 className="student-contract-panel-heading">
-            <Icon name="contract" size={16} /> Chỉnh sửa điều khoản hợp đồng
-          </h2>
-          <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
-        </section>
-      )}
       {contract.status !== 'PENDING' && (
         <div className="student-form-actions student-contract-related-actions">
           <Link className="student-button secondary" to={`/student/contracts/${contract.id}/lessons`}>

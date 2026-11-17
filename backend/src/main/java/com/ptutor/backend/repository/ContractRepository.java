@@ -142,6 +142,11 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
 
     boolean existsByStudentTutorRequest_IdAndStatusNot(UUID studentTutorRequestId, ContractStatus excludedStatus);
 
+    @Query("select contract.id from Contract contract where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status <> :excludedStatus order by contract.createdAt desc")
+    Optional<UUID> findIdByStudentTutorRequestIdAndStatusNot(
+            @Param("studentTutorRequestId") UUID studentTutorRequestId,
+            @Param("excludedStatus") ContractStatus excludedStatus);
+
     boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
 
     List<Contract> findAllByStatus(ContractStatus status);

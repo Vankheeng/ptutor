@@ -17,6 +17,7 @@ public record StudyingRequestSearchResponse(
         String gradeName,
         UUID districtId,
         String districtName,
+        UUID provinceId,
         String title,
         String description,
         String learningGoals,
