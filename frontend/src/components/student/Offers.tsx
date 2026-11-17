@@ -28,6 +28,7 @@ export function Offers({ requestStatus, offers, busyOfferId, onAction, onCreateC
                 </span>
                 <div>
                   <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'}</h3>
+                  <Link to={`/student/tutors/${offer.tutorId}/profile`}>Xem hồ sơ</Link>
                   <p>{formatStudyingRequestMoney(offer.proposedPrice)}</p>
                   <time dateTime={offer.createdAt}>Gửi lúc {formatOfferDate(offer.createdAt)}</time>
                 </div>

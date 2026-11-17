@@ -38,6 +38,26 @@ export interface TutorProfile {
   profileRejectionReason: string | null;
 }
 
+export type PublicTutorProfile = Pick<
+  TutorProfile,
+  | 'tutorId'
+  | 'userId'
+  | 'firstName'
+  | 'lastName'
+  | 'avatarUrl'
+  | 'introduction'
+  | 'experienceYears'
+  | 'education'
+  | 'teachingStyleTags'
+  | 'teachingMethodology'
+  | 'strengthSubjects'
+  | 'targetStudentType'
+  | 'averageRating'
+  | 'totalReviews'
+  | 'completedContractsCount'
+  | 'totalStudentsTaught'
+>;
+
 export type TutorProfileStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface TutorCertificate {
@@ -124,6 +144,14 @@ export interface TutorLesson {
 
 export function getTutorProfile(signal?: AbortSignal) {
   return get<TutorProfile>('/api/v1/tutors/me', { signal });
+}
+
+export function getPublicTutorProfile(tutorId: string, signal?: AbortSignal) {
+  return get<PublicTutorProfile>(`/api/v1/tutors/${encodeURIComponent(tutorId)}`, { signal });
+}
+
+export function getPublicTutorCertificates(tutorId: string, signal?: AbortSignal) {
+  return get<TutorCertificate[]>(`/api/v1/tutors/${encodeURIComponent(tutorId)}/certificates`, { signal });
 }
 
 export function updateTutorProfile(values: Record<string, unknown>) {

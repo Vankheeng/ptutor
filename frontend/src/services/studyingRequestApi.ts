@@ -17,6 +17,7 @@ export interface StudyingRequestSearchFilters {
 
 export interface StudyingRequestSearchResponse {
   id: string;
+  studentId: string;
   subjectId: string | null;
   subjectName: string | null;
   gradeId: string;

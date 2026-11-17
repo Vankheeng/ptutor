@@ -213,6 +213,7 @@ export function StudentContractDetailPage() {
           </span>
           <div>
             <strong>{tutorName}</strong>
+            <Link to={`/student/tutors/${contract.tutorId}/profile`}>Xem hồ sơ gia sư</Link>
             <span>
               {contract.status === 'PENDING'
                 ? pendingCreatedByYou

@@ -191,7 +191,7 @@ public class SecurityConfig {
                         .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(NOTIFICATION_SELF_SERVICE_API)
                         .hasAnyRole("STUDENT", "TUTOR", "EMPLOYEE", "ADMIN")
-                        .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
+                        .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()
                         .requestMatchers(DISTRICT_READ_API).authenticated()

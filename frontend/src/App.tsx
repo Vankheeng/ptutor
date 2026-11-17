@@ -1,6 +1,7 @@
 import './App.css';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { GlobalToastViewport } from './components/ui/GlobalToastViewport';
 import { GuestRoute, ProtectedRoute, RoleGuard } from './auth/RouteGuards';
 import HomePage from './pages/HomePage';
 import AdminStatisticsPage from './pages/AdminStatisticsPage';
@@ -8,8 +9,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { TutorDashboardPage } from './pages/tutor/TutorDashboardPage';
-import { TutorProfilePage } from './pages/tutor/TutorProfilePage';
-import { TutorCertificatesPage } from './pages/tutor/TutorCertificatesPage';
 import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
@@ -42,7 +41,7 @@ import { WalletTransactionDetailPage } from './pages/common-user/WalletTransacti
 import { WalletAnalyticsPage } from './pages/common-user/WalletAnalyticsPage';
 import { MyTeachingRequestsPage } from './pages/tutor/MyTeachingRequestsPage';
 import { TeachingRequestDetailPage } from './pages/tutor/TeachingRequestDetailPage';
-import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { ProfileWorkspacePage } from './pages/common-user/ProfileWorkspacePage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminTutorProfilesPage } from './pages/admin/AdminTutorProfilesPage';
 import { AdminCertificateQueuePage } from './pages/admin/AdminCertificateQueuePage';
@@ -88,6 +87,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <GlobalToastViewport />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/public" element={<HomeLanding />} />
@@ -147,8 +147,9 @@ export default function App() {
                 <Route path="dashboard" element={<TutorDashboardPage />} />
                 <Route path="calendar" element={<TutorCalendarPage />} />
                 <Route path="sections/calendar" element={<TutorCalendarPage />} />
-                <Route path="profile" element={<TutorProfilePage />} />
-                <Route path="certificates" element={<TutorCertificatesPage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="tutor" own />} />
+                <Route path="certificates" element={<Navigate replace to="/tutor/profile?tab=certificates" />} />
+                <Route path="students/:profileId/profile" element={<ProfileWorkspacePage subjectRole="student" />} />
                 <Route path="students" element={<TutorStudentSearchPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
@@ -223,7 +224,8 @@ export default function App() {
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
                 <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
-                <Route path="profile" element={<StudentProfilePage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="student" own />} />
+                <Route path="tutors/:profileId/profile" element={<ProfileWorkspacePage subjectRole="tutor" />} />
               </Route>
             </Route>
           </Route>

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.UpdateStudentProfileRequest;
 import com.ptutor.backend.dto.response.StudentProfileResponse;
+import com.ptutor.backend.dto.response.PublicStudentProfileResponse;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.User;
@@ -33,6 +34,21 @@ public class StudentProfileService {
     @Transactional(readOnly = true)
     public StudentProfileResponse getCurrentProfile() {
         return studentProfileMapper.toResponse(findCurrentStudent());
+    }
+
+    @Transactional(readOnly = true)
+    public PublicStudentProfileResponse getPublicProfile(UUID studentId) {
+        Student student = studentRepository.findPublicProfileById(studentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "STUDENT_PROFILE_NOT_FOUND", "Student profile not found"));
+        User user = student.getUser();
+        District district = user.getDistrict();
+        return new PublicStudentProfileResponse(
+                student.getId(), user.getFirstName(), user.getLastName(), user.getAvatarUrl(),
+                district == null ? null : district.getName(),
+                district == null || district.getProvince() == null ? null : district.getProvince().getName(),
+                student.getIntroduction(), student.getLearningStyle(), student.getPersonalityTags(),
+                student.getGoalsDescription(), student.getCurrentLevel(), student.getWeakPoints());
     }
 
     @Transactional

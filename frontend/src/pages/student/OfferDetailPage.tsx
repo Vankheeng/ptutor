@@ -45,6 +45,7 @@ export function OfferDetailPage() {
             </span>
             <div>
               <h2>{tutorName}</h2>
+              <Link to={`/student/tutors/${offer.tutorId}/profile`}>Xem hồ sơ gia sư</Link>
               <p>{offer.tutorEmail}</p>
             </div>
           </div>

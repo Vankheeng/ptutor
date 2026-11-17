@@ -11,6 +11,7 @@ import com.ptutor.backend.entity.enums.RequestStatus;
 
 public record StudyingRequestSearchResponse(
         UUID id,
+        UUID studentId,
         UUID subjectId,
         String subjectName,
         UUID gradeId,

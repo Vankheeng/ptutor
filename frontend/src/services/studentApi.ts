@@ -43,6 +43,20 @@ export interface StudentProfile {
   weakPoints: string | null;
 }
 
+export type PublicStudentProfile = Pick<
+  StudentProfile,
+  | 'studentId'
+  | 'firstName'
+  | 'lastName'
+  | 'avatarUrl'
+  | 'introduction'
+  | 'learningStyle'
+  | 'personalityTags'
+  | 'goalsDescription'
+  | 'currentLevel'
+  | 'weakPoints'
+> & { districtName: string | null; provinceName: string | null };
+
 export interface Availability {
   dayOfWeek: number;
   startTime: string;
@@ -316,6 +330,8 @@ const pageParams = (page = 0, size = 20, status?: string, sort?: 'ASC' | 'DESC')
 };
 
 export const getStudentProfile = (signal?: AbortSignal) => get<StudentProfile>('/api/v1/students/me', { signal });
+export const getPublicStudentProfile = (studentId: string, signal?: AbortSignal) =>
+  get<PublicStudentProfile>(`/api/v1/students/${encodeURIComponent(studentId)}/profile`, { signal });
 export const updateStudentProfile = (values: StudentProfileUpdate) =>
   patch<StudentProfile>('/api/v1/students/me', values);
 
@@ -419,6 +435,17 @@ export const createStudentContract = (studyingRequestId: string, tutorRequestId:
   );
 export function getContracts(status?: ContractStatus, page = 0, size = 20, signal?: AbortSignal) {
   return get<PageResponse<Contract>>(`/api/v1/users/me/contracts?${pageParams(page, size, status)}`, { signal });
+}
+export function getSharedContracts(
+  counterpartyId: string,
+  status?: ContractStatus,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams(pageParams(page, size, status));
+  params.set('counterpartyId', counterpartyId);
+  return get<PageResponse<Contract>>(`/api/v1/users/me/contracts?${params}`, { signal });
 }
 export const getContract = (id: string) => get<Contract>(`/api/v1/users/me/contracts/${id}`);
 export const updateContract = (id: string, values: Partial<ContractTerms> & { gradeId?: string }) =>

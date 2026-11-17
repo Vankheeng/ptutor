@@ -302,6 +302,7 @@ export function TutorContractDetailPage() {
           </span>
           <div>
             <strong>{student}</strong>
+            <Link to={`/tutor/students/${contract.studentId}/profile`}>Xem hồ sơ học viên</Link>
             <small>Học viên</small>
           </div>
         </div>

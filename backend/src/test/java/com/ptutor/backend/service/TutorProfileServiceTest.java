@@ -154,6 +154,25 @@ class TutorProfileServiceTest {
     }
 
     @Test
+    void updateMineKeepsVerificationWhenOnlyPersonalInformationChanges() {
+        Tutor tutor = tutor();
+        tutor.setProfileStatus(TutorProfileStatus.VERIFIED);
+        Employee reviewer = Employee.builder().build();
+        tutor.setProfileReviewedBy(reviewer);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+
+        TutorSelfProfileResponse response = tutorProfileService.updateMine(userId, new UpdateTutorProfileRequest(
+                "Tran", null, null, null, null, null, null, null, null,
+                tutor.getIntroduction(), tutor.getExperienceYears(), tutor.getEducation(),
+                tutor.getTeachingStyleTags(), tutor.getTeachingMethodology(),
+                tutor.getStrengthSubjects(), tutor.getTargetStudentType()));
+
+        assertThat(response.firstName()).isEqualTo("Tran");
+        assertThat(response.profileStatus()).isEqualTo(TutorProfileStatus.VERIFIED);
+        assertThat(tutor.getProfileReviewedBy()).isSameAs(reviewer);
+    }
+
+    @Test
     void updateMineChangesAddressWhenProvinceAndDistrictMatch() {
         Tutor tutor = tutor();
         UUID provinceId = UUID.randomUUID();

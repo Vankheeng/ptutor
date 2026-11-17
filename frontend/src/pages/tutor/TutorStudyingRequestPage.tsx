@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
@@ -137,6 +137,7 @@ export function TutorStudyingRequestPage() {
             </span>
             <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
           </p>
+          <Link to={`/tutor/students/${request.studentId}/profile`}>Xem hồ sơ học viên</Link>
           <div className="tutor-detail-facts">
             <span>
               <small>Ngân sách</small>

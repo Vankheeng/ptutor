@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -136,6 +136,7 @@ export function StudentTeachingRequestDetailPage() {
             </span>
             <span>Đăng ngày {formatDate(request.createdAt)}</span>
           </p>
+          <Link to={`/student/tutors/${request.tutorId}/profile`}>Xem hồ sơ gia sư</Link>
           <div className="tutor-detail-facts">
             <span>
               <small>Học phí dự kiến</small>

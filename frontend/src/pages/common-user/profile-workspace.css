@@ -1,0 +1,369 @@
+.profile-workspace {
+  --admin-surface: #fff;
+  --admin-border: #e9e5f1;
+  --admin-ink: #221c36;
+  --admin-muted: #706b7f;
+  --admin-subtle: #4d4860;
+  --admin-bg: #f8f5ff;
+  --admin-brand: #6736d6;
+  --admin-brand-ink: #5020a8;
+  --admin-brand-soft: #eee7ff;
+  --admin-danger: #a1203a;
+  --admin-danger-soft: #fde8ec;
+  --admin-success: #0f6b46;
+  --admin-success-soft: #e3f6ec;
+  --admin-warning: #8a4300;
+  --admin-warning-soft: #fff1e0;
+  --admin-info: #2d4fb3;
+  --admin-info-soft: #e6edff;
+  --admin-neutral-soft: #efedf3;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 0 36px;
+  color: var(--admin-ink);
+  font-size: 15px;
+}
+.profile-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 16px;
+  color: var(--admin-brand-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.profile-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+}
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--admin-brand-soft);
+  color: var(--admin-brand-ink);
+  font-size: 28px;
+  font-weight: 700;
+}
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-hero-info {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.profile-eyebrow {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.profile-hero h1 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+.profile-hero p {
+  margin: 6px 0 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.profile-photo-control {
+  margin-left: auto;
+}
+.profile-photo-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.profile-photo-control label {
+  cursor: pointer;
+}
+.profile-photo-control input:focus-visible + label {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 3px;
+}
+.profile-photo-control input:disabled + label {
+  opacity: 0.5;
+  cursor: wait;
+}
+.profile-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 20px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+.profile-tabs button {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: #4d4860;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.profile-tabs button.active {
+  border-bottom-color: var(--admin-brand);
+  color: var(--admin-brand-ink);
+  font-weight: 600;
+}
+.profile-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+.profile-document-link {
+  text-decoration: none;
+}
+.profile-contract-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+.profile-contract-modal .admin-definitions {
+  width: 100%;
+}
+.profile-state {
+  padding: 40px;
+  text-align: center;
+}
+.profile-error {
+  color: var(--admin-danger);
+}
+.profile-workspace .tutor-notice:not(.tutor-review-pending),
+.profile-workspace .student-notice {
+  border: 1px solid #a8dfc2;
+  background: #e8f7ee;
+  color: #14683f;
+}
+.profile-workspace .tutor-error,
+.profile-workspace .student-error {
+  border: 1px solid #f0bbb9;
+  background: #fff0ef;
+  color: #a9312d;
+}
+.profile-workspace .tutor-notice.tutor-review-pending {
+  border: 1px solid #f1d18e;
+  background: #fff6e6;
+  color: #805500;
+}
+
+/* Keep the existing editing controls while matching the admin profile's scale. */
+.profile-workspace .tutor-profile-columns.profile-edit-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.profile-workspace .profile-edit-sections > .tutor-form-panel {
+  width: 100%;
+  padding: 24px;
+}
+.profile-workspace .tutor-page-heading h1 {
+  font-size: 24px;
+}
+.profile-workspace .tutor-panel-heading h2 {
+  font-size: 18px;
+}
+.profile-workspace .tutor-panel-heading p {
+  font-size: 14px;
+}
+.profile-workspace .tutor-form-grid label,
+.profile-workspace .tutor-certificate-filter {
+  font-size: 13px;
+}
+.profile-workspace .tutor-form-grid input,
+.profile-workspace .tutor-form-grid select,
+.profile-workspace .tutor-form-grid textarea,
+.profile-workspace .tutor-certificate-filter select {
+  font-size: 14px;
+}
+.profile-workspace .tutor-button {
+  font-size: 14px;
+}
+.profile-workspace .tutor-certificate-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.profile-workspace .tutor-certificate-layout > .tutor-panel {
+  width: 100%;
+  padding: 24px;
+}
+.profile-workspace .tutor-cert-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.profile-workspace .tutor-cert-editor {
+  scroll-margin-top: 90px;
+}
+.profile-workspace .tutor-cert-editor .tutor-upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.profile-workspace .tutor-cert-title h3 {
+  font-size: 15px;
+}
+.profile-workspace .tutor-cert-info p,
+.profile-workspace .tutor-cert-info a,
+.profile-workspace .tutor-rejection {
+  font-size: 13px;
+}
+.profile-workspace .tutor-cert-status {
+  font-size: 12px;
+}
+.profile-workspace .tutor-cert-card {
+  padding: 14px;
+  border-color: var(--admin-border);
+  border-radius: 12px;
+}
+.profile-workspace .tutor-cert-actions button {
+  font-size: 13px;
+}
+.profile-workspace .tutor-profile-footer {
+  justify-content: flex-end;
+}
+.profile-workspace .tutor-certificate-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.profile-workspace .tutor-certificate-filter input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e3e5ed;
+  border-radius: 8px;
+  background: #fff;
+  color: #303448;
+  font: inherit;
+}
+.profile-workspace .tutor-cert-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+}
+.profile-workspace .tutor-cert-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  color: var(--admin-ink);
+  font-size: 13px;
+  text-align: left;
+}
+.profile-workspace .tutor-cert-table th,
+.profile-workspace .tutor-cert-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid var(--admin-border);
+  vertical-align: top;
+}
+.profile-workspace .tutor-cert-table th {
+  background: #faf9fd;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.profile-workspace .tutor-cert-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.profile-workspace .tutor-cert-table td strong {
+  font-weight: 600;
+}
+.profile-workspace .tutor-cert-table .tutor-rejection {
+  margin-top: 5px;
+  font-size: 12px;
+}
+.profile-workspace .tutor-cert-table-empty {
+  padding: 28px 12px !important;
+  text-align: center;
+  color: var(--admin-muted);
+}
+.profile-workspace .tutor-cert-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 190px;
+}
+.profile-workspace .tutor-cert-table-actions button {
+  padding: 5px 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--admin-brand-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.profile-workspace .tutor-cert-table-actions button:hover {
+  background: var(--admin-brand-soft);
+}
+.profile-workspace .tutor-cert-table-actions button.danger {
+  border-color: #f0bbb9;
+  color: var(--admin-danger);
+}
+.profile-workspace .tutor-cert-table-actions button.danger:hover {
+  background: var(--admin-danger-soft);
+}
+.profile-workspace .tutor-cert-table-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 700px) {
+  .profile-workspace .tutor-certificate-filters {
+    grid-template-columns: 1fr;
+  }
+}
+.profile-workspace .student-page-heading h1 {
+  font-size: 24px;
+}
+.profile-workspace .student-page-heading p {
+  font-size: 14px;
+}
+.profile-workspace .student-form-grid label {
+  font-size: 13px;
+}
+.profile-workspace .student-form-grid input,
+.profile-workspace .student-form-grid select,
+.profile-workspace .student-form-grid textarea {
+  font-size: 14px;
+}
+.profile-workspace .student-panel {
+  padding: 24px;
+  border-color: var(--admin-border);
+  border-radius: 16px;
+}
+.profile-workspace .student-button {
+  font-size: 14px;
+}
+@media (max-width: 760px) {
+  .profile-hero {
+    gap: 14px;
+  }
+  .profile-photo-control {
+    margin-left: 0;
+  }
+  .profile-tabs {
+    overflow-x: auto;
+  }
+}
