@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
@@ -132,7 +133,9 @@ export function TutorStudyingRequestPage() {
             <span>
               Đăng bởi{' '}
               <strong>
-                {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                <ProfileNameLink role="student" profileId={request.studentId}>
+                  {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                </ProfileNameLink>
               </strong>
             </span>
             <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>

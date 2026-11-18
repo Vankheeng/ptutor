@@ -1,4 +1,5 @@
 import type { Contract } from '../../../services/studentApi';
+import { ProfileNameLink } from '../../common-user/ProfileNameLink';
 import type { ContractLesson } from '../../../services/refundApi';
 import { confirmationDeadline, formatDateTimeValue, timeLeft } from '../../refund/refundFormat';
 import { isLessonFinished } from './studentLessonUtils';
@@ -66,7 +67,11 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
 
       <div className="student-lesson-card-tutor">
         <span>♙ Gia sư</span>
-        <strong>{tutorName}</strong>
+        <strong>
+          <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
+            {tutorName}
+          </ProfileNameLink>
+        </strong>
       </div>
 
       <div className="student-lesson-card-state">

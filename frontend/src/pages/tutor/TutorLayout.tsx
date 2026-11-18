@@ -13,14 +13,12 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
   { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
-  { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
-  { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
+  { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: 'bell' },
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
   { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
   { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
-  { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: 'award' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: 'user' }
 ];
 
@@ -97,25 +95,19 @@ export function TutorLayout() {
                 ))}
             </div>
           ))}
+          <div className="tutor-nav-actions">
+            <button
+              className="tutor-nav-link tutor-logout"
+              type="button"
+              onClick={() => {
+                void logout();
+                navigate('/');
+              }}
+            >
+              <span aria-hidden="true">⇥</span>Đăng xuất
+            </button>
+          </div>
         </nav>
-        <div className="tutor-sidebar-bottom">
-          <NavLink className="tutor-nav-link" to="/public">
-            <span aria-hidden="true">
-              <Icon name="home" size={18} />
-            </span>
-            Trang chủ
-          </NavLink>
-          <button
-            className="tutor-nav-link tutor-logout"
-            type="button"
-            onClick={() => {
-              void logout();
-              navigate('/');
-            }}
-          >
-            <span aria-hidden="true">⇥</span>Đăng xuất
-          </button>
-        </div>
       </aside>
       <main className="tutor-main">
         <div className="tutor-content">

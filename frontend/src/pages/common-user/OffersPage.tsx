@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import {
   acceptTutorOffer,
@@ -137,7 +138,11 @@ export function OffersPage() {
               {filtered.map((offer) => (
                 <tr key={offer.id}>
                   <td>
-                    <strong>{tutorName(offer)}</strong>
+                    <strong>
+                      <ProfileNameLink role="tutor" profileId={offer.tutorId}>
+                        {tutorName(offer)}
+                      </ProfileNameLink>
+                    </strong>
                     <small>{offer.tutorEmail}</small>
                   </td>
                   <td>

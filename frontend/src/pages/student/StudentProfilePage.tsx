@@ -4,7 +4,7 @@ import { getDistricts, getProvinces } from '../../services/locationApi';
 import { getStudentProfile, updateStudentProfile, type StudentProfile } from '../../services/studentApi';
 import type { District, Province } from '../../types/api';
 
-export function StudentProfilePage() {
+export function StudentProfilePage({ onSaved }: { onSaved?: () => void }) {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -13,6 +13,7 @@ export function StudentProfilePage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formRevision, setFormRevision] = useState(0);
   useEffect(() => {
     getStudentProfile()
       .then((value) => {
@@ -20,7 +21,7 @@ export function StudentProfilePage() {
         setProvinceId(value.address?.provinceId || '');
         setDistrictId(value.address?.districtId || '');
       })
-      .catch((caught) => setError(caught instanceof Error ? caught.message : 'Could not load your profile.'));
+      .catch((caught) => setError(caught instanceof Error ? caught.message : 'Không thể tải hồ sơ của bạn.'));
     getProvinces()
       .then(setProvinces)
       .catch(() => undefined);
@@ -40,7 +41,7 @@ export function StudentProfilePage() {
     setError('');
     setNotice('');
     try {
-      const updated = await updateStudentProfile({
+      await updateStudentProfile({
         firstName: text('firstName'),
         lastName: text('lastName'),
         phone: text('phone'),
@@ -57,15 +58,20 @@ export function StudentProfilePage() {
         currentLevel: text('currentLevel'),
         weakPoints: text('weakPoints')
       });
-      setProfile(updated);
-      setNotice('Your profile has been saved.');
+      const persistedProfile = await getStudentProfile();
+      setProfile(persistedProfile);
+      setProvinceId(persistedProfile.address?.provinceId || '');
+      setDistrictId(persistedProfile.address?.districtId || '');
+      setFormRevision((value) => value + 1);
+      onSaved?.();
+      setNotice('Đã lưu hồ sơ của bạn.');
     } catch (caught) {
       setError(
         caught instanceof ApiError
           ? Object.values(caught.fieldErrors).join(' ') || caught.message
           : caught instanceof Error
             ? caught.message
-            : 'Could not save your profile.'
+            : 'Không thể lưu hồ sơ. Vui lòng thử lại.'
       );
     } finally {
       setSaving(false);
@@ -78,18 +84,11 @@ export function StudentProfilePage() {
       </div>
     ) : (
       <div className="student-empty">
-        <h3>Loading profile…</h3>
+        <h3>Đang tải hồ sơ…</h3>
       </div>
     );
   return (
     <>
-      <div className="student-page-heading">
-        <div>
-          <span className="student-eyebrow">YOUR ACCOUNT</span>
-          <h1>My Profile</h1>
-          <p>Keep your personal and learning information up to date.</p>
-        </div>
-      </div>
       {notice && (
         <div className="student-notice" role="status">
           {notice}
@@ -100,14 +99,14 @@ export function StudentProfilePage() {
           {error}
         </div>
       )}
-      <form className="student-panel" onSubmit={(event) => void save(event)}>
+      <form className="student-panel" key={formRevision} onSubmit={(event) => void save(event)}>
         <div className="student-form-grid">
           <label>
-            First name
+            Họ
             <input name="firstName" defaultValue={profile.firstName || ''} />
           </label>
           <label>
-            Last name
+            Tên
             <input name="lastName" defaultValue={profile.lastName || ''} />
           </label>
           <label>
@@ -115,24 +114,24 @@ export function StudentProfilePage() {
             <input value={profile.email} readOnly />
           </label>
           <label>
-            Phone
+            Số điện thoại
             <input name="phone" defaultValue={profile.phone || ''} />
           </label>
           <label>
-            Date of birth
+            Ngày sinh
             <input name="dateOfBirth" type="date" defaultValue={profile.dateOfBirth || ''} />
           </label>
           <label>
-            Gender
+            Giới tính
             <select name="gender" defaultValue={profile.gender || ''}>
-              <option value="">Choose</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
+              <option value="">Chọn giới tính</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
             </select>
           </label>
           <label>
-            Province
+            Tỉnh/thành phố
             <select
               value={provinceId}
               onChange={(event) => {
@@ -140,7 +139,7 @@ export function StudentProfilePage() {
                 setDistrictId('');
               }}
             >
-              <option value="">Choose a province</option>
+              <option value="">Chọn tỉnh/thành phố</option>
               {provinces.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -149,9 +148,9 @@ export function StudentProfilePage() {
             </select>
           </label>
           <label>
-            District
+            Quận/huyện
             <select value={districtId} onChange={(event) => setDistrictId(event.target.value)} disabled={!provinceId}>
-              <option value="">Choose a district</option>
+              <option value="">Chọn quận/huyện</option>
               {districts.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -160,37 +159,37 @@ export function StudentProfilePage() {
             </select>
           </label>
           <label className="student-field-full">
-            Avatar URL
+            Đường dẫn ảnh đại diện
             <input name="avatarUrl" type="url" defaultValue={profile.avatarUrl || ''} />
           </label>
           <label className="student-field-full">
-            Introduction
+            Giới thiệu
             <textarea name="introduction" rows={3} defaultValue={profile.introduction || ''} />
           </label>
           <label>
-            Learning style
+            Phong cách học
             <input name="learningStyle" defaultValue={profile.learningStyle || ''} />
           </label>
           <label>
-            Current level
+            Trình độ hiện tại
             <input name="currentLevel" defaultValue={profile.currentLevel || ''} />
           </label>
           <label className="student-field-full">
-            Goals
+            Mục tiêu học tập
             <textarea name="goalsDescription" rows={3} defaultValue={profile.goalsDescription || ''} />
           </label>
           <label>
-            Personality tags
+            Đặc điểm cá nhân
             <input name="personalityTags" defaultValue={profile.personalityTags || ''} />
           </label>
           <label>
-            Weak points
+            Nội dung cần hỗ trợ
             <input name="weakPoints" defaultValue={profile.weakPoints || ''} />
           </label>
         </div>
         <div className="student-form-actions">
           <button className="student-button" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save profile'}
+            {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
           </button>
         </div>
       </form>

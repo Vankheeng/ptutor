@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import {
   cancelStudentApplication,
@@ -95,7 +96,11 @@ export function StudentTeachingRequestCard({ request, application, onChanged }: 
       </div>
       <h3>{request.title || `Tìm gia sư môn ${subject}`}</h3>
       <p className="tutor-request-meta">
-        Gia sư: {request.tutorName || 'Chưa cập nhật'} · Khối {grades}
+        Gia sư:{' '}
+        <ProfileNameLink role="tutor" profileId={request.tutorId}>
+          {request.tutorName || 'Chưa cập nhật'}
+        </ProfileNameLink>{' '}
+        · Khối {grades}
         {request.districts.length ? ` · ${request.districts.map((district) => district.name).join(', ')}` : ''}
       </p>
       <p className="tutor-request-description">

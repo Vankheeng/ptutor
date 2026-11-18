@@ -322,6 +322,22 @@ class ContractServiceTest {
     }
 
     @Test
+    void listsContractsOnlyForTheRequestedCounterpartyAndCurrentParticipant() {
+        UUID counterpartyId = UUID.randomUUID();
+        Contract contract = studentOriginContract(ContractStatus.ACTIVE);
+        when(contractRepository.findAllSharedWithParticipant(
+                eq(studentUserId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(contract), PageRequest.of(0, 10), 1));
+
+        var response = service.findSharedWith(studentUserId, counterpartyId, ContractStatus.ACTIVE, PageRequest.of(0, 10));
+
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.content()).hasSize(1);
+        verify(contractRepository).findAllSharedWithParticipant(
+                eq(studentUserId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class));
+    }
+
+    @Test
     void hidesContractDetailsFromNonParticipants() {
         UUID contractId = UUID.randomUUID();
         when(contractRepository.findDetailedByIdAndParticipantUserId(contractId, studentUserId))

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../../../components/common-user/ProfileNameLink';
 import { Icon } from '../../../components/ui/Icon';
 import type { Contract, ContractTerms } from '../../../services/studentApi';
 import { parsePreferredSchedules } from '../../../utils/scheduleFormat';
@@ -73,7 +74,17 @@ export function PendingContractSignView(props: Props) {
             title="Thông tin học viên"
             icon="book"
             details={[
-              { label: 'Họ và tên', value: studentName },
+              {
+                label: 'Họ và tên',
+                value:
+                  viewerRole === 'tutor' ? (
+                    <ProfileNameLink role="student" profileId={contract.studentId}>
+                      {studentName}
+                    </ProfileNameLink>
+                  ) : (
+                    studentName
+                  )
+              },
               { label: 'Email', value: contract.studentEmail },
               { label: 'Vai trò', value: 'Học viên' },
               { label: 'Trạng thái ký', value: studentSigned ? 'Đã ký' : 'Chờ ký' }
@@ -85,7 +96,17 @@ export function PendingContractSignView(props: Props) {
             title="Thông tin gia sư"
             icon="support"
             details={[
-              { label: 'Họ và tên', value: tutorName },
+              {
+                label: 'Họ và tên',
+                value:
+                  viewerRole === 'student' ? (
+                    <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+                      {tutorName}
+                    </ProfileNameLink>
+                  ) : (
+                    tutorName
+                  )
+              },
               { label: 'Email', value: contract.tutorEmail },
               { label: 'Vai trò', value: 'Gia sư' },
               { label: 'Trạng thái ký', value: tutorSigned ? 'Đã ký' : 'Chờ ký' }
@@ -96,11 +117,12 @@ export function PendingContractSignView(props: Props) {
           <h2 className="student-contract-panel-heading">
             <Icon name="contract" size={16} /> Điều khoản hợp đồng
           </h2>
-          <p className="student-contract-create-help">
-            {props.mode === 'sign'
-              ? 'Kiểm tra các điều khoản đã được bên còn lại tạo trước khi ký. Nội dung hợp đồng không thể chỉnh sửa ở bước này.'
-              : 'Bạn đã ký khi tạo hợp đồng. Có thể chỉnh sửa các điều khoản trong thời gian chờ bên còn lại ký.'}
-          </p>
+          {props.mode === 'sign' && (
+            <p className="student-contract-create-help">
+              Kiểm tra các điều khoản đã được bên còn lại tạo trước khi ký. Nội dung hợp đồng không thể chỉnh sửa ở bước
+              này.
+            </p>
+          )}
           <div className="student-contract-fixed-terms">
             <div className="student-contract-fixed-term">
               <span>Môn học</span>

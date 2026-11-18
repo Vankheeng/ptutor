@@ -52,6 +52,8 @@ export function StudentApplicationCard({ application, request, cancelling, onEdi
         ],
         authorLabel: 'Đăng bởi',
         authorName: tutorName,
+        authorProfileId: request?.tutorId ?? application.tutorId,
+        authorProfileRole: 'tutor',
         createdText: request ? `Đăng ngày ${formatDate(request.createdAt)}` : 'Đã gửi yêu cầu'
       }}
       application={{

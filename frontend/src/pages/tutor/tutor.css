@@ -132,3 +132,28 @@
 .tutor-contract-sign-panel{display:none}.tutor-contract-sign-form-panel{margin-top:15px}.tutor-contract-sign-form-panel>h2{margin:0 0 5px;color:#303448;font-size:16px}.tutor-contract-sign-form-panel>p{margin:0 0 15px;color:#85899a;font-size:10px}.tutor-contract-sign-form-panel .student-form-grid{margin:0}
 .tutor-contract-complaint-panel{border-color:#e3dcff;background:#faf9ff}.tutor-contract-complaint-panel .tutor-button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.tutor-contract-complaint-panel .student-contract-renewal-copy{min-width:0}
 .tutor-contract-lessons-panel{margin-top:15px}.tutor-contract-lessons-panel .tutor-contract-section-heading h2{margin:0;color:#303448;font-size:16px;line-height:1.3}.tutor-contract-lessons-panel .tutor-contract-section-heading{margin-bottom:16px}.tutor-contract-lessons-panel .tutor-contract-lesson-row{padding:10px 12px}
+.teaching-profile-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid #ead7a8;
+  border-radius: 10px;
+  background: #fff9e9;
+  color: #765315;
+  font-size: 13px;
+}
+.teaching-profile-note span { flex: 1 1 320px; }
+.teaching-profile-note-action {
+  padding: 8px 12px;
+  border: 1px solid #d9aa46;
+  border-radius: 8px;
+  background: transparent;
+  color: #765315;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.teaching-profile-note-action:hover { background: #fff1c8; }

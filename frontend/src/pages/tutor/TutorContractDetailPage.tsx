@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useAuth } from '../../auth/useAuth';
 import { useResource } from '../../hooks/useResource';
 import {
@@ -301,7 +302,11 @@ export function TutorContractDetailPage() {
             {initials(student)}
           </span>
           <div>
-            <strong>{student}</strong>
+            <strong>
+              <ProfileNameLink role="student" profileId={contract.studentId}>
+                {student}
+              </ProfileNameLink>
+            </strong>
             <small>Học viên</small>
           </div>
         </div>

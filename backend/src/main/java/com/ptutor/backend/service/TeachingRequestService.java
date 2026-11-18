@@ -31,6 +31,7 @@ import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
@@ -158,6 +159,10 @@ public class TeachingRequestService {
                 || teachingRequest.getReviewedAt() != null) {
             throw invalidTransition("Only requests that did not require review can be opened or closed");
         }
+        if (targetStatus == RequestStatus.OPEN && tutor.getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "TUTOR_PROFILE_NOT_VERIFIED",
+                    "Tutor profile must be approved before publishing a teaching request");
+        }
 
         teachingRequest.setStatus(targetStatus);
         return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
@@ -212,6 +217,7 @@ public class TeachingRequestService {
     public List<TeachingRequestResponse> findPublicVisible(int requestedLimit, UUID subjectId, UUID gradeId) {
         return toResponses(teachingRequestRepository.findPublicByFilters(
                 RequestStatus.OPEN,
+                TutorProfileStatus.VERIFIED,
                 subjectId,
                 gradeId,
                 PageRequest.of(0, normalizePublicLimit(requestedLimit))));
@@ -222,14 +228,16 @@ public class TeachingRequestService {
         TeachingRequest teachingRequest = teachingRequestRepository.findById(requestId)
                 .orElseThrow(() -> requestNotFound(requestId));
         if (!isStaff(role) && !isTutorOwner(teachingRequest, userId, role)
-                && teachingRequest.getStatus() != RequestStatus.OPEN) {
+                && (teachingRequest.getStatus() != RequestStatus.OPEN
+                        || teachingRequest.getTutor().getProfileStatus() != TutorProfileStatus.VERIFIED)) {
             throw requestNotFound(requestId);
         }
         return toResponse(teachingRequest);
     }
 
     private List<TeachingRequestResponse> findOpenRequests(Pageable pageable) {
-        return toResponses(teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, pageable));
+        return toResponses(teachingRequestRepository.findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, pageable));
     }
 
     private void replaceAssociations(TeachingRequest request, TeachingRequestRequest source) {

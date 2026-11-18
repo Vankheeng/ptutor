@@ -13,6 +13,7 @@ public interface ReviewMapper {
 
     @Mapping(target = "displayName", expression = "java(toAnonymousStudentName(review))")
     @Mapping(target = "tutorName", expression = "java(toTutorName(review))")
+    @Mapping(target = "tutorId", source = "tutor.id")
     @Mapping(target = "tutorAvatarUrl", source = "tutor.user.avatarUrl")
     PublicReviewResponse toPublicResponse(Review review);
 

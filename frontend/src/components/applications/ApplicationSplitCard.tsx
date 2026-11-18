@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 
 export interface ApplicationSourceModel {
   eyebrow: string;
@@ -8,6 +9,8 @@ export interface ApplicationSourceModel {
   highlights: Array<{ icon: string; label: string; value: string }>;
   authorLabel: string;
   authorName: string;
+  authorProfileId?: string | null;
+  authorProfileRole?: 'student' | 'tutor';
   createdText: string;
   onOpen?: () => void;
 }
@@ -82,7 +85,16 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
         </div>
         <div className="tutor-request-author">
           <span>
-            {source.authorLabel} <strong>{source.authorName}</strong>
+            {source.authorLabel}{' '}
+            <strong>
+              {source.authorProfileRole ? (
+                <ProfileNameLink role={source.authorProfileRole} profileId={source.authorProfileId}>
+                  {source.authorName}
+                </ProfileNameLink>
+              ) : (
+                source.authorName
+              )}
+            </strong>
           </span>
           <span>{source.createdText}</span>
         </div>

@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { ProfileNameLink } from '../../common-user/ProfileNameLink';
 import type { Contract } from '../../../services/studentApi';
 import type { LessonStatus } from '../../../services/refundApi';
 import { confirmationDeadline, formatDateTimeValue, timeLeft } from '../../refund/refundFormat';
@@ -93,7 +95,14 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
           label="Hợp đồng"
           value={`${contract?.subjectName || 'Hợp đồng'}${contract?.gradeName ? ` · ${contract.gradeName}` : ''}`}
         />
-        <Fact label="Gia sư" value={tutorName} />
+        <Fact
+          label="Gia sư"
+          value={
+            <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
+              {tutorName}
+            </ProfileNameLink>
+          }
+        />
         <Fact label="Ngày học" value={dateLabel} />
         <Fact label="Thời gian" value={`${lesson.startTime.slice(0, 5)} – ${lesson.endTime.slice(0, 5)}`} />
         <Fact label="Hình thức học" value={contract?.teachingMode === 'OFFLINE' ? 'Trực tiếp' : 'Trực tuyến'} />
@@ -144,7 +153,7 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
   );
 }
 
-function Fact({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
+function Fact({ label, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
   return (
     <div className={`student-lesson-fact${multiline ? ' multiline' : ''}`}>
       <span>{label}</span>

@@ -88,6 +88,7 @@ export interface TeachingRequest {
 
 export interface PublicReview {
   displayName: string;
+  tutorId?: string | null;
   tutorName: string;
   tutorAvatarUrl: string | null;
   rating: number | null;

@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../../components/common-user/ProfileNameLink';
 import { tutorScheduleLabel } from '../../../utils/tutorDisplay';
 import {
   submitTutorStudyingRequestProposal,
@@ -28,6 +29,8 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
   const [cancelled, setCancelled] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const gradeName = request.gradeName?.trim();
+  const gradeLabel = gradeName && /^Lớp\b/i.test(gradeName) ? gradeName : `Lớp ${gradeName || 'chưa xác định'}`;
 
   const currentProposal = cancelled
     ? undefined
@@ -93,8 +96,11 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
       </div>
       <h3>{request.title || `Tìm gia sư môn ${request.subjectName ?? ''}`}</h3>
       <p className="tutor-request-meta">
-        {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
-        {' · '}Lớp {request.gradeName}
+        <ProfileNameLink role="student" profileId={request.studentId}>
+          {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+        </ProfileNameLink>
+        {' · '}
+        {gradeLabel}
         {request.districtName ? ` · ${request.districtName}` : ''}
       </p>
       <p className="tutor-request-description">

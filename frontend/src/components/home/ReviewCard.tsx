@@ -1,6 +1,7 @@
 import './ReviewCard.css';
 import type { PublicReview } from '../../types/api';
 import { getInitials } from '../../utils/formatters';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 
 interface ReviewCardProps {
   review: PublicReview;
@@ -18,7 +19,11 @@ export function ReviewCard({ review, index }: ReviewCardProps) {
         )}
         <div>
           <small>Gia sư được đánh giá</small>
-          <strong>{review.tutorName || 'Gia sư Ptutor'}</strong>
+          <strong>
+            <ProfileNameLink role="tutor" profileId={review.tutorId}>
+              {review.tutorName || 'Gia sư Ptutor'}
+            </ProfileNameLink>
+          </strong>
         </div>
       </div>
       <div className="quote-mark">“</div>

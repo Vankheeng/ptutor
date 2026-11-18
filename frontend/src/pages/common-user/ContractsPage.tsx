@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useAuth } from '../../auth/useAuth';
 import { useResource } from '../../hooks/useResource';
 import { getContracts, type Contract, type ContractStatus } from '../../services/studentApi';
@@ -205,7 +206,14 @@ function ContractRow({
       <div className="tutor-contract-row-person">
         <span className="tutor-contract-row-avatar">{initials(otherName)}</span>
         <div>
-          <strong>{otherName}</strong>
+          <strong>
+            <ProfileNameLink
+              role={role === 'student' ? 'tutor' : 'student'}
+              profileId={role === 'student' ? contract.tutorId : contract.studentId}
+            >
+              {otherName}
+            </ProfileNameLink>
+          </strong>
           <small>{otherRole}</small>
         </div>
       </div>

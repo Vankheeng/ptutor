@@ -250,6 +250,16 @@ public class ContractService {
         return PageResponse.from(contracts, responses);
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<ContractResponse> findSharedWith(
+            UUID userId, UUID counterpartyId, ContractStatus status, Pageable pageable) {
+        Page<Contract> contracts = contractRepository.findAllSharedWithParticipant(userId, counterpartyId, status, pageable);
+        List<ContractResponse> responses = contracts.getContent().stream()
+                .map(contractMapper::toResponse)
+                .toList();
+        return PageResponse.from(contracts, responses);
+    }
+
     @Transactional
     public ContractResponse findMineById(UUID userId, UUID contractId) {
         Contract activated = findContractForParticipant(contractId, userId);
