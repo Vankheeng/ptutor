@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
+import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import {
   getMyTeachingRequest,
   getTeachingRequestApplications,
@@ -26,6 +27,8 @@ export function TeachingRequestDetailPage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'vnpay'>('wallet');
+  const profileQuery = useTutorProfile();
+  const canPublish = profileQuery.data?.profileStatus === 'VERIFIED';
   const load = useCallback(
     async (signal: AbortSignal) => {
       const [request, applications, contracts] = await Promise.all([
@@ -49,6 +52,10 @@ export function TeachingRequestDetailPage() {
   const toggleRequestStatus = async () => {
     if (!request || !['OPEN', 'CLOSED'].includes(request.status ?? '') || request.reviewedAt) return;
     const nextStatus = request.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    if (nextStatus === 'OPEN' && !canPublish) {
+      setError('Hồ sơ gia sư cần được duyệt trước khi mở lại yêu cầu.');
+      return;
+    }
     setBusy('status');
     setError('');
     setNotice('');
@@ -80,6 +87,10 @@ export function TeachingRequestDetailPage() {
 
   const payDraft = async () => {
     if (!request) return;
+    if (!canPublish) {
+      setError('Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu.');
+      return;
+    }
     const paymentTab = paymentMethod === 'vnpay' ? window.open('about:blank', '_blank') : null;
     setBusy('payment');
     setError('');
@@ -123,6 +134,20 @@ export function TeachingRequestDetailPage() {
     );
   return (
     <>
+      {!canPublish && (request.status === 'DRAFT' || request.status === 'CLOSED') && (
+        <div className="teaching-profile-note" role="status">
+          <span>
+            {profileQuery.isLoading
+              ? 'Đang kiểm tra trạng thái hồ sơ gia sư…'
+              : profileQuery.error
+                ? 'Không thể kiểm tra trạng thái hồ sơ gia sư.'
+                : 'Hồ sơ gia sư cần được duyệt trước khi thanh toán hoặc mở lại yêu cầu.'}
+          </span>
+          <button className="teaching-profile-note-action" type="button" onClick={() => navigate('/tutor/profile')}>
+            Xem hồ sơ
+          </button>
+        </div>
+      )}
       <div className="teaching-detail-top-actions">
         <button className="student-button secondary" onClick={() => navigate('/tutor/sections/teaching-requests')}>
           ← Quay lại danh sách
@@ -131,7 +156,7 @@ export function TeachingRequestDetailPage() {
           {['OPEN', 'CLOSED'].includes(request.status ?? '') && !request.reviewedAt && (
             <button
               className="student-button draft"
-              disabled={busy === 'status'}
+              disabled={busy === 'status' || (request.status === 'CLOSED' && !canPublish)}
               onClick={() => void toggleRequestStatus()}
             >
               {busy === 'status' ? 'Đang cập nhật…' : request.status === 'OPEN' ? 'Đóng yêu cầu' : 'Mở lại yêu cầu'}
@@ -247,7 +272,11 @@ export function TeachingRequestDetailPage() {
                   <option value="vnpay">VNPay</option>
                 </select>
               </label>
-              <button className="student-button draft" disabled={busy === 'payment'} onClick={() => void payDraft()}>
+              <button
+                className="student-button draft"
+                disabled={busy === 'payment' || !canPublish}
+                onClick={() => void payDraft()}
+              >
                 {busy === 'payment' ? 'Đang xử lý…' : 'Thanh toán và đăng yêu cầu'}
               </button>
             </div>

@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 
 import jakarta.persistence.LockModeType;
 
@@ -26,20 +27,24 @@ public interface TeachingRequestRepository extends JpaRepository<TeachingRequest
     Optional<TeachingRequest> findByIdAndTutor_Id(UUID id, UUID tutorId);
 
     @EntityGraph(attributePaths = { "tutor", "tutor.user" })
-    List<TeachingRequest> findAllByStatusOrderByCreatedAtDesc(RequestStatus status, Pageable pageable);
+    List<TeachingRequest> findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
+            RequestStatus status, TutorProfileStatus profileStatus, Pageable pageable);
 
     @EntityGraph(attributePaths = { "tutor", "tutor.user", "gradeAssociations", "gradeAssociations.grade" })
     @Query("""
             select distinct request
             from TeachingRequest request
+            join request.tutor tutor
             left join request.gradeAssociations gradeAssociation
             where request.status = :status
+              and tutor.profileStatus = :profileStatus
               and (:subjectId is null or request.subject.id = :subjectId)
               and (:gradeId is null or gradeAssociation.grade.id = :gradeId)
             order by request.createdAt desc
             """)
     List<TeachingRequest> findPublicByFilters(
             @Param("status") RequestStatus status,
+            @Param("profileStatus") TutorProfileStatus profileStatus,
             @Param("subjectId") UUID subjectId,
             @Param("gradeId") UUID gradeId,
             Pageable pageable);

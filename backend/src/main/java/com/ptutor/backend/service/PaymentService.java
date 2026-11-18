@@ -48,6 +48,7 @@ import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
@@ -174,6 +175,7 @@ public class PaymentService {
         if (teachingRequest.getStatus() != RequestStatus.DRAFT) {
             throw conflict("INVALID_TEACHING_REQUEST_PAYMENT_STATUS", "Only DRAFT teaching requests can be paid");
         }
+        requireVerifiedTutorProfile(tutor);
         return initiate(userId, PaymentType.TEACHING_REQUEST_FEE, ReferenceType.TEACHING_REQUEST,
                 teachingRequest.getId(), calculateTeachingRequestFee(teachingRequest), null, request, clientIp);
     }
@@ -195,6 +197,7 @@ public class PaymentService {
             throw conflict("INVALID_TEACHING_REQUEST_PAYMENT_STATUS",
                     "Only DRAFT teaching requests can be paid");
         }
+        requireVerifiedTutorProfile(tutor);
 
         return completeWalletPayment(
                 userId,
@@ -796,6 +799,12 @@ public class PaymentService {
         return new FinancialTransactionResponse(value.getId(), FinancialTransactionSource.WITHDRAWAL,
                 "WITHDRAWAL", "WALLET", value.getStatus().name(), value.getAmount(), null,
                 null, description, value.getCreatedAt());
+    }
+
+    private void requireVerifiedTutorProfile(Tutor tutor) {
+        if (tutor.getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            throw forbidden("TUTOR_PROFILE_NOT_VERIFIED", "Tutor profile must be approved before publishing a teaching request");
+        }
     }
 
     private ApiException badRequest(String code, String message) { return new ApiException(HttpStatus.BAD_REQUEST, code, message); }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMyTeachingRequests } from '../../hooks/useMyTeachingRequests';
+import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import {
   cancelMyTeachingRequest,
   createMyTeachingRequest,
@@ -31,6 +32,8 @@ export function MyTeachingRequestsPage() {
   const initialEditRequest = (location.state as { editRequest?: TeachingRequest } | null)?.editRequest ?? null;
   const initialEditRequestRef = useRef(initialEditRequest);
   const { data, error, isLoading, reload } = useMyTeachingRequests();
+  const profileQuery = useTutorProfile();
+  const canPublish = profileQuery.data?.profileStatus === 'VERIFIED';
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -184,6 +187,11 @@ export function MyTeachingRequestsPage() {
     }
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const submitAction = submitter?.value ?? 'draft';
+    if (submitAction === 'pay' && !canPublish) {
+      setBusy(false);
+      setMessage('Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu.');
+      return;
+    }
     const canPayImmediately = !editing || editing.status === 'DRAFT';
     const payImmediately = canPayImmediately && submitAction === 'pay';
     const paymentMethod = payImmediately ? String(form.get('paymentMethod')) : '';
@@ -285,6 +293,9 @@ export function MyTeachingRequestsPage() {
     setMessage('');
     try {
       if (action === 'cancel') await cancelMyTeachingRequest(request.id);
+      if ((action === 'open' || action === 'pay-wallet' || action === 'pay-vnpay') && !canPublish) {
+        throw new Error('Hồ sơ gia sư cần được duyệt trước khi đăng yêu cầu.');
+      }
       if (action === 'open' || action === 'close')
         await updateMyTeachingRequestStatus(request.id, action.toUpperCase() as 'OPEN' | 'CLOSED');
       if (action === 'pay-wallet') await payTeachingRequestByWallet(request.id);
@@ -362,6 +373,20 @@ export function MyTeachingRequestsPage() {
         <p role="status" className="student-notice">
           {message}
         </p>
+      )}
+      {!canPublish && (
+        <div className="teaching-profile-note" role="status">
+          <span>
+            {profileQuery.isLoading
+              ? 'Đang kiểm tra trạng thái hồ sơ gia sư…'
+              : profileQuery.error
+                ? 'Không thể kiểm tra trạng thái hồ sơ gia sư.'
+                : 'Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu. Bạn vẫn có thể lưu bản nháp.'}
+          </span>
+          <button className="teaching-profile-note-action" type="button" onClick={() => navigate('/tutor/profile')}>
+            Xem hồ sơ
+          </button>
+        </div>
       )}
       {formOpen && (
         <form
@@ -512,7 +537,12 @@ export function MyTeachingRequestsPage() {
                   <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
                     {busy ? 'Đang xử lý…' : 'Lưu bản nháp'}
                   </button>
-                  <button className="student-button draft" name="submitAction" value="pay" disabled={busy}>
+                  <button
+                    className="student-button draft"
+                    name="submitAction"
+                    value="pay"
+                    disabled={busy || !canPublish}
+                  >
                     {busy ? 'Đang xử lý…' : 'Lưu và thanh toán'}
                   </button>
                 </>
@@ -526,7 +556,7 @@ export function MyTeachingRequestsPage() {
                 <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
                   {busy ? 'Đang xử lý…' : 'Tạo bản nháp'}
                 </button>
-                <button className="student-button draft" name="submitAction" value="pay" disabled={busy}>
+                <button className="student-button draft" name="submitAction" value="pay" disabled={busy || !canPublish}>
                   {busy ? 'Đang xử lý…' : 'Tạo và thanh toán'}
                 </button>
               </>
@@ -576,9 +606,9 @@ export function MyTeachingRequestsPage() {
               {visibleRequests.map((request) => {
                 const requestStatus = request.status ?? 'OPEN';
                 const canEdit = ['DRAFT', 'OPEN', 'PENDING_REVIEW'].includes(requestStatus);
-                const canPay = requestStatus === 'DRAFT';
+                const canPay = requestStatus === 'DRAFT' && canPublish;
                 const canClose = requestStatus === 'OPEN' && !request.reviewedAt;
-                const canReopen = requestStatus === 'CLOSED' && !request.reviewedAt;
+                const canReopen = requestStatus === 'CLOSED' && !request.reviewedAt && canPublish;
                 const canCancel = requestStatus === 'DRAFT' || requestStatus === 'PENDING_REVIEW';
                 const hasActions = canEdit || canPay || canClose || canReopen || canCancel;
                 return (
