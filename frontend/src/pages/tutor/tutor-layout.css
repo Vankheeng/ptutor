@@ -37,8 +37,14 @@
   font-size: 11px;
 }
 
-.tutor-sidebar-bottom {
-  padding-top: 8px;
+.tutor-nav {
+  flex: none;
+}
+
+.tutor-nav-actions {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #eff0f5;
 }
 
 .tutor-sidebar::-webkit-scrollbar {
@@ -85,7 +91,6 @@
 .tutor-shell-collapsed .tutor-nav-link { font-size: 0; }
 .tutor-shell-collapsed .tutor-nav-link { justify-content: center; gap: 0; padding: 0; }
 .tutor-shell-collapsed .tutor-nav-link > span { font-size: 17px; }
-.tutor-shell-collapsed .tutor-sidebar-bottom .tutor-nav-link { font-size: 0; }
 
 @media (max-width: 700px) {
   .tutor-shell-collapsed { display: block; }
@@ -170,7 +175,10 @@
 .tutor-shell-collapsed .tutor-sidebar>.tutor-sidebar-toggle{align-self:center;margin:0 0 8px}
 .tutor-shell-collapsed .tutor-topbar{grid-template-columns:120px minmax(0,1fr) auto;padding-inline:8px}
 
-/* Once the workspace header scrolls away, keep navigation flush with the viewport top. */
-.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:0;height:100vh}
-.tutor-topbar{position:sticky;top:0;z-index:5}
-@media(max-width:700px){.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:56px;height:auto}}
+/* Keep the header opaque and let the navigation scroll within the visible viewport. */
+.tutor-topbar{position:sticky;top:0;z-index:5;background:#fff;backdrop-filter:none}
+.tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:70px;height:calc(100vh - 70px);height:calc(100dvh - 70px);box-sizing:border-box;min-height:0}
+@media(max-width:700px){
+  .tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:56px;height:auto;min-height:0}
+  .tutor-nav-actions{flex:none;margin:0 0 0 4px;padding:0 0 0 6px;border-top:0;border-left:1px solid #eff0f5}
+}
