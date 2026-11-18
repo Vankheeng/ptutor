@@ -108,6 +108,7 @@ export interface TutorTeachingProposal {
 
 export interface TutorContract {
   id: string;
+  studentId: string;
   studentTutorRequestId: string | null;
   studentFirstName: string | null;
   studentLastName: string | null;

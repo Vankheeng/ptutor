@@ -20,7 +20,6 @@ const navigation = [
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
   { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
   { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
-  { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: 'award' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: 'user' }
 ];
 

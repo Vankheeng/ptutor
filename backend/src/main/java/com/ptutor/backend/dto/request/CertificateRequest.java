@@ -23,8 +23,8 @@ public record CertificateRequest(
         @Size(max = 500, message = "Certificate URL must not exceed 500 characters")
         String certificateUrl) {
 
-    @AssertTrue(message = "Expiry date must be on or after issue date")
+    @AssertTrue(message = "Ngày hết hạn phải sau ngày cấp")
     public boolean isDateRangeValid() {
-        return issueDate == null || expiryDate == null || !expiryDate.isBefore(issueDate);
+        return issueDate == null || expiryDate == null || issueDate.isBefore(expiryDate);
     }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
@@ -132,12 +133,13 @@ export function TutorStudyingRequestPage() {
             <span>
               Đăng bởi{' '}
               <strong>
-                {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                <ProfileNameLink role="student" profileId={request.studentId}>
+                  {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                </ProfileNameLink>
               </strong>
             </span>
             <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
           </p>
-          <Link to={`/tutor/students/${request.studentId}/profile`}>Xem hồ sơ học viên</Link>
           <div className="tutor-detail-facts">
             <span>
               <small>Ngân sách</small>

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -212,8 +213,11 @@ export function StudentContractDetailPage() {
             {tutorInitials}
           </span>
           <div>
-            <strong>{tutorName}</strong>
-            <Link to={`/student/tutors/${contract.tutorId}/profile`}>Xem hồ sơ gia sư</Link>
+            <strong>
+              <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+                {tutorName}
+              </ProfileNameLink>
+            </strong>
             <span>
               {contract.status === 'PENDING'
                 ? pendingCreatedByYou

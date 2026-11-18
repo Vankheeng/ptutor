@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import {
   getMyTeachingRequest,
@@ -264,8 +265,10 @@ export function TeachingRequestDetailPage() {
                 <div className="teaching-application-avatar">{application.studentFirstName?.[0] ?? 'H'}</div>
                 <div className="teaching-application-content">
                   <strong>
-                    {[application.studentFirstName, application.studentLastName].filter(Boolean).join(' ') ||
-                      application.studentEmail}
+                    <ProfileNameLink role="student" profileId={application.studentId}>
+                      {[application.studentFirstName, application.studentLastName].filter(Boolean).join(' ') ||
+                        application.studentEmail}
+                    </ProfileNameLink>
                   </strong>
                   <span>
                     {application.gradeName} · {application.proposedPrice.toLocaleString('vi-VN')} VNĐ

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import type { Contract } from '../../services/studentApi';
 import { Icon } from '../ui/Icon';
 import { StudentContractStatusBadge } from './StudentContractStatusBadge';
@@ -35,7 +36,11 @@ export function StudentContractCard({ contract, currentUserId }: { contract: Con
           {tutorInitials}
         </span>
         <div>
-          <strong>{tutorName}</strong>
+          <strong>
+            <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+              {tutorName}
+            </ProfileNameLink>
+          </strong>
           <span>Gia sư</span>
         </div>
       </div>

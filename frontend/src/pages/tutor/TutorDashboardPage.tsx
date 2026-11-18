@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorDashboard } from '../../hooks/useTutorWorkspace';
 import { useAuth } from '../../auth/useAuth';
@@ -197,8 +198,10 @@ export function TutorDashboardPage() {
                     <div className="tutor-lesson-meta">
                       <span>
                         ♙ Học viên:{' '}
-                        {[contract?.studentFirstName, contract?.studentLastName].filter(Boolean).join(' ') ||
-                          'Học viên'}
+                        <ProfileNameLink role="student" profileId={contract?.studentId}>
+                          {[contract?.studentFirstName, contract?.studentLastName].filter(Boolean).join(' ') ||
+                            'Học viên'}
+                        </ProfileNameLink>
                       </span>
                       <span>♢ Học phí: {formatLessonFee(contract?.price, contract?.totalLessons)}</span>
                       {lesson.teachingMode === 'OFFLINE' && contract?.studentDetailAddress && (

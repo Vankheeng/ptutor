@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import { ApiError } from '../../services/httpClient';
 import { getContracts, type Contract } from '../../services/studentApi';
@@ -107,7 +108,14 @@ export function ComplaintCreatePage({ basePath = '/student/complaints' }: { base
                 </h2>
                 <div>
                   <span>Họ và tên</span>
-                  <strong>{respondentName}</strong>
+                  <strong>
+                    <ProfileNameLink
+                      role={role === 'student' ? 'tutor' : 'student'}
+                      profileId={role === 'student' ? selectedContract.tutorId : selectedContract.studentId}
+                    >
+                      {respondentName}
+                    </ProfileNameLink>
+                  </strong>
                 </div>
                 <div>
                   <span>Vai trò</span>

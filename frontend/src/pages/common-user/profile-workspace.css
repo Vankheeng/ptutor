@@ -33,6 +33,21 @@
   font-weight: 600;
   text-decoration: none;
 }
+a.profile-name-link {
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+a.profile-name-link:hover {
+  color: #6236c5;
+  text-decoration: underline;
+}
+a.profile-name-link:focus-visible {
+  outline: 2px solid #6736d6;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 .profile-hero {
   display: flex;
   flex-wrap: wrap;
@@ -132,15 +147,6 @@
 .profile-document-link {
   text-decoration: none;
 }
-.profile-contract-modal {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-}
-.profile-contract-modal .admin-definitions {
-  width: 100%;
-}
 .profile-state {
   padding: 40px;
   text-align: center;
@@ -210,11 +216,20 @@
 .profile-workspace .tutor-cert-toolbar {
   display: flex;
   justify-content: flex-end;
+  width: 100%;
 }
-.profile-workspace .tutor-cert-editor {
-  scroll-margin-top: 90px;
+.profile-workspace .tutor-cert-toolbar .tutor-button {
+  width: auto;
+  flex: none;
+  margin-left: auto;
 }
-.profile-workspace .tutor-cert-editor .tutor-upload-actions {
+.profile-workspace .profile-cert-modal-body {
+  padding: 24px;
+}
+.profile-workspace .profile-cert-modal-body .tutor-form-grid {
+  width: 100%;
+}
+.profile-workspace .profile-cert-modal-body .tutor-upload-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -274,7 +289,7 @@
 .profile-workspace .tutor-cert-table td {
   padding: 13px 12px;
   border-bottom: 1px solid var(--admin-border);
-  vertical-align: top;
+  vertical-align: middle;
 }
 .profile-workspace .tutor-cert-table th {
   background: #faf9fd;
@@ -300,6 +315,7 @@
 }
 .profile-workspace .tutor-cert-table-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 6px;
   min-width: 190px;
@@ -317,6 +333,14 @@
 }
 .profile-workspace .tutor-cert-table-actions button:hover {
   background: var(--admin-brand-soft);
+}
+.profile-workspace .tutor-cert-table-actions button.view-document {
+  border-color: var(--admin-brand);
+  background: var(--admin-brand);
+  color: #fff;
+}
+.profile-workspace .tutor-cert-table-actions button.view-document:hover {
+  background: var(--admin-brand-ink);
 }
 .profile-workspace .tutor-cert-table-actions button.danger {
   border-color: #f0bbb9;
@@ -365,5 +389,8 @@
   }
   .profile-tabs {
     overflow-x: auto;
+  }
+  .profile-workspace .profile-cert-modal-body {
+    padding: 16px;
   }
 }

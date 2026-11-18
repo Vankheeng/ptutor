@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import type { Contract, Installment, WalletBalance } from '../../services/studentApi';
 
 type PaymentMethod = 'VNPAY' | 'WALLET';
@@ -68,7 +69,11 @@ export function StudentPaymentMethodDialog({
             </div>
             <div>
               <dt>Gia sư</dt>
-              <dd>{tutorName}</dd>
+              <dd>
+                <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+                  {tutorName}
+                </ProfileNameLink>
+              </dd>
             </div>
             <div>
               <dt>Số kỳ</dt>

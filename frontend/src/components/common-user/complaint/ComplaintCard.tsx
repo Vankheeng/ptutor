@@ -1,4 +1,5 @@
 import type { Contract } from '../../../services/studentApi';
+import { ProfileNameLink } from '../ProfileNameLink';
 import type { StudentComplaint } from '../../../services/studentComplaintApi';
 import { complaintCategoryLabels, formatComplaintDate } from './complaintFormat';
 import { ComplaintStatusBadge } from './ComplaintStatusBadge';
@@ -35,8 +36,8 @@ export function ComplaintCard({
           : 'calendar';
   const otherName = contract
     ? role === 'tutor'
-      ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
-      : [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || contract.studentEmail
+      ? [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || contract.studentEmail
+      : [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
     : 'Hợp đồng liên quan';
 
   return (
@@ -63,7 +64,16 @@ export function ComplaintCard({
         <div className="student-complaint-card-line">
           <span>
             <Icon name="user" size={14} />
-            {otherName}
+            {contract ? (
+              <ProfileNameLink
+                role={role === 'tutor' ? 'student' : 'tutor'}
+                profileId={role === 'tutor' ? contract.studentId : contract.tutorId}
+              >
+                {otherName}
+              </ProfileNameLink>
+            ) : (
+              otherName
+            )}
           </span>
           <span>
             <Icon name="contract" size={14} />

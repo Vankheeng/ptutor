@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import {
   getMyTeachingRequests,
@@ -258,7 +259,11 @@ export function TutorProposalsPage() {
               {pageItems.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <strong>{studentName(item)}</strong>
+                    <strong>
+                      <ProfileNameLink role="student" profileId={item.studentId}>
+                        {studentName(item)}
+                      </ProfileNameLink>
+                    </strong>
                     <small>{item.studentEmail}</small>
                   </td>
                   <td>

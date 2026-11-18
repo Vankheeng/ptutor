@@ -1,32 +1,19 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
-import { getSharedContracts, type Contract, type ContractStatus } from '../../services/studentApi';
+import { getSharedContracts, type ContractStatus } from '../../services/studentApi';
 import { formatCurrency } from '../../utils/formatters';
 import {
   contractStatusMeta,
   formatDate,
-  formatDateTime,
   fullName,
   paymentPeriodLabels,
   teachingModeLabels
 } from '../admin/adminFormat';
-import {
-  AdminModal,
-  AdminPagination,
-  AdminState,
-  DefinitionGrid,
-  FilterChips,
-  StatusBadge
-} from '../admin/components/AdminUi';
+import { AdminPagination, AdminState, FilterChips, StatusBadge } from '../admin/components/AdminUi';
 
 type StatusFilter = ContractStatus | 'ALL';
-
-function populated(items: Array<[string, ReactNode | null | undefined]>) {
-  return items.filter(
-    ([, value]) => value !== null && value !== undefined && (typeof value !== 'string' || value.trim() !== '')
-  ) as [string, ReactNode][];
-}
 
 export function SharedProfileContracts({
   counterpartyId,
@@ -37,7 +24,6 @@ export function SharedProfileContracts({
 }) {
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<Contract | null>(null);
   const queryKey = `${counterpartyId}:${status}:${page}`;
   const load = useCallback(
     async (signal: AbortSignal) => ({
@@ -101,9 +87,14 @@ export function SharedProfileContracts({
                   <td>
                     <div className="admin-stack">
                       <strong>
-                        {viewerRole === 'student'
-                          ? fullName(contract.tutorFirstName, contract.tutorLastName, contract.tutorEmail)
-                          : fullName(contract.studentFirstName, contract.studentLastName, contract.studentEmail)}
+                        <ProfileNameLink
+                          role={viewerRole === 'student' ? 'tutor' : 'student'}
+                          profileId={viewerRole === 'student' ? contract.tutorId : contract.studentId}
+                        >
+                          {viewerRole === 'student'
+                            ? fullName(contract.tutorFirstName, contract.tutorLastName, contract.tutorEmail)
+                            : fullName(contract.studentFirstName, contract.studentLastName, contract.studentEmail)}
+                        </ProfileNameLink>
                       </strong>
                       <span>{viewerRole === 'student' ? contract.tutorEmail : contract.studentEmail}</span>
                     </div>
@@ -121,13 +112,9 @@ export function SharedProfileContracts({
                     <StatusBadge meta={contractStatusMeta[contract.status]} />
                   </td>
                   <td className="admin-cell-action">
-                    <button
-                      className="admin-button small secondary"
-                      type="button"
-                      onClick={() => setSelected(contract)}
-                    >
+                    <Link className="admin-button small secondary" to={`${contractPath}/${contract.id}`}>
                       Chi tiết
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -145,38 +132,6 @@ export function SharedProfileContracts({
             onChange={setPage}
           />
         </div>
-      )}
-      {selected && (
-        <AdminModal
-          title={`Hợp đồng ${[selected.subjectName, selected.gradeName].filter(Boolean).join(' · ')}`}
-          subtitle={<StatusBadge meta={contractStatusMeta[selected.status]} />}
-          onClose={() => setSelected(null)}
-        >
-          <div className="admin-modal-pad profile-contract-modal">
-            <DefinitionGrid
-              columns={3}
-              items={populated([
-                [
-                  viewerRole === 'student' ? 'Gia sư' : 'Học viên',
-                  viewerRole === 'student'
-                    ? fullName(selected.tutorFirstName, selected.tutorLastName)
-                    : fullName(selected.studentFirstName, selected.studentLastName)
-                ],
-                ['Hình thức', teachingModeLabels[selected.teachingMode]],
-                ['Học phí', `${formatCurrency(selected.price)} ${paymentPeriodLabels[selected.paymentPeriod]}`],
-                ['Tổng số buổi', selected.totalLessons],
-                ['Lịch học', selected.preferredSchedule],
-                ['Bắt đầu', selected.startDate ? formatDate(selected.startDate) : null],
-                ['Kết thúc', selected.endDate ? formatDate(selected.endDate) : null],
-                ['Ngày ký', selected.signedAt ? formatDateTime(selected.signedAt) : null],
-                ['Tạo lúc', selected.createdAt ? formatDateTime(selected.createdAt) : null]
-              ])}
-            />
-            <Link className="admin-button small profile-contract-open" to={`${contractPath}/${selected.id}`}>
-              Xem hợp đồng
-            </Link>
-          </div>
-        </AdminModal>
       )}
     </section>
   );

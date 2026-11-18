@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -148,7 +149,17 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
             title="Thông tin học viên"
             icon="book"
             details={[
-              { label: 'Họ và tên', value: studentName },
+              {
+                label: 'Họ và tên',
+                value:
+                  role === 'tutor' ? (
+                    <ProfileNameLink role="student" profileId={studentOffer?.studentId}>
+                      {studentName}
+                    </ProfileNameLink>
+                  ) : (
+                    studentName
+                  )
+              },
               { label: 'Email', value: studentEmail },
               { label: 'Vai trò', value: 'Học viên' },
               {
@@ -167,7 +178,17 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
             title="Thông tin gia sư"
             icon="support"
             details={[
-              { label: 'Họ và tên', value: tutorName },
+              {
+                label: 'Họ và tên',
+                value:
+                  role === 'student' ? (
+                    <ProfileNameLink role="tutor" profileId={tutorOffer?.tutorId}>
+                      {tutorName}
+                    </ProfileNameLink>
+                  ) : (
+                    tutorName
+                  )
+              },
               { label: 'Email', value: tutorEmail },
               { label: 'Vai trò', value: 'Gia sư' },
               {

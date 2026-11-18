@@ -56,6 +56,8 @@ export function TutorProposalCard({
         ],
         authorLabel: 'Đăng bởi',
         authorName: [request?.studentFirstName, request?.studentLastName].filter(Boolean).join(' ') || 'Học viên',
+        authorProfileId: request?.studentId,
+        authorProfileRole: 'student',
         createdText: request
           ? `Đăng ngày ${new Date(request.createdAt).toLocaleDateString('vi-VN')}`
           : 'Chưa có ngày đăng',

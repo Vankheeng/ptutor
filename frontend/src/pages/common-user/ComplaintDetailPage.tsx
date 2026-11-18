@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import { getContract, type Contract } from '../../services/studentApi';
 import {
@@ -170,7 +171,9 @@ export function ComplaintDetailPage({
 
   const contractCode = `HD-${complaint.contractId.slice(0, 8).toUpperCase()}`;
   const respondentName = contract
-    ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
+    ? role === 'student'
+      ? [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || contract.tutorEmail
+      : [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || contract.studentEmail
     : 'Chưa cập nhật';
 
   return (
@@ -265,7 +268,15 @@ export function ComplaintDetailPage({
                     <span>
                       <Icon name="user" size={15} /> Đối tượng bị khiếu nại
                     </span>
-                    <strong>{respondentName} (Gia sư)</strong>
+                    <strong>
+                      <ProfileNameLink
+                        role={role === 'student' ? 'tutor' : 'student'}
+                        profileId={role === 'student' ? contract?.tutorId : contract?.studentId}
+                      >
+                        {respondentName}
+                      </ProfileNameLink>{' '}
+                      ({role === 'student' ? 'Gia sư' : 'Học viên'})
+                    </strong>
                   </div>
                   <div>
                     <span>
