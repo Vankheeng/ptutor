@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cancelTutorProposal, updateTutorProposal, type TutorTeachingProposal } from '../../services/tutorApi';
+import {
+  cancelTutorProposal,
+  getTutorContracts,
+  updateTutorProposal,
+  type TutorTeachingProposal
+} from '../../services/tutorApi';
 import { getStudyingRequest, type StudyingRequestSearchResponse } from '../../services/studyingRequestApi';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { ApplicationToolbar } from '../../components/applications/ApplicationToolbar';
@@ -14,12 +19,32 @@ export function TutorMyApplicationsPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<ProposalFilter>('ALL');
   const [search, setSearch] = useState('');
+  const [requestStatus, setRequestStatus] = useState('ALL');
   const [revision, setRevision] = useState(0);
   const [details, setDetails] = useState<Record<string, StudyingRequestSearchResponse>>({});
+  const [contractIds, setContractIds] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<TutorTeachingProposal | null>(null);
   const [busy, setBusy] = useState(false);
   const query = useTutorProposals(filter === 'ALL' ? undefined : filter, revision);
   const proposals = useMemo(() => query.data ?? [], [query.data]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getTutorContracts(controller.signal)
+      .then((page) => {
+        if (!controller.signal.aborted) {
+          setContractIds(
+            Object.fromEntries(
+              page.content
+                .filter((contract) => contract.tutorStudentRequestId)
+                .map((contract) => [contract.tutorStudentRequestId as string, contract.id])
+            )
+          );
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [revision]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -35,18 +60,21 @@ export function TutorMyApplicationsPage() {
 
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('vi-VN');
-    if (!term) return proposals;
-    return proposals.filter((item) =>
-      [
+    return proposals.filter((item) => {
+      const request = details[item.studyingRequestId];
+      if (requestStatus !== 'ALL' && request?.status !== requestStatus) return false;
+      if (requestStatus !== 'ALL' && !request) return false;
+      if (!term) return true;
+      return [
         item.subjectName,
         item.gradeName,
         item.studyingRequestTitle,
         item.message,
         item.preferredSchedule,
         item.proposedPrice.toString()
-      ].some((value) => value?.toLocaleLowerCase('vi-VN').includes(term))
-    );
-  }, [proposals, search]);
+      ].some((value) => value?.toLocaleLowerCase('vi-VN').includes(term));
+    });
+  }, [details, proposals, requestStatus, search]);
 
   const cancel = async (item: TutorTeachingProposal) => {
     setBusy(true);
@@ -95,6 +123,23 @@ export function TutorMyApplicationsPage() {
         selectedFilter={filter}
         onFilterChange={(value) => setFilter(value as ProposalFilter)}
         filterAriaLabel="Lọc ứng tuyển"
+        filterLabel="Trạng thái ứng tuyển"
+        secondaryFilter={{
+          value: requestStatus,
+          onChange: setRequestStatus,
+          ariaLabel: 'Lọc trạng thái yêu cầu học',
+          label: 'Trạng thái yêu cầu học',
+          options: [
+            { value: 'ALL', label: 'Tất cả trạng thái yêu cầu' },
+            { value: 'DRAFT', label: 'Yêu cầu bản nháp' },
+            { value: 'PENDING_REVIEW', label: 'Yêu cầu chờ duyệt' },
+            { value: 'OPEN', label: 'Yêu cầu đang mở' },
+            { value: 'MATCHED', label: 'Yêu cầu đã kết nối' },
+            { value: 'CLOSED', label: 'Yêu cầu đã đóng' },
+            { value: 'CANCELLED', label: 'Yêu cầu đã hủy' },
+            { value: 'REJECTED', label: 'Yêu cầu bị từ chối' }
+          ]
+        }}
       />
       {query.isLoading ? (
         <div className="tutor-empty">Đang tải ứng tuyển...</div>
@@ -110,6 +155,7 @@ export function TutorMyApplicationsPage() {
               key={item.id}
               proposal={item}
               request={details[item.studyingRequestId]}
+              contractId={contractIds[item.id]}
               cancelling={busy}
               onCancel={() => void cancel(item)}
               onOpenRequest={() => navigate(`/tutor/studying-requests/${item.studyingRequestId}`)}

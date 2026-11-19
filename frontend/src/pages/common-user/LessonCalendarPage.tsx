@@ -356,7 +356,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                       className="lc-complaint-link"
                       to={`/student/contracts/${selectedEvent.contractId}/refund-request`}
                     >
-                      Khiếu nại / Hoàn tiền
+                      Khiếu nại
                     </Link>
                   )}
                   {role === 'TUTOR' && selectedEvent.disputed && (

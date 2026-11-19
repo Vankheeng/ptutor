@@ -101,7 +101,7 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
         </ProfileNameLink>
         {' · '}
         {gradeLabel}
-        {request.districtName ? ` · ${request.districtName}` : ''}
+        {request.learningMode === 'OFFLINE' && request.districtName ? ` · ${request.districtName}` : ''}
       </p>
       <p className="tutor-request-description">
         {request.description || request.learningGoals || 'Học viên chưa bổ sung mô tả.'}

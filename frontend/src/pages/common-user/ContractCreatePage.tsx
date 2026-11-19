@@ -51,6 +51,9 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
     ]);
     const offer = applications.find((item) => item.id === counterpartId);
     if (!offer) throw new Error('Không tìm thấy đề nghị của học viên.');
+    if (offer.contractId) {
+      throw new Error('Đề nghị này đã có hợp đồng. Vui lòng mở hợp đồng hiện tại thay vì tạo thêm.');
+    }
     return { request, offer };
   }, [counterpartId, requestId, role]);
 
@@ -75,7 +78,7 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
         });
       }
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể tạo hợp đồng.');
+      setError(contractCreationError(caught));
     } finally {
       setSaving(false);
     }
@@ -264,6 +267,23 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
       </div>
     </>
   );
+}
+
+function contractCreationError(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.code === 'DUPLICATE_CONTRACT') {
+      return 'Đề nghị này đã có hợp đồng chưa hủy. Không thể tạo thêm hợp đồng.';
+    }
+    if (error.code === 'INVALID_CONTRACT_APPLICATION_STATUS') {
+      return 'Chỉ có thể tạo hợp đồng từ đề nghị đã được chấp nhận.';
+    }
+    if (error.code === 'INVALID_CONTRACT_SOURCE_STATUS') {
+      return 'Yêu cầu đã thay đổi trạng thái, không thể tạo hợp đồng.';
+    }
+    if (error.message && error.message !== 'An unexpected error occurred') return error.message;
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Không thể tạo hợp đồng. Vui lòng thử lại.';
 }
 
 function ReadOnlyTerm({ label, value }: { label: string; value: string | null | undefined }) {

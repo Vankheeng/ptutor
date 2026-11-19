@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -112,9 +114,7 @@ public class LessonService {
         if (lessonProvisioningService != null) {
             lessonProvisioningService.provision(contract);
         }
-        return lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId).stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contractId), contract);
     }
 
     @Transactional
@@ -128,7 +128,7 @@ public class LessonService {
         Page<Lesson> lessons = status == null
                 ? lessonRepository.findAllByContract_Id(contractId, pageable)
                 : lessonRepository.findAllByContract_IdAndStatus(contractId, status, pageable);
-        return PageResponse.from(lessons, lessons.getContent().stream().map(this::toResponse).toList());
+        return PageResponse.from(lessons, toResponses(lessons.getContent(), contract));
     }
 
     @Transactional(readOnly = true)
@@ -394,12 +394,48 @@ public class LessonService {
     }
 
     private LessonResponse toResponse(Lesson lesson) {
-        java.time.LocalDateTime paidAt = paymentRepository == null
-                ? null
-                : paymentRepository.findFirstByPaymentInstallment_Lesson_IdAndStatusInOrderByPaidAtDesc(
-                        lesson.getId(), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))
-                        .map(Payment::getPaidAt)
-                        .orElse(null);
+        java.time.LocalDateTime paidAt = findPaidAt(lesson);
+        return toResponse(lesson, paidAt);
+    }
+
+    private List<LessonResponse> toResponses(List<Lesson> lessons, Contract contract) {
+        if (lessons.isEmpty()) return List.of();
+        Map<UUID, java.time.LocalDateTime> paidAtByInstallment = new HashMap<>();
+        List<com.ptutor.backend.entity.ContractPaymentInstallment> installments =
+                installmentService.ensureForActiveContract(contract);
+        if (paymentRepository != null) {
+            paymentRepository.findAllPaidForContract(
+                    contract.getId(), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED))
+                    .stream()
+                    .filter(payment -> payment.getPaidAt() != null)
+                    .forEach(payment -> paidAtByInstallment.merge(
+                            payment.getPaymentInstallment().getId(), payment.getPaidAt(),
+                            (current, candidate) -> current == null
+                                    || (candidate != null && current.isBefore(candidate))
+                                    ? candidate
+                                    : current));
+        }
+        return lessons.stream()
+                .map(lesson -> {
+                    java.time.LocalDateTime paidAt = installmentService.findForLesson(lesson, installments)
+                            .map(item -> paidAtByInstallment.get(item.getId()))
+                            .orElse(null);
+                    return toResponse(lesson, paidAt);
+                })
+                .toList();
+    }
+
+    private java.time.LocalDateTime findPaidAt(Lesson lesson) {
+        if (paymentRepository == null) return null;
+        return installmentService.findForLesson(lesson)
+                .flatMap(installment -> paymentRepository
+                        .findFirstByPaymentInstallment_IdAndStatusInOrderByPaidAtDesc(
+                                installment.getId(), List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED)))
+                .map(Payment::getPaidAt)
+                .orElse(null);
+    }
+
+    private LessonResponse toResponse(Lesson lesson, java.time.LocalDateTime paidAt) {
         RefundSummary refund = refundRequestLessonRepository.findFirstByLesson_IdOrderByCreatedAtDesc(lesson.getId())
                 .map(dispute -> new RefundSummary(
                         dispute.getRefundRequest().getId(),

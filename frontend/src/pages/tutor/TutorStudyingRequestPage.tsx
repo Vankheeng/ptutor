@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
-import { cancelTutorProposal, updateTutorProposal } from '../../services/tutorApi';
+import { cancelTutorProposal, getTutorContracts, updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
-import { tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
+import { tutorNextStepLabel, tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
 import { ApplicationDetailPanel } from '../../components/applications/ApplicationDetailPanel';
 
 export function TutorStudyingRequestPage() {
@@ -16,8 +16,19 @@ export function TutorStudyingRequestPage() {
   const { requestId = '' } = useParams();
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
   const [proposalRevision, setProposalRevision] = useState(0);
+  const [contractIds, setContractIds] = useState<Record<string, string>>({});
   const proposalsQuery = useTutorProposals(undefined, proposalRevision);
-  const myProposal = proposalsQuery.data?.find((proposal) => proposal.studyingRequestId === requestId);
+  const proposalHistory = (proposalsQuery.data ?? [])
+    .filter((proposal) => proposal.studyingRequestId === requestId)
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+  const myProposal = proposalHistory[0];
+  const hasAcceptedProposal = proposalHistory.some((proposal) => proposal.status === 'ACCEPTED');
+  const canApply = Boolean(
+    request?.status === 'OPEN' &&
+    !hasAcceptedProposal &&
+    (!myProposal || myProposal.status === 'REJECTED' || myProposal.status === 'CANCELLED')
+  );
+  const hideProposalSidebar = Boolean(canApply || myProposal?.status === 'CANCELLED');
   const [showApply, setShowApply] = useState(() =>
     Boolean((location.state as { openApplication?: boolean } | null)?.openApplication)
   );
@@ -26,6 +37,24 @@ export function TutorStudyingRequestPage() {
   const [cancellingProposal, setCancellingProposal] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getTutorContracts(controller.signal)
+      .then((page) => {
+        if (!controller.signal.aborted) {
+          setContractIds(
+            Object.fromEntries(
+              page.content
+                .filter((contract) => contract.tutorStudentRequestId)
+                .map((contract) => [contract.tutorStudentRequestId as string, contract.id])
+            )
+          );
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   const propose = async (values: TutorApplicationValues) => {
     if (!request) return;
@@ -97,23 +126,23 @@ export function TutorStudyingRequestPage() {
 
   return (
     <>
-      <button
-        className="tutor-button secondary tutor-navigation-button tutor-back-link"
-        type="button"
-        onClick={() => navigate(-1)}
-      >
-        ← Quay lại danh sách yêu cầu
-      </button>
-      {notice && (
-        <div className="tutor-notice" role="status">
-          {notice}{' '}
-          <button
-            className="tutor-button secondary tutor-navigation-compact"
-            type="button"
-            onClick={() => navigate('/tutor/proposals')}
-          >
-            Xem đề xuất của tôi →
+      <div className="tutor-detail-topbar">
+        <button
+          className="tutor-button secondary tutor-navigation-button tutor-back-link"
+          type="button"
+          onClick={() => navigate(-1)}
+        >
+          ← Quay lại danh sách yêu cầu
+        </button>
+        {!proposalsQuery.isLoading && canApply && (
+          <button className="tutor-button tutor-top-apply-button" type="button" onClick={() => openApplication(false)}>
+            Ứng tuyển yêu cầu này <span>→</span>
           </button>
+        )}
+      </div>
+      {notice && (
+        <div className="tutor-notice tutor-toast-source" role="status">
+          {notice}
         </div>
       )}
       {error && !showApply && (
@@ -121,7 +150,9 @@ export function TutorStudyingRequestPage() {
           {error}
         </div>
       )}
-      <div className="tutor-request-detail-layout tutor-market-detail">
+      <div
+        className={`tutor-request-detail-layout tutor-market-detail${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-market-detail-no-sidebar' : ''}`}
+      >
         <article className="tutor-panel tutor-detail-main">
           <div className="tutor-card-top">
             <span className="tutor-subject-tag">{request.subjectName || 'Môn học'}</span>
@@ -196,8 +227,46 @@ export function TutorStudyingRequestPage() {
               <p className="tutor-detail-copy">Học viên chưa bổ sung thêm thông tin.</p>
             )}
           </section>
+          {proposalHistory.length > 1 && (
+            <section className="tutor-detail-section tutor-proposal-history">
+              <span className="tutor-eyebrow">LỊCH SỬ ỨNG TUYỂN</span>
+              <h2 className="tutor-detail-title">Các lần ứng tuyển trước đó</h2>
+              <div className="tutor-proposal-history-table-wrap">
+                <table className="tutor-proposal-history-table">
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Học phí</th>
+                      <th>Hình thức</th>
+                      <th>Lịch dạy</th>
+                      <th>Trạng thái</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proposalHistory.slice(1).map((proposal) => (
+                      <tr key={proposal.id}>
+                        <td>{formatDateTime(proposal.createdAt)}</td>
+                        <td>{new Intl.NumberFormat('vi-VN').format(proposal.proposedPrice)} VNĐ</td>
+                        <td>{proposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</td>
+                        <td>{tutorScheduleLabel(proposal.preferredSchedule, 'Lịch linh hoạt')}</td>
+                        <td>
+                          <span className={`tutor-cert-status status-${proposal.status.toLowerCase()}`}>
+                            {tutorStatusLabel(proposal.status)}
+                          </span>
+                        </td>
+                        <td>{acceptedProposalAction(proposal, contractIds[proposal.id])}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </article>
-        <aside className="tutor-panel tutor-apply-sidebar">
+        <aside
+          className={`tutor-panel tutor-apply-sidebar${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-apply-sidebar-empty' : ''}`}
+        >
           {proposalsQuery.isLoading ? (
             <>
               <div className="tutor-application-panel-heading">
@@ -240,7 +309,13 @@ export function TutorStudyingRequestPage() {
                 { label: 'Thời gian tạo', value: formatDateTime(myProposal.createdAt) },
                 { label: 'Cập nhật lần cuối', value: formatDateTime(myProposal.updatedAt) },
                 ...(myProposal.status === 'ACCEPTED'
-                  ? [{ label: 'Thời gian được duyệt', value: formatDateTime(myProposal.updatedAt) }]
+                  ? [
+                      { label: 'Thời gian được duyệt', value: formatDateTime(myProposal.updatedAt) },
+                      {
+                        label: 'Bước tiếp theo',
+                        value: contractIds[myProposal.id] ? 'Đã có hợp đồng' : tutorNextStepLabel(myProposal.nextStep)
+                      }
+                    ]
                   : [])
               ]}
               actions={
@@ -277,6 +352,8 @@ export function TutorStudyingRequestPage() {
                   >
                     Gửi lại đề xuất <span>→</span>
                   </button>
+                ) : myProposal.status === 'ACCEPTED' ? (
+                  acceptedProposalAction(myProposal, contractIds[myProposal.id])
                 ) : (
                   <button
                     className="tutor-button tutor-apply-button"
@@ -325,6 +402,21 @@ export function TutorStudyingRequestPage() {
       )}
     </>
   );
+}
+
+function acceptedProposalAction(
+  proposal: { id: string; status: string; studyingRequestId: string },
+  contractId: string | undefined
+) {
+  if (proposal.status !== 'ACCEPTED') return null;
+  if (contractId) {
+    return (
+      <Link className="tutor-button secondary tutor-navigation-compact" to={`/tutor/sections/contracts/${contractId}`}>
+        Xem hợp đồng
+      </Link>
+    );
+  }
+  return <span className="tutor-proposal-contract-waiting">Chờ học viên tạo hợp đồng</span>;
 }
 
 function formatPrice(min: number | null, max: number | null) {

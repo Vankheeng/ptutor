@@ -90,6 +90,11 @@ export interface TutorTeachingProposal {
   id: string;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
+  studentId: string | null;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studyingRequestStatus: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED' | null;
+  studyingRequestCreatedAt: string | null;
   subjectName: string;
   gradeName: string;
   proposedPrice: number;
@@ -118,6 +123,7 @@ export interface TutorContract {
   teachingMode: 'ONLINE' | 'OFFLINE';
   price: number;
   totalLessons: number | null;
+  tutorStudentRequestId: string | null;
   startDate: string;
   endDate: string;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';

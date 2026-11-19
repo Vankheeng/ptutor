@@ -14,6 +14,7 @@ public interface LessonMapper {
 
     @Mapping(target = "contractId", source = "lesson.contract.id")
     @Mapping(target = "paidAt", ignore = true)
+    @Mapping(target = "refund", ignore = true)
     LessonResponse toResponse(Lesson lesson);
 
     default LessonResponse toResponse(Lesson lesson, LocalDateTime paidAt, RefundSummary refund) {

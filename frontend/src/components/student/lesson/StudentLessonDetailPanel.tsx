@@ -125,13 +125,13 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
             ✓ Xác nhận đã học
           </button>
           <Link className="student-lesson-refund" to={`/student/contracts/${lesson.contractId}/refund-request`}>
-            △ Khiếu nại / Hoàn tiền
+            △ Khiếu nại
           </Link>
         </div>
       )}
       {heldByRefund && lesson.refundRequestId && (
         <Link className="student-lesson-refund" to={`/student/refund-requests/${lesson.refundRequestId}`}>
-          Xem yêu cầu hoàn tiền
+          Xem khiếu nại
         </Link>
       )}
       {lesson.status === 'PENDING_CONFIRMATION' && !waiting && !lesson.refundRequestId && (

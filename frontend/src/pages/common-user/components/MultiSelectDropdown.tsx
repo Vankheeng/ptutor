@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 export interface MultiSelectOption {
   value: string;
@@ -25,6 +25,7 @@ export function MultiSelectDropdown({
   className = ''
 }: Props) {
   const labelId = useId();
+  const dropdownRef = useRef<HTMLDetailsElement | null>(null);
   const selectedLabels = options.filter((option) => values.includes(option.value)).map((option) => option.label);
   const summary =
     selectedLabels.length === 0
@@ -37,12 +38,23 @@ export function MultiSelectDropdown({
     onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   };
 
+  useEffect(() => {
+    const closeWhenClickedOutside = (event: PointerEvent) => {
+      const dropdown = dropdownRef.current;
+      if (dropdown?.open && !dropdown.contains(event.target as Node)) {
+        dropdown.open = false;
+      }
+    };
+    document.addEventListener('pointerdown', closeWhenClickedOutside);
+    return () => document.removeEventListener('pointerdown', closeWhenClickedOutside);
+  }, []);
+
   return (
     <div className={`multi-select-field ${className}`.trim()}>
       <span className="multi-select-label" id={labelId}>
         {label}
       </span>
-      <details className="multi-select-dropdown">
+      <details ref={dropdownRef} className="multi-select-dropdown">
         <summary
           aria-labelledby={labelId}
           aria-disabled={disabled}

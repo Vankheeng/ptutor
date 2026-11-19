@@ -11,6 +11,8 @@ export interface ApplicationSourceModel {
   authorName: string;
   authorProfileId?: string | null;
   authorProfileRole?: 'student' | 'tutor';
+  statusLabel?: string;
+  statusClass?: string;
   createdText: string;
   onOpen?: () => void;
 }
@@ -74,7 +76,12 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
       >
         <div className="tutor-proposal-side-heading">
           <span className="tutor-eyebrow">{source.eyebrow}</span>
-          <span className="tutor-subject-tag">{source.subject}</span>
+          <div className="tutor-proposal-source-tags">
+            <span className="tutor-subject-tag">{source.subject}</span>
+            {source.statusLabel ? (
+              <span className={`tutor-cert-status ${source.statusClass ?? ''}`}>{source.statusLabel}</span>
+            ) : null}
+          </div>
         </div>
         <h2>{source.title}</h2>
         <p className="tutor-proposal-grade">{source.grade}</p>

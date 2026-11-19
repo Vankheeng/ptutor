@@ -16,7 +16,7 @@ export function referenceNavigation(
   switch (referenceType) {
     case 'CONTRACT':
       return tutor
-        ? { to: '/tutor/sections/contracts', label: 'Xem hợp đồng' }
+        ? { to: `/tutor/sections/contracts/${id}`, label: 'Xem hợp đồng' }
         : { to: `/student/contracts/${id}`, label: 'Xem chi tiết hợp đồng' };
     case 'STUDYING_REQUEST':
       return { to: `${basePath}/studying-requests/${id}`, label: 'Xem chi tiết yêu cầu học' };
@@ -25,7 +25,7 @@ export function referenceNavigation(
         ? { to: `/tutor/sections/teaching-requests/${id}`, label: 'Xem chi tiết yêu cầu dạy' }
         : { to: '/student/teaching-requests', label: 'Xem yêu cầu dạy' };
     case 'REFUND_REQUEST':
-      return { to: `${basePath}/refund-requests/${id}`, label: 'Xem yêu cầu hoàn tiền' };
+      return { to: `${basePath}/refund-requests/${id}`, label: 'Xem khiếu nại' };
     case 'WITHDRAWAL_REQUEST':
       return { to: `${basePath}/wallet/transactions/WITHDRAWAL/${id}`, label: 'Xem yêu cầu rút tiền' };
     case 'WALLET_TRANSACTION':

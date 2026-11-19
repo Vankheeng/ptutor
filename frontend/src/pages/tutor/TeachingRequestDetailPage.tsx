@@ -26,6 +26,7 @@ export function TeachingRequestDetailPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [confirmingApplication, setConfirmingApplication] = useState<StudentTeachingApplication | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'vnpay'>('wallet');
   const profileQuery = useTutorProfile();
   const canPublish = profileQuery.data?.profileStatus === 'VERIFIED';
@@ -70,7 +71,7 @@ export function TeachingRequestDetailPage() {
     }
   };
 
-  const updateApplication = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
+  const applyApplicationStatus = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
     setBusy(application.id);
     setError('');
     setNotice('');
@@ -83,6 +84,20 @@ export function TeachingRequestDetailPage() {
     } finally {
       setBusy(null);
     }
+  };
+
+  const updateApplication = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
+    if (status === 'ACCEPTED' && request) {
+      const acceptedCount = applications.filter((item) => item.status === 'ACCEPTED').length;
+      const remainingPending = applications.filter(
+        (item) => item.status === 'PENDING' && item.id !== application.id
+      ).length;
+      if (acceptedCount + 1 >= (request.quantity ?? 0) && remainingPending > 0) {
+        setConfirmingApplication(application);
+        return;
+      }
+    }
+    await applyApplicationStatus(application, status);
   };
 
   const payDraft = async () => {
@@ -173,7 +188,7 @@ export function TeachingRequestDetailPage() {
         </div>
       </div>
       {notice && (
-        <div className="student-notice" role="status">
+        <div className="student-notice tutor-toast-source" role="status">
           {notice}
         </div>
       )}
@@ -311,7 +326,7 @@ export function TeachingRequestDetailPage() {
                 <span className={`student-status ${application.status.toLowerCase()}`}>
                   {applicationStatusText(application.status)}
                 </span>
-                {application.status === 'PENDING' && (
+                {application.status === 'PENDING' && request.status === 'OPEN' && (
                   <div className="teaching-application-actions">
                     <button
                       className="student-button draft"
@@ -328,6 +343,9 @@ export function TeachingRequestDetailPage() {
                       Từ chối
                     </button>
                   </div>
+                )}
+                {application.status === 'PENDING' && request.status === 'MATCHED' && (
+                  <span className="teaching-application-closed-note">Yêu cầu đã đủ số lượng học viên.</span>
                 )}
                 {application.status === 'ACCEPTED' &&
                 (application.contractId ?? contractByApplicationId.get(application.id)) ? (
@@ -346,23 +364,53 @@ export function TeachingRequestDetailPage() {
                     </Link>
                   </div>
                 ) : application.status === 'ACCEPTED' ? (
-                  <button
-                    className="student-button draft"
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
-                      )
-                    }
-                  >
-                    Tạo hợp đồng
-                  </button>
+                  <div className="teaching-application-actions">
+                    <button
+                      className="student-button draft"
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                        )
+                      }
+                    >
+                      Tạo hợp đồng
+                    </button>
+                  </div>
                 ) : null}
               </article>
             ))
           )}
         </section>
       </div>
+      {confirmingApplication && (
+        <div className="teaching-confirm-backdrop" role="presentation">
+          <section className="student-panel teaching-confirm-dialog" role="dialog" aria-modal="true">
+            <h2>Xác nhận học viên cuối cùng</h2>
+            <p>
+              Sau khi chấp nhận học viên này, yêu cầu sẽ đủ số lượng học viên. Các đề nghị đang chờ còn lại sẽ tự động
+              chuyển sang trạng thái từ chối.
+            </p>
+            <div className="student-form-actions">
+              <button className="student-button secondary" type="button" onClick={() => setConfirmingApplication(null)}>
+                Hủy
+              </button>
+              <button
+                className="student-button draft"
+                type="button"
+                disabled={busy !== null}
+                onClick={() => {
+                  const application = confirmingApplication;
+                  setConfirmingApplication(null);
+                  void applyApplicationStatus(application, 'ACCEPTED');
+                }}
+              >
+                {busy ? 'Đang cập nhật…' : 'Xác nhận và từ chối còn lại'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }

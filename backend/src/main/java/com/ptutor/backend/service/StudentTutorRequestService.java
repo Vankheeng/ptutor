@@ -157,6 +157,18 @@ public class StudentTutorRequestService {
             if (acceptedCount >= teachingRequest.getQuantity()) {
                 teachingRequest.setStatus(RequestStatus.MATCHED);
                 teachingRequestRepository.saveAndFlush(teachingRequest);
+                var remainingApplications = studentTutorRequestRepository
+                        .findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(
+                                teachingRequestId, ApplicationStatus.PENDING);
+                remainingApplications.forEach(remaining -> remaining.setStatus(ApplicationStatus.REJECTED));
+                if (!remainingApplications.isEmpty()) {
+                    studentTutorRequestRepository.saveAllAndFlush(remainingApplications);
+                    remainingApplications.forEach(remaining -> eventPublisher.publishEvent(NotificationDomainEvent.of(
+                            remaining.getStudent().getUser().getId(),
+                            NotificationEventType.STUDENT_REQUEST_REJECTED,
+                            NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                            remaining.getId(), java.util.Map.of())));
+                }
             }
             eventPublisher.publishEvent(NotificationDomainEvent.of(
                     request.getStudent().getUser().getId(),

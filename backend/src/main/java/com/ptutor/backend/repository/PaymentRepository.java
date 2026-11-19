@@ -50,6 +50,21 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findFirstByPaymentInstallment_IdAndStatusOrderByPaidAtDesc(
             UUID installmentId, PaymentStatus status);
 
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusInOrderByPaidAtDesc(
+            UUID installmentId, Collection<PaymentStatus> statuses);
+
+    @Query("""
+            select payment
+            from Payment payment
+            join fetch payment.paymentInstallment installment
+            where installment.contract.id = :contractId
+              and payment.status in :statuses
+            order by payment.paidAt desc
+            """)
+    List<Payment> findAllPaidForContract(
+            @Param("contractId") UUID contractId,
+            @Param("statuses") Collection<PaymentStatus> statuses);
+
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 
     @Query("""

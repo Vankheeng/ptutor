@@ -163,7 +163,7 @@ export function ComplaintForm({
         <div className="student-form-field">
           <span className="student-complaint-field-label">Vắng mặt hoặc dạy muộn, thiếu giờ?</span>
           <Link className="student-button secondary" to={`/student/contracts/${values.contractId}/refund-request`}>
-            Tạo yêu cầu hoàn tiền
+            Tạo khiếu nại
           </Link>
         </div>
       )}
