@@ -26,6 +26,10 @@ export function tutorStatusLabel(status: string) {
   return statusLabels[status] ?? status;
 }
 
+export function tutorNextStepLabel(value: string | null | undefined) {
+  return value === 'CONTRACT_SIGNING' ? 'Chờ học viên tạo và ký hợp đồng' : value || 'Đang chờ xử lý';
+}
+
 export function tutorScheduleLabel(schedule?: string | null, fallback = 'Linh hoạt') {
   if (!schedule?.trim()) return fallback;
   return schedule

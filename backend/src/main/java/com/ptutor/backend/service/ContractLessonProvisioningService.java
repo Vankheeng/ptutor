@@ -99,7 +99,11 @@ public class ContractLessonProvisioningService {
             activated.forEach(lesson -> lesson.setNote(null));
             if (!activated.isEmpty()) lessonRepository.saveAll(activated);
             for (Lesson lesson : lessons) {
-                if (installmentRepository.findByLesson_Id(lesson.getId()).isEmpty()) {
+                // V40 links lessons directly to their installment. Do not remap an
+                // already linked lesson by its current calendar date; it may have
+                // been rescheduled after the original payment period was settled.
+                if (lesson.getPaymentInstallment() == null
+                        && installmentRepository.findByLesson_Id(lesson.getId()).isEmpty()) {
                     installmentService.assignNextInstallment(contract, lesson);
                 }
             }

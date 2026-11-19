@@ -91,8 +91,10 @@ public class StudyingRequestService {
     }
 
     @Transactional(readOnly = true)
-    public StudyingRequestSearchResponse findSearchableById(UUID requestId, boolean tutor) {
-        RequestStatus status = tutor ? RequestStatus.OPEN : null;
+    public StudyingRequestSearchResponse findSearchableById(UUID requestId, boolean tutor, UUID viewerUserId) {
+        boolean tutorHasApplied = tutor && viewerUserId != null
+                && tutorStudentRequestRepository.existsByTutor_User_IdAndStudyingRequest_Id(viewerUserId, requestId);
+        RequestStatus status = tutor && !tutorHasApplied ? RequestStatus.OPEN : null;
         StudyingRequest request = studyingRequestRepository.findSearchableById(requestId, status)
                 .orElseThrow(() -> requestNotFound(requestId));
         return toSearchResponse(request);

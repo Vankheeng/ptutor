@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import logo from '../../assets/ptutor-logo.svg';
@@ -25,7 +24,6 @@ const navigation = [
 const sectionLabels = { WORKSPACE: '', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
 
 export function TutorLayout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fullName =
@@ -38,7 +36,7 @@ export function TutorLayout() {
     .toUpperCase();
 
   return (
-    <div className={`tutor-shell${sidebarCollapsed ? ' tutor-shell-collapsed' : ''}`}>
+    <div className="tutor-shell">
       <header className="tutor-topbar">
         <div className="tutor-topbar-brand">
           <NavLink className="tutor-brand" to="/tutor/dashboard" aria-label="Ptutor dashboard">
@@ -63,17 +61,6 @@ export function TutorLayout() {
             <small>Gia sư</small>
           </span>
         </div>
-        <button
-          className="tutor-sidebar-toggle"
-          type="button"
-          aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-          aria-pressed={sidebarCollapsed}
-          onClick={() => setSidebarCollapsed((value) => !value)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 16 16">
-            <path d={sidebarCollapsed ? 'm6 4 4 4-4 4' : 'm10 4-4 4 4 4'} />
-          </svg>
-        </button>
         <nav className="tutor-nav" aria-label="Không gian gia sư">
           {(['WORKSPACE', 'TEACHING', 'ACCOUNT'] as const).map((section) => (
             <div className="tutor-nav-group" key={section}>

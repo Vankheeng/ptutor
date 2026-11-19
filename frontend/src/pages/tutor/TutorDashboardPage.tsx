@@ -139,7 +139,10 @@ export function TutorDashboardPage() {
                 </p>
                 <div className="tutor-contract-footer">
                   <span>Đang thực hiện</span>
-                  <Link className="tutor-button secondary tutor-contract-button" to="/tutor/sections/contracts">
+                  <Link
+                    className="tutor-button secondary tutor-contract-button"
+                    to={`/tutor/sections/contracts/${contract.id}`}
+                  >
                     Xem hợp đồng →
                   </Link>
                 </div>

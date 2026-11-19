@@ -17,10 +17,13 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
 
+    @EntityGraph(attributePaths = { "paymentInstallment" })
     Page<Lesson> findAllByContract_Id(UUID contractId, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "paymentInstallment" })
     Page<Lesson> findAllByContract_IdAndStatus(UUID contractId, LessonStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "paymentInstallment" })
     List<Lesson> findAllByContract_IdOrderByDateAscStartTimeAsc(UUID contractId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

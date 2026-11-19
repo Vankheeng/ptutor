@@ -550,6 +550,9 @@ public class ContractService {
         }
         validatePrice(source.price());
         PaymentPeriod paymentPeriod = requirePresent(source.paymentPeriod(), "INVALID_CONTRACT_TERMS", "Payment period is required");
+        if (paymentPeriod == PaymentPeriod.PER_LESSON || paymentPeriod == PaymentPeriod.WEEKLY) {
+            throw badRequest("UNSUPPORTED_PAYMENT_PERIOD", "Only MONTHLY and PACKAGE payment periods are supported");
+        }
         validateDateRange(source.startDate(), source.endDate());
         List<ScheduleValue> schedules;
         Integer totalLessons;

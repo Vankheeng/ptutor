@@ -99,7 +99,7 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
               ✓ Xác nhận đã học
             </button>
             <button className="student-lesson-outline-danger" type="button" onClick={onRefund} disabled={busy}>
-              △ Khiếu nại / Hoàn tiền
+              △ Khiếu nại
             </button>
           </>
         ) : null}
