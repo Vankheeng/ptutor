@@ -173,12 +173,6 @@ html:has(.admin-shell) {
   margin: 7px 0 5px;
   font-size: 30px;
 }
-.admin-student-page-heading p {
-  margin: 0;
-  color: var(--admin-muted);
-  font-size: 14px;
-  line-height: 1.5;
-}
 .admin-student-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

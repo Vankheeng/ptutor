@@ -58,7 +58,6 @@ export function AdminStudentsPage() {
         <div>
           <span>QUẢN LÝ HỌC VIÊN</span>
           <h1>Hồ sơ học viên</h1>
-          <p>Theo dõi thông tin, lịch sử học, hợp đồng và giao dịch của từng học viên.</p>
         </div>
       </div>
       <div className="admin-student-overview" aria-label="Tổng quan học viên">
