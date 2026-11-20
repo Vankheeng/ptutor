@@ -58,6 +58,10 @@ html:has(.admin-shell) {
     min-height: 0;
     overflow-y: auto;
     align-content: start;
+    scrollbar-width: none;
+  }
+  .admin-nav::-webkit-scrollbar {
+    display: none;
   }
 }
 .admin-brand {
@@ -92,9 +96,6 @@ html:has(.admin-shell) {
 .admin-nav-group {
   display: grid;
   gap: 4px;
-  margin-left: 8px;
-  padding-left: 8px;
-  border-left: 1px solid var(--admin-border);
 }
 .admin-nav a {
   display: flex;
@@ -162,6 +163,58 @@ html:has(.admin-shell) {
   margin: 0;
   font-size: 28px;
 }
+.admin-student-page-heading > div > span {
+  color: var(--admin-brand-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.admin-student-page-heading h1 {
+  margin: 7px 0 5px;
+  font-size: 30px;
+}
+.admin-student-page-heading p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.admin-student-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-student-overview button {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: var(--admin-surface);
+  color: var(--admin-subtle);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-student-overview button:hover,
+.admin-student-overview button.is-active {
+  border-color: #a989ef;
+  background: #f4efff;
+}
+.admin-student-overview span { font-size: 13px; font-weight: 600; }
+.admin-student-overview strong { color: var(--admin-ink); font-size: 25px; }
+.admin-student-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px 0;
+}
+.admin-student-list-heading h2 { margin: 0; font-size: 18px; }
+.admin-student-list-heading span { display: block; margin-top: 4px; color: var(--admin-muted); font-size: 12px; }
+.admin-student-list-heading > strong { color: var(--admin-brand-ink); font-size: 13px; white-space: nowrap; }
+@media (max-width: 850px) { .admin-student-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .admin-student-overview button { padding: 14px; } .admin-student-page-heading h1 { font-size: 25px; } }
 .admin-tabs {
   display: flex;
   gap: 4px;

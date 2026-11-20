@@ -34,8 +34,7 @@ export function AdminLayout() {
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <NavLink className="admin-brand" to={home?.to ?? '/admin'}>
-          <img src={logo} alt="" />
-          <span>PTutor Admin</span>
+          <img src={logo} alt="PTutor" />
         </NavLink>
         <nav className="admin-nav" aria-label="Menu quản trị">
           {groups.map((group) => (

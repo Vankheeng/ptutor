@@ -6,10 +6,10 @@ import {
   type AdminUserAccount,
   type UserAccountStatus
 } from '../../services/adminUserAccountApi';
-import { AdminAvatar, AdminPagination, AdminState, FilterChips, StatusBadge } from './components/AdminUi';
+import { AdminAvatar, AdminPagination, AdminState, StatusBadge } from './components/AdminUi';
 import { AccountActionDialog, type AccountAction } from './components/AccountActionDialog';
 import { accountStatusFilterLabels, accountStatusMeta } from './accountFormat';
-import { formatDate, formatDateTime, fullName } from './adminFormat';
+import { formatDate, fullName } from './adminFormat';
 
 type StatusFilter = UserAccountStatus | 'ALL';
 
@@ -24,15 +24,19 @@ export function AdminStudentsPage() {
   const [action, setAction] = useState<{ type: AccountAction; account: AdminUserAccount } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const load = useCallback(
-    (signal: AbortSignal) =>
-      getAdminUserAccounts(
-        { role: 'STUDENT', status: status === 'ALL' ? undefined : status, keyword: keyword || undefined, page },
-        signal
-      ),
-    [keyword, page, status]
-  );
+  const load = useCallback(async (signal: AbortSignal) => {
+    const base = { role: 'STUDENT' as const, keyword: keyword || undefined };
+    const [students, all, active, blocked, inactive] = await Promise.all([
+      getAdminUserAccounts({ ...base, status: status === 'ALL' ? undefined : status, page }, signal),
+      getAdminUserAccounts({ ...base, page: 0 }, signal),
+      getAdminUserAccounts({ ...base, status: 'ACTIVE', page: 0 }, signal),
+      getAdminUserAccounts({ ...base, status: 'BLOCKED', page: 0 }, signal),
+      getAdminUserAccounts({ ...base, status: 'INACTIVE', page: 0 }, signal)
+    ]);
+    return { students, counts: { ALL: all.totalElements, ACTIVE: active.totalElements, BLOCKED: blocked.totalElements, INACTIVE: inactive.totalElements } };
+  }, [keyword, page, status]);
   const { data, error, isLoading } = useResource(load, revision);
+  const students = data?.students;
 
   const update = (changes: Record<string, string | number | undefined>) => {
     const next = new URLSearchParams(params);
@@ -50,22 +54,40 @@ export function AdminStudentsPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-title">Học viên</h1>
-      <FilterChips<StatusFilter>
-        label="Trạng thái tài khoản"
-        value={status}
-        options={statuses.map((value) => ({
-          value,
-          label: value === 'ALL' ? 'Tất cả' : accountStatusFilterLabels[value]
-        }))}
-        onChange={(value) => update({ status: value === 'ALL' ? undefined : value, page: undefined })}
-      />
+      <div className="admin-student-page-heading">
+        <div>
+          <span>QUẢN LÝ HỌC VIÊN</span>
+          <h1>Hồ sơ học viên</h1>
+          <p>Theo dõi thông tin, lịch sử học, hợp đồng và giao dịch của từng học viên.</p>
+        </div>
+      </div>
+      <div className="admin-student-overview" aria-label="Tổng quan học viên">
+        {statuses.map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={status === value ? 'is-active' : ''}
+            aria-pressed={status === value}
+            onClick={() => update({ status: value === 'ALL' ? undefined : value, page: undefined })}
+          >
+            <span>{value === 'ALL' ? 'Tất cả học viên' : accountStatusFilterLabels[value]}</span>
+            <strong>{data ? data.counts[value].toLocaleString('vi-VN') : '—'}</strong>
+          </button>
+        ))}
+      </div>
       {message && (
         <div className="admin-alert admin-alert-success" role="status">
           {message}
         </div>
       )}
       <section className="admin-card">
+        <div className="admin-student-list-heading">
+          <div>
+            <h2>Danh sách học viên</h2>
+            <span>{status === 'ALL' ? 'Tất cả trạng thái' : accountStatusFilterLabels[status]}</span>
+          </div>
+          {students && <strong>{students.totalElements.toLocaleString('vi-VN')} học viên</strong>}
+        </div>
         <form key={params.toString()} className="admin-filters" onSubmit={search}>
           <label className="admin-filter-grow">
             Từ khóa
@@ -77,11 +99,11 @@ export function AdminStudentsPage() {
             </button>
           </div>
         </form>
-        {!data ? (
+        {!students ? (
           <div className="admin-card-pad">
             <AdminState loading={isLoading} error={error} />
           </div>
-        ) : data.content.length === 0 ? (
+        ) : students.content.length === 0 ? (
           <AdminState empty="Không có học viên phù hợp." />
         ) : (
           <div className="admin-table-wrap">
@@ -89,17 +111,16 @@ export function AdminStudentsPage() {
               <thead>
                 <tr>
                   <th>Học viên</th>
-                  <th>Số điện thoại</th>
+                  <th>Liên hệ</th>
                   <th>Trạng thái</th>
-                  <th>Số lần khóa</th>
-                  <th>Ngày tạo</th>
+                  <th>Ngày tham gia</th>
                   <th>
                     <span className="admin-sr-only">Thao tác</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {data.content.map((account) => {
+                {students.content.map((account) => {
                   const name = fullName(account.firstName, account.lastName, account.email);
                   return (
                     <tr key={account.userId}>
@@ -112,18 +133,8 @@ export function AdminStudentsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="admin-nowrap">{account.phone ?? '—'}</td>
-                      <td>
-                        <div className="admin-stack">
-                          <div>
-                            <StatusBadge meta={accountStatusMeta(account)} />
-                          </div>
-                          {account.status === 'BLOCKED' && account.suspendedUntil && (
-                            <span>Đến {formatDateTime(account.suspendedUntil)}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{account.suspensionCount}</td>
+                      <td className="admin-nowrap">{account.phone ?? 'Chưa cập nhật'}</td>
+                      <td><StatusBadge meta={accountStatusMeta(account)} /></td>
                       <td className="admin-nowrap">{formatDate(account.createdAt)}</td>
                       <td className="admin-cell-action">
                         <div className="admin-button-row">
@@ -146,7 +157,7 @@ export function AdminStudentsPage() {
                             </button>
                           )}
                           <Link className="admin-button small secondary" to={`/admin/students/${account.userId}`}>
-                            Xem
+                            Xem hồ sơ
                           </Link>
                         </div>
                       </td>
@@ -157,12 +168,12 @@ export function AdminStudentsPage() {
             </table>
           </div>
         )}
-        {data && (
+        {students && (
           <div className="admin-card-footer">
             <AdminPagination
-              page={data.page}
-              totalPages={data.totalPages}
-              totalElements={data.totalElements}
+              page={students.page}
+              totalPages={students.totalPages}
+              totalElements={students.totalElements}
               unit="học viên"
               onChange={(next) => update({ page: next })}
             />

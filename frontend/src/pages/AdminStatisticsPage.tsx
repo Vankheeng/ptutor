@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/ptutor-logo.svg';
 import { clearAdminSession, getAdminAccessToken } from '../services/authApi';
@@ -227,10 +227,55 @@ const BREAKDOWN_LABELS: Record<string, string> = {
 };
 
 const VALUE_LABELS: Record<string, string> = {
+  UNSPECIFIED: 'Chưa xác định',
+  UNASSIGNED: 'Chưa phân công',
+  UNDER_13: 'Dưới 13 tuổi',
+  '13_17': '13–17 tuổi',
+  '18_24': '18–24 tuổi',
+  '25_34': '25–34 tuổi',
+  '35_PLUS': 'Từ 35 tuổi',
+  UNDER_2_YEARS: 'Dưới 2 năm',
+  '2_4_YEARS': '2–4 năm',
+  '5_9_YEARS': '5–9 năm',
+  '10_PLUS_YEARS': 'Từ 10 năm',
+  WALLET_TOP_UP: 'Nạp tiền vào ví',
+  TUITION_PAYMENT: 'Thanh toán học phí',
+  STUDYING_REQUEST_FEE: 'Phí yêu cầu học',
+  TEACHING_REQUEST_FEE: 'Phí yêu cầu dạy',
+  TOP_UP: 'Nạp tiền vào ví',
+  TUTOR_EARNING: 'Thu nhập gia sư',
+  CONTRACT_REFUND: 'Hoàn tiền hợp đồng',
+  TEACHING_REQUEST_REFUND: 'Hoàn phí yêu cầu dạy',
+  STUDYING_REQUEST_REFUND: 'Hoàn phí yêu cầu học',
+  WITHDRAWAL_REVERSAL: 'Hoàn lệnh rút tiền',
+  WITHDRAWAL: 'Rút tiền',
+  CREDIT: 'Tiền vào ví',
+  DEBIT: 'Tiền ra khỏi ví',
+  WALLET: 'Ví PTutor',
+  VNPAY: 'VNPAY',
+  PER_LESSON: 'Theo buổi',
+  WEEKLY: 'Theo tuần',
+  MONTHLY: 'Theo tháng',
+  PACKAGE: 'Trọn gói',
+  STUDENT_INITIATED: 'Học viên đề nghị',
+  TUTOR_INITIATED: 'Gia sư đề nghị',
+  CUSTOMER_SERVICE: 'Chăm sóc khách hàng',
+  ACCOUNTANT: 'Kế toán',
   ACTIVE: 'Đang hoạt động',
   INACTIVE: 'Ngừng hoạt động',
+  BLOCKED: 'Bị khóa',
   LOCKED: 'Đã khóa',
+  DRAFT: 'Bản nháp',
   PENDING: 'Chờ xử lý',
+  PENDING_REVIEW: 'Chờ duyệt',
+  PENDING_CONFIRMATION: 'Chờ xác nhận',
+  PROCESSING: 'Đang xử lý',
+  OPEN: 'Đang mở',
+  MATCHED: 'Đã ghép lớp',
+  CLOSED: 'Đã đóng',
+  SCHEDULED: 'Đã lên lịch',
+  CONFIRMED: 'Đã xác nhận',
+  VERIFIED: 'Đã xác minh',
   APPROVED: 'Đã duyệt',
   REJECTED: 'Bị từ chối',
   ACCEPTED: 'Đã chấp nhận',
@@ -312,6 +357,16 @@ function createInitialFilters(): StatisticsFilters {
   };
 }
 
+function lastCompletedMonths(months: number) {
+  const firstThisMonth = new Date();
+  firstThisMonth.setDate(1);
+  const from = new Date(firstThisMonth);
+  from.setMonth(from.getMonth() - months);
+  const to = new Date(firstThisMonth);
+  to.setDate(0);
+  return { fromDate: toDateInput(from), toDate: toDateInput(to) };
+}
+
 function getInitialReport(): StatisticsReport {
   const requestedReport = new URLSearchParams(window.location.search).get('report');
   return ALL_REPORTS.some((report) => report.id === requestedReport)
@@ -321,7 +376,7 @@ function getInitialReport(): StatisticsReport {
 
 function humanize(value: string): string {
   return (
-    VALUE_LABELS[value] ??
+    VALUE_LABELS[value] ?? VALUE_LABELS[value.toUpperCase()] ??
     value
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replaceAll('_', ' ')
@@ -348,6 +403,11 @@ function formatPeriod(period: string, monthOnly = false): string {
   return new Intl.DateTimeFormat('vi-VN', monthOnly
     ? { month: '2-digit', year: 'numeric' }
     : { day: '2-digit', month: '2-digit' }).format(date);
+}
+
+function formatDateRange(fromDate: string, toDate: string): string {
+  const format = (value: string) => `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}`;
+  return fromDate === toDate ? `Ngày ${format(fromDate)}` : `Từ ${format(fromDate)} đến ${format(toDate)}`;
 }
 
 function formatAxisValue(key: string, value: number): string {
@@ -381,15 +441,13 @@ export default function AdminStatisticsPage() {
 
 function StatisticsDashboard({ accessToken }: { accessToken: string }) {
   const [activeReport, setActiveReport] = useState<StatisticsReport>(getInitialReport);
-  const [filters, setFilters] = useState<StatisticsFilters>(createInitialFilters);
-  const [draftFilters, setDraftFilters] = useState<StatisticsFilters>(filters);
-  const [activePreset, setActivePreset] = useState<number | null>(30);
-  const [comparisonMonth, setComparisonMonth] = useState(() => {
-    const previousMonth = new Date();
-    previousMonth.setDate(1);
-    previousMonth.setMonth(previousMonth.getMonth() - 1);
-    return toDateInput(previousMonth).slice(0, 7);
+  const [filters, setFilters] = useState<StatisticsFilters>(() => {
+    const initial = createInitialFilters();
+    return getInitialReport() === 'finance'
+      ? { ...initial, ...lastCompletedMonths(6), granularity: 'MONTH' }
+      : initial;
   });
+  const [draftFilters, setDraftFilters] = useState<StatisticsFilters>(filters);
   const [data, setData] = useState<StatisticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -431,21 +489,15 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
   function selectReport(nextReport: StatisticsReport) {
     if (nextReport === activeReport) return;
     prepareReload();
+    if (nextReport === 'finance' && filters.granularity === 'AUTO') {
+      const monthly = { ...filters, ...lastCompletedMonths(6), granularity: 'MONTH' as const };
+      setDraftFilters(monthly);
+      setFilters(monthly);
+    }
     setActiveReport(nextReport);
     setMenuOpen(false);
     window.history.replaceState(null, '', `/admin/statistics?report=${nextReport}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function applyPreset(days: number) {
-    const to = new Date();
-    const from = new Date();
-    from.setDate(from.getDate() - days + 1);
-    const nextFilters = { ...draftFilters, fromDate: toDateInput(from), toDate: toDateInput(to) };
-    prepareReload();
-    setActivePreset(days);
-    setDraftFilters(nextFilters);
-    setFilters(nextFilters);
   }
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
@@ -455,24 +507,7 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
       return;
     }
     prepareReload();
-    setActivePreset(null);
     setFilters({ ...draftFilters });
-  }
-
-  function compareMonth() {
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(comparisonMonth)) return;
-    const [year, month] = comparisonMonth.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    const nextFilters = {
-      ...draftFilters,
-      fromDate: `${comparisonMonth}-01`,
-      toDate: `${comparisonMonth}-${String(lastDay).padStart(2, '0')}`,
-      granularity: 'MONTH' as const
-    };
-    prepareReload();
-    setActivePreset(null);
-    setDraftFilters(nextFilters);
-    setFilters(nextFilters);
   }
 
   return (
@@ -546,18 +581,7 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
         </header>
 
         <section className="statistics-content">
-          <form className="statistics-filter" onSubmit={applyFilters}>
-            <div className="statistics-presets" aria-label="Khoảng thời gian nhanh">
-              <button type="button" className={activePreset === 7 ? 'is-active' : ''} aria-pressed={activePreset === 7} onClick={() => applyPreset(7)}>
-                7 ngày
-              </button>
-              <button type="button" className={activePreset === 30 ? 'is-active' : ''} aria-pressed={activePreset === 30} onClick={() => applyPreset(30)}>
-                30 ngày
-              </button>
-              <button type="button" className={activePreset === 90 ? 'is-active' : ''} aria-pressed={activePreset === 90} onClick={() => applyPreset(90)}>
-                90 ngày
-              </button>
-            </div>
+          <form className="statistics-filter" onSubmit={applyFilters} aria-label="Lọc dữ liệu thống kê">
             <label>
               <span>Từ ngày</span>
               <input
@@ -568,7 +592,6 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
                 required
               />
             </label>
-            <span className="statistics-date-arrow">→</span>
             <label>
               <span>Đến ngày</span>
               <input
@@ -583,9 +606,14 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
               <span>Nhóm dữ liệu</span>
               <select
                 value={draftFilters.granularity}
-                onChange={(event) =>
-                  setDraftFilters({ ...draftFilters, granularity: event.target.value as StatisticsGranularity })
-                }
+                onChange={(event) => {
+                  const granularity = event.target.value as StatisticsGranularity;
+                  setDraftFilters((current) => ({
+                    ...current,
+                    ...(granularity === 'MONTH' && current.granularity !== 'MONTH' ? lastCompletedMonths(6) : {}),
+                    granularity
+                  }));
+                }}
               >
                 <option value="AUTO">Tự động</option>
                 <option value="DAY">Theo ngày</option>
@@ -609,18 +637,6 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
               ↻
             </button>
           </form>
-
-          <div className="statistics-month-compare">
-            <div>
-              <strong>So sánh theo tháng</strong>
-              <span>Chọn tháng để đối chiếu với tháng liền trước.</span>
-            </div>
-            <label>
-              <span>Tháng cần xem</span>
-              <input type="month" value={comparisonMonth} max={toDateInput(new Date()).slice(0, 7)} onChange={(event) => setComparisonMonth(event.target.value)} />
-            </label>
-            <button type="button" onClick={compareMonth}>So sánh tháng</button>
-          </div>
 
           {error ? (
             <ErrorState
@@ -666,6 +682,8 @@ function ReportContent({
       Number(data.range.toDate.slice(0, 4)), Number(data.range.toDate.slice(5, 7)), 0
     ).getDate();
   const comparisonLabel = isCalendarMonth ? 'so với tháng trước' : 'so với kỳ trước';
+  const periodLabel = formatDateRange(data.range.fromDate, data.range.toDate);
+  const showFinanceRevenue = activeReport === 'finance';
   const primaryMetrics = PRIMARY_METRICS[activeReport]
     .map((key) => metrics.find(([metricKey]) => metricKey === key))
     .filter((metric): metric is [string, StatisticsMetric] => Boolean(metric));
@@ -677,19 +695,22 @@ function ReportContent({
         <span>SO SÁNH THEO THÁNG</span>
         <strong>Tháng {data.range.fromDate.slice(5, 7)}/{data.range.fromDate.slice(0, 4)} với tháng {data.range.previousFromDate.slice(5, 7)}/{data.range.previousFromDate.slice(0, 4)}</strong>
       </div>}
-      <section className={`statistics-metrics${primaryMetrics.length === 3 ? ' is-three' : ''}`} aria-label="Chỉ số chính">
+      {!showFinanceRevenue && <section className={`statistics-metrics${primaryMetrics.length === 3 ? ' is-three' : ''}`} aria-label="Chỉ số chính">
         {primaryMetrics.map(([key, metric]) => (
           <MetricCard
             key={key}
             metricKey={key}
             metric={metric}
+            periodLabel={periodLabel}
             comparisonLabel={comparisonLabel}
             onClick={
               activeReport === 'overview' && METRIC_SERIES[key] ? () => setSelectedMetric(selectedMetric === key ? null : key) : undefined
             }
           />
         ))}
-      </section>
+      </section>}
+
+      {showFinanceRevenue && <RevenueComparisonPanel key={`${data.range.fromDate}-${data.range.toDate}-${data.range.granularity}`} data={data} />}
 
       {selectedMetric && activeReport === 'overview' && (
         <MetricDetail
@@ -700,7 +721,7 @@ function ReportContent({
         />
       )}
 
-      {(series.length > 0 || secondaryMetrics.length > 0) && (
+      {!showFinanceRevenue && (series.length > 0 || secondaryMetrics.length > 0) && (
         <section className={series.length > 0 ? 'statistics-analysis-grid' : 'statistics-analysis-grid no-chart'}>
           {series.length > 0 && <TrendPanel key={data.report} series={series} report={activeReport} granularity={data.range.granularity} />}
           {secondaryMetrics.length > 0 && <MetricTable metrics={secondaryMetrics} />}
@@ -712,9 +733,8 @@ function ReportContent({
           <div className="statistics-section-heading">
             <div>
               <span>PHÂN TÍCH CHI TIẾT</span>
-              <h3>Cơ cấu dữ liệu</h3>
+              <h3>{showFinanceRevenue ? 'Cơ cấu thanh toán' : 'Cơ cấu dữ liệu'}</h3>
             </div>
-            <p>Phân bổ theo các nhóm quan trọng trong kỳ đã chọn.</p>
           </div>
           <div className="statistics-breakdown-grid">
             {breakdowns.map(([key, values]) => {
@@ -724,14 +744,14 @@ function ReportContent({
                 <article className="statistics-card statistics-breakdown" key={key}>
                   <div className="statistics-card-heading compact">
                     <h3>{BREAKDOWN_LABELS[key] ?? humanize(key)}</h3>
-                    <span>{new Intl.NumberFormat('vi-VN').format(total)} tổng</span>
+                    <span>{key === 'paymentType' ? formatMetricValue('total_revenue', total) : `${new Intl.NumberFormat('vi-VN').format(total)} tổng`}</span>
                   </div>
                   <div className="statistics-bars">
                     {values.slice(0, 8).map((item) => (
                       <div className="statistics-bar-row" key={item.key}>
                         <div>
                           <span>{humanize(item.key)}</span>
-                          <b>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(item.value)}</b>
+                          <b>{key === 'paymentType' ? formatMetricValue('total_revenue', item.value) : new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(item.value)}</b>
                         </div>
                         <div className="statistics-bar-track">
                           <i style={{ width: `${(item.value / max) * 100}%` }} />
@@ -755,6 +775,207 @@ function ReportContent({
       )}
     </div>
   );
+}
+
+type RevenueRow = { period: string; total: number; fees: number; tuition: number };
+type RevenuePeriod = StatisticsResponse['range']['granularity'];
+
+function startOfPeriod(date: string, granularity: RevenuePeriod) {
+  const value = new Date(`${date.slice(0, 10)}T00:00:00Z`);
+  if (granularity === 'WEEK') value.setUTCDate(value.getUTCDate() - (value.getUTCDay() + 6) % 7);
+  if (granularity === 'MONTH') value.setUTCDate(1);
+  return value;
+}
+
+function revenueRows(data: StatisticsResponse): RevenueRow[] {
+  const granularity = data.range.granularity;
+  const byPeriod = (key: string) => new Map(
+    (data.series[key] ?? []).map((point) => [point.period.slice(0, 10), point.value])
+  );
+  const totals = byPeriod('totalRevenue');
+  const fees = byPeriod('platformFees');
+  const tuition = byPeriod('tuitionRevenue');
+  const rows: RevenueRow[] = [];
+  const current = startOfPeriod(data.range.fromDate, granularity);
+  const end = startOfPeriod(data.range.toDate, granularity);
+  while (current <= end && rows.length < 750) {
+    const period = current.toISOString().slice(0, 10);
+    const feeValue = fees.get(period) ?? 0;
+    const tuitionValue = tuition.get(period) ?? 0;
+    rows.push({ period, fees: feeValue, tuition: tuitionValue, total: totals.get(period) ?? feeValue + tuitionValue });
+    if (granularity === 'DAY') current.setUTCDate(current.getUTCDate() + 1);
+    if (granularity === 'WEEK') current.setUTCDate(current.getUTCDate() + 7);
+    if (granularity === 'MONTH') current.setUTCMonth(current.getUTCMonth() + 1);
+  }
+  const limit = { DAY: 365, WEEK: 52, MONTH: 24 }[granularity];
+  return rows.slice(-limit);
+}
+
+function revenuePeriodLabel(period: string, granularity: RevenuePeriod, short = false) {
+  const date = new Date(`${period}T00:00:00Z`);
+  const day = (value: Date) => new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit', month: '2-digit', timeZone: 'UTC'
+  }).format(value);
+  const fullDate = (value: Date) => new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'
+  }).format(value);
+  if (granularity === 'MONTH') return short
+    ? `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`
+    : `Tháng ${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+  if (granularity === 'WEEK') {
+    const end = new Date(date);
+    end.setUTCDate(end.getUTCDate() + 6);
+    return short ? day(date) : `Tuần ${fullDate(date)} đến ${fullDate(end)}`;
+  }
+  return short ? day(date) : `Ngày ${day(date)}/${date.getUTCFullYear()}`;
+}
+
+function RevenueTrendChart({ rows, granularity, selectedPeriod, onSelect }: {
+  rows: RevenueRow[];
+  granularity: RevenuePeriod;
+  selectedPeriod: string;
+  onSelect: (period: string) => void;
+}) {
+  const width = Math.max(900, rows.length * 58 + 110);
+  const height = 300;
+  const left = 70;
+  const right = 24;
+  const top = 27;
+  const bottom = 52;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const baseline = top + plotHeight;
+  const maximum = Math.max(...rows.map((row) => row.total), 1) * 1.12;
+  const slot = plotWidth / rows.length;
+  const barWidth = Math.min(slot * .58, 42);
+  const point = (row: RevenueRow, index: number) => ({
+    x: left + slot * (index + .5),
+    y: baseline - row.total / maximum * plotHeight
+  });
+  return <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img"
+    aria-label={`Cột chồng phí nền tảng và học phí, đường xu hướng tổng doanh thu theo ${granularity === 'DAY' ? 'ngày' : granularity === 'WEEK' ? 'tuần' : 'tháng'}`}>
+    {[0, .5, 1].map((tick) => {
+      const y = baseline - tick * plotHeight;
+      return <g className="statistics-revenue-grid" key={tick}>
+        <line x1={left} y1={y} x2={width - right} y2={y} />
+        <text x={left - 9} y={y + 4} textAnchor="end">{formatAxisValue('total_revenue', maximum * tick)}</text>
+      </g>;
+    })}
+    {rows.map((row, index) => {
+      const { x, y } = point(row, index);
+      const feeHeight = row.fees / maximum * plotHeight;
+      const tuitionHeight = row.tuition / maximum * plotHeight;
+      return <g key={row.period} role="button" tabIndex={0}
+        data-selected={row.period === selectedPeriod}
+        aria-label={`${revenuePeriodLabel(row.period, granularity)}: tổng doanh thu ${formatMetricValue('total_revenue', row.total)}`}
+        onClick={() => onSelect(row.period)}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(row.period); } }}>
+        <title>{revenuePeriodLabel(row.period, granularity)}: {formatMetricValue('total_revenue', row.total)}</title>
+        <rect className="statistics-revenue-fee" x={x - barWidth / 2} y={baseline - feeHeight} width={barWidth} height={feeHeight} rx="3" />
+        <rect className="statistics-revenue-tuition" x={x - barWidth / 2} y={y} width={barWidth} height={tuitionHeight} rx="3" />
+        <rect className="statistics-revenue-hit" x={x - slot / 2} y={top} width={slot} height={plotHeight} />
+        <text className="statistics-revenue-period" x={x} y={height - 19} textAnchor="middle">{revenuePeriodLabel(row.period, granularity, true)}</text>
+      </g>;
+    })}
+    <polyline className="statistics-revenue-line" points={rows.map((row, index) => {
+      const { x, y } = point(row, index);
+      return `${x},${y}`;
+    }).join(' ')} />
+    {rows.map((row, index) => {
+      const { x, y } = point(row, index);
+      return <circle key={row.period} className={row.period === selectedPeriod ? 'statistics-revenue-point is-selected' : 'statistics-revenue-point'} cx={x} cy={y} r={row.period === selectedPeriod ? 6 : 3} />;
+    })}
+    <text className="statistics-revenue-axis-title" x={left} y={14}>VND</text>
+  </svg>;
+}
+
+function comparisonChange(current: number, previous: number | null, reportedChange: number | null = null) {
+  if (previous === null) return { label: '—', tone: 'neutral' };
+  const change = reportedChange ?? (previous === 0
+    ? current === 0 ? 0 : current > 0 ? 100 : -100
+    : (current - previous) / Math.abs(previous) * 100);
+  return {
+    label: `${change > 0 ? '+' : ''}${change.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`,
+    tone: change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral'
+  };
+}
+
+function RevenueComparisonPanel({ data }: { data: StatisticsResponse }) {
+  const rows = revenueRows(data);
+  const granularity = data.range.granularity;
+  const periodName = { DAY: 'ngày', WEEK: 'tuần', MONTH: 'tháng' }[granularity];
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const selectedIndex = Math.max(0, rows.findIndex((row) => row.period === selectedPeriod));
+  const current = selectedPeriod ? rows[selectedIndex] : [...rows].reverse().find((row) => row.total > 0) ?? rows[rows.length - 1];
+  const currentIndex = rows.indexOf(current);
+  const previous = currentIndex > 0 ? rows[currentIndex - 1] : null;
+  const values = [
+    { key: 'total', label: 'Tổng doanh thu', current: current.total, previous: previous?.total ?? null },
+    { key: 'fees', label: 'Phí nền tảng', current: current.fees, previous: previous?.fees ?? null },
+    { key: 'tuition', label: 'Học phí đã thu', current: current.tuition, previous: previous?.tuition ?? null }
+  ];
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const selected = chart?.querySelector<SVGGElement>('[data-selected="true"]');
+    if (!chart || !selected) return;
+    chart.scrollLeft += selected.getBoundingClientRect().left - chart.getBoundingClientRect().left
+      - (chart.clientWidth - selected.getBoundingClientRect().width) / 2;
+  }, [current.period]);
+
+  return <section className="statistics-card statistics-monthly-panel" aria-label={`Biến động doanh thu theo ${periodName}`}>
+    <div className="statistics-monthly-heading">
+      <div>
+        <span>SO SÁNH THEO {periodName.toUpperCase()}</span>
+        <h3>Thu nhập và học phí theo từng {periodName}</h3>
+        <strong>Dữ liệu từ {data.range.fromDate.slice(8, 10)}/{data.range.fromDate.slice(5, 7)}/{data.range.fromDate.slice(0, 4)} đến {data.range.toDate.slice(8, 10)}/{data.range.toDate.slice(5, 7)}/{data.range.toDate.slice(0, 4)}</strong>
+      </div>
+      <div className="statistics-monthly-legend" aria-label="Chú giải biểu đồ">
+        <span><i className="fees" /> Phí nền tảng</span>
+        <span><i className="tuition" /> Học phí</span>
+        <span><i className="total-line" /> Tổng doanh thu</span>
+      </div>
+    </div>
+    <div ref={chartRef} className="statistics-monthly-chart" aria-label={`Biểu đồ cột doanh thu theo ${periodName}`}>
+      <RevenueTrendChart rows={rows} granularity={granularity} selectedPeriod={current.period} onSelect={setSelectedPeriod} />
+    </div>
+    <div className="statistics-monthly-selected-heading">
+      <strong>{revenuePeriodLabel(current.period, granularity)}</strong>
+      <span>{previous ? `So với ${revenuePeriodLabel(previous.period, granularity).toLowerCase()}` : `Chọn một ${periodName} trên biểu đồ để xem chi tiết`}</span>
+    </div>
+    <div className="statistics-monthly-summary" aria-label={`${revenuePeriodLabel(current.period, granularity)} so với ${periodName} trước`}>
+      {values.map((value) => {
+        const change = comparisonChange(value.current, value.previous);
+        return <div className="statistics-monthly-summary-card" key={value.key}>
+          <div className="statistics-monthly-summary-title">
+            <span>{value.label}</span>
+            <span>{revenuePeriodLabel(current.period, granularity)}</span>
+          </div>
+          <strong>{formatMetricValue('total_revenue', value.current)}</strong>
+          <small className={change.tone}>{value.previous === null
+            ? `Chưa có ${periodName} trước trong khoảng lọc`
+            : <>{change.label} so với {periodName} trước: {formatMetricValue('total_revenue', value.previous)}</>}
+          </small>
+        </div>;
+      })}
+    </div>
+    <div className="statistics-monthly-table-wrap">
+      <table className="statistics-monthly-table">
+        <thead><tr><th>{periodName[0].toUpperCase() + periodName.slice(1)}</th><th>Tổng doanh thu</th><th>Phí nền tảng</th><th>Học phí</th><th>So với {periodName} trước</th></tr></thead>
+        <tbody>{rows.map((row, index) => {
+          const change = comparisonChange(row.total, index > 0 ? rows[index - 1].total : null);
+          return <tr key={row.period} className={row.period === current.period ? 'is-selected' : ''}>
+            <td><button type="button" onClick={() => setSelectedPeriod(row.period)}>{revenuePeriodLabel(row.period, granularity)}</button></td>
+            <td>{formatMetricValue('total_revenue', row.total)}</td>
+            <td>{formatMetricValue('total_revenue', row.fees)}</td>
+            <td>{formatMetricValue('total_revenue', row.tuition)}</td>
+            <td><span className={change.tone}>{change.label}</span></td>
+          </tr>;
+        })}</tbody>
+      </table>
+    </div>
+  </section>;
 }
 
 function MetricDetail({ metricKey, data, onClose, onSelectReport }: {
@@ -784,29 +1005,30 @@ function MetricDetail({ metricKey, data, onClose, onSelectReport }: {
 function MetricCard({
   metricKey,
   metric,
+  periodLabel,
   comparisonLabel,
   onClick
 }: {
   metricKey: string;
   metric: StatisticsMetric;
+  periodLabel: string;
   comparisonLabel: string;
   onClick?: () => void;
 }) {
-  const change = metric.changePercent;
-  const trend = change === null || change === 0 ? 'neutral' : change > 0 ? 'positive' : 'negative';
+  const change = comparisonChange(metric.value, metric.previousValue, metric.changePercent);
   const content = (
     <>
       <div className="statistics-metric-top">
-        <span>{METRIC_LABELS[metricKey] ?? humanize(metricKey)}</span>
+        <div>
+          <span>{METRIC_LABELS[metricKey] ?? humanize(metricKey)}</span>
+          <small>{periodLabel}</small>
+        </div>
         {onClick && <b aria-hidden="true">Xem chi tiết ↓</b>}
       </div>
       <strong title={String(metric.value)}>{formatMetricValue(metricKey, metric.value)}</strong>
-      <div className={`statistics-change ${trend}`}>
-        <b>
-          {trend === 'positive' ? '↗' : trend === 'negative' ? '↘' : '→'}{' '}
-          {change === null ? 'Mới' : `${Math.abs(change).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`}
-        </b>
-        <span>{comparisonLabel} · {formatMetricValue(metricKey, metric.previousValue)}</span>
+      <div className={`statistics-change ${change.tone}`}>
+        <b>{change.label}</b>
+        <span>{comparisonLabel}: {formatMetricValue(metricKey, metric.previousValue)}</span>
       </div>
     </>
   );
@@ -831,17 +1053,12 @@ function MetricTable({ metrics }: { metrics: [string, StatisticsMetric][] }) {
       </div>
       <div className="statistics-detail-list">
         {metrics.map(([key, metric]) => {
-          const change = metric.changePercent;
-          const trend = change === null || change === 0 ? 'neutral' : change > 0 ? 'positive' : 'negative';
+          const change = comparisonChange(metric.value, metric.previousValue, metric.changePercent);
           return (
             <div className="statistics-detail-row" key={key}>
               <span>{METRIC_LABELS[key] ?? humanize(key)}</span>
               <strong>{formatMetricValue(key, metric.value)}</strong>
-              <small className={trend}>
-                {change === null
-                  ? 'Mới'
-                  : `${change > 0 ? '+' : ''}${change.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`}
-              </small>
+              <small className={change.tone}>{change.label}</small>
             </div>
           );
         })}
