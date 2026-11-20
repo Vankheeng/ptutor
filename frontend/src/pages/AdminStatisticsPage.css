@@ -968,3 +968,16 @@
 .statistics-drilldown-actions button, .statistics-drilldown-actions a { padding: 0; border: 0; background: transparent; color: #6436c1; font: inherit; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .statistics-column-chart .statistics-axis-title { fill: #665f72; font-size: 12px; font-weight: 700; }
 .statistics-column-chart .statistics-axis-line { stroke: #bfb8c9; }
+.statistics-month-compare { display: flex; align-items: end; gap: 16px; margin: 14px 0 22px; padding: 18px 22px; border: 1px solid #e7ddf8; border-radius: 15px; background: linear-gradient(110deg, #f0eaff, #fff); }
+.statistics-month-compare > div { display: grid; gap: 5px; margin-right: auto; }
+.statistics-month-compare > div strong { color: #332152; font-size: 16px; }
+.statistics-month-compare > div span, .statistics-month-compare label span { color: #756986; font-size: 12px; }
+.statistics-month-compare label { display: grid; gap: 5px; }
+.statistics-month-compare input { min-height: 39px; padding: 8px 12px; border: 1px solid #dcd1ec; border-radius: 9px; background: #fff; color: #302443; font: inherit; }
+.statistics-month-compare button { min-height: 39px; padding: 0 18px; border: 0; border-radius: 9px; background: #6736d6; color: white; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.statistics-month-compare button:hover { background: #5123b8; }
+.statistics-comparison-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin: 4px 0 15px; }
+.statistics-comparison-heading span { color: #7651b7; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.statistics-comparison-heading strong { color: #342a45; font-size: 16px; }
+.statistics-drilldown-actions button { padding: 9px 13px; border: 1px solid #d9c8f5; border-radius: 8px; background: #f8f4ff; }
+@media (max-width: 700px) { .statistics-month-compare { align-items: stretch; flex-direction: column; } .statistics-month-compare > div { margin-right: 0; } }

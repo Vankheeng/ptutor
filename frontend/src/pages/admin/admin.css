@@ -31,7 +31,7 @@ html:has(.admin-shell) {
 
 /* Layout */
 .admin-sidebar {
-  flex: 1 1 240px;
+  flex: 0 0 280px;
   max-width: 100%;
   padding: 24px 16px;
   display: flex;
@@ -70,8 +70,9 @@ html:has(.admin-shell) {
   text-decoration: none;
 }
 .admin-brand img {
-  width: 36px;
-  height: 36px;
+  width: 104px;
+  height: 42px;
+  object-fit: contain;
 }
 .admin-nav {
   display: grid;
@@ -91,16 +92,29 @@ html:has(.admin-shell) {
 .admin-nav-group {
   display: grid;
   gap: 4px;
-  margin-left: 16px;
+  margin-left: 8px;
   padding-left: 8px;
   border-left: 1px solid var(--admin-border);
 }
 .admin-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
   padding: 12px;
   border-radius: 10px;
   color: var(--admin-muted);
   font-size: 15px;
   text-decoration: none;
+}
+.admin-nav-icon {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .admin-nav a:hover,
 .admin-nav a.active {
@@ -1132,6 +1146,9 @@ html:has(.admin-shell) {
 }
 
 @media (max-width: 900px) {
+  .admin-sidebar {
+    flex: 0 0 100%;
+  }
   .admin-main {
     padding: 24px 16px 48px;
   }

@@ -46,6 +46,17 @@ public class AdminStatisticsService {
                 select
                   (select coalesce(sum(amount), 0) from payments
                     where deleted_at is null and paid_at >= :from and paid_at < :to
+                      and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT')
+                      and status = 'PAID') as total_revenue,
+                  (select coalesce(sum(amount), 0) from payments
+                    where deleted_at is null and paid_at >= :from and paid_at < :to
+                      and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
+                      and status = 'PAID') as platform_fees,
+                  (select coalesce(sum(amount), 0) from payments
+                    where deleted_at is null and paid_at >= :from and paid_at < :to
+                      and payment_type = 'TUITION_PAYMENT' and status = 'PAID') as tuition_revenue,
+                  (select coalesce(sum(amount), 0) from payments
+                    where deleted_at is null and paid_at >= :from and paid_at < :to
                       and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
                       and status in ('PAID', 'REFUNDED')) as platform_revenue_gross,
                   (select coalesce(sum(amount), 0) from payments
@@ -75,6 +86,12 @@ public class AdminStatisticsService {
                       and status in ('PENDING', 'PROCESSING')) as pending_withdrawals
                 """;
         Map<String, String> series = new LinkedHashMap<>();
+        series.put("totalRevenue", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT') and status = 'PAID'", "sum(amount)"));
+        series.put("platformFees", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status = 'PAID'", "sum(amount)"));
+        series.put("tuitionRevenue", paymentSeries(
+                "payment_type = 'TUITION_PAYMENT' and status = 'PAID'", "sum(amount)"));
         series.put("platformRevenue", paymentSeries(
                 "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')", "sum(amount)"));
         series.put("signedContracts", timestampSeries("contracts", "signed_at", "count(*)", "signed_at is not null"));
@@ -405,6 +422,14 @@ public class AdminStatisticsService {
         ReportContext context = context(fromDate, toDate, timezone, granularity);
         String metrics = """
                 select
+                  coalesce(sum(amount) filter (where payment_type in
+                      ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT')
+                      and status = 'PAID'), 0) as total_revenue,
+                  coalesce(sum(amount) filter (where payment_type in
+                      ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
+                      and status = 'PAID'), 0) as platform_fees,
+                  coalesce(sum(amount) filter (where payment_type = 'TUITION_PAYMENT'
+                      and status = 'PAID'), 0) as tuition_revenue,
                   coalesce(sum(amount) filter (where payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
                       and status in ('PAID', 'REFUNDED')), 0) as platform_revenue_gross,
                   coalesce(sum(amount) filter (where payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
@@ -422,6 +447,12 @@ public class AdminStatisticsService {
         breakdowns.put("paymentType", paidPaymentBreakdown("payment_type"));
         breakdowns.put("paymentMethod", paidPaymentBreakdown("payment_method"));
         Map<String, String> series = new LinkedHashMap<>();
+        series.put("totalRevenue", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT') and status = 'PAID'", "sum(amount)"));
+        series.put("platformFees", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status = 'PAID'", "sum(amount)"));
+        series.put("tuitionRevenue", paymentSeries(
+                "payment_type = 'TUITION_PAYMENT' and status = 'PAID'", "sum(amount)"));
         series.put("platformRevenue", paymentSeries(
                 "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')", "sum(amount)"));
         series.put("tuitionVolume", paymentSeries("payment_type = 'TUITION_PAYMENT'", "sum(amount)"));
@@ -656,7 +687,12 @@ public class AdminStatisticsService {
         }
         StatisticsGranularity effectiveGranularity = granularity == null ? automaticGranularity(days) : granularity;
         LocalDate previousTo = effectiveFrom.minusDays(1);
-        LocalDate previousFrom = previousTo.minusDays(days - 1);
+        LocalDate previousFrom = effectiveGranularity == StatisticsGranularity.MONTH
+                && effectiveFrom.getDayOfMonth() == 1
+                && effectiveTo.equals(effectiveTo.withDayOfMonth(effectiveTo.lengthOfMonth()))
+                ? effectiveFrom.minusMonths(ChronoUnit.MONTHS.between(
+                        effectiveFrom, effectiveTo.withDayOfMonth(1)) + 1)
+                : previousTo.minusDays(days - 1);
         return new ReportContext(effectiveFrom, effectiveTo, previousFrom, previousTo, zone, effectiveGranularity);
     }
 
