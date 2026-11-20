@@ -618,7 +618,8 @@ public class AdminStatisticsService {
                 select u.status as bucket, count(*) as value from employees e join users u on u.id = e.user_id
                 where e.deleted_at is null and u.deleted_at is null group by u.status order by u.status
                 """);
-        return report("EMPLOYEES", context, metrics, breakdowns, Map.of());
+        return report("EMPLOYEES", context, metrics, breakdowns,
+                Map.of("registrations", timestampSeries("employees", "created_at", "count(*)", "true")));
     }
 
     private StatisticsReportResponse report(

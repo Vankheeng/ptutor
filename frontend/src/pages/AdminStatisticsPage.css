@@ -408,6 +408,8 @@
   background: #e8f8f0;
   color: #14885f;
 }
+.statistics-change.positive span { color: #14704a; }
+.statistics-change.negative span { color: #b02f4b; }
 .statistics-change.negative b {
   background: #fff0f1;
   color: #c64b56;
@@ -911,7 +913,7 @@
 .statistics-metric-top { font-size: 13px; }
 .statistics-metric > strong { margin: 18px 0 12px; }
 .statistics-change, .statistics-detail-row > span, .statistics-detail-row strong, .statistics-bar-row > div:first-child, .statistics-bar-row b { font-size: 12px; }
-.statistics-analysis-grid { grid-template-columns: minmax(0, 1.65fr) minmax(260px, .8fr); gap: 14px; }
+.statistics-analysis-grid { grid-template-columns: 1fr; gap: 14px; }
 .statistics-card { border-radius: 14px; }
 .statistics-chart-section, .statistics-detail-card, .statistics-breakdown { padding: 21px; }
 .statistics-series-tabs button, .statistics-card-heading.compact h3, .statistics-section-heading p, .statistics-generated { font-size: 12px; }
