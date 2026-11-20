@@ -31,8 +31,8 @@ export function AdminUserAccountDetailPage() {
 
   return (
     <div className="admin-page">
-      <Link className="admin-back" to="/admin/accounts">
-        ‹ Tài khoản người dùng
+      <Link className="admin-back" to={data.role === 'TUTOR' ? '/admin/tutors' : '/admin/students'}>
+        ‹ Danh sách {data.role === 'TUTOR' ? 'gia sư' : 'học viên'}
       </Link>
       <header className="admin-card admin-card-pad admin-account-header">
         <div className="admin-account-identity">
@@ -49,7 +49,7 @@ export function AdminUserAccountDetailPage() {
         </div>
         <div className="admin-button-row">
           {data.role === 'TUTOR' && (
-            <Link className="admin-button secondary" to={`/admin/tutor-profiles/${data.userId}`}>
+            <Link className="admin-button secondary" to={`/admin/tutors/${data.userId}`}>
               Xem hồ sơ gia sư
             </Link>
           )}
