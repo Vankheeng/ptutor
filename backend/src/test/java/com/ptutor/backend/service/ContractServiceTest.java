@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,8 +25,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.ptutor.backend.dto.request.ContractTermsRequest;
+import com.ptutor.backend.dto.request.ContractScheduleRequest;
 import com.ptutor.backend.dto.request.ContractUpdateRequest;
 import com.ptutor.backend.dto.request.TutorContractCreateRequest;
 import com.ptutor.backend.entity.Contract;
@@ -68,6 +71,7 @@ class ContractServiceTest {
     @Mock ContractMapper contractMapper;
     @Mock ContractTimeProvider contractTimeProvider;
     @Mock ContractPaymentInstallmentService installmentService;
+    @Mock ContractLessonProvisioningService lessonProvisioningService;
 
     private ContractService service;
     private UUID studentUserId;
@@ -94,6 +98,7 @@ class ContractServiceTest {
                 contractMapper,
                 contractTimeProvider,
                 installmentService);
+        ReflectionTestUtils.setField(service, "lessonProvisioningService", lessonProvisioningService);
 
         studentUserId = UUID.randomUUID();
         tutorUserId = UUID.randomUUID();
@@ -143,6 +148,7 @@ class ContractServiceTest {
         assertThat(saved.getTeachingMode()).isEqualTo(TeachingMode.ONLINE);
         assertThat(saved.getCreatedBy()).isSameAs(student.getUser());
         assertThat(saved.getTutorStudentRequest()).isSameAs(tutorRequest);
+        verify(lessonProvisioningService).provision(saved);
     }
 
     @Test
@@ -256,6 +262,7 @@ class ContractServiceTest {
         assertThat(captor.getValue().getTeachingMode()).isEqualTo(TeachingMode.OFFLINE);
         assertThat(captor.getValue().getCreatedBy()).isSameAs(tutor.getUser());
         assertThat(captor.getValue().getStudentTutorRequest()).isSameAs(studentRequest);
+        verify(lessonProvisioningService).provision(captor.getValue());
     }
 
     @Test
@@ -315,6 +322,22 @@ class ContractServiceTest {
     }
 
     @Test
+    void listsContractsOnlyForTheRequestedCounterpartyAndCurrentParticipant() {
+        UUID counterpartyId = UUID.randomUUID();
+        Contract contract = studentOriginContract(ContractStatus.ACTIVE);
+        when(contractRepository.findAllSharedWithParticipant(
+                eq(studentUserId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(contract), PageRequest.of(0, 10), 1));
+
+        var response = service.findSharedWith(studentUserId, counterpartyId, ContractStatus.ACTIVE, PageRequest.of(0, 10));
+
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.content()).hasSize(1);
+        verify(contractRepository).findAllSharedWithParticipant(
+                eq(studentUserId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class));
+    }
+
+    @Test
     void hidesContractDetailsFromNonParticipants() {
         UUID contractId = UUID.randomUUID();
         when(contractRepository.findDetailedByIdAndParticipantUserId(contractId, studentUserId))
@@ -328,7 +351,7 @@ class ContractServiceTest {
     }
 
     @Test
-    void studentCreatorCanUpdateOnlyPriceAndScheduleWhilePending() {
+    void studentCreatorCanUpdatePriceAndScheduleWhilePending() {
         Contract contract = studentOriginContract(ContractStatus.PENDING);
         when(contractTimeProvider.today()).thenReturn(LocalDate.of(2026, 9, 1));
         when(contractRepository.findDetailedByIdAndParticipantUserIdForUpdate(contract.getId(), studentUserId))
@@ -340,6 +363,64 @@ class ContractServiceTest {
 
         assertThat(contract.getPrice()).isEqualByComparingTo("300000");
         assertThat(contract.getPreferredSchedule()).isEqualTo("Wednesday evening");
+    }
+
+    @Test
+    void studentCreatorCanUpdateAllEditableTermsWhilePending() {
+        Contract contract = studentOriginContract(ContractStatus.PENDING);
+        when(contractTimeProvider.today()).thenReturn(LocalDate.of(2026, 9, 1));
+        when(contractRepository.findDetailedByIdAndParticipantUserIdForUpdate(contract.getId(), studentUserId))
+                .thenReturn(Optional.of(contract));
+        when(contractRepository.saveAndFlush(contract)).thenReturn(contract);
+
+        service.update(studentUserId, contract.getId(), new ContractUpdateRequest(
+                BigDecimal.valueOf(250_000), PaymentPeriod.PER_LESSON, null, null,
+                LocalDate.of(2026, 9, 2), LocalDate.of(2026, 9, 16), null,
+                List.of(new ContractScheduleRequest(3, LocalTime.of(18, 0), LocalTime.of(19, 0)))));
+
+        assertThat(contract.getPrice()).isEqualByComparingTo("250000");
+        assertThat(contract.getPaymentPeriod()).isEqualTo(PaymentPeriod.PER_LESSON);
+        assertThat(contract.getEndDate()).isEqualTo(LocalDate.of(2026, 9, 16));
+        assertThat(contract.getTotalLession()).isEqualTo(3);
+        assertThat(contract.getSchedules()).hasSize(1);
+        verify(lessonProvisioningService).syncPendingLessons(contract);
+    }
+
+    @Test
+    void counterpartyCannotEditPendingContract() {
+        Contract contract = studentOriginContract(ContractStatus.PENDING);
+        when(contractRepository.findDetailedByIdAndParticipantUserIdForUpdate(contract.getId(), tutorUserId))
+                .thenReturn(Optional.of(contract));
+
+        assertThatThrownBy(() -> service.update(tutorUserId, contract.getId(), new ContractUpdateRequest(
+                BigDecimal.valueOf(250_000), null, null, null, null, null, null)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getCode()).isEqualTo("CONTRACT_CREATOR_REQUIRED");
+                });
+        verify(contractRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void tutorCreatorCanUpdateAllEditableTermsWhilePending() {
+        Contract contract = studentOriginContract(ContractStatus.PENDING);
+        contract.setCreatedBy(tutor.getUser());
+        contract.setTutorStudentRequest(null);
+        contract.setStudentTutorRequest(StudentTutorRequest.builder()
+                .teachingRequest(teachingRequest(RequestStatus.MATCHED)).grade(grade).build());
+        when(contractTimeProvider.today()).thenReturn(LocalDate.of(2026, 9, 1));
+        when(contractRepository.findDetailedByIdAndParticipantUserIdForUpdate(contract.getId(), tutorUserId))
+                .thenReturn(Optional.of(contract));
+        when(contractRepository.saveAndFlush(contract)).thenReturn(contract);
+
+        service.update(tutorUserId, contract.getId(), new ContractUpdateRequest(
+                BigDecimal.valueOf(180_000), PaymentPeriod.WEEKLY, null, null,
+                LocalDate.of(2026, 9, 2), LocalDate.of(2026, 9, 16), null,
+                List.of(new ContractScheduleRequest(3, LocalTime.of(18, 0), LocalTime.of(19, 0)))));
+
+        assertThat(contract.getPaymentPeriod()).isEqualTo(PaymentPeriod.WEEKLY);
+        assertThat(contract.getTotalLession()).isEqualTo(3);
+        assertThat(contract.getSchedules()).hasSize(1);
     }
 
     @Test
@@ -376,6 +457,7 @@ class ContractServiceTest {
                 eq(contract.getId()), eq(tutorUserId), eq(tutor.getUser()), eq(ContractStatus.PENDING),
                 eq(ContractStatus.ACTIVE), any(), any());
         verify(installmentService).ensureForActiveContract(activeContract);
+        verify(lessonProvisioningService).provision(activeContract);
     }
 
     @Test

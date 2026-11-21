@@ -1,0 +1,19 @@
+.tutor-discovery-tabs {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e8e3f0;
+}
+.tutor-discovery-tabs a {
+  padding: 10px 14px;
+  border-bottom: 2px solid transparent;
+  color: #6c7186;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.tutor-discovery-tabs a.active {
+  border-color: #6736d6;
+  color: #6736d6;
+}

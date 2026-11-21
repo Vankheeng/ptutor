@@ -66,8 +66,8 @@ export function StudentContractLessonsPage() {
 
   const load = useCallback(
     async (signal: AbortSignal) => {
-      const [contract, lessons, requests] = await Promise.all([
-        getContract(contractId),
+      const contract = await getContract(contractId);
+      const [lessons, requests] = await Promise.all([
         getStudentContractLessons(contractId, signal),
         getMyRefundRequests(0, signal)
       ]);

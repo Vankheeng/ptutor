@@ -1235,6 +1235,50 @@ Khi từ chối, ví không thay đổi và các buổi bị phản đối đư�
 | `NOTHING_TO_REFUND` (`409`) | Mọi buổi được kết luận `TAUGHT` |
 | `REFUND_AMOUNT_CHANGED` (`409`) | `expectedAmount` khác số tiền backend tính lại |
 
+### 6.24. API Admin xem thống kê
+
+Các API thống kê chỉ dành cho role `ADMIN`. Báo cáo sử dụng dữ liệu hiện có trong database, không tái dựng
+lịch sử chuyển trạng thái. Khoảng ngày mặc định là 30 ngày gần nhất theo `Asia/Ho_Chi_Minh`, tối đa 731 ngày.
+Mỗi metric trả thêm giá trị của kỳ liền trước có cùng số ngày và phần trăm thay đổi. Nếu kỳ trước bằng `0`,
+`changePercent` là `null`.
+
+| Method | Endpoint | Nội dung |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/statistics/overview` | KPI và chuỗi thời gian tổng quan |
+| `GET` | `/api/v1/admin/statistics/students` | Tăng trưởng, trạng thái, độ tuổi, giới tính và hoạt động học viên |
+| `GET` | `/api/v1/admin/statistics/tutors` | Tăng trưởng, xác minh, kinh nghiệm và hoạt động gia sư |
+| `GET` | `/api/v1/admin/statistics/studying-requests` | Yêu cầu tìm gia sư theo trạng thái, môn, lớp, khu vực và hình thức học |
+| `GET` | `/api/v1/admin/statistics/teaching-requests` | Yêu cầu dạy theo trạng thái, môn, lớp và hình thức dạy |
+| `GET` | `/api/v1/admin/statistics/matching` | Đề nghị ghép nối hai chiều và tỷ lệ chấp nhận |
+| `GET` | `/api/v1/admin/statistics/contracts` | Hợp đồng, ký, hoàn thành, gia hạn, môn, lớp và chu kỳ thanh toán |
+| `GET` | `/api/v1/admin/statistics/lessons` | Buổi học, thời lượng, trạng thái, môn và hình thức dạy |
+| `GET` | `/api/v1/admin/statistics/finance` | Doanh thu phí nền tảng và tổng giá trị học phí |
+| `GET` | `/api/v1/admin/statistics/payments` | Thanh toán theo trạng thái, loại và phương thức |
+| `GET` | `/api/v1/admin/statistics/installments` | Kỳ thanh toán, số tiền đã trả, chưa trả và quá hạn |
+| `GET` | `/api/v1/admin/statistics/wallets` | Số dư hiện tại và giao dịch ví theo loại, mục đích, trạng thái |
+| `GET` | `/api/v1/admin/statistics/withdrawals` | Yêu cầu rút tiền, trạng thái, ngân hàng và thời gian xử lý |
+| `GET` | `/api/v1/admin/statistics/employees` | Nhân viên và khối lượng nghiệp vụ hiện được ghi nhận |
+
+Tất cả endpoint trên dùng chung các query parameter:
+
+| Parameter | Bắt buộc | Mặc định | Quy tắc |
+| --- | --- | --- | --- |
+| `fromDate` | Không | 29 ngày trước `toDate` | Ngày bắt đầu, định dạng `yyyy-MM-dd` |
+| `toDate` | Không | Ngày hiện tại | Ngày kết thúc, định dạng `yyyy-MM-dd` |
+| `timezone` | Không | `Asia/Ho_Chi_Minh` | Múi giờ IANA hợp lệ |
+| `granularity` | Không | Tự động | Nhận `DAY`, `WEEK` hoặc `MONTH` |
+
+Ví dụ:
+
+```text
+GET /api/v1/admin/statistics/finance?fromDate=2026-09-01&toDate=2026-09-30&timezone=Asia/Ho_Chi_Minh&granularity=DAY
+```
+
+`granularity` nhận `DAY`, `WEEK` hoặc `MONTH`. Khi bỏ trống, backend tự chọn theo độ dài khoảng báo cáo.
+Response dùng cấu trúc chung gồm `metrics`, `breakdowns`, `series`, `range` và `generatedAt`. Do payment chưa lưu
+thời điểm hoàn tiền riêng, `platform_fees_currently_refunded` biểu diễn các khoản của kỳ được chọn hiện đang mang
+trạng thái `REFUNDED`, không phải số tiền được hoàn ngay trong kỳ.
+
 ### 7. Khởi động Frontend
 
 Mở terminal mới:

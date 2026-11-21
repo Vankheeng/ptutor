@@ -78,20 +78,17 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
 
   return (
     <div className="rec-area">
-      <div className="rec-segmented" role="radiogroup" aria-label="Phạm vi khu vực">
+      <select
+        value={scope}
+        onChange={(event) => chooseScope(event.target.value as AreaScope | 'DEFAULT')}
+        aria-label="Phạm vi khu vực"
+      >
         {SCOPES.map((option) => (
-          <button
-            key={option.scope}
-            type="button"
-            role="radio"
-            aria-checked={scope === option.scope}
-            className={scope === option.scope ? 'active' : ''}
-            onClick={() => chooseScope(option.scope)}
-          >
+          <option key={option.scope} value={option.scope}>
             {option.label}
-          </button>
+          </option>
         ))}
-      </div>
+      </select>
       {(scope === 'DISTRICTS' || scope === 'PROVINCE') && (
         <select value={provinceId} onChange={(event) => chooseProvince(event.target.value)} aria-label="Tỉnh / thành">
           <option value="">Chọn tỉnh / thành</option>
@@ -113,16 +110,30 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
               ))}
             </div>
           )}
-          <button className="rec-district-toggle" type="button" aria-expanded={districtsOpen} onClick={() => setDistrictsOpen(!districtsOpen)}>
+          <button
+            className="rec-district-toggle"
+            type="button"
+            aria-expanded={districtsOpen}
+            onClick={() => setDistrictsOpen(!districtsOpen)}
+          >
             {selected.length ? `Đổi / thêm quận (${selected.length} đã chọn)` : 'Chọn quận / phường'}
           </button>
           {districtsOpen && (
             <div className="rec-district-panel">
-              <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm quận / phường" aria-label="Tìm quận / phường" />
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm quận / phường"
+                aria-label="Tìm quận / phường"
+              />
               <div className="rec-checklist">
                 {visible.map((district) => (
                   <label key={district.id}>
-                    <input type="checkbox" checked={selected.includes(district.id)} onChange={() => toggleDistrict(district.id)} />
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(district.id)}
+                      onChange={() => toggleDistrict(district.id)}
+                    />
                     {district.name}
                   </label>
                 ))}

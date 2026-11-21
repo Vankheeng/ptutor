@@ -32,6 +32,8 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.StudentTutorRequestMapper;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.GradeTeachingRequestRepository;
+import com.ptutor.backend.repository.ContractRepository;
+import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
 import com.ptutor.backend.repository.TeachingRequestRepository;
@@ -50,6 +52,8 @@ public class StudentTutorRequestService {
     private final ApplicationEventPublisher eventPublisher;
     /** Null when the service is built without one (unit tests): no willingness snapshots are written. */
     private final DecisionSnapshotRecorder snapshotRecorder;
+    private final ContractRepository contractRepository;
+    private final DistrictRepository districtRepository;
 
     @Autowired
     public StudentTutorRequestService(
@@ -61,6 +65,8 @@ public class StudentTutorRequestService {
             GradeRepository gradeRepository,
             GradeTeachingRequestRepository gradeTeachingRequestRepository,
             ApplicationEventPublisher eventPublisher,
+            ContractRepository contractRepository,
+            DistrictRepository districtRepository,
             DecisionSnapshotRecorder snapshotRecorder) {
         this.studentTutorRequestRepository = studentTutorRequestRepository;
         this.teachingRequestRepository = teachingRequestRepository;
@@ -71,6 +77,8 @@ public class StudentTutorRequestService {
         this.gradeTeachingRequestRepository = gradeTeachingRequestRepository;
         this.eventPublisher = eventPublisher;
         this.snapshotRecorder = snapshotRecorder;
+        this.contractRepository = contractRepository;
+        this.districtRepository = districtRepository;
     }
 
     public StudentTutorRequestService(
@@ -82,7 +90,35 @@ public class StudentTutorRequestService {
             GradeRepository gradeRepository,
             GradeTeachingRequestRepository gradeTeachingRequestRepository) {
         this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
-                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { }, null);
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { }, null, null, null);
+    }
+
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, eventPublisher, null, null, null);
+    }
+
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ApplicationEventPublisher eventPublisher,
+            DecisionSnapshotRecorder snapshotRecorder) {
+        this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, eventPublisher,
+                null, null, snapshotRecorder);
     }
 
     @Transactional(readOnly = true)
@@ -96,7 +132,15 @@ public class StudentTutorRequestService {
                         .findAllByTeachingRequest_IdOrderByCreatedAtDesc(teachingRequestId)
                 : studentTutorRequestRepository
                         .findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(teachingRequestId, status);
-        return requests.stream().map(studentTutorRequestMapper::toResponse).toList();
+        return requests.stream().map(this::toResponse).toList();
+    }
+
+    private StudentTutorRequestResponse toResponse(StudentTutorRequest request) {
+        UUID contractId = contractRepository == null
+                ? null
+                : contractRepository.findIdByStudentTutorRequestIdAndStatusNot(
+                        request.getId(), com.ptutor.backend.entity.enums.ContractStatus.CANCELLED).orElse(null);
+        return studentTutorRequestMapper.toResponse(request).withContractId(contractId);
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +148,7 @@ public class StudentTutorRequestService {
         UUID userId, UUID teachingRequestId, UUID requestId) {
         Tutor tutor = findTutorByUserId(userId);
         ensureTeachingRequestBelongsToTutor(teachingRequestId, tutor.getId());
-        return studentTutorRequestMapper.toResponse(findRequest(requestId, teachingRequestId));
+        return toResponse(findRequest(requestId, teachingRequestId));
     }
 
     @Transactional
@@ -134,13 +178,25 @@ public class StudentTutorRequestService {
             if (acceptedCount >= teachingRequest.getQuantity()) {
                 teachingRequest.setStatus(RequestStatus.MATCHED);
                 teachingRequestRepository.saveAndFlush(teachingRequest);
+                var remainingApplications = studentTutorRequestRepository
+                        .findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(
+                                teachingRequestId, ApplicationStatus.PENDING);
+                remainingApplications.forEach(remaining -> remaining.setStatus(ApplicationStatus.REJECTED));
+                if (!remainingApplications.isEmpty()) {
+                    studentTutorRequestRepository.saveAllAndFlush(remainingApplications);
+                    remainingApplications.forEach(remaining -> eventPublisher.publishEvent(NotificationDomainEvent.of(
+                            remaining.getStudent().getUser().getId(),
+                            NotificationEventType.STUDENT_REQUEST_REJECTED,
+                            NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                            remaining.getId(), java.util.Map.of())));
+                }
             }
             eventPublisher.publishEvent(NotificationDomainEvent.of(
                     request.getStudent().getUser().getId(),
                     NotificationEventType.STUDENT_REQUEST_ACCEPTED,
                     NotificationReferenceType.STUDENT_TUTOR_REQUEST,
                     savedRequest.getId(), java.util.Map.of()));
-            return studentTutorRequestMapper.toResponse(savedRequest);
+            return toResponse(savedRequest);
         } else {
             request.setStatus(ApplicationStatus.REJECTED);
             request.setRespondedAt(LocalDateTime.now());
@@ -152,7 +208,7 @@ public class StudentTutorRequestService {
                 NotificationEventType.STUDENT_REQUEST_REJECTED,
                 NotificationReferenceType.STUDENT_TUTOR_REQUEST,
                 savedRequest.getId(), java.util.Map.of()));
-        return studentTutorRequestMapper.toResponse(savedRequest);
+        return toResponse(savedRequest);
     }
 
     @Transactional
@@ -199,6 +255,7 @@ public class StudentTutorRequestService {
         DecisionSnapshotRecorder.Prepared snapshots = snapshotRecorder == null ? null
                 : snapshotRecorder.prepareStudentApplication(
                         student, teachingRequest, grade, source.proposedPrice(), source.learningMode());
+        var preferredLocation = resolvePreferredLocation(source);
         StudentTutorRequest request = StudentTutorRequest.builder()
                 .student(student)
                 .grade(grade)
@@ -206,6 +263,10 @@ public class StudentTutorRequestService {
                 .proposedPrice(source.proposedPrice())
                 .learningMode(source.learningMode())
                 .preferredSchedule(normalize(source.preferredSchedule()))
+                .preferredProvince(preferredLocation.province())
+                .preferredDistrict(preferredLocation.district())
+                .detailAddress(source.learningMode() == com.ptutor.backend.entity.enums.LearningMode.OFFLINE
+                        ? normalize(source.detailAddress()) : null)
                 .message(normalize(source.message()))
                 .status(ApplicationStatus.PENDING)
                 .build();
@@ -298,6 +359,11 @@ public class StudentTutorRequestService {
         request.setProposedPrice(source.proposedPrice());
         request.setLearningMode(source.learningMode());
         request.setPreferredSchedule(normalize(source.preferredSchedule()));
+        var preferredLocation = resolvePreferredLocation(source);
+        request.setPreferredProvince(preferredLocation.province());
+        request.setPreferredDistrict(preferredLocation.district());
+        request.setDetailAddress(source.learningMode() == com.ptutor.backend.entity.enums.LearningMode.OFFLINE
+                ? normalize(source.detailAddress()) : null);
         request.setMessage(normalize(source.message()));
         return studentTutorRequestMapper.toMineResponse(
                 studentTutorRequestRepository.saveAndFlush(request));
@@ -345,6 +411,42 @@ public class StudentTutorRequestService {
     private String normalize(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
+
+    private PreferredLocation resolvePreferredLocation(StudentTutorRequestCreateRequest source) {
+        return resolvePreferredLocation(source.learningMode(), source.preferredProvinceId(), source.preferredDistrictId());
+    }
+
+    private PreferredLocation resolvePreferredLocation(StudentTutorRequestUpdateRequest source) {
+        return resolvePreferredLocation(source.learningMode(), source.preferredProvinceId(), source.preferredDistrictId());
+    }
+
+    private PreferredLocation resolvePreferredLocation(
+            com.ptutor.backend.entity.enums.LearningMode learningMode,
+            UUID preferredProvinceId,
+            UUID preferredDistrictId) {
+        if (learningMode != com.ptutor.backend.entity.enums.LearningMode.OFFLINE) {
+            return new PreferredLocation(null, null);
+        }
+        if (districtRepository == null) {
+            return new PreferredLocation(null, null);
+        }
+        if (preferredProvinceId == null || preferredDistrictId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Province and district are required for in-person applications");
+        }
+        var district = districtRepository.findById(preferredDistrictId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                        "Selected district was not found"));
+        var province = district.getProvince();
+        if (province == null || !province.getId().equals(preferredProvinceId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Selected district does not belong to the selected province");
+        }
+        return new PreferredLocation(province, district);
+    }
+
+    private record PreferredLocation(com.ptutor.backend.entity.Province province,
+                                     com.ptutor.backend.entity.District district) { }
 
     private StudentTutorRequest findRequest(UUID requestId, UUID teachingRequestId) {
         return studentTutorRequestRepository

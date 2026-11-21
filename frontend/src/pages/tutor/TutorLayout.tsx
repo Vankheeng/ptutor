@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import logo from '../../assets/ptutor-logo.svg';
@@ -14,21 +13,18 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
   { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
   { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
-  { section: 'TEACHING', to: '/tutor/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
-  { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
+  { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: 'bell' },
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
   { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
   { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
-  { section: 'ACCOUNT', to: '/tutor/certificates', label: 'Chứng chỉ', icon: 'award' },
   { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: 'user' }
 ];
 
 const sectionLabels = { WORKSPACE: '', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
 
 export function TutorLayout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const fullName =
@@ -41,7 +37,7 @@ export function TutorLayout() {
     .toUpperCase();
 
   return (
-    <div className={`tutor-shell${sidebarCollapsed ? ' tutor-shell-collapsed' : ''}`}>
+    <div className="tutor-shell">
       <header className="tutor-topbar">
         <div className="tutor-topbar-brand">
           <NavLink className="tutor-brand" to="/tutor/dashboard" aria-label="Ptutor dashboard">
@@ -66,17 +62,6 @@ export function TutorLayout() {
             <small>Gia sư</small>
           </span>
         </div>
-        <button
-          className="tutor-sidebar-toggle"
-          type="button"
-          aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-          aria-pressed={sidebarCollapsed}
-          onClick={() => setSidebarCollapsed((value) => !value)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 16 16">
-            <path d={sidebarCollapsed ? 'm6 4 4 4-4 4' : 'm10 4-4 4 4 4'} />
-          </svg>
-        </button>
         <nav className="tutor-nav" aria-label="Không gian gia sư">
           {(['WORKSPACE', 'TEACHING', 'ACCOUNT'] as const).map((section) => (
             <div className="tutor-nav-group" key={section}>
@@ -98,25 +83,19 @@ export function TutorLayout() {
                 ))}
             </div>
           ))}
+          <div className="tutor-nav-actions">
+            <button
+              className="tutor-nav-link tutor-logout"
+              type="button"
+              onClick={() => {
+                void logout();
+                navigate('/');
+              }}
+            >
+              <span aria-hidden="true">⇥</span>Đăng xuất
+            </button>
+          </div>
         </nav>
-        <div className="tutor-sidebar-bottom">
-          <NavLink className="tutor-nav-link" to="/public">
-            <span aria-hidden="true">
-              <Icon name="home" size={18} />
-            </span>
-            Trang chủ
-          </NavLink>
-          <button
-            className="tutor-nav-link tutor-logout"
-            type="button"
-            onClick={() => {
-              void logout();
-              navigate('/');
-            }}
-          >
-            <span aria-hidden="true">⇥</span>Đăng xuất
-          </button>
-        </div>
       </aside>
       <main className="tutor-main">
         <div className="tutor-content">

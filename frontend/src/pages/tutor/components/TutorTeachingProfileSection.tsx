@@ -7,7 +7,6 @@ export function TutorTeachingProfileSection({ profile }: { profile: TutorProfile
         <span>02</span>
         <div>
           <h2>Hồ sơ giảng dạy</h2>
-          <p>Giới thiệu điểm mạnh và phong cách giảng dạy của bạn.</p>
         </div>
       </div>
       <div className="tutor-form-grid">

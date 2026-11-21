@@ -6,5 +6,6 @@ package com.ptutor.backend.entity.enums;
 public enum LessonOutcome {
     TAUGHT,
     TUTOR_ABSENT,
-    STUDENT_ABSENT
+    STUDENT_ABSENT,
+    TUTOR_LATE_OR_SHORT
 }

@@ -22,4 +22,13 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
             where user.id = :userId
             """)
     Optional<Student> findProfileByUserId(@Param("userId") UUID userId);
+
+    @Query("""
+            select student from Student student
+            join fetch student.user user
+            left join fetch user.district district
+            left join fetch district.province
+            where student.id = :studentId
+            """)
+    Optional<Student> findPublicProfileById(@Param("studentId") UUID studentId);
 }

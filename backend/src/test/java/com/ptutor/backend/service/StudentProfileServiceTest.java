@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ptutor.backend.dto.request.UpdateStudentProfileRequest;
 import com.ptutor.backend.dto.response.StudentProfileResponse;
+import com.ptutor.backend.dto.response.PublicStudentProfileResponse;
 import com.ptutor.backend.entity.District;
 import com.ptutor.backend.entity.Province;
 import com.ptutor.backend.entity.Student;
@@ -99,6 +100,22 @@ class StudentProfileServiceTest {
         assertThat(response.address().provinceId()).isEqualTo(provinceId);
         assertThat(response.introduction()).isEqualTo("Old introduction");
         verify(studentRepository).findProfileByUserId(userId);
+    }
+
+    @Test
+    void publicProfileContainsLearningDetailsButNoContactOrStreetAddress() {
+        when(studentRepository.findPublicProfileById(studentId)).thenReturn(Optional.of(student));
+
+        PublicStudentProfileResponse response = studentProfileService.getPublicProfile(studentId);
+
+        assertThat(response.studentId()).isEqualTo(studentId);
+        assertThat(response.firstName()).isEqualTo("Nguyen");
+        assertThat(response.districtName()).isEqualTo("Cau Giay");
+        assertThat(response.provinceName()).isEqualTo("Ha Noi");
+        assertThat(response.introduction()).isEqualTo("Old introduction");
+        assertThat(PublicStudentProfileResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("email", "phone", "detailAddress", "dateOfBirth", "userId");
     }
 
     @Test

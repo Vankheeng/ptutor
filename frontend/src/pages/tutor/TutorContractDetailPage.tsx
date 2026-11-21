@@ -1,7 +1,18 @@
 import { useCallback, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
+import { useAuth } from '../../auth/useAuth';
 import { useResource } from '../../hooks/useResource';
-import { getContract, renewContract, type Contract, type ContractTerms } from '../../services/studentApi';
+import {
+  cancelContract,
+  getContract,
+  rejectContract,
+  renewContract,
+  signContract,
+  updateContract,
+  type Contract,
+  type ContractTerms
+} from '../../services/studentApi';
 import {
   createTutorLesson,
   getTutorContractLessons,
@@ -12,14 +23,19 @@ import {
 } from '../../services/tutorApi';
 import { Icon } from '../../components/ui/Icon';
 import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
+import { PendingContractSignView } from '../common-user/components/PendingContractSignView';
+import { ContractPdfLink } from '../common-user/components/ContractPdfLink';
 import { formatPreferredSchedule } from '../../utils/scheduleFormat';
 import '../student/student.css';
 
 export function TutorContractDetailPage() {
   const { contractId = '' } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [revision, setRevision] = useState(0);
   const [lessonPage, setLessonPage] = useState(0);
+  const [lessonsPerPage, setLessonsPerPage] = useState(5);
+  const [showCreateLesson, setShowCreateLesson] = useState(true);
   const [busy, setBusy] = useState(false);
   const [editingLesson, setEditingLesson] = useState<TutorLesson | null>(null);
   const [error, setError] = useState('');
@@ -27,10 +43,8 @@ export function TutorContractDetailPage() {
   const query = useResource(
     useCallback(
       async (signal: AbortSignal) => {
-        const [contract, lessonPage] = await Promise.all([
-          getContract(contractId),
-          getTutorContractLessons(contractId, signal)
-        ]);
+        const contract = await getContract(contractId);
+        const lessonPage = await getTutorContractLessons(contractId, signal);
         return { contract, lessons: lessonPage.content };
       },
       [contractId]
@@ -38,8 +52,7 @@ export function TutorContractDetailPage() {
     revision
   );
   const contract = query.data?.contract;
-  const lessons = query.data?.lessons?.length ? query.data.lessons : contract ? plannedLessons(contract) : [];
-  const lessonsPerPage = 5;
+  const lessons = query.data?.lessons ?? [];
   const lessonPageCount = Math.max(1, Math.ceil(lessons.length / lessonsPerPage));
   const currentLessonPage = Math.min(lessonPage, lessonPageCount - 1);
   const displayedLessons = lessons.slice(currentLessonPage * lessonsPerPage, (currentLessonPage + 1) * lessonsPerPage);
@@ -136,6 +149,20 @@ export function TutorContractDetailPage() {
     }
   };
 
+  const markLessonTaught = async (lesson: TutorLesson) => {
+    setBusy(true);
+    setError('');
+    try {
+      await setTutorLessonStatus(lesson.id, 'PENDING_CONFIRMATION');
+      setNotice('Đã đánh dấu buổi học đã dạy, chờ học viên xác nhận.');
+      refreshLessons();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể đánh dấu buổi học đã dạy.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const proposeRenewal = async (terms: ContractTerms) => {
     setBusy(true);
     setError('');
@@ -165,6 +192,49 @@ export function TutorContractDetailPage() {
     }
   };
 
+  const signPendingContract = async (sign: boolean) => {
+    if (!contract) return;
+    setBusy(true);
+    setError('');
+    try {
+      await (sign ? signContract(contract.id) : rejectContract(contract.id));
+      setNotice(sign ? 'Đã ký hợp đồng.' : 'Đã từ chối hợp đồng.');
+      refreshLessons();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savePendingContract = async (terms: Partial<ContractTerms>) => {
+    setBusy(true);
+    setError('');
+    try {
+      await updateContract(contract.id, terms);
+      setNotice('Đã cập nhật hợp đồng.');
+      refreshLessons();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelPendingContract = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await cancelContract(contract.id);
+      setNotice('Đã hủy hợp đồng.');
+      refreshLessons();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy hợp đồng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const completedLessons = lessons.filter(
     (lesson) => lesson.status === 'COMPLETED' || lesson.status === 'CONFIRMED'
   ).length;
@@ -173,6 +243,37 @@ export function TutorContractDetailPage() {
   const progress = contract.totalLessons
     ? Math.min(100, Math.round((completedLessons / contract.totalLessons) * 100))
     : 0;
+
+  if (contract.status === 'PENDING' && user?.userId && contract.createdByUserId !== user.userId) {
+    return (
+      <PendingContractSignView
+        mode="sign"
+        viewerRole="tutor"
+        contract={contract}
+        backPath="/tutor/sections/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSign={() => signPendingContract(true)}
+        onReject={() => void signPendingContract(false)}
+      />
+    );
+  }
+  if (contract.status === 'PENDING' && user?.userId && contract.createdByUserId === user.userId) {
+    return (
+      <PendingContractSignView
+        mode="edit"
+        viewerRole="tutor"
+        contract={contract}
+        backPath="/tutor/sections/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSave={savePendingContract}
+        onCancel={() => void cancelPendingContract()}
+      />
+    );
+  }
 
   return (
     <>
@@ -201,7 +302,11 @@ export function TutorContractDetailPage() {
             {initials(student)}
           </span>
           <div>
-            <strong>{student}</strong>
+            <strong>
+              <ProfileNameLink role="student" profileId={contract.studentId}>
+                {student}
+              </ProfileNameLink>
+            </strong>
             <small>Học viên</small>
           </div>
         </div>
@@ -209,6 +314,13 @@ export function TutorContractDetailPage() {
           {statusLabel(contract.status)}
         </span>
       </section>
+      {contract.status === 'ACTIVE' && (
+        <div className="tutor-contract-related-actions">
+          <Link className="tutor-button secondary" to={`/tutor/complaints/new?contractId=${contract.id}`}>
+            Khiếu nại hợp đồng
+          </Link>
+        </div>
+      )}
       <section className="tutor-panel tutor-contract-overview">
         <h2>Tổng quan hợp đồng</h2>
         <div className="tutor-contract-detail-grid">
@@ -266,85 +378,108 @@ export function TutorContractDetailPage() {
           {notice}
         </div>
       )}
-      <section className="tutor-contract-lessons-layout">
-        <div className="tutor-panel">
-          <div className="tutor-contract-section-heading">
-            <div>
-              <h2>Buổi học</h2>
-              <p>Quản lý các buổi dạy theo lịch trong hợp đồng.</p>
-            </div>
+      {contract.status === 'ACTIVE' ? (
+        <section className="tutor-panel tutor-contract-create-panel">
+          <details open={showCreateLesson} onToggle={(event) => setShowCreateLesson(event.currentTarget.open)}>
+            <summary>Tạo buổi học</summary>
+            <p className="tutor-muted">Chỉ chọn ngày trong thời gian hợp đồng và đúng lịch học đã thỏa thuận.</p>
+            <form className="tutor-form-grid" onSubmit={(event) => void createLesson(event)}>
+              <label>
+                Tiêu đề
+                <input name="title" placeholder={`Buổi học ${contract.subjectName}`} />
+              </label>
+              <label>
+                Ngày học
+                <input name="date" type="date" min={contract.startDate} max={contract.endDate} required />
+              </label>
+              <label>
+                Giờ bắt đầu
+                <input name="startTime" type="time" required />
+              </label>
+              <label>
+                Giờ kết thúc
+                <input name="endTime" type="time" required />
+              </label>
+              <div className="tutor-form-actions tutor-field-full">
+                <button className="tutor-button" disabled={busy}>
+                  {busy ? 'Đang tạo...' : 'Tạo buổi học'}
+                </button>
+              </div>
+            </form>
+          </details>
+        </section>
+      ) : (
+        <section className="tutor-panel tutor-contract-create-panel tutor-contract-create-disabled">
+          <h2>Tạo buổi học</h2>
+          <p>Chỉ có thể tạo buổi học sau khi hợp đồng đã được hai bên ký và kích hoạt.</p>
+        </section>
+      )}
+      <section className="tutor-panel tutor-contract-lessons-panel">
+        <div className="tutor-contract-section-heading">
+          <div>
+            <h2>Buổi học</h2>
+          </div>
+          <div className="tutor-lessons-page-size">
+            <label>
+              Hiển thị
+              <select
+                value={lessonsPerPage}
+                onChange={(event) => {
+                  setLessonsPerPage(Number(event.target.value));
+                  setLessonPage(0);
+                }}
+              >
+                <option value={5}>5 buổi/trang</option>
+                <option value={10}>10 buổi/trang</option>
+                <option value={20}>20 buổi/trang</option>
+              </select>
+            </label>
             <span className="tutor-count">{lessons.length} buổi</span>
           </div>
-          {lessons.length ? (
-            <>
-              <div className="tutor-contract-lesson-list">
-                <div className="tutor-contract-lesson-list-header">
-                  <span>Buổi học</span>
-                  <span>Đã thanh toán lúc</span>
-                  <span>Trạng thái</span>
-                  <span>Thao tác</span>
-                </div>
-                {displayedLessons.map((lesson) => (
-                  <LessonRow
-                    lesson={lesson}
-                    key={lesson.id}
-                    onEdit={() => setEditingLesson(lesson)}
-                    onCancel={() => void cancelLesson(lesson)}
-                  />
-                ))}
-              </div>
-              {lessonPageCount > 1 && (
-                <div className="tutor-lesson-pagination">
-                  <button type="button" disabled={lessonPage === 0} onClick={() => setLessonPage((page) => page - 1)}>
-                    ‹
-                  </button>
-                  <span>
-                    Trang {lessonPage + 1}/{lessonPageCount}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={lessonPage === lessonPageCount - 1}
-                    onClick={() => setLessonPage((page) => page + 1)}
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="tutor-empty compact">
-              <h3>Chưa có buổi học</h3>
-              <p>Các buổi học sẽ được tạo tự động theo lịch hợp đồng.</p>
-            </div>
-          )}
         </div>
-        <section className="tutor-panel">
-          <h2>Tạo buổi học</h2>
-          <p className="tutor-muted">Chỉ chọn ngày trong khoảng hợp đồng và đúng ngày học đã thỏa thuận.</p>
-          <form className="tutor-form-grid" onSubmit={(event) => void createLesson(event)}>
-            <label className="tutor-field-full">
-              Tiêu đề
-              <input name="title" placeholder={`Buổi học ${contract.subjectName}`} />
-            </label>
-            <label className="tutor-field-full">
-              Ngày học
-              <input name="date" type="date" min={contract.startDate} max={contract.endDate} required />
-            </label>
-            <label>
-              Giờ bắt đầu
-              <input name="startTime" type="time" required />
-            </label>
-            <label>
-              Giờ kết thúc
-              <input name="endTime" type="time" required />
-            </label>
-            <div className="tutor-form-actions tutor-field-full">
-              <button className="tutor-button" disabled={busy}>
-                {busy ? 'Đang tạo...' : 'Tạo buổi học'}
-              </button>
+        {lessons.length ? (
+          <>
+            <div className="tutor-contract-lesson-list">
+              <div className="tutor-contract-lesson-list-header">
+                <span>Buổi học</span>
+                <span>Được thanh toán lúc</span>
+                <span>Trạng thái</span>
+                <span>Thao tác</span>
+              </div>
+              {displayedLessons.map((lesson) => (
+                <LessonRow
+                  lesson={lesson}
+                  key={lesson.id}
+                  onEdit={() => setEditingLesson(lesson)}
+                  onCancel={() => void cancelLesson(lesson)}
+                  onMarkTaught={() => void markLessonTaught(lesson)}
+                />
+              ))}
             </div>
-          </form>
-        </section>
+            {lessonPageCount > 1 && (
+              <div className="tutor-lesson-pagination">
+                <button type="button" disabled={lessonPage === 0} onClick={() => setLessonPage((page) => page - 1)}>
+                  &lsaquo;
+                </button>
+                <span>
+                  Trang {lessonPage + 1}/{lessonPageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={lessonPage === lessonPageCount - 1}
+                  onClick={() => setLessonPage((page) => page + 1)}
+                >
+                  &rsaquo;
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="tutor-empty compact">
+            <h3>Chưa có buổi học</h3>
+            <p>Các buổi học sẽ được tạo tự động theo lịch hợp đồng.</p>
+          </div>
+        )}
       </section>
       {contract.status === 'ACTIVE' && (
         <section className="tutor-panel tutor-contract-stop-request">
@@ -359,6 +494,31 @@ export function TutorContractDetailPage() {
       )}
       {contract.status === 'ACTIVE' && (
         <StudentContractRenewalForm contract={contract} loading={busy} onSubmit={proposeRenewal} />
+      )}
+      <section className="tutor-panel tutor-contract-document tutor-contract-document-bottom">
+        <div className="student-contract-renewal-copy">
+          <span className="student-contract-renewal-icon" aria-hidden="true">
+            <Icon name="contract" size={17} />
+          </span>
+          <h2>Điều khoản hợp đồng</h2>
+        </div>
+        <ContractDocumentLink contract={contract} viewerUserId={user?.userId} className="tutor-button" />
+      </section>
+      {contract.status === 'ACTIVE' && (
+        <section className="tutor-panel tutor-contract-stop-request tutor-contract-complaint-panel">
+          <div className="student-contract-renewal-copy">
+            <span className="student-contract-renewal-icon" aria-hidden="true">
+              <Icon name="complaint" size={17} />
+            </span>
+            <div>
+              <h2>Khiếu nại hợp đồng</h2>
+              <p>Gửi khiếu nại về vấn đề phát sinh trong quá trình thực hiện hợp đồng.</p>
+            </div>
+          </div>
+          <Link className="tutor-button" to={`/tutor/complaints/new?contractId=${contract.id}`}>
+            Tạo khiếu nại
+          </Link>
+        </section>
       )}
       {editingLesson && (
         <div className="tutor-lesson-edit-backdrop">
@@ -393,6 +553,14 @@ export function TutorContractDetailPage() {
               <input name="endTime" type="time" defaultValue={editingLesson.endTime.slice(0, 5)} required />
             </label>
             <div className="tutor-form-actions">
+              <button
+                className="tutor-button secondary"
+                type="button"
+                disabled={busy}
+                onClick={() => setEditingLesson(null)}
+              >
+                Hủy
+              </button>
               <button className="tutor-button" disabled={busy}>
                 {busy ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
@@ -404,24 +572,79 @@ export function TutorContractDetailPage() {
   );
 }
 
-function LessonRow({ lesson, onEdit, onCancel }: { lesson: TutorLesson; onEdit: () => void; onCancel: () => void }) {
+function ContractDocumentLink({
+  contract,
+  viewerUserId,
+  className
+}: {
+  contract: Contract;
+  viewerUserId?: string;
+  className?: string;
+}) {
+  const studentName = [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || 'Học viên';
+  const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
+  const createdByTutor = contract.createdByUserId === viewerUserId;
+  return (
+    <ContractPdfLink
+      className={className}
+      label="Xem chi tiết PDF"
+      studentName={studentName}
+      studentEmail={contract.studentEmail}
+      studentAddress={contract.teachingMode === 'ONLINE' ? null : contract.studentDetailAddress}
+      tutorName={tutorName}
+      tutorEmail={contract.tutorEmail}
+      subject={contract.subjectName}
+      grade={contract.gradeName}
+      teachingMode={contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}
+      studentSigned={!createdByTutor || Boolean(contract.signedByUserId)}
+      tutorSigned={createdByTutor || Boolean(contract.signedByUserId)}
+      studentSignedAt={createdByTutor ? (contract.signedByUserId ? contract.signedAt : null) : contract.createdAt}
+      tutorSignedAt={createdByTutor ? contract.createdAt : contract.signedByUserId ? contract.signedAt : null}
+      price={contract.price}
+      paymentPeriod={contract.paymentPeriod}
+      startDate={contract.startDate}
+      endDate={contract.endDate}
+      schedules={contract.schedules}
+    />
+  );
+}
+
+function LessonRow({
+  lesson,
+  onEdit,
+  onCancel,
+  onMarkTaught
+}: {
+  lesson: TutorLesson;
+  onEdit: () => void;
+  onCancel: () => void;
+  onMarkTaught: () => void;
+}) {
+  const waitingForPayment = lesson.status === 'SCHEDULED' && !lesson.paidAt;
   return (
     <div className="tutor-contract-lesson-row">
       <div className="tutor-lesson-row-main">
         <strong>
-          {formatDate(lesson.date)} · {lesson.startTime.slice(0, 5)} – {lesson.endTime.slice(0, 5)}
+          {formatDate(lesson.date)} {lesson.startTime.slice(0, 5)} - {lesson.endTime.slice(0, 5)}
         </strong>
         <small>{lesson.title}</small>
       </div>
-      <div className="tutor-lesson-row-paid">{lesson.paidAt ? formatDateTime(lesson.paidAt) : 'Chưa thanh toán'}</div>
+      <div className={`tutor-lesson-row-paid${lesson.paidAt ? '' : ' unpaid'}`}>
+        {lesson.paidAt ? formatDateTime(lesson.paidAt) : 'Chưa thanh toán'}
+      </div>
       <div className="tutor-lesson-row-status">
         <span className={`tutor-contract-status status-${lesson.status.toLowerCase()}`}>
-          {lessonStatus(lesson.status)}
+          {waitingForPayment ? 'Chờ học viên thanh toán' : lessonStatus(lesson.status)}
         </span>
       </div>
       <div className="tutor-lesson-row-actions">
         {lesson.status === 'SCHEDULED' && (
           <>
+            {lesson.paidAt && (
+              <button className="tutor-button small" type="button" onClick={onMarkTaught}>
+                Đánh dấu đã dạy
+              </button>
+            )}
             <button className="tutor-button secondary small" type="button" onClick={onEdit}>
               Sửa
             </button>
@@ -438,7 +661,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <span>{label}</span>
-      <strong>{value || '—'}</strong>
+      <strong>{value || '-'}</strong>
     </div>
   );
 }
@@ -470,7 +693,7 @@ function paymentLabel(value: Contract['paymentPeriod']) {
   )[value];
 }
 function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VNĐ`;
+  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 function formatDate(value: string | null) {
   return value ? new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`)) : 'Chưa lên lịch';
@@ -482,7 +705,7 @@ function formatSchedules(schedules: Contract['schedules']) {
   return schedules
     .map(
       (item) =>
-        `${['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][item.dayOfWeek - 1]} ${item.startTime.slice(0, 5)}–${item.endTime.slice(0, 5)}`
+        `${['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][item.dayOfWeek - 1]} ${item.startTime.slice(0, 5)}-${item.endTime.slice(0, 5)}`
     )
     .join('; ');
 }
@@ -493,35 +716,4 @@ function initials(value: string) {
     .join('')
     .slice(0, 2)
     .toUpperCase();
-}
-function plannedLessons(contract: Contract): TutorLesson[] {
-  if (contract.status !== 'PENDING' || !contract.schedules?.length || !contract.totalLessons) return [];
-  const result: TutorLesson[] = [];
-  for (
-    let date = new Date(`${contract.startDate}T12:00:00`);
-    date <= new Date(`${contract.endDate}T12:00:00`) && result.length < contract.totalLessons;
-    date.setDate(date.getDate() + 1)
-  ) {
-    const day = date.getDay() || 7;
-    contract.schedules
-      .filter((schedule) => schedule.dayOfWeek === day)
-      .forEach((schedule) => {
-        if (result.length < contract.totalLessons) {
-          const dateValue = date.toISOString().slice(0, 10);
-          result.push({
-            id: `planned-${dateValue}-${schedule.startTime}`,
-            contractId: contract.id,
-            title: 'Buổi học dự kiến',
-            date: dateValue,
-            startTime: schedule.startTime,
-            endTime: schedule.endTime,
-            teachingMode: contract.teachingMode,
-            status: 'SCHEDULED',
-            note: 'Lịch dự kiến, chờ hợp đồng được ký.',
-            paidAt: null
-          });
-        }
-      });
-  }
-  return result;
 }

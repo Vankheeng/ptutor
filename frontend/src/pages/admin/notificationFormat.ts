@@ -23,7 +23,7 @@ export const notificationStatuses: NotificationCampaignStatus[] = [
   'CANCELLED',
   'RETRACTED'
 ];
-export const notificationCategories: NotificationCategory[] = ['MAINTENANCE', 'PROMOTION', 'SERVICE_UPDATE', 'GENERAL'];
+export const notificationCategories: NotificationCategory[] = ['MAINTENANCE', 'SERVICE_UPDATE', 'GENERAL'];
 export const notificationAudiences: NotificationAudience[] = ['ALL', 'STUDENT', 'TUTOR'];
 
 export const notificationStatusMeta: Record<NotificationCampaignStatus, StatusMeta> = {

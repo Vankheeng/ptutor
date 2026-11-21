@@ -243,7 +243,7 @@ export function AdminTutorProfilesPage({ mode = 'review' }: { mode?: Mode }) {
                           className={`admin-button small${pending ? '' : ' secondary'}`}
                           to={`${basePath}/${tutor.userId}`}
                         >
-                          {pending ? 'Xem & duyệt' : 'Xem chi tiết'}
+                          {mode === 'manage' ? 'Xem hồ sơ' : pending ? 'Xem & duyệt' : 'Xem chi tiết'}
                         </Link>
                       </td>
                     </tr>

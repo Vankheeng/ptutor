@@ -1,4 +1,8 @@
 import type { LessonOutcome, RefundRequest } from '../../services/refundApi';
+import { useCallback } from 'react';
+import { useResource } from '../../hooks/useResource';
+import { getContract } from '../../services/studentApi';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import { RefundEvidenceList } from './RefundEvidenceField';
 import {
   formatClockTime,
@@ -28,6 +32,8 @@ function OutcomeBadge({ label, outcome }: { label: string; outcome: LessonOutcom
  * The request as both participants see it: what the student claimed and, once given, the tutor's reply and the outcome.
  */
 export function RefundRequestOverview({ request }: { request: RefundRequest }) {
+  const loadContract = useCallback(() => getContract(request.contractId), [request.contractId]);
+  const contract = useResource(loadContract).data;
   const studentEvidence = request.evidences.filter((item) => item.uploadedByUserId === request.studentUserId);
   const tutorEvidence = request.evidences.filter((item) => item.uploadedByUserId === request.tutorUserId);
   return (
@@ -58,11 +64,19 @@ export function RefundRequestOverview({ request }: { request: RefundRequest }) {
           </div>
           <div>
             <dt>Học viên</dt>
-            <dd>{request.studentName}</dd>
+            <dd>
+              <ProfileNameLink role="student" profileId={contract?.studentId}>
+                {request.studentName}
+              </ProfileNameLink>
+            </dd>
           </div>
           <div>
             <dt>Gia sư</dt>
-            <dd>{request.tutorName}</dd>
+            <dd>
+              <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
+                {request.tutorName}
+              </ProfileNameLink>
+            </dd>
           </div>
           <div>
             <dt>Gửi lúc</dt>
@@ -87,6 +101,9 @@ export function RefundRequestOverview({ request }: { request: RefundRequest }) {
               <div className="rf-row-main">
                 <strong>{formatLessonDate(lesson.date, lesson.startTime, lesson.endTime)}</strong>
                 <small>Gia sư báo đã dạy lúc {formatClockTime(lesson.markedTaughtAt)}</small>
+                {lesson.missedMinutes !== null && (
+                  <small>Thời lượng học viên báo bị thiếu: {lesson.missedMinutes} phút</small>
+                )}
               </div>
               <div className="rf-row-side">
                 <OutcomeBadge label="Học viên" outcome={lesson.claimedOutcome} />

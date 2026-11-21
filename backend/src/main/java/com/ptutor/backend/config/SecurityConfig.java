@@ -59,6 +59,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TUTOR_PROFILE_REVIEW_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_EMPLOYEE_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_NOTIFICATION_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_STATISTICS_API;
 import static com.ptutor.backend.config.SecurityConstants.CONTRACT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.COMPLAINT_SELF_SERVICE_API;
 import static com.ptutor.backend.config.SecurityConstants.DISTRICT_READ_API;
@@ -172,6 +173,7 @@ public class SecurityConfig {
                                 new org.springframework.security.authorization.AuthorizationDecision(!productionProfile))
                         .requestMatchers(ADMIN_EMPLOYEE_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_RECOMMENDATION_WEIGHT_API).hasRole("ADMIN")
+                        .requestMatchers(ADMIN_STATISTICS_API).hasRole("ADMIN")
                         .requestMatchers(ADMIN_NOTIFICATION_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_CERTIFICATE_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_COMPLAINT_API).hasAnyRole("ADMIN", "EMPLOYEE")
@@ -195,7 +197,7 @@ public class SecurityConfig {
                         .requestMatchers(PAYMENT_SELF_SERVICE_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(NOTIFICATION_SELF_SERVICE_API)
                         .hasAnyRole("STUDENT", "TUTOR", "EMPLOYEE", "ADMIN")
-                        .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasRole("STUDENT")
+                        .requestMatchers(TUTOR_CERTIFICATE_READ_API).hasAnyRole("STUDENT", "TUTOR")
                         .requestMatchers(TUTOR_PROFILE_READ_API).authenticated()
                         .requestMatchers(GRADE_READ_API).authenticated()
                         .requestMatchers(DISTRICT_READ_API).authenticated()

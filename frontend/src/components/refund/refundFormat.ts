@@ -30,13 +30,15 @@ export const lessonStatusLabels: Record<LessonStatus, string> = {
 export const outcomeLabels: Record<LessonOutcome, string> = {
   TAUGHT: 'Đã dạy',
   TUTOR_ABSENT: 'Gia sư không dạy',
-  STUDENT_ABSENT: 'Học viên nghỉ'
+  STUDENT_ABSENT: 'Học viên nghỉ',
+  TUTOR_LATE_OR_SHORT: 'Gia sư dạy muộn hoặc thiếu giờ'
 };
 
 export const outcomeTone: Record<LessonOutcome, string> = {
   TAUGHT: 'success',
   TUTOR_ABSENT: 'danger',
-  STUDENT_ABSENT: 'pending'
+  STUDENT_ABSENT: 'pending',
+  TUTOR_LATE_OR_SHORT: 'pending'
 };
 
 export const blockerLabels: Record<RefundBlocker, string> = {
@@ -52,14 +54,25 @@ export const CONFIRMATION_GRACE_DAYS = 3;
  * Mirrors RefundCalculator on the backend: each lesson costs a whole-đồng unit price; a missed lesson refunds the
  * tutor-absent share and a skipped lesson the student-absent share, with the rest of its price going to the tutor.
  */
-export function computeRefund(calculation: RefundCalculation, outcomes: (LessonOutcome | null | undefined)[]) {
+export function computeRefund(
+  calculation: RefundCalculation,
+  outcomes: (LessonOutcome | null | undefined)[],
+  lessons: { claimedOutcome: LessonOutcome; missedMinutes: number | null; startTime: string; endTime: string }[] = []
+) {
   const unit = calculation.unitPrice;
   const tutorAbsentPart = Math.floor((unit * calculation.tutorAbsentRate) / 100);
   const studentAbsentPart = Math.floor((unit * calculation.studentAbsentRate) / 100);
   const tutorAbsent = outcomes.filter((outcome) => outcome === 'TUTOR_ABSENT').length;
   const studentAbsent = outcomes.filter((outcome) => outcome === 'STUDENT_ABSENT').length;
+  const shortRefund = lessons.reduce((sum, lesson, index) => {
+    if (outcomes[index] !== 'TUTOR_LATE_OR_SHORT' || !lesson.missedMinutes) return sum;
+    const [startHour, startMinute] = lesson.startTime.split(':').map(Number);
+    const [endHour, endMinute] = lesson.endTime.split(':').map(Number);
+    const duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    return duration > 0 ? sum + Math.floor((unit * lesson.missedMinutes) / duration) : sum;
+  }, 0);
   const refund = Math.min(
-    tutorAbsentPart * tutorAbsent + studentAbsentPart * studentAbsent,
+    tutorAbsentPart * tutorAbsent + studentAbsentPart * studentAbsent + shortRefund,
     calculation.refundableAmount
   );
   return { refund, tutorShare: (unit - studentAbsentPart) * studentAbsent };

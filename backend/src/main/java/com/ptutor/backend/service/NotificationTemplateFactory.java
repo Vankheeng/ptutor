@@ -123,7 +123,8 @@ class NotificationTemplateFactory {
                     "Lesson awaiting confirmation",
                     "Your tutor marked lesson \"" + name + "\" as taught. Please confirm it.");
             case LESSON_CANCELLED -> content(NotificationType.CONTRACT,
-                    "Lesson cancelled", "Your tutor cancelled lesson \"" + name + "\".");
+                    "Lesson cancelled", "Your tutor cancelled lesson \"" + name + "\"."
+                            + (amount.isBlank() ? "" : " " + amount + " VND has been refunded to your wallet."));
             case WITHDRAWAL_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
                     "Withdrawal review required",
                     "A withdrawal request of " + amount + " VND is waiting for approval.");

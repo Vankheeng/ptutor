@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import { useResource } from '../../hooks/useResource';
 import {
@@ -112,7 +113,12 @@ export function StudentApplicationDetailPage() {
           <p className="tutor-detail-subtitle">{grades}</p>
           <p className="tutor-request-author">
             <span>
-              Đăng bởi <strong>{tutorName}</strong>
+              Đăng bởi{' '}
+              <strong>
+                <ProfileNameLink role="tutor" profileId={request.tutorId}>
+                  {tutorName}
+                </ProfileNameLink>
+              </strong>
             </span>
             <span>Đăng ngày {formatDate(request.createdAt)}</span>
           </p>

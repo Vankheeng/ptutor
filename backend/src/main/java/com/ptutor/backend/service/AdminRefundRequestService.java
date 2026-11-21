@@ -157,7 +157,15 @@ public class AdminRefundRequestService {
                     "Give exactly one decision for every disputed lesson awaiting confirmation");
         }
 
-        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, List.copyOf(decisions.values()));
+        if (disputed.stream().anyMatch(item -> decisions.get(item.getLesson().getId())
+                == LessonOutcome.TUTOR_LATE_OR_SHORT && item.getMissedMinutes() == null)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_MISSED_MINUTES",
+                    "A late or shortened lesson decision requires missing minutes in the student's claim");
+        }
+
+        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, List.copyOf(decisions.values()),
+                disputed.stream().filter(item -> decisions.get(item.getLesson().getId()) == LessonOutcome.TUTOR_LATE_OR_SHORT)
+                        .toList());
         RefundCalculator.Result result = assessment.result();
         BigDecimal refund = result.refundAmount();
         BigDecimal tutorShare = result.tutorShareAmount();
@@ -287,7 +295,8 @@ public class AdminRefundRequestService {
                 continue;
             }
             item.setDecision(decision);
-            lesson.setStatus(decision == LessonOutcome.TAUGHT ? LessonStatus.COMPLETED : LessonStatus.CANCELLED);
+            lesson.setStatus(decision == LessonOutcome.TAUGHT || decision == LessonOutcome.TUTOR_LATE_OR_SHORT
+                    ? LessonStatus.COMPLETED : LessonStatus.CANCELLED);
         }
         refundRequestLessonRepository.saveAll(disputed);
         lessonRepository.saveAll(lessons.values());
@@ -296,7 +305,10 @@ public class AdminRefundRequestService {
     private AdminRefundRequestDetailResponse toDetail(RefundRequest request) {
         Contract contract = request.getContract();
         List<RefundRequestLesson> disputed = views.disputedLessons(request);
-        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, previewOutcomes(disputed));
+        List<LessonOutcome> preview = previewOutcomes(disputed);
+        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, preview,
+                disputed.stream().filter(item -> (item.getDecision() != null ? item.getDecision() : item.getClaimedOutcome())
+                        == LessonOutcome.TUTOR_LATE_OR_SHORT).toList());
         User student = contract.getStudent().getUser();
         User tutor = contract.getTutor().getUser();
         Employee reviewer = request.getEmployee();

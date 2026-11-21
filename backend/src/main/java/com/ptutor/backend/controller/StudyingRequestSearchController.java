@@ -20,6 +20,7 @@ import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.service.StudyingRequestService;
+import com.ptutor.backend.security.CurrentUserProvider;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -33,6 +34,7 @@ public class StudyingRequestSearchController {
 
     private final StudyingRequestService studyingRequestService;
     private final ApiResponseFactory responseFactory;
+    private final CurrentUserProvider currentUserProvider;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<StudyingRequestSearchResponse>>> search(
@@ -54,7 +56,7 @@ public class StudyingRequestSearchController {
     public ResponseEntity<ApiResponse<StudyingRequestSearchResponse>> findById(
             @PathVariable UUID studyingRequestId, Authentication authentication) {
         var result = studyingRequestService.findSearchableById(
-                studyingRequestId, hasRole(authentication, "ROLE_TUTOR"));
+                studyingRequestId, hasRole(authentication, "ROLE_TUTOR"), currentUserProvider.getCurrentUserId());
         return ResponseEntity.ok(responseFactory.success(
                 result, "/api/v1/studying-requests/" + studyingRequestId));
     }

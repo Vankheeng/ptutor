@@ -41,6 +41,7 @@ public record RefundRequestResponse(
             LocalTime endTime,
             LocalDateTime markedTaughtAt,
             LessonOutcome claimedOutcome,
+            Integer missedMinutes,
             LessonOutcome tutorPosition,
             LessonOutcome decision) {
     }

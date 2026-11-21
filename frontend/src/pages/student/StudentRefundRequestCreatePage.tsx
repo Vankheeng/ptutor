@@ -20,13 +20,14 @@ import '../../components/refund/refund.css';
 const DESCRIPTION_LIMIT = 2000;
 const claimOptions: { value: AbsenceOutcome; label: string }[] = [
   { value: 'TUTOR_ABSENT', label: 'Gia sư không dạy' },
-  { value: 'STUDENT_ABSENT', label: 'Tôi nghỉ buổi này' }
+  { value: 'STUDENT_ABSENT', label: 'Tôi nghỉ buổi này' },
+  { value: 'TUTOR_LATE_OR_SHORT', label: 'Gia sư dạy muộn hoặc thiếu giờ' }
 ];
 
 export function StudentRefundRequestCreatePage() {
   const { contractId = '' } = useParams();
   const navigate = useNavigate();
-  const [claims, setClaims] = useState<Record<string, AbsenceOutcome>>({});
+  const [claims, setClaims] = useState<Record<string, { outcome: AbsenceOutcome; missedMinutes: string }>>({});
   const [description, setDescription] = useState('');
   const [evidences, setEvidences] = useState<EvidenceInput[]>([]);
   const [tried, setTried] = useState(false);
@@ -49,22 +50,36 @@ export function StudentRefundRequestCreatePage() {
   const toggle = (lessonId: string, value: AbsenceOutcome) =>
     setClaims((current) => {
       const next = { ...current };
-      if (next[lessonId] === value) delete next[lessonId];
-      else next[lessonId] = value;
+      if (next[lessonId]?.outcome === value) delete next[lessonId];
+      else next[lessonId] = { outcome: value, missedMinutes: '' };
       return next;
     });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setTried(true);
-    if (chosen.length === 0 || !description.trim()) return;
+    const invalidMinutes = chosen.some(([lessonId, claim]) => {
+      if (claim.outcome !== 'TUTOR_LATE_OR_SHORT') return false;
+      const lesson = pending?.find((item) => item.id === lessonId);
+      if (!lesson) return true;
+      const duration =
+        (new Date(`2000-01-01T${lesson.endTime}`).getTime() - new Date(`2000-01-01T${lesson.startTime}`).getTime()) /
+        60000;
+      const minutes = Number(claim.missedMinutes);
+      return !Number.isInteger(minutes) || minutes < 1 || minutes >= duration;
+    });
+    if (chosen.length === 0 || !description.trim() || invalidMinutes) return;
     setBusy(true);
     setFailure(null);
     try {
       const created = await createRefundRequest({
         contractId,
         description: description.trim(),
-        lessons: chosen.map(([lessonId, claimedOutcome]) => ({ lessonId, claimedOutcome })),
+        lessons: chosen.map(([lessonId, claim]) => ({
+          lessonId,
+          claimedOutcome: claim.outcome,
+          missedMinutes: claim.outcome === 'TUTOR_LATE_OR_SHORT' ? Number(claim.missedMinutes) : null
+        })),
         evidences
       });
       navigate(`/student/refund-requests/${created.id}`, { state: { created: true } });
@@ -93,7 +108,7 @@ export function StudentRefundRequestCreatePage() {
 
       <section className="rf-card">
         <h2>
-          Buổi học không diễn ra <span className="rf-required">*</span>
+          Buổi học cần hoàn tiền <span className="rf-required">*</span>
         </h2>
         {isLoading && !pending && <div className="rf-state">Đang tải…</div>}
         {pending && pending.length === 0 && <div className="rf-state">Không có buổi nào đang chờ xác nhận.</div>}
@@ -115,13 +130,49 @@ export function StudentRefundRequestCreatePage() {
                       <button
                         key={option.value}
                         type="button"
-                        aria-pressed={claims[lesson.id] === option.value}
+                        aria-pressed={claims[lesson.id]?.outcome === option.value}
                         onClick={() => toggle(lesson.id, option.value)}
                       >
                         {option.label}
                       </button>
                     ))}
                   </div>
+                  {claims[lesson.id]?.outcome === 'TUTOR_LATE_OR_SHORT' && (
+                    <div className="rf-field">
+                      <label htmlFor={`missed-${lesson.id}`}>
+                        Số phút gia sư dạy thiếu <span className="rf-required">*</span>
+                      </label>
+                      <small>Số tiền hoàn dự kiến được tính theo tỷ lệ phút bị thiếu trên thời lượng buổi học.</small>
+                      <input
+                        id={`missed-${lesson.id}`}
+                        type="number"
+                        min="1"
+                        max={Math.max(
+                          1,
+                          (new Date(`2000-01-01T${lesson.endTime}`).getTime() -
+                            new Date(`2000-01-01T${lesson.startTime}`).getTime()) /
+                            60000 -
+                            1
+                        )}
+                        value={claims[lesson.id].missedMinutes}
+                        onChange={(event) =>
+                          setClaims((current) => ({
+                            ...current,
+                            [lesson.id]: { ...current[lesson.id], missedMinutes: event.target.value }
+                          }))
+                        }
+                      />
+                      {tried &&
+                        (!claims[lesson.id].missedMinutes ||
+                          Number(claims[lesson.id].missedMinutes) < 1 ||
+                          Number(claims[lesson.id].missedMinutes) >=
+                            (new Date(`2000-01-01T${lesson.endTime}`).getTime() -
+                              new Date(`2000-01-01T${lesson.startTime}`).getTime()) /
+                              60000) && (
+                          <span className="rf-error">Nhập số phút bị thiếu, nhỏ hơn thời lượng buổi học.</span>
+                        )}
+                    </div>
+                  )}
                 </div>
               );
             })}

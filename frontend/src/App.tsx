@@ -1,14 +1,14 @@
 import './App.css';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { GlobalToastViewport } from './components/ui/GlobalToastViewport';
 import { GuestRoute, ProtectedRoute, RoleGuard } from './auth/RouteGuards';
 import HomePage from './pages/HomePage';
+import AdminStatisticsPage from './pages/AdminStatisticsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { TutorDashboardPage } from './pages/tutor/TutorDashboardPage';
-import { TutorProfilePage } from './pages/tutor/TutorProfilePage';
-import { TutorCertificatesPage } from './pages/tutor/TutorCertificatesPage';
 import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
@@ -32,9 +32,10 @@ import { StudentTutorRecommendations } from './pages/student/StudentTutorRecomme
 import { StudentTeachingRequestDetailPage } from './pages/student/StudentTeachingRequestDetailPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
-import { StudentContractsPage } from './pages/student/StudentContractsPage';
+import { ContractsPage } from './pages/common-user/ContractsPage';
 import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
 import { StudentContractCreatePage } from './pages/student/StudentContractCreatePage';
+import { TutorContractCreatePage } from './pages/tutor/TutorContractCreatePage';
 import { NotificationsPage } from './pages/common-user/NotificationsPage';
 import { WalletPage } from './pages/common-user/WalletPage';
 import { WalletTransactionsPage } from './pages/common-user/WalletTransactionsPage';
@@ -42,7 +43,7 @@ import { WalletTransactionDetailPage } from './pages/common-user/WalletTransacti
 import { WalletAnalyticsPage } from './pages/common-user/WalletAnalyticsPage';
 import { MyTeachingRequestsPage } from './pages/tutor/MyTeachingRequestsPage';
 import { TeachingRequestDetailPage } from './pages/tutor/TeachingRequestDetailPage';
-import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { ProfileWorkspacePage } from './pages/common-user/ProfileWorkspacePage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminTutorProfilesPage } from './pages/admin/AdminTutorProfilesPage';
 import { AdminCertificateQueuePage } from './pages/admin/AdminCertificateQueuePage';
@@ -68,7 +69,6 @@ import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDe
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
-import { AdminUserAccountsPage } from './pages/admin/AdminUserAccountsPage';
 import { AdminUserAccountDetailPage } from './pages/admin/AdminUserAccountDetailPage';
 import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
 import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout';
@@ -89,6 +89,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <GlobalToastViewport />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/public" element={<HomeLanding />} />
@@ -127,7 +128,7 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
-                <Route path="accounts" element={<AdminUserAccountsPage />} />
+                <Route path="accounts" element={<Navigate replace to="/admin/students" />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
                 <Route path="recommendation-weights" element={<AdminRecommendationWeightsPage />} />
@@ -135,6 +136,7 @@ export default function App() {
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
                 <Route element={<RoleGuard roles={['ADMIN']} />}>
+                  <Route path="statistics" element={<AdminStatisticsPage />} />
                   <Route path="employees" element={<AdminEmployeesPage />} />
                   <Route path="employees/new" element={<AdminEmployeeFormPage />} />
                   <Route path="employees/:employeeId" element={<AdminEmployeeDetailPage />} />
@@ -148,8 +150,9 @@ export default function App() {
                 <Route path="dashboard" element={<TutorDashboardPage />} />
                 <Route path="calendar" element={<TutorCalendarPage />} />
                 <Route path="sections/calendar" element={<TutorCalendarPage />} />
-                <Route path="profile" element={<TutorProfilePage />} />
-                <Route path="certificates" element={<TutorCertificatesPage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="tutor" own />} />
+                <Route path="certificates" element={<Navigate replace to="/tutor/profile?tab=certificates" />} />
+                <Route path="students/:profileId/profile" element={<ProfileWorkspacePage subjectRole="student" />} />
                 <Route path="students" element={<TutorStudentSearchPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
@@ -180,6 +183,10 @@ export default function App() {
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
                 <Route path="sections/teaching-requests" element={<MyTeachingRequestsPage />} />
                 <Route path="sections/teaching-requests/:requestId" element={<TeachingRequestDetailPage />} />
+                <Route
+                  path="sections/teaching-requests/:requestId/student-requests/:applicationId/contracts/new"
+                  element={<TutorContractCreatePage />}
+                />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
               </Route>
             </Route>
@@ -202,7 +209,7 @@ export default function App() {
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="tutor-offers" element={<OffersPage />} />
                 <Route path="applications/:applicationId" element={<StudentApplicationDetailPage />} />
-                <Route path="contracts" element={<StudentContractsPage />} />
+                <Route path="contracts" element={<ContractsPage role="student" />} />
                 <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />
                 <Route
                   path="studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new"
@@ -222,7 +229,8 @@ export default function App() {
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
                 <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
-                <Route path="profile" element={<StudentProfilePage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="student" own />} />
+                <Route path="tutors/:profileId/profile" element={<ProfileWorkspacePage subjectRole="tutor" />} />
               </Route>
             </Route>
           </Route>

@@ -36,11 +36,12 @@ import type { Grade, Subject, TeachingRequest } from '../../types/api';
 import { formatCurrency, getInitials } from '../../utils/formatters';
 import { tutorScheduleLabel } from '../../utils/tutorDisplay';
 import { formatDate, learningModeLabel } from '../../components/student/studentApplicationUtils';
+import { TutorDiscoveryTabs } from '../../components/student/TutorDiscoveryTabs';
 
 const PAGE_SIZE = 20;
 const MODES: { value: ModePreference; label: string }[] = [
-  { value: 'ANY', label: 'Cả hai' },
-  { value: 'ONLINE', label: 'Online' },
+  { value: 'ANY', label: 'Tất cả hình thức' },
+  { value: 'ONLINE', label: 'Trực tuyến' },
   { value: 'OFFLINE', label: 'Trực tiếp' }
 ];
 const NEEDS_INPUT: Record<string, string> = { subjectId: 'môn học', gradeId: 'lớp' };
@@ -57,6 +58,7 @@ export function StudentTutorRecommendations() {
   const [homeProvinceId, setHomeProvinceId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<TutorSearchFilters>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [useRequestId, setUseRequestId] = useState('');
   const [sentence, setSentence] = useState('');
   /** The sentence the current filters came from; sent along so the search also uses its meaning. */
@@ -262,6 +264,7 @@ export function StudentTutorRecommendations() {
 
   const runSaved = (search: SavedSearch) => {
     setFilters(search.filters as TutorSearchFilters);
+    setShowAdvanced(true);
     setFromSentence(new Set());
     setNotes([]);
     setParsedSentence(search.semanticText);
@@ -273,6 +276,7 @@ export function StudentTutorRecommendations() {
   const applyRelaxation = (relaxation: Relaxation) => {
     const next = { ...filters, ...relaxation.apply } as TutorSearchFilters;
     setFilters(next);
+    setShowAdvanced(true);
     void run(next);
   };
 
@@ -304,6 +308,7 @@ export function StudentTutorRecommendations() {
 
   return (
     <div className="rec-layout student-rec-layout">
+      <TutorDiscoveryTabs />
       <form
         className="student-panel rec-filters"
         onSubmit={(event) => {
@@ -311,25 +316,29 @@ export function StudentTutorRecommendations() {
           void run(filters);
         }}
       >
-        <label className="rec-field">
-          <span>Mô tả nhanh bằng một câu</span>
-          <textarea
-            rows={3}
-            maxLength={500}
-            value={sentence}
-            onChange={(event) => setSentence(event.target.value)}
-            placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
-          />
-        </label>
-        <button
-          className="student-button secondary"
-          type="button"
-          disabled={isParsing || !sentence.trim()}
-          onClick={() => void fillFromSentence()}
-        >
-          {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
-        </button>
-        {notes.length > 0 && (
+        {showAdvanced && (
+          <label className="rec-field">
+            <span>Mô tả nhanh bằng một câu</span>
+            <textarea
+              rows={3}
+              maxLength={500}
+              value={sentence}
+              onChange={(event) => setSentence(event.target.value)}
+              placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
+            />
+          </label>
+        )}
+        {showAdvanced && (
+          <button
+            className="student-button secondary"
+            type="button"
+            disabled={isParsing || !sentence.trim()}
+            onClick={() => void fillFromSentence()}
+          >
+            {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
+          </button>
+        )}
+        {showAdvanced && notes.length > 0 && (
           <ul className="rec-notes">
             {notes.map((note) => (
               <li key={note}>{note}</li>
@@ -337,9 +346,7 @@ export function StudentTutorRecommendations() {
           </ul>
         )}
 
-        <div className="rec-divider" />
-
-        {myRequests.length > 0 && (
+        {showAdvanced && myRequests.length > 0 && (
           <label className="rec-field">
             <span>Dùng tiêu chí từ tin học của tôi</span>
             <select value={useRequestId} onChange={(event) => setUseRequestId(event.target.value)}>
@@ -387,20 +394,21 @@ export function StudentTutorRecommendations() {
 
         <div className="rec-field">
           <span>Hình thức học {mark('learningMode')}</span>
-          <div className="rec-segmented" role="radiogroup" aria-label="Hình thức học">
+          <select
+            aria-label="Hình thức học"
+            value={filters.learningMode ?? 'ANY'}
+            onChange={(event) =>
+              change({
+                learningMode: event.target.value === 'ANY' ? undefined : (event.target.value as ModePreference)
+              })
+            }
+          >
             {MODES.map((mode) => (
-              <button
-                key={mode.value}
-                type="button"
-                role="radio"
-                aria-checked={(filters.learningMode ?? 'ANY') === mode.value}
-                className={(filters.learningMode ?? 'ANY') === mode.value ? 'active' : ''}
-                onClick={() => change({ learningMode: mode.value === 'ANY' ? undefined : mode.value })}
-              >
+              <option key={mode.value} value={mode.value}>
                 {mode.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         {filters.learningMode !== 'ONLINE' && (
@@ -410,66 +418,85 @@ export function StudentTutorRecommendations() {
           </div>
         )}
 
-        <div className="rec-field">
-          <span>Học phí mỗi buổi (đồng) {mark('price')}</span>
-          <div className="rec-row">
-            <input
-              type="number"
-              min={0}
-              step={10000}
-              placeholder="Từ"
-              aria-label="Học phí tối thiểu"
-              value={filters.price?.min ?? ''}
-              onChange={(event) => change({ price: priceOf(event.target.value, filters.price?.max) })}
-            />
-            <input
-              type="number"
-              min={0}
-              step={10000}
-              placeholder="Đến"
-              aria-label="Học phí tối đa"
-              value={filters.price?.max ?? ''}
-              onChange={(event) => change({ price: priceOf(filters.price?.min, event.target.value) })}
+        <button
+          className="tutor-student-advanced-toggle"
+          type="button"
+          aria-expanded={showAdvanced}
+          onClick={() => setShowAdvanced((visible) => !visible)}
+        >
+          {showAdvanced ? 'Ẩn bộ lọc nâng cao' : 'Lọc nâng cao'}
+        </button>
+
+        {showAdvanced && (
+          <div className="rec-field">
+            <span>Học phí mỗi buổi (đồng) {mark('price')}</span>
+            <div className="rec-row">
+              <input
+                type="number"
+                min={0}
+                step={10000}
+                placeholder="Từ"
+                aria-label="Học phí tối thiểu"
+                value={filters.price?.min ?? ''}
+                onChange={(event) => change({ price: priceOf(event.target.value, filters.price?.max) })}
+              />
+              <input
+                type="number"
+                min={0}
+                step={10000}
+                placeholder="Đến"
+                aria-label="Học phí tối đa"
+                value={filters.price?.max ?? ''}
+                onChange={(event) => change({ price: priceOf(filters.price?.min, event.target.value) })}
+              />
+            </div>
+          </div>
+        )}
+
+        {showAdvanced && (
+          <div className="rec-field">
+            <span>Lịch rảnh {mark('availabilities')}</span>
+            {filters.availabilities && filters.availabilities.length === 0 && (
+              <small className="rec-hint">Đang tìm không xét lịch.</small>
+            )}
+            <AvailabilityEditor
+              value={slots}
+              onChange={(next) => change({ availabilities: next.length ? next : undefined })}
             />
           </div>
-        </div>
+        )}
 
-        <div className="rec-field">
-          <span>Lịch rảnh {mark('availabilities')}</span>
-          {filters.availabilities && filters.availabilities.length === 0 && (
-            <small className="rec-hint">Đang tìm không xét lịch.</small>
-          )}
-          <AvailabilityEditor
-            value={slots}
-            onChange={(next) => change({ availabilities: next.length ? next : undefined })}
-          />
-        </div>
-
-        <div className="rec-field">
-          <span>Phong cách dạy mong muốn {mark('styleTagCodes')}</span>
-          <TagChips
-            tags={styleTags}
-            value={filters.styleTagCodes ?? []}
-            onChange={(codes) => change({ styleTagCodes: codes.length ? codes : undefined })}
-          />
-        </div>
-        <div className="rec-field">
-          <span>Mục tiêu {mark('goalTagCodes')}</span>
-          <TagChips
-            tags={goalTags}
-            value={filters.goalTagCodes ?? []}
-            onChange={(codes) => change({ goalTagCodes: codes.length ? codes : undefined })}
-          />
-        </div>
-        <div className="rec-field">
-          <span>Phần cần cải thiện {mark('topicTagCodes')}</span>
-          <TagChips
-            tags={filters.subjectId ? topicTags : []}
-            value={filters.topicTagCodes ?? []}
-            onChange={(codes) => change({ topicTagCodes: codes.length ? codes : undefined })}
-            emptyText={filters.subjectId ? 'Môn này chưa có danh sách chủ đề' : 'Chọn môn để xem các chủ đề'}
-          />
-        </div>
+        {showAdvanced && (
+          <div className="rec-field">
+            <span>Phong cách dạy mong muốn {mark('styleTagCodes')}</span>
+            <TagChips
+              tags={styleTags}
+              value={filters.styleTagCodes ?? []}
+              onChange={(codes) => change({ styleTagCodes: codes.length ? codes : undefined })}
+            />
+          </div>
+        )}
+        {showAdvanced && (
+          <div className="rec-field">
+            <span>Mục tiêu {mark('goalTagCodes')}</span>
+            <TagChips
+              tags={goalTags}
+              value={filters.goalTagCodes ?? []}
+              onChange={(codes) => change({ goalTagCodes: codes.length ? codes : undefined })}
+            />
+          </div>
+        )}
+        {showAdvanced && (
+          <div className="rec-field">
+            <span>Phần cần cải thiện {mark('topicTagCodes')}</span>
+            <TagChips
+              tags={filters.subjectId ? topicTags : []}
+              value={filters.topicTagCodes ?? []}
+              onChange={(codes) => change({ topicTagCodes: codes.length ? codes : undefined })}
+              emptyText={filters.subjectId ? 'Môn này chưa có danh sách chủ đề' : 'Chọn môn để xem các chủ đề'}
+            />
+          </div>
+        )}
 
         <div className="rec-actions">
           <button
@@ -494,9 +521,7 @@ export function StudentTutorRecommendations() {
 
       <section className="rec-results" aria-live="polite">
         <div className="rec-toolbar">
-          <strong>
-            {result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}
-          </strong>
+          <strong>{result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}</strong>
           <SavedSearchControls
             direction="STUDENT_TO_TUTOR"
             filters={filters}
@@ -619,92 +644,121 @@ export function StudentTutorRecommendations() {
                 const subject = detail?.subjectName || detail?.customSubjectName || 'Môn học';
                 const gradeNames = detail?.grades.map((grade) => grade.name).join(', ') || 'Chưa xác định';
                 const location = detail
-                  ? [detail.detailAddress, ...detail.districts.map((district) => district.name)].filter(Boolean).join(', ')
+                  ? [detail.detailAddress, ...detail.districts.map((district) => district.name)]
+                      .filter(Boolean)
+                      .join(', ')
                   : item.districts.join(', ');
-                const schedule = detail?.preferredSchedule || formatAvailabilities(detail?.availabilities ?? []) || 'Lịch linh hoạt';
+                const schedule =
+                  detail?.preferredSchedule || formatAvailabilities(detail?.availabilities ?? []) || 'Lịch linh hoạt';
                 return (
-                <article
-                  className={item.isExploration ? 'student-panel rec-card exploration' : 'student-panel rec-card'}
-                  key={item.teachingRequestId}
-                >
-                  {detail && (
-                    <div className="rec-posting-top">
-                      <span className="rec-posting-subject">{subject}</span>
-                      <span>{formatDate(detail.createdAt)}</span>
-                    </div>
-                  )}
-                  <div className="rec-card-head">
-                    <span className="rec-avatar">
-                      {item.tutor.avatarUrl ? (
-                        <img src={item.tutor.avatarUrl} alt="" />
-                      ) : (
-                        getInitials(item.tutor.displayName)
-                      )}
-                    </span>
-                    <div>
-                      <h3>{item.tutor.displayName}</h3>
-                      <small>
-                        {item.tutor.totalReviews
-                          ? `★ ${Number(item.tutor.averageRating ?? 0).toFixed(1)} · ${item.tutor.totalReviews} đánh giá`
-                          : 'Chưa có đánh giá'}
-                      </small>
-                    </div>
-                    <span className="rec-score" title="Điểm phù hợp do hệ thống tính, từ 0 đến 100">
-                      {Math.round(item.score * 100)}
-                      <small>điểm phù hợp</small>
-                    </span>
-                  </div>
-                  <button className="rec-title rec-title-button" type="button" onClick={() => viewPosting(item)}>{detail?.title || item.title || 'Tin dạy'}</button>
-                  {detail ? (
-                    <>
-                      <p className="rec-posting-meta">
-                        Gia sư: {detail.tutorName || item.tutor.displayName} · Khối {gradeNames}
-                        {detail.districts.length > 0 ? ` · ${detail.districts.map((district) => district.name).join(', ')}` : ''}
-                      </p>
-                      <p className="rec-posting-description">
-                        {detail.description || detail.note || 'Gia sư chưa bổ sung mô tả cho yêu cầu này.'}
-                      </p>
-                      <div className="rec-posting-details">
-                        <span><small>Học phí dự kiến</small><strong>{detail.expectedPrice === null ? 'Thỏa thuận' : `${formatCurrency(detail.expectedPrice)} VNĐ`}</strong></span>
-                        <span><small>Lịch mong muốn</small><strong>{tutorScheduleLabel(schedule, 'Lịch linh hoạt')}</strong></span>
-                        <span><small>Hình thức</small><strong>{learningModeLabel(detail.teachingMode)}</strong></span>
-                        <span><small>Địa điểm</small><strong>{detail.teachingMode === 'ONLINE' ? 'Trực tuyến' : location || 'Chưa cung cấp'}</strong></span>
+                  <article
+                    className={item.isExploration ? 'student-panel rec-card exploration' : 'student-panel rec-card'}
+                    key={item.teachingRequestId}
+                  >
+                    {detail && (
+                      <div className="rec-posting-top">
+                        <span className="rec-posting-subject">{subject}</span>
+                        <span>{formatDate(detail.createdAt)}</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="rec-facts">
-                      <span>{item.expectedPrice ? `${formatCurrency(item.expectedPrice)} / buổi` : 'Học phí thoả thuận'}</span>
-                      <span>{item.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}</span>
-                      {item.districts.length > 0 && <span>{item.districts.slice(0, 3).join(', ')}</span>}
+                    )}
+                    <div className="rec-card-head">
+                      <span className="rec-avatar">
+                        {item.tutor.avatarUrl ? (
+                          <img src={item.tutor.avatarUrl} alt="" />
+                        ) : (
+                          getInitials(item.tutor.displayName)
+                        )}
+                      </span>
+                      <div>
+                        <h3>{item.tutor.displayName}</h3>
+                        <small>
+                          {item.tutor.totalReviews
+                            ? `★ ${Number(item.tutor.averageRating ?? 0).toFixed(1)} · ${item.tutor.totalReviews} đánh giá`
+                            : 'Chưa có đánh giá'}
+                        </small>
+                      </div>
+                      <span className="rec-score" title="Điểm phù hợp do hệ thống tính, từ 0 đến 100">
+                        {Math.round(item.score * 100)}
+                        <small>điểm phù hợp</small>
+                      </span>
                     </div>
-                  )}
-                  {item.isExploration && <span className="rec-badge">Gợi ý mới</span>}
-                  {item.reasons.length > 0 && (
-                    <ul className="rec-reasons">
-                      {item.reasons.map((reason) => (
-                        <li key={reason}>{reason}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {item.caution && <p className="rec-caution">{item.caution}</p>}
-                  <div className="rec-card-actions">
-                    <button className="rec-link" type="button" onClick={() => viewPosting(item)}>Xem chi tiết tin</button>
-                    <button className="rec-link" type="button" onClick={() => dismiss(item)}>
-                      Không quan tâm
+                    <button className="rec-title rec-title-button" type="button" onClick={() => viewPosting(item)}>
+                      {detail?.title || item.title || 'Tin dạy'}
                     </button>
-                    <button
-                      className={favorites.has(item.teachingRequestId) ? 'rec-link active' : 'rec-link'}
-                      type="button"
-                      aria-pressed={favorites.has(item.teachingRequestId)}
-                      onClick={() => favorite(item)}
-                    >
-                      {favorites.has(item.teachingRequestId) ? '♥ Đã lưu' : '♡ Lưu gia sư'}
-                    </button>
-                    <button className="student-button" type="button" onClick={() => open(item)}>
-                      Đăng ký học
-                    </button>
-                  </div>
-                </article>
+                    {detail ? (
+                      <>
+                        <p className="rec-posting-meta">
+                          Gia sư: {detail.tutorName || item.tutor.displayName} · Khối {gradeNames}
+                          {detail.districts.length > 0
+                            ? ` · ${detail.districts.map((district) => district.name).join(', ')}`
+                            : ''}
+                        </p>
+                        <p className="rec-posting-description">
+                          {detail.description || detail.note || 'Gia sư chưa bổ sung mô tả cho yêu cầu này.'}
+                        </p>
+                        <div className="rec-posting-details">
+                          <span>
+                            <small>Học phí dự kiến</small>
+                            <strong>
+                              {detail.expectedPrice === null
+                                ? 'Thỏa thuận'
+                                : `${formatCurrency(detail.expectedPrice)} VNĐ`}
+                            </strong>
+                          </span>
+                          <span>
+                            <small>Lịch mong muốn</small>
+                            <strong>{tutorScheduleLabel(schedule, 'Lịch linh hoạt')}</strong>
+                          </span>
+                          <span>
+                            <small>Hình thức</small>
+                            <strong>{learningModeLabel(detail.teachingMode)}</strong>
+                          </span>
+                          <span>
+                            <small>Địa điểm</small>
+                            <strong>
+                              {detail.teachingMode === 'ONLINE' ? 'Trực tuyến' : location || 'Chưa cung cấp'}
+                            </strong>
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="rec-facts">
+                        <span>
+                          {item.expectedPrice ? `${formatCurrency(item.expectedPrice)} / buổi` : 'Học phí thoả thuận'}
+                        </span>
+                        <span>{item.teachingMode === 'ONLINE' ? 'Online' : 'Trực tiếp'}</span>
+                        {item.districts.length > 0 && <span>{item.districts.slice(0, 3).join(', ')}</span>}
+                      </div>
+                    )}
+                    {item.isExploration && <span className="rec-badge">Gợi ý mới</span>}
+                    {item.reasons.length > 0 && (
+                      <ul className="rec-reasons">
+                        {item.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {item.caution && <p className="rec-caution">{item.caution}</p>}
+                    <div className="rec-card-actions">
+                      <button className="rec-link" type="button" onClick={() => viewPosting(item)}>
+                        Xem chi tiết tin
+                      </button>
+                      <button className="rec-link" type="button" onClick={() => dismiss(item)}>
+                        Không quan tâm
+                      </button>
+                      <button
+                        className={favorites.has(item.teachingRequestId) ? 'rec-link active' : 'rec-link'}
+                        type="button"
+                        aria-pressed={favorites.has(item.teachingRequestId)}
+                        onClick={() => favorite(item)}
+                      >
+                        {favorites.has(item.teachingRequestId) ? '♥ Đã lưu' : '♡ Lưu gia sư'}
+                      </button>
+                      <button className="student-button" type="button" onClick={() => open(item)}>
+                        Đăng ký học
+                      </button>
+                    </div>
+                  </article>
                 );
               })}
             </div>
@@ -744,6 +798,9 @@ function priceOf(min: number | string | null | undefined, max: number | string |
 function formatAvailabilities(slots: TeachingRequest['availabilities']) {
   const weekdays = ['', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
   return slots
-    .map((slot) => `${weekdays[slot.dayOfWeek] || `Thứ ${slot.dayOfWeek}`}, ${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}`)
+    .map(
+      (slot) =>
+        `${weekdays[slot.dayOfWeek] || `Thứ ${slot.dayOfWeek}`}, ${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}`
+    )
     .join('; ');
 }

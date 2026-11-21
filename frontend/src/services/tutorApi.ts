@@ -39,6 +39,26 @@ export interface TutorProfile {
   profileRejectionReason: string | null;
 }
 
+export type PublicTutorProfile = Pick<
+  TutorProfile,
+  | 'tutorId'
+  | 'userId'
+  | 'firstName'
+  | 'lastName'
+  | 'avatarUrl'
+  | 'introduction'
+  | 'experienceYears'
+  | 'education'
+  | 'teachingStyleTags'
+  | 'teachingMethodology'
+  | 'strengthSubjects'
+  | 'targetStudentType'
+  | 'averageRating'
+  | 'totalReviews'
+  | 'completedContractsCount'
+  | 'totalStudentsTaught'
+>;
+
 export type TutorProfileStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface TutorCertificate {
@@ -71,6 +91,11 @@ export interface TutorTeachingProposal {
   id: string;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
+  studentId: string | null;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studyingRequestStatus: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED' | null;
+  studyingRequestCreatedAt: string | null;
   subjectName: string;
   gradeName: string;
   proposedPrice: number;
@@ -89,6 +114,8 @@ export interface TutorTeachingProposal {
 
 export interface TutorContract {
   id: string;
+  studentId: string;
+  studentTutorRequestId: string | null;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentDetailAddress: string | null;
@@ -97,6 +124,7 @@ export interface TutorContract {
   teachingMode: 'ONLINE' | 'OFFLINE';
   price: number;
   totalLessons: number | null;
+  tutorStudentRequestId: string | null;
   startDate: string;
   endDate: string;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -113,10 +141,25 @@ export interface TutorLesson {
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
   paidAt: string | null;
+  refund: {
+    id: string;
+    status: 'PENDING' | 'IN_REVIEW' | 'REFUNDED' | 'REJECTED' | 'CANCELLED';
+    refundAmount: number | null;
+    description: string;
+    createdAt: string;
+  } | null;
 }
 
 export function getTutorProfile(signal?: AbortSignal) {
   return get<TutorProfile>('/api/v1/tutors/me', { signal });
+}
+
+export function getPublicTutorProfile(tutorId: string, signal?: AbortSignal) {
+  return get<PublicTutorProfile>(`/api/v1/tutors/${encodeURIComponent(tutorId)}`, { signal });
+}
+
+export function getPublicTutorCertificates(tutorId: string, signal?: AbortSignal) {
+  return get<TutorCertificate[]>(`/api/v1/tutors/${encodeURIComponent(tutorId)}/certificates`, { signal });
 }
 
 export function updateTutorProfile(values: Record<string, unknown>) {

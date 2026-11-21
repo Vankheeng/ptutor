@@ -15,7 +15,6 @@ interface Props {
 
 export function ComplaintDetailPanel({ complaint, contract, mode, role = 'student', contractHref }: Props) {
   const { senderName, respondentName, respondentRole } = useComplaintParties(contract, mode, role);
-
   return (
     <div className="student-complaint-detail-main-stack">
       <section className="student-panel student-complaint-summary-card">

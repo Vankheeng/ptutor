@@ -1,6 +1,6 @@
 import { ApiError, get, patch, post, put } from './httpClient';
 import type { TeachingRequest } from '../types/api';
-import type { PaymentInitiation } from './studentApi';
+import type { ContractTerms, PaymentInitiation } from './studentApi';
 
 export const TEACHING_REQUEST_FEE_PER_STUDENT = 50_000;
 
@@ -29,6 +29,7 @@ export interface StudentTeachingApplication {
   gradeId: string;
   gradeName: string;
   teachingRequestId: string;
+  contractId: string | null;
   proposedPrice: number;
   learningMode: 'ONLINE' | 'OFFLINE';
   preferredSchedule: string | null;
@@ -53,15 +54,9 @@ export const updateTeachingRequestApplication = (
 export const createTeachingRequestContract = (
   teachingRequestId: string,
   studentRequestId: string,
-  values: {
-    price: number;
-    paymentPeriod: 'PER_LESSON' | 'WEEKLY' | 'MONTHLY' | 'PACKAGE';
-    startDate: string;
-    endDate: string;
-    totalLessons?: number;
-    preferredSchedule?: string;
-  }
-) => post<unknown>(`${base}/${teachingRequestId}/student-requests/${studentRequestId}/contracts`, values);
+  values: Pick<ContractTerms, 'price' | 'paymentPeriod' | 'startDate' | 'endDate'> &
+    Partial<Pick<ContractTerms, 'totalLessons' | 'preferredSchedule' | 'schedules'>> & { gradeId?: string }
+) => post<{ id: string }>(`${base}/${teachingRequestId}/student-requests/${studentRequestId}/contracts`, values);
 export const createMyTeachingRequest = (values: TeachingRequestInput) => post<TeachingRequest>(base, values);
 export const updateMyTeachingRequest = (id: string, values: TeachingRequestInput) =>
   put<TeachingRequest>(`${base}/${id}`, values);

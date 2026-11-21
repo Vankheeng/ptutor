@@ -55,6 +55,23 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             select contract
             from Contract contract
+            where ((contract.student.user.id = :userId and contract.tutor.id = :counterpartyId)
+                or (contract.tutor.user.id = :userId and contract.student.id = :counterpartyId))
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllSharedWithParticipant(
+            @Param("userId") UUID userId,
+            @Param("counterpartyId") UUID counterpartyId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
             where contract.id = :contractId
               and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
             """)
@@ -152,6 +169,11 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     boolean existsByTutorStudentRequest_IdAndStatusNot(UUID tutorStudentRequestId, ContractStatus excludedStatus);
 
     boolean existsByStudentTutorRequest_IdAndStatusNot(UUID studentTutorRequestId, ContractStatus excludedStatus);
+
+    @Query("select contract.id from Contract contract where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status <> :excludedStatus order by contract.createdAt desc")
+    Optional<UUID> findIdByStudentTutorRequestIdAndStatusNot(
+            @Param("studentTutorRequestId") UUID studentTutorRequestId,
+            @Param("excludedStatus") ContractStatus excludedStatus);
 
     boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
 

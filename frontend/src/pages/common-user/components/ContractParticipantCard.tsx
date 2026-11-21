@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Icon, type IconName } from '../ui/Icon';
+import { Icon, type IconName } from '../../../components/ui/Icon';
 
 interface ParticipantDetail {
   label: string;
@@ -12,7 +12,7 @@ interface Props {
   details: ParticipantDetail[];
 }
 
-export function StudentContractParticipantCard({ title, icon, details }: Props) {
+export function ContractParticipantCard({ title, icon, details }: Props) {
   return (
     <section className="student-panel student-contract-participant-card">
       <div className="student-contract-participant-heading">

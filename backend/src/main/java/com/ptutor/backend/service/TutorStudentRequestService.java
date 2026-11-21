@@ -82,6 +82,19 @@ public class TutorStudentRequestService {
                 districtRepository, studentRepository, tutorStudentRequestMapper, event -> { }, null);
     }
 
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher, null);
+    }
+
     @Transactional
     public TutorStudentRequestResponse create(
             UUID userId, UUID studyingRequestId, TutorStudentRequestCreateRequest source) {
@@ -91,7 +104,7 @@ public class TutorStudentRequestService {
                 .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
-        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
+        var preferredLocation = resolvePreferredLocation(source.teachingMode(), studyingRequest);
 
         if (tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
                 tutor.getId(), studyingRequestId, ApplicationStatus.PENDING)) {
@@ -168,7 +181,7 @@ public class TutorStudentRequestService {
                 .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
-        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
+        var preferredLocation = resolvePreferredLocation(source.teachingMode(), request.getStudyingRequest());
         request.setGrade(grade);
         request.setProposedPrice(source.proposedPrice());
         request.setTeachingMode(source.teachingMode());
@@ -334,24 +347,16 @@ public class TutorStudentRequestService {
     }
 
     private PreferredLocation resolvePreferredLocation(
-            TutorStudentRequestCreateRequest source, com.ptutor.backend.entity.enums.TeachingMode teachingMode) {
+            com.ptutor.backend.entity.enums.TeachingMode teachingMode, StudyingRequest studyingRequest) {
         if (teachingMode != com.ptutor.backend.entity.enums.TeachingMode.OFFLINE) {
             return new PreferredLocation(null, null);
         }
-        if (source.preferredProvinceId() == null || source.preferredDistrictId() == null) {
+        var district = studyingRequest.getDistrict();
+        if (district == null || district.getProvince() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                    "Province and district are required for in-person proposals");
+                    "The studying request must include a location for in-person proposals");
         }
-
-        var district = districtRepository.findById(source.preferredDistrictId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                        "Selected district was not found"));
-        var province = district.getProvince();
-        if (province == null || !province.getId().equals(source.preferredProvinceId())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                    "Selected district does not belong to the selected province");
-        }
-        return new PreferredLocation(province, district);
+        return new PreferredLocation(district.getProvince(), district);
     }
 
     private record PreferredLocation(com.ptutor.backend.entity.Province province,

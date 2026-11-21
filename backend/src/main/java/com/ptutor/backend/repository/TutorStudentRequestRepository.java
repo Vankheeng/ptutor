@@ -42,6 +42,8 @@ public interface TutorStudentRequestRepository extends JpaRepository<TutorStuden
     boolean existsByTutor_IdAndStudyingRequest_IdAndStatus(
             UUID tutorId, UUID studyingRequestId, ApplicationStatus status);
 
+    boolean existsByTutor_User_IdAndStudyingRequest_Id(UUID userId, UUID studyingRequestId);
+
     long countByStudyingRequest_IdAndStatus(UUID studyingRequestId, ApplicationStatus status);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

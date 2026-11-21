@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import type { TutorOffer } from '../../services/studentApi';
 import { formatStudyingRequestMoney } from './studyingRequestUtils';
 import { RequestOfferActions } from '../common-user/RequestOfferActions';
@@ -27,7 +28,11 @@ export function Offers({ requestStatus, offers, busyOfferId, onAction, onCreateC
                   {getTutorInitials(offer)}
                 </span>
                 <div>
-                  <h3>{[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'}</h3>
+                  <h3>
+                    <ProfileNameLink role="tutor" profileId={offer.tutorId}>
+                      {[offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư'}
+                    </ProfileNameLink>
+                  </h3>
                   <p>{formatStudyingRequestMoney(offer.proposedPrice)}</p>
                   <time dateTime={offer.createdAt}>Gửi lúc {formatOfferDate(offer.createdAt)}</time>
                 </div>

@@ -36,7 +36,6 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
-import com.ptutor.backend.entity.enums.DecisionRequestType;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
@@ -61,7 +60,6 @@ class TutorStudentRequestServiceTest {
     @Mock DistrictRepository districtRepository;
     @Mock StudentRepository studentRepository;
     @Mock ApplicationEventPublisher eventPublisher;
-    @Mock DecisionSnapshotRecorder snapshotRecorder;
 
     private TutorStudentRequestService service;
     private UUID tutorUserId;
@@ -82,8 +80,7 @@ class TutorStudentRequestServiceTest {
                 districtRepository,
                 studentRepository,
                 Mappers.getMapper(TutorStudentRequestMapper.class),
-                eventPublisher,
-                snapshotRecorder);
+                eventPublisher);
 
         tutorUserId = UUID.randomUUID();
         tutorId = UUID.randomUUID();
@@ -126,31 +123,7 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void snapshotsTheWillingnessBeforeSavingAndRecordsItForTheSavedProposal() {
-        when(studyingRequestRepository.findById(studyingRequestId))
-                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
-        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
-        when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
-                .thenAnswer(invocation -> {
-                    TutorStudentRequest value = invocation.getArgument(0);
-                    value.setId(requestId);
-                    return value;
-                });
-        DecisionSnapshotRecorder.Prepared prepared =
-                new DecisionSnapshotRecorder.Prepared(DecisionRequestType.TUTOR_STUDENT_REQUEST, java.util.List.of());
-        when(snapshotRecorder.prepareTutorProposal(any(), any(), any(), any(), any())).thenReturn(prepared);
-
-        service.create(tutorUserId, studyingRequestId, createRequest());
-
-        // Computed before the proposal exists, so it does not count among the student's pending proposals.
-        org.mockito.InOrder order = org.mockito.Mockito.inOrder(snapshotRecorder, tutorStudentRequestRepository);
-        order.verify(snapshotRecorder).prepareTutorProposal(any(), any(), any(), any(), any());
-        order.verify(tutorStudentRequestRepository).saveAndFlush(any(TutorStudentRequest.class));
-        order.verify(snapshotRecorder).record(prepared, requestId);
-    }
-
-    @Test
-    void createsOfflineProposalWithValidatedProvinceAndDistrict() {
+    void createsOfflineProposalUsingStudyingRequestLocation() {
         UUID provinceId = UUID.randomUUID();
         UUID districtId = UUID.randomUUID();
         Province province = Province.builder().name("Hanoi").build();
@@ -158,10 +131,12 @@ class TutorStudentRequestServiceTest {
         District district = District.builder().name("Ba Dinh").province(province).build();
         district.setId(districtId);
 
+        StudyingRequest studyingRequest = studyingRequest(RequestStatus.OPEN);
+        studyingRequest.setLearningMode(com.ptutor.backend.entity.enums.LearningMode.OFFLINE);
+        studyingRequest.setDistrict(district);
         when(studyingRequestRepository.findById(studyingRequestId))
-                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+                .thenReturn(Optional.of(studyingRequest));
         when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
-        when(districtRepository.findById(districtId)).thenReturn(Optional.of(district));
         when(tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
                 tutorId, studyingRequestId, ApplicationStatus.PENDING)).thenReturn(false);
         when(tutorStudentRequestRepository.saveAndFlush(any(TutorStudentRequest.class)))
@@ -173,7 +148,7 @@ class TutorStudentRequestServiceTest {
 
         var request = new TutorStudentRequestCreateRequest(
                 gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
-                "Saturday mornings", "", provinceId, districtId);
+                "Saturday mornings", "", null, null);
 
         service.create(tutorUserId, studyingRequestId, request);
 
@@ -181,6 +156,23 @@ class TutorStudentRequestServiceTest {
         verify(tutorStudentRequestRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getPreferredProvince()).isSameAs(province);
         assertThat(captor.getValue().getPreferredDistrict()).isSameAs(district);
+    }
+
+    @Test
+    void rejectsOfflineProposalWhenStudyingRequestHasNoLocation() {
+        when(studyingRequestRepository.findById(studyingRequestId))
+                .thenReturn(Optional.of(studyingRequest(RequestStatus.OPEN)));
+        when(gradeRepository.findById(gradeId)).thenReturn(Optional.of(grade()));
+        var request = new TutorStudentRequestCreateRequest(
+                gradeId, new BigDecimal("200000"), TeachingMode.OFFLINE,
+                "Saturday mornings", "", null, null);
+
+        assertThatThrownBy(() -> service.create(tutorUserId, studyingRequestId, request))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("INVALID_PREFERRED_LOCATION");
+                });
+        verify(tutorStudentRequestRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -238,7 +230,6 @@ class TutorStudentRequestServiceTest {
         var response = service.cancel(tutorUserId, requestId);
 
         assertThat(request.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
-        assertThat(request.getRespondedAt()).isNull();
         assertThat(response.status()).isEqualTo(ApplicationStatus.CANCELLED);
         verify(tutorStudentRequestRepository).saveAndFlush(request);
     }
@@ -303,7 +294,6 @@ class TutorStudentRequestServiceTest {
         service.accept(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
-        assertThat(tutorRequest.getRespondedAt()).isNotNull();
         assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
         verify(studyingRequestRepository).saveAndFlush(request);
     }
@@ -376,7 +366,6 @@ class TutorStudentRequestServiceTest {
         service.reject(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
-        assertThat(tutorRequest.getRespondedAt()).isNotNull();
         assertThat(request.getStatus()).isEqualTo(RequestStatus.OPEN);
         verify(studyingRequestRepository, never()).saveAndFlush(any());
     }

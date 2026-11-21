@@ -3,6 +3,7 @@ package com.ptutor.backend.service;
 import java.util.Set;
 import com.ptutor.backend.entity.enums.RecommendationEntityType;
 import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -85,6 +86,7 @@ public class TutorProfileService {
 
         Tutor tutor = findMineEntity(userId);
         User user = tutor.getUser();
+        boolean reviewableChanged = hasReviewableChange(request, tutor);
         updateAddress(request, user);
 
         setIfProvided(request.firstName(), user::setFirstName);
@@ -108,7 +110,7 @@ public class TutorProfileService {
         setIfProvided(request.strengthSubjects(), tutor::setStrengthSubjects);
         setIfProvided(request.targetStudentType(), tutor::setTargetStudentType);
 
-        if (request.hasReviewableProfileUpdate()) {
+        if (reviewableChanged) {
             tutor.setProfileStatus(TutorProfileStatus.PENDING);
             tutor.setProfileReviewedBy(null);
             tutor.setProfileReviewedAt(null);
@@ -173,5 +175,23 @@ public class TutorProfileService {
         if (value != null) {
             setter.accept(value.strip());
         }
+    }
+
+    private boolean hasReviewableChange(UpdateTutorProfileRequest request, Tutor tutor) {
+        return changed(request.introduction(), tutor.getIntroduction())
+                || request.experienceYears() != null
+                        && !Objects.equals(request.experienceYears(), tutor.getExperienceYears())
+                || changed(request.education(), tutor.getEducation())
+                || changed(request.teachingStyleTags(), tutor.getTeachingStyleTags())
+                || changed(request.teachingMethodology(), tutor.getTeachingMethodology())
+                || changed(request.strengthSubjects(), tutor.getStrengthSubjects())
+                || changed(request.targetStudentType(), tutor.getTargetStudentType());
+    }
+
+    private boolean changed(String supplied, String current) {
+        if (supplied == null) return false;
+        String next = supplied.strip();
+        return !Objects.equals(next.isEmpty() ? null : next,
+                current == null || current.isBlank() ? null : current.strip());
     }
 }

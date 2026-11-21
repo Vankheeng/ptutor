@@ -45,6 +45,11 @@ public class Lesson extends BaseEntity {
     @NonFinal
     private Contract contract;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_installment_id")
+    @NonFinal
+    private ContractPaymentInstallment paymentInstallment;
+
     @Column(name = "title", columnDefinition = "varchar")
     @NonFinal
     private String title;

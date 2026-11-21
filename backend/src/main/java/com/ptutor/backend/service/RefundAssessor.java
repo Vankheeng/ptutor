@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.ContractPaymentInstallment;
 import com.ptutor.backend.entity.Payment;
+import com.ptutor.backend.entity.RefundRequestLesson;
 import com.ptutor.backend.entity.enums.LessonOutcome;
 import com.ptutor.backend.entity.enums.PaymentInstallmentStatus;
 import com.ptutor.backend.entity.enums.PaymentStatus;
@@ -51,6 +52,11 @@ public class RefundAssessor {
     }
 
     public Assessment assess(Contract contract, List<LessonOutcome> outcomes) {
+        return assess(contract, outcomes, List.of());
+    }
+
+    public Assessment assess(Contract contract, List<LessonOutcome> outcomes,
+            List<RefundRequestLesson> disputed) {
         UUID contractId = contract.getId();
         BigDecimal contractValue = sum(installmentRepository.findAllByContract_IdOrderBySequenceNumberAsc(contractId)
                 .stream()
@@ -64,7 +70,12 @@ public class RefundAssessor {
                 sum(payments.stream().map(Payment::getAmount).toList()),
                 refundRequestRepository.sumRefundedAmountForContract(contractId),
                 outcomes,
-                refundPolicy.rates());
+                refundPolicy.rates(),
+                disputed.stream().filter(item -> item.getMissedMinutes() != null)
+                        .map(item -> new RefundCalculator.ShortLesson(item.getMissedMinutes(),
+                                (int) java.time.Duration.between(item.getLesson().getStartTime(),
+                                        item.getLesson().getEndTime()).toMinutes()))
+                        .toList());
         return new Assessment(result, payments);
     }
 

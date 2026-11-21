@@ -6,6 +6,7 @@ import { getStudentApplications, type StudentApplication } from '../../services/
 import type { TeachingRequest } from '../../types/api';
 import { TutorStudentSearchFilters, type TutorStudentFilters } from '../tutor/components/TutorStudentSearchFilters';
 import { StudentTeachingRequestCard } from '../../components/student/StudentTeachingRequestCard';
+import { TutorDiscoveryTabs } from '../../components/student/TutorDiscoveryTabs';
 import '../tutor/tutor.css';
 
 const PAGE_SIZE = 6;
@@ -65,6 +66,8 @@ export function StudentTeachingRequestsPage() {
         </div>
         <span className="tutor-count">{filteredRequests.length} kết quả</span>
       </header>
+
+      <TutorDiscoveryTabs />
 
       <section className="tutor-marketplace" aria-label="Tìm kiếm gia sư">
         <TutorStudentSearchFilters

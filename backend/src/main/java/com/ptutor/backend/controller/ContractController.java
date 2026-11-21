@@ -47,12 +47,16 @@ public class ContractController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContractResponse>>> findMine(
             @RequestParam(required = false) ContractStatus status,
+            @RequestParam(required = false) UUID counterpartyId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(responseFactory.success(
-                contractService.findMine(currentUserProvider.getCurrentUserId(), status, pageable),
+                counterpartyId == null
+                        ? contractService.findMine(currentUserProvider.getCurrentUserId(), status, pageable)
+                        : contractService.findSharedWith(
+                                currentUserProvider.getCurrentUserId(), counterpartyId, status, pageable),
                 BASE_PATH));
     }
 
