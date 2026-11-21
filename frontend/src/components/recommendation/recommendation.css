@@ -260,6 +260,11 @@
   background: #f1edff;
   color: #6736d6;
 }
+.rec-result-count {
+  margin-left: auto;
+  color: #777c8e;
+  font-size: 11px;
+}
 .rec-summary {
   display: flex;
   align-items: baseline;
@@ -463,9 +468,6 @@
   border-color: #d6c8f6;
   box-shadow: 0 8px 24px #6033c51a;
 }
-.student-rec-layout .rec-card.menu-open {
-  z-index: 5;
-}
 .student-rec-layout .rec-card-hit-area {
   position: absolute;
   z-index: 1;
@@ -476,60 +478,44 @@
   outline: 2px solid #6736d6;
   outline-offset: 2px;
 }
-.student-rec-layout .rec-card-menu {
+.student-rec-layout .rec-interest-button {
   position: absolute;
   z-index: 3;
   top: 14px;
   right: 14px;
-}
-.student-rec-layout .rec-card-menu-button {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 1px solid #e3e4eb;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #fff;
-  color: #6b617d;
-  cursor: pointer;
-}
-.student-rec-layout .rec-card-menu-button:hover,
-.student-rec-layout .rec-card-menu-button.is-saved {
-  border-color: #cdbcf3;
-  background: #f7f3ff;
-  color: #6736d6;
-}
-.student-rec-layout .rec-card-menu-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  display: grid;
-  min-width: 160px;
-  padding: 5px;
-  border: 1px solid #e3e4eb;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 12px 28px #20243a24;
-}
-.student-rec-layout .rec-card-menu-panel button {
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #44495c;
-  font: inherit;
-  font-size: 11px;
-  text-align: left;
-  cursor: pointer;
-}
-.student-rec-layout .rec-card-menu-panel button:hover:not(:disabled) {
-  background: #f5f0ff;
-  color: #6736d6;
-}
-.student-rec-layout .rec-card-menu-panel button:disabled {
   color: #85899a;
-  cursor: default;
+  cursor: pointer;
+}
+.student-rec-layout .rec-interest-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.student-rec-layout .rec-interest-button:hover,
+.student-rec-layout .rec-interest-button.is-interested {
+  border-color: #f3b4c2;
+  background: #fff1f4;
+  color: #e13f64;
+}
+.student-rec-layout .rec-interest-button.is-interested svg {
+  fill: currentColor;
+}
+.student-rec-layout .rec-interest-button:focus-visible {
+  outline: 2px solid #e13f64;
+  outline-offset: 2px;
+}
+.student-rec-layout .rec-interest-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .student-rec-layout .rec-card-head > div {
   min-width: 0;
@@ -1017,6 +1003,19 @@
   color: #777c8e;
   font-size: 11px;
   font-weight: 600;
+}
+.student-rec-layout .rec-saved-controls-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+}
+.student-rec-layout .rec-smart-search-button {
+  border-color: #bda6f1;
+  background: #f5f0ff;
+  color: #6736d6;
+}
+.student-rec-layout .rec-smart-search-button:hover:not(:disabled) {
+  background: #eae0ff;
 }
 .rec-tag-dropdown {
   position: relative;

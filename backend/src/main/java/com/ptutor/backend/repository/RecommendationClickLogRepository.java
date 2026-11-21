@@ -8,5 +8,5 @@ import com.ptutor.backend.entity.RecommendationClickLog;
 
 public interface RecommendationClickLogRepository extends JpaRepository<RecommendationClickLog, UUID> {
 
-    java.util.List<RecommendationClickLog> findAllByRecommendationLog_Id(UUID recommendationLogId);
+    java.util.List<RecommendationClickLog> findAllByRecommendationLog_IdOrderByCreatedAtAsc(UUID recommendationLogId);
 }

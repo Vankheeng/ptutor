@@ -129,6 +129,10 @@ export function recordEvent(logId: string, candidateId: string, action: Recommen
   return post<null>(`/api/v1/recommendations/${encodeURIComponent(logId)}/events`, { action, candidateId });
 }
 
+export function getFavoriteTutorIds(signal?: AbortSignal) {
+  return get<string[]>('/api/v1/students/me/favorite-tutors', { signal });
+}
+
 const tagRequests = new Map<string, Promise<RecommendationTag[]>>();
 
 /** Tags the user can pick as filters. Topics are returned only together with their subject. */

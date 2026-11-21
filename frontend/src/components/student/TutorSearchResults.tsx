@@ -13,9 +13,10 @@ const PAGE_SIZE = 6;
 interface Props {
   filters: TutorSearchFilters;
   searchTerm: string;
+  isInitial?: boolean;
 }
 
-export function TutorSearchResults({ filters, searchTerm }: Props) {
+export function TutorSearchResults({ filters, searchTerm, isInitial = false }: Props) {
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const provinceId = filters.area?.scope === 'PROVINCE' ? (filters.area.provinceId ?? '') : '';
@@ -48,11 +49,11 @@ export function TutorSearchResults({ filters, searchTerm }: Props) {
       <div className="tutor-section-heading">
         <div className="rec-section-title">
           <h2>Tất cả gia sư</h2>
-          <span className="rec-result-kind">Tìm theo bộ lọc</span>
+          {!isInitial && <span className="rec-result-kind">Tìm theo bộ lọc</span>}
         </div>
         <span className="tutor-count">{requests.length} kết quả</span>
       </div>
-      <p className="rec-hint">Kết quả tìm kiếm theo từ khóa, môn, lớp, khu vực, giá và lịch học.</p>
+      {!isInitial && <p className="rec-hint">Kết quả tìm kiếm theo từ khóa, môn, lớp, khu vực, giá và lịch học.</p>}
       {query.error ? (
         <div className="tutor-error" role="alert">
           {query.error}

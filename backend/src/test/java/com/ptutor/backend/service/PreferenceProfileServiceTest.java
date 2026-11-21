@@ -112,6 +112,7 @@ class PreferenceProfileServiceTest {
         UUID applied = UUID.randomUUID();
         UUID changedMind = UUID.randomUUID();
         UUID cameBack = UUID.randomUUID();
+        UUID likedAgain = UUID.randomUUID();
 
         List<Signal> kept = PreferenceProfileService.strongestPerPosting(List.of(
                 new Signal(applied, "VIEWED", now.minusDays(3)),
@@ -120,12 +121,17 @@ class PreferenceProfileServiceTest {
                 new Signal(changedMind, "FAVORITED", now.minusDays(2)),
                 new Signal(changedMind, "DISMISSED", now.minusDays(1)),
                 new Signal(cameBack, "DISMISSED", now.minusDays(2)),
-                new Signal(cameBack, "VIEWED", now.minusDays(1))), new RecommendationSettings().getHistorySignalWeights());
+                new Signal(cameBack, "VIEWED", now.minusDays(1)),
+                new Signal(likedAgain, "FAVORITED", now.minusDays(3)),
+                new Signal(likedAgain, "DISMISSED", now.minusDays(2)),
+                new Signal(likedAgain, "FAVORITED", now.minusDays(1))),
+                new RecommendationSettings().getHistorySignalWeights());
 
         assertThat(kept).extracting(Signal::candidateId, Signal::kind).containsExactlyInAnyOrder(
                 org.assertj.core.groups.Tuple.tuple(applied, "ACCEPTED"),
                 org.assertj.core.groups.Tuple.tuple(changedMind, "DISMISSED"),
-                org.assertj.core.groups.Tuple.tuple(cameBack, "VIEWED"));
+                org.assertj.core.groups.Tuple.tuple(cameBack, "VIEWED"),
+                org.assertj.core.groups.Tuple.tuple(likedAgain, "FAVORITED"));
     }
 
     @Test

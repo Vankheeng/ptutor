@@ -1,6 +1,7 @@
 package com.ptutor.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -62,6 +63,8 @@ public class RecommendationEventService {
             if (request.action() == RecommendationAction.FAVORITED) {
                 favoriteTutorRepository.addOrRestore(
                         UUID.randomUUID(), log.getSearcherStudent().getId(), posting.getTutor().getId(), now);
+            } else if (request.action() == RecommendationAction.DISMISSED) {
+                favoriteTutorRepository.remove(log.getSearcherStudent().getId(), posting.getTutor().getId(), now);
             }
             jobRepository.enqueue(AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
                     log.getSearcherStudent().getId(), now);
@@ -74,6 +77,11 @@ public class RecommendationEventService {
             jobRepository.enqueue(AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.TUTOR.name(),
                     log.getSearcherTutor().getId(), now);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> favoriteTutorUserIds(UUID userId) {
+        return favoriteTutorRepository.findTutorUserIdsByStudentUserId(userId);
     }
 
     /** The log of a search, only for the person who ran it; anyone else gets "not found". */

@@ -1,6 +1,7 @@
 package com.ptutor.backend.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,6 +26,17 @@ public interface FavoriteTutorRepository extends JpaRepository<FavoriteTutor, UU
     int addOrRestore(
             @Param("id") UUID id, @Param("studentId") UUID studentId, @Param("tutorId") UUID tutorId,
             @Param("now") LocalDateTime now);
+
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            UPDATE favorite_tutors SET deleted_at = :now, updated_at = :now
+            WHERE student_id = :studentId AND tutor_id = :tutorId AND deleted_at IS NULL
+            """, nativeQuery = true)
+    int remove(
+            @Param("studentId") UUID studentId, @Param("tutorId") UUID tutorId, @Param("now") LocalDateTime now);
+
+    @Query("select favorite.tutor.user.id from FavoriteTutor favorite where favorite.student.user.id = :userId")
+    List<UUID> findTutorUserIdsByStudentUserId(@Param("userId") UUID userId);
 
     boolean existsByStudent_IdAndTutor_Id(UUID studentId, UUID tutorId);
 }

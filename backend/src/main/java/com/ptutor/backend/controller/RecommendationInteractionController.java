@@ -1,10 +1,12 @@
 package com.ptutor.backend.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -59,6 +61,13 @@ public class RecommendationInteractionController {
         return ResponseEntity.ok(responseFactory.success(
                 "RECOMMENDATION_EVENT_RECORDED", "Event recorded", null,
                 "/api/v1/recommendations/" + logId + "/events"));
+    }
+
+    @GetMapping("/students/me/favorite-tutors")
+    public ResponseEntity<ApiResponse<List<UUID>>> favoriteTutors() {
+        return ResponseEntity.ok(responseFactory.success(
+                eventService.favoriteTutorUserIds(currentUserProvider.getCurrentUserId()),
+                "/api/v1/students/me/favorite-tutors"));
     }
 
     /** Scores again the results the user has not seen yet, using what they did with the ones they saw. */

@@ -94,18 +94,18 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
     if (next === 'DEFAULT') onChange(undefined);
     else if (next === 'ANY') onChange({ scope: 'ANY' });
     else if (next === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: provinceId || null });
-    else onChange({ scope: 'DISTRICTS', districtIds: selected });
+    else onChange({ scope: 'DISTRICTS', districtIds: selected, provinceId: provinceId || null });
   };
 
   const toggleDistrict = (districtId: string) => {
     const next = selected.includes(districtId) ? selected.filter((id) => id !== districtId) : [...selected, districtId];
-    onChange({ scope: 'DISTRICTS', districtIds: next });
+    onChange({ scope: 'DISTRICTS', districtIds: next, provinceId: provinceId || null });
   };
 
   const chooseProvince = (next: string) => {
     setProvinceId(next);
     setDistrictsOpen(false);
-    if (scope === 'DISTRICTS') onChange({ scope: 'DISTRICTS', districtIds: [] });
+    if (scope === 'DISTRICTS') onChange({ scope: 'DISTRICTS', districtIds: [], provinceId: next || null });
     if (scope === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: next || null });
   };
 
