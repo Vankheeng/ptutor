@@ -134,26 +134,29 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
       )}
       {scope === 'DISTRICTS' && (
         <>
-          {selected.length > 0 && (
-            <div className="rec-selected-districts" aria-label="Quận đã chọn">
-              {selected.map((id) => (
-                <button key={id} type="button" onClick={() => toggleDistrict(id)} title="Bỏ chọn quận này">
-                  {districts.find((district) => district.id === id)?.name ??
-                    selectedDistricts.find((district) => district.id === id)?.name ??
-                    'Quận / phường đã chọn'}{' '}
-                  <span aria-hidden="true">×</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <button
-            className="rec-district-toggle"
-            type="button"
-            aria-expanded={districtsOpen}
-            onClick={() => setDistrictsOpen(!districtsOpen)}
-          >
-            {selected.length ? `Đổi / thêm quận (${selected.length} đã chọn)` : 'Chọn quận / phường'}
-          </button>
+          <div className="rec-district-selection">
+            {selected.length > 0 && (
+              <div className="rec-selected-districts" aria-label="Quận đã chọn">
+                {selected.map((id) => (
+                  <button key={id} type="button" onClick={() => toggleDistrict(id)} title="Bỏ chọn quận này">
+                    {districts.find((district) => district.id === id)?.name ??
+                      selectedDistricts.find((district) => district.id === id)?.name ??
+                      'Quận / phường đã chọn'}{' '}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              className="rec-district-toggle"
+              type="button"
+              aria-expanded={districtsOpen}
+              onClick={() => setDistrictsOpen(!districtsOpen)}
+            >
+              <span aria-hidden="true">+</span>
+              {selected.length ? 'Thêm quận / phường' : 'Chọn quận / phường'}
+            </button>
+          </div>
           {districtsOpen && (
             <div className="rec-district-panel">
               <input

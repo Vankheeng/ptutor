@@ -122,6 +122,12 @@
   flex-direction: column;
   gap: 7px;
 }
+.rec-district-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
 .rec-selected-districts {
   display: flex;
   flex-wrap: wrap;
@@ -136,13 +142,26 @@
   cursor: pointer;
 }
 .rec-district-toggle {
-  align-self: flex-start;
-  border: 1px solid #d9ccfb;
-  border-radius: 8px;
-  background: #fff;
-  color: #5020a8;
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6736d6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 6px;
   cursor: pointer;
+}
+.rec-district-toggle:hover {
+  background: #f5f0ff;
+}
+.rec-district-toggle:focus-visible {
+  outline: 2px solid #a98bf0;
+  outline-offset: 2px;
 }
 .rec-district-panel {
   display: flex;
@@ -737,13 +756,9 @@
 .student-rec-layout .rec-location .rec-area > select:only-child {
   grid-column: 1 / -1;
 }
-.student-rec-layout .rec-location .rec-selected-districts,
-.student-rec-layout .rec-location .rec-district-toggle,
+.student-rec-layout .rec-location .rec-district-selection,
 .student-rec-layout .rec-location .rec-district-panel {
   grid-column: 1 / -1;
-}
-.student-rec-layout .rec-location .rec-district-toggle {
-  justify-self: start;
 }
 .student-rec-layout .rec-location .rec-district-panel {
   position: absolute;
