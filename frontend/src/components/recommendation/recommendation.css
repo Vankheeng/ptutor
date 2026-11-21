@@ -684,9 +684,6 @@
 .student-rec-layout > .tutor-page-heading {
   margin: 0;
 }
-.student-rec-layout .rec-keyword {
-  grid-column: span 2;
-}
 .student-rec-layout .rec-results > h2 {
   margin: 0 0 12px;
   color: #34394d;
@@ -702,24 +699,88 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
-  gap: 12px;
+  gap: 14px 16px;
   position: static;
   max-height: none;
   overflow: visible;
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
-.student-rec-layout .rec-filters > .rec-row,
-.student-rec-layout .rec-filters > .rec-notes,
-.student-rec-layout .rec-filters > .rec-actions {
-  grid-column: 1 / -1;
-}
-.student-rec-layout .rec-filters > .rec-field:has(textarea),
-.student-rec-layout .rec-filters > .rec-field:has(.rec-area),
-.student-rec-layout .rec-filters > .rec-field:has(.rec-slots) {
+.student-rec-layout .rec-keyword {
+  order: 1;
   grid-column: span 2;
 }
-.student-rec-layout .rec-filters > .tutor-student-advanced-toggle {
+.student-rec-layout .rec-core-selects {
+  order: 2;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-mode {
+  order: 3;
+}
+.student-rec-layout .rec-location {
+  order: 4;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-advanced-toggle {
+  order: 5;
   justify-self: start;
+}
+.student-rec-layout .rec-advanced-divider {
+  order: 6;
+}
+.student-rec-layout .rec-description {
+  order: 7;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-parse-button {
+  order: 8;
+  width: 100%;
+  min-height: 42px;
+}
+.student-rec-layout .rec-saved-request {
+  order: 9;
+}
+.student-rec-layout .rec-notes {
+  order: 10;
+}
+.student-rec-layout .rec-price {
+  order: 11;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-schedule {
+  order: 12;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-style {
+  order: 13;
+}
+.student-rec-layout .rec-goal {
+  order: 14;
+}
+.student-rec-layout .rec-topic {
+  order: 15;
+  grid-column: span 2;
+}
+.student-rec-layout .rec-actions {
+  order: 16;
+}
+.student-rec-layout .rec-advanced-divider,
+.student-rec-layout .rec-notes,
+.student-rec-layout .rec-actions {
+  grid-column: 1 / -1;
+}
+.student-rec-layout .rec-advanced-divider {
+  padding-top: 14px;
+  border-top: 1px solid #eceef4;
+  color: #6a6280;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-rec-layout .rec-description textarea {
+  min-height: 78px;
+}
+.student-rec-layout .rec-actions {
+  padding-top: 14px;
+  border-top: 1px solid #eceef4;
 }
 .rec-tag-dropdown {
   position: relative;
@@ -775,17 +836,35 @@
   .student-rec-layout .rec-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .student-rec-layout .rec-keyword,
+  .student-rec-layout .rec-core-selects,
+  .student-rec-layout .rec-description,
+  .student-rec-layout .rec-topic {
+    grid-column: span 2;
+  }
+  .student-rec-layout .rec-location,
+  .student-rec-layout .rec-price,
+  .student-rec-layout .rec-schedule {
+    grid-column: span 1;
+  }
+  .student-rec-layout .rec-advanced-toggle {
+    grid-column: 1 / -1;
+  }
 }
 @media (max-width: 600px) {
   .student-rec-layout .rec-filters {
     grid-template-columns: minmax(0, 1fr);
   }
-  .student-rec-layout .rec-keyword {
+  .student-rec-layout .rec-keyword,
+  .student-rec-layout .rec-core-selects,
+  .student-rec-layout .rec-description,
+  .student-rec-layout .rec-topic,
+  .student-rec-layout .rec-location,
+  .student-rec-layout .rec-price,
+  .student-rec-layout .rec-schedule {
     grid-column: 1;
   }
-  .student-rec-layout .rec-filters > .rec-field:has(textarea),
-  .student-rec-layout .rec-filters > .rec-field:has(.rec-area),
-  .student-rec-layout .rec-filters > .rec-field:has(.rec-slots) {
-    grid-column: 1;
+  .student-rec-layout .rec-core-selects {
+    grid-template-columns: 1fr;
   }
 }
