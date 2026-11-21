@@ -715,22 +715,26 @@
 }
 .student-rec-layout .rec-mode {
   order: 3;
-  grid-column: span 2;
+  grid-column: span 1;
 }
 .student-rec-layout .rec-advanced-toggle {
-  order: 4;
-  grid-column: span 2;
-  align-self: end;
+  order: 5;
+  grid-column: span 1;
+  align-self: start;
   justify-self: start;
+  margin-top: 22px;
 }
 .student-rec-layout .rec-location {
-  order: 5;
-  grid-column: 1 / -1;
+  order: 4;
+  grid-column: span 2;
 }
 .student-rec-layout .rec-location .rec-area {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 16px;
+}
+.student-rec-layout .rec-location .rec-area > select:only-child {
+  grid-column: 1 / -1;
 }
 .student-rec-layout .rec-location .rec-selected-districts,
 .student-rec-layout .rec-location .rec-district-toggle,
@@ -908,11 +912,22 @@
   }
   .student-rec-layout .rec-location {
     grid-column: 1 / -1;
+    order: 5;
+  }
+  .student-rec-layout .rec-advanced-toggle {
+    order: 4;
   }
 }
 @media (max-width: 600px) {
   .student-rec-layout .rec-filters {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .student-rec-layout .rec-location {
+    order: 4;
+  }
+  .student-rec-layout .rec-advanced-toggle {
+    order: 5;
+    margin-top: 0;
   }
   .student-rec-layout .rec-keyword,
   .student-rec-layout .rec-core-selects,
