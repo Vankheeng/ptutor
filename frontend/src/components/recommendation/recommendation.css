@@ -424,12 +424,21 @@
 
 /* The student recommendation cards show the same posting details as tutor search. */
 .student-rec-layout .rec-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 15px;
 }
 .student-rec-layout .rec-card {
   min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+.student-rec-layout .rec-card-head > div {
+  min-width: 0;
+}
+.student-rec-layout .rec-card-head h3 {
+  overflow-wrap: anywhere;
 }
 .student-rec-layout .rec-posting-top {
   display: flex;
@@ -453,20 +462,34 @@
   margin: 0;
   color: #7d8293;
   font-size: 11px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 .student-rec-layout .rec-title {
   color: #272b3d;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.student-rec-layout .rec-title-button {
+  width: 100%;
 }
 .student-rec-layout .rec-posting-description {
   margin: 0;
   color: #74798b;
   font-size: 11px;
   line-height: 1.65;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 .student-rec-layout .rec-posting-details {
   display: grid;
@@ -492,12 +515,29 @@
 }
 .student-rec-layout .rec-card-actions {
   margin-top: auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 5px;
+}
+.student-rec-layout .rec-card-actions .rec-link {
+  min-width: 0;
+  justify-self: center;
+  text-align: center;
 }
 .student-rec-layout .rec-card-actions .student-button {
-  flex: 0 0 auto;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .student-rec-layout .rec-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .student-rec-layout .rec-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 960px) {
