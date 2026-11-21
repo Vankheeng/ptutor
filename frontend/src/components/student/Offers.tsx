@@ -99,7 +99,8 @@ export function Offers({
               </div>
 
               <div className="student-offer-actions">
-                {offer.status === 'PENDING' && requestStatus === 'OPEN' && (
+                {((offer.status === 'PENDING' && requestStatus === 'OPEN') ||
+                  (offer.status === 'ACCEPTED' && ['OPEN', 'MATCHED'].includes(requestStatus))) && (
                   <div className="student-form-actions">
                     <RequestOfferActions
                       role="student"
@@ -180,6 +181,7 @@ function offerStatusLabel(status: TutorOffer['status']) {
   return {
     PENDING: 'Đang chờ',
     ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
     REJECTED: 'Đã từ chối',
     CANCELLED: 'Đã hủy'
   }[status];

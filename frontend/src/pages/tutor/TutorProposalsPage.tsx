@@ -11,12 +11,13 @@ import {
 import { getSubjects } from '../../services/subjectApi';
 import type { TeachingRequest } from '../../types/api';
 import { RequestOfferActions } from '../../components/common-user/RequestOfferActions';
+import './tutor-proposal-status.css';
 import { getTutorContracts } from '../../services/tutorApi';
 
 type Status = StudentTeachingApplication['status'];
 type Mode = StudentTeachingApplication['learningMode'];
 type RequestWithContext = StudentTeachingApplication & { teachingRequest: TeachingRequest };
-const statuses: Array<'ALL' | Status> = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'];
+const statuses: Array<'ALL' | Status> = ['ALL', 'PENDING', 'ACCEPTED', 'CONNECTED', 'REJECTED', 'CANCELLED'];
 
 export function TutorProposalsPage() {
   const navigate = useNavigate();
@@ -350,9 +351,14 @@ function studentName(item: StudentTeachingApplication) {
   return [item.studentFirstName, item.studentLastName].filter(Boolean).join(' ') || item.studentEmail;
 }
 function statusLabel(value: Status | 'ALL') {
-  return { ALL: 'Tất cả', PENDING: 'Chờ xử lý', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Từ chối', CANCELLED: 'Đã hủy' }[
-    value
-  ];
+  return {
+    ALL: 'Tất cả',
+    PENDING: 'Chờ xử lý',
+    ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
+    REJECTED: 'Từ chối',
+    CANCELLED: 'Đã hủy'
+  }[value];
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));

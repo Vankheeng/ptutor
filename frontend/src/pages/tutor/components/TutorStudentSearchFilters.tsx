@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../../../components/ui/Icon';
 import { useLocationOptions } from '../../../hooks/useLocationOptions';
 import { useStudyCatalogOptions } from '../../../hooks/useStudyCatalogOptions';
+import { TimeSelect } from '../../../components/ui/TimeSelect';
 
 export interface TutorStudentFilters {
   search: string;
@@ -157,9 +158,8 @@ export function TutorStudentSearchFilters({
                     </option>
                   ))}
                 </select>
-                <input
+                <TimeSelect
                   aria-label={`Giờ bắt đầu khung ${index + 1}`}
-                  type="time"
                   value={slot.startTime}
                   onChange={(event) =>
                     update({
@@ -169,9 +169,8 @@ export function TutorStudentSearchFilters({
                     })
                   }
                 />
-                <input
+                <TimeSelect
                   aria-label={`Giờ kết thúc khung ${index + 1}`}
-                  type="time"
                   value={slot.endTime}
                   onChange={(event) =>
                     update({

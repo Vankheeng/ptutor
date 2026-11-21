@@ -15,6 +15,7 @@ import {
   refundErrorMessage,
   timeLeft
 } from '../../components/refund/refundFormat';
+import { getContracts, type Contract } from '../../services/studentApi';
 import '../../components/refund/refund.css';
 
 const DESCRIPTION_LIMIT = 2000;
@@ -25,8 +26,9 @@ const claimOptions: { value: AbsenceOutcome; label: string }[] = [
 ];
 
 export function StudentRefundRequestCreatePage() {
-  const { contractId = '' } = useParams();
+  const { contractId: routeContractId = '' } = useParams();
   const navigate = useNavigate();
+  const [selectedContractId, setSelectedContractId] = useState(routeContractId);
   const [claims, setClaims] = useState<Record<string, { outcome: AbsenceOutcome; missedMinutes: string }>>({});
   const [description, setDescription] = useState('');
   const [evidences, setEvidences] = useState<EvidenceInput[]>([]);
@@ -34,25 +36,29 @@ export function StudentRefundRequestCreatePage() {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
+  const activeContractId = routeContractId || selectedContractId;
+  const contractsLoad = useCallback((signal: AbortSignal) => getContracts(undefined, 0, 100, signal), []);
+  const { data: contracts } = useResource(contractsLoad);
+
   const load = useCallback(
-    async (signal: AbortSignal) =>
-      (await getStudentContractLessons(contractId, signal)).filter(
+    async (signal: AbortSignal) => {
+      if (!activeContractId) return [];
+      return (await getStudentContractLessons(activeContractId, signal)).filter(
         (lesson) => lesson.status === 'PENDING_CONFIRMATION'
-      ),
-    [contractId]
+      );
+    },
+    [activeContractId]
   );
   const { data: pending, error, isLoading } = useResource(load);
 
   const chosen = Object.entries(claims);
-  const lessonsError = tried && chosen.length === 0;
+  const lessonsError = tried && chosen.length !== 1;
   const descriptionError = tried && !description.trim();
 
   const toggle = (lessonId: string, value: AbsenceOutcome) =>
     setClaims((current) => {
-      const next = { ...current };
-      if (next[lessonId]?.outcome === value) delete next[lessonId];
-      else next[lessonId] = { outcome: value, missedMinutes: '' };
-      return next;
+      if (current[lessonId]?.outcome === value) return {};
+      return { [lessonId]: { outcome: value, missedMinutes: '' } };
     });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -68,12 +74,12 @@ export function StudentRefundRequestCreatePage() {
       const minutes = Number(claim.missedMinutes);
       return !Number.isInteger(minutes) || minutes < 1 || minutes >= duration;
     });
-    if (chosen.length === 0 || !description.trim() || invalidMinutes) return;
+    if (chosen.length !== 1 || !description.trim() || invalidMinutes) return;
     setBusy(true);
     setFailure(null);
     try {
       const created = await createRefundRequest({
-        contractId,
+        contractId: activeContractId,
         description: description.trim(),
         lessons: chosen.map(([lessonId, claim]) => ({
           lessonId,
@@ -91,7 +97,10 @@ export function StudentRefundRequestCreatePage() {
 
   return (
     <form className="rf-page" onSubmit={(event) => void submit(event)} noValidate>
-      <Link className="rf-back" to={`/student/contracts/${contractId}/lessons`}>
+      <Link
+        className="rf-back"
+        to={activeContractId ? `/student/contracts/${activeContractId}/lessons` : '/student/refund-requests'}
+      >
         ‹ Buổi học
       </Link>
       <h1>Yêu cầu hoàn tiền</h1>
@@ -106,12 +115,42 @@ export function StudentRefundRequestCreatePage() {
         </div>
       )}
 
+      {!routeContractId && (
+        <section className="rf-card rf-contract-picker">
+          <div className="rf-field">
+            <label htmlFor="refund-contract">Chọn hợp đồng cần hoàn tiền</label>
+            <select
+              id="refund-contract"
+              value={selectedContractId}
+              onChange={(event) => {
+                setSelectedContractId(event.target.value);
+                setClaims({});
+                setTried(false);
+              }}
+            >
+              <option value="">Chọn hợp đồng</option>
+              {(contracts?.content ?? []).map((contract: Contract) => (
+                <option key={contract.id} value={contract.id}>
+                  {contract.subjectName} · {contract.gradeName} · {contract.tutorFirstName} {contract.tutorLastName}
+                </option>
+              ))}
+            </select>
+          </div>
+          {!activeContractId && (
+            <div className="rf-state">Chọn hợp đồng để xem các buổi học có thể yêu cầu hoàn tiền.</div>
+          )}
+        </section>
+      )}
+
       <section className="rf-card">
         <h2>
           Buổi học cần hoàn tiền <span className="rf-required">*</span>
         </h2>
-        {isLoading && !pending && <div className="rf-state">Đang tải…</div>}
-        {pending && pending.length === 0 && <div className="rf-state">Không có buổi nào đang chờ xác nhận.</div>}
+        <p className="rf-kicker">Mỗi yêu cầu chỉ áp dụng cho một buổi học.</p>
+        {activeContractId && isLoading && !pending && <div className="rf-state">Đang tải…</div>}
+        {activeContractId && pending && pending.length === 0 && (
+          <div className="rf-state">Không có buổi nào đang chờ xác nhận.</div>
+        )}
         {pending && pending.length > 0 && (
           <div className="rf-rows">
             {pending.map((lesson) => {
@@ -178,7 +217,7 @@ export function StudentRefundRequestCreatePage() {
             })}
           </div>
         )}
-        {lessonsError && <span className="rf-error">Chọn ít nhất một buổi và nguyên nhân.</span>}
+        {lessonsError && <span className="rf-error">Vui lòng chọn đúng một buổi học và nguyên nhân.</span>}
       </section>
 
       <section className="rf-card">
@@ -205,7 +244,10 @@ export function StudentRefundRequestCreatePage() {
       </section>
 
       <div className="rf-actions">
-        <Link className="rf-button secondary" to={`/student/contracts/${contractId}/lessons`}>
+        <Link
+          className="rf-button secondary"
+          to={activeContractId ? `/student/contracts/${activeContractId}/lessons` : '/student/refund-requests'}
+        >
           Huỷ
         </Link>
         <button className="rf-button" type="submit" disabled={busy || pending?.length === 0}>

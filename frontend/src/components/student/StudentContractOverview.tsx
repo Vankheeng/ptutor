@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import type { Contract } from '../../services/studentApi';
 import { Icon } from '../ui/Icon';
+import { formatLessonPrice } from '../../utils/contractPricing';
 
 export function StudentContractOverview({ contract, createdByYou }: { contract: Contract; createdByYou: boolean }) {
   const leftRows = [
     ['Môn học', contract.subjectName || 'Chưa xác định'],
     ['Lớp', contract.gradeName || 'Chưa xác định'],
     ['Hình thức dạy', contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'],
-    ['Giá', formatMoney(contract.price)],
+    ['Giá / buổi', formatLessonPrice(contract)],
     ['Chu kỳ thanh toán', formatPaymentPeriod(contract.paymentPeriod)],
     ['Tổng số buổi', `${contract.totalLessons} buổi`]
   ];
@@ -47,10 +48,6 @@ function OverviewRow({ label, value }: { label: string; value: ReactNode }) {
       <div className="student-detail-value">{value}</div>
     </div>
   );
-}
-
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 
 function formatDate(value: string) {

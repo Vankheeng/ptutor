@@ -3,6 +3,7 @@ package com.ptutor.backend.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -182,10 +183,18 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
 
     boolean existsByStudentTutorRequest_IdAndStatusNot(UUID studentTutorRequestId, ContractStatus excludedStatus);
 
+    @Query("select case when count(contract) > 0 then true else false end from Contract contract "
+            + "where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status in :statuses")
+    boolean existsActiveByStudentTutorRequestId(
+            @Param("studentTutorRequestId") UUID studentTutorRequestId,
+            @Param("statuses") Collection<ContractStatus> statuses);
+
     @Query("select contract.id from Contract contract where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status <> :excludedStatus order by contract.createdAt desc")
     Optional<UUID> findIdByStudentTutorRequestIdAndStatusNot(
             @Param("studentTutorRequestId") UUID studentTutorRequestId,
             @Param("excludedStatus") ContractStatus excludedStatus);
+
+    Optional<Contract> findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(UUID studentTutorRequestId);
 
     boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
 
@@ -218,6 +227,7 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             update Contract contract
                set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
                    contract.updatedAt = :now
              where contract.id = :contractId
                and contract.status = :pendingStatus
@@ -236,6 +246,7 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             update Contract contract
                set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
                    contract.updatedAt = :now
              where contract.id = :contractId
                and contract.status = :pendingStatus
@@ -245,6 +256,27 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     int cancelPendingByCreator(
             @Param("contractId") UUID contractId,
             @Param("userId") UUID userId,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("cancelledStatus") ContractStatus cancelledStatus,
+            @Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :pendingStatus,
+                   contract.createdAt = :now,
+                   contract.cancelledAt = null,
+                   contract.updatedAt = :now
+             where contract.id = :contractId
+               and contract.createdBy.id = :userId
+               and contract.status in (:pendingStatus, :cancelledStatus)
+               and contract.endDate > :today
+               and contract.deletedAt is null
+            """)
+    int refreshSigningDeadline(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId,
+            @Param("today") LocalDate today,
             @Param("pendingStatus") ContractStatus pendingStatus,
             @Param("cancelledStatus") ContractStatus cancelledStatus,
             @Param("now") LocalDateTime now);
@@ -268,6 +300,7 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             update Contract contract
                set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
                    contract.updatedAt = :now
              where contract.status = :pendingStatus
                and contract.endDate <= :today

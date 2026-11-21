@@ -11,6 +11,8 @@ import com.ptutor.backend.entity.StudentTutorRequest;
 public interface StudentTutorRequestMapper {
 
     @Mapping(target = "contractId", ignore = true)
+    @Mapping(target = "previousContractId", ignore = true)
+    @Mapping(target = "previousContractStatus", ignore = true)
 
     @Mapping(target = "studentId", source = "student.id")
     @Mapping(target = "studentFirstName", source = "student.user.firstName")

@@ -1,6 +1,7 @@
 package com.ptutor.backend.service;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -233,6 +234,7 @@ public class TutorStudentRequestService {
         }
 
         tutorRequest.setStatus(ApplicationStatus.ACCEPTED);
+        tutorRequest.setAcceptedAt(LocalDateTime.now());
         TutorStudentRequest savedRequest = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
         studyingRequest.setStatus(RequestStatus.MATCHED);
         studyingRequestRepository.saveAndFlush(studyingRequest);
@@ -251,9 +253,21 @@ public class TutorStudentRequestService {
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
 
         TutorStudentRequest tutorRequest = findRequest(tutorRequestId, studyingRequestId);
-        ensurePending(tutorRequest);
+        if (tutorRequest.getStatus() != ApplicationStatus.PENDING
+                && tutorRequest.getStatus() != ApplicationStatus.ACCEPTED) {
+            throw invalidTransition("Only PENDING or ACCEPTED tutor requests can be rejected");
+        }
         tutorRequest.setStatus(ApplicationStatus.REJECTED);
         TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
+        if (saved.getStudyingRequest() != null
+                && saved.getStudyingRequest().getStatus() == RequestStatus.MATCHED
+                && tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                        saved.getStudyingRequest().getId(), ApplicationStatus.ACCEPTED) == 0
+                && tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                        saved.getStudyingRequest().getId(), ApplicationStatus.CONNECTED) == 0) {
+            saved.getStudyingRequest().setStatus(RequestStatus.OPEN);
+            studyingRequestRepository.saveAndFlush(saved.getStudyingRequest());
+        }
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 saved.getTutor().getUser().getId(),
                 NotificationEventType.TUTOR_REQUEST_REJECTED,

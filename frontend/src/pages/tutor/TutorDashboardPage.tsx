@@ -6,6 +6,8 @@ import { useTutorDashboard } from '../../hooks/useTutorWorkspace';
 import { useAuth } from '../../auth/useAuth';
 import { setTutorLessonStatus, updateTutorLesson, type TutorLesson } from '../../services/tutorApi';
 import '../common-user/lesson-calendar.css';
+import { TutorLessonCancellationDialog } from '../../components/tutor/TutorLessonCancellationDialog';
+import { TimeSelect } from '../../components/ui/TimeSelect';
 
 export function TutorDashboardPage() {
   const { user } = useAuth();
@@ -19,6 +21,7 @@ export function TutorDashboardPage() {
   const [editingLesson, setEditingLesson] = useState(false);
   const [lessonBusy, setLessonBusy] = useState(false);
   const [lessonActionError, setLessonActionError] = useState('');
+  const [cancellationLesson, setCancellationLesson] = useState<TutorLesson | null>(null);
   const selectedContract = contracts.find((contract) => contract.id === selectedLesson?.contractId);
   const closeLessonModal = () => {
     setSelectedLesson(null);
@@ -27,6 +30,10 @@ export function TutorDashboardPage() {
   };
   const markLessonTaught = async () => {
     if (!selectedLesson) return;
+    if (!selectedLesson.paidAt) {
+      setLessonActionError('Buổi học đang chờ thanh toán, chưa thể đánh dấu đã dạy.');
+      return;
+    }
     setLessonBusy(true);
     setLessonActionError('');
     try {
@@ -229,7 +236,7 @@ export function TutorDashboardPage() {
           >
             <header>
               <div>
-                <small>BUỔI DẠY · {lessonStatusLabel(selectedLesson.status)}</small>
+                <small>BUỔI DẠY · {lessonStatusLabel(selectedLesson.status, selectedLesson.paidAt)}</small>
                 <h2 id="dashboard-lesson-title">{selectedLesson.title}</h2>
               </div>
               <button type="button" aria-label="Đóng" onClick={closeLessonModal}>
@@ -255,11 +262,11 @@ export function TutorDashboardPage() {
                 <div className="lc-time-fields">
                   <label>
                     Bắt đầu
-                    <input name="startTime" type="time" required defaultValue={selectedLesson.startTime} />
+                    <TimeSelect name="startTime" required defaultValue={selectedLesson.startTime.slice(0, 5)} />
                   </label>
                   <label>
                     Kết thúc
-                    <input name="endTime" type="time" required defaultValue={selectedLesson.endTime} />
+                    <TimeSelect name="endTime" required defaultValue={selectedLesson.endTime.slice(0, 5)} />
                   </label>
                 </div>
                 <label>
@@ -275,7 +282,14 @@ export function TutorDashboardPage() {
                   <button className="lc-primary" type="submit" disabled={lessonBusy}>
                     {lessonBusy ? 'Đang lưu…' : 'Lưu lịch'}
                   </button>
-                  <button type="button" disabled={lessonBusy} onClick={() => setEditingLesson(false)}>
+                  <button
+                    type="button"
+                    disabled={lessonBusy}
+                    onClick={() => {
+                      setLessonActionError('');
+                      setEditingLesson(false);
+                    }}
+                  >
                     Hủy
                   </button>
                 </div>
@@ -314,7 +328,7 @@ export function TutorDashboardPage() {
                   </p>
                   <p>
                     <span>Trạng thái</span>
-                    <strong>{lessonStatusLabel(selectedLesson.status)}</strong>
+                    <strong>{lessonStatusLabel(selectedLesson.status, selectedLesson.paidAt)}</strong>
                   </p>
                   {selectedLesson.teachingMode === 'OFFLINE' && selectedContract?.studentDetailAddress && (
                     <p>
@@ -335,7 +349,10 @@ export function TutorDashboardPage() {
                   </p>
                 )}
                 <div className="lc-modal-actions">
-                  {selectedLesson.status === 'SCHEDULED' && (
+                  <Link className="lc-action-link" to={`/tutor/sections/contracts/${selectedLesson.contractId}`}>
+                    Xem hợp đồng
+                  </Link>
+                  {selectedLesson.status === 'SCHEDULED' && selectedLesson.paidAt && (
                     <>
                       <button
                         className="lc-primary"
@@ -352,20 +369,35 @@ export function TutorDashboardPage() {
                         className="lc-danger-button"
                         type="button"
                         disabled={lessonBusy}
-                        onClick={() => void cancelLesson()}
+                        onClick={() => {
+                          setCancellationLesson(selectedLesson);
+                          setSelectedLesson(null);
+                        }}
                       >
                         Hủy buổi học
                       </button>
                     </>
                   )}
-                  <button type="button" disabled={lessonBusy} onClick={closeLessonModal}>
-                    Đóng
-                  </button>
                 </div>
               </>
             )}
           </section>
         </div>
+      )}
+      {cancellationLesson && (
+        <TutorLessonCancellationDialog
+          busy={lessonBusy}
+          onClose={() => {
+            setCancellationLesson(null);
+            setSelectedLesson(cancellationLesson);
+          }}
+          onEdit={() => {
+            setCancellationLesson(null);
+            setSelectedLesson(cancellationLesson);
+            setEditingLesson(true);
+          }}
+          onRefund={() => void cancelLesson().then(() => setCancellationLesson(null))}
+        />
       )}
     </>
   );
@@ -419,7 +451,8 @@ function formatLessonFee(price?: number, totalLessons?: number | null) {
   return `${new Intl.NumberFormat('vi-VN').format(Math.round(price / totalLessons))} đ/buổi`;
 }
 
-function lessonStatusLabel(status: TutorLesson['status']) {
+function lessonStatusLabel(status: TutorLesson['status'], paidAt?: string | null) {
+  if (status === 'SCHEDULED' && !paidAt) return 'Chờ thanh toán';
   return (
     {
       SCHEDULED: 'Đã lên lịch',

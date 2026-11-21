@@ -2,6 +2,7 @@ package com.ptutor.backend.service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -20,6 +21,9 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LessonStatus;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.ContractPaymentInstallmentRepository;
+import com.ptutor.backend.exception.ApiException;
+
+import org.springframework.http.HttpStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ContractLessonProvisioningService {
+
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private static final Pattern LEGACY_DAY = Pattern.compile(
             "\\b(?:thu\\s*(?:[2-7]|hai|ba|tu|nam|sau|bay)|t[2-7]|chu\\s*nhat|cn|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b");
@@ -80,6 +86,18 @@ public class ContractLessonProvisioningService {
                 if (existing.size() >= contract.getTotalLession()) break;
                 String key = key(date, slot.startTime().toString(), slot.endTime().toString());
                 if (existing.contains(key)) continue;
+                LocalDate candidateDate = date;
+                boolean conflictsWithParticipants = contract.getStudent() != null && contract.getStudent().getUser() != null
+                        && contract.getTutor() != null && contract.getTutor().getUser() != null
+                        && lessonRepository.existsScheduleConflict(
+                        contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
+                        candidateDate, slot.startTime(), slot.endTime(), null);
+                if (conflictsWithParticipants
+                        || created.stream().anyMatch(lesson -> overlaps(
+                                lesson.getDate(), lesson.getStartTime(), lesson.getEndTime(),
+                                candidateDate, slot.startTime(), slot.endTime()))) {
+                    continue;
+                }
                 created.add(Lesson.builder().contract(contract).title("Buổi học " + contract.getSubject().getName())
                         .date(date).startTime(slot.startTime()).endTime(slot.endTime())
                         .teachingMode(contract.getTeachingMode()).status(LessonStatus.SCHEDULED)
@@ -108,6 +126,73 @@ public class ContractLessonProvisioningService {
                 }
             }
         }
+    }
+
+    /** Validates the lessons that would be generated before a new contract is persisted. */
+    public void validateScheduleConflicts(Contract contract) {
+        validateScheduleConflicts(contract, true);
+    }
+
+    public void validateScheduleConflicts(Contract contract, boolean creatorIsTutor) {
+        List<String> messages = findScheduleConflictMessages(contract, creatorIsTutor);
+        if (!messages.isEmpty()) {
+            throw new ApiException(HttpStatus.CONFLICT, "LESSON_SCHEDULE_CONFLICT", messages.get(0));
+        }
+    }
+
+    public List<String> findScheduleConflictMessages(Contract contract, boolean creatorIsTutor) {
+        List<String> messages = new ArrayList<>();
+        if (contract == null || contract.getStartDate() == null || contract.getEndDate() == null
+                || contract.getStudent() == null || contract.getTutor() == null
+                || contract.getTotalLession() == null || contract.getTotalLession() <= 0) {
+            return messages;
+        }
+        List<ScheduleSlot> slots = scheduleSlots(contract);
+        int generated = 0;
+        for (LocalDate date = contract.getStartDate(); !date.isAfter(contract.getEndDate()); date = date.plusDays(1)) {
+            for (ScheduleSlot slot : slots) {
+                if (slot.dayOfWeek() != date.getDayOfWeek().getValue()) continue;
+                if (generated >= contract.getTotalLession()) return messages;
+                List<Lesson> conflicts = lessonRepository.findScheduleConflicts(
+                        contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
+                        date, slot.startTime(), slot.endTime(), null);
+                if (conflicts != null && !conflicts.isEmpty()) {
+                    for (Lesson conflict : conflicts) {
+                        if (conflict.getContract() != null
+                                && conflict.getContract().getId() != null
+                                && conflict.getContract().getId().equals(contract.getId())) {
+                            continue;
+                        }
+                        String message = conflictMessage(contract, conflict, creatorIsTutor);
+                        if (!messages.contains(message)) messages.add(message);
+                    }
+                }
+                generated++;
+            }
+        }
+        return messages;
+    }
+
+    private String conflictMessage(Contract contract, Lesson conflict, boolean creatorIsTutor) {
+        String title = conflict.getTitle() == null || conflict.getTitle().isBlank()
+                ? "Buổi học" : conflict.getTitle();
+        String schedule = conflict.getDate().format(DISPLAY_DATE) + " " + conflict.getStartTime() + " - " + conflict.getEndTime();
+        boolean studentConflict = conflict.getContract() != null && conflict.getContract().getStudent() != null
+                && conflict.getContract().getStudent().getUser() != null
+                && conflict.getContract().getStudent().getUser().getId().equals(contract.getStudent().getUser().getId());
+        boolean tutorConflict = conflict.getContract() != null && conflict.getContract().getTutor() != null
+                && conflict.getContract().getTutor().getId().equals(contract.getTutor().getId());
+        // When both participants are the same as the proposed contract, do not
+        // disclose the existing lesson details; it is shared schedule data.
+        boolean creatorConflict = creatorIsTutor ? tutorConflict && !studentConflict : studentConflict && !tutorConflict;
+        if (creatorConflict) {
+            String owner = creatorIsTutor ? "Gia sư" : "Học viên";
+            return owner + " đang có buổi học \"" + title + "\" trùng lịch (" + schedule
+                    + "). Vui lòng điều chỉnh lịch trước khi tạo hợp đồng.";
+        }
+        String counterpart = creatorIsTutor ? "học viên" : "gia sư";
+        return "Lịch của " + counterpart + " bị trùng vào ngày/giờ " + schedule
+                + ". Vui lòng chọn khung giờ khác.";
     }
 
     private List<ScheduleSlot> scheduleSlots(Contract contract) {
@@ -177,4 +262,12 @@ public class ContractLessonProvisioningService {
     private record LegacyDay(int position, int dayOfWeek) {}
 
     private String key(LocalDate date, String start, String end) { return date + "|" + start + "|" + end; }
+
+    private boolean overlaps(
+            LocalDate leftDate, LocalTime leftStart, LocalTime leftEnd,
+            LocalDate rightDate, LocalTime rightStart, LocalTime rightEnd) {
+        return leftDate.equals(rightDate)
+                && leftStart.isBefore(rightEnd)
+                && leftEnd.isAfter(rightStart);
+    }
 }

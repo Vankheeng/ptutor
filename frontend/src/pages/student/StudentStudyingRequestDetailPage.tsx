@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -11,6 +11,7 @@ import {
 } from '../../services/studentApi';
 import { StudentStudyingRequestDetails } from '../../components/student/StudentStudyingRequestDetails';
 import { Offers } from '../../components/student/Offers';
+import { notifyGlobalToast } from '../../components/ui/globalToast';
 import { useResource } from '../../hooks/useResource';
 
 export function StudentStudyingRequestDetailPage() {
@@ -18,13 +19,18 @@ export function StudentStudyingRequestDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [revision, setRevision] = useState(0);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [busy, setBusy] = useState<string | null>(null);
   const [offerStatus, setOfferStatus] = useState<'' | TutorOffer['status']>('');
   const [offerSort, setOfferSort] = useState<'DESC' | 'ASC'>('DESC');
   const [offerPage, setOfferPage] = useState(0);
   const [offersLoading, setOffersLoading] = useState(true);
+
+  useEffect(() => {
+    const notice = (location.state as { notice?: string } | null)?.notice;
+    if (!notice) return;
+    notifyGlobalToast(notice);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
 
   const loadRequest = useCallback((signal: AbortSignal) => getMyStudyingRequestDetail(requestId, signal), [requestId]);
   const requestQuery = useResource(loadRequest, revision);
@@ -52,13 +58,15 @@ export function StudentStudyingRequestDetailPage() {
 
   const act = async (offer: TutorOffer, action: 'accept' | 'reject') => {
     setBusy(offer.id);
-    setError('');
     try {
       await (action === 'accept' ? acceptTutorOffer(requestId, offer.id) : rejectTutorOffer(requestId, offer.id));
-      setNotice(action === 'accept' ? 'Đã chấp nhận đề nghị của gia sư.' : 'Đã từ chối đề nghị của gia sư.');
+      notifyGlobalToast(action === 'accept' ? 'Đã chấp nhận đề nghị của gia sư.' : 'Đã từ chối đề nghị của gia sư.');
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật đề nghị.');
+      notifyGlobalToast(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật đề nghị.',
+        'error'
+      );
     } finally {
       setBusy(null);
     }
@@ -102,16 +110,6 @@ export function StudentStudyingRequestDetailPage() {
           </button>
         )}
       </div>
-      {notice && (
-        <div className="student-notice" role="status">
-          {notice}
-        </div>
-      )}
-      {error && (
-        <div className="student-error" role="alert">
-          {error}
-        </div>
-      )}
       <div className="student-detail-layout">
         <StudentStudyingRequestDetails request={request} />
         <Offers

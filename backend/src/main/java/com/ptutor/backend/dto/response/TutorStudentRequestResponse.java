@@ -36,5 +36,6 @@ public record TutorStudentRequestResponse(
         ApplicationStatus status,
         String nextStep,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        LocalDateTime acceptedAt) {
 }

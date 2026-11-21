@@ -241,8 +241,6 @@ class ContractServiceTest {
         when(tutorRepository.findByUser_Id(tutorUserId)).thenReturn(Optional.of(tutor));
         when(studentTutorRequestRepository.findByIdAndTeachingRequest_Id(studentRequestId, teachingRequestId))
                 .thenReturn(Optional.of(studentRequest));
-        when(contractRepository.existsByStudentTutorRequest_IdAndStatusNot(studentRequestId, ContractStatus.CANCELLED))
-                .thenReturn(false);
         when(gradeRepository.findById(overrideGradeId)).thenReturn(Optional.of(overrideGrade));
         when(gradeTeachingRequestRepository.existsByTeachingRequest_IdAndGrade_Id(teachingRequestId, overrideGradeId))
                 .thenReturn(true);

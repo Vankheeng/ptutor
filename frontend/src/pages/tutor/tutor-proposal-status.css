@@ -1,0 +1,8 @@
+.tutor-proposal-status.status-connected {
+  background: #f1edff;
+  color: #7049c8;
+}
+
+.tutor-proposals-filter-grid > .tutor-proposals-filter:last-child {
+  order: -1;
+}

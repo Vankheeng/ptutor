@@ -17,7 +17,12 @@ export function StudentRefundRequestsPage() {
 
   return (
     <div className="rf-page">
-      <h1>Yêu cầu hoàn tiền</h1>
+      <div className="rf-heading">
+        <h1>Yêu cầu hoàn tiền</h1>
+        <Link className="rf-button" to="/student/refund-requests/new">
+          + Tạo yêu cầu hoàn tiền
+        </Link>
+      </div>
       <section className="rf-card">
         {isLoading && !data && <div className="rf-state">Đang tải…</div>}
         {error && (

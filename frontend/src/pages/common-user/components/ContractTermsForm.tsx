@@ -1,6 +1,8 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { ContractSchedule, ContractTerms, PaymentPeriod } from '../../../services/studentApi';
 import { ContractPdfLink, type ContractPdfDetails } from './ContractPdfLink';
+import { quarterHourTimes } from '../../../components/ui/quarterHourTimes';
+import './contract-lesson-actions.css';
 
 const days = [
   ['1', 'Thứ Hai'],
@@ -19,13 +21,7 @@ const paymentPeriodLabels: Record<PaymentPeriod, string> = {
   PACKAGE: 'Theo gói'
 };
 
-const timeOptions = Array.from({ length: 48 }, (_, index) => {
-  const hour = Math.floor(index / 2)
-    .toString()
-    .padStart(2, '0');
-  const minute = index % 2 === 0 ? '00' : '30';
-  return `${hour}:${minute}`;
-});
+const timeOptions = quarterHourTimes;
 
 interface Props {
   initial?: Partial<ContractTerms>;
@@ -33,6 +29,7 @@ interface Props {
   loading: boolean;
   onCancel?: () => void;
   onSubmit: (terms: ContractTerms) => Promise<void>;
+  onCheckSchedule?: (terms: ContractTerms) => Promise<string[]>;
   includePackage?: boolean;
   includeAgreement?: boolean;
   signingExisting?: boolean;
@@ -40,6 +37,8 @@ interface Props {
   showPdf?: boolean;
   cancelLabel?: string;
   pdfDetails?: ContractPdfDetails;
+  editableScheduleList?: boolean;
+  hideLessonPreview?: boolean;
 }
 
 export function ContractTermsForm({
@@ -48,13 +47,16 @@ export function ContractTermsForm({
   loading,
   onCancel,
   onSubmit,
+  onCheckSchedule,
   includePackage = true,
   includeAgreement = false,
   signingExisting = false,
   editingExisting = false,
   showPdf = false,
   cancelLabel = 'Hủy',
-  pdfDetails
+  pdfDetails,
+  editableScheduleList = false,
+  hideLessonPreview = false
 }: Props) {
   const [price, setPrice] = useState(initial?.price === undefined ? '' : String(initial.price));
   const [paymentPeriod, setPaymentPeriod] = useState<PaymentPeriod>(initial?.paymentPeriod ?? 'MONTHLY');
@@ -72,9 +74,116 @@ export function ContractTermsForm({
   const [error, setError] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [previewExpanded, setPreviewExpanded] = useState(true);
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
+  const [checkingSchedule, setCheckingSchedule] = useState(false);
+  const [editingLessonList, setEditingLessonList] = useState(false);
+  const [lessonDrafts, setLessonDrafts] = useState<LessonPreview[] | null>(null);
   const lessons = useMemo(() => buildLessonPreview(schedules, startDate, endDate), [endDate, schedules, startDate]);
+  const previewLessons = editingLessonList && lessonDrafts ? lessonDrafts : lessons;
+  const invalidSchedule = schedules.some((schedule) =>
+    Boolean(schedule.startTime && schedule.endTime && schedule.endTime <= schedule.startTime)
+  );
+  const schedulePayload = useMemo<ContractTerms | null>(() => {
+    if (
+      !startDate ||
+      !endDate ||
+      endDate <= startDate ||
+      !schedules.length ||
+      schedules.some(
+        (schedule) =>
+          !schedule.dayOfWeek || !schedule.startTime || !schedule.endTime || schedule.endTime <= schedule.startTime
+      ) ||
+      !lessons.length
+    )
+      return null;
+    return { price: Number(price || 0), paymentPeriod, schedules, startDate, endDate };
+  }, [endDate, lessons.length, paymentPeriod, price, schedules, startDate]);
+
+  useEffect(() => {
+    if (!onCheckSchedule || !schedulePayload) {
+      window.setTimeout(() => {
+        setScheduleWarnings([]);
+        setCheckingSchedule(false);
+      }, 0);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setCheckingSchedule(true);
+      void onCheckSchedule(schedulePayload)
+        .then((messages) => {
+          if (active) setScheduleWarnings(messages);
+        })
+        .catch(() => {
+          if (active) setScheduleWarnings([]);
+        })
+        .finally(() => {
+          if (active) setCheckingSchedule(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [onCheckSchedule, schedulePayload, signingExisting]);
   const updateSchedule = (index: number, patch: Partial<ContractSchedule>) => {
     setSchedules((current) => current.map((schedule, row) => (row === index ? { ...schedule, ...patch } : schedule)));
+  };
+  const updateLessonSchedule = (lesson: LessonPreview, patch: Partial<LessonPreview>) => {
+    setLessonDrafts((current) => current?.map((item) => (item === lesson ? { ...item, ...patch } : item)) ?? current);
+  };
+
+  const removeLessonSchedule = (lesson: LessonPreview) => {
+    setLessonDrafts((current) => current?.filter((item) => item !== lesson) ?? current);
+  };
+
+  const addLessonSchedule = () => {
+    const base = lessonDrafts?.[lessonDrafts.length - 1] ?? lessons[lessons.length - 1];
+    setLessonDrafts((current) => [
+      ...(current ?? lessons),
+      {
+        date: '',
+        dayOfWeek: 0,
+        startTime: base?.startTime || '19:00',
+        endTime: base?.endTime || '20:00'
+      }
+    ]);
+  };
+
+  const toggleLessonList = () => {
+    if (editingLessonList) {
+      const drafts = lessonDrafts ?? [];
+      if (!drafts.length || drafts.some((lesson) => !lesson.date || !lesson.dayOfWeek)) {
+        setError('Vui lòng chọn ngày cho tất cả buổi học trước khi lưu.');
+        return;
+      }
+      if (drafts.some((lesson) => lesson.date < startDate || lesson.date > endDate)) {
+        setError('Ngày học phải nằm trong khoảng ngày bắt đầu và ngày kết thúc hợp đồng.');
+        return;
+      }
+      if (drafts.some((lesson) => !lesson.startTime || !lesson.endTime || lesson.endTime <= lesson.startTime)) {
+        setError('Giờ kết thúc phải sau giờ bắt đầu cho tất cả buổi học.');
+        return;
+      }
+      const nextSchedules = drafts
+        .map(({ dayOfWeek, startTime, endTime }) => ({ dayOfWeek, startTime, endTime }))
+        .filter(
+          (schedule, index, all) =>
+            all.findIndex(
+              (item) =>
+                item.dayOfWeek === schedule.dayOfWeek &&
+                item.startTime === schedule.startTime &&
+                item.endTime === schedule.endTime
+            ) === index
+        );
+      setSchedules(nextSchedules);
+      setLessonDrafts(null);
+      setEditingLessonList(false);
+      setError('');
+      return;
+    }
+    setLessonDrafts(lessons);
+    setEditingLessonList(true);
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -123,6 +232,10 @@ export function ContractTermsForm({
       setError('Khoảng thời gian đã chọn không có buổi học nào. Vui lòng kiểm tra lại ngày và lịch học.');
       return;
     }
+    if (scheduleWarnings.length) {
+      setError('Lịch học đang bị trùng. Vui lòng điều chỉnh ngày hoặc giờ trước khi tiếp tục.');
+      return;
+    }
     if (includeAgreement && !agreed) {
       setError('Vui lòng xác nhận đồng ý với các điều khoản hợp đồng.');
       return;
@@ -139,7 +252,7 @@ export function ContractTermsForm({
   return (
     <form className="student-form-grid" onSubmit={(event) => void submit(event)}>
       <label>
-        Giá
+        Giá mỗi buổi học (VNĐ/buổi)
         {signingExisting ? (
           <span className="contract-signing-value">{new Intl.NumberFormat('vi-VN').format(Number(price))} VNĐ</span>
         ) : (
@@ -262,6 +375,11 @@ export function ContractTermsForm({
             Thêm khung giờ
           </button>
         )}
+        {invalidSchedule && (
+          <p className="contract-schedule-time-warning" role="alert">
+            Giờ kết thúc phải sau giờ bắt đầu.
+          </p>
+        )}
       </div>
       <label>
         Ngày bắt đầu
@@ -291,27 +409,130 @@ export function ContractTermsForm({
           />
         )}
       </label>
-      <div className="student-field-full contract-lesson-preview">
-        <strong>
-          {signingExisting && initial?.totalLessons
-            ? `${initial.totalLessons} buổi học trong hợp đồng`
-            : lessons.length > 0
-              ? `Dự kiến ${lessons.length} buổi học`
-              : 'Thêm lịch học để hiển thị số buổi dự kiến'}
-        </strong>
-        {lessons.length > 0 && (
-          <details open={previewExpanded} onToggle={(event) => setPreviewExpanded(event.currentTarget.open)}>
-            <summary>
-              {previewExpanded ? 'Thu gọn danh sách buổi học dự kiến' : 'Mở rộng để xem danh sách buổi học dự kiến'}
-            </summary>
-            <ol>
-              {lessons.map((lesson) => (
-                <li key={`${lesson.date}-${lesson.startTime}`}>{formatLesson(lesson)}</li>
-              ))}
-            </ol>
-          </details>
-        )}
-      </div>
+      {!hideLessonPreview && (
+        <div className="student-field-full contract-lesson-preview">
+          <div className="contract-lesson-preview-header">
+            <strong>
+              {signingExisting && initial?.totalLessons
+                ? `${initial.totalLessons} buổi học trong hợp đồng`
+                : previewLessons.length > 0
+                  ? `Dự kiến ${previewLessons.length} buổi học`
+                  : 'Thêm lịch học để hiển thị số buổi dự kiến'}
+            </strong>
+            {editableScheduleList && !signingExisting && (lessons.length > 0 || editingLessonList) && (
+              <button
+                className="student-button contract-lesson-edit-button"
+                type="button"
+                disabled={loading}
+                onClick={toggleLessonList}
+              >
+                {editingLessonList ? 'Lưu các buổi học' : 'Sửa các buổi học'}
+              </button>
+            )}
+          </div>
+          {previewLessons.length > 0 || editingLessonList ? (
+            <details open={previewExpanded} onToggle={(event) => setPreviewExpanded(event.currentTarget.open)}>
+              <summary>
+                {previewExpanded ? 'Thu gọn danh sách buổi học dự kiến' : 'Mở rộng để xem danh sách buổi học dự kiến'}
+              </summary>
+              {editingLessonList ? (
+                <div className="contract-lesson-table-wrap">
+                  <table className="contract-lesson-table">
+                    <thead>
+                      <tr>
+                        <th>Ngày</th>
+                        <th>Bắt đầu</th>
+                        <th>Kết thúc</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewLessons.map((lesson, index) => (
+                        <tr key={`${lesson.date}-${lesson.startTime}-${index}`}>
+                          <td>
+                            <input
+                              type="date"
+                              value={lesson.date}
+                              min={startDate}
+                              max={endDate}
+                              onChange={(event) => {
+                                const date = event.target.value;
+                                if (!date) return;
+                                const nextDate = new Date(`${date}T12:00:00`);
+                                updateLessonSchedule(lesson, {
+                                  date,
+                                  dayOfWeek: nextDate.getDay() === 0 ? 7 : nextDate.getDay()
+                                });
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <select
+                              value={lesson.startTime}
+                              onChange={(event) => updateLessonSchedule(lesson, { startTime: event.target.value })}
+                            >
+                              {timeOptions.map((time) => (
+                                <option key={time} value={time}>
+                                  {time}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              value={lesson.endTime}
+                              onChange={(event) => updateLessonSchedule(lesson, { endTime: event.target.value })}
+                            >
+                              {timeOptions.map((time) => (
+                                <option key={time} value={time}>
+                                  {time}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              className="student-button contract-lesson-remove-button"
+                              type="button"
+                              disabled={loading}
+                              onClick={() => removeLessonSchedule(lesson)}
+                            >
+                              Xóa
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <button
+                    className="student-button contract-lesson-add-button"
+                    type="button"
+                    disabled={loading}
+                    onClick={addLessonSchedule}
+                  >
+                    + Thêm buổi học
+                  </button>
+                </div>
+              ) : (
+                <ol>
+                  {previewLessons.map((lesson) => (
+                    <li key={`${lesson.date}-${lesson.startTime}`}>{formatLesson(lesson)}</li>
+                  ))}
+                </ol>
+              )}
+            </details>
+          ) : null}
+        </div>
+      )}
+      {checkingSchedule && <p className="student-form-hint student-field-full">Đang kiểm tra trùng lịch…</p>}
+      {scheduleWarnings.length > 0 && (
+        <div className="contract-schedule-warning student-field-full" role="alert">
+          <strong>Lịch học bị trùng</strong>
+          {scheduleWarnings.map((message) => (
+            <div key={message}>{message}</div>
+          ))}
+        </div>
+      )}
       {(includeAgreement || showPdf) && (
         <div className="student-field-full contract-create-terms-note">
           <strong>Điều khoản hợp đồng</strong>
@@ -357,7 +578,14 @@ export function ContractTermsForm({
         )}
         <button
           className="student-button"
-          disabled={loading || (!signingExisting && lessons.length < 1) || (includeAgreement && !agreed)}
+          disabled={
+            loading ||
+            checkingSchedule ||
+            invalidSchedule ||
+            scheduleWarnings.length > 0 ||
+            (!signingExisting && lessons.length < 1) ||
+            (includeAgreement && !agreed)
+          }
           type="submit"
         >
           {submitLabel}

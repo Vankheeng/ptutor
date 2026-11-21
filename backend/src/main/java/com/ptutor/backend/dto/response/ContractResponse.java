@@ -43,6 +43,7 @@ public record ContractResponse(
         UUID studentTutorRequestId,
         UUID renewedFromContractId,
         LocalDateTime signedAt,
+        LocalDateTime cancelledAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 

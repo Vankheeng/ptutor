@@ -189,6 +189,9 @@
   cursor: pointer;
   transition: transform 0.18s, box-shadow 0.18s;
 }
+.student-request-card.menu-open {
+  z-index: 20;
+}
 .student-request-card:hover,
 .student-request-card:focus-visible {
   transform: translateY(-2px);
@@ -232,7 +235,7 @@
   position: absolute;
   top: 30px;
   right: 0;
-  z-index: 3;
+  z-index: 100;
   min-width: 150px;
   padding: 5px;
   border: 1px solid #e7e8ef;
@@ -410,6 +413,7 @@
   line-height: 1.5;
 }
 .student-notice {
+  display: none;
   background: #eaf8f2;
   color: #217450;
 }
@@ -1251,12 +1255,23 @@
 .student-offer-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   min-width: 0;
 }
 .student-offer-actions .student-form-actions {
   margin: 0;
+  display: contents;
+}
+.student-offer-actions .offer-action-buttons {
+  display: contents;
+}
+.student-offer-actions .offer-reject-button {
+  order: 3;
 }
 .student-offer-create {
+  order: 2;
   min-width: 120px;
   background: #6736d6;
   border-color: #6736d6;
@@ -1271,11 +1286,6 @@
 .student-offer-actions .student-button.success {
   border-color: #2da66b;
   background: #2da66b;
-  color: #fff;
-}
-.student-offer-actions .student-button.danger {
-  border-color: #e05b62;
-  background: #e05b62;
   color: #fff;
 }
 .student-tutor-offer-detail {
@@ -1345,6 +1355,7 @@
 .student-status.closed { background: #f0f1f4; color: #74798b; }
 .student-status.rejected { background: #fff3df; color: #b96a13; }
 .student-status.accepted,
+.student-status.connected,
 .student-status.active {
   background: #eaf8f2;
   color: #27815b;
@@ -1580,7 +1591,9 @@
   line-height: 1.5;
 }
 .student-contract-terms-link{display:inline-block;margin-top:8px;color:#5d38b8;font-size:11px;font-weight:800;text-decoration:underline}.student-contract-terms-summary{margin:9px 0 0;padding-left:18px;color:#65708d;font-size:10px;line-height:1.55}.student-contract-terms-summary li+li{margin-top:3px}.contract-create-back{margin-bottom:16px}
-.contract-lesson-preview{padding:12px 14px;border:1px solid #e4e6ef;border-radius:10px;background:#fafaff;color:#4e5875;font-size:11px}.contract-lesson-preview strong{color:#33246d}.contract-lesson-preview details{margin-top:7px}.contract-lesson-preview summary{color:#6944ca;cursor:pointer;font-weight:700}.contract-lesson-preview ol{margin:8px 0 0;padding-left:22px;line-height:1.65}.contract-lesson-preview p{margin:7px 0 0;color:#a14d4d}.contract-create-terms-note{margin:17px 0;padding:13px 15px;border:1px solid #e6e1fa;border-radius:10px;background:#fbfaff;color:#59617a;font-size:11px;line-height:1.55}.contract-create-terms-note strong{color:#33246d}.contract-create-terms-note ul{margin:7px 0;padding-left:19px}.contract-create-terms-note a{color:#5d38b8;font-weight:800;text-decoration:underline}
+.contract-lesson-preview{padding:12px 14px;border:1px solid #e4e6ef;border-radius:10px;background:#fafaff;color:#4e5875;font-size:11px}.contract-lesson-preview strong{color:#33246d}.contract-lesson-preview-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.contract-lesson-preview details{margin-top:7px}.contract-lesson-preview summary{color:#6944ca;cursor:pointer;font-weight:700}.contract-lesson-preview ol{margin:8px 0 0;padding-left:22px;line-height:1.65}.contract-lesson-edit-button{margin:0;min-height:30px;padding:0 12px;border-color:#6944ca;background:#6944ca;color:#fff;font-size:11px}.contract-lesson-table-wrap{margin-top:8px;overflow-x:auto}.contract-lesson-table{width:100%;border-collapse:separate;border-spacing:0;font-size:11px}.contract-lesson-table th,.contract-lesson-table td{padding:6px;border-bottom:1px solid #e7e9f1;text-align:left;white-space:nowrap}.contract-lesson-table th{color:#656b80;font-weight:700}.contract-lesson-table input,.contract-lesson-table select{min-height:30px;padding:4px 7px;border:1px solid #dfe3ef;border-radius:6px;background:#fff;color:#3f4560;font-size:11px}.contract-deferred-schedule-action{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:9px 0;color:#6b7186;font-size:11px}.contract-deferred-schedule-action .student-button{min-height:32px;border-color:#6944ca;color:#6944ca}.contract-create-terms-note{margin:17px 0;padding:13px 15px;border:1px solid #e6e1fa;border-radius:10px;background:#fbfaff;color:#59617a;font-size:11px;line-height:1.55}.contract-create-terms-note strong{color:#33246d}.contract-create-terms-note ul{margin:7px 0;padding-left:19px}.contract-create-terms-note a{color:#5d38b8;font-weight:800;text-decoration:underline}
+.student-form-hint{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid #dcd0fa;border-radius:9px;background:#f7f3ff;color:#6240a7;font-size:11px;line-height:1.45}.student-form-hint::before{content:"";width:13px;height:13px;flex:0 0 13px;border:2px solid #c9b8f3;border-top-color:#6b35d5;border-radius:50%;animation:contract-schedule-spin .75s linear infinite}@keyframes contract-schedule-spin{to{transform:rotate(360deg)}}.contract-schedule-warning{display:grid;gap:7px;padding:12px 14px;border:1px solid #f1b8b8;border-radius:10px;background:#fff3f3;color:#a62d34;font-size:11px;line-height:1.5}.contract-schedule-warning strong{font-size:12px;color:#8f2028}.contract-schedule-toggle{display:flex!important;align-items:center;gap:8px;margin-top:3px!important;color:#5b3440!important;font-weight:700!important}.contract-schedule-toggle input{width:16px!important;height:16px;flex:0 0 auto}
+.contract-schedule-time-warning{grid-column:1/-1;margin:0;padding:8px 10px;border:1px solid #f1b8b8;border-radius:8px;background:#fff3f3;color:#a62d34;font-size:11px;font-weight:700}
 .student-contract-create-terms > .contract-create-terms-note{display:none}.contract-agreement-checkbox{display:flex!important;align-items:flex-start;gap:8px;margin-top:12px!important;color:#33246d;font-weight:800}.contract-agreement-checkbox input{width:16px;height:16px;flex:0 0 auto;margin-top:1px}
 .student-contract-actions-buttons {
   display: flex;

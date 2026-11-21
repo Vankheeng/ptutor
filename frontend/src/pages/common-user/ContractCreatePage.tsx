@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
   createStudentContract,
+  checkStudentContractSchedule,
   getMyStudyingRequest,
   getTutorOffer,
   type ContractTerms,
@@ -13,6 +14,7 @@ import {
 } from '../../services/studentApi';
 import {
   createTeachingRequestContract,
+  checkTeachingRequestContractSchedule,
   getMyTeachingRequest,
   getTeachingRequestApplications,
   type StudentTeachingApplication
@@ -22,6 +24,7 @@ import { useResource } from '../../hooks/useResource';
 import { Icon } from '../../components/ui/Icon';
 import { ContractParticipantCard } from './components/ContractParticipantCard';
 import { ContractTermsForm } from './components/ContractTermsForm';
+import { notifyGlobalToast } from '../../components/ui/globalToast';
 
 type CreateRole = 'student' | 'tutor';
 type CreateRequest = StudyingRequest | TeachingRequest;
@@ -33,7 +36,6 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
   const counterpartId = role === 'student' ? (params.tutorRequestId ?? '') : (params.applicationId ?? '');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (): Promise<{ request: CreateRequest; offer: CreateOffer }> => {
@@ -63,7 +65,6 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
 
   const submit = async (terms: ContractTerms) => {
     setSaving(true);
-    setError('');
     try {
       if (role === 'student') {
         const created = await createStudentContract(requestId, counterpartId, terms);
@@ -78,7 +79,7 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
         });
       }
     } catch (caught) {
-      setError(contractCreationError(caught));
+      notifyGlobalToast(contractCreationError(caught), 'error');
     } finally {
       setSaving(false);
     }
@@ -141,11 +142,6 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
           <h1>Tạo hợp đồng</h1>
         </div>
       </div>
-      {error && (
-        <div className="student-error" role="alert">
-          {error}
-        </div>
-      )}
       <div className="student-contract-create-layout">
         <div className="student-contract-create-student">
           <ContractParticipantCard
@@ -235,6 +231,7 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
             </a>
           </div>
           <ContractTermsForm
+            editableScheduleList
             loading={saving}
             submitLabel="Tạo và ký hợp đồng"
             includeAgreement
@@ -261,6 +258,16 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
               schedules: findCommonSchedules(request.availabilities, preferredSchedule)
             }}
             onCancel={() => navigate(backPath)}
+            onCheckSchedule={
+              role === 'student'
+                ? (terms) =>
+                    checkStudentContractSchedule(requestId, counterpartId, terms).then((result) => result.messages)
+                : (terms) =>
+                    checkTeachingRequestContractSchedule(requestId, counterpartId, {
+                      ...terms,
+                      gradeId: (offer as StudentTeachingApplication).gradeId
+                    }).then((result) => result.messages)
+            }
             onSubmit={submit}
           />
         </section>
@@ -279,6 +286,9 @@ function contractCreationError(error: unknown) {
     }
     if (error.code === 'INVALID_CONTRACT_SOURCE_STATUS') {
       return 'Yêu cầu đã thay đổi trạng thái, không thể tạo hợp đồng.';
+    }
+    if (error.code === 'LESSON_SCHEDULE_CONFLICT') {
+      return `${error.message} Bạn có thể điều chỉnh lại các khung giờ trước khi tạo hợp đồng.`;
     }
     if (error.message && error.message !== 'An unexpected error occurred') return error.message;
   }

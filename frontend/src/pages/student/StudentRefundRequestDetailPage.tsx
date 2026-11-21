@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import { cancelRefundRequest, getMyRefundRequest } from '../../services/refundApi';
-import { RefundRequestOverview, RefundStatusBadge } from '../../components/refund/RefundRequestOverview';
+import { RefundRequestOverview } from '../../components/refund/RefundRequestOverview';
+import { RefundRequestSidebar } from '../../components/refund/RefundRequestSidebar';
 import { formatLocalDateTime, refundErrorMessage } from '../../components/refund/refundFormat';
 import '../../components/refund/refund.css';
 
@@ -36,7 +37,7 @@ export function StudentRefundRequestDetailPage() {
   const decided = data && (data.status === 'REFUNDED' || data.status === 'REJECTED');
 
   return (
-    <div className="rf-page">
+    <div className="rf-page rf-detail-page">
       <Link className="rf-back" to="/student/refund-requests">
         ‹ Yêu cầu hoàn tiền
       </Link>
@@ -61,7 +62,6 @@ export function StudentRefundRequestDetailPage() {
           <div className="rf-heading">
             <div className="rf-heading-title">
               <h1>Yêu cầu hoàn tiền</h1>
-              <RefundStatusBadge status={data.status} />
             </div>
             {data.status === 'PENDING' && (
               <button className="rf-button danger-outline" type="button" disabled={busy} onClick={() => void cancel()}>
@@ -73,6 +73,7 @@ export function StudentRefundRequestDetailPage() {
             <div className="rf-main">
               <RefundRequestOverview request={data} />
             </div>
+            <RefundRequestSidebar request={data} />
             {data.status !== 'CANCELLED' && (
               <aside className="rf-side rf-card" aria-labelledby="rf-progress-title">
                 <h2 id="rf-progress-title">Tiến trình</h2>

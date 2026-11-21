@@ -1,6 +1,6 @@
 import { ApiError, get, patch, post, put } from './httpClient';
 import type { TeachingRequest } from '../types/api';
-import type { ContractTerms, PaymentInitiation } from './studentApi';
+import type { ContractTerms, PaymentInitiation, ScheduleConflictCheckResponse } from './studentApi';
 
 export const TEACHING_REQUEST_FEE_PER_STUDENT = 50_000;
 
@@ -30,11 +30,13 @@ export interface StudentTeachingApplication {
   gradeName: string;
   teachingRequestId: string;
   contractId: string | null;
+  previousContractId: string | null;
+  previousContractStatus: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | null;
   proposedPrice: number;
   learningMode: 'ONLINE' | 'OFFLINE';
   preferredSchedule: string | null;
   message: string | null;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  status: 'PENDING' | 'ACCEPTED' | 'CONNECTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -57,6 +59,16 @@ export const createTeachingRequestContract = (
   values: Pick<ContractTerms, 'price' | 'paymentPeriod' | 'startDate' | 'endDate'> &
     Partial<Pick<ContractTerms, 'totalLessons' | 'preferredSchedule' | 'schedules'>> & { gradeId?: string }
 ) => post<{ id: string }>(`${base}/${teachingRequestId}/student-requests/${studentRequestId}/contracts`, values);
+export const checkTeachingRequestContractSchedule = (
+  teachingRequestId: string,
+  studentRequestId: string,
+  values: Pick<ContractTerms, 'price' | 'paymentPeriod' | 'startDate' | 'endDate'> &
+    Partial<Pick<ContractTerms, 'totalLessons' | 'preferredSchedule' | 'schedules'>> & { gradeId?: string }
+) =>
+  post<ScheduleConflictCheckResponse>(
+    `${base}/${teachingRequestId}/student-requests/${studentRequestId}/contracts/check-schedule`,
+    values
+  );
 export const createMyTeachingRequest = (values: TeachingRequestInput) => post<TeachingRequest>(base, values);
 export const updateMyTeachingRequest = (id: string, values: TeachingRequestInput) =>
   put<TeachingRequest>(`${base}/${id}`, values);

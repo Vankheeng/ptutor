@@ -345,6 +345,8 @@ class TutorStudentRequestServiceTest {
                 .thenReturn(Optional.of(request));
         when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
                 .thenReturn(Optional.of(tutorRequest));
+        when(tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                studyingRequestId, ApplicationStatus.ACCEPTED)).thenReturn(1L);
         when(tutorStudentRequestRepository.saveAndFlush(tutorRequest)).thenReturn(tutorRequest);
 
         service.reject(studentUserId, studyingRequestId, requestId);
@@ -371,20 +373,18 @@ class TutorStudentRequestServiceTest {
     }
 
     @Test
-    void cannotProcessAlreadyAcceptedRequest() {
+    void allowsRejectingAcceptedRequest() {
         StudyingRequest request = studyingRequest(RequestStatus.OPEN);
         TutorStudentRequest tutorRequest = tutorStudentRequest(request, ApplicationStatus.ACCEPTED);
         when(studyingRequestRepository.findByIdAndStudent_Id(studyingRequestId, studentId))
                 .thenReturn(Optional.of(request));
         when(tutorStudentRequestRepository.findByIdAndStudyingRequest_Id(requestId, studyingRequestId))
                 .thenReturn(Optional.of(tutorRequest));
+        when(tutorStudentRequestRepository.saveAndFlush(tutorRequest)).thenReturn(tutorRequest);
 
-        assertThatThrownBy(() -> service.reject(studentUserId, studyingRequestId, requestId))
-                .isInstanceOfSatisfying(ApiException.class, exception -> {
-                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(exception.getCode())
-                            .isEqualTo("INVALID_TUTOR_STUDENT_REQUEST_STATUS_TRANSITION");
-                });
+        service.reject(studentUserId, studyingRequestId, requestId);
+
+        assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
     }
 
     @Test
