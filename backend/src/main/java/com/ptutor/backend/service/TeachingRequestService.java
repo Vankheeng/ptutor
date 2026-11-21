@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.FavoriteTutor;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.GradeTeachingRequest;
 import com.ptutor.backend.entity.Subject;
@@ -39,6 +40,7 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
+import com.ptutor.backend.repository.FavoriteTutorRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -59,6 +61,7 @@ public class TeachingRequestService {
     public static final int MAX_PUBLIC_LIMIT = 50;
 
     private final TeachingRequestRepository teachingRequestRepository;
+    private final FavoriteTutorRepository favoriteTutorRepository;
     private final StudentTutorRequestRepository studentTutorRequestRepository;
     private final PaymentRepository paymentRepository;
     private final TeachingRequestMapper teachingRequestMapper;
@@ -104,6 +107,27 @@ public class TeachingRequestService {
                 ? teachingRequestRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
                 : teachingRequestRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
         return toResponses(requests);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findFavoritesForStudent(UUID userId) {
+        List<FavoriteTutor> favorites = favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId);
+        if (favorites.isEmpty()) return List.of();
+        List<UUID> tutorUserIds = favorites.stream().map(favorite -> favorite.getTutor().getUser().getId()).toList();
+        List<TeachingRequest> openRequests = teachingRequestRepository.findOpenByTutorUserIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, tutorUserIds);
+        Map<UUID, TeachingRequest> byId = openRequests.stream().collect(Collectors.toMap(
+                TeachingRequest::getId, request -> request));
+        Map<UUID, TeachingRequest> latestByTutor = openRequests.stream().collect(Collectors.toMap(
+                request -> request.getTutor().getId(), request -> request, (first, ignored) -> first));
+        return toResponses(favorites.stream()
+                .map(favorite -> {
+                    TeachingRequest saved = favorite.getTeachingRequest();
+                    return saved == null ? latestByTutor.get(favorite.getTutor().getId())
+                            : byId.getOrDefault(saved.getId(), latestByTutor.get(favorite.getTutor().getId()));
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList());
     }
 
     @Transactional(readOnly = true)

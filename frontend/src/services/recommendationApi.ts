@@ -1,5 +1,5 @@
 import { del, get, post, put } from './httpClient';
-import type { Availability, TeachingMode } from '../types/api';
+import type { Availability, TeachingMode, TeachingRequest } from '../types/api';
 
 export type ModePreference = 'ONLINE' | 'OFFLINE' | 'ANY';
 export type AreaScope = 'DISTRICTS' | 'PROVINCE' | 'ANY';
@@ -131,6 +131,14 @@ export function recordEvent(logId: string, candidateId: string, action: Recommen
 
 export function getFavoriteTutorIds(signal?: AbortSignal) {
   return get<string[]>('/api/v1/students/me/favorite-tutors', { signal });
+}
+
+export function getFavoriteTutorRequests(signal?: AbortSignal) {
+  return get<TeachingRequest[]>('/api/v1/students/me/favorite-tutors/teaching-requests', { signal });
+}
+
+export function removeFavoriteTutor(tutorId: string) {
+  return del<null>(`/api/v1/students/me/favorite-tutors/${encodeURIComponent(tutorId)}`);
 }
 
 const tagRequests = new Map<string, Promise<RecommendationTag[]>>();

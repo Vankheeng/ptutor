@@ -57,6 +57,7 @@ class RecommendationEventServiceTest {
         Tutor tutor = mock(Tutor.class);
         when(tutor.getId()).thenReturn(tutorId);
         TeachingRequest posting = mock(TeachingRequest.class);
+        when(posting.getId()).thenReturn(postingId);
         when(posting.getTutor()).thenReturn(tutor);
         RecommendationLog log = mock(RecommendationLog.class);
         when(log.getDirection()).thenReturn(RecommendationDirection.STUDENT_TO_TUTOR);
@@ -70,8 +71,20 @@ class RecommendationEventServiceTest {
         service.record(userId, logId, new RecommendationEventRequest(RecommendationAction.FAVORITED, null, postingId));
         service.record(userId, logId, new RecommendationEventRequest(RecommendationAction.DISMISSED, null, postingId));
 
-        verify(favorites).addOrRestore(any(UUID.class), eq(studentId), eq(tutorId), any(LocalDateTime.class));
+        verify(favorites).addOrRestore(any(UUID.class), eq(studentId), eq(tutorId), eq(postingId), any(LocalDateTime.class));
         verify(favorites).remove(eq(studentId), eq(tutorId), any(LocalDateTime.class));
+    }
+
+    @Test
+    void removesAnOlderFavoriteEvenWithoutRecommendationHistory() {
+        UUID userId = UUID.randomUUID();
+        UUID tutorId = UUID.randomUUID();
+        when(clicks.findFirstByRecommendationLog_SearcherStudent_User_IdAndClickedTutor_IdOrderByCreatedAtDesc(
+                userId, tutorId)).thenReturn(Optional.empty());
+
+        service.removeFavoriteTutor(userId, tutorId);
+
+        verify(favorites).removeForStudentUser(eq(userId), eq(tutorId), any(LocalDateTime.class));
     }
 
     @Test

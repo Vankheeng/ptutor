@@ -38,6 +38,7 @@ import { formatCurrency, getInitials } from '../../utils/formatters';
 import { tutorScheduleLabel } from '../../utils/tutorDisplay';
 import { formatDate, learningModeLabel } from '../../components/student/studentApplicationUtils';
 import { TutorSearchResults } from '../../components/student/TutorSearchResults';
+import { FavoriteTutorResults } from '../../components/student/FavoriteTutorResults';
 
 const PAGE_SIZE = 20;
 const MODES: { value: ModePreference; label: string }[] = [
@@ -67,6 +68,7 @@ export function StudentTutorRecommendations() {
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [resultsMode, setResultsMode] = useState<'regular' | 'smart'>('regular');
+  const [showFavorites, setShowFavorites] = useState(false);
   const searchSequence = useRef(0);
   const [useRequestId, setUseRequestId] = useState('');
   const [sentence, setSentence] = useState('');
@@ -164,6 +166,7 @@ export function StudentTutorRecommendations() {
   const run = useCallback(
     async (searchFilters: TutorSearchFilters, savedSearchId?: string, savedSentence?: string | null) => {
       const currentSearch = ++searchSequence.current;
+      setShowFavorites(false);
       setResultsMode('smart');
       setResult(null);
       setItems([]);
@@ -365,12 +368,23 @@ export function StudentTutorRecommendations() {
         <div>
           <h1>Tìm kiếm gia sư</h1>
         </div>
+        <button
+          className={
+            showFavorites ? 'student-button rec-favorites-toggle is-active' : 'student-button rec-favorites-toggle'
+          }
+          type="button"
+          aria-pressed={showFavorites}
+          onClick={() => setShowFavorites((visible) => !visible)}
+        >
+          <span aria-hidden="true">♥</span> Gia sư đã quan tâm ({favorites.size})
+        </button>
       </header>
       <form
         className="student-panel rec-filters"
         onSubmit={(event) => {
           event.preventDefault();
           searchSequence.current += 1;
+          setShowFavorites(false);
           setResultsMode('regular');
           setIsSearching(false);
           setError('');
@@ -600,6 +614,7 @@ export function StudentTutorRecommendations() {
               setSentence('');
               setUseRequestId('');
               setShowAdvanced(false);
+              setShowFavorites(false);
               setResultsMode('regular');
               searchSequence.current += 1;
               setIsSearching(false);
@@ -645,7 +660,17 @@ export function StudentTutorRecommendations() {
         </div>
       )}
 
-      {resultsMode === 'regular' && (
+      {showFavorites && (
+        <FavoriteTutorResults
+          onFavoritesChanged={() => {
+            void getFavoriteTutorIds()
+              .then((ids) => setFavorites(new Set(ids)))
+              .catch(() => undefined);
+          }}
+        />
+      )}
+
+      {!showFavorites && resultsMode === 'regular' && (
         <TutorSearchResults
           key={activeSearch.version}
           filters={activeSearch.filters}
@@ -654,7 +679,7 @@ export function StudentTutorRecommendations() {
         />
       )}
 
-      {resultsMode === 'smart' && (
+      {!showFavorites && resultsMode === 'smart' && (
         <section className="rec-results" aria-live="polite">
           <div className="rec-section-title">
             <h2>Gợi ý gia sư phù hợp</h2>

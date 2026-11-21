@@ -18,9 +18,17 @@ interface Props {
   request: TeachingRequest;
   application?: StudentApplication;
   onChanged: () => void;
+  onRemoveFavorite?: () => void;
+  removingFavorite?: boolean;
 }
 
-export function StudentTeachingRequestCard({ request, application, onChanged }: Props) {
+export function StudentTeachingRequestCard({
+  request,
+  application,
+  onChanged,
+  onRemoveFavorite,
+  removingFavorite
+}: Props) {
   const navigate = useNavigate();
   const [showApply, setShowApply] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -92,7 +100,25 @@ export function StudentTeachingRequestCard({ request, application, onChanged }: 
     >
       <div className="tutor-card-top">
         <span className="tutor-subject-tag">{subject}</span>
-        <span>{formatDate(request.createdAt)}</span>
+        <span className="tutor-card-top-actions">
+          {formatDate(request.createdAt)}
+          {onRemoveFavorite && (
+            <button
+              className="tutor-favorite-heart"
+              type="button"
+              aria-label={`Bỏ quan tâm gia sư ${request.tutorName}`}
+              title="Bỏ quan tâm"
+              disabled={removingFavorite}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemoveFavorite();
+              }}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              ♥
+            </button>
+          )}
+        </span>
       </div>
       <h3>{request.title || `Tìm gia sư môn ${subject}`}</h3>
       <p className="tutor-request-meta">

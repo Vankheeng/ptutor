@@ -30,6 +30,19 @@ public interface TeachingRequestRepository extends JpaRepository<TeachingRequest
     List<TeachingRequest> findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
             RequestStatus status, TutorProfileStatus profileStatus, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "tutor", "tutor.user" })
+    @Query("""
+            select request from TeachingRequest request
+            where request.status = :status
+              and request.tutor.profileStatus = :profileStatus
+              and request.tutor.user.id in :tutorUserIds
+            order by request.createdAt desc
+            """)
+    List<TeachingRequest> findOpenByTutorUserIds(
+            @Param("status") RequestStatus status,
+            @Param("profileStatus") TutorProfileStatus profileStatus,
+            @Param("tutorUserIds") List<UUID> tutorUserIds);
+
     @EntityGraph(attributePaths = { "tutor", "tutor.user", "gradeAssociations", "gradeAssociations.grade" })
     @Query("""
             select distinct request

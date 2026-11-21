@@ -62,7 +62,8 @@ public class RecommendationEventService {
             clickLogRepository.save(click.candidateTeachingRequest(posting).clickedTutor(posting.getTutor()).build());
             if (request.action() == RecommendationAction.FAVORITED) {
                 favoriteTutorRepository.addOrRestore(
-                        UUID.randomUUID(), log.getSearcherStudent().getId(), posting.getTutor().getId(), now);
+                        UUID.randomUUID(), log.getSearcherStudent().getId(), posting.getTutor().getId(),
+                        posting.getId(), now);
             } else if (request.action() == RecommendationAction.DISMISSED) {
                 favoriteTutorRepository.remove(log.getSearcherStudent().getId(), posting.getTutor().getId(), now);
             }
@@ -82,6 +83,20 @@ public class RecommendationEventService {
     @Transactional(readOnly = true)
     public List<UUID> favoriteTutorUserIds(UUID userId) {
         return favoriteTutorRepository.findTutorUserIdsByStudentUserId(userId);
+    }
+
+    @Transactional
+    public void removeFavoriteTutor(UUID userId, UUID tutorId) {
+        var latestClick = clickLogRepository
+                .findFirstByRecommendationLog_SearcherStudent_User_IdAndClickedTutor_IdOrderByCreatedAtDesc(
+                        userId, tutorId);
+        if (latestClick.isPresent() && latestClick.get().getCandidateTeachingRequest() != null) {
+            RecommendationClickLog click = latestClick.get();
+            record(userId, click.getRecommendationLog().getId(), new RecommendationEventRequest(
+                    RecommendationAction.DISMISSED, null, click.getCandidateTeachingRequest().getId()));
+            return;
+        }
+        favoriteTutorRepository.removeForStudentUser(userId, tutorId, LocalDateTime.now());
     }
 
     /** The log of a search, only for the person who ran it; anyone else gets "not found". */

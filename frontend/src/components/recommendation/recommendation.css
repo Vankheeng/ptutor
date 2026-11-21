@@ -822,6 +822,42 @@
 }
 .student-rec-layout > .tutor-page-heading {
   margin: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.student-rec-layout .rec-favorites-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: #e6d7df;
+  background: #fff;
+  color: #6d4a59;
+}
+.student-rec-layout .rec-favorites-toggle span {
+  color: #e34d68;
+  font-size: 17px;
+  line-height: 1;
+}
+.student-rec-layout .rec-favorites-toggle.is-active {
+  border-color: #eeb4c3;
+  background: #fff1f4;
+}
+.student-rec-layout .tutor-card-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.student-rec-layout .tutor-favorite-heart {
+  border: 0;
+  background: transparent;
+  color: #e34d68;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.student-rec-layout .tutor-favorite-heart:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 .student-rec-layout .rec-results > .rec-section-title {
   margin: 0 0 12px;
