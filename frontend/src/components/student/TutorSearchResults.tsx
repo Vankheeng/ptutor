@@ -46,7 +46,10 @@ export function TutorSearchResults({ filters, searchTerm }: Props) {
   return (
     <section className="tutor-marketplace" aria-label="Kết quả tìm kiếm gia sư">
       <div className="tutor-section-heading">
-        <h2>Tất cả gia sư</h2>
+        <div className="rec-section-title">
+          <h2>Tất cả gia sư</h2>
+          <span className="rec-result-kind">Tìm theo bộ lọc</span>
+        </div>
         <span className="tutor-count">{requests.length} kết quả</span>
       </div>
       <p className="rec-hint">Kết quả tìm kiếm theo từ khóa, môn, lớp, khu vực, giá và lịch học.</p>

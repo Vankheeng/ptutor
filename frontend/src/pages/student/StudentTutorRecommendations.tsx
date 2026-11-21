@@ -81,6 +81,7 @@ export function StudentTutorRecommendations() {
   const [allLoaded, setAllLoaded] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
   const [viewed, setViewed] = useState<Set<string>>(new Set());
   /** Something was opened or liked since the list was last ordered: the rest can be ordered better. */
   const [hasNewSignal, setHasNewSignal] = useState(false);
@@ -89,6 +90,22 @@ export function StudentTutorRecommendations() {
   const [active, setActive] = useState<TutorRecommendationItem | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!actionMenuId) return;
+    const closeMenuOnOutsideClick = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.rec-card-menu')) setActionMenuId(null);
+    };
+    const closeMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActionMenuId(null);
+    };
+    document.addEventListener('pointerdown', closeMenuOnOutsideClick);
+    document.addEventListener('keydown', closeMenuOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeMenuOnOutsideClick);
+      document.removeEventListener('keydown', closeMenuOnEscape);
+    };
+  }, [actionMenuId]);
 
   useEffect(() => {
     for (const item of items) {
@@ -187,6 +204,7 @@ export function StudentTutorRecommendations() {
         setAllLoaded(response.items.length >= response.totalElements);
         setDismissed(new Set());
         setFavorites(new Set());
+        setActionMenuId(null);
         setViewed(new Set());
         setHasNewSignal(false);
         setActive(null);
@@ -247,6 +265,7 @@ export function StudentTutorRecommendations() {
   };
 
   const dismiss = (item: TutorRecommendationItem) => {
+    setActionMenuId(null);
     setDismissed((previous) => new Set(previous).add(item.teachingRequestId));
     if (active?.teachingRequestId === item.teachingRequestId) setActive(null);
     send(item, 'DISMISSED');
@@ -547,6 +566,11 @@ export function StudentTutorRecommendations() {
         )}
 
         <div className="rec-actions">
+          <span className="rec-search-method">
+            {(filters.subjectId && filters.gradeId) || useRequestId
+              ? 'Tìm theo bộ lọc và nhận gợi ý AI'
+              : 'Tìm theo bộ lọc'}
+          </span>
           <button
             className="student-button secondary"
             type="button"
@@ -571,7 +595,10 @@ export function StudentTutorRecommendations() {
       <TutorSearchResults key={activeSearch.version} filters={activeSearch.filters} searchTerm={activeSearch.term} />
 
       <section className="rec-results" aria-live="polite">
-        <h2>Gợi ý gia sư phù hợp</h2>
+        <div className="rec-section-title">
+          <h2>Gợi ý gia sư phù hợp</h2>
+          <span className="rec-result-kind rec-result-kind-ai">AI đề xuất</span>
+        </div>
         <div className="rec-toolbar">
           <strong>{result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}</strong>
           <SavedSearchControls
@@ -704,15 +731,63 @@ export function StudentTutorRecommendations() {
                   detail?.preferredSchedule || formatAvailabilities(detail?.availabilities ?? []) || 'Lịch linh hoạt';
                 return (
                   <article
-                    className={item.isExploration ? 'student-panel rec-card exploration' : 'student-panel rec-card'}
+                    className={`student-panel rec-card${item.isExploration ? ' exploration' : ''}${actionMenuId === item.teachingRequestId ? ' menu-open' : ''}`}
                     key={item.teachingRequestId}
                   >
-                    {detail && (
-                      <div className="rec-posting-top">
-                        <span className="rec-posting-subject">{subject}</span>
-                        <span>{formatDate(detail.createdAt)}</span>
-                      </div>
-                    )}
+                    <a
+                      className="rec-card-hit-area"
+                      href={`/student/teaching-requests/${item.teachingRequestId}`}
+                      aria-label={`Xem chi tiết tin ${detail?.title || item.title || 'dạy học'} của ${item.tutor.displayName}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        viewPosting(item);
+                      }}
+                    />
+                    <div className="rec-card-menu">
+                      <button
+                        className={
+                          favorites.has(item.teachingRequestId)
+                            ? 'rec-card-menu-button is-saved'
+                            : 'rec-card-menu-button'
+                        }
+                        type="button"
+                        aria-label={`Tùy chọn cho ${item.tutor.displayName}${favorites.has(item.teachingRequestId) ? ', đã lưu' : ''}`}
+                        title="Lưu hoặc bỏ qua gợi ý"
+                        aria-expanded={actionMenuId === item.teachingRequestId}
+                        onClick={() =>
+                          setActionMenuId((current) =>
+                            current === item.teachingRequestId ? null : item.teachingRequestId
+                          )
+                        }
+                      >
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                          <circle cx="5" cy="12" r="1.7" />
+                          <circle cx="12" cy="12" r="1.7" />
+                          <circle cx="19" cy="12" r="1.7" />
+                        </svg>
+                      </button>
+                      {actionMenuId === item.teachingRequestId && (
+                        <div className="rec-card-menu-panel">
+                          <button
+                            type="button"
+                            disabled={favorites.has(item.teachingRequestId)}
+                            onClick={() => {
+                              favorite(item);
+                              setActionMenuId(null);
+                            }}
+                          >
+                            {favorites.has(item.teachingRequestId) ? 'Đã lưu gia sư' : 'Lưu gia sư'}
+                          </button>
+                          <button type="button" onClick={() => dismiss(item)}>
+                            Không quan tâm
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="rec-posting-top">
+                      <span className="rec-posting-subject">{subject}</span>
+                      {detail && <span>{formatDate(detail.createdAt)}</span>}
+                    </div>
                     <div className="rec-card-head">
                       <span className="rec-avatar">
                         {item.tutor.avatarUrl ? (
@@ -734,9 +809,7 @@ export function StudentTutorRecommendations() {
                         <small>điểm phù hợp</small>
                       </span>
                     </div>
-                    <button className="rec-title rec-title-button" type="button" onClick={() => viewPosting(item)}>
-                      {detail?.title || item.title || 'Tin dạy'}
-                    </button>
+                    <h3 className="rec-title">{detail?.title || item.title || 'Tin dạy'}</h3>
                     {detail ? (
                       <>
                         <p className="rec-posting-meta">
@@ -792,20 +865,6 @@ export function StudentTutorRecommendations() {
                     )}
                     {item.caution && <p className="rec-caution">{item.caution}</p>}
                     <div className="rec-card-actions">
-                      <button className="rec-link" type="button" onClick={() => viewPosting(item)}>
-                        Xem chi tiết tin
-                      </button>
-                      <button className="rec-link" type="button" onClick={() => dismiss(item)}>
-                        Không quan tâm
-                      </button>
-                      <button
-                        className={favorites.has(item.teachingRequestId) ? 'rec-link active' : 'rec-link'}
-                        type="button"
-                        aria-pressed={favorites.has(item.teachingRequestId)}
-                        onClick={() => favorite(item)}
-                      >
-                        {favorites.has(item.teachingRequestId) ? '♥ Đã lưu' : '♡ Lưu gia sư'}
-                      </button>
                       <button className="student-button" type="button" onClick={() => open(item)}>
                         Đăng ký học
                       </button>
