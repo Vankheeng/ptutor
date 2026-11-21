@@ -35,13 +35,12 @@ public interface TeachingRequestRepository extends JpaRepository<TeachingRequest
             select request from TeachingRequest request
             where request.status = :status
               and request.tutor.profileStatus = :profileStatus
-              and request.tutor.user.id in :tutorUserIds
-            order by request.createdAt desc
+              and request.id in :requestIds
             """)
-    List<TeachingRequest> findOpenByTutorUserIds(
+    List<TeachingRequest> findOpenFavoritesByIds(
             @Param("status") RequestStatus status,
             @Param("profileStatus") TutorProfileStatus profileStatus,
-            @Param("tutorUserIds") List<UUID> tutorUserIds);
+            @Param("requestIds") List<UUID> requestIds);
 
     @EntityGraph(attributePaths = { "tutor", "tutor.user", "gradeAssociations", "gradeAssociations.grade" })
     @Query("""

@@ -113,19 +113,20 @@ public class TeachingRequestService {
     public List<TeachingRequestResponse> findFavoritesForStudent(UUID userId) {
         List<FavoriteTutor> favorites = favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId);
         if (favorites.isEmpty()) return List.of();
-        List<UUID> tutorUserIds = favorites.stream().map(favorite -> favorite.getTutor().getUser().getId()).toList();
-        List<TeachingRequest> openRequests = teachingRequestRepository.findOpenByTutorUserIds(
-                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, tutorUserIds);
+        List<UUID> savedRequestIds = favorites.stream()
+                .map(FavoriteTutor::getTeachingRequest)
+                .filter(java.util.Objects::nonNull)
+                .map(TeachingRequest::getId)
+                .toList();
+        if (savedRequestIds.isEmpty()) return List.of();
+        List<TeachingRequest> openRequests = teachingRequestRepository.findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, savedRequestIds);
         Map<UUID, TeachingRequest> byId = openRequests.stream().collect(Collectors.toMap(
                 TeachingRequest::getId, request -> request));
-        Map<UUID, TeachingRequest> latestByTutor = openRequests.stream().collect(Collectors.toMap(
-                request -> request.getTutor().getId(), request -> request, (first, ignored) -> first));
         return toResponses(favorites.stream()
-                .map(favorite -> {
-                    TeachingRequest saved = favorite.getTeachingRequest();
-                    return saved == null ? latestByTutor.get(favorite.getTutor().getId())
-                            : byId.getOrDefault(saved.getId(), latestByTutor.get(favorite.getTutor().getId()));
-                })
+                .map(FavoriteTutor::getTeachingRequest)
+                .filter(java.util.Objects::nonNull)
+                .map(saved -> byId.get(saved.getId()))
                 .filter(java.util.Objects::nonNull)
                 .toList());
     }

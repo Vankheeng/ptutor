@@ -411,7 +411,7 @@ export function StudentTutorRecommendations() {
           aria-pressed={showFavorites}
           onClick={() => setShowFavorites((visible) => !visible)}
         >
-          <span aria-hidden="true">♥</span> Gia sư đã quan tâm ({favorites.size})
+          <span aria-hidden="true">♥</span> Gia sư đã quan tâm
         </button>
       </header>
       <form
@@ -703,6 +703,7 @@ export function StudentTutorRecommendations() {
 
       {showFavorites && (
         <FavoriteTutorResults
+          savedTutorCount={favorites.size}
           onFavoritesChanged={() => {
             void getFavoriteTutorIds()
               .then((ids) => setFavorites(new Set(ids)))

@@ -497,20 +497,34 @@ class TeachingRequestServiceTest {
     @Test
     void favoritesShowThePostingThatWasHearted() {
         TeachingRequest saved = existingRequest(RequestStatus.OPEN);
-        TeachingRequest newer = existingRequest(RequestStatus.OPEN);
         FavoriteTutor favorite = FavoriteTutor.builder()
                 .tutor(saved.getTutor())
                 .teachingRequest(saved)
                 .build();
         when(favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId))
                 .thenReturn(List.of(favorite));
-        when(teachingRequestRepository.findOpenByTutorUserIds(
-                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, List.of(userId)))
-                .thenReturn(List.of(newer, saved));
+        when(teachingRequestRepository.findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, List.of(saved.getId())))
+                .thenReturn(List.of(saved));
 
         List<TeachingRequestResponse> results = service.findFavoritesForStudent(userId);
 
         assertThat(results).extracting(TeachingRequestResponse::id).containsExactly(saved.getId());
+    }
+
+    @Test
+    void closedFavoriteDoesNotSwitchToAnotherPostingFromTheSameTutor() {
+        TeachingRequest closed = existingRequest(RequestStatus.CLOSED);
+        FavoriteTutor favorite = FavoriteTutor.builder()
+                .tutor(closed.getTutor())
+                .teachingRequest(closed)
+                .build();
+        when(favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId))
+                .thenReturn(List.of(favorite));
+
+        assertThat(service.findFavoritesForStudent(userId)).isEmpty();
+        verify(teachingRequestRepository).findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, List.of(closed.getId()));
     }
 
     private TeachingRequest existingRequest(RequestStatus status) {

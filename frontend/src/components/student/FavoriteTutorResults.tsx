@@ -7,9 +7,10 @@ import { StudentTeachingRequestCard } from './StudentTeachingRequestCard';
 
 interface Props {
   onFavoritesChanged: () => void;
+  savedTutorCount: number;
 }
 
-export function FavoriteTutorResults({ onFavoritesChanged }: Props) {
+export function FavoriteTutorResults({ onFavoritesChanged, savedTutorCount }: Props) {
   const [revision, setRevision] = useState(0);
   const [removingId, setRemovingId] = useState('');
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
@@ -83,8 +84,12 @@ export function FavoriteTutorResults({ onFavoritesChanged }: Props) {
         </div>
       ) : (
         <div className="tutor-empty">
-          <h3>Chưa có gia sư đã quan tâm</h3>
-          <p>Bấm biểu tượng trái tim trên thẻ gợi ý để lưu gia sư tại đây.</p>
+          <h3>{savedTutorCount ? 'Hiện không có tin dạy còn mở' : 'Chưa có gia sư đã quan tâm'}</h3>
+          <p>
+            {savedTutorCount
+              ? 'Các lượt quan tâm vẫn được lưu để cải thiện gợi ý gia sư.'
+              : 'Bấm biểu tượng trái tim trên thẻ gia sư để lưu tại đây.'}
+          </p>
         </div>
       )}
     </section>
