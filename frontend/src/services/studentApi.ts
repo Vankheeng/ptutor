@@ -148,11 +148,13 @@ export interface ContractSchedule {
 export interface Contract {
   id: string;
   studentId: string;
+  studentUserId: string;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentEmail: string;
   studentDetailAddress: string | null;
   tutorId: string;
+  tutorUserId: string;
   tutorFirstName: string | null;
   tutorLastName: string | null;
   tutorEmail: string;

@@ -10,6 +10,7 @@ const navIcons: Record<string, React.ReactNode> = {
   chart: <><path d="M4 19V5M4 19h16M8 15l4-4 3 2 5-6" /></>,
   student: <><circle cx="12" cy="8" r="3" /><path d="M5 20v-2a7 7 0 0 1 14 0v2" /></>,
   tutor: <><path d="M3 7 12 3l9 4-9 4-9-4ZM7 9v5c0 2 2.2 4 5 4s5-2 5-4V9M21 7v7" /></>,
+  contract: <><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm8 0v5h4M9 12h6m-6 4h6" /></>,
   bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" /></>,
   team: <><circle cx="9" cy="8" r="3" /><path d="M2 20v-2a7 7 0 0 1 14 0v2M17 5a3 3 0 0 1 0 6m1 4a6 6 0 0 1 4 5" /></>,
   verify: <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 9h6m-6 4 2 2 4-4" /></>,
