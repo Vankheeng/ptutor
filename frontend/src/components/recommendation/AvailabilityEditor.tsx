@@ -3,6 +3,7 @@ import type { Availability } from '../../types/api';
 interface AvailabilityEditorProps {
   value: Availability[];
   onChange: (value: Availability[]) => void;
+  showHeaders?: boolean;
 }
 
 /** ISO-8601 day numbers, as the API expects: 1 = Monday ... 7 = Sunday. */
@@ -16,12 +17,20 @@ const DAYS = [
   { value: 7, label: 'Chủ nhật' }
 ];
 
-export function AvailabilityEditor({ value, onChange }: AvailabilityEditorProps) {
+export function AvailabilityEditor({ value, onChange, showHeaders = false }: AvailabilityEditorProps) {
   const update = (index: number, changes: Partial<Availability>) =>
     onChange(value.map((slot, position) => (position === index ? { ...slot, ...changes } : slot)));
 
   return (
     <div className="rec-slots">
+      {showHeaders && value.length > 0 && (
+        <div className="rec-slot-header" aria-hidden="true">
+          <span>Ngày</span>
+          <span>Bắt đầu</span>
+          <span>Kết thúc</span>
+          <span />
+        </div>
+      )}
       {value.map((slot, index) => (
         <div className="rec-slot" key={index}>
           <select

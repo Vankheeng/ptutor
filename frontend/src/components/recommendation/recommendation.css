@@ -735,9 +735,9 @@
   align-items: start;
   gap: 16px;
   padding: 16px;
-  border: 1px solid #d7e9e5;
+  border: 1px solid #e7ddf8;
   border-radius: 10px;
-  background: #f5fbf9;
+  background: #faf8ff;
 }
 .student-rec-layout .rec-ai-section:not(:has(.rec-saved-request)) {
   grid-template-columns: 1fr;
@@ -752,14 +752,14 @@
 }
 .student-rec-layout .rec-ai-input .rec-parse-button {
   min-height: 39px;
-  border-color: #0f766e;
-  background: #0f766e;
+  border-color: #8752db;
+  background: #8752db;
   color: #fff;
-  box-shadow: 0 4px 12px #0f766e30;
+  box-shadow: 0 4px 12px #6834c82b;
 }
 .student-rec-layout .rec-ai-input .rec-parse-button:hover:not(:disabled) {
-  background: #0b5e58;
-  border-color: #0b5e58;
+  background: #7340c8;
+  border-color: #7340c8;
 }
 .student-rec-layout .rec-ai-section .rec-notes {
   grid-column: 1 / -1;
@@ -783,18 +783,38 @@
 .student-rec-layout .rec-schedule {
   order: 12;
   grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 1000px);
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid #eceef4;
   border-radius: 10px;
   background: #faf9fd;
 }
 .student-rec-layout .rec-schedule .rec-slots {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.student-rec-layout .rec-schedule .rec-add {
-  grid-column: 1 / -1;
+.student-rec-layout .rec-schedule .rec-slot,
+.student-rec-layout .rec-schedule .rec-slot-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 10px;
+  align-items: center;
+}
+.student-rec-layout .rec-schedule .rec-slot > span {
+  display: none;
+}
+.student-rec-layout .rec-schedule .rec-slot-header {
+  padding: 0 2px;
+  color: #85899a;
+  font-size: 10px;
+  font-weight: 700;
+}
+.student-rec-layout .rec-schedule .rec-icon-button {
+  width: 32px;
+  height: 36px;
 }
 .student-rec-layout .rec-actions {
   order: 13;
@@ -885,9 +905,6 @@
   .student-rec-layout .rec-advanced-toggle {
     grid-column: 1 / -1;
   }
-  .student-rec-layout .rec-schedule .rec-slots {
-    grid-template-columns: 1fr;
-  }
 }
 @media (max-width: 600px) {
   .student-rec-layout .rec-filters {
@@ -907,5 +924,27 @@
   }
   .student-rec-layout .rec-ai-section {
     grid-template-columns: 1fr;
+  }
+  .student-rec-layout .rec-schedule .rec-slot-header {
+    display: none;
+  }
+  .student-rec-layout .rec-schedule .rec-slot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+  }
+  .student-rec-layout .rec-schedule .rec-slot select {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+  .student-rec-layout .rec-schedule .rec-slot input[type='time']:first-of-type {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .student-rec-layout .rec-schedule .rec-slot input[type='time']:last-of-type {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .student-rec-layout .rec-schedule .rec-slot .rec-icon-button {
+    grid-column: 3;
+    grid-row: 1 / 3;
   }
 }

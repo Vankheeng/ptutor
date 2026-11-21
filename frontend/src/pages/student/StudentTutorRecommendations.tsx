@@ -541,6 +541,7 @@ export function StudentTutorRecommendations() {
             )}
             <AvailabilityEditor
               value={slots}
+              showHeaders
               onChange={(next) => change({ availabilities: next.length ? next : undefined })}
             />
           </div>
