@@ -1,70 +1,94 @@
-import type { ReactNode } from 'react';
-import type { StudyingRequest } from '../../services/studentApi';
-import {
-  formatStudyingRequestDate,
-  formatStudyingRequestMoney,
-  statusLabel,
-  weekdayLabel
-} from './studyingRequestUtils';
+import type { StudentStudyingRequestDetail } from '../../services/studentApi';
+import { formatStudyingRequestMoney, studyingRequestStatusText } from './studyingRequestUtils';
 
 interface Props {
-  request: StudyingRequest;
+  request: StudentStudyingRequestDetail;
 }
 
 export function StudentStudyingRequestDetails({ request }: Props) {
   return (
-    <section className="student-panel">
-      <div className="student-detail-table">
-        <DetailRow label="Title" value={request.title} />
-        <DetailRow
-          label="Status"
-          value={
-            <span className={`student-status ${request.status.toLowerCase()}`}>{statusLabel(request.status)}</span>
-          }
-        />
-        <DetailRow label="Description" value={request.description || 'No description provided.'} multiline />
-        <DetailRow label="Subject" value={request.subjectName || request.note || 'Custom subject'} />
-        <DetailRow label="Grade" value={request.gradeName} />
-        <DetailRow label="Mode" value={request.learningMode === 'ONLINE' ? 'Online' : 'In person'} />
-        <DetailRow
-          label="Budget"
-          value={`${formatStudyingRequestMoney(request.minPrice)} – ${formatStudyingRequestMoney(request.maxPrice)}`}
-        />
-        <DetailRow label="Preferred schedule" value={request.preferredSchedule || 'Flexible'} />
-        <DetailRow
-          label="Address"
-          value={[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Not specified'}
-        />
-        <DetailRow label="Learning goals" value={request.learningGoals || 'Not specified'} multiline />
-        <DetailRow
-          label="Availability"
-          value={
-            request.availabilities.length ? (
-              <div className="student-detail-availability">
+    <section className="student-panel student-studying-request-info">
+      <h1>{request.title}</h1>
+      <dl>
+        <div>
+          <dt>Trạng thái</dt>
+          <dd>
+            <span className={`student-status ${request.status.toLowerCase()}`}>
+              {studyingRequestStatusText(request.status)}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Mô tả</dt>
+          <dd>{request.description || 'Chưa có mô tả.'}</dd>
+        </div>
+        <div>
+          <dt>Môn học</dt>
+          <dd>{request.subjectName || request.note || 'Môn học tùy chỉnh'}</dd>
+        </div>
+        <div>
+          <dt>Khối lớp</dt>
+          <dd>{request.gradeName || 'Chưa xác định'}</dd>
+        </div>
+        <div>
+          <dt>Hình thức học</dt>
+          <dd>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</dd>
+        </div>
+        <div>
+          <dt>Ngân sách</dt>
+          <dd>
+            {formatStudyingRequestMoney(request.minPrice)} – {formatStudyingRequestMoney(request.maxPrice)}
+          </dd>
+        </div>
+        <div>
+          <dt>Khu vực học</dt>
+          <dd>{[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Chưa cung cấp'}</dd>
+        </div>
+        <div>
+          <dt>Mục tiêu học tập</dt>
+          <dd>{request.learningGoals || 'Chưa cung cấp'}</dd>
+        </div>
+        <div>
+          <dt>Thời gian có thể học</dt>
+          <dd>
+            {request.availabilities.length ? (
+              <div className="student-studying-request-availability">
                 {request.availabilities.map((slot) => (
                   <span key={`${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`}>
-                    {weekdayLabel(slot.dayOfWeek)}: {slot.startTime} – {slot.endTime}
+                    {weekdayText(slot.dayOfWeek)} {formatRequestTime(slot.startTime)} –{' '}
+                    {formatRequestTime(slot.endTime)}
                   </span>
                 ))}
               </div>
             ) : (
-              'Flexible'
-            )
-          }
-          multiline
-        />
-        <DetailRow label="Created" value={formatStudyingRequestDate(request.createdAt)} />
-        <DetailRow label="Updated" value={formatStudyingRequestDate(request.updatedAt)} />
-      </div>
+              'Linh hoạt'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Ngày tạo</dt>
+          <dd>{formatRequestTimestamp(request.createdAt)}</dd>
+        </div>
+        <div>
+          <dt>Cập nhật lần cuối</dt>
+          <dd>{formatRequestTimestamp(request.updatedAt)}</dd>
+        </div>
+      </dl>
     </section>
   );
 }
 
-function DetailRow({ label, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
-  return (
-    <div className={`student-detail-row${multiline ? ' multiline' : ''}`}>
-      <span>{label}</span>
-      <div className="student-detail-value">{value}</div>
-    </div>
-  );
+function formatRequestTime(value: string) {
+  return value.slice(0, 5);
+}
+
+function formatRequestTimestamp(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(value);
+  if (!match) return value;
+  const [, year, month, day, hour, minute, second] = match;
+  return `${day}/${month}/${year}, ${hour}:${minute}:${second}`;
+}
+
+function weekdayText(dayOfWeek: number) {
+  return ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'][dayOfWeek - 1] ?? 'Chưa xác định';
 }

@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
   acceptTutorOffer,
-  getMyStudyingRequest,
+  getMyStudyingRequestDetail,
   getTutorOffers,
   rejectTutorOffer,
-  type StudyingRequest,
+  type StudentStudyingRequestDetail,
   type TutorOffer
 } from '../../services/studentApi';
 import { StudentStudyingRequestDetails } from '../../components/student/StudentStudyingRequestDetails';
@@ -21,55 +21,86 @@ export function StudentStudyingRequestDetailPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice ?? '');
   const [busy, setBusy] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    const [request, offerPage] = await Promise.all([getMyStudyingRequest(requestId), getTutorOffers(requestId)]);
-    return { request, offers: offerPage.content };
-  }, [requestId]);
-  const query = useResource(load, revision);
-  const request: StudyingRequest | null = query.data?.request ?? null;
-  const offers: TutorOffer[] = query.data?.offers ?? [];
+  const [offerStatus, setOfferStatus] = useState<'' | TutorOffer['status']>('');
+  const [offerSort, setOfferSort] = useState<'DESC' | 'ASC'>('DESC');
+  const [offerPage, setOfferPage] = useState(0);
+  const [offersLoading, setOffersLoading] = useState(true);
+
+  const loadRequest = useCallback((signal: AbortSignal) => getMyStudyingRequestDetail(requestId, signal), [requestId]);
+  const requestQuery = useResource(loadRequest, revision);
+  const loadOffers = useCallback(
+    async (signal: AbortSignal) => {
+      setOffersLoading(true);
+      try {
+        return await getTutorOffers(requestId, {
+          status: offerStatus || undefined,
+          sort: offerSort,
+          page: offerPage,
+          size: 20,
+          signal
+        });
+      } finally {
+        if (!signal.aborted) setOffersLoading(false);
+      }
+    },
+    [requestId, offerStatus, offerSort, offerPage]
+  );
+  const offersQuery = useResource(loadOffers, revision);
+  const request: StudentStudyingRequestDetail | null = requestQuery.data ?? null;
+  const offerResponse = offersQuery.data;
+  const offers: TutorOffer[] = offerResponse?.content ?? [];
 
   const act = async (offer: TutorOffer, action: 'accept' | 'reject') => {
     setBusy(offer.id);
     setError('');
     try {
       await (action === 'accept' ? acceptTutorOffer(requestId, offer.id) : rejectTutorOffer(requestId, offer.id));
-      setNotice(`Offer ${action}ed.`);
+      setNotice(action === 'accept' ? 'Đã chấp nhận đề nghị của gia sư.' : 'Đã từ chối đề nghị của gia sư.');
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this offer.');
+      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật đề nghị.');
     } finally {
       setBusy(null);
     }
   };
 
-  if (query.error && !request)
+  if (requestQuery.error && !request)
     return (
       <div className="student-error" role="alert">
-        {query.error}
+        {requestQuery.error}
       </div>
     );
   if (!request)
     return (
       <div className="student-empty">
-        <h3>Loading request…</h3>
+        <h3>Đang tải chi tiết yêu cầu…</h3>
       </div>
     );
 
   return (
     <>
-      <Link className="student-link" to="/student/studying-requests">
-        ← Back to studying requests
-      </Link>
-      <div className="student-detail-actions student-detail-page-actions">
-        {['DRAFT', 'OPEN'].includes(request.status) && (
-          <Link className="student-button warning" to={`/student/studying-requests/${request.id}/edit`}>
-            Edit
+      <div className="student-studying-request-top-actions">
+        <button
+          className="student-button secondary"
+          type="button"
+          onClick={() => navigate('/student/studying-requests')}
+        >
+          ← Quay lại danh sách
+        </button>
+        {['DRAFT', 'OPEN'].includes(request.status.toUpperCase()) ? (
+          <Link className="student-button draft" to={`/student/studying-requests/${request.id}/edit`}>
+            Chỉnh sửa
           </Link>
+        ) : (
+          <button
+            className="student-button secondary"
+            type="button"
+            disabled
+            title="Chỉ có thể chỉnh sửa yêu cầu ở trạng thái Bản nháp hoặc Đang mở."
+          >
+            Chỉnh sửa
+          </button>
         )}
-        <Link className="student-button back-to-list" to="/student/studying-requests">
-          Back to list
-        </Link>
       </div>
       {notice && (
         <div className="student-notice" role="status">
@@ -86,7 +117,23 @@ export function StudentStudyingRequestDetailPage() {
         <Offers
           requestStatus={request.status}
           offers={offers}
+          statusFilter={offerStatus}
+          sortOrder={offerSort}
+          page={offerResponse?.page ?? offerPage}
+          totalPages={offerResponse?.totalPages ?? 0}
+          totalElements={offerResponse?.totalElements ?? 0}
+          loading={offersLoading || offersQuery.isLoading}
+          error={offersQuery.error}
           busyOfferId={busy}
+          onStatusChange={(value) => {
+            setOfferStatus(value);
+            setOfferPage(0);
+          }}
+          onSortChange={(value) => {
+            setOfferSort(value);
+            setOfferPage(0);
+          }}
+          onPageChange={setOfferPage}
           onAction={act}
           onCreateContract={(offer) =>
             navigate(`/student/studying-requests/${request.id}/tutor-requests/${offer.id}/contracts/new`)

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ptutor.backend.dto.request.StudyingRequestRequest;
 import com.ptutor.backend.dto.request.StudyingRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentStudyingRequestDetailResponse;
 import com.ptutor.backend.dto.response.StudyingRequestResponse;
 import com.ptutor.backend.dto.response.StudyingRequestSearchResponse;
 import com.ptutor.backend.entity.District;
@@ -162,10 +163,47 @@ public class StudyingRequestService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<StudyingRequestResponse> findMine(
+            UUID userId, RequestStatus status, String keyword, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        validateListStatus(status);
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        Page<StudyingRequest> requests = studyingRequestRepository.searchMineByStudentAndStatusAndKeyword(
+                student.getId(), status, normalizedKeyword, pageable);
+        return PageResponse.from(requests, toResponses(requests.getContent()));
+    }
+
+    @Transactional(readOnly = true)
     public StudyingRequestResponse findMineById(UUID userId, UUID requestId) {
         Student student = findStudentByUserId(userId);
         return toResponse(studyingRequestRepository.findDetailedByIdAndStudentId(requestId, student.getId())
                 .orElseThrow(() -> requestNotFound(requestId)));
+    }
+
+    @Transactional(readOnly = true)
+    public StudentStudyingRequestDetailResponse findMineDetailById(UUID userId, UUID requestId) {
+        StudyingRequestResponse request = findMineById(userId, requestId);
+        return new StudentStudyingRequestDetailResponse(
+                request.id(),
+                request.studentId(),
+                request.subjectId(),
+                request.subjectName(),
+                request.gradeId(),
+                request.gradeName(),
+                request.districtId(),
+                request.districtName(),
+                request.title(),
+                request.description(),
+                request.note(),
+                request.detailAddress(),
+                request.minPrice(),
+                request.maxPrice(),
+                request.learningGoals(),
+                request.learningMode(),
+                request.availabilities(),
+                request.status(),
+                request.createdAt(),
+                request.updatedAt());
     }
 
     @Transactional

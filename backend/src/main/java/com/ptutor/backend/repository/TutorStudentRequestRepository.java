@@ -37,6 +37,13 @@ public interface TutorStudentRequestRepository extends JpaRepository<TutorStuden
             UUID studyingRequestId, ApplicationStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
+    Page<TutorStudentRequest> findAllByStudyingRequest_Id(UUID studyingRequestId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
+    Page<TutorStudentRequest> findAllByStudyingRequest_IdAndStatus(
+            UUID studyingRequestId, ApplicationStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"tutor", "tutor.user", "grade", "studyingRequest", "studyingRequest.subject"})
     Optional<TutorStudentRequest> findByIdAndStudyingRequest_Id(UUID id, UUID studyingRequestId);
 
     boolean existsByTutor_IdAndStudyingRequest_IdAndStatus(

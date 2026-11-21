@@ -87,6 +87,8 @@ export interface StudyingRequest {
   updatedAt: string;
 }
 
+export type StudentStudyingRequestDetail = Omit<StudyingRequest, 'preferredSchedule'>;
+
 export interface TutorOffer {
   id: string;
   tutorId: string;
@@ -342,16 +344,18 @@ export function getMyStudyingRequests(
   page = 0,
   size = 20,
   signal?: AbortSignal,
-  sort: 'ASC' | 'DESC' = 'DESC'
+  sort: 'ASC' | 'DESC' = 'DESC',
+  keyword = ''
 ) {
-  return get<PageResponse<StudyingRequest>>(
-    `/api/v1/students/me/studying-requests?${pageParams(page, size, status, sort)}`,
-    {
-      signal
-    }
-  );
+  const params = new URLSearchParams(pageParams(page, size, status, sort));
+  if (keyword.trim()) params.set('keyword', keyword.trim());
+  return get<PageResponse<StudyingRequest>>(`/api/v1/students/me/studying-requests?${params.toString()}`, {
+    signal
+  });
 }
 export const getMyStudyingRequest = (id: string) => get<StudyingRequest>(`/api/v1/students/me/studying-requests/${id}`);
+export const getMyStudyingRequestDetail = (id: string, signal?: AbortSignal) =>
+  get<StudentStudyingRequestDetail>(`/api/v1/students/me/studying-requests/${id}/detail`, { signal });
 export const createStudyingRequest = (values: StudyingRequestInput) =>
   post<StudyingRequest>('/api/v1/students/me/studying-requests', values);
 export const updateStudyingRequest = (id: string, values: Partial<StudyingRequestInput>) =>
@@ -361,15 +365,39 @@ export const updateStudyingRequestStatus = (id: string, status: RequestStatus) =
 export const cancelStudyingRequest = (id: string) =>
   post<StudyingRequest>(`/api/v1/students/me/studying-requests/${id}/cancel`);
 
+interface TutorOfferQueryOptions {
+  status?: ApplicationStatus;
+  sort?: 'ASC' | 'DESC';
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+}
+
+export function getTutorOffers(
+  studyingRequestId: string,
+  options?: TutorOfferQueryOptions
+): Promise<PageResponse<TutorOffer>>;
 export function getTutorOffers(
   studyingRequestId: string,
   status?: ApplicationStatus,
-  page = 0,
-  size = 20,
+  page?: number,
+  size?: number,
   signal?: AbortSignal
+): Promise<PageResponse<TutorOffer>>;
+export function getTutorOffers(
+  studyingRequestId: string,
+  optionsOrStatus?: TutorOfferQueryOptions | ApplicationStatus,
+  legacyPage = 0,
+  legacySize = 20,
+  legacySignal?: AbortSignal
 ) {
+  const options: TutorOfferQueryOptions =
+    typeof optionsOrStatus === 'object' && optionsOrStatus !== null
+      ? optionsOrStatus
+      : { status: optionsOrStatus, page: legacyPage, size: legacySize, signal: legacySignal };
+  const { status, sort, page = 0, size = 20, signal } = options;
   return get<PageResponse<TutorOffer>>(
-    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests?${pageParams(page, size, status)}`,
+    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests?${pageParams(page, size, status, sort)}`,
     { signal }
   );
 }

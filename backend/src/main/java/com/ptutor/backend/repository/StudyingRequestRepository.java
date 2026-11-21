@@ -66,6 +66,33 @@ public interface StudyingRequestRepository extends JpaRepository<StudyingRequest
     Page<StudyingRequest> findAllByStudent_IdAndStatus(
             UUID studentId, com.ptutor.backend.entity.enums.RequestStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"student.user", "subject", "grade", "district"})
+    @Query(value = """
+            select request from StudyingRequest request
+            left join request.subject subject
+            where request.student.id = :studentId
+              and (:status is null or request.status = :status)
+              and (:keyword = ''
+                   or lower(coalesce(request.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(request.note, '')) like lower(concat('%', :keyword, '%')))
+            """,
+            countQuery = """
+            select count(request) from StudyingRequest request
+            left join request.subject subject
+            where request.student.id = :studentId
+              and (:status is null or request.status = :status)
+              and (:keyword = ''
+                   or lower(coalesce(request.title, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(subject.name, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(request.note, '')) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<StudyingRequest> searchMineByStudentAndStatusAndKeyword(
+            @Param("studentId") UUID studentId,
+            @Param("status") RequestStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     Optional<StudyingRequest> findByIdAndStudent_Id(UUID id, UUID studentId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

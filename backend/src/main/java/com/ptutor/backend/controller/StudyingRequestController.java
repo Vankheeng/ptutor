@@ -20,6 +20,7 @@ import com.ptutor.backend.dto.request.StudyingRequestRequest;
 import com.ptutor.backend.dto.request.StudyingRequestStatusRequest;
 import com.ptutor.backend.dto.request.StudyingRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentStudyingRequestDetailResponse;
 import com.ptutor.backend.dto.response.StudyingRequestResponse;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.response.ApiResponse;
@@ -55,13 +56,18 @@ public class StudyingRequestController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<StudyingRequestResponse>>> findMine(
             @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false, defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size,
             @RequestParam(defaultValue = "DESC") Sort.Direction sort) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort, "createdAt"));
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
         return ResponseEntity.ok(responseFactory.success(
-                studyingRequestService.findMine(currentUserProvider.getCurrentUserId(), status, pageable),
+                normalizedKeyword.isEmpty()
+                        ? studyingRequestService.findMine(currentUserProvider.getCurrentUserId(), status, pageable)
+                        : studyingRequestService.findMine(
+                                currentUserProvider.getCurrentUserId(), status, normalizedKeyword, pageable),
                 BASE_PATH));
     }
 
@@ -71,6 +77,14 @@ public class StudyingRequestController {
         return ResponseEntity.ok(responseFactory.success(
                 studyingRequestService.findMineById(currentUserProvider.getCurrentUserId(), requestId),
                 BASE_PATH + "/" + requestId));
+    }
+
+    @GetMapping("/{requestId}/detail")
+    public ResponseEntity<ApiResponse<StudentStudyingRequestDetailResponse>> findMineDetailById(
+            @PathVariable UUID requestId) {
+        return ResponseEntity.ok(responseFactory.success(
+                studyingRequestService.findMineDetailById(currentUserProvider.getCurrentUserId(), requestId),
+                BASE_PATH + "/" + requestId + "/detail"));
     }
 
     @PatchMapping("/{requestId}")
