@@ -83,4 +83,21 @@ class AdminStatisticsServiceTest {
         assertThat(response.range().previousFromDate()).isEqualTo(LocalDate.of(2026, 8, 2));
         assertThat(response.range().previousToDate()).isEqualTo(LocalDate.of(2026, 8, 31));
     }
+
+    @Test
+    void comparesWholeCalendarMonthWithPreviousCalendarMonth() {
+        when(repository.metrics(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(Map.of("total_revenue", BigDecimal.valueOf(120)))
+                .thenReturn(Map.of("total_revenue", BigDecimal.valueOf(100)));
+        when(repository.breakdown(anyString(), any(MapSqlParameterSource.class))).thenReturn(List.of());
+        when(repository.series(anyString(), any(MapSqlParameterSource.class))).thenReturn(List.of());
+
+        var response = service.finance(
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28),
+                "Asia/Ho_Chi_Minh", StatisticsGranularity.MONTH);
+
+        assertThat(response.range().previousFromDate()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(response.range().previousToDate()).isEqualTo(LocalDate.of(2026, 1, 31));
+        assertThat(response.metrics().get("total_revenue").changePercent()).isEqualByComparingTo("20.00");
+    }
 }

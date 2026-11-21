@@ -9,7 +9,7 @@ import {
 import { AdminAvatar, AdminPagination, AdminState, FilterChips, StatusBadge } from './components/AdminUi';
 import { AccountActionDialog, type AccountAction } from './components/AccountActionDialog';
 import { accountStatusFilterLabels, accountStatusMeta } from './accountFormat';
-import { formatDate, formatDateTime, fullName } from './adminFormat';
+import { formatDate, fullName } from './adminFormat';
 
 type StatusFilter = UserAccountStatus | 'ALL';
 
@@ -89,10 +89,9 @@ export function AdminStudentsPage() {
               <thead>
                 <tr>
                   <th>Học viên</th>
-                  <th>Số điện thoại</th>
+                  <th>Liên hệ</th>
                   <th>Trạng thái</th>
-                  <th>Số lần khóa</th>
-                  <th>Ngày tạo</th>
+                  <th>Ngày tham gia</th>
                   <th>
                     <span className="admin-sr-only">Thao tác</span>
                   </th>
@@ -112,18 +111,8 @@ export function AdminStudentsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="admin-nowrap">{account.phone ?? '—'}</td>
-                      <td>
-                        <div className="admin-stack">
-                          <div>
-                            <StatusBadge meta={accountStatusMeta(account)} />
-                          </div>
-                          {account.status === 'BLOCKED' && account.suspendedUntil && (
-                            <span>Đến {formatDateTime(account.suspendedUntil)}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{account.suspensionCount}</td>
+                      <td className="admin-nowrap">{account.phone ?? 'Chưa cập nhật'}</td>
+                      <td><StatusBadge meta={accountStatusMeta(account)} /></td>
                       <td className="admin-nowrap">{formatDate(account.createdAt)}</td>
                       <td className="admin-cell-action">
                         <div className="admin-button-row">
@@ -146,7 +135,7 @@ export function AdminStudentsPage() {
                             </button>
                           )}
                           <Link className="admin-button small secondary" to={`/admin/students/${account.userId}`}>
-                            Xem
+                            Xem hồ sơ
                           </Link>
                         </div>
                       </td>

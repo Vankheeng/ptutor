@@ -73,6 +73,11 @@ public final class SecurityConstants {
             "/api/v1/admin/complaints/**"
     };
 
+    public static final String[] ADMIN_CONTRACT_API = {
+            "/api/v1/admin/contracts",
+            "/api/v1/admin/contracts/**"
+    };
+
     public static final String[] ADMIN_REFUND_REQUEST_API = {
             "/api/v1/admin/refund-requests",
             "/api/v1/admin/refund-requests/**"

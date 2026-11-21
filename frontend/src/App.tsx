@@ -67,13 +67,13 @@ import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDe
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
-import { AdminUserAccountsPage } from './pages/admin/AdminUserAccountsPage';
 import { AdminUserAccountDetailPage } from './pages/admin/AdminUserAccountDetailPage';
 import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
 import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout';
 import { AdminStudentProfilePage } from './pages/admin/AdminStudentProfilePage';
 import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearningHistoryPage';
 import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
+import { AdminContractsPage } from './pages/admin/AdminContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
@@ -107,6 +107,7 @@ export default function App() {
                   <Route path="score" element={<AdminTutorScorePage />} />
                 </Route>
                 <Route path="students" element={<AdminStudentsPage />} />
+                <Route path="contracts" element={<AdminContractsPage />} />
                 <Route path="students/:userId" element={<AdminStudentDetailLayout />}>
                   <Route index element={<AdminStudentProfilePage />} />
                   <Route path="learning-history" element={<AdminStudentLearningHistoryPage />} />
@@ -126,7 +127,7 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
-                <Route path="accounts" element={<AdminUserAccountsPage />} />
+                <Route path="accounts" element={<Navigate replace to="/admin/students" />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
                 <Route path="notifications/new" element={<AdminNotificationFormPage />} />
