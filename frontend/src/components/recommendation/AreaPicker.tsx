@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAllDistricts, getDistricts, getProvinces } from '../../services/locationApi';
 import type { AreaFilter, AreaScope } from '../../services/recommendationApi';
 import type { District, Province } from '../../types/api';
@@ -19,6 +19,7 @@ const SCOPES: { scope: AreaScope | 'DEFAULT'; label: string }[] = [
 ];
 
 export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps) {
+  const areaRef = useRef<HTMLDivElement>(null);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [selectedDistricts, setSelectedDistricts] = useState<District[]>([]);
@@ -29,6 +30,22 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   const [districtsOpen, setDistrictsOpen] = useState(false);
   const scope = value?.scope ?? 'DEFAULT';
   const selected = useMemo(() => value?.districtIds ?? [], [value]);
+
+  useEffect(() => {
+    if (!districtsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!areaRef.current?.contains(event.target as Node)) setDistrictsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDistrictsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [districtsOpen]);
 
   useEffect(() => {
     if (!selected.length || selected.every((id) => districts.some((district) => district.id === id))) return;
@@ -83,18 +100,17 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   const toggleDistrict = (districtId: string) => {
     const next = selected.includes(districtId) ? selected.filter((id) => id !== districtId) : [...selected, districtId];
     onChange({ scope: 'DISTRICTS', districtIds: next });
-    setDistrictsOpen(false);
-    setKeyword('');
   };
 
   const chooseProvince = (next: string) => {
     setProvinceId(next);
+    setDistrictsOpen(false);
     if (scope === 'DISTRICTS') onChange({ scope: 'DISTRICTS', districtIds: [] });
     if (scope === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: next || null });
   };
 
   return (
-    <div className="rec-area">
+    <div className="rec-area" ref={areaRef}>
       <select
         value={scope}
         onChange={(event) => chooseScope(event.target.value as AreaScope | 'DEFAULT')}

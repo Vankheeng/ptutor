@@ -732,6 +732,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 16px;
+  position: relative;
 }
 .student-rec-layout .rec-location .rec-area > select:only-child {
   grid-column: 1 / -1;
@@ -743,6 +744,19 @@
 }
 .student-rec-layout .rec-location .rec-district-toggle {
   justify-self: start;
+}
+.student-rec-layout .rec-location .rec-district-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #e3e4eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px #20243a26;
 }
 .student-rec-layout .rec-advanced-divider {
   order: 6;
