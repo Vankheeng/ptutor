@@ -589,9 +589,6 @@ export function StudentTutorRecommendations() {
         )}
 
         <div className="rec-actions">
-          <span className="rec-search-method">
-            Tìm gia sư: theo bộ lọc{showAdvanced ? ' · Gợi ý thông minh: AI đề xuất' : ''}
-          </span>
           <button
             className="student-button secondary"
             type="button"

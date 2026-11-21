@@ -998,12 +998,6 @@
   flex-wrap: wrap;
   align-items: center;
 }
-.student-rec-layout .rec-search-method {
-  margin-right: auto;
-  color: #777c8e;
-  font-size: 11px;
-  font-weight: 600;
-}
 .student-rec-layout .rec-saved-controls-row {
   display: flex;
   justify-content: flex-end;
@@ -1023,6 +1017,7 @@
 }
 .rec-tag-dropdown summary {
   display: block;
+  list-style: none;
   overflow: hidden;
   padding: 9px 28px 9px 10px;
   border: 1px solid #e3e4eb;
@@ -1035,11 +1030,19 @@
   white-space: nowrap;
   cursor: pointer;
 }
+.rec-tag-dropdown summary::-webkit-details-marker {
+  display: none;
+}
 .rec-tag-dropdown summary::after {
-  content: '⌄';
+  content: '';
   position: absolute;
-  right: 11px;
-  color: #6c7186;
+  top: 50%;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid #20243a;
+  border-bottom: 1.5px solid #20243a;
+  transform: translateY(-65%) rotate(45deg);
 }
 .rec-tag-options {
   position: absolute;
