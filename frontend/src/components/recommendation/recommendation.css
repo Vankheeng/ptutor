@@ -679,7 +679,24 @@
 
 .student-rec-layout {
   grid-template-columns: minmax(0, 1fr);
-  gap: 0;
+  gap: 18px;
+}
+.student-rec-layout > .tutor-page-heading {
+  margin: 0;
+}
+.student-rec-layout .rec-keyword {
+  grid-column: span 2;
+}
+.student-rec-layout .rec-results > h2 {
+  margin: 0 0 12px;
+  color: #34394d;
+  font-size: 17px;
+}
+.student-rec-layout .rec-results {
+  order: 2;
+}
+.student-rec-layout > .tutor-marketplace {
+  order: 3;
 }
 .student-rec-layout .rec-filters {
   display: grid;
@@ -762,6 +779,9 @@
 @media (max-width: 600px) {
   .student-rec-layout .rec-filters {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .student-rec-layout .rec-keyword {
+    grid-column: 1;
   }
   .student-rec-layout .rec-filters > .rec-field:has(textarea),
   .student-rec-layout .rec-filters > .rec-field:has(.rec-area),

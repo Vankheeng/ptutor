@@ -28,7 +28,6 @@ import { OfferDetailPage } from './pages/student/OfferDetailPage';
 import { StudentStudyingRequestCreatePage } from './pages/student/StudentStudyingRequestCreatePage';
 import { StudentStudyingRequestEditPage } from './pages/student/StudentStudyingRequestEditPage';
 import { StudentTeachingRequestsPage } from './pages/student/StudentTeachingRequestsPage';
-import { StudentTutorRecommendations } from './pages/student/StudentTutorRecommendations';
 import { StudentTeachingRequestDetailPage } from './pages/student/StudentTeachingRequestDetailPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
@@ -157,7 +156,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
-                 <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
+                <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
@@ -204,7 +203,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
-                <Route path="tutor-recommendations" element={<StudentTutorRecommendations />} />
+                <Route path="tutor-recommendations" element={<Navigate to="/student/teaching-requests" replace />} />
                 <Route path="teaching-requests/:requestId" element={<StudentTeachingRequestDetailPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="tutor-offers" element={<OffersPage />} />

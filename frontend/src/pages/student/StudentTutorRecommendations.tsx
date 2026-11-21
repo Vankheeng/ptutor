@@ -36,7 +36,7 @@ import type { Grade, Subject, TeachingRequest } from '../../types/api';
 import { formatCurrency, getInitials } from '../../utils/formatters';
 import { tutorScheduleLabel } from '../../utils/tutorDisplay';
 import { formatDate, learningModeLabel } from '../../components/student/studentApplicationUtils';
-import { TutorDiscoveryTabs } from '../../components/student/TutorDiscoveryTabs';
+import { TutorSearchResults } from '../../components/student/TutorSearchResults';
 
 const PAGE_SIZE = 20;
 const MODES: { value: ModePreference; label: string }[] = [
@@ -58,6 +58,12 @@ export function StudentTutorRecommendations() {
   const [homeProvinceId, setHomeProvinceId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<TutorSearchFilters>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearch, setActiveSearch] = useState<{ filters: TutorSearchFilters; term: string; version: number }>({
+    filters: {},
+    term: '',
+    version: 0
+  });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [useRequestId, setUseRequestId] = useState('');
   const [sentence, setSentence] = useState('');
@@ -138,6 +144,7 @@ export function StudentTutorRecommendations() {
     setFilters((previous) => {
       const next = { ...previous, ...changes };
       if ('subjectId' in changes && changes.subjectId !== previous.subjectId) delete next.topicTagCodes;
+      if (changes.learningMode === 'ONLINE') delete next.area;
       return next;
     });
     setFromSentence((previous) => {
@@ -149,7 +156,13 @@ export function StudentTutorRecommendations() {
 
   /** @param savedSearchId run a saved search: the server uses its saved criteria */
   const run = useCallback(
-    async (searchFilters: TutorSearchFilters, savedSearchId?: string, savedSentence?: string | null) => {
+    async (
+      searchFilters: TutorSearchFilters,
+      savedSearchId?: string,
+      savedSentence?: string | null,
+      keyword = searchTerm
+    ) => {
+      setActiveSearch((previous) => ({ filters: searchFilters, term: keyword, version: previous.version + 1 }));
       if (hasInvalidSlot(searchFilters.availabilities ?? [])) {
         setError('Khung giờ rảnh chưa hợp lệ: giờ kết thúc phải sau giờ bắt đầu.');
         return;
@@ -163,7 +176,7 @@ export function StudentTutorRecommendations() {
             filters: searchFilters,
             semanticText: (savedSearchId ? savedSentence : parsedSentence) ?? undefined,
             queryText: (savedSearchId ? savedSentence : parsedSentence) ?? undefined,
-            useStudyingRequestId: useRequestId || undefined,
+            useStudyingRequestId: savedSearchId ? undefined : useRequestId || undefined,
             savedSearchId
           },
           PAGE_SIZE
@@ -183,7 +196,7 @@ export function StudentTutorRecommendations() {
         setIsSearching(false);
       }
     },
-    [parsedSentence, useRequestId]
+    [parsedSentence, useRequestId, searchTerm]
   );
 
   const fillFromSentence = async () => {
@@ -264,13 +277,14 @@ export function StudentTutorRecommendations() {
 
   const runSaved = (search: SavedSearch) => {
     setFilters(search.filters as TutorSearchFilters);
+    setSearchTerm('');
     setShowAdvanced(true);
     setFromSentence(new Set());
     setNotes([]);
     setParsedSentence(search.semanticText);
     setSentence(search.semanticText ?? '');
     setUseRequestId('');
-    void run(search.filters as TutorSearchFilters, search.id, search.semanticText);
+    void run(search.filters as TutorSearchFilters, search.id, search.semanticText, '');
   };
 
   const applyRelaxation = (relaxation: Relaxation) => {
@@ -305,17 +319,47 @@ export function StudentTutorRecommendations() {
   const visible = useMemo(() => items.filter((item) => !dismissed.has(item.teachingRequestId)), [items, dismissed]);
   const mark = (key: string) => (fromSentence.has(key) ? <em className="rec-from-sentence">từ câu của bạn</em> : null);
   const slots = filters.availabilities ?? [];
+  const activeAdvancedCount = [
+    sentence.trim(),
+    useRequestId,
+    filters.price?.min,
+    filters.price?.max,
+    slots.length,
+    filters.styleTagCodes?.length,
+    filters.goalTagCodes?.length,
+    filters.topicTagCodes?.length
+  ].filter(Boolean).length;
 
   return (
     <div className="rec-layout student-rec-layout">
-      <TutorDiscoveryTabs />
+      <header className="tutor-page-heading">
+        <div>
+          <span className="tutor-eyebrow">TÌM KIẾM GIA SƯ</span>
+          <h1>Tìm kiếm gia sư</h1>
+          <p>Tìm gia sư và xem những gợi ý phù hợp với nhu cầu học của bạn.</p>
+        </div>
+      </header>
       <form
         className="student-panel rec-filters"
         onSubmit={(event) => {
           event.preventDefault();
-          void run(filters);
+          if ((filters.subjectId && filters.gradeId) || useRequestId) void run(filters);
+          else {
+            setActiveSearch((previous) => ({ filters, term: searchTerm, version: previous.version + 1 }));
+            setResult(null);
+            setItems([]);
+          }
         }}
       >
+        <label className="rec-field rec-keyword">
+          <span>Tìm gia sư</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Tên gia sư, môn học hoặc lớp"
+          />
+        </label>
         {showAdvanced && (
           <label className="rec-field">
             <span>Mô tả nhanh bằng một câu</span>
@@ -424,7 +468,9 @@ export function StudentTutorRecommendations() {
           aria-expanded={showAdvanced}
           onClick={() => setShowAdvanced((visible) => !visible)}
         >
-          {showAdvanced ? 'Ẩn bộ lọc nâng cao' : 'Lọc nâng cao'}
+          {showAdvanced
+            ? 'Ẩn bộ lọc nâng cao'
+            : `Lọc nâng cao${activeAdvancedCount ? ` (${activeAdvancedCount})` : ''}`}
         </button>
 
         {showAdvanced && (
@@ -504,6 +550,7 @@ export function StudentTutorRecommendations() {
             type="button"
             onClick={() => {
               setFilters({});
+              setSearchTerm('');
               setFromSentence(new Set());
               setNotes([]);
               setParsedSentence(null);
@@ -514,12 +561,16 @@ export function StudentTutorRecommendations() {
             Xoá bộ lọc
           </button>
           <button className="student-button" type="submit" disabled={isSearching}>
-            {isSearching ? 'Đang tìm…' : 'Tìm gia sư phù hợp'}
+            {isSearching ? 'Đang tìm…' : 'Tìm gia sư'}
           </button>
         </div>
       </form>
 
+      <TutorSearchResults key={activeSearch.version} filters={activeSearch.filters} searchTerm={activeSearch.term} />
+
       <section className="rec-results" aria-live="polite">
+        <h2>Gợi ý gia sư phù hợp</h2>
+        <p className="rec-hint">Gợi ý dựa trên môn, lớp và các tiêu chí nâng cao bạn đã chọn.</p>
         <div className="rec-toolbar">
           <strong>{result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}</strong>
           <SavedSearchControls
@@ -550,8 +601,8 @@ export function StudentTutorRecommendations() {
 
         {!result && !isSearching && (
           <div className="student-empty">
-            <h3>Chọn tiêu chí rồi bấm “Tìm gia sư phù hợp”</h3>
-            <p>Chỉ cần môn và lớp là đủ để bắt đầu. Càng nhiều tiêu chí, gợi ý càng sát.</p>
+            <h3>Chọn môn học và lớp để xem gợi ý</h3>
+            <p>Các tiêu chí nâng cao giúp gợi ý sát hơn với nhu cầu của bạn.</p>
           </div>
         )}
 
