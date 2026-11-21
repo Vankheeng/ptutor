@@ -73,6 +73,7 @@ import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout
 import { AdminStudentProfilePage } from './pages/admin/AdminStudentProfilePage';
 import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearningHistoryPage';
 import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
+import { AdminContractsPage } from './pages/admin/AdminContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
@@ -106,6 +107,7 @@ export default function App() {
                   <Route path="score" element={<AdminTutorScorePage />} />
                 </Route>
                 <Route path="students" element={<AdminStudentsPage />} />
+                <Route path="contracts" element={<AdminContractsPage />} />
                 <Route path="students/:userId" element={<AdminStudentDetailLayout />}>
                   <Route index element={<AdminStudentProfilePage />} />
                   <Route path="learning-history" element={<AdminStudentLearningHistoryPage />} />

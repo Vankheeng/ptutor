@@ -11,11 +11,13 @@ import com.ptutor.backend.entity.ContractSchedule;
 public interface ContractMapper {
 
     @Mapping(target = "studentId", source = "student.id")
+    @Mapping(target = "studentUserId", source = "student.user.id")
     @Mapping(target = "studentFirstName", source = "student.user.firstName")
     @Mapping(target = "studentLastName", source = "student.user.lastName")
     @Mapping(target = "studentEmail", source = "student.user.email")
     @Mapping(target = "studentDetailAddress", source = "student.user.detailAddress")
     @Mapping(target = "tutorId", source = "tutor.id")
+    @Mapping(target = "tutorUserId", source = "tutor.user.id")
     @Mapping(target = "tutorFirstName", source = "tutor.user.firstName")
     @Mapping(target = "tutorLastName", source = "tutor.user.lastName")
     @Mapping(target = "tutorEmail", source = "tutor.user.email")
