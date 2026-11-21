@@ -122,6 +122,55 @@
   flex-direction: column;
   gap: 7px;
 }
+.student-rec-layout .rec-area-compact {
+  position: relative;
+  display: block;
+}
+.student-rec-layout .rec-area-compact > summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid #e3e4eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #20243a;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.student-rec-layout .rec-area-compact > summary::-webkit-details-marker {
+  display: none;
+}
+.student-rec-layout .rec-area-compact > summary::after {
+  content: '⌄';
+  margin-left: 12px;
+  color: #6c7186;
+}
+.student-rec-layout .rec-area-compact[open] > summary {
+  border-color: #997be1;
+  box-shadow: 0 0 0 3px #8b68d21c;
+}
+.student-rec-layout .rec-area-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, 90vw);
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #e3e4eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 30px #2b184226;
+  box-sizing: border-box;
+}
 .rec-selected-districts {
   display: flex;
   flex-wrap: wrap;
@@ -727,28 +776,15 @@
 .student-rec-layout .rec-advanced-divider {
   order: 6;
 }
-.student-rec-layout .rec-ai-section {
+.student-rec-layout .rec-ai-input {
   order: 7;
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
-  align-items: start;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e7ddf8;
-  border-radius: 10px;
-  background: #faf8ff;
-}
-.student-rec-layout .rec-ai-section:not(:has(.rec-saved-request)) {
-  grid-template-columns: 1fr;
-}
-.student-rec-layout .rec-ai-input {
   display: grid;
   justify-items: start;
   gap: 10px;
 }
 .student-rec-layout .rec-ai-input .rec-description {
-  width: 100%;
+  width: min(100%, 900px);
 }
 .student-rec-layout .rec-ai-input .rec-parse-button {
   min-height: 39px;
@@ -761,35 +797,34 @@
   background: #7340c8;
   border-color: #7340c8;
 }
-.student-rec-layout .rec-ai-section .rec-notes {
-  grid-column: 1 / -1;
+.student-rec-layout .rec-ai-input .rec-notes {
+  width: min(100%, 900px);
+  box-sizing: border-box;
 }
-.student-rec-layout .rec-price {
+.student-rec-layout .rec-saved-request {
   order: 8;
   grid-column: span 2;
 }
-.student-rec-layout .rec-style {
+.student-rec-layout .rec-price {
   order: 9;
   grid-column: span 2;
 }
-.student-rec-layout .rec-goal {
+.student-rec-layout .rec-style {
   order: 10;
-  grid-column: span 2;
+}
+.student-rec-layout .rec-goal {
+  order: 11;
 }
 .student-rec-layout .rec-topic {
-  order: 11;
+  order: 12;
   grid-column: span 2;
 }
 .student-rec-layout .rec-schedule {
-  order: 12;
+  order: 13;
   grid-column: 1 / -1;
-  justify-self: center;
-  width: min(100%, 1000px);
-  box-sizing: border-box;
-  padding: 16px;
-  border: 1px solid #eceef4;
-  border-radius: 10px;
-  background: #faf9fd;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid #eceef4;
 }
 .student-rec-layout .rec-schedule .rec-slots {
   display: flex;
@@ -817,7 +852,7 @@
   height: 36px;
 }
 .student-rec-layout .rec-actions {
-  order: 13;
+  order: 14;
 }
 .student-rec-layout .rec-advanced-divider,
 .student-rec-layout .rec-actions {
@@ -896,6 +931,7 @@
     grid-column: span 2;
   }
   .student-rec-layout .rec-location,
+  .student-rec-layout .rec-saved-request,
   .student-rec-layout .rec-price,
   .student-rec-layout .rec-style,
   .student-rec-layout .rec-goal,
@@ -914,15 +950,13 @@
   .student-rec-layout .rec-core-selects,
   .student-rec-layout .rec-topic,
   .student-rec-layout .rec-location,
+  .student-rec-layout .rec-saved-request,
   .student-rec-layout .rec-price,
   .student-rec-layout .rec-style,
   .student-rec-layout .rec-goal {
     grid-column: 1;
   }
   .student-rec-layout .rec-core-selects {
-    grid-template-columns: 1fr;
-  }
-  .student-rec-layout .rec-ai-section {
     grid-template-columns: 1fr;
   }
   .student-rec-layout .rec-schedule .rec-slot-header {

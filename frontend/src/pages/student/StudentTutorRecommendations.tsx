@@ -412,7 +412,12 @@ export function StudentTutorRecommendations() {
         {filters.learningMode !== 'ONLINE' && (
           <div className="rec-field rec-location">
             <span>Khu vực học trực tiếp {mark('area')}</span>
-            <AreaPicker value={filters.area} onChange={(area) => change({ area })} homeProvinceId={homeProvinceId} />
+            <AreaPicker
+              value={filters.area}
+              onChange={(area) => change({ area })}
+              homeProvinceId={homeProvinceId}
+              compact
+            />
           </div>
         )}
 
@@ -430,41 +435,25 @@ export function StudentTutorRecommendations() {
         {showAdvanced && <div className="rec-advanced-divider">Tiêu chí bổ sung</div>}
 
         {showAdvanced && (
-          <div className="rec-ai-section">
-            <div className="rec-ai-input">
-              <label className="rec-field rec-description">
-                <span>Mô tả nhanh bằng một câu</span>
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  value={sentence}
-                  onChange={(event) => setSentence(event.target.value)}
-                  placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
-                />
-              </label>
-              <button
-                className="student-button rec-parse-button"
-                type="button"
-                disabled={isParsing || !sentence.trim()}
-                onClick={() => void fillFromSentence()}
-              >
-                {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
-              </button>
-            </div>
-            {myRequests.length > 0 && (
-              <label className="rec-field rec-saved-request">
-                <span>Dùng tiêu chí từ tin học của tôi</span>
-                <select value={useRequestId} onChange={(event) => setUseRequestId(event.target.value)}>
-                  <option value="">Không dùng</option>
-                  {myRequests.map((request) => (
-                    <option key={request.id} value={request.id}>
-                      {request.title || `${request.subjectName} – ${request.gradeName}`}
-                    </option>
-                  ))}
-                </select>
-                <small className="rec-hint">Ô nào bạn để trống sẽ được điền từ tin học này.</small>
-              </label>
-            )}
+          <div className="rec-ai-input">
+            <label className="rec-field rec-description">
+              <span>Mô tả nhanh bằng một câu</span>
+              <textarea
+                rows={3}
+                maxLength={500}
+                value={sentence}
+                onChange={(event) => setSentence(event.target.value)}
+                placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
+              />
+            </label>
+            <button
+              className="student-button rec-parse-button"
+              type="button"
+              disabled={isParsing || !sentence.trim()}
+              onClick={() => void fillFromSentence()}
+            >
+              {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
+            </button>
             {notes.length > 0 && (
               <ul className="rec-notes">
                 {notes.map((note) => (
@@ -473,6 +462,21 @@ export function StudentTutorRecommendations() {
               </ul>
             )}
           </div>
+        )}
+
+        {showAdvanced && myRequests.length > 0 && (
+          <label className="rec-field rec-saved-request">
+            <span>Dùng tiêu chí từ tin học của tôi</span>
+            <select value={useRequestId} onChange={(event) => setUseRequestId(event.target.value)}>
+              <option value="">Không dùng</option>
+              {myRequests.map((request) => (
+                <option key={request.id} value={request.id}>
+                  {request.title || `${request.subjectName} – ${request.gradeName}`}
+                </option>
+              ))}
+            </select>
+            <small className="rec-hint">Ô nào bạn để trống sẽ được điền từ tin học này.</small>
+          </label>
         )}
 
         {showAdvanced && (

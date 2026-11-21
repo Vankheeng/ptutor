@@ -9,6 +9,8 @@ interface AreaPickerProps {
   onChange: (value: AreaFilter | undefined) => void;
   /** Province shown first when the user starts choosing, usually the one they live in. */
   homeProvinceId?: string | null;
+  /** Keep the location controls in a floating menu so the surrounding filter row stays stable. */
+  compact?: boolean;
 }
 
 const SCOPES: { scope: AreaScope | 'DEFAULT'; label: string }[] = [
@@ -18,7 +20,7 @@ const SCOPES: { scope: AreaScope | 'DEFAULT'; label: string }[] = [
   { scope: 'ANY', label: 'Không giới hạn' }
 ];
 
-export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps) {
+export function AreaPicker({ value, onChange, homeProvinceId, compact = false }: AreaPickerProps) {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [chosenProvinceId, setProvinceId] = useState<string>(value?.provinceId ?? '');
@@ -76,8 +78,21 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
     if (scope === 'PROVINCE') onChange({ scope: 'PROVINCE', provinceId: next || null });
   };
 
-  return (
-    <div className="rec-area">
+  const summary =
+    scope === 'DEFAULT'
+      ? 'Gần nơi tôi ở'
+      : scope === 'ANY'
+        ? 'Không giới hạn khu vực'
+        : scope === 'PROVINCE'
+          ? (provinces.find((province) => province.id === provinceId)?.name ?? 'Chọn tỉnh / thành')
+          : selected.length === 1
+            ? (districts.find((district) => district.id === selected[0])?.name ?? '1 quận / phường đã chọn')
+            : selected.length
+              ? `${selected.length} quận / phường đã chọn`
+              : 'Chọn quận / phường';
+
+  const controls = (
+    <>
       <select
         value={scope}
         onChange={(event) => chooseScope(event.target.value as AreaScope | 'DEFAULT')}
@@ -143,7 +158,16 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
           )}
         </>
       )}
-    </div>
+    </>
+  );
+
+  return compact ? (
+    <details className="rec-area rec-area-compact">
+      <summary>{summary}</summary>
+      <div className="rec-area-popover">{controls}</div>
+    </details>
+  ) : (
+    <div className="rec-area">{controls}</div>
   );
 }
 
