@@ -749,10 +749,10 @@
   font-size: 17px;
 }
 .student-rec-layout .rec-results {
-  order: 2;
+  order: 3;
 }
 .student-rec-layout > .tutor-marketplace {
-  order: 3;
+  order: 2;
 }
 .student-rec-layout .rec-filters {
   display: grid;
