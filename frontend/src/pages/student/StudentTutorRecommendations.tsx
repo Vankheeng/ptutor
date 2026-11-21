@@ -409,18 +409,6 @@ export function StudentTutorRecommendations() {
           </select>
         </div>
 
-        {filters.learningMode !== 'ONLINE' && (
-          <div className="rec-field rec-location">
-            <span>Khu vực học trực tiếp {mark('area')}</span>
-            <AreaPicker
-              value={filters.area}
-              onChange={(area) => change({ area })}
-              homeProvinceId={homeProvinceId}
-              compact
-            />
-          </div>
-        )}
-
         <button
           className="tutor-student-advanced-toggle rec-advanced-toggle"
           type="button"
@@ -431,6 +419,13 @@ export function StudentTutorRecommendations() {
             ? 'Ẩn bộ lọc nâng cao'
             : `Lọc nâng cao${activeAdvancedCount ? ` (${activeAdvancedCount})` : ''}`}
         </button>
+
+        {filters.learningMode !== 'ONLINE' && (
+          <div className="rec-field rec-location">
+            <span>Khu vực học trực tiếp {mark('area')}</span>
+            <AreaPicker value={filters.area} onChange={(area) => change({ area })} homeProvinceId={homeProvinceId} />
+          </div>
+        )}
 
         {showAdvanced && <div className="rec-advanced-divider">Tiêu chí bổ sung</div>}
 
