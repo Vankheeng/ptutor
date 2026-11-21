@@ -11,17 +11,21 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ptutor.backend.dto.request.RecommendationEventRequest;
 import com.ptutor.backend.entity.RecommendationClickLog;
 import com.ptutor.backend.entity.RecommendationLog;
+import com.ptutor.backend.entity.Student;
 import com.ptutor.backend.entity.StudyingRequest;
 import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.enums.AiJobType;
 import com.ptutor.backend.entity.enums.RecommendationAction;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
 import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.AiEnrichmentJobRepository;
 import com.ptutor.backend.repository.FavoriteTutorRepository;
 import com.ptutor.backend.repository.RecommendationClickLogRepository;
 import com.ptutor.backend.repository.RecommendationLogRepository;
+import com.ptutor.backend.repository.StudentRepository;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +43,7 @@ public class RecommendationEventService {
     private final RecommendationLogRepository logRepository;
     private final RecommendationClickLogRepository clickLogRepository;
     private final FavoriteTutorRepository favoriteTutorRepository;
+    private final StudentRepository studentRepository;
     private final AiEnrichmentJobRepository jobRepository;
     private final EntityManager entityManager;
 
@@ -86,6 +91,23 @@ public class RecommendationEventService {
     }
 
     @Transactional
+    public void favoriteTutorFromOrdinarySearch(UUID userId, UUID teachingRequestId) {
+        Student student = studentRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "STUDENT_PROFILE_REQUIRED",
+                        "Only students can favorite tutors"));
+        TeachingRequest posting = entityManager.find(TeachingRequest.class, teachingRequestId);
+        if (posting == null || posting.getStatus() != RequestStatus.OPEN
+                || posting.getTutor().getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "TEACHING_REQUEST_NOT_FOUND", "Teaching request not found");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        favoriteTutorRepository.addOrRestore(UUID.randomUUID(), student.getId(), posting.getTutor().getId(),
+                teachingRequestId, now);
+        jobRepository.enqueue(AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
+                student.getId(), now);
+    }
+
+    @Transactional
     public void removeFavoriteTutor(UUID userId, UUID tutorId) {
         var latestClick = clickLogRepository
                 .findFirstByRecommendationLog_SearcherStudent_User_IdAndClickedTutor_IdOrderByCreatedAtDesc(
@@ -96,7 +118,12 @@ public class RecommendationEventService {
                     RecommendationAction.DISMISSED, null, click.getCandidateTeachingRequest().getId()));
             return;
         }
-        favoriteTutorRepository.removeForStudentUser(userId, tutorId, LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        if (favoriteTutorRepository.removeForStudentUser(userId, tutorId, now) > 0) {
+            studentRepository.findByUser_Id(userId).ifPresent(student -> jobRepository.enqueue(
+                    AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
+                    student.getId(), now));
+        }
     }
 
     /** The log of a search, only for the person who ran it; anyone else gets "not found". */

@@ -134,15 +134,19 @@ class RecommendationInteractionControllerTest {
     @Test
     void listsAndRemovesFavoritesForTheSignedInStudent() throws Exception {
         UUID tutorId = UUID.randomUUID();
+        UUID postingId = UUID.randomUUID();
         when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
         when(teachingRequestService.findFavoritesForStudent(userId)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/students/me/favorite-tutors/teaching-requests"))
                 .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/students/me/favorite-tutors/teaching-requests/" + postingId))
+                .andExpect(status().isOk());
         mockMvc.perform(delete("/api/v1/students/me/favorite-tutors/" + tutorId))
                 .andExpect(status().isOk());
 
         verify(teachingRequestService).findFavoritesForStudent(userId);
+        verify(eventService).favoriteTutorFromOrdinarySearch(userId, postingId);
         verify(eventService).removeFavoriteTutor(userId, tutorId);
     }
 }

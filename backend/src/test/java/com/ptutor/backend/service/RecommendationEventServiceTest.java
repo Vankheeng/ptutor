@@ -22,10 +22,13 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.RecommendationAction;
 import com.ptutor.backend.entity.enums.RecommendationDirection;
+import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.repository.AiEnrichmentJobRepository;
 import com.ptutor.backend.repository.FavoriteTutorRepository;
 import com.ptutor.backend.repository.RecommendationClickLogRepository;
 import com.ptutor.backend.repository.RecommendationLogRepository;
+import com.ptutor.backend.repository.StudentRepository;
 
 import jakarta.persistence.EntityManager;
 import tools.jackson.databind.node.ArrayNode;
@@ -36,9 +39,10 @@ class RecommendationEventServiceTest {
     private final RecommendationLogRepository logs = mock(RecommendationLogRepository.class);
     private final RecommendationClickLogRepository clicks = mock(RecommendationClickLogRepository.class);
     private final FavoriteTutorRepository favorites = mock(FavoriteTutorRepository.class);
+    private final StudentRepository students = mock(StudentRepository.class);
     private final AiEnrichmentJobRepository jobs = mock(AiEnrichmentJobRepository.class);
     private final EntityManager entityManager = mock(EntityManager.class);
-    private final RecommendationEventService service = new RecommendationEventService(logs, clicks, favorites, jobs,
+    private final RecommendationEventService service = new RecommendationEventService(logs, clicks, favorites, students, jobs,
             entityManager);
 
     @Test
@@ -85,6 +89,29 @@ class RecommendationEventServiceTest {
         service.removeFavoriteTutor(userId, tutorId);
 
         verify(favorites).removeForStudentUser(eq(userId), eq(tutorId), any(LocalDateTime.class));
+    }
+
+    @Test
+    void favoritesAVisiblePostingFromOrdinarySearch() {
+        UUID userId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID tutorId = UUID.randomUUID();
+        UUID postingId = UUID.randomUUID();
+        Student student = mock(Student.class);
+        Tutor tutor = mock(Tutor.class);
+        TeachingRequest posting = mock(TeachingRequest.class);
+        when(students.findByUser_Id(userId)).thenReturn(Optional.of(student));
+        when(student.getId()).thenReturn(studentId);
+        when(entityManager.find(TeachingRequest.class, postingId)).thenReturn(posting);
+        when(posting.getStatus()).thenReturn(RequestStatus.OPEN);
+        when(posting.getTutor()).thenReturn(tutor);
+        when(tutor.getProfileStatus()).thenReturn(TutorProfileStatus.VERIFIED);
+        when(tutor.getId()).thenReturn(tutorId);
+
+        service.favoriteTutorFromOrdinarySearch(userId, postingId);
+
+        verify(favorites).addOrRestore(any(UUID.class), eq(studentId), eq(tutorId), eq(postingId), any(LocalDateTime.class));
+        verify(jobs).enqueue(eq("PROFILE_UPDATE"), eq("STUDENT"), eq(studentId), any(LocalDateTime.class));
     }
 
     @Test

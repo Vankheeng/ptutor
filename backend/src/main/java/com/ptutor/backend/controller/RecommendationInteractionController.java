@@ -80,6 +80,14 @@ public class RecommendationInteractionController {
                 "/api/v1/students/me/favorite-tutors/teaching-requests"));
     }
 
+    @PostMapping("/students/me/favorite-tutors/teaching-requests/{requestId}")
+    public ResponseEntity<ApiResponse<Void>> favoriteTutorFromOrdinarySearch(@PathVariable UUID requestId) {
+        eventService.favoriteTutorFromOrdinarySearch(currentUserProvider.getCurrentUserId(), requestId);
+        return ResponseEntity.ok(responseFactory.success(
+                "FAVORITE_TUTOR_ADDED", "Favorite tutor added", null,
+                "/api/v1/students/me/favorite-tutors/teaching-requests/" + requestId));
+    }
+
     @DeleteMapping("/students/me/favorite-tutors/{tutorId}")
     public ResponseEntity<ApiResponse<Void>> removeFavoriteTutor(@PathVariable UUID tutorId) {
         eventService.removeFavoriteTutor(currentUserProvider.getCurrentUserId(), tutorId);

@@ -18,16 +18,18 @@ interface Props {
   request: TeachingRequest;
   application?: StudentApplication;
   onChanged: () => void;
-  onRemoveFavorite?: () => void;
-  removingFavorite?: boolean;
+  favorite?: boolean;
+  onToggleFavorite?: () => void;
+  favoritePending?: boolean;
 }
 
 export function StudentTeachingRequestCard({
   request,
   application,
   onChanged,
-  onRemoveFavorite,
-  removingFavorite
+  favorite = false,
+  onToggleFavorite,
+  favoritePending
 }: Props) {
   const navigate = useNavigate();
   const [showApply, setShowApply] = useState(false);
@@ -102,20 +104,23 @@ export function StudentTeachingRequestCard({
         <span className="tutor-subject-tag">{subject}</span>
         <span className="tutor-card-top-actions">
           {formatDate(request.createdAt)}
-          {onRemoveFavorite && (
+          {onToggleFavorite && (
             <button
-              className="tutor-favorite-heart"
+              className={favorite ? 'tutor-favorite-heart is-favorite' : 'tutor-favorite-heart'}
               type="button"
-              aria-label={`Bỏ quan tâm gia sư ${request.tutorName}`}
-              title="Bỏ quan tâm"
-              disabled={removingFavorite}
+              aria-label={`${favorite ? 'Bỏ quan tâm' : 'Quan tâm'} gia sư ${request.tutorName}`}
+              aria-pressed={favorite}
+              title={favorite ? 'Bỏ quan tâm' : 'Quan tâm'}
+              disabled={favoritePending}
               onClick={(event) => {
                 event.stopPropagation();
-                onRemoveFavorite();
+                onToggleFavorite();
               }}
               onKeyDown={(event) => event.stopPropagation()}
             >
-              ♥
+              <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+                <path d="M20.8 8.2c0 4.2-5.5 8.3-8.8 11-3.3-2.7-8.8-6.8-8.8-11a4.6 4.6 0 0 1 8.8-1.8 4.6 4.6 0 0 1 8.8 1.8Z" />
+              </svg>
             </button>
           )}
         </span>

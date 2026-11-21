@@ -14,9 +14,19 @@ interface Props {
   filters: TutorSearchFilters;
   searchTerm: string;
   isInitial?: boolean;
+  favoriteTutorIds: Set<string>;
+  pendingFavoriteIds: Set<string>;
+  onToggleFavorite: (request: TeachingRequest) => void;
 }
 
-export function TutorSearchResults({ filters, searchTerm, isInitial = false }: Props) {
+export function TutorSearchResults({
+  filters,
+  searchTerm,
+  isInitial = false,
+  favoriteTutorIds,
+  pendingFavoriteIds,
+  onToggleFavorite
+}: Props) {
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const provinceId = filters.area?.scope === 'PROVINCE' ? (filters.area.provinceId ?? '') : '';
@@ -73,6 +83,9 @@ export function TutorSearchResults({ filters, searchTerm, isInitial = false }: P
                 request={request}
                 application={applicationsByRequest.get(request.id)}
                 onChanged={() => setRevision((value) => value + 1)}
+                favorite={favoriteTutorIds.has(request.tutorUserId)}
+                favoritePending={pendingFavoriteIds.has(request.tutorUserId)}
+                onToggleFavorite={() => onToggleFavorite(request)}
               />
             ))}
           </div>

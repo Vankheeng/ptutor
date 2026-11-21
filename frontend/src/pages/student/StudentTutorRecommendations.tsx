@@ -9,11 +9,13 @@ import '../../components/recommendation/recommendation.css';
 import { getGrades } from '../../services/gradeApi';
 import { errorMessage } from '../../services/errorMessages';
 import {
+  addFavoriteTutorRequest,
   getFavoriteTutorIds,
   getRecommendationTags,
   getTutorPage,
   parseQuery,
   recordEvent,
+  removeFavoriteTutor,
   refineTutors,
   searchTutors,
   type ModePreference,
@@ -93,6 +95,7 @@ export function StudentTutorRecommendations() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [active, setActive] = useState<TutorRecommendationItem | null>(null);
   const [error, setError] = useState('');
+  const [favoriteError, setFavoriteError] = useState('');
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -279,6 +282,38 @@ export function StudentTutorRecommendations() {
       setPendingInterest((previous) => {
         const next = new Set(previous);
         next.delete(tutorId);
+        return next;
+      });
+    }
+  };
+
+  const toggleRegularInterest = async (request: TeachingRequest) => {
+    const tutorUserId = request.tutorUserId;
+    if (pendingInterest.has(tutorUserId)) return;
+    const wasFavorite = favorites.has(tutorUserId);
+    setFavoriteError('');
+    setPendingInterest((previous) => new Set(previous).add(tutorUserId));
+    setFavorites((previous) => {
+      const next = new Set(previous);
+      if (wasFavorite) next.delete(tutorUserId);
+      else next.add(tutorUserId);
+      return next;
+    });
+    try {
+      if (wasFavorite) await removeFavoriteTutor(request.tutorId);
+      else await addFavoriteTutorRequest(request.id);
+    } catch (caught) {
+      setFavorites((previous) => {
+        const next = new Set(previous);
+        if (wasFavorite) next.add(tutorUserId);
+        else next.delete(tutorUserId);
+        return next;
+      });
+      setFavoriteError(errorMessage(caught, 'Chưa cập nhật được trạng thái quan tâm. Vui lòng thử lại.'));
+    } finally {
+      setPendingInterest((previous) => {
+        const next = new Set(previous);
+        next.delete(tutorUserId);
         return next;
       });
     }
@@ -641,6 +676,12 @@ export function StudentTutorRecommendations() {
         </div>
       </form>
 
+      {favoriteError && (
+        <div className="student-error" role="alert">
+          {favoriteError}
+        </div>
+      )}
+
       {(showAdvanced || resultsMode === 'smart') && (
         <div className="rec-saved-controls-row">
           <SavedSearchControls
@@ -676,6 +717,9 @@ export function StudentTutorRecommendations() {
           filters={activeSearch.filters}
           searchTerm={activeSearch.term}
           isInitial={activeSearch.version === 0}
+          favoriteTutorIds={favorites}
+          pendingFavoriteIds={pendingInterest}
+          onToggleFavorite={(request) => void toggleRegularInterest(request)}
         />
       )}
 

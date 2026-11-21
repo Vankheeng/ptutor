@@ -137,6 +137,10 @@ export function getFavoriteTutorRequests(signal?: AbortSignal) {
   return get<TeachingRequest[]>('/api/v1/students/me/favorite-tutors/teaching-requests', { signal });
 }
 
+export function addFavoriteTutorRequest(requestId: string) {
+  return post<null>(`/api/v1/students/me/favorite-tutors/teaching-requests/${encodeURIComponent(requestId)}`);
+}
+
 export function removeFavoriteTutor(tutorId: string) {
   return del<null>(`/api/v1/students/me/favorite-tutors/${encodeURIComponent(tutorId)}`);
 }

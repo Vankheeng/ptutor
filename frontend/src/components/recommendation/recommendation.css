@@ -850,10 +850,24 @@
 .student-rec-layout .tutor-favorite-heart {
   border: 0;
   background: transparent;
-  color: #e34d68;
-  font-size: 20px;
+  color: #8e93a3;
+  display: inline-grid;
+  place-items: center;
+  padding: 3px;
   line-height: 1;
   cursor: pointer;
+}
+.student-rec-layout .tutor-favorite-heart svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.student-rec-layout .tutor-favorite-heart:hover,
+.student-rec-layout .tutor-favorite-heart.is-favorite {
+  color: #e34d68;
+}
+.student-rec-layout .tutor-favorite-heart.is-favorite svg {
+  fill: currentColor;
 }
 .student-rec-layout .tutor-favorite-heart:disabled {
   opacity: 0.5;

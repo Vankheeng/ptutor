@@ -75,8 +75,9 @@ export function FavoriteTutorResults({ onFavoritesChanged }: Props) {
               request={request}
               application={applicationsByRequest.get(request.id)}
               onChanged={() => setRevision((value) => value + 1)}
-              onRemoveFavorite={() => void remove(request.tutorId)}
-              removingFavorite={removingId === request.tutorId}
+              favorite
+              onToggleFavorite={() => void remove(request.tutorId)}
+              favoritePending={removingId === request.tutorId}
             />
           ))}
         </div>
