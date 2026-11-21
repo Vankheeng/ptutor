@@ -410,7 +410,7 @@ export function StudentTutorRecommendations() {
         </div>
 
         <button
-          className="tutor-student-advanced-toggle rec-advanced-toggle"
+          className="student-button rec-advanced-toggle"
           type="button"
           aria-expanded={showAdvanced}
           onClick={() => setShowAdvanced((visible) => !visible)}

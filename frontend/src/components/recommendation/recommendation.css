@@ -742,6 +742,13 @@
   align-self: start;
   justify-self: start;
   margin-top: 22px;
+  border-color: #cdbcf3;
+  background: #f7f3ff;
+  color: #6736d6;
+}
+.student-rec-layout .rec-advanced-toggle:hover:not(:disabled) {
+  background: #efe8ff;
+  border-color: #bba3ee;
 }
 .student-rec-layout .rec-location {
   order: 4;
@@ -787,15 +794,13 @@
   width: min(100%, 900px);
 }
 .student-rec-layout .rec-ai-input .rec-parse-button {
-  min-height: 39px;
-  border-color: #8752db;
-  background: #8752db;
+  border-color: #6736d6;
+  background: #6736d6;
   color: #fff;
-  box-shadow: 0 4px 12px #6834c82b;
 }
 .student-rec-layout .rec-ai-input .rec-parse-button:hover:not(:disabled) {
-  background: #7340c8;
-  border-color: #7340c8;
+  background: #5425b7;
+  border-color: #5425b7;
 }
 .student-rec-layout .rec-ai-input .rec-notes {
   width: min(100%, 900px);
