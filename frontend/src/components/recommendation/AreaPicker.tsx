@@ -111,17 +111,42 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
 
   return (
     <div className="rec-area" ref={areaRef}>
-      <select
-        value={scope}
-        onChange={(event) => chooseScope(event.target.value as AreaScope | 'DEFAULT')}
-        aria-label="Phạm vi khu vực"
-      >
-        {SCOPES.map((option) => (
-          <option key={option.scope} value={option.scope}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="rec-area-scope">
+        <select
+          value={scope}
+          onChange={(event) => chooseScope(event.target.value as AreaScope | 'DEFAULT')}
+          aria-label="Phạm vi khu vực"
+        >
+          {SCOPES.map((option) => (
+            <option key={option.scope} value={option.scope}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {scope === 'DISTRICTS' && districtsOpen && (
+          <div className="rec-district-panel">
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tìm quận / phường"
+              aria-label="Tìm quận / phường"
+            />
+            <div className="rec-checklist">
+              {visible.map((district) => (
+                <label key={district.id}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(district.id)}
+                    onChange={() => toggleDistrict(district.id)}
+                  />
+                  {district.name}
+                </label>
+              ))}
+              {!visible.length && <small>{provinceId ? 'Không có kết quả' : 'Chọn tỉnh / thành trước'}</small>}
+            </div>
+          </div>
+        )}
+      </div>
       {(scope === 'DISTRICTS' || scope === 'PROVINCE') && (
         <select value={provinceId} onChange={(event) => chooseProvince(event.target.value)} aria-label="Tỉnh / thành">
           <option value="">Chọn tỉnh / thành</option>
@@ -157,29 +182,6 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
               {selected.length ? 'Thêm quận / phường' : 'Chọn quận / phường'}
             </button>
           </div>
-          {districtsOpen && (
-            <div className="rec-district-panel">
-              <input
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Tìm quận / phường"
-                aria-label="Tìm quận / phường"
-              />
-              <div className="rec-checklist">
-                {visible.map((district) => (
-                  <label key={district.id}>
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(district.id)}
-                      onChange={() => toggleDistrict(district.id)}
-                    />
-                    {district.name}
-                  </label>
-                ))}
-                {!visible.length && <small>{provinceId ? 'Không có kết quả' : 'Chọn tỉnh / thành trước'}</small>}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
