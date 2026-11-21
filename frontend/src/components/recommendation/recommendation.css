@@ -698,7 +698,7 @@
 .student-rec-layout .rec-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: end;
+  align-items: start;
   gap: 14px 16px;
   position: static;
   max-height: none;
@@ -720,7 +720,8 @@
 .student-rec-layout .rec-advanced-toggle {
   order: 4;
   grid-column: span 2;
-  justify-self: end;
+  align-self: end;
+  justify-self: start;
 }
 .student-rec-layout .rec-location {
   order: 5;
@@ -907,9 +908,6 @@
   }
   .student-rec-layout .rec-location {
     grid-column: 1 / -1;
-  }
-  .student-rec-layout .rec-advanced-toggle {
-    justify-self: start;
   }
 }
 @media (max-width: 600px) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getDistricts, getProvinces } from '../../services/locationApi';
+import { getAllDistricts, getDistricts, getProvinces } from '../../services/locationApi';
 import type { AreaFilter, AreaScope } from '../../services/recommendationApi';
 import type { District, Province } from '../../types/api';
 
@@ -21,6 +21,7 @@ const SCOPES: { scope: AreaScope | 'DEFAULT'; label: string }[] = [
 export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps) {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedDistricts, setSelectedDistricts] = useState<District[]>([]);
   const [chosenProvinceId, setProvinceId] = useState<string>(value?.provinceId ?? '');
   // Until the user picks a province, the one they live in is shown.
   const provinceId = chosenProvinceId || homeProvinceId || '';
@@ -28,6 +29,22 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
   const [districtsOpen, setDistrictsOpen] = useState(false);
   const scope = value?.scope ?? 'DEFAULT';
   const selected = useMemo(() => value?.districtIds ?? [], [value]);
+
+  useEffect(() => {
+    if (!selected.length || selected.every((id) => districts.some((district) => district.id === id))) return;
+    let active = true;
+    getAllDistricts()
+      .then((all) => {
+        if (!active) return;
+        const matches = all.filter((district) => selected.includes(district.id));
+        setSelectedDistricts(matches);
+        if (matches[0] && !chosenProvinceId) setProvinceId(matches[0].provinceId);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [selected, districts, chosenProvinceId]);
 
   useEffect(() => {
     getProvinces()
@@ -105,7 +122,10 @@ export function AreaPicker({ value, onChange, homeProvinceId }: AreaPickerProps)
             <div className="rec-selected-districts" aria-label="Quận đã chọn">
               {selected.map((id) => (
                 <button key={id} type="button" onClick={() => toggleDistrict(id)} title="Bỏ chọn quận này">
-                  {districts.find((district) => district.id === id)?.name ?? id} <span aria-hidden="true">×</span>
+                  {districts.find((district) => district.id === id)?.name ??
+                    selectedDistricts.find((district) => district.id === id)?.name ??
+                    'Quận / phường đã chọn'}{' '}
+                  <span aria-hidden="true">×</span>
                 </button>
               ))}
             </div>
