@@ -430,47 +430,49 @@ export function StudentTutorRecommendations() {
         {showAdvanced && <div className="rec-advanced-divider">Tiêu chí bổ sung</div>}
 
         {showAdvanced && (
-          <label className="rec-field rec-description">
-            <span>Mô tả nhanh bằng một câu</span>
-            <textarea
-              rows={3}
-              maxLength={500}
-              value={sentence}
-              onChange={(event) => setSentence(event.target.value)}
-              placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
-            />
-          </label>
-        )}
-        {showAdvanced && (
-          <button
-            className="student-button secondary rec-parse-button"
-            type="button"
-            disabled={isParsing || !sentence.trim()}
-            onClick={() => void fillFromSentence()}
-          >
-            {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
-          </button>
-        )}
-        {showAdvanced && myRequests.length > 0 && (
-          <label className="rec-field rec-saved-request">
-            <span>Dùng tiêu chí từ tin học của tôi</span>
-            <select value={useRequestId} onChange={(event) => setUseRequestId(event.target.value)}>
-              <option value="">Không dùng</option>
-              {myRequests.map((request) => (
-                <option key={request.id} value={request.id}>
-                  {request.title || `${request.subjectName} – ${request.gradeName}`}
-                </option>
-              ))}
-            </select>
-            <small className="rec-hint">Ô nào bạn để trống sẽ được điền từ tin học này.</small>
-          </label>
-        )}
-        {showAdvanced && notes.length > 0 && (
-          <ul className="rec-notes">
-            {notes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
+          <div className="rec-ai-section">
+            <div className="rec-ai-input">
+              <label className="rec-field rec-description">
+                <span>Mô tả nhanh bằng một câu</span>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  value={sentence}
+                  onChange={(event) => setSentence(event.target.value)}
+                  placeholder="Ví dụ: Gia sư Toán lớp 9 kiên nhẫn, tối thứ 3 và 5, dưới 200k, học ở Cầu Giấy"
+                />
+              </label>
+              <button
+                className="student-button rec-parse-button"
+                type="button"
+                disabled={isParsing || !sentence.trim()}
+                onClick={() => void fillFromSentence()}
+              >
+                {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
+              </button>
+            </div>
+            {myRequests.length > 0 && (
+              <label className="rec-field rec-saved-request">
+                <span>Dùng tiêu chí từ tin học của tôi</span>
+                <select value={useRequestId} onChange={(event) => setUseRequestId(event.target.value)}>
+                  <option value="">Không dùng</option>
+                  {myRequests.map((request) => (
+                    <option key={request.id} value={request.id}>
+                      {request.title || `${request.subjectName} – ${request.gradeName}`}
+                    </option>
+                  ))}
+                </select>
+                <small className="rec-hint">Ô nào bạn để trống sẽ được điền từ tin học này.</small>
+              </label>
+            )}
+            {notes.length > 0 && (
+              <ul className="rec-notes">
+                {notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {showAdvanced && (
@@ -496,19 +498,6 @@ export function StudentTutorRecommendations() {
                 onChange={(event) => change({ price: priceOf(filters.price?.min, event.target.value) })}
               />
             </div>
-          </div>
-        )}
-
-        {showAdvanced && (
-          <div className="rec-field rec-schedule">
-            <span>Lịch rảnh {mark('availabilities')}</span>
-            {filters.availabilities && filters.availabilities.length === 0 && (
-              <small className="rec-hint">Đang tìm không xét lịch.</small>
-            )}
-            <AvailabilityEditor
-              value={slots}
-              onChange={(next) => change({ availabilities: next.length ? next : undefined })}
-            />
           </div>
         )}
 
@@ -540,6 +529,19 @@ export function StudentTutorRecommendations() {
               value={filters.topicTagCodes ?? []}
               onChange={(codes) => change({ topicTagCodes: codes.length ? codes : undefined })}
               emptyText={filters.subjectId ? 'Môn này chưa có danh sách chủ đề' : 'Chọn môn để xem các chủ đề'}
+            />
+          </div>
+        )}
+
+        {showAdvanced && (
+          <div className="rec-field rec-schedule">
+            <span>Lịch rảnh {mark('availabilities')}</span>
+            {filters.availabilities && filters.availabilities.length === 0 && (
+              <small className="rec-hint">Đang tìm không xét lịch.</small>
+            )}
+            <AvailabilityEditor
+              value={slots}
+              onChange={(next) => change({ availabilities: next.length ? next : undefined })}
             />
           </div>
         )}
