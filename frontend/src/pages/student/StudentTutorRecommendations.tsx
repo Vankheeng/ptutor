@@ -572,7 +572,6 @@ export function StudentTutorRecommendations() {
 
       <section className="rec-results" aria-live="polite">
         <h2>Gợi ý gia sư phù hợp</h2>
-        <p className="rec-hint">Gợi ý dựa trên môn, lớp và các tiêu chí nâng cao bạn đã chọn.</p>
         <div className="rec-toolbar">
           <strong>{result && result.needsInput.length === 0 ? `${result.totalElements} gia sư phù hợp` : ''}</strong>
           <SavedSearchControls
