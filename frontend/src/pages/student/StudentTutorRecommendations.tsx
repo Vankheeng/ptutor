@@ -363,7 +363,6 @@ export function StudentTutorRecommendations() {
     <div className="rec-layout student-rec-layout">
       <header className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">TÌM KIẾM GIA SƯ</span>
           <h1>Tìm kiếm gia sư</h1>
         </div>
       </header>
