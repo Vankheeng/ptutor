@@ -25,6 +25,7 @@ import com.ptutor.backend.dto.request.TutorContractCreateRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
 import com.ptutor.backend.dto.response.CancelContractRequestResponse;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.ScheduleConflictCheckResponse;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.CancelContractRequest;
 import com.ptutor.backend.entity.ContractSchedule;
@@ -181,7 +182,60 @@ public class ContractService {
                 .tutorStudentRequest(tutorRequest)
                 .build();
         replaceSchedules(contract, terms.schedules());
-        return saveNewContract(contract);
+        return saveNewContract(contract, terms.deferScheduleCreation());
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleConflictCheckResponse checkStudentContractSchedule(
+            UUID userId, UUID studyingRequestId, UUID tutorRequestId, ContractTermsRequest source) {
+        ContractTerms terms = normalizeTerms(source);
+        Student student = findStudentByUserId(userId);
+        TutorStudentRequest tutorRequest = tutorStudentRequestRepository
+                .findByIdAndStudyingRequest_Id(tutorRequestId, studyingRequestId)
+                .orElseThrow(() -> tutorStudentRequestNotFound(tutorRequestId));
+        StudyingRequest studyingRequest = tutorRequest.getStudyingRequest();
+        if (!studyingRequest.getStudent().getId().equals(student.getId())) {
+            throw studyingRequestNotFound(studyingRequestId);
+        }
+        ensureAccepted(tutorRequest.getStatus(), "Tutor student request");
+        Tutor tutor = requirePresent(tutorRequest.getTutor(), "CONTRACT_TUTOR_REQUIRED", "Tutor is required");
+        Contract draft = scheduleDraft(student, tutor, terms);
+        return checkScheduleDraft(draft, false);
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleConflictCheckResponse checkTutorContractSchedule(
+            UUID userId, UUID teachingRequestId, UUID studentRequestId, TutorContractCreateRequest source) {
+        ContractTerms terms = normalizeTerms(new ContractTermsRequest(
+                source == null ? null : source.price(), source == null ? null : source.paymentPeriod(),
+                source == null ? null : source.totalLessons(), source == null ? null : source.preferredSchedule(),
+                source == null ? null : source.startDate(), source == null ? null : source.endDate(),
+                source == null ? null : source.schedules(), source == null ? null : source.deferScheduleCreation()));
+        Tutor tutor = findTutorByUserId(userId);
+        StudentTutorRequest studentRequest = studentTutorRequestRepository
+                .findByIdAndTeachingRequest_Id(studentRequestId, teachingRequestId)
+                .orElseThrow(() -> studentTutorRequestNotFound(studentRequestId));
+        TeachingRequest teachingRequest = studentRequest.getTeachingRequest();
+        if (!teachingRequest.getTutor().getId().equals(tutor.getId())) {
+            throw teachingRequestNotFound(teachingRequestId);
+        }
+        ensureAccepted(studentRequest.getStatus(), "Student tutor request");
+        Student student = requirePresent(studentRequest.getStudent(), "CONTRACT_STUDENT_REQUIRED", "Student is required");
+        return checkScheduleDraft(scheduleDraft(student, tutor, terms), true);
+    }
+
+    private Contract scheduleDraft(Student student, Tutor tutor, ContractTerms terms) {
+        Contract draft = Contract.builder().student(student).tutor(tutor).totalLession(terms.totalLessons())
+                .startDate(terms.startDate()).endDate(terms.endDate()).build();
+        terms.schedules().forEach(value -> draft.getSchedules().add(ContractSchedule.builder().contract(draft)
+                .dayOfWeek(value.dayOfWeek()).startTime(value.startTime()).endTime(value.endTime()).build()));
+        return draft;
+    }
+
+    private ScheduleConflictCheckResponse checkScheduleDraft(Contract draft, boolean creatorIsTutor) {
+        if (lessonProvisioningService == null) return new ScheduleConflictCheckResponse(false, List.of());
+        List<String> messages = lessonProvisioningService.findScheduleConflictMessages(draft, creatorIsTutor);
+        return new ScheduleConflictCheckResponse(!messages.isEmpty(), messages);
     }
 
     @Transactional
@@ -197,7 +251,8 @@ public class ContractService {
                 source == null ? null : source.preferredSchedule(),
                 source == null ? null : source.startDate(),
                 source == null ? null : source.endDate(),
-                source == null ? null : source.schedules()));
+                source == null ? null : source.schedules(),
+                source == null ? null : source.deferScheduleCreation()));
         Tutor tutor = findTutorByUserId(userId);
         StudentTutorRequest studentRequest = studentTutorRequestRepository
                 .findByIdAndTeachingRequest_Id(studentRequestId, teachingRequestId)
@@ -213,8 +268,9 @@ public class ContractService {
             throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_SUBJECT_REQUIRED",
                     "Teaching request subject must be normalized before creating a contract");
         }
-        if (contractRepository.existsByStudentTutorRequest_IdAndStatusNot(
-                studentRequestId, ContractStatus.CANCELLED)) {
+        if (contractRepository.existsActiveByStudentTutorRequestId(
+                studentRequestId,
+                java.util.List.of(ContractStatus.PENDING, ContractStatus.ACTIVE, ContractStatus.COMPLETED))) {
             throw duplicateContract();
         }
 
@@ -238,7 +294,7 @@ public class ContractService {
                 .studentTutorRequest(studentRequest)
                 .build();
         replaceSchedules(contract, terms.schedules());
-        return saveNewContract(contract);
+        return saveNewContract(contract, terms.deferScheduleCreation());
     }
 
     @Transactional(readOnly = true)
@@ -303,6 +359,16 @@ public class ContractService {
         ensureCounterparty(contract, userId);
         ensureNotExpired(contract);
 
+        if (lessonProvisioningService != null) {
+            boolean creatorIsTutor = contract.getTutor() != null
+                    && contract.getTutor().getUser() != null
+                    && contract.getTutor().getUser().getId().equals(userId);
+            List<String> conflicts = lessonProvisioningService.findScheduleConflictMessages(contract, creatorIsTutor);
+            if (!conflicts.isEmpty()) {
+                throw new ApiException(HttpStatus.CONFLICT, "LESSON_SCHEDULE_CONFLICT", String.join("\n", conflicts));
+            }
+        }
+
         User signer = participantUser(contract, userId);
         int updated = contractRepository.activatePendingByCounterparty(
                 contractId,
@@ -318,12 +384,33 @@ public class ContractService {
         Contract signed = findContractForParticipant(contractId, userId);
         installmentService.ensureForActiveContract(signed);
         if (lessonProvisioningService != null) lessonProvisioningService.provision(signed);
+        markSourcesConnected(signed);
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 signed.getCreatedBy().getId(),
                 NotificationEventType.CONTRACT_SIGNED,
                 NotificationReferenceType.CONTRACT,
                 signed.getId(), java.util.Map.of()));
+        UUID tutorUserId = signed.getTutor().getUser().getId();
+        if (!tutorUserId.equals(userId) && !tutorUserId.equals(signed.getCreatedBy().getId())) {
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    tutorUserId,
+                    NotificationEventType.CONTRACT_SIGNED,
+                    NotificationReferenceType.CONTRACT,
+                    signed.getId(), java.util.Map.of()));
+        }
         return contractMapper.toResponse(signed);
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleConflictCheckResponse checkExistingContractSchedule(
+            UUID userId, UUID contractId, ContractTermsRequest source) {
+        Contract current = findContractForParticipant(contractId, userId);
+        ContractTerms terms = normalizeTerms(source);
+        Contract draft = scheduleDraft(current.getStudent(), current.getTutor(), terms);
+        boolean creatorIsTutor = current.getTutor() != null
+                && current.getTutor().getUser() != null
+                && current.getTutor().getUser().getId().equals(userId);
+        return checkScheduleDraft(draft, creatorIsTutor);
     }
 
     @Transactional
@@ -375,6 +462,29 @@ public class ContractService {
                 NotificationReferenceType.CONTRACT,
                 cancelled.getId(), java.util.Map.of()));
         return contractMapper.toResponse(cancelled);
+    }
+
+    @Transactional
+    public ContractResponse refreshSigningDeadline(UUID userId, UUID contractId) {
+        Contract contract = findContractForParticipant(contractId, userId);
+        if (!contract.getCreatedBy().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "CONTRACT_CREATOR_REQUIRED",
+                    "Only the contract creator can refresh the signing deadline");
+        }
+        ensurePendingOrCancelled(contract);
+        if (!contract.getEndDate().isAfter(contractTimeProvider.today())) {
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_EXPIRED", "Contract end date has passed");
+        }
+        if (contract.getCreatedAt() != null
+                && contract.getCreatedAt().plusDays(7).isAfter(contractTimeProvider.now())) {
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_SIGNING_DEADLINE_ACTIVE",
+                    "Contract signing deadline has not passed");
+        }
+        int updated = contractRepository.refreshSigningDeadline(
+                contractId, userId, contractTimeProvider.today(),
+                ContractStatus.PENDING, ContractStatus.CANCELLED, contractTimeProvider.now());
+        if (updated != 1) throw invalidTransition("Contract can no longer be refreshed");
+        return contractMapper.toResponse(findContractForParticipant(contractId, userId));
     }
 
     @Transactional
@@ -444,13 +554,19 @@ public class ContractService {
                 .renewedFromContract(current)
                 .build();
         replaceSchedules(renewal, terms.schedules());
-        return saveNewContract(renewal);
+        return saveNewContract(renewal, terms.deferScheduleCreation());
     }
 
-    private ContractResponse saveNewContract(Contract contract) {
+    private ContractResponse saveNewContract(Contract contract, boolean deferScheduleCreation) {
         try {
+            if (lessonProvisioningService != null && !deferScheduleCreation) {
+                boolean tutorCreated = contract.getCreatedBy() != null && contract.getTutor() != null
+                        && contract.getCreatedBy().getId().equals(contract.getTutor().getUser().getId());
+                lessonProvisioningService.validateScheduleConflicts(contract, tutorCreated);
+            }
             Contract saved = contractRepository.saveAndFlush(contract);
-            if (lessonProvisioningService != null) lessonProvisioningService.provision(saved);
+            if (lessonProvisioningService != null && !deferScheduleCreation) lessonProvisioningService.provision(saved);
+            markSourcesConnected(saved);
             eventPublisher.publishEvent(NotificationDomainEvent.of(
                     otherParticipantUser(saved, saved.getCreatedBy().getId()).getId(),
                     saved.getRenewedFromContract() == null
@@ -460,7 +576,45 @@ public class ContractService {
                     saved.getId(), java.util.Map.of()));
             return contractMapper.toResponse(saved);
         } catch (DataIntegrityViolationException exception) {
-            throw duplicateContract();
+            String detail = exception.getMostSpecificCause() == null
+                    ? ""
+                    : exception.getMostSpecificCause().getMessage();
+            if (detail != null && detail.contains("uq_contracts_open_")) {
+                throw duplicateContract();
+            }
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_SAVE_FAILED",
+                    "Không thể lưu hợp đồng. Vui lòng kiểm tra lại thông tin hợp đồng.");
+        }
+    }
+
+    private void markSourcesConnected(Contract contract) {
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            return;
+        }
+        if (contract.getTutorStudentRequest() != null) {
+            TutorStudentRequest application = contract.getTutorStudentRequest();
+            application.setStatus(ApplicationStatus.CONNECTED);
+            tutorStudentRequestRepository.saveAndFlush(application);
+            StudyingRequest request = application.getStudyingRequest();
+            if (request != null && request.getStatus() != RequestStatus.MATCHED) {
+                request.setStatus(RequestStatus.MATCHED);
+                // The request is already matched once its contract is created.
+                // The entity is attached through the application; flushing the
+                // application keeps this transition in the same transaction.
+            }
+        }
+        if (contract.getStudentTutorRequest() != null) {
+            StudentTutorRequest application = contract.getStudentTutorRequest();
+            application.setStatus(ApplicationStatus.CONNECTED);
+            studentTutorRequestRepository.saveAndFlush(application);
+            TeachingRequest request = application.getTeachingRequest();
+            if (request != null) {
+                long connected = studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                        request.getId(), ApplicationStatus.CONNECTED);
+                if (connected >= request.getQuantity()) {
+                    request.setStatus(RequestStatus.MATCHED);
+                }
+            }
         }
     }
 
@@ -568,7 +722,8 @@ public class ContractService {
             totalLessons = source.totalLessons();
         }
         return new ContractTerms(
-                source.price(), paymentPeriod, totalLessons, preferredSchedule, source.startDate(), source.endDate(), schedules);
+                source.price(), paymentPeriod, totalLessons, preferredSchedule, source.startDate(), source.endDate(), schedules,
+                false);
     }
 
     private void applyStructuredSchedules(Contract contract, List<ContractScheduleRequest> requests,
@@ -698,6 +853,12 @@ public class ContractService {
         }
     }
 
+    private void ensurePendingOrCancelled(Contract contract) {
+        if (contract.getStatus() != ContractStatus.PENDING && contract.getStatus() != ContractStatus.CANCELLED) {
+            throw invalidTransition("Only pending or cancelled contracts can be refreshed");
+        }
+    }
+
     private void ensureCounterparty(Contract contract, UUID userId) {
         if (contract.getCreatedBy().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "CONTRACT_COUNTERPARTY_REQUIRED",
@@ -810,7 +971,8 @@ public class ContractService {
             String preferredSchedule,
             LocalDate startDate,
             LocalDate endDate,
-            List<ScheduleValue> schedules) {
+            List<ScheduleValue> schedules,
+            boolean deferScheduleCreation) {
     }
 
     private record ScheduleValue(Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {

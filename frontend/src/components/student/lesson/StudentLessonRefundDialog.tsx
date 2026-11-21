@@ -36,7 +36,7 @@ export function StudentLessonRefundDialog({ lesson, contract, onClose, onSubmitt
 
   const submit = async () => {
     if (!description.trim()) {
-      setFailure('Vui lòng nhập nội dung khiếu nại hoặc yêu cầu hoàn tiền.');
+      setFailure('Vui lòng nhập nội dung yêu cầu hoàn tiền.');
       return;
     }
 
@@ -67,8 +67,8 @@ export function StudentLessonRefundDialog({ lesson, contract, onClose, onSubmitt
       >
         <header className="student-lesson-refund-dialog-header">
           <div>
-            <span className="student-lesson-dialog-kicker">KHIẾU NẠI / HOÀN TIỀN</span>
-            <h2 id="student-lesson-refund-title">Gửi yêu cầu cho buổi học</h2>
+            <span className="student-lesson-dialog-kicker">YÊU CẦU HOÀN TIỀN</span>
+            <h2 id="student-lesson-refund-title">Yêu cầu hoàn tiền cho buổi học</h2>
           </div>
           <button type="button" className="student-lesson-dialog-close" onClick={onClose} aria-label="Đóng">
             ×

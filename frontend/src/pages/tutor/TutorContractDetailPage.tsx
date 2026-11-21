@@ -7,6 +7,7 @@ import {
   cancelContract,
   getContract,
   rejectContract,
+  refreshContract,
   renewContract,
   signContract,
   updateContract,
@@ -22,11 +23,22 @@ import {
   type TutorLesson
 } from '../../services/tutorApi';
 import { Icon } from '../../components/ui/Icon';
+import { TimeSelect } from '../../components/ui/TimeSelect';
+import { ApiError } from '../../services/httpClient';
 import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
+import { formatLessonPrice } from '../../utils/contractPricing';
 import { PendingContractSignView } from '../common-user/components/PendingContractSignView';
+
+function lessonErrorMessage(caught: unknown, fallback: string) {
+  if (caught instanceof ApiError && caught.code === 'LESSON_SCHEDULE_CONFLICT') {
+    return caught.message;
+  }
+  return caught instanceof Error ? caught.message : fallback;
+}
 import { ContractPdfLink } from '../common-user/components/ContractPdfLink';
 import { formatPreferredSchedule } from '../../utils/scheduleFormat';
 import '../student/student.css';
+import { TutorLessonCancellationDialog } from '../../components/tutor/TutorLessonCancellationDialog';
 
 export function TutorContractDetailPage() {
   const { contractId = '' } = useParams();
@@ -40,6 +52,7 @@ export function TutorContractDetailPage() {
   const [editingLesson, setEditingLesson] = useState<TutorLesson | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [cancellationLesson, setCancellationLesson] = useState<TutorLesson | null>(null);
   const query = useResource(
     useCallback(
       async (signal: AbortSignal) => {
@@ -97,7 +110,7 @@ export function TutorContractDetailPage() {
       event.currentTarget.reset();
       refreshLessons();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể tạo buổi học.');
+      setError(lessonErrorMessage(caught, 'Không thể tạo buổi học.'));
     } finally {
       setBusy(false);
     }
@@ -129,7 +142,7 @@ export function TutorContractDetailPage() {
       setEditingLesson(null);
       refreshLessons();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể cập nhật buổi học.');
+      setError(lessonErrorMessage(caught, 'Không thể cập nhật buổi học.'));
     } finally {
       setBusy(false);
     }
@@ -235,6 +248,20 @@ export function TutorContractDetailPage() {
     }
   };
 
+  const refreshPendingContract = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await refreshContract(contract.id);
+      setNotice('Đã làm mới thời hạn ký hợp đồng.');
+      refreshLessons();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể làm mới hợp đồng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const completedLessons = lessons.filter(
     (lesson) => lesson.status === 'COMPLETED' || lesson.status === 'CONFIRMED'
   ).length;
@@ -271,6 +298,7 @@ export function TutorContractDetailPage() {
         notice={notice}
         onSave={savePendingContract}
         onCancel={() => void cancelPendingContract()}
+        onRefresh={refreshPendingContract}
       />
     );
   }
@@ -328,7 +356,7 @@ export function TutorContractDetailPage() {
           <Detail label="Lớp" value={contract.gradeName} />
           <Detail label="Hình thức dạy" value={contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} />
           <Detail label="Học viên" value={student} />
-          <Detail label="Giá" value={`${formatMoney(contract.price)} · ${paymentLabel(contract.paymentPeriod)}`} />
+          <Detail label="Giá / buổi" value={formatLessonPrice(contract)} />
           <Detail label="Tổng số buổi" value={`${contract.totalLessons} buổi`} />
           <Detail
             label="Lịch học"
@@ -378,42 +406,43 @@ export function TutorContractDetailPage() {
           {notice}
         </div>
       )}
-      {contract.status === 'ACTIVE' ? (
-        <section className="tutor-panel tutor-contract-create-panel">
-          <details open={showCreateLesson} onToggle={(event) => setShowCreateLesson(event.currentTarget.open)}>
-            <summary>Tạo buổi học</summary>
-            <p className="tutor-muted">Chỉ chọn ngày trong thời gian hợp đồng và đúng lịch học đã thỏa thuận.</p>
-            <form className="tutor-form-grid" onSubmit={(event) => void createLesson(event)}>
-              <label>
-                Tiêu đề
-                <input name="title" placeholder={`Buổi học ${contract.subjectName}`} />
-              </label>
-              <label>
-                Ngày học
-                <input name="date" type="date" min={contract.startDate} max={contract.endDate} required />
-              </label>
-              <label>
-                Giờ bắt đầu
-                <input name="startTime" type="time" required />
-              </label>
-              <label>
-                Giờ kết thúc
-                <input name="endTime" type="time" required />
-              </label>
-              <div className="tutor-form-actions tutor-field-full">
-                <button className="tutor-button" disabled={busy}>
-                  {busy ? 'Đang tạo...' : 'Tạo buổi học'}
-                </button>
-              </div>
-            </form>
-          </details>
-        </section>
-      ) : (
-        <section className="tutor-panel tutor-contract-create-panel tutor-contract-create-disabled">
-          <h2>Tạo buổi học</h2>
-          <p>Chỉ có thể tạo buổi học sau khi hợp đồng đã được hai bên ký và kích hoạt.</p>
-        </section>
-      )}
+      {contract.status !== 'CANCELLED' &&
+        (contract.status === 'ACTIVE' ? (
+          <section className="tutor-panel tutor-contract-create-panel">
+            <details open={showCreateLesson} onToggle={(event) => setShowCreateLesson(event.currentTarget.open)}>
+              <summary>Tạo buổi học</summary>
+              <p className="tutor-muted">Chỉ chọn ngày trong thời gian hợp đồng và đúng lịch học đã thỏa thuận.</p>
+              <form className="tutor-form-grid" onSubmit={(event) => void createLesson(event)}>
+                <label>
+                  Tiêu đề
+                  <input name="title" placeholder={`Buổi học ${contract.subjectName}`} />
+                </label>
+                <label>
+                  Ngày học
+                  <input name="date" type="date" min={contract.startDate} max={contract.endDate} required />
+                </label>
+                <label>
+                  Giờ bắt đầu
+                  <TimeSelect name="startTime" required />
+                </label>
+                <label>
+                  Giờ kết thúc
+                  <TimeSelect name="endTime" required />
+                </label>
+                <div className="tutor-form-actions tutor-field-full">
+                  <button className="tutor-button" disabled={busy}>
+                    {busy ? 'Đang tạo...' : 'Tạo buổi học'}
+                  </button>
+                </div>
+              </form>
+            </details>
+          </section>
+        ) : (
+          <section className="tutor-panel tutor-contract-create-panel tutor-contract-create-disabled">
+            <h2>Tạo buổi học</h2>
+            <p>Chỉ có thể tạo buổi học sau khi hợp đồng đã được hai bên ký và kích hoạt.</p>
+          </section>
+        ))}
       <section className="tutor-panel tutor-contract-lessons-panel">
         <div className="tutor-contract-section-heading">
           <div>
@@ -451,8 +480,9 @@ export function TutorContractDetailPage() {
                   lesson={lesson}
                   key={lesson.id}
                   onEdit={() => setEditingLesson(lesson)}
-                  onCancel={() => void cancelLesson(lesson)}
+                  onCancel={() => setCancellationLesson(lesson)}
                   onMarkTaught={() => void markLessonTaught(lesson)}
+                  editable={contract.status === 'ACTIVE'}
                 />
               ))}
             </div>
@@ -525,7 +555,14 @@ export function TutorContractDetailPage() {
           <form className="tutor-panel tutor-lesson-edit-form" onSubmit={(event) => void editLesson(event)}>
             <div className="tutor-contract-section-heading">
               <h2>Sửa buổi học</h2>
-              <button className="tutor-back-button" type="button" onClick={() => setEditingLesson(null)}>
+              <button
+                className="tutor-back-button"
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setEditingLesson(null);
+                }}
+              >
                 Đóng
               </button>
             </div>
@@ -546,18 +583,21 @@ export function TutorContractDetailPage() {
             </label>
             <label>
               Giờ bắt đầu
-              <input name="startTime" type="time" defaultValue={editingLesson.startTime.slice(0, 5)} required />
+              <TimeSelect name="startTime" defaultValue={editingLesson.startTime.slice(0, 5)} required />
             </label>
             <label>
               Giờ kết thúc
-              <input name="endTime" type="time" defaultValue={editingLesson.endTime.slice(0, 5)} required />
+              <TimeSelect name="endTime" defaultValue={editingLesson.endTime.slice(0, 5)} required />
             </label>
             <div className="tutor-form-actions">
               <button
                 className="tutor-button secondary"
                 type="button"
                 disabled={busy}
-                onClick={() => setEditingLesson(null)}
+                onClick={() => {
+                  setError('');
+                  setEditingLesson(null);
+                }}
               >
                 Hủy
               </button>
@@ -567,6 +607,17 @@ export function TutorContractDetailPage() {
             </div>
           </form>
         </div>
+      )}
+      {cancellationLesson && (
+        <TutorLessonCancellationDialog
+          busy={busy}
+          onClose={() => setCancellationLesson(null)}
+          onEdit={() => {
+            setCancellationLesson(null);
+            setEditingLesson(cancellationLesson);
+          }}
+          onRefund={() => void cancelLesson(cancellationLesson).then(() => setCancellationLesson(null))}
+        />
       )}
     </>
   );
@@ -600,6 +651,8 @@ function ContractDocumentLink({
       tutorSigned={createdByTutor || Boolean(contract.signedByUserId)}
       studentSignedAt={createdByTutor ? (contract.signedByUserId ? contract.signedAt : null) : contract.createdAt}
       tutorSignedAt={createdByTutor ? contract.createdAt : contract.signedByUserId ? contract.signedAt : null}
+      contractStatus={contract.status}
+      cancelledAt={contract.cancelledAt ?? contract.updatedAt}
       price={contract.price}
       paymentPeriod={contract.paymentPeriod}
       startDate={contract.startDate}
@@ -613,12 +666,14 @@ function LessonRow({
   lesson,
   onEdit,
   onCancel,
-  onMarkTaught
+  onMarkTaught,
+  editable
 }: {
   lesson: TutorLesson;
   onEdit: () => void;
   onCancel: () => void;
   onMarkTaught: () => void;
+  editable: boolean;
 }) {
   const waitingForPayment = lesson.status === 'SCHEDULED' && !lesson.paidAt;
   return (
@@ -633,12 +688,14 @@ function LessonRow({
         {lesson.paidAt ? formatDateTime(lesson.paidAt) : 'Chưa thanh toán'}
       </div>
       <div className="tutor-lesson-row-status">
-        <span className={`tutor-contract-status status-${lesson.status.toLowerCase()}`}>
+        <span
+          className={`tutor-contract-status ${waitingForPayment ? 'status-waiting-payment' : `status-${lesson.status.toLowerCase()}`}`}
+        >
           {waitingForPayment ? 'Chờ học viên thanh toán' : lessonStatus(lesson.status)}
         </span>
       </div>
       <div className="tutor-lesson-row-actions">
-        {lesson.status === 'SCHEDULED' && (
+        {editable && lesson.status === 'SCHEDULED' && (
           <>
             {lesson.paidAt && (
               <button className="tutor-button small" type="button" onClick={onMarkTaught}>
@@ -683,17 +740,6 @@ function lessonStatus(value: TutorLesson['status']) {
       CANCELLED: 'Đã hủy'
     } as Record<string, string>
   )[value];
-}
-function paymentLabel(value: Contract['paymentPeriod']) {
-  return (
-    { PER_LESSON: 'Theo buổi', WEEKLY: 'Hàng tuần', MONTHLY: 'Hàng tháng', PACKAGE: 'Trọn gói' } as Record<
-      string,
-      string
-    >
-  )[value];
-}
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 function formatDate(value: string | null) {
   return value ? new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`)) : 'Chưa lên lịch';

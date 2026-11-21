@@ -58,12 +58,10 @@ import { TutorCalendarPage } from './pages/tutor/TutorCalendarPage';
 import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
-import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
 import { ComplaintsPage } from './pages/common-user/ComplaintsPage';
 import { ComplaintCreatePage } from './pages/common-user/ComplaintCreatePage';
 import { ComplaintDetailPage } from './pages/common-user/ComplaintDetailPage';
-import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
-import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
+import { CommonRefundRequestDetailPage } from './pages/common-user/CommonRefundRequestDetailPage';
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
@@ -157,8 +155,11 @@ export default function App() {
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
-                <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
-                <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
+                <Route path="refund-requests" element={<Navigate replace to="/tutor/complaints/received" />} />
+                <Route
+                  path="refund-requests/:refundRequestId"
+                  element={<Navigate replace to="/tutor/complaints/received" />}
+                />
                 <Route path="complaints" element={<ComplaintsPage basePath="/tutor/complaints" role="tutor" />} />
                 <Route path="complaints/new" element={<ComplaintCreatePage basePath="/tutor/complaints" />} />
                 <Route
@@ -214,7 +215,8 @@ export default function App() {
                 <Route path="contracts/:contractId/lessons" element={<StudentContractLessonsPage />} />
                 <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
                 <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
-                <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
+                <Route path="refund-requests/new" element={<StudentRefundRequestCreatePage />} />
+                <Route path="refund-requests/:refundRequestId" element={<CommonRefundRequestDetailPage />} />
                 <Route path="complaints" element={<ComplaintsPage />} />
                 <Route path="complaints/new" element={<ComplaintCreatePage />} />
                 <Route path="complaints/received" element={<ComplaintsPage mode="received" />} />

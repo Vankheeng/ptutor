@@ -16,6 +16,8 @@ export interface ContractPdfDetails {
   tutorSigned?: boolean;
   studentSignedAt?: string | null;
   tutorSignedAt?: string | null;
+  contractStatus?: string | null;
+  cancelledAt?: string | null;
 }
 
 interface Props extends ContractPdfDetails {
@@ -68,10 +70,14 @@ function createContractDocument(props: Props) {
     detailRow('\u004d\u00f4n h\u1ecdc', props.subject),
     detailRow('\u004c\u1edbp', props.grade),
     detailRow('\u0048\u00ecnh th\u1ee9c', props.teachingMode),
-    detailRow('\u0048\u1ecdc ph\u00ed', formatMoney(props.price)),
+    detailRow('\u0047i\u00e1 m\u1ed7i bu\u1ed5i h\u1ecdc', formatMoney(props.price)),
     detailRow('\u0043hu k\u1ef3 thanh to\u00e1n', paymentLabel(props.paymentPeriod)),
     detailRow('\u0054h\u1eddi gian', props.startDate + ' \u0111\u1ebfn ' + props.endDate),
-    detailRow('\u004c\u1ecbch h\u1ecdc', formatSchedules(props.schedules))
+    detailRow('\u004c\u1ecbch h\u1ecdc', formatSchedules(props.schedules)),
+    detailRow('\u004e\u0067\u00e0y k\u00fd', signedDateSummary(props)),
+    props.contractStatus === 'CANCELLED'
+      ? detailRow('\u0054r\u1ea1ng th\u00e1i', '\u0110\u00e3 h\u1ee7y l\u00fac ' + formatDateTime(props.cancelledAt))
+      : ''
   ].join('');
   const studentContact = contactInfo(props.studentName, props.studentEmail, props.studentPhone, props.studentAddress);
   const tutorContact = contactInfo(props.tutorName, props.tutorEmail, props.tutorPhone, props.tutorAddress);
@@ -168,7 +174,16 @@ function signatureDate(signed: boolean | undefined, value: string | null | undef
   return signed && value ? '<p>Ng\u00e0y k\u00fd: ' + escapeHtml(formatDateTime(value)) + '</p>' : '';
 }
 
-function formatDateTime(value: string) {
+function signedDateSummary(props: ContractPdfDetails) {
+  const values = [
+    props.studentSigned && props.studentSignedAt ? 'Học viên: ' + formatDateTime(props.studentSignedAt) : '',
+    props.tutorSigned && props.tutorSignedAt ? 'Gia sư: ' + formatDateTime(props.tutorSignedAt) : ''
+  ].filter(Boolean);
+  return values.join('; ');
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return 'không xác định';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date);

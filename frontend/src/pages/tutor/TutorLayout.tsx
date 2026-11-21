@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon, type IconName } from '../../components/ui/Icon';
+import { useNotificationUnreadCount } from '../../hooks/useNotificationUnreadCount';
 import './tutor.css';
 import './tutor-layout.css';
 
@@ -26,6 +27,7 @@ const sectionLabels = { WORKSPACE: '', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI
 export function TutorLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const unreadNotifications = useNotificationUnreadCount();
   const fullName =
     [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Gia sư';
   const initials = fullName
@@ -78,6 +80,11 @@ export function TutorLayout() {
                       <Icon name={item.icon as IconName} size={18} />
                     </span>
                     {item.label}
+                    {item.to === '/tutor/notifications' && unreadNotifications > 0 && (
+                      <b className="notification-nav-badge" aria-label={`${unreadNotifications} thông báo chưa đọc`}>
+                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      </b>
+                    )}
                   </NavLink>
                 ))}
             </div>

@@ -48,7 +48,8 @@ public class ContractPaymentInstallmentService {
         List<ContractPaymentInstallment> values = new ArrayList<>();
         PaymentPeriod period = contract.getPaymentPeriod();
         if (period == PaymentPeriod.PACKAGE) {
-            values.add(newInstallment(contract, 1, null, contract.getStartDate(), contract.getPrice()));
+            BigDecimal packageAmount = contract.getPrice().multiply(BigDecimal.valueOf(contract.getTotalLession()));
+            values.add(newInstallment(contract, 1, null, contract.getStartDate(), packageAmount));
         } else if (period == PaymentPeriod.PER_LESSON) {
             for (int sequence = 1; sequence <= contract.getTotalLession(); sequence++) {
                 values.add(newInstallment(contract, sequence, null, null, contract.getPrice()));

@@ -21,6 +21,7 @@ import com.ptutor.backend.dto.request.LessonRequest;
 import com.ptutor.backend.dto.response.LessonResponse;
 import com.ptutor.backend.dto.response.PageResponse;
 import com.ptutor.backend.entity.enums.LessonStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -64,6 +65,19 @@ public class LessonController {
         return ResponseEntity.ok(responseFactory.success(
                 lessonService.findByContract(currentUserProvider.getCurrentUserId(), contractId, status, pageable),
                 BASE_PATH + "/contracts/" + contractId + "/lessons"));
+    }
+
+    @GetMapping("/lessons")
+    public ResponseEntity<ApiResponse<PageResponse<LessonResponse>>> findForTutor(
+            @RequestParam(required = false) LessonStatus status,
+            @RequestParam(required = false) ContractStatus contractStatus,
+            @RequestParam(defaultValue = "0") @Min(value = 0) int page,
+            @RequestParam(defaultValue = "100") @Min(value = 1) @Max(value = 100) int size) {
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Order.asc("date"), Sort.Order.asc("startTime")));
+        return ResponseEntity.ok(responseFactory.success(
+                lessonService.findForTutor(currentUserProvider.getCurrentUserId(), status, contractStatus, pageable),
+                BASE_PATH + "/lessons"));
     }
 
     @GetMapping("/lessons/{lessonId}")

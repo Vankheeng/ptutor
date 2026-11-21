@@ -108,7 +108,7 @@ export function StudentContractLessonsPage() {
   const awaitingCount = lessons.filter((lesson) => lesson.status === 'PENDING_CONFIRMATION').length;
   const scheduledCount = lessons.filter((lesson) => lesson.status === 'SCHEDULED').length;
   const cancelledCount = lessons.filter((lesson) => lesson.status === 'CANCELLED').length;
-  const expectedLessons = data?.contract.totalLessons ?? 0;
+  const expectedLessons = lessons.length;
   const progress = expectedLessons > 0 ? Math.min(100, Math.round((learnedCount / expectedLessons) * 100)) : 0;
 
   const confirm = async (lesson: ContractLesson) => {
@@ -193,13 +193,13 @@ export function StudentContractLessonsPage() {
             </strong>
           </div>
           <div className="student-lesson-summary-fact">
-            <span>Số buổi dự kiến</span>
+            <span>Số buổi đã tạo</span>
             <strong>{expectedLessons} buổi</strong>
           </div>
         </section>
       )}
 
-      {data && (
+      {data && lessons.length > 0 && (
         <section className="student-lesson-progress-card" aria-label="Tiến độ học tập">
           <div className="student-lesson-progress-main">
             <h2>
@@ -375,7 +375,7 @@ export function StudentContractLessonsPage() {
           onClose={() => setRefundLessonId(null)}
           onSubmitted={() => {
             setRefundLessonId(null);
-            setMessage({ tone: 'success', text: 'Đã gửi yêu cầu khiếu nại / hoàn tiền.' });
+            setMessage({ tone: 'success', text: 'Đã gửi yêu cầu hoàn tiền.' });
             setRevision((value) => value + 1);
           }}
         />

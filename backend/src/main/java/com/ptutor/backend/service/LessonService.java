@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -54,6 +55,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LessonService {
 
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private static final List<RefundRequestStatus> OPEN_REFUND_STATUSES =
             List.of(RefundRequestStatus.PENDING, RefundRequestStatus.IN_REVIEW);
     private static final List<ComplaintStatus> BLOCKING_COMPLAINT_STATUSES =
@@ -84,12 +87,12 @@ public class LessonService {
         Tutor tutor = findTutorByUserId(userId);
         Contract contract = findOwnedContract(contractId, tutor.getId());
         validateActiveContract(contract);
+        validateSchedule(contract, source);
+        ensureNoScheduleConflict(contract, source.date(), source.startTime(), source.endTime(), null);
         if (!installmentService.canCreateLesson(contract)) {
             throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_LESSON_LIMIT_REACHED",
                     "The contract already has its maximum number of lessons");
         }
-        validateSchedule(contract, source);
-
         Lesson lesson = Lesson.builder()
                 .contract(contract)
                 .title(normalize(source.title()))
@@ -132,6 +135,22 @@ public class LessonService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<LessonResponse> findForTutor(
+            UUID userId, LessonStatus status, ContractStatus contractStatus, Pageable pageable) {
+        Tutor tutor = findTutorByUserId(userId);
+        Page<Lesson> lessons = lessonRepository.findAllForTutorUser(tutor.getUser().getId(), status, contractStatus, pageable);
+        return PageResponse.from(lessons, lessons.getContent().stream().map(this::toResponse).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<LessonResponse> findForStudent(UUID userId, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        Page<Lesson> lessons = lessonRepository.findAllForStudentUser(
+                student.getUser().getId(), null, null, pageable);
+        return PageResponse.from(lessons, lessons.getContent().stream().map(this::toResponse).toList());
+    }
+
+    @Transactional(readOnly = true)
     public LessonResponse findById(UUID userId, UUID lessonId) {
         Tutor tutor = findTutorByUserId(userId);
         return toResponse(findOwnedLesson(lessonId, tutor.getId()));
@@ -145,6 +164,11 @@ public class LessonService {
         validateActiveContract(contract);
         ensureScheduled(lesson, "updated");
         validateSchedule(contract, source);
+        ensureNoScheduleConflict(contract, source.date(), source.startTime(), source.endTime(), lesson.getId());
+
+        boolean scheduleChanged = !source.date().equals(lesson.getDate())
+                || !source.startTime().equals(lesson.getStartTime())
+                || !source.endTime().equals(lesson.getEndTime());
 
         lesson.setTitle(normalize(source.title()));
         lesson.setDate(source.date());
@@ -153,6 +177,9 @@ public class LessonService {
         lesson.setNote(normalize(source.note()));
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.updatePendingLessonInstallmentDueDate(saved);
+        if (scheduleChanged) {
+            publishStudentRescheduledNotification(saved);
+        }
         return toResponse(saved);
     }
 
@@ -247,6 +274,44 @@ public class LessonService {
         return tutorRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "TUTOR_PROFILE_REQUIRED",
                         "Only a tutor can manage lessons"));
+    }
+
+    private void ensureNoScheduleConflict(
+            Contract contract, LocalDate date, LocalTime startTime, LocalTime endTime, UUID excludedLessonId) {
+        List<Lesson> conflicts = lessonRepository.findScheduleConflicts(
+                contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
+                date, startTime, endTime, excludedLessonId);
+        if (conflicts == null || conflicts.isEmpty()) {
+            return;
+        }
+
+        Lesson conflict = conflicts.get(0);
+        boolean studentConflict = conflict.getContract() != null
+                && conflict.getContract().getStudent() != null
+                && conflict.getContract().getStudent().getUser() != null
+                && conflict.getContract().getStudent().getUser().getId().equals(contract.getStudent().getUser().getId());
+        boolean tutorConflict = conflict.getContract() != null
+                && conflict.getContract().getTutor() != null
+                && conflict.getContract().getTutor().getUser() != null
+                && conflict.getContract().getTutor().getUser().getId().equals(contract.getTutor().getUser().getId());
+        String conflictSchedule = formatLessonSchedule(conflict);
+        // Reveal the title only for a lesson that belongs exclusively to the
+        // tutor making this request. Shared student+tutor schedule data, and
+        // the student's schedule, must remain generic.
+        String message = tutorConflict && !studentConflict
+                ? "Gia sư đang có buổi học \"" + safeLessonTitle(conflict) + "\" trùng lịch ("
+                        + conflictSchedule + "). Vui lòng chọn khung giờ khác."
+                : "Học viên đang có một buổi học khác trùng lịch (" + conflictSchedule
+                        + "). Vui lòng chọn khung giờ khác cho học viên.";
+        throw new ApiException(HttpStatus.CONFLICT, "LESSON_SCHEDULE_CONFLICT", message);
+    }
+
+    private String safeLessonTitle(Lesson lesson) {
+        return lesson.getTitle() == null || lesson.getTitle().isBlank() ? "Buổi học" : lesson.getTitle();
+    }
+
+    private String formatLessonSchedule(Lesson lesson) {
+        return lesson.getDate().format(DISPLAY_DATE) + " " + lesson.getStartTime() + " - " + lesson.getEndTime();
     }
 
     private Student findStudentByUserId(UUID userId) {
@@ -365,6 +430,21 @@ public class LessonService {
                 NotificationReferenceType.LESSON,
                 lesson.getId(),
                 data));
+    }
+
+    private void publishStudentRescheduledNotification(Lesson lesson) {
+        Contract contract = lesson.getContract();
+        if (contract == null || contract.getStudent() == null || contract.getStudent().getUser() == null) {
+            return;
+        }
+        String name = lesson.getTitle() == null ? "Buổi học" : lesson.getTitle();
+        String newSchedule = lesson.getDate() + " lúc " + lesson.getStartTime() + " - " + lesson.getEndTime();
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                contract.getStudent().getUser().getId(),
+                NotificationEventType.LESSON_RESCHEDULED,
+                NotificationReferenceType.LESSON,
+                lesson.getId(),
+                Map.of("name", name, "newSchedule", newSchedule)));
     }
 
     private java.math.BigDecimal refundPaidLesson(Lesson lesson) {

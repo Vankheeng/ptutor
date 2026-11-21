@@ -1,5 +1,11 @@
-import { useState, type FormEvent } from 'react';
-import type { TutorTeachingProposal } from '../../../services/tutorApi';
+import { useEffect, useState, type FormEvent } from 'react';
+import {
+  getTutorContractLessons,
+  getTutorContracts,
+  getTutorLessons,
+  type TutorLesson,
+  type TutorTeachingProposal
+} from '../../../services/tutorApi';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const weekdayLabels: Record<string, string> = {
@@ -12,8 +18,9 @@ const weekdayLabels: Record<string, string> = {
   Saturday: 'Thứ Bảy'
 };
 const times = Array.from(
-  { length: 48 },
-  (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
+  { length: 96 },
+  (_, index) =>
+    `${String(Math.floor((index * 15) / 60)).padStart(2, '0')}:${String((index * 15) % 60).padStart(2, '0')}`
 );
 type AvailableTime = { day: string; start: string; end: string };
 
@@ -53,11 +60,39 @@ export function TutorApplicationForm({
   );
   const [teachingMode, setTeachingMode] = useState<'ONLINE' | 'OFFLINE'>(proposal?.teachingMode ?? requestMode);
   const [validationError, setValidationError] = useState('');
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
+  const invalidSchedule = availableTimes.some((slot) => slot.start >= slot.end);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadTutorLessons(controller.signal)
+      .then((result) => {
+        const conflicts = result.content.filter((lesson) => {
+          if (lesson.status === 'CANCELLED') return false;
+          const day = weekdayFromDate(lesson.date);
+          const slot = availableTimes.find((item) => item.day === day);
+          return Boolean(slot && slot.start < lesson.endTime.slice(0, 5) && slot.end > lesson.startTime.slice(0, 5));
+        });
+        if (!conflicts.length) {
+          setScheduleWarnings([]);
+          return;
+        }
+        setScheduleWarnings([
+          ...conflicts.map(
+            (conflict) =>
+              `Bạn đang có buổi học "${conflict.title || 'Buổi học'}" trùng lịch (${formatLessonConflict(conflict)}).`
+          ),
+          'Bạn vẫn có thể gửi đề xuất vì chưa xác định ngày bắt đầu hợp đồng.'
+        ]);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [availableTimes]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    if (availableTimes.some((slot) => slot.start >= slot.end)) {
+    if (invalidSchedule) {
       setValidationError('Giờ kết thúc phải sau giờ bắt đầu.');
       return;
     }
@@ -74,8 +109,14 @@ export function TutorApplicationForm({
 
   const addDay = () =>
     setAvailableTimes((current) => {
-      const nextDay = weekdays.find((day) => !current.some((slot) => slot.day === day)) || 'Monday';
-      return [...current, { day: nextDay, start: '16:00', end: '17:00' }];
+      const lastSlot = current[current.length - 1] ?? { day: 'Monday', start: '16:00', end: '17:00' };
+      const lastDayIndex = weekdays.indexOf(lastSlot.day);
+      const nextDay =
+        Array.from(
+          { length: weekdays.length },
+          (_, offset) => weekdays[(lastDayIndex + offset + 1) % weekdays.length]
+        ).find((day) => !current.some((slot) => slot.day === day)) || 'Monday';
+      return [...current, { day: nextDay, start: lastSlot.start, end: lastSlot.end }];
     });
 
   const updateTime = (index: number, field: keyof AvailableTime, value: string) => {
@@ -176,6 +217,19 @@ export function TutorApplicationForm({
                 </button>
               </div>
             ))}
+            {scheduleWarnings.length > 0 && (
+              <div className="tutor-schedule-warning" role="status">
+                <strong>Lịch có thể bị trùng</strong>
+                {scheduleWarnings.map((warning) => (
+                  <div key={warning}>{warning}</div>
+                ))}
+              </div>
+            )}
+            {invalidSchedule && (
+              <div className="tutor-schedule-time-warning" role="alert">
+                Giờ kết thúc phải sau giờ bắt đầu. Vui lòng điều chỉnh trước khi tiếp tục.
+              </div>
+            )}
           </div>
           <label>
             Lời nhắn cho học viên
@@ -191,7 +245,7 @@ export function TutorApplicationForm({
             <button className="tutor-button secondary" type="button" onClick={onClose}>
               Hủy
             </button>
-            <button className="tutor-button" type="submit" disabled={sending}>
+            <button className="tutor-button" type="submit" disabled={sending || invalidSchedule}>
               {sending
                 ? 'Đang lưu…'
                 : editing
@@ -216,4 +270,25 @@ function parseAvailableTimes(schedule?: string | null): AvailableTime[] {
     end: match[3]
   }));
   return parsed.length ? parsed : [{ day: 'Monday', start: '16:00', end: '17:00' }];
+}
+
+async function loadTutorLessons(signal: AbortSignal) {
+  try {
+    return await getTutorLessons(signal);
+  } catch {
+    const contracts = await getTutorContracts(signal);
+    const pages = await Promise.all(contracts.content.map((contract) => getTutorContractLessons(contract.id, signal)));
+    return {
+      content: pages.flatMap((page) => page.content)
+    };
+  }
+}
+
+function weekdayFromDate(value: string) {
+  return weekdays[new Date(`${value}T12:00:00`).getDay()];
+}
+
+function formatLessonConflict(lesson: TutorLesson) {
+  const [year, month, day] = lesson.date.split('-');
+  return `${day}/${month}/${year} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}`;
 }

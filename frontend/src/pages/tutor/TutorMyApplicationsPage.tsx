@@ -7,12 +7,12 @@ import {
   type TutorTeachingProposal
 } from '../../services/tutorApi';
 import { getStudyingRequest, type StudyingRequestSearchResponse } from '../../services/studyingRequestApi';
-import { useTutorProposals } from '../../hooks/useTutorWorkspace';
+import { useTutorProposalsPage } from '../../hooks/useTutorWorkspace';
 import { ApplicationToolbar } from '../../components/applications/ApplicationToolbar';
 import { TutorProposalCard } from './components/TutorProposalCard';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
 
-const filters = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'] as const;
+const filters = ['ALL', 'PENDING', 'ACCEPTED', 'CONNECTED', 'REJECTED', 'CANCELLED'] as const;
 type ProposalFilter = (typeof filters)[number];
 
 export function TutorMyApplicationsPage() {
@@ -20,13 +20,14 @@ export function TutorMyApplicationsPage() {
   const [filter, setFilter] = useState<ProposalFilter>('ALL');
   const [search, setSearch] = useState('');
   const [requestStatus, setRequestStatus] = useState('ALL');
+  const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [details, setDetails] = useState<Record<string, StudyingRequestSearchResponse>>({});
   const [contractIds, setContractIds] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<TutorTeachingProposal | null>(null);
   const [busy, setBusy] = useState(false);
-  const query = useTutorProposals(filter === 'ALL' ? undefined : filter, revision);
-  const proposals = useMemo(() => query.data ?? [], [query.data]);
+  const query = useTutorProposalsPage(filter === 'ALL' ? undefined : filter, page, revision);
+  const proposals = useMemo(() => query.data?.content ?? [], [query.data]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,12 +122,18 @@ export function TutorMyApplicationsPage() {
         searchAriaLabel="Tìm ứng tuyển của tôi"
         filters={filters.map((item) => ({ value: item, label: item === 'ALL' ? 'Tất cả' : label(item) }))}
         selectedFilter={filter}
-        onFilterChange={(value) => setFilter(value as ProposalFilter)}
+        onFilterChange={(value) => {
+          setFilter(value as ProposalFilter);
+          setPage(0);
+        }}
         filterAriaLabel="Lọc ứng tuyển"
         filterLabel="Trạng thái ứng tuyển"
         secondaryFilter={{
           value: requestStatus,
-          onChange: setRequestStatus,
+          onChange: (value) => {
+            setRequestStatus(value);
+            setPage(0);
+          },
           ariaLabel: 'Lọc trạng thái yêu cầu học',
           label: 'Trạng thái yêu cầu học',
           options: [
@@ -164,6 +171,19 @@ export function TutorMyApplicationsPage() {
           ))}
         </div>
       )}
+      {!query.isLoading && query.data && query.data.totalPages > 1 && (
+        <div className="tutor-marketplace-pagination" aria-label="Phân trang ứng tuyển của tôi">
+          <button type="button" disabled={query.data.first} onClick={() => setPage((value) => value - 1)}>
+            Trước
+          </button>
+          <span>
+            Trang {query.data.page + 1}/{query.data.totalPages}
+          </span>
+          <button type="button" disabled={query.data.last} onClick={() => setPage((value) => value + 1)}>
+            Sau
+          </button>
+        </div>
+      )}
       {selected && (
         <TutorApplicationForm
           key={selected.id}
@@ -186,10 +206,13 @@ export function TutorMyApplicationsPage() {
 function label(value: string) {
   return (
     (
-      { PENDING: 'Đang chờ', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Bị từ chối', CANCELLED: 'Đã hủy' } as Record<
-        string,
-        string
-      >
+      {
+        PENDING: 'Đang chờ',
+        ACCEPTED: 'Đã chấp nhận',
+        CONNECTED: 'Đã kết nối',
+        REJECTED: 'Bị từ chối',
+        CANCELLED: 'Đã hủy'
+      } as Record<string, string>
     )[value] ?? value
   );
 }

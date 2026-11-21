@@ -109,7 +109,7 @@ class NotificationFeatureServiceTest {
         user.setId(userId);
         Notification value = Notification.builder()
                 .user(user)
-                .title("Payment successful")
+                .title("Thanh toán thành công")
                 .content("Completed")
                 .referenceId(notificationId.toString())
                 .type(NotificationType.PAYMENT)

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.request.ContractTermsRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
+import com.ptutor.backend.dto.response.ScheduleConflictCheckResponse;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
 import com.ptutor.backend.security.CurrentUserProvider;
@@ -43,5 +44,17 @@ public class StudentContractController {
                 contractService.createFromTutorStudentRequest(
                         currentUserProvider.getCurrentUserId(), studyingRequestId, tutorRequestId, request),
                 path));
+    }
+
+    @PostMapping("/check-schedule")
+    public ResponseEntity<ApiResponse<ScheduleConflictCheckResponse>> checkSchedule(
+            @PathVariable UUID studyingRequestId,
+            @PathVariable UUID tutorRequestId,
+            @Valid @RequestBody ContractTermsRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                contractService.checkStudentContractSchedule(
+                        currentUserProvider.getCurrentUserId(), studyingRequestId, tutorRequestId, request),
+                "/api/v1/students/me/studying-requests/" + studyingRequestId
+                        + "/tutor-requests/" + tutorRequestId + "/contracts/check-schedule"));
     }
 }

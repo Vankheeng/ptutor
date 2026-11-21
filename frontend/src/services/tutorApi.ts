@@ -105,10 +105,11 @@ export interface TutorTeachingProposal {
   preferredDistrictId: string | null;
   preferredDistrictName: string | null;
   message: string | null;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  status: 'PENDING' | 'ACCEPTED' | 'CONNECTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
   updatedAt: string;
+  acceptedAt: string | null;
 }
 
 export interface TutorContract {
@@ -213,8 +214,8 @@ export function deleteTutorCertificate(id: string) {
   return del<void>(`/api/v1/tutors/me/certificates/${id}`);
 }
 
-export function getTutorProposals(status?: TutorTeachingProposal['status'], signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: '0', size: '100' });
+export function getTutorProposals(status?: TutorTeachingProposal['status'], signal?: AbortSignal, page = 0, size = 20) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
   return get<PageResponse<TutorTeachingProposal>>(`/api/v1/tutors/me/tutor-student-requests?${params}`, { signal });
 }
@@ -246,6 +247,10 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
   return get<PageResponse<TutorLesson>>(`/api/v1/tutors/me/contracts/${contractId}/lessons?page=0&size=100`, {
     signal
   });
+}
+
+export function getTutorLessons(signal?: AbortSignal) {
+  return get<PageResponse<TutorLesson>>('/api/v1/tutors/me/lessons?page=0&size=100', { signal });
 }
 
 export function getTutorContractInstallments(contractId: string, signal?: AbortSignal) {

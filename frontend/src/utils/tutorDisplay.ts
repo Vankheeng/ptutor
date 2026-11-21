@@ -12,6 +12,7 @@ const statusLabels: Record<string, string> = {
   PENDING: 'Đang chờ',
   PENDING_REVIEW: 'Chờ duyệt',
   ACCEPTED: 'Đã chấp nhận',
+  CONNECTED: 'Đã kết nối',
   VERIFIED: 'Đã xác minh',
   REJECTED: 'Bị từ chối',
   CANCELLED: 'Đã hủy',

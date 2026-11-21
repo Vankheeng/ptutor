@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import type { LearningMode, StudentApplication } from '../../services/studentApi';
+import { useEffect, useState, type FormEvent } from 'react';
+import { getStudentLessons, type LearningMode, type StudentApplication } from '../../services/studentApi';
 import type { Reference } from '../../types/api';
 import { useLocationOptions } from '../../hooks/useLocationOptions';
 
@@ -23,8 +23,9 @@ const weekdayAliases: Record<string, string> = {
   'thứ bảy': 'Saturday'
 };
 const times = Array.from(
-  { length: 48 },
-  (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
+  { length: 96 },
+  (_, index) =>
+    `${String(Math.floor((index * 15) / 60)).padStart(2, '0')}:${String((index * 15) % 60).padStart(2, '0')}`
 );
 
 type AvailableTime = { day: string; start: string; end: string };
@@ -79,10 +80,37 @@ export function StudentApplicationForm({
     application?.preferredDistrictId ?? initialValues?.preferredDistrictId ?? ''
   );
   const [detailAddress, setDetailAddress] = useState(application?.detailAddress ?? initialValues?.detailAddress ?? '');
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
   const { provinces, districts } = useLocationOptions(provinceId);
   const availableGrades = grades ?? [];
   const selectedGradeId = application?.gradeId ?? initialValues?.gradeId ?? '';
   const gradeIsAvailable = availableGrades.some((grade) => grade.id === selectedGradeId);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getStudentLessons(controller.signal)
+      .then((result) => {
+        const warnings = result.content
+          .filter((lesson) => lesson.status !== 'CANCELLED')
+          .flatMap((lesson) => {
+            const date = new Date(`${lesson.date}T00:00:00`);
+            const weekday = weekdays[date.getDay()];
+            return availableTimes.some(
+              (slot) =>
+                slot.day === weekday &&
+                slot.start < lesson.endTime.slice(0, 5) &&
+                slot.end > lesson.startTime.slice(0, 5)
+            )
+              ? [
+                  `Bạn đang có buổi học "${lesson.title || 'Buổi học'}" trùng khung giờ ${weekday} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}.`
+                ]
+              : [];
+          });
+        setScheduleWarnings([...new Set(warnings)]);
+      })
+      .catch(() => setScheduleWarnings([]));
+    return () => controller.abort();
+  }, [availableTimes]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -166,6 +194,15 @@ export function StudentApplicationForm({
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}
+          </div>
+        )}
+        {scheduleWarnings.length > 0 && (
+          <div className="tutor-schedule-warning" role="status">
+            <strong>Lịch có thể bị trùng</strong>
+            {scheduleWarnings.map((warning) => (
+              <div key={warning}>{warning}</div>
+            ))}
+            <div>Bạn vẫn có thể gửi đề xuất vì chưa xác định ngày bắt đầu hợp đồng.</div>
           </div>
         )}
         <form className="tutor-proposal-form" onSubmit={submit}>

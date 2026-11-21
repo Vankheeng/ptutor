@@ -18,11 +18,13 @@ import { getAllDistricts, getDistricts, getProvinces } from '../../services/loca
 import { getSubjects } from '../../services/subjectApi';
 import type { District, Grade, Province, Subject, TeachingRequest } from '../../types/api';
 import type { Availability } from '../../services/studentApi';
+import { getTutorLessons, type TutorLesson } from '../../services/tutorApi';
 import { StudentAvailabilityEditor } from '../../components/student/StudentAvailabilityEditor';
 import { TeachingSubjectsField } from '../common-user/components/TeachingSubjectsField';
 import { MultiSelectDropdown } from '../common-user/components/MultiSelectDropdown';
 import { RequestModeField } from '../common-user/components/RequestModeField';
 import { ApiError } from '../../services/httpClient';
+import { notifyGlobalToast } from '../../components/ui/globalToast';
 import './my-teaching-requests.css';
 import '../student/student.css';
 
@@ -48,6 +50,7 @@ export function MyTeachingRequestsPage() {
       ? initialEditRequest.availabilities
       : [{ dayOfWeek: 0, startTime: '', endTime: '' }]
   );
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('ALL');
   const [sort, setSort] = useState<'DESC' | 'ASC'>('DESC');
@@ -79,6 +82,33 @@ export function MyTeachingRequestsPage() {
       })
       .catch(() => setMessage('Không tải được danh mục môn học và khối lớp.'));
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getTutorLessons(controller.signal)
+      .then((result) => {
+        const warnings = result.content.flatMap((lesson: TutorLesson) => {
+          if (lesson.status === 'CANCELLED') return [];
+          const weekday = new Date(`${lesson.date}T00:00:00`).getDay() || 7;
+          const conflict = availabilities.some(
+            (slot) =>
+              slot.dayOfWeek === weekday &&
+              slot.startTime &&
+              slot.endTime &&
+              slot.startTime < lesson.endTime.slice(0, 5) &&
+              slot.endTime > lesson.startTime.slice(0, 5)
+          );
+          return conflict
+            ? [
+                `Bạn đang có buổi học "${lesson.title || 'Buổi học'}" trùng khung giờ ${lesson.date} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}.`
+              ]
+            : [];
+        });
+        setScheduleWarnings([...new Set(warnings)]);
+      })
+      .catch(() => setScheduleWarnings([]));
+    return () => controller.abort();
+  }, [availabilities]);
 
   useEffect(() => {
     if (!provinceId) return;
@@ -232,20 +262,23 @@ export function MyTeachingRequestsPage() {
           await payTeachingRequestByWallet(request.id);
           paidCount += 1;
         }
-        setMessage(`Đã thanh toán bằng ví và đăng ${paidCount} yêu cầu thành công.`);
+        notifyGlobalToast(`Đã thanh toán bằng ví và đăng ${paidCount} yêu cầu thành công.`);
+        setMessage('');
       } else if (paymentMethod === 'vnpay') {
         paymentStage = true;
         const payment = await startTeachingRequestVnPay(savedRequests[0].id);
         if (!payment.paymentUrl) throw new Error('Không nhận được liên kết thanh toán VNPay.');
         if (paymentTab) paymentTab.location.href = payment.paymentUrl;
         else window.location.assign(payment.paymentUrl);
-        setMessage('Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp cho đến khi thanh toán thành công.');
+        notifyGlobalToast('Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp cho đến khi thanh toán thành công.');
+        setMessage('');
       } else {
-        setMessage(
+        notifyGlobalToast(
           editing
             ? 'Đã cập nhật yêu cầu dạy.'
             : `Đã lưu ${savedRequests.length} bản nháp. Bạn có thể thanh toán sau trong trang chi tiết.`
         );
+        setMessage('');
       }
       setFormOpen(false);
       setEditing(null);
@@ -324,7 +357,7 @@ export function MyTeachingRequestsPage() {
           throw caught;
         }
       }
-      setMessage(
+      const successMessage =
         action === 'cancel'
           ? 'Đã hủy yêu cầu dạy.'
           : action === 'close'
@@ -335,8 +368,9 @@ export function MyTeachingRequestsPage() {
                 ? 'Đã thanh toán bằng ví và đăng yêu cầu.'
                 : action === 'pay-vnpay'
                   ? 'Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp nếu chưa thanh toán thành công.'
-                  : 'Đã cập nhật yêu cầu dạy.'
-      );
+                  : 'Đã cập nhật yêu cầu dạy.';
+      notifyGlobalToast(successMessage);
+      setMessage('');
       reload();
     } catch (caught) {
       if (action === 'pay-wallet') {
@@ -520,6 +554,15 @@ export function MyTeachingRequestsPage() {
             values={availabilities}
             onChange={setAvailabilities}
           />
+          {scheduleWarnings.length > 0 && (
+            <div className="tutor-schedule-warning student-field-full" role="status">
+              <strong>Lịch có thể bị trùng</strong>
+              {scheduleWarnings.map((warning) => (
+                <div key={warning}>{warning}</div>
+              ))}
+              <div>Bạn vẫn có thể lưu yêu cầu vì chưa xác định ngày bắt đầu hợp đồng.</div>
+            </div>
+          )}
           {(!editing || editing.status === 'DRAFT') && (
             <div className="student-field-full common-payment-summary">
               <strong>Số tiền cần thanh toán: {amountDue.toLocaleString('vi-VN')} VNĐ</strong>
@@ -645,7 +688,7 @@ export function MyTeachingRequestsPage() {
                 const hasActions = canEdit || canPay || canClose || canReopen || canCancel;
                 return (
                   <article
-                    className={`student-panel student-request-card status-${requestStatus.toLowerCase()}`}
+                    className={`student-panel student-request-card status-${requestStatus.toLowerCase()}${menuId === request.id ? ' menu-open' : ''}`}
                     key={request.id}
                     onClick={() => navigate(`/tutor/sections/teaching-requests/${request.id}`)}
                     onKeyDown={(event) => {

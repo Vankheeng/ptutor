@@ -4,6 +4,7 @@ import { getGrades } from '../../services/gradeApi';
 import { getAllDistricts, getDistricts, getProvinces } from '../../services/locationApi';
 import {
   getStudentProfile,
+  getStudentLessons,
   type Availability,
   type LearningMode,
   type StudyingRequest,
@@ -70,6 +71,7 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
   const [catalogError, setCatalogError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
   const initializedProfile = useRef(false);
 
   useEffect(() => {
@@ -132,6 +134,33 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setState((current) => ({ ...current, [key]: value }));
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getStudentLessons(controller.signal)
+      .then((result) => {
+        const warnings = result.content.flatMap((lesson) => {
+          if (lesson.status === 'CANCELLED') return [];
+          const weekday = new Date(`${lesson.date}T00:00:00`).getDay() || 7;
+          const conflict = state.availabilities.some(
+            (slot) =>
+              slot.dayOfWeek === weekday &&
+              slot.startTime &&
+              slot.endTime &&
+              slot.startTime < lesson.endTime.slice(0, 5) &&
+              slot.endTime > lesson.startTime.slice(0, 5)
+          );
+          return conflict
+            ? [
+                `Bạn đang có buổi học "${lesson.title || 'Buổi học'}" trùng khung giờ ${lesson.date} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}.`
+              ]
+            : [];
+        });
+        setScheduleWarnings([...new Set(warnings)]);
+      })
+      .catch(() => setScheduleWarnings([]));
+    return () => controller.abort();
+  }, [state.availabilities]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -308,6 +337,15 @@ export function StudentStudyingRequestForm({ mode, initial, onSubmit, onCancel }
           values={state.availabilities}
           onChange={(availabilities) => set('availabilities', availabilities)}
         />
+        {scheduleWarnings.length > 0 && (
+          <div className="tutor-schedule-warning student-field-full" role="status">
+            <strong>Lịch có thể bị trùng</strong>
+            {scheduleWarnings.map((warning) => (
+              <div key={warning}>{warning}</div>
+            ))}
+            <div>Bạn vẫn có thể lưu yêu cầu vì chưa xác định ngày bắt đầu hợp đồng.</div>
+          </div>
+        )}
         <div className="student-form-actions">
           <button className="student-button danger" type="button" onClick={onCancel} disabled={loading}>
             Cancel
