@@ -1,0 +1,93 @@
+.admin-contracts-table {
+  min-width: 1080px;
+}
+.admin-contracts-table .admin-stack span {
+  overflow-wrap: anywhere;
+}
+.admin-contract-detail {
+  display: grid;
+  gap: 20px;
+}
+.admin-contract-detail-id {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--admin-brand-soft);
+}
+.admin-contract-detail-id span {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.admin-contract-detail-id strong {
+  color: var(--admin-brand-ink);
+  font-size: 17px;
+}
+.admin-contract-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.admin-contract-party-card,
+.admin-contract-detail-section {
+  padding: 18px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+}
+.admin-contract-detail h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+.admin-contract-party-card {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  color: var(--admin-ink);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+.admin-contract-party-card:hover {
+  border-color: var(--admin-brand);
+  background: var(--admin-brand-soft);
+  box-shadow: 0 4px 14px #6736d615;
+}
+.admin-contract-party-card:focus-visible {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 3px;
+}
+.admin-contract-party-card span {
+  color: var(--admin-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.admin-contract-detail-section dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+  margin: 0;
+}
+.admin-contract-detail-section .wide {
+  grid-column: 1/-1;
+}
+.admin-contract-detail-section dt {
+  margin-bottom: 5px;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.admin-contract-detail-section dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .admin-contract-parties,
+  .admin-contract-detail-section dl {
+    grid-template-columns: 1fr;
+  }
+  .admin-contract-detail-section .wide {
+    grid-column: auto;
+  }
+}

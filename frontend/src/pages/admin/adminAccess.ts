@@ -22,6 +22,7 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
     items: [
       { to: '/admin/students', label: 'Học viên', icon: 'student', functions: CUSTOMER_SERVICE },
       { to: '/admin/tutors', label: 'Gia sư', icon: 'tutor', functions: CUSTOMER_SERVICE },
+      { to: '/admin/contracts', label: 'Hợp đồng', icon: 'contract', functions: CUSTOMER_SERVICE },
       { to: '/admin/notifications', label: 'Thông báo', icon: 'bell', functions: CUSTOMER_SERVICE },
       { to: '/admin/employees', label: 'Nhân viên', icon: 'team', functions: [] }
     ]

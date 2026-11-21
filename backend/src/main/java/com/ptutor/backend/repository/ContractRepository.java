@@ -49,6 +49,29 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
             Pageable pageable);
 
     @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade"
+    })
+    @Query("""
+            select contract from Contract contract
+            where (:status is null or contract.status = :status)
+              and (:keyword = '%' or
+                   lower(contract.subject.name) like :keyword or
+                   lower(contract.grade.name) like :keyword or
+                   lower(contract.student.user.email) like :keyword or
+                   lower(contract.tutor.user.email) like :keyword or
+                   lower(concat(coalesce(contract.student.user.firstName, ''), ' ', coalesce(contract.student.user.lastName, ''))) like :keyword or
+                   lower(concat(coalesce(contract.tutor.user.firstName, ''), ' ', coalesce(contract.tutor.user.lastName, ''))) like :keyword)
+            """)
+    Page<Contract> findAllForAdmin(@Param("status") ContractStatus status,
+                                   @Param("keyword") String keyword, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "schedules"
+    })
+    @Query("select contract from Contract contract where contract.id = :contractId")
+    Optional<Contract> findDetailedByIdForAdmin(@Param("contractId") UUID contractId);
+
+    @EntityGraph(attributePaths = {
             "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
             "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
     })
