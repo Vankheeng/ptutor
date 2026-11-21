@@ -11,6 +11,7 @@ import {
   payInstallment,
   payInstallmentWithWallet,
   rejectContract,
+  refreshContract,
   renewContract,
   signContract,
   updateContract,
@@ -176,6 +177,7 @@ export function StudentContractDetailPage() {
         notice={notice}
         onSave={saveTerms}
         onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
+        onRefresh={() => action(() => refreshContract(contract.id), 'Đã làm mới thời hạn ký hợp đồng.')}
       />
     );
   }
@@ -261,6 +263,9 @@ export function StudentContractDetailPage() {
 
       {contract.status !== 'PENDING' && (
         <div className="student-form-actions student-contract-related-actions">
+          <Link className="student-button secondary" to={`/student/complaints/new?contractId=${contract.id}`}>
+            Khiếu nại hợp đồng
+          </Link>
           <Link className="student-button secondary" to={`/student/contracts/${contract.id}/lessons`}>
             Buổi học và hoàn tiền
           </Link>

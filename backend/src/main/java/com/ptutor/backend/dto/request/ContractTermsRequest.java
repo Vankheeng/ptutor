@@ -34,10 +34,12 @@ public record ContractTermsRequest(
         @NotNull(message = "End date is required")
         LocalDate endDate,
 
-        List<ContractScheduleRequest> schedules) {
+        List<ContractScheduleRequest> schedules,
+
+        Boolean deferScheduleCreation) {
 
     public ContractTermsRequest(BigDecimal price, PaymentPeriod paymentPeriod, Integer totalLessons,
             String preferredSchedule, LocalDate startDate, LocalDate endDate) {
-        this(price, paymentPeriod, totalLessons, preferredSchedule, startDate, endDate, null);
+        this(price, paymentPeriod, totalLessons, preferredSchedule, startDate, endDate, null, false);
     }
 }

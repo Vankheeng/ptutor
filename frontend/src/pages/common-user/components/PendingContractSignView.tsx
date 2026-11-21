@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ProfileNameLink } from '../../../components/common-user/ProfileNameLink';
 import { Icon } from '../../../components/ui/Icon';
-import type { Contract, ContractTerms } from '../../../services/studentApi';
+import { checkContractSchedule, type Contract, type ContractTerms } from '../../../services/studentApi';
 import { parsePreferredSchedules } from '../../../utils/scheduleFormat';
 import { ContractParticipantCard } from './ContractParticipantCard';
 import { ContractTermsForm } from './ContractTermsForm';
@@ -17,17 +18,28 @@ interface BaseProps {
 
 type Props = BaseProps &
   (
-    | { mode: 'sign'; onSign: () => Promise<void>; onReject: () => void }
-    | { mode: 'edit'; onSave: (terms: Partial<ContractTerms>) => Promise<void>; onCancel: () => void }
+    | { mode: 'sign'; onSign: (terms: ContractTerms) => Promise<void>; onReject: () => void }
+    | {
+        mode: 'edit';
+        onSave: (terms: Partial<ContractTerms>) => Promise<void>;
+        onCancel: () => void;
+        onRefresh: () => Promise<void>;
+      }
   );
 
 export function PendingContractSignView(props: Props) {
   const { contract, backPath, busy, error, notice, viewerRole } = props;
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setNow(Date.now()), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   const studentName = [contract.studentFirstName, contract.studentLastName].filter(Boolean).join(' ') || 'Học viên';
   const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const studentSigned = props.mode === 'edit' ? viewerRole === 'student' : viewerRole === 'tutor';
   const tutorSigned = !studentSigned;
   const deadline = new Date(new Date(contract.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expired = now > 0 && (deadline.getTime() <= now || new Date(`${contract.endDate}T00:00:00`).getTime() <= now);
   const legacySchedules = contract.schedules?.length ? [] : parsePreferredSchedules(contract.preferredSchedule);
   const displayedSchedules = contract.schedules?.length ? contract.schedules : legacySchedules;
   const saveTerms = async (terms: ContractTerms) => {
@@ -137,40 +149,59 @@ export function PendingContractSignView(props: Props) {
               <strong>{contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
             </div>
           </div>
-          <ContractTermsForm
-            key={contract.updatedAt}
-            initial={{
-              price: contract.price,
-              paymentPeriod: contract.paymentPeriod,
-              startDate: contract.startDate,
-              endDate: contract.endDate,
-              totalLessons: contract.totalLessons,
-              schedules: displayedSchedules
-            }}
-            pdfDetails={{
-              studentName,
-              studentEmail: contract.studentEmail,
-              studentAddress: contract.teachingMode === 'ONLINE' ? null : contract.studentDetailAddress,
-              tutorName,
-              tutorEmail: contract.tutorEmail,
-              subject: contract.subjectName,
-              grade: contract.gradeName,
-              teachingMode: contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp',
-              studentSigned,
-              tutorSigned,
-              studentSignedAt: studentSigned ? contract.createdAt : null,
-              tutorSignedAt: tutorSigned ? contract.createdAt : null
-            }}
-            submitLabel={props.mode === 'sign' ? 'Ký hợp đồng' : 'Lưu thay đổi'}
-            cancelLabel={props.mode === 'sign' ? 'Từ chối hợp đồng' : 'Hủy hợp đồng'}
-            loading={busy}
-            signingExisting={props.mode === 'sign'}
-            includeAgreement={props.mode === 'sign'}
-            showPdf={props.mode === 'edit'}
-            editingExisting={props.mode === 'edit'}
-            onCancel={props.mode === 'sign' ? props.onReject : props.onCancel}
-            onSubmit={props.mode === 'sign' ? props.onSign : saveTerms}
-          />
+          {expired ? (
+            <div className="student-error contract-expired-refresh" role="alert">
+              <strong>Hợp đồng đã hết hạn ký.</strong>
+              <p>Thời hạn ký đã kết thúc trước khi cả hai bên hoàn tất ký hợp đồng.</p>
+              {props.mode === 'edit' && (
+                <button
+                  type="button"
+                  className="student-button primary"
+                  disabled={busy}
+                  onClick={() => void props.onRefresh()}
+                >
+                  Làm mới hợp đồng
+                </button>
+              )}
+            </div>
+          ) : (
+            <ContractTermsForm
+              key={contract.updatedAt}
+              initial={{
+                price: contract.price,
+                paymentPeriod: contract.paymentPeriod,
+                startDate: contract.startDate,
+                endDate: contract.endDate,
+                totalLessons: contract.totalLessons,
+                schedules: displayedSchedules
+              }}
+              pdfDetails={{
+                studentName,
+                studentEmail: contract.studentEmail,
+                studentAddress: contract.teachingMode === 'ONLINE' ? null : contract.studentDetailAddress,
+                tutorName,
+                tutorEmail: contract.tutorEmail,
+                subject: contract.subjectName,
+                grade: contract.gradeName,
+                teachingMode: contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp',
+                studentSigned,
+                tutorSigned,
+                studentSignedAt: studentSigned ? contract.createdAt : null,
+                tutorSignedAt: tutorSigned ? contract.createdAt : null
+              }}
+              submitLabel={props.mode === 'sign' ? 'Ký hợp đồng' : 'Lưu thay đổi'}
+              cancelLabel={props.mode === 'sign' ? 'Từ chối hợp đồng' : 'Hủy hợp đồng'}
+              loading={busy}
+              signingExisting={props.mode === 'sign'}
+              includeAgreement={props.mode === 'sign'}
+              showPdf={props.mode === 'edit'}
+              editableScheduleList={props.mode === 'edit'}
+              editingExisting={props.mode === 'edit'}
+              onCancel={props.mode === 'sign' ? props.onReject : props.onCancel}
+              onCheckSchedule={(terms) => checkContractSchedule(contract.id, terms).then((result) => result.messages)}
+              onSubmit={props.mode === 'sign' ? props.onSign : saveTerms}
+            />
+          )}
         </section>
       </div>
     </div>

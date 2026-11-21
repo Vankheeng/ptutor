@@ -182,3 +182,4 @@
   .tutor-sidebar,.tutor-shell-collapsed .tutor-sidebar{top:56px;height:auto;min-height:0}
   .tutor-nav-actions{flex:none;margin:0 0 0 4px;padding:0 0 0 6px;border-top:0;border-left:1px solid #eff0f5}
 }
+.notification-nav-badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;display:inline-grid;place-items:center;border-radius:999px;background:#e5484d;color:#fff;font-size:10px;font-weight:800;line-height:1}

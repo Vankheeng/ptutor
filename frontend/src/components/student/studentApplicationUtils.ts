@@ -16,6 +16,7 @@ export function applicationStatusLabel(value: StudentApplication['status']) {
   const labels: Record<StudentApplication['status'], string> = {
     PENDING: 'Đang chờ',
     ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
     REJECTED: 'Bị từ chối',
     CANCELLED: 'Đã hủy'
   };

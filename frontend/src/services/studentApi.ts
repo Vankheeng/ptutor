@@ -11,8 +11,21 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface StudentScheduleLesson {
+  id: string;
+  title: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+export function getStudentLessons(signal?: AbortSignal) {
+  return get<PageResponse<StudentScheduleLesson>>('/api/v1/students/me/lessons?page=0&size=100', { signal });
+}
+
 export type RequestStatus = 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
-export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'CONNECTED' | 'REJECTED' | 'CANCELLED';
 export type LearningMode = 'ONLINE' | 'OFFLINE';
 export type ContractStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
@@ -177,6 +190,7 @@ export interface Contract {
   studentTutorRequestId: string | null;
   renewedFromContractId: string | null;
   signedAt: string | null;
+  cancelledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -322,6 +336,19 @@ export interface ContractTerms {
   schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
+  deferScheduleCreation?: boolean;
+}
+
+export interface ScheduleConflictCheckResponse {
+  hasConflict: boolean;
+  messages: string[];
+}
+
+export function checkContractSchedule(contractId: string, terms: ContractTerms) {
+  return post<ScheduleConflictCheckResponse>(
+    `/api/v1/users/me/contracts/${encodeURIComponent(contractId)}/check-schedule`,
+    terms
+  );
 }
 
 const pageParams = (page = 0, size = 20, status?: string, sort?: 'ASC' | 'DESC') => {
@@ -435,6 +462,11 @@ export const createStudentContract = (studyingRequestId: string, tutorRequestId:
     `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests/${tutorRequestId}/contracts`,
     terms
   );
+export const checkStudentContractSchedule = (studyingRequestId: string, tutorRequestId: string, terms: ContractTerms) =>
+  post<ScheduleConflictCheckResponse>(
+    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests/${tutorRequestId}/contracts/check-schedule`,
+    terms
+  );
 export function getContracts(status?: ContractStatus, page = 0, size = 20, signal?: AbortSignal) {
   return get<PageResponse<Contract>>(`/api/v1/users/me/contracts?${pageParams(page, size, status)}`, { signal });
 }
@@ -455,6 +487,7 @@ export const updateContract = (id: string, values: Partial<ContractTerms> & { gr
 export const signContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/sign`);
 export const rejectContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/reject`);
 export const cancelContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/cancel`);
+export const refreshContract = (id: string) => post<Contract>(`/api/v1/users/me/contracts/${id}/refresh`);
 export const renewContract = (id: string, terms: ContractTerms) =>
   post<Contract>(`/api/v1/users/me/contracts/${id}/renewals`, terms);
 

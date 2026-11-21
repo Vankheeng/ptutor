@@ -22,7 +22,7 @@ export function TutorStudyingRequestPage() {
     .filter((proposal) => proposal.studyingRequestId === requestId)
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
   const myProposal = proposalHistory[0];
-  const hasAcceptedProposal = proposalHistory.some((proposal) => proposal.status === 'ACCEPTED');
+  const hasAcceptedProposal = proposalHistory.some((proposal) => ['ACCEPTED', 'CONNECTED'].includes(proposal.status));
   const canApply = Boolean(
     request?.status === 'OPEN' &&
     !hasAcceptedProposal &&
@@ -310,7 +310,10 @@ export function TutorStudyingRequestPage() {
                 { label: 'Cập nhật lần cuối', value: formatDateTime(myProposal.updatedAt) },
                 ...(myProposal.status === 'ACCEPTED'
                   ? [
-                      { label: 'Thời gian được duyệt', value: formatDateTime(myProposal.updatedAt) },
+                      {
+                        label: 'Thời gian được duyệt',
+                        value: formatDateTime(myProposal.acceptedAt ?? myProposal.updatedAt)
+                      },
                       {
                         label: 'Bước tiếp theo',
                         value: contractIds[myProposal.id] ? 'Đã có hợp đồng' : tutorNextStepLabel(myProposal.nextStep)

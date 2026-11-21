@@ -203,9 +203,14 @@ function tutorName(offer: TutorOffer) {
   return [offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
 }
 function statusLabel(status: ApplicationStatus | 'ALL') {
-  return { ALL: 'Tất cả', PENDING: 'Chờ xử lý', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy' }[
-    status
-  ];
+  return {
+    ALL: 'Tất cả',
+    PENDING: 'Chờ xử lý',
+    ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
+    REJECTED: 'Đã từ chối',
+    CANCELLED: 'Đã hủy'
+  }[status];
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));

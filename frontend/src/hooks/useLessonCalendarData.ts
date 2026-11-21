@@ -15,11 +15,13 @@ export type CalendarRole = 'TUTOR' | 'STUDENT';
 export type CalendarEvent = {
   id: string;
   contractId: string;
+  contractStatus: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   title: string;
   date: string;
   startTime: string;
   endTime: string;
   status: LessonStatus;
+  paidAt: string | null;
   note: string | null;
   markedTaughtAt: string | null;
   disputed: boolean;
@@ -30,6 +32,7 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
   const load = useCallback(
     async (signal: AbortSignal) => {
       const contracts = await getContracts(undefined, 0, 100, signal);
+      const visibleContracts = contracts.content.filter((contract) => contract.status !== 'CANCELLED');
       const refundPage =
         role === 'TUTOR' ? await getTutorRefundRequests(0, signal) : await getMyRefundRequests(0, signal);
       const disputeByLesson = new Map<string, string>();
@@ -40,7 +43,7 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
         );
 
       const lessonsByContract = await Promise.all(
-        contracts.content.map(async (contract) => {
+        visibleContracts.map(async (contract) => {
           try {
             const lessons: (TutorLesson | ContractLesson)[] =
               role === 'TUTOR'
@@ -49,11 +52,13 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
             return lessons.map((lesson) => ({
               id: lesson.id,
               contractId: contract.id,
+              contractStatus: contract.status,
               title: lesson.title || contract.subjectName || '',
               date: lesson.date,
               startTime: lesson.startTime,
               endTime: lesson.endTime,
               status: lesson.status,
+              paidAt: lesson.paidAt,
               note: lesson.note,
               markedTaughtAt: 'markedTaughtAt' in lesson ? lesson.markedTaughtAt : null,
               disputed: disputeByLesson.has(lesson.id),
@@ -65,7 +70,7 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
         })
       );
 
-      return { contracts: contracts.content, events: lessonsByContract.flat() };
+      return { contracts: visibleContracts, events: lessonsByContract.flat() };
     },
     [role]
   );

@@ -21,6 +21,7 @@ import com.ptutor.backend.dto.request.ContractUpdateRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
 import com.ptutor.backend.dto.response.CancelContractRequestResponse;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.ScheduleConflictCheckResponse;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -87,6 +88,16 @@ public class ContractController {
                 BASE_PATH + "/" + contractId + "/sign"));
     }
 
+    @PostMapping("/{contractId}/check-schedule")
+    public ResponseEntity<ApiResponse<ScheduleConflictCheckResponse>> checkSchedule(
+            @PathVariable UUID contractId,
+            @Valid @RequestBody ContractTermsRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                contractService.checkExistingContractSchedule(
+                        currentUserProvider.getCurrentUserId(), contractId, request),
+                BASE_PATH + "/" + contractId + "/check-schedule"));
+    }
+
     @PatchMapping("/{contractId}/reject")
     public ResponseEntity<ApiResponse<ContractResponse>> reject(@PathVariable UUID contractId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -103,6 +114,15 @@ public class ContractController {
                 "Contract cancelled successfully",
                 contractService.cancel(currentUserProvider.getCurrentUserId(), contractId),
                 BASE_PATH + "/" + contractId + "/cancel"));
+    }
+
+    @PostMapping("/{contractId}/refresh")
+    public ResponseEntity<ApiResponse<ContractResponse>> refresh(@PathVariable UUID contractId) {
+        return ResponseEntity.ok(responseFactory.success(
+                "CONTRACT_REFRESHED",
+                "Contract signing deadline refreshed successfully",
+                contractService.refreshSigningDeadline(currentUserProvider.getCurrentUserId(), contractId),
+                BASE_PATH + "/" + contractId + "/refresh"));
     }
 
     @PostMapping("/{contractId}/renewals")

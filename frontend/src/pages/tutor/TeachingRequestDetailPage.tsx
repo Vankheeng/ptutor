@@ -6,6 +6,7 @@ import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import {
   getMyTeachingRequest,
   getTeachingRequestApplications,
+  cancelMyTeachingRequest,
   payTeachingRequestByWallet,
   startTeachingRequestVnPay,
   teachingRequestWalletErrorMessage,
@@ -44,7 +45,12 @@ export function TeachingRequestDetailPage() {
   const query = useResource(load, revision);
   const request: TeachingRequest | null = query.data?.request ?? null;
   const applications = query.data?.applications ?? [];
-  const contractByApplicationId = new Map(
+  const currentContractByApplicationId = new Map(
+    (query.data?.contracts ?? [])
+      .filter((contract) => contract.studentTutorRequestId && contract.status !== 'CANCELLED')
+      .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+  );
+  const previousContractByApplicationId = new Map(
     (query.data?.contracts ?? [])
       .filter((contract) => contract.studentTutorRequestId)
       .map((contract) => [contract.studentTutorRequestId as string, contract.id])
@@ -135,6 +141,22 @@ export function TeachingRequestDetailPage() {
     }
   };
 
+  const cancelDraft = async () => {
+    if (!request || request.status !== 'DRAFT' || !window.confirm('Bạn có chắc muốn hủy bản nháp này không?')) return;
+    setBusy('cancel');
+    setError('');
+    setNotice('');
+    try {
+      await cancelMyTeachingRequest(request.id);
+      setNotice('Đã hủy bản nháp yêu cầu dạy.');
+      setRevision((value) => value + 1);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy bản nháp yêu cầu dạy.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (query.error)
     return (
       <div className="student-error" role="alert">
@@ -185,6 +207,16 @@ export function TeachingRequestDetailPage() {
               Chỉnh sửa
             </button>
           )}
+          {request.status === 'DRAFT' && (
+            <button
+              className="student-button secondary"
+              type="button"
+              disabled={busy === 'cancel'}
+              onClick={() => void cancelDraft()}
+            >
+              {busy === 'cancel' ? 'Đang hủy…' : 'Hủy bản nháp'}
+            </button>
+          )}
         </div>
       </div>
       {notice && (
@@ -193,7 +225,7 @@ export function TeachingRequestDetailPage() {
         </div>
       )}
       {error && (
-        <div className="student-error" role="alert">
+        <div className="student-error tutor-toast-source" role="alert">
           {error}
         </div>
       )}
@@ -347,37 +379,115 @@ export function TeachingRequestDetailPage() {
                 {application.status === 'PENDING' && request.status === 'MATCHED' && (
                   <span className="teaching-application-closed-note">Yêu cầu đã đủ số lượng học viên.</span>
                 )}
-                {application.status === 'ACCEPTED' &&
-                (application.contractId ?? contractByApplicationId.get(application.id)) ? (
-                  <div className="teaching-application-actions">
-                    <Link
-                      className="student-button draft"
-                      to={`/tutor/sections/contracts/${application.contractId ?? contractByApplicationId.get(application.id)}`}
-                    >
-                      Xem chi tiết
-                    </Link>
-                    <Link
-                      className="student-button secondary"
-                      to={`/tutor/complaints/new?contractId=${application.contractId ?? contractByApplicationId.get(application.id)}`}
-                    >
-                      Khiếu nại
-                    </Link>
-                  </div>
-                ) : application.status === 'ACCEPTED' ? (
-                  <div className="teaching-application-actions">
-                    <button
-                      className="student-button draft"
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
-                        )
-                      }
-                    >
-                      Tạo hợp đồng
-                    </button>
-                  </div>
-                ) : null}
+                {(() => {
+                  const currentContractId =
+                    application.contractId ?? currentContractByApplicationId.get(application.id);
+                  const previousContractId =
+                    application.previousContractId ?? previousContractByApplicationId.get(application.id);
+                  const oldContractId =
+                    previousContractId && previousContractId !== currentContractId ? previousContractId : null;
+                  const previousContract = (query.data?.contracts ?? []).find((item) => item.id === previousContractId);
+                  const previousContractStatus = application.previousContractStatus ?? previousContract?.status ?? null;
+                  const canCreateContract =
+                    !currentContractId &&
+                    (!previousContractId || previousContractStatus === 'CANCELLED' || previousContractStatus === null);
+                  const contract = (query.data?.contracts ?? []).find((item) => item.id === currentContractId);
+                  const canRejectAccepted =
+                    application.status === 'ACCEPTED' && (!contract || contract.status === 'PENDING');
+
+                  if (application.status === 'ACCEPTED' && canRejectAccepted) {
+                    return (
+                      <div className="teaching-application-actions">
+                        {currentContractId ? (
+                          <Link className="student-button draft" to={`/tutor/sections/contracts/${currentContractId}`}>
+                            Xem hợp đồng
+                          </Link>
+                        ) : null}
+                        {!currentContractId && canCreateContract ? (
+                          <button
+                            className="student-button draft"
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                              )
+                            }
+                          >
+                            Tạo hợp đồng
+                          </button>
+                        ) : null}
+                        <button
+                          className="student-button secondary"
+                          disabled={busy === application.id}
+                          onClick={() => void updateApplication(application, 'REJECTED')}
+                        >
+                          Từ chối
+                        </button>
+                        {oldContractId ? (
+                          <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+                            Xem hợp đồng cũ
+                          </Link>
+                        ) : null}
+                      </div>
+                    );
+                  }
+
+                  if (['ACCEPTED', 'CONNECTED'].includes(application.status) && currentContractId) {
+                    return (
+                      <div className="teaching-application-actions">
+                        <Link className="student-button draft" to={`/tutor/sections/contracts/${currentContractId}`}>
+                          Xem hợp đồng
+                        </Link>
+                        <Link
+                          className="student-button secondary"
+                          to={`/tutor/complaints/new?contractId=${currentContractId}`}
+                        >
+                          Khiếu nại
+                        </Link>
+                      </div>
+                    );
+                  }
+
+                  if (application.status === 'ACCEPTED') {
+                    return (
+                      <div className="teaching-application-actions">
+                        {canCreateContract ? (
+                          <button
+                            className="student-button draft"
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                              )
+                            }
+                          >
+                            Tạo hợp đồng
+                          </button>
+                        ) : previousContractId ? (
+                          <Link className="student-button draft" to={`/tutor/sections/contracts/${previousContractId}`}>
+                            Xem hợp đồng
+                          </Link>
+                        ) : null}
+                        {oldContractId ? (
+                          <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+                            Xem hợp đồng cũ
+                          </Link>
+                        ) : null}
+                      </div>
+                    );
+                  }
+
+                  if (oldContractId && ['REJECTED', 'CANCELLED'].includes(application.status)) {
+                    return (
+                      <div className="teaching-application-actions">
+                        <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+                          Xem hợp đồng cũ
+                        </Link>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </article>
             ))
           )}
@@ -434,10 +544,13 @@ function statusText(status: string) {
 function applicationStatusText(status: string) {
   return (
     (
-      { PENDING: 'Đang chờ', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy' } as Record<
-        string,
-        string
-      >
+      {
+        PENDING: 'Đang chờ',
+        ACCEPTED: 'Đã chấp nhận',
+        CONNECTED: 'Đã kết nối',
+        REJECTED: 'Đã từ chối',
+        CANCELLED: 'Đã hủy'
+      } as Record<string, string>
     )[status] ?? status
   );
 }

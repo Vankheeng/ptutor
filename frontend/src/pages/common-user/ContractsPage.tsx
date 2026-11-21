@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/useAuth';
 import { useResource } from '../../hooks/useResource';
 import { getContracts, type Contract, type ContractStatus } from '../../services/studentApi';
 import { Icon } from '../../components/ui/Icon';
+import { formatLessonPrice } from '../../utils/contractPricing';
 import './contracts.css';
 
 export type ContractRole = 'student' | 'tutor';
@@ -218,9 +219,7 @@ function ContractRow({
         </div>
       </div>
       <div className="tutor-contract-row-price">
-        <strong>
-          {formatMoney(contract.price)} / {paymentLabel(contract.paymentPeriod)}
-        </strong>
+        <strong>{formatLessonPrice(contract)}</strong>
         <small>{contract.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</small>
         <small>
           - {formatDate(contract.startDate)} - {formatDate(contract.endDate)}
@@ -248,12 +247,6 @@ function statusLabel(value: ContractStatus) {
       string
     >
   )[value];
-}
-function paymentLabel(value: Contract['paymentPeriod']) {
-  return ({ PER_LESSON: 'buổi', WEEKLY: 'tuần', MONTHLY: 'tháng', PACKAGE: 'gói' } as Record<string, string>)[value];
-}
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));

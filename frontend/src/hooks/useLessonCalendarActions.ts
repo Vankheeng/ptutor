@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { confirmContractLesson } from '../services/refundApi';
+import { ApiError } from '../services/httpClient';
 import { createTutorLesson, setTutorLessonStatus, updateTutorLesson } from '../services/tutorApi';
 import { refundErrorMessage } from '../components/refund/refundFormat';
 import type { CalendarEvent, CalendarRole } from './useLessonCalendarData';
 
 type FormValues = { title: string; date: string; startTime: string; endTime: string; note?: string };
+
+function lessonActionError(failure: unknown, fallback: string) {
+  if (failure instanceof ApiError && failure.code === 'LESSON_SCHEDULE_CONFLICT') {
+    return failure.message;
+  }
+  return failure instanceof Error ? failure.message : fallback;
+}
 
 export function useLessonCalendarActions(
   role: CalendarRole,
@@ -31,6 +39,10 @@ export function useLessonCalendarActions(
   };
 
   const markTaught = async (event: CalendarEvent) => {
+    if (!event.paidAt) {
+      onNotice('Buổi học đang chờ thanh toán, chưa thể đánh dấu đã dạy.');
+      return;
+    }
     setBusy(event.id);
     try {
       await setTutorLessonStatus(event.id, 'PENDING_CONFIRMATION');
@@ -58,7 +70,7 @@ export function useLessonCalendarActions(
       onRefresh();
       return true;
     } catch (failure) {
-      setCreateError(failure instanceof Error ? failure.message : 'Không thể lưu buổi học. Vui lòng thử lại.');
+      setCreateError(lessonActionError(failure, 'Không thể lưu buổi học. Vui lòng thử lại.'));
       return false;
     }
   };
@@ -79,7 +91,7 @@ export function useLessonCalendarActions(
       onNotice('Đã cập nhật lịch học.');
       return true;
     } catch (failure) {
-      setActionError(failure instanceof Error ? failure.message : 'Không thể cập nhật lịch học.');
+      setActionError(lessonActionError(failure, 'Không thể cập nhật lịch học.'));
       return false;
     }
   };

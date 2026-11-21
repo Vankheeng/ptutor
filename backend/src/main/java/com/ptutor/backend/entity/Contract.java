@@ -101,6 +101,10 @@ public class Contract extends BaseEntity {
     @NonFinal
     private LocalDateTime signedAt;
 
+    @Column(name = "cancelled_at")
+    @NonFinal
+    private LocalDateTime cancelledAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     @NonFinal

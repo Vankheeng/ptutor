@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.ApplicationStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
 
 public record StudentTutorRequestResponse(
@@ -17,6 +18,8 @@ public record StudentTutorRequestResponse(
         String gradeName,
         UUID teachingRequestId,
         UUID contractId,
+        UUID previousContractId,
+        ContractStatus previousContractStatus,
         BigDecimal proposedPrice,
         LearningMode learningMode,
         String preferredSchedule,
@@ -34,7 +37,23 @@ public record StudentTutorRequestResponse(
     public StudentTutorRequestResponse withContractId(UUID value) {
         return new StudentTutorRequestResponse(
                 id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
-                teachingRequestId, value, proposedPrice, learningMode, preferredSchedule,
+                teachingRequestId, value, previousContractId, previousContractStatus, proposedPrice, learningMode, preferredSchedule,
+                preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
+                detailAddress, message, status, nextStep, createdAt, updatedAt);
+    }
+
+    public StudentTutorRequestResponse withPreviousContractId(UUID value) {
+        return new StudentTutorRequestResponse(
+                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                teachingRequestId, contractId, value, previousContractStatus, proposedPrice, learningMode, preferredSchedule,
+                preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
+                detailAddress, message, status, nextStep, createdAt, updatedAt);
+    }
+
+    public StudentTutorRequestResponse withPreviousContractStatus(ContractStatus value) {
+        return new StudentTutorRequestResponse(
+                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                teachingRequestId, contractId, previousContractId, value, proposedPrice, learningMode, preferredSchedule,
                 preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
                 detailAddress, message, status, nextStep, createdAt, updatedAt);
     }

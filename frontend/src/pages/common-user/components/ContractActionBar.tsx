@@ -62,6 +62,8 @@ export function ContractActionBar({ contract, currentUserId, busy, onSign, onRej
             tutorSigned={tutorSigned}
             studentSignedAt={createdByYou ? contract.createdAt : contract.signedByUserId ? contract.signedAt : null}
             tutorSignedAt={createdByYou ? (contract.signedByUserId ? contract.signedAt : null) : contract.createdAt}
+            contractStatus={contract.status}
+            cancelledAt={contract.cancelledAt ?? contract.updatedAt}
             price={contract.price}
             paymentPeriod={contract.paymentPeriod}
             startDate={contract.startDate}

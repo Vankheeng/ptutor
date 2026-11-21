@@ -26,6 +26,50 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     @EntityGraph(attributePaths = { "paymentInstallment" })
     List<Lesson> findAllByContract_IdOrderByDateAscStartTimeAsc(UUID contractId);
 
+    @Query("""
+            select count(lesson) > 0
+            from Lesson lesson
+            where (:excludedLessonId is null or lesson.id <> :excludedLessonId)
+              and lesson.status <> com.ptutor.backend.entity.enums.LessonStatus.CANCELLED
+              and lesson.contract.status = com.ptutor.backend.entity.enums.ContractStatus.ACTIVE
+              and lesson.date = :date
+              and lesson.startTime < :endTime
+              and lesson.endTime > :startTime
+              and (lesson.contract.student.user.id = :studentUserId
+                   or lesson.contract.tutor.user.id = :tutorUserId)
+            """)
+    boolean existsScheduleConflict(
+            @Param("studentUserId") UUID studentUserId,
+            @Param("tutorUserId") UUID tutorUserId,
+            @Param("date") java.time.LocalDate date,
+            @Param("startTime") java.time.LocalTime startTime,
+            @Param("endTime") java.time.LocalTime endTime,
+            @Param("excludedLessonId") UUID excludedLessonId);
+
+    @EntityGraph(attributePaths = {
+            "contract", "contract.student", "contract.student.user", "contract.tutor", "contract.tutor.user"
+    })
+    @Query("""
+            select lesson
+            from Lesson lesson
+            where (:excludedLessonId is null or lesson.id <> :excludedLessonId)
+              and lesson.status <> com.ptutor.backend.entity.enums.LessonStatus.CANCELLED
+              and lesson.contract.status = com.ptutor.backend.entity.enums.ContractStatus.ACTIVE
+              and lesson.date = :date
+              and lesson.startTime < :endTime
+              and lesson.endTime > :startTime
+              and (lesson.contract.student.user.id = :studentUserId
+                   or lesson.contract.tutor.user.id = :tutorUserId)
+            order by lesson.startTime asc
+            """)
+    List<Lesson> findScheduleConflicts(
+            @Param("studentUserId") UUID studentUserId,
+            @Param("tutorUserId") UUID tutorUserId,
+            @Param("date") java.time.LocalDate date,
+            @Param("startTime") java.time.LocalTime startTime,
+            @Param("endTime") java.time.LocalTime endTime,
+            @Param("excludedLessonId") UUID excludedLessonId);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select lesson from Lesson lesson where lesson.id in :lessonIds")
     List<Lesson> findAllByIdForUpdate(@Param("lessonIds") java.util.Collection<UUID> lessonIds);

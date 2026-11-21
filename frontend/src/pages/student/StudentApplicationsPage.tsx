@@ -19,7 +19,7 @@ import { applicationStatusLabel } from '../../components/student/studentApplicat
 import { updateStudentApplication } from '../../services/studentApi';
 import '../tutor/tutor.css';
 
-const filters: Array<'ALL' | ApplicationStatus> = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'];
+const filters: Array<'ALL' | ApplicationStatus> = ['ALL', 'PENDING', 'ACCEPTED', 'CONNECTED', 'REJECTED', 'CANCELLED'];
 const PAGE_SIZE = 20;
 
 export function StudentApplicationsPage() {

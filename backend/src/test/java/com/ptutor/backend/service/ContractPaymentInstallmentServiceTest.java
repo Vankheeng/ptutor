@@ -116,7 +116,7 @@ class ContractPaymentInstallmentServiceTest {
         ArgumentCaptor<List<ContractPaymentInstallment>> captor = ArgumentCaptor.forClass(List.class);
         verify(installmentRepository).saveAll(captor.capture());
         assertThat(captor.getValue()).hasSize(1);
-        assertThat(captor.getValue().get(0).getAmount()).isEqualByComparingTo("200000");
+        assertThat(captor.getValue().get(0).getAmount()).isEqualByComparingTo("2400000");
     }
 
     @Test

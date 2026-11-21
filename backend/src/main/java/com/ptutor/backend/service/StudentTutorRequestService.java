@@ -23,6 +23,7 @@ import com.ptutor.backend.entity.TeachingRequest;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
@@ -119,8 +120,16 @@ public class StudentTutorRequestService {
         UUID contractId = contractRepository == null
                 ? null
                 : contractRepository.findIdByStudentTutorRequestIdAndStatusNot(
-                        request.getId(), com.ptutor.backend.entity.enums.ContractStatus.CANCELLED).orElse(null);
-        return studentTutorRequestMapper.toResponse(request).withContractId(contractId);
+                        request.getId(), ContractStatus.CANCELLED).orElse(null);
+        var previousContract = contractRepository == null
+                ? java.util.Optional.<com.ptutor.backend.entity.Contract>empty()
+                : contractRepository.findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(request.getId());
+        UUID previousContractId = previousContract.map(contract -> contract.getId()).orElse(null);
+        ContractStatus previousContractStatus = previousContract.map(contract -> contract.getStatus()).orElse(null);
+        return studentTutorRequestMapper.toResponse(request)
+                .withContractId(contractId)
+                .withPreviousContractId(previousContractId)
+                .withPreviousContractStatus(previousContractStatus);
     }
 
     @Transactional(readOnly = true)
@@ -141,8 +150,27 @@ public class StudentTutorRequestService {
         if (targetStatus != ApplicationStatus.ACCEPTED && targetStatus != ApplicationStatus.REJECTED) {
             throw invalidTransition("Only ACCEPTED or REJECTED status is allowed");
         }
-        if (request.getStatus() != ApplicationStatus.PENDING) {
+        if (request.getStatus() != ApplicationStatus.PENDING
+                && !(targetStatus == ApplicationStatus.REJECTED && request.getStatus() == ApplicationStatus.ACCEPTED)) {
             throw invalidTransition("Only PENDING applications can be accepted or rejected");
+        }
+
+        if (targetStatus == ApplicationStatus.REJECTED && contractRepository != null) {
+            contractRepository.findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(request.getId())
+                    .ifPresent(contract -> {
+                        boolean studentAlreadySigned = contract.getSignedBy() != null
+                                || (contract.getCreatedBy() != null
+                                && contract.getCreatedBy().getId().equals(request.getStudent().getUser().getId()));
+                        if (studentAlreadySigned || contract.getStatus() == ContractStatus.ACTIVE
+                                || contract.getStatus() == ContractStatus.COMPLETED) {
+                            throw invalidTransition("Không thể từ chối vì học viên đã ký hợp đồng");
+                        }
+                        if (contract.getStatus() == ContractStatus.PENDING) {
+                            contract.setStatus(ContractStatus.CANCELLED);
+                            contract.setCancelledAt(java.time.LocalDateTime.now());
+                            contractRepository.saveAndFlush(contract);
+                        }
+                    });
         }
 
         TeachingRequest teachingRequest = request.getTeachingRequest();
@@ -181,6 +209,15 @@ public class StudentTutorRequestService {
         }
 
         StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
+        teachingRequest = savedRequest.getTeachingRequest();
+        if (teachingRequest != null && teachingRequest.getStatus() == RequestStatus.MATCHED
+                && studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                        teachingRequest.getId(), ApplicationStatus.ACCEPTED) == 0
+                && studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                        teachingRequest.getId(), ApplicationStatus.CONNECTED) < teachingRequest.getQuantity()) {
+            teachingRequest.setStatus(RequestStatus.OPEN);
+            teachingRequestRepository.saveAndFlush(teachingRequest);
+        }
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 savedRequest.getStudent().getUser().getId(),
                 NotificationEventType.STUDENT_REQUEST_REJECTED,
