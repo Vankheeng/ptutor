@@ -4695,6 +4695,114 @@ paths:
         '409': { $ref: '#/components/responses/ConflictError' }
 
 
+  /api/v1/admin/transactions:
+    get:
+      tags: [Admin Transactions]
+      summary: List financial transactions across all users
+      description: Administrator or accounting employee. Results include payments, wallet entries, and withdrawals, newest first.
+      parameters:
+        - name: source
+          in: query
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: flow
+          in: query
+          description: External platform cash in/out, internal balance movement, or no completed movement.
+          schema: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          description: Case insensitive email, name, or transaction ID search.
+          schema: { type: string }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          description: Inclusive end date.
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paginated transactions with user information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/transactions/summary:
+    get:
+      tags: [Admin Transactions]
+      summary: Summarize platform cash flow for matching transactions
+      description: Settled VNPay payments count as money in; completed bank withdrawals count as money out. Wallet entries and wallet-funded payments are internal movements and do not increase either amount.
+      parameters:
+        - name: source
+          in: query
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: flow
+          in: query
+          schema: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Totals across all matching rows, independent of pagination
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionSummaryResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/transactions/{source}/{id}:
+    get:
+      tags: [Admin Transactions]
+      summary: Get one financial transaction
+      parameters:
+        - name: source
+          in: path
+          required: true
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Transaction detail with user information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
   /api/v1/admin/withdrawals:
     get:
       tags: [Admin Withdrawals]
@@ -5834,6 +5942,39 @@ components:
         referenceId: { type: string, format: uuid, nullable: true }
         description: { type: string, nullable: true }
         occurredAt: { type: string, format: date-time }
+
+    AdminTransactionResponse:
+      type: object
+      required: [userId, userName, userEmail, purpose, flow, transaction]
+      properties:
+        userId: { type: string, format: uuid }
+        userName: { type: string }
+        userEmail: { type: string, format: email }
+        purpose: { type: string }
+        flow: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        transaction: { $ref: '#/components/schemas/FinancialTransactionResponse' }
+
+    AdminTransactionSummaryResponse:
+      type: object
+      required: [moneyIn, moneyOut, net, internalCount]
+      properties:
+        moneyIn: { type: number }
+        moneyOut: { type: number }
+        net: { type: number }
+        internalCount: { type: integer, format: int64 }
+
+    AdminTransactionPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTransactionResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
 
     FinancialTransactionPageResponse:
       type: object
@@ -8518,6 +8659,27 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminStudentComplaintPageResponse' }
+
+    AdminTransactionResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionResponse' }
+
+    AdminTransactionPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionPageResponse' }
+
+    AdminTransactionSummaryResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionSummaryResponse' }
 
     FinancialTransactionResponseEnvelope:
       allOf:
