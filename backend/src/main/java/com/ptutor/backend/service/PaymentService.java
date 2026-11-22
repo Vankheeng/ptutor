@@ -97,6 +97,10 @@ public class PaymentService {
     @org.springframework.beans.factory.annotation.Value("${app.payment.fees.teaching-request}")
     private BigDecimal teachingRequestFee;
 
+    public BigDecimal getStudyingRequestFee() {
+        return requirePositiveFee(studyingRequestFee, "studying request");
+    }
+
     @Transactional
     public PaymentInitiationResponse createWalletTopUp(
             UUID userId, WalletTopUpRequest request, String clientIp) {

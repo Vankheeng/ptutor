@@ -704,12 +704,18 @@ paths:
       tags:
         - Studying Requests
       summary: List my studying requests
-      description: Returns only studying requests owned by the authenticated student. Results are sorted by creation time descending and support optional status filtering.
+      description: Returns only studying requests owned by the authenticated student. Results support optional keyword and status filtering, pagination, and sorting by creation time.
       operationId: listMyStudyingRequests
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/StudyingRequestStatus'
+        - name: keyword
+          in: query
+          required: false
+          description: Case-insensitive search in the request title, subject name, or custom subject note.
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -719,6 +725,14 @@ paths:
             format: int32
             minimum: 0
             default: 0
+        - name: sort
+          in: query
+          required: false
+          description: Creation-time sort direction.
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
         - name: size
           in: query
           required: false
@@ -853,6 +867,29 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/studying-requests/{requestId}/detail:
+    get:
+      tags:
+        - Studying Requests
+      summary: Get student studying request detail view
+      description: Returns the authenticated student's studying request fields for its detail page, excluding preferredSchedule.
+      operationId: getStudentStudyingRequestDetailView
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudyingRequestId'
+      responses:
+        '200':
+          description: Studying request detail view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentStudyingRequestDetailResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/students/me/studying-requests/{requestId}/status:
     parameters:
@@ -1230,12 +1267,20 @@ paths:
       tags:
         - Tutor Student Requests
       summary: List tutor offers for my studying request
-      description: Returns tutor offers sent to a studying request owned by the authenticated student. Results support pagination and optional status filtering.
+      description: Returns tutor offers sent to a studying request owned by the authenticated student. Results support pagination, status filtering, and ordering by sent date.
       operationId: listTutorStudentRequestsForMyStudyingRequest
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TutorStudentRequestStatus'
+        - name: sort
+          in: query
+          required: false
+          description: Sort by sent date, newest first (DESC) or oldest first (ASC).
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
         - name: page
           in: query
           required: false
@@ -3162,6 +3207,21 @@ paths:
         '403': { $ref: '#/components/responses/ForbiddenError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/ConflictError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/students/me/studying-requests/payment-fee:
+    get:
+      tags: [Payments]
+      summary: Get configured studying request publication fee
+      operationId: getStudyingRequestPaymentFee
+      responses:
+        '200':
+          description: Configured fee amount in VND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudyingRequestFeeResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/students/me/studying-requests/{requestId}/payments/vnpay:
@@ -6672,6 +6732,38 @@ components:
           type: string
           format: date-time
 
+    StudentStudyingRequestDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        subjectId: { type: string, format: uuid, nullable: true }
+        subjectName: { type: string, nullable: true }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        districtId: { type: string, format: uuid, nullable: true }
+        districtName: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        detailAddress: { type: string, nullable: true }
+        minPrice: { type: number, format: double, nullable: true }
+        maxPrice: { type: number, format: double, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        availabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudyingRequestAvailabilityResponse'
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+
     StudyingRequestPageResponse:
       type: object
       properties:
@@ -8143,6 +8235,14 @@ components:
             data:
               $ref: '#/components/schemas/StudyingRequestResponse'
 
+    StudentStudyingRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentStudyingRequestDetailResponse'
+
     StudyingRequestPageResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8578,6 +8678,13 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/PaymentInitiationResponse' }
+
+    StudyingRequestFeeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { type: number, format: double, example: 10000 }
 
     PaymentResponseEnvelope:
       allOf:

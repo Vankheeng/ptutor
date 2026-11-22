@@ -63,7 +63,7 @@ export function CommonUserLayout() {
         <nav className="student-nav" aria-label="Không gian học viên">
           {(['WORKSPACE', 'LEARNING', 'ACCOUNT'] as Section[]).map((section) => (
             <div className="student-nav-group" key={section}>
-              <span className="student-nav-label">{sectionLabels[section]}</span>
+              {section !== 'WORKSPACE' && <span className="student-nav-label">{sectionLabels[section]}</span>}
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (
@@ -88,12 +88,6 @@ export function CommonUserLayout() {
           ))}
         </nav>
         <div className="student-sidebar-bottom">
-          <NavLink className="student-nav-link" to="/public">
-            <span aria-hidden="true">
-              <Icon name="home" size={18} />
-            </span>
-            Trang chủ
-          </NavLink>
           <button
             className="student-nav-link student-logout"
             type="button"

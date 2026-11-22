@@ -9,18 +9,30 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 25px 17px 18px;
+  height: 100dvh;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 14px 12px;
   background: #fff;
   border-right: 1px solid #e9ebf2;
   display: flex;
   flex-direction: column;
   z-index: 2;
 }
+.student-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.student-sidebar::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: #ddd9e8;
+}
 .student-brand {
   display: flex;
   align-items: center;
   height: 42px;
-  margin: 0 0 22px 10px;
+  margin: 0 0 15px 8px;
 }
 .student-brand img {
   width: 104px;
@@ -33,7 +45,7 @@
   align-items: center;
   gap: 11px;
   padding: 11px 9px;
-  margin-bottom: 27px;
+  margin-bottom: 17px;
   background: #fafaff;
   border: 1px solid #f0eff6;
   border-radius: 12px;
@@ -75,25 +87,26 @@
 }
 .student-nav {
   display: grid;
-  gap: 5px;
+  gap: 0;
+  flex: none;
 }
 .student-nav-group {
   display: grid;
-  gap: 5px;
+  gap: 3px;
   align-content: start;
 }
 .student-nav-group + .student-nav-group {
-  margin-top: 11px;
+  margin-top: 6px;
 }
 .student-nav-label {
-  padding: 0 12px 5px;
+  padding: 0 12px 6px;
   color: #a1a5b5;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.13em;
 }
 .student-nav-link {
-  height: 42px;
+  height: 36px;
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -131,6 +144,7 @@
 }
 .student-sidebar-bottom {
   margin-top: auto;
+  flex: none;
   border-top: 1px solid #eff0f5;
   padding-top: 12px;
   display: grid;
@@ -199,6 +213,8 @@
     top: 0;
     width: 100%;
     height: auto;
+    min-height: 0;
+    overflow: visible;
     padding: 9px 12px;
     display: grid;
     grid-template-columns: auto 1fr;

@@ -459,6 +459,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px 11px;
 }
+.student-form-fieldset {
+  display: contents;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .student-form-grid label {
   display: grid;
   gap: 6px;
@@ -500,22 +507,39 @@
   gap: 8px;
   margin-top: 16px;
 }
+.student-studying-request-form > .student-form-actions {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-end;
+}
 .student-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+  justify-content: flex-start;
   gap: 12px;
   margin: 0 0 15px;
 }
 .student-toolbar label {
   display: grid;
   gap: 5px;
+  min-width: 145px;
   color: #555a6e;
   font-size: 10px;
   font-weight: 700;
 }
+.student-toolbar label:first-child {
+  flex: 0 1 400px;
+  max-width: 400px;
+  min-width: 220px;
+  margin-right: auto;
+}
+.student-toolbar input,
 .student-toolbar select {
-  min-width: 145px;
-  padding: 8px 10px;
+  width: 100%;
+  min-height: 39px;
+  box-sizing: border-box;
+  padding: 0 12px;
   border: 1px solid #e3e5ed;
   border-radius: 8px;
   background: #fff;
@@ -552,6 +576,116 @@
   color: #2f5369;
   font-size: 11px;
 }
+.student-studying-request-payment {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #ddd0fa;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #faf8ff 0%, #f5f1ff 100%);
+}
+.student-studying-request-payment-heading {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+}
+.student-studying-request-payment-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 11px;
+  background: #ebe3ff;
+  color: #6c35d5;
+  font-size: 21px;
+  font-weight: 800;
+}
+.student-studying-request-payment h2 {
+  margin: 0;
+  color: #38215f;
+  font-size: 15px;
+}
+.student-studying-request-payment-error span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.student-studying-request-payment-heading p {
+  margin-top: 3px;
+}
+.student-studying-request-payment-price {
+  padding: 8px 12px;
+  border: 1px solid #e4dafb;
+  border-radius: 9px;
+  background: #fff;
+  color: #5423b7;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.student-studying-request-payment p {
+  margin: 0;
+  color: #686174;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.student-studying-request-payment-policy {
+  padding: 10px 12px;
+  border-left: 3px solid #8b5ce0;
+  border-radius: 0 8px 8px 0;
+  background: #fff9;
+}
+.student-studying-request-payment > label {
+  max-width: 340px;
+}
+.student-studying-request-payment-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #f2b8b5;
+  border-radius: 9px;
+  background: #fff3f2;
+  color: #a92722;
+  font-size: 13px;
+  font-weight: 600;
+}
+.student-studying-request-payment-error button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .student-studying-request-payment-heading {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .student-studying-request-payment-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .student-studying-request-payment-price {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .student-studying-request-form > .student-form-actions {
+    flex-wrap: wrap;
+  }
+}
 .student-availability-editor {
   display: grid;
   gap: 8px;
@@ -580,6 +714,48 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px;
+}
+.student-studying-request-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.student-studying-request-top-actions .student-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.student-studying-request-info h1 {
+  margin: 0 0 18px;
+  color: #252a3d;
+  font-size: 20px;
+}
+.student-studying-request-info dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.student-studying-request-info dl > div {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.75fr) minmax(0, 1.4fr);
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f1f5;
+  font-size: 11px;
+}
+.student-studying-request-info dt {
+  color: #555a6e;
+  font-weight: 700;
+}
+.student-studying-request-info dd {
+  margin: 0;
+  color: #303448;
+  overflow-wrap: anywhere;
+}
+.student-studying-request-availability {
+  display: grid;
+  gap: 5px;
 }
 .student-detail-table {
   display: grid;
@@ -1057,6 +1233,69 @@
   margin: 0;
   color: #20243a;
   font-size: 18px;
+}
+.student-offer-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.student-offer-filters label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: #59617a;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-offer-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #dce2ef;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #303448;
+  font: inherit;
+  font-weight: 500;
+}
+.student-offer-filters select:focus {
+  border-color: #7647e8;
+  box-shadow: 0 0 0 3px rgb(118 71 232 / 12%);
+}
+.student-offer-query-error {
+  margin: 0 0 10px;
+}
+.student-offer-query-state {
+  padding: 24px 12px;
+  color: #737b8c;
+  text-align: center;
+  font-size: 13px;
+}
+.student-offer-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  color: #737b8c;
+  font-size: 11px;
+}
+.student-offer-pagination > div {
+  display: flex;
+  gap: 7px;
+}
+.student-offer-pagination .student-button {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.student-offer-pagination .student-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .student-tutor-offers-heading p {
   margin: 5px 0 0;
@@ -1872,6 +2111,14 @@
   .student-toolbar select {
     width: 100%;
   }
+  .student-toolbar label,
+  .student-toolbar label:first-child {
+    min-width: 0;
+    margin-right: 0;
+  }
+  .student-toolbar label:first-child {
+    max-width: none;
+  }
   .student-payment-retry {
     align-items: stretch;
     flex-direction: column;
@@ -1964,6 +2211,9 @@
   .student-offer-row {
     grid-template-columns: 1fr auto;
     gap: 12px;
+  }
+  .student-offer-filters {
+    grid-template-columns: 1fr;
   }
   .student-offer-status {
     justify-self: end;

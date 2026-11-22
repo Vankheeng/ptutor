@@ -40,13 +40,17 @@ public class StudentTutorOfferController {
     public ResponseEntity<ApiResponse<PageResponse<TutorStudentRequestResponse>>> findMine(
             @PathVariable UUID studyingRequestId,
             @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sort,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort, "createdAt"));
+        var userId = currentUserProvider.getCurrentUserId();
+        var result = sort == Sort.Direction.DESC
+                ? tutorStudentRequestService.findMine(userId, studyingRequestId, status, pageable)
+                : tutorStudentRequestService.findMineSorted(userId, studyingRequestId, status, pageable);
         return ResponseEntity.ok(responseFactory.success(
-                tutorStudentRequestService.findMine(
-                        currentUserProvider.getCurrentUserId(), studyingRequestId, status, pageable),
+                result,
                 "/api/v1/students/me/studying-requests/" + studyingRequestId + "/tutor-requests"));
     }
 

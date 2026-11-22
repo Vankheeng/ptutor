@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ptutor.backend.dto.request.StudyingRequestRequest;
 import com.ptutor.backend.dto.request.StudyingRequestUpdateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentStudyingRequestDetailResponse;
 import com.ptutor.backend.dto.response.StudyingRequestResponse;
 import com.ptutor.backend.dto.response.StudyingRequestSearchResponse;
 import com.ptutor.backend.entity.District;
@@ -33,6 +34,9 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -40,6 +44,7 @@ import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
@@ -72,6 +77,7 @@ public class StudyingRequestService {
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
+    private final PaymentRepository paymentRepository;
     private final DistrictRepository districtRepository;
     private final EmployeeRepository employeeRepository;
     private final Clock clock;
@@ -162,10 +168,57 @@ public class StudyingRequestService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<StudyingRequestResponse> findMine(
+            UUID userId, RequestStatus status, String keyword, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        validateListStatus(status);
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        Page<StudyingRequest> requests = studyingRequestRepository.searchMineByStudentAndStatusAndKeyword(
+                student.getId(), status, normalizedKeyword, pageable);
+        return PageResponse.from(requests, toResponses(requests.getContent()));
+    }
+
+    @Transactional(readOnly = true)
     public StudyingRequestResponse findMineById(UUID userId, UUID requestId) {
         Student student = findStudentByUserId(userId);
         return toResponse(studyingRequestRepository.findDetailedByIdAndStudentId(requestId, student.getId())
                 .orElseThrow(() -> requestNotFound(requestId)));
+    }
+
+    @Transactional(readOnly = true)
+    public StudentStudyingRequestDetailResponse findMineDetailById(UUID userId, UUID requestId) {
+        StudyingRequestResponse request = findMineById(userId, requestId);
+        LocalDateTime paidAt = paymentRepository.findLatestPaidAtByReferenceIdsAndStatuses(
+                        ReferenceType.STUDYING_REQUEST,
+                        PaymentType.STUDYING_REQUEST_FEE,
+                        List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED),
+                        List.of(request.id()))
+                .stream()
+                .findFirst()
+                .map(PaymentRepository.ReferencePaymentTime::getPaidAt)
+                .orElse(null);
+        return new StudentStudyingRequestDetailResponse(
+                request.id(),
+                request.studentId(),
+                request.subjectId(),
+                request.subjectName(),
+                request.gradeId(),
+                request.gradeName(),
+                request.districtId(),
+                request.districtName(),
+                request.title(),
+                request.description(),
+                request.note(),
+                request.detailAddress(),
+                request.minPrice(),
+                request.maxPrice(),
+                request.learningGoals(),
+                request.learningMode(),
+                request.availabilities(),
+                request.status(),
+                request.createdAt(),
+                request.updatedAt(),
+                paidAt);
     }
 
     @Transactional
