@@ -2974,6 +2974,96 @@
   border-top: 1px solid #f0f1f5;
 }
 
+.student-application-detail-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.student-application-detail-card {
+  min-width: 0;
+  padding: 22px;
+}
+.student-application-detail-card h2 {
+  margin: 0 0 14px;
+  color: #252a3d;
+  font-size: 17px;
+}
+.student-application-detail-card h3 {
+  margin: 0 0 12px;
+  color: #303448;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.student-application-detail-card dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.student-application-detail-card dl > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.72fr) minmax(0, 1.4fr);
+  gap: 13px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f5;
+  font-size: 11px;
+}
+.student-application-detail-card dt {
+  color: #555a6e;
+  font-weight: 700;
+}
+.student-application-detail-card dd {
+  min-width: 0;
+  margin: 0;
+  color: #303448;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.student-application-detail-card.has-actions dl > div:last-child {
+  border-bottom: 0;
+}
+.student-application-availability {
+  display: grid;
+  gap: 5px;
+}
+.student-application-detail-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+.student-application-detail-card-actions .tutor-button {
+  width: auto;
+  min-height: 34px;
+  justify-content: center;
+  padding: 0 13px;
+}
+.student-application-detail-card-actions .tutor-cancel-proposal-button {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.student-application-detail-card-actions .tutor-cancel-proposal-button:hover:not(:disabled) {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .student-application-detail-cards {
+    grid-template-columns: 1fr;
+  }
+  .student-application-detail-card {
+    height: auto;
+    padding: 17px;
+  }
+}
+
 @media (max-width: 700px) {
   .tutor-application-detail-panel .tutor-application-panel-heading {
     align-items: flex-start;
