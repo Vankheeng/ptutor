@@ -28,5 +28,6 @@ public record StudentStudyingRequestDetailResponse(
         List<StudyingRequestResponse.Availability> availabilities,
         RequestStatus status,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        LocalDateTime paidAt) {
 }

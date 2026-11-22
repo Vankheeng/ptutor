@@ -100,7 +100,9 @@ export interface StudyingRequest {
   updatedAt: string;
 }
 
-export type StudentStudyingRequestDetail = Omit<StudyingRequest, 'preferredSchedule'>;
+export type StudentStudyingRequestDetail = Omit<StudyingRequest, 'preferredSchedule'> & {
+  paidAt: string | null;
+};
 
 export interface TutorOffer {
   id: string;

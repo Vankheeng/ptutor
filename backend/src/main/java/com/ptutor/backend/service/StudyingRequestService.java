@@ -34,6 +34,9 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -41,6 +44,7 @@ import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
@@ -73,6 +77,7 @@ public class StudyingRequestService {
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
     private final GradeRepository gradeRepository;
+    private final PaymentRepository paymentRepository;
     private final DistrictRepository districtRepository;
     private final EmployeeRepository employeeRepository;
     private final Clock clock;
@@ -183,6 +188,15 @@ public class StudyingRequestService {
     @Transactional(readOnly = true)
     public StudentStudyingRequestDetailResponse findMineDetailById(UUID userId, UUID requestId) {
         StudyingRequestResponse request = findMineById(userId, requestId);
+        LocalDateTime paidAt = paymentRepository.findLatestPaidAtByReferenceIdsAndStatuses(
+                        ReferenceType.STUDYING_REQUEST,
+                        PaymentType.STUDYING_REQUEST_FEE,
+                        List.of(PaymentStatus.PAID, PaymentStatus.REFUNDED),
+                        List.of(request.id()))
+                .stream()
+                .findFirst()
+                .map(PaymentRepository.ReferencePaymentTime::getPaidAt)
+                .orElse(null);
         return new StudentStudyingRequestDetailResponse(
                 request.id(),
                 request.studentId(),
@@ -203,7 +217,8 @@ public class StudyingRequestService {
                 request.availabilities(),
                 request.status(),
                 request.createdAt(),
-                request.updatedAt());
+                request.updatedAt(),
+                paidAt);
     }
 
     @Transactional

@@ -6747,6 +6747,7 @@ components:
           enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
 
     StudyingRequestPageResponse:
       type: object

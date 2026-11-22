@@ -42,7 +42,11 @@ export function StudentStudyingRequestDetails({ request }: Props) {
         </div>
         <div>
           <dt>Khu vực</dt>
-          <dd>{[request.detailAddress, request.districtName].filter(Boolean).join(', ') || 'Chưa cung cấp'}</dd>
+          <dd>{request.districtName || 'Chưa cung cấp'}</dd>
+        </div>
+        <div>
+          <dt>Địa chỉ chi tiết</dt>
+          <dd>{request.detailAddress || 'Chưa cung cấp'}</dd>
         </div>
         <div>
           <dt>Mục tiêu học tập</dt>
@@ -64,6 +68,10 @@ export function StudentStudyingRequestDetails({ request }: Props) {
               'Linh hoạt'
             )}
           </dd>
+        </div>
+        <div>
+          <dt>Thời gian thanh toán</dt>
+          <dd>{request.paidAt ? formatRequestTimestamp(request.paidAt) : 'Chưa thanh toán'}</dd>
         </div>
         <div>
           <dt>Thời gian tạo</dt>
