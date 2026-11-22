@@ -75,6 +75,8 @@ import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearn
 import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
 import { AdminContractsPage } from './pages/admin/AdminContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
+import { AdminTransactionsPage } from './pages/admin/AdminTransactionsPage';
+import { AdminTransactionDetailPage } from './pages/admin/AdminTransactionDetailPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
@@ -127,6 +129,8 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
                 <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
                 <Route path="withdrawals/:withdrawalId" element={<AdminWithdrawalDetailPage />} />
+                <Route path="transactions" element={<AdminTransactionsPage />} />
+                <Route path="transactions/:source/:transactionId" element={<AdminTransactionDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
                 <Route path="accounts" element={<Navigate replace to="/admin/students" />} />

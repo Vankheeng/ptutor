@@ -97,7 +97,8 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
 
     private Set<EmployeeJobFunction> allowedFunctions(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/v1/admin/refund-requests") || path.startsWith("/api/v1/admin/withdrawals")) {
+        if (path.startsWith("/api/v1/admin/refund-requests") || path.startsWith("/api/v1/admin/withdrawals")
+                || path.startsWith("/api/v1/admin/transactions")) {
             return EnumSet.of(EmployeeJobFunction.ACCOUNTANT);
         }
         if (CUSTOMER_SERVICE_PATHS.stream().anyMatch(path::startsWith)) {
