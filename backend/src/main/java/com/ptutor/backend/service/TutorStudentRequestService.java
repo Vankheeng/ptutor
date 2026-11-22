@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
 import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -169,7 +170,7 @@ public class TutorStudentRequestService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TutorStudentRequestResponse> findMine(
+    public PageResponse<StudentTutorOfferResponse> findMine(
             UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -182,12 +183,11 @@ public class TutorStudentRequestService {
                                 studyingRequestId, status, pageable);
 
         return PageResponse.from(
-                requests,
-                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TutorStudentRequestResponse> findMineSorted(
+    public PageResponse<StudentTutorOfferResponse> findMineSorted(
             UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -197,20 +197,19 @@ public class TutorStudentRequestService {
                         studyingRequestId, status, pageable);
 
         return PageResponse.from(
-                requests,
-                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
     }
 
     @Transactional(readOnly = true)
-    public TutorStudentRequestResponse findMineById(
+    public StudentTutorOfferResponse findMineById(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
-        return tutorStudentRequestMapper.toResponse(findRequest(tutorRequestId, studyingRequestId));
+        return tutorStudentRequestMapper.toStudentOfferResponse(findRequest(tutorRequestId, studyingRequestId));
     }
 
     @Transactional
-    public TutorStudentRequestResponse accept(
+    public StudentTutorOfferResponse accept(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         StudyingRequest studyingRequest = studyingRequestRepository
@@ -243,11 +242,11 @@ public class TutorStudentRequestService {
                 NotificationEventType.TUTOR_REQUEST_ACCEPTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 savedRequest.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(savedRequest);
+        return tutorStudentRequestMapper.toStudentOfferResponse(savedRequest);
     }
 
     @Transactional
-    public TutorStudentRequestResponse reject(
+    public StudentTutorOfferResponse reject(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -273,7 +272,7 @@ public class TutorStudentRequestService {
                 NotificationEventType.TUTOR_REQUEST_REJECTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 saved.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(saved);
+        return tutorStudentRequestMapper.toStudentOfferResponse(saved);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

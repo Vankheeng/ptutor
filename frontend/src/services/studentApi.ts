@@ -110,6 +110,7 @@ export interface TutorOffer {
   tutorFirstName: string | null;
   tutorLastName: string | null;
   tutorEmail: string;
+  tutorPhone?: string | null;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
   subjectId?: string;
