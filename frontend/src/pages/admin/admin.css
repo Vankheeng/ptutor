@@ -1706,24 +1706,10 @@ html:has(.admin-shell) {
   background: linear-gradient(180deg, #fff 0%, #fcfbff 100%);
   border-radius: 16px 16px 0 0;
 }
-.admin-transaction-filter-heading,
 .admin-transaction-search-row {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-}
-.admin-transaction-filter-heading {
-  align-items: center;
-  justify-content: space-between;
-}
-.admin-transaction-filter-heading strong {
-  font-size: 15px;
-  color: var(--admin-ink);
-}
-.admin-transaction-filter-heading .admin-button {
-  min-height: 32px;
-  padding: 0 8px;
-  font-size: 13px;
 }
 .admin-transaction-search-row label {
   flex: 1;

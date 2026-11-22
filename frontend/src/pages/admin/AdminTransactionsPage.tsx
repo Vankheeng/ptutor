@@ -98,12 +98,6 @@ export function AdminTransactionsPage() {
       )}
       <section className="admin-card">
         <form className="admin-transaction-filters" onSubmit={submitSearch}>
-          <div className="admin-transaction-filter-heading">
-            <strong>Bộ lọc giao dịch</strong>
-            <button className="admin-button ghost" type="button" onClick={reset}>
-              Xóa bộ lọc
-            </button>
-          </div>
           <div className="admin-transaction-search-row">
             <label>
               Tìm kiếm
@@ -115,6 +109,9 @@ export function AdminTransactionsPage() {
             </label>
             <button className="admin-button" type="submit">
               Tìm kiếm
+            </button>
+            <button className="admin-button ghost" type="button" onClick={reset}>
+              Xóa bộ lọc
             </button>
           </div>
           <div className="admin-transaction-filter-grid">
