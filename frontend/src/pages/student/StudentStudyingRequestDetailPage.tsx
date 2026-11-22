@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -18,6 +18,7 @@ export function StudentStudyingRequestDetailPage() {
   const { requestId = '' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const handledNoticeLocationKey = useRef<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [offerStatus, setOfferStatus] = useState<'' | TutorOffer['status']>('');
@@ -27,10 +28,11 @@ export function StudentStudyingRequestDetailPage() {
 
   useEffect(() => {
     const notice = (location.state as { notice?: string } | null)?.notice;
-    if (!notice) return;
+    if (!notice || handledNoticeLocationKey.current === location.key) return;
+    handledNoticeLocationKey.current = location.key;
     notifyGlobalToast(notice);
     navigate(location.pathname, { replace: true, state: null });
-  }, [location, navigate]);
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const loadRequest = useCallback((signal: AbortSignal) => getMyStudyingRequestDetail(requestId, signal), [requestId]);
   const requestQuery = useResource(loadRequest, revision);

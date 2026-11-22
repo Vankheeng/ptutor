@@ -38,9 +38,7 @@ interface FormState {
   detailAddress: string;
   minPrice: string;
   maxPrice: string;
-  learningGoals: string;
   learningMode: LearningMode;
-  preferredSchedule: string;
   availabilities: Availability[];
 }
 
@@ -55,9 +53,7 @@ const emptyState: FormState = {
   detailAddress: '',
   minPrice: '',
   maxPrice: '',
-  learningGoals: '',
   learningMode: 'ONLINE',
-  preferredSchedule: '',
   availabilities: [{ dayOfWeek: 0, startTime: '', endTime: '' }]
 };
 
@@ -201,12 +197,6 @@ export function StudentStudyingRequestForm({ mode, initial, locked = false, onSu
           detailAddress: optional(state.detailAddress),
           minPrice,
           maxPrice,
-          ...(mode === 'edit'
-            ? {
-                learningGoals: optional(state.learningGoals),
-                preferredSchedule: optional(state.preferredSchedule)
-              }
-            : {}),
           learningMode: state.learningMode,
           availabilities: enteredSlots
         },
@@ -334,25 +324,6 @@ export function StudentStudyingRequestForm({ mode, initial, locked = false, onSu
               step="1000"
             />
           </label>
-          {mode === 'edit' && (
-            <>
-              <label className="student-field-full">
-                Mục tiêu học tập
-                <textarea
-                  value={state.learningGoals}
-                  onChange={(event) => set('learningGoals', event.target.value)}
-                  rows={3}
-                />
-              </label>
-              <label className="student-field-full">
-                Lịch học mong muốn
-                <input
-                  value={state.preferredSchedule}
-                  onChange={(event) => set('preferredSchedule', event.target.value)}
-                />
-              </label>
-            </>
-          )}
           <StudentAvailabilityEditor
             title="Khung giờ có thể học (không bắt buộc)"
             values={state.availabilities}
@@ -428,11 +399,18 @@ function fromRequest(request: StudyingRequest): FormState {
     detailAddress: request.detailAddress ?? '',
     minPrice: request.minPrice?.toString() ?? '',
     maxPrice: request.maxPrice?.toString() ?? '',
-    learningGoals: request.learningGoals ?? '',
     learningMode: request.learningMode,
-    preferredSchedule: request.preferredSchedule ?? '',
-    availabilities: request.availabilities ?? []
+    availabilities: (request.availabilities ?? []).map((availability) => ({
+      ...availability,
+      startTime: timeSelectValue(availability.startTime),
+      endTime: timeSelectValue(availability.endTime)
+    }))
   };
+}
+function timeSelectValue(value: string | null | undefined) {
+  if (!value) return '';
+  const match = /^(\d{2}:\d{2})/.exec(value.trim());
+  return match?.[1] ?? '';
 }
 function optional(value: string) {
   return value.trim() || undefined;
