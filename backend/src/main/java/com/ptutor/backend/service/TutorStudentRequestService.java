@@ -187,6 +187,21 @@ public class TutorStudentRequestService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<TutorStudentRequestResponse> findMineSorted(
+            UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
+        Page<TutorStudentRequest> requests = status == null
+                ? tutorStudentRequestRepository.findAllByStudyingRequest_Id(studyingRequestId, pageable)
+                : tutorStudentRequestRepository.findAllByStudyingRequest_IdAndStatus(
+                        studyingRequestId, status, pageable);
+
+        return PageResponse.from(
+                requests,
+                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+    }
+
+    @Transactional(readOnly = true)
     public TutorStudentRequestResponse findMineById(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);

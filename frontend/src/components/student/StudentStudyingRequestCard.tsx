@@ -1,6 +1,6 @@
 import type { Ref } from 'react';
 import type { StudyingRequest } from '../../services/studentApi';
-import { formatStudyingRequestDate, statusLabel } from './studyingRequestUtils';
+import { formatStudyingRequestDate, studyingRequestStatusText } from './studyingRequestUtils';
 import { StudentStudyingRequestMenu, type StudyingRequestAction } from './StudentStudyingRequestMenu';
 
 interface Props {
@@ -37,12 +37,14 @@ export function StudentStudyingRequestCard({
       role="link"
     >
       <div className="student-card-top">
-        <span className="student-tag">{request.subjectName || 'Custom subject'}</span>
+        <span className="student-tag">{request.subjectName || 'Môn học khác'}</span>
         <div className="student-card-menu" ref={menuRef}>
-          <span className={`student-status ${normalizedStatus.toLowerCase()}`}>{statusLabel(normalizedStatus)}</span>
+          <span className={`student-status ${normalizedStatus.toLowerCase()}`}>
+            {studyingRequestStatusText(normalizedStatus)}
+          </span>
           <button
             type="button"
-            aria-label="Request actions"
+            aria-label="Thao tác yêu cầu"
             aria-expanded={menuOpen}
             onClick={(event) => {
               event.stopPropagation();
@@ -63,12 +65,12 @@ export function StudentStudyingRequestCard({
         </div>
       </div>
       <h3>{request.title}</h3>
-      <p>{request.description || request.learningGoals || request.note || 'No description provided.'}</p>
+      <p>{request.description || request.learningGoals || request.note || 'Chưa có mô tả.'}</p>
       <div className="student-card-actions">
         <span>
-          {request.gradeName} · {request.learningMode === 'ONLINE' ? 'Online' : 'In person'}
+          {request.gradeName} · {request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}
         </span>
-        <span className="student-card-created">Created {formatStudyingRequestDate(request.createdAt)}</span>
+        <span className="student-card-created">Tạo lúc {formatStudyingRequestDate(request.createdAt)}</span>
       </div>
     </article>
   );

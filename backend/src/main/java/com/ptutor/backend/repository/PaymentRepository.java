@@ -82,6 +82,21 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             @Param("status") PaymentStatus status,
             @Param("referenceIds") List<UUID> referenceIds);
 
+    @Query("""
+            select payment.referenceId as referenceId, max(payment.paidAt) as paidAt
+            from Payment payment
+            where payment.referenceType = :referenceType
+              and payment.paymentType = :paymentType
+              and payment.status in :statuses
+              and payment.referenceId in :referenceIds
+            group by payment.referenceId
+            """)
+    List<ReferencePaymentTime> findLatestPaidAtByReferenceIdsAndStatuses(
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("statuses") Collection<PaymentStatus> statuses,
+            @Param("referenceIds") List<UUID> referenceIds);
+
     @EntityGraph(attributePaths = { "paymentInstallment" })
     @Query("""
             select payment
