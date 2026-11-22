@@ -8,7 +8,8 @@ import { submitTutorStudyingRequestProposal } from '../../services/studyingReque
 import { cancelTutorProposal, getTutorContracts, updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
 import { tutorNextStepLabel, tutorScheduleLabel, tutorStatusLabel } from '../../utils/tutorDisplay';
-import { ApplicationDetailPanel } from '../../components/applications/ApplicationDetailPanel';
+
+const weekdays = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
 export function TutorStudyingRequestPage() {
   const location = useLocation();
@@ -151,82 +152,172 @@ export function TutorStudyingRequestPage() {
         </div>
       )}
       <div
-        className={`tutor-request-detail-layout tutor-market-detail${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-market-detail-no-sidebar' : ''}`}
+        className={`tutor-request-detail-layout tutor-market-detail${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-market-detail-no-sidebar' : ''}${myProposal && !hideProposalSidebar ? ' tutor-market-detail-my-application' : ''}`}
       >
-        <article className="tutor-panel tutor-detail-main">
-          <div className="tutor-card-top">
-            <span className="tutor-subject-tag">{request.subjectName || 'Môn học'}</span>
-            <span>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} · Đang mở</span>
-          </div>
-          <h1 className="tutor-detail-heading">{request.title || `Tìm gia sư môn ${request.subjectName}`}</h1>
-          <p className="tutor-detail-subtitle">{request.gradeName}</p>
-          <p className="tutor-request-author">
-            <span>
-              Đăng bởi{' '}
-              <strong>
-                <ProfileNameLink role="student" profileId={request.studentId}>
-                  {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
-                </ProfileNameLink>
-              </strong>
-            </span>
-            <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
-          </p>
-          <div className="tutor-detail-facts">
-            <span>
-              <small>Ngân sách</small>
-              <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
-            </span>
-            <span>
-              <small>Lớp học</small>
-              <strong>{request.gradeName || 'Chưa xác định'}</strong>
-            </span>
-            <span>
-              <small>Hình thức học</small>
-              <strong>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
-            </span>
-            {request.learningMode === 'OFFLINE' && (
-              <span>
-                <small className="tutor-detail-fact-tag">Địa chỉ dạy học</small>
-                <strong>
-                  {[request.detailAddress, request.districtName, request.provinceName].filter(Boolean).join(', ') ||
-                    'Chưa cung cấp'}
-                </strong>
-              </span>
-            )}
-            <span>
-              <small>Lịch học mong muốn</small>
-              <strong>{tutorScheduleLabel(request.preferredSchedule)}</strong>
-            </span>
-            <span>
-              <small>Ngày đăng yêu cầu</small>
-              <strong>{new Date(request.createdAt).toLocaleDateString()}</strong>
-            </span>
-          </div>
-          {request.note?.trim() && (
-            <div className="tutor-application-note">
-              <span className="tutor-application-note-tag">Ghi chú</span>
-              <p>{request.note}</p>
-            </div>
+        <article
+          className={`tutor-panel tutor-detail-main${myProposal && !hideProposalSidebar ? ' tutor-my-application-request-card' : ''}`}
+        >
+          {myProposal && !hideProposalSidebar ? (
+            <>
+              <h1 className="tutor-detail-heading">{request.title || `Tìm gia sư môn ${request.subjectName}`}</h1>
+              <dl className="tutor-application-detail-list">
+                <div>
+                  <dt>Học viên đăng yêu cầu</dt>
+                  <dd>
+                    <ProfileNameLink role="student" profileId={request.studentId}>
+                      {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                    </ProfileNameLink>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Trạng thái yêu cầu</dt>
+                  <dd>
+                    <span className={`tutor-cert-status status-request-${request.status.toLowerCase()}`}>
+                      {requestStatusLabel(request.status)}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Môn học</dt>
+                  <dd>{request.subjectName || 'Chưa xác định'}</dd>
+                </div>
+                <div>
+                  <dt>Khối lớp</dt>
+                  <dd>{request.gradeName || 'Chưa xác định'}</dd>
+                </div>
+                <div>
+                  <dt>Hình thức học</dt>
+                  <dd>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</dd>
+                </div>
+                <div>
+                  <dt>Ngân sách</dt>
+                  <dd>{formatPrice(request.minPrice, request.maxPrice)}</dd>
+                </div>
+                <div>
+                  <dt>Lịch học mong muốn</dt>
+                  <dd>{tutorScheduleLabel(request.preferredSchedule)}</dd>
+                </div>
+                {request.availabilities.length > 0 && (
+                  <div>
+                    <dt>Thời gian có thể học</dt>
+                    <dd className="tutor-application-detail-availability">
+                      {request.availabilities.map((slot, index) => (
+                        <span key={`${slot.dayOfWeek}-${slot.startTime}-${index}`}>
+                          {weekdays[slot.dayOfWeek % 7]}, {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Khu vực</dt>
+                  <dd>{[request.districtName, request.provinceName].filter(Boolean).join(', ') || 'Chưa cung cấp'}</dd>
+                </div>
+                {request.learningMode === 'OFFLINE' && (
+                  <div>
+                    <dt>Địa chỉ chi tiết</dt>
+                    <dd>{request.detailAddress || 'Chưa cung cấp'}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Mô tả</dt>
+                  <dd>{request.description?.trim() || 'Học viên chưa bổ sung mô tả.'}</dd>
+                </div>
+                {request.learningGoals?.trim() && (
+                  <div>
+                    <dt>Mục tiêu học tập</dt>
+                    <dd>{request.learningGoals}</dd>
+                  </div>
+                )}
+                {request.note?.trim() && (
+                  <div>
+                    <dt>Ghi chú</dt>
+                    <dd>{request.note}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Thời gian tạo</dt>
+                  <dd>{formatDateTime(request.createdAt)}</dd>
+                </div>
+              </dl>
+            </>
+          ) : (
+            <>
+              <div className="tutor-card-top">
+                <span className="tutor-subject-tag">{request.subjectName || 'Môn học'}</span>
+                <span>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'} · Đang mở</span>
+              </div>
+              <h1 className="tutor-detail-heading">{request.title || `Tìm gia sư môn ${request.subjectName}`}</h1>
+              <p className="tutor-detail-subtitle">{request.gradeName}</p>
+              <p className="tutor-request-author">
+                <span>
+                  Đăng bởi{' '}
+                  <strong>
+                    <ProfileNameLink role="student" profileId={request.studentId}>
+                      {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+                    </ProfileNameLink>
+                  </strong>
+                </span>
+                <span>Đăng ngày {new Date(request.createdAt).toLocaleDateString('vi-VN')}</span>
+              </p>
+              <div className="tutor-detail-facts">
+                <span>
+                  <small>Ngân sách</small>
+                  <strong>{formatPrice(request.minPrice, request.maxPrice)}</strong>
+                </span>
+                <span>
+                  <small>Lớp học</small>
+                  <strong>{request.gradeName || 'Chưa xác định'}</strong>
+                </span>
+                <span>
+                  <small>Hình thức học</small>
+                  <strong>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
+                </span>
+                {request.learningMode === 'OFFLINE' && (
+                  <span>
+                    <small className="tutor-detail-fact-tag">Địa chỉ dạy học</small>
+                    <strong>
+                      {[request.detailAddress, request.districtName, request.provinceName].filter(Boolean).join(', ') ||
+                        'Chưa cung cấp'}
+                    </strong>
+                  </span>
+                )}
+                <span>
+                  <small>Lịch học mong muốn</small>
+                  <strong>{tutorScheduleLabel(request.preferredSchedule)}</strong>
+                </span>
+                <span>
+                  <small>Ngày đăng yêu cầu</small>
+                  <strong>{new Date(request.createdAt).toLocaleDateString()}</strong>
+                </span>
+              </div>
+              {request.note?.trim() && (
+                <div className="tutor-application-note">
+                  <span className="tutor-application-note-tag">Ghi chú</span>
+                  <p>{request.note}</p>
+                </div>
+              )}
+              <section className="tutor-detail-section">
+                <span className="tutor-eyebrow">MỤC TIÊU HỌC TẬP</span>
+                <h2 className="tutor-detail-title">Nhu cầu của học viên</h2>
+                {request.description?.trim() && (
+                  <>
+                    <h3 className="tutor-small-heading">Chi tiết yêu cầu</h3>
+                    <p className="tutor-detail-copy">{request.description}</p>
+                  </>
+                )}
+                {request.learningGoals?.trim() && (
+                  <>
+                    <h3 className="tutor-small-heading">Mục tiêu</h3>
+                    <p className="tutor-detail-copy">{request.learningGoals}</p>
+                  </>
+                )}
+                {!request.description?.trim() && !request.learningGoals?.trim() && (
+                  <p className="tutor-detail-copy">Học viên chưa bổ sung thêm thông tin.</p>
+                )}
+              </section>
+            </>
           )}
-          <section className="tutor-detail-section">
-            <span className="tutor-eyebrow">MỤC TIÊU HỌC TẬP</span>
-            <h2 className="tutor-detail-title">Nhu cầu của học viên</h2>
-            {request.description?.trim() && (
-              <>
-                <h3 className="tutor-small-heading">Chi tiết yêu cầu</h3>
-                <p className="tutor-detail-copy">{request.description}</p>
-              </>
-            )}
-            {request.learningGoals?.trim() && (
-              <>
-                <h3 className="tutor-small-heading">Mục tiêu</h3>
-                <p className="tutor-detail-copy">{request.learningGoals}</p>
-              </>
-            )}
-            {!request.description?.trim() && !request.learningGoals?.trim() && (
-              <p className="tutor-detail-copy">Học viên chưa bổ sung thêm thông tin.</p>
-            )}
-          </section>
           {proposalHistory.length > 1 && (
             <section className="tutor-detail-section tutor-proposal-history">
               <span className="tutor-eyebrow">LỊCH SỬ ỨNG TUYỂN</span>
@@ -265,7 +356,7 @@ export function TutorStudyingRequestPage() {
           )}
         </article>
         <aside
-          className={`tutor-panel tutor-apply-sidebar${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-apply-sidebar-empty' : ''}`}
+          className={`tutor-panel tutor-apply-sidebar${!proposalsQuery.isLoading && hideProposalSidebar ? ' tutor-apply-sidebar-empty' : ''}${myProposal && !hideProposalSidebar ? ' tutor-my-application-detail-card' : ''}`}
         >
           {proposalsQuery.isLoading ? (
             <>
@@ -280,49 +371,75 @@ export function TutorStudyingRequestPage() {
               </div>
             </>
           ) : myProposal ? (
-            <ApplicationDetailPanel
-              heading="Ứng tuyển của tôi"
-              statusClass={`status-${myProposal.status.toLowerCase()}`}
-              statusLabel={tutorStatusLabel(myProposal.status)}
-              priceLabel="Học phí đề xuất"
-              price={myProposal.proposedPrice}
-              fields={[
-                {
-                  label: 'Thời gian có thể dạy',
-                  value: tutorScheduleLabel(myProposal.preferredSchedule, 'Lịch linh hoạt')
-                },
-                { label: 'Hình thức dạy', value: myProposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp' },
-                ...(myProposal.teachingMode === 'OFFLINE' &&
-                (myProposal.preferredProvinceName || myProposal.preferredDistrictName)
-                  ? [
-                      {
-                        label: 'Địa chỉ dạy học',
-                        value: [myProposal.preferredDistrictName, myProposal.preferredProvinceName]
+            <>
+              <div className="tutor-my-application-detail-heading">
+                <h2>Ứng tuyển của tôi</h2>
+              </div>
+              <dl className="tutor-application-detail-list">
+                <div>
+                  <dt>Trạng thái</dt>
+                  <dd>
+                    <span className={`tutor-cert-status status-${myProposal.status.toLowerCase()}`}>
+                      {tutorStatusLabel(myProposal.status)}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Học phí đề xuất</dt>
+                  <dd>{new Intl.NumberFormat('vi-VN').format(myProposal.proposedPrice)} VNĐ</dd>
+                </div>
+                <div>
+                  <dt>Khối lớp</dt>
+                  <dd>{myProposal.gradeName || request.gradeName || 'Chưa xác định'}</dd>
+                </div>
+                <div>
+                  <dt>Hình thức dạy</dt>
+                  <dd>{myProposal.teachingMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</dd>
+                </div>
+                <div>
+                  <dt>Thời gian có thể dạy</dt>
+                  <dd>{tutorScheduleLabel(myProposal.preferredSchedule, 'Lịch linh hoạt')}</dd>
+                </div>
+                {myProposal.teachingMode === 'OFFLINE' &&
+                  (myProposal.preferredProvinceName || myProposal.preferredDistrictName) && (
+                    <div>
+                      <dt>Địa chỉ dạy học</dt>
+                      <dd>
+                        {[myProposal.preferredDistrictName, myProposal.preferredProvinceName]
                           .filter(Boolean)
-                          .join(', ')
-                      }
-                    ]
-                  : [])
-              ]}
-              notes={myProposal.message?.trim() ? [{ label: 'Lời nhắn', value: myProposal.message }] : undefined}
-              metadata={[
-                { label: 'Thời gian tạo', value: formatDateTime(myProposal.createdAt) },
-                { label: 'Cập nhật lần cuối', value: formatDateTime(myProposal.updatedAt) },
-                ...(myProposal.status === 'ACCEPTED'
-                  ? [
-                      {
-                        label: 'Thời gian được duyệt',
-                        value: formatDateTime(myProposal.acceptedAt ?? myProposal.updatedAt)
-                      },
-                      {
-                        label: 'Bước tiếp theo',
-                        value: contractIds[myProposal.id] ? 'Đã có hợp đồng' : tutorNextStepLabel(myProposal.nextStep)
-                      }
-                    ]
-                  : [])
-              ]}
-              actions={
-                myProposal.status === 'PENDING' ? (
+                          .join(', ')}
+                      </dd>
+                    </div>
+                  )}
+                {myProposal.status === 'ACCEPTED' && (
+                  <>
+                    <div>
+                      <dt>Bước tiếp theo</dt>
+                      <dd>{contractIds[myProposal.id] ? 'Đã có hợp đồng' : tutorNextStepLabel(myProposal.nextStep)}</dd>
+                    </div>
+                    <div>
+                      <dt>Thời gian được duyệt</dt>
+                      <dd>{formatDateTime(myProposal.acceptedAt ?? myProposal.updatedAt)}</dd>
+                    </div>
+                  </>
+                )}
+                {myProposal.message?.trim() && (
+                  <div>
+                    <dt>Lời nhắn</dt>
+                    <dd>{myProposal.message}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>Thời gian tạo</dt>
+                  <dd>{formatDateTime(myProposal.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>Cập nhật lần cuối</dt>
+                  <dd>{formatDateTime(myProposal.updatedAt)}</dd>
+                </div>
+              </dl>
+              <div className="tutor-my-application-detail-actions">
+                {myProposal.status === 'PENDING' ? (
                   <>
                     <button
                       className="tutor-button tutor-apply-button"
@@ -356,7 +473,7 @@ export function TutorStudyingRequestPage() {
                     Gửi lại đề xuất <span>→</span>
                   </button>
                 ) : myProposal.status === 'ACCEPTED' ? (
-                  acceptedProposalAction(myProposal, contractIds[myProposal.id])
+                  acceptedProposalAction(myProposal, contractIds[myProposal.id], true)
                 ) : (
                   <button
                     className="tutor-button tutor-apply-button"
@@ -365,9 +482,9 @@ export function TutorStudyingRequestPage() {
                   >
                     Xem đề xuất của tôi <span>→</span>
                   </button>
-                )
-              }
-            />
+                )}
+              </div>
+            </>
           ) : (
             <>
               <h2>Gửi đề xuất giảng dạy</h2>
@@ -409,17 +526,37 @@ export function TutorStudyingRequestPage() {
 
 function acceptedProposalAction(
   proposal: { id: string; status: string; studyingRequestId: string },
-  contractId: string | undefined
+  contractId: string | undefined,
+  prominent = false
 ) {
   if (proposal.status !== 'ACCEPTED') return null;
   if (contractId) {
     return (
-      <Link className="tutor-button secondary tutor-navigation-compact" to={`/tutor/sections/contracts/${contractId}`}>
+      <Link
+        className={`tutor-button secondary tutor-navigation-compact${prominent ? ' tutor-my-application-contract-link' : ''}`}
+        to={`/tutor/sections/contracts/${contractId}`}
+      >
         Xem hợp đồng
       </Link>
     );
   }
   return <span className="tutor-proposal-contract-waiting">Chờ học viên tạo hợp đồng</span>;
+}
+
+function requestStatusLabel(status: string) {
+  return (
+    (
+      {
+        DRAFT: 'Bản nháp',
+        PENDING_REVIEW: 'Chờ duyệt',
+        OPEN: 'Đang mở',
+        MATCHED: 'Đã kết nối',
+        CLOSED: 'Đã đóng',
+        CANCELLED: 'Đã hủy',
+        REJECTED: 'Không được duyệt'
+      } as Record<string, string>
+    )[status] ?? status
+  );
 }
 
 function formatPrice(min: number | null, max: number | null) {

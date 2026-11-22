@@ -3003,6 +3003,9 @@
 .student-application-card {
   border-color: #c4b5fd;
 }
+.student-application-card.tutor-proposal-split {
+  align-items: stretch;
+}
 .student-application-card .tutor-cert-status.student-status {
   display: inline-flex;
   align-items: center;

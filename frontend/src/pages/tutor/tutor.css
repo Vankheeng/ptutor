@@ -181,3 +181,118 @@
 .tutor-notice { display: none !important; }
 .tutor-contract-status.status-waiting-payment{background:#f1eff4;color:#756d80}
 .tutor-lesson-edit-form select{width:100%;padding:7px 9px;border:1px solid #e3e5ed;border-radius:8px;background:#fff;color:#303448;font:inherit;font-size:10px;font-weight:400;outline:none}.tutor-lesson-edit-form select:focus{border-color:#7049c8;box-shadow:0 0 0 2px #7049c833}
+
+/* Detail view reached from Tutor "Ứng tuyển của tôi" matches the Student two-card layout. */
+.tutor-request-detail-layout.tutor-market-detail-my-application {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.tutor-my-application-request-card,
+.tutor-apply-sidebar.tutor-my-application-detail-card {
+  min-width: 0;
+  padding: 22px;
+}
+.tutor-my-application-request-card .tutor-detail-heading {
+  margin: 0 0 14px;
+  color: #303448;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.tutor-application-detail-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.tutor-application-detail-list > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.72fr) minmax(0, 1.4fr);
+  gap: 13px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f5;
+  font-size: 11px;
+}
+.tutor-application-detail-list dt {
+  color: #555a6e;
+  font-weight: 700;
+}
+.tutor-application-detail-list dd {
+  min-width: 0;
+  margin: 0;
+  color: #303448;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.tutor-application-detail-list dd a {
+  color: inherit;
+  font-weight: inherit;
+}
+.tutor-application-detail-availability {
+  display: grid;
+  gap: 5px;
+}
+.tutor-my-application-detail-card.tutor-apply-sidebar {
+  position: static;
+  top: auto;
+  grid-row: auto;
+}
+.tutor-my-application-detail-heading h2 {
+  margin: 0 0 14px;
+  color: #252a3d;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.tutor-my-application-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+.tutor-my-application-detail-actions .tutor-button {
+  width: auto;
+  min-height: 34px;
+  justify-content: center;
+  padding: 0 13px;
+}
+.tutor-my-application-detail-card .tutor-application-detail-list > div:last-child {
+  border-bottom: 0;
+}
+.tutor-my-application-detail-actions .tutor-my-application-contract-link {
+  min-height: 36px;
+  border-color: #6a00e8;
+  background: #6a00e8;
+  color: #fff;
+  font-size: 11px;
+}
+.tutor-my-application-detail-actions .tutor-my-application-contract-link:hover {
+  border-color: #5700c5;
+  background: #5700c5;
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .tutor-request-detail-layout.tutor-market-detail-my-application {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .tutor-my-application-request-card,
+  .tutor-apply-sidebar.tutor-my-application-detail-card {
+    padding: 17px;
+  }
+  .tutor-application-detail-list > div {
+    grid-template-columns: minmax(100px, 0.72fr) minmax(0, 1.4fr);
+    gap: 10px;
+  }
+  .tutor-my-application-detail-actions {
+    justify-content: stretch;
+  }
+  .tutor-my-application-detail-actions .tutor-button {
+    flex: 1 1 auto;
+  }
+}
