@@ -7290,6 +7290,9 @@ components:
         studentEmail:
           type: string
           format: email
+        studentPhone:
+          type: string
+          nullable: true
         gradeId:
           type: string
           format: uuid

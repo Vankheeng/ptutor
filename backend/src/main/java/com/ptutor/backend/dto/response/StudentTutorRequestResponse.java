@@ -14,6 +14,7 @@ public record StudentTutorRequestResponse(
         String studentFirstName,
         String studentLastName,
         String studentEmail,
+        String studentPhone,
         UUID gradeId,
         String gradeName,
         UUID teachingRequestId,
@@ -36,7 +37,7 @@ public record StudentTutorRequestResponse(
 
     public StudentTutorRequestResponse withContractId(UUID value) {
         return new StudentTutorRequestResponse(
-                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                id, studentId, studentFirstName, studentLastName, studentEmail, studentPhone, gradeId, gradeName,
                 teachingRequestId, value, previousContractId, previousContractStatus, proposedPrice, learningMode, preferredSchedule,
                 preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
                 detailAddress, message, status, nextStep, createdAt, updatedAt);
@@ -44,7 +45,7 @@ public record StudentTutorRequestResponse(
 
     public StudentTutorRequestResponse withPreviousContractId(UUID value) {
         return new StudentTutorRequestResponse(
-                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                id, studentId, studentFirstName, studentLastName, studentEmail, studentPhone, gradeId, gradeName,
                 teachingRequestId, contractId, value, previousContractStatus, proposedPrice, learningMode, preferredSchedule,
                 preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
                 detailAddress, message, status, nextStep, createdAt, updatedAt);
@@ -52,7 +53,7 @@ public record StudentTutorRequestResponse(
 
     public StudentTutorRequestResponse withPreviousContractStatus(ContractStatus value) {
         return new StudentTutorRequestResponse(
-                id, studentId, studentFirstName, studentLastName, studentEmail, gradeId, gradeName,
+                id, studentId, studentFirstName, studentLastName, studentEmail, studentPhone, gradeId, gradeName,
                 teachingRequestId, contractId, previousContractId, value, proposedPrice, learningMode, preferredSchedule,
                 preferredProvinceId, preferredProvinceName, preferredDistrictId, preferredDistrictName,
                 detailAddress, message, status, nextStep, createdAt, updatedAt);
