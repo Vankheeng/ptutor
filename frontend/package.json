@@ -17,7 +17,8 @@
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "vietqr": "^1.2.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

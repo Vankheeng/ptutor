@@ -55,6 +55,22 @@ public class BankAccountCryptoService {
         }
     }
 
+    public String decrypt(String encryptedAccountNumber) {
+        try {
+            byte[] payload = Base64.getUrlDecoder().decode(encryptedAccountNumber);
+            if (payload.length <= GCM_IV_BYTES + GCM_TAG_BITS / 8) {
+                throw new IllegalArgumentException("Invalid encrypted bank account number");
+            }
+            byte[] iv = java.util.Arrays.copyOfRange(payload, 0, GCM_IV_BYTES);
+            byte[] ciphertext = java.util.Arrays.copyOfRange(payload, GCM_IV_BYTES, payload.length);
+            Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey, new GCMParameterSpec(GCM_TAG_BITS, iv));
+            return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+        } catch (GeneralSecurityException | IllegalArgumentException exception) {
+            throw new IllegalStateException("Could not decrypt bank account number", exception);
+        }
+    }
+
     private byte[] deriveKey(byte[] masterKey) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
