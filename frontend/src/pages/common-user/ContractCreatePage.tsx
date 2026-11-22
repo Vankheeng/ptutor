@@ -232,6 +232,8 @@ export function ContractCreatePage({ role = 'student' }: { role?: CreateRole }) 
           </div>
           <ContractTermsForm
             editableScheduleList
+            requirePositivePrice={role === 'student'}
+            validateScheduleOverlap={role === 'student'}
             loading={saving}
             submitLabel="Tạo và ký hợp đồng"
             includeAgreement
@@ -289,6 +291,15 @@ function contractCreationError(error: unknown) {
     }
     if (error.code === 'LESSON_SCHEDULE_CONFLICT') {
       return `${error.message} Bạn có thể điều chỉnh lại các khung giờ trước khi tạo hợp đồng.`;
+    }
+    if (error.code === 'OVERLAPPING_CONTRACT_SCHEDULE') {
+      return 'Các khung giờ trong cùng một ngày không được trùng hoặc chồng lên nhau.';
+    }
+    if (error.code === 'INVALID_CONTRACT_PRICE') {
+      return 'Giá mỗi buổi học phải lớn hơn 0.';
+    }
+    if (error.code === 'UNSUPPORTED_PAYMENT_PERIOD') {
+      return 'Hợp đồng chỉ hỗ trợ thanh toán hàng tháng hoặc theo gói.';
     }
     if (error.message && error.message !== 'An unexpected error occurred') return error.message;
   }
