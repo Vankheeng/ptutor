@@ -1901,13 +1901,29 @@ html:has(.admin-shell) {
 .admin-transaction-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  align-items: start;
   gap: 16px;
 }
-.admin-transaction-detail-side {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
+.admin-transaction-detail-grid.has-reference {
+  grid-template-areas:
+    'info reference'
+    'note user';
+}
+.admin-transaction-detail-grid.no-reference {
+  grid-template-areas:
+    'info user'
+    'note note';
+}
+.admin-transaction-detail-info {
+  grid-area: info;
+}
+.admin-transaction-detail-reference {
+  grid-area: reference;
+}
+.admin-transaction-detail-user {
+  grid-area: user;
+}
+.admin-transaction-detail-note {
+  grid-area: note;
 }
 .admin-transaction-detail-card {
   padding: 24px 28px;
@@ -1969,6 +1985,12 @@ html:has(.admin-shell) {
 @media (max-width: 900px) {
   .admin-transaction-detail-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-transaction-detail-grid.has-reference {
+    grid-template-areas: 'info' 'reference' 'user' 'note';
+  }
+  .admin-transaction-detail-grid.no-reference {
+    grid-template-areas: 'info' 'user' 'note';
   }
 }
 @media (max-width: 640px) {

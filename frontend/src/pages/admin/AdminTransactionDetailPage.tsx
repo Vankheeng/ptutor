@@ -28,6 +28,10 @@ export function AdminTransactionDetailPage() {
     [validSource, transactionId]
   );
   const { data, error, isLoading } = useResource(load);
+  const hasReference = Boolean(
+    data &&
+    (data.transaction.referenceType || data.transaction.referenceId || data.transactionCode || data.transferReference)
+  );
 
   return (
     <div className="admin-page admin-transaction-detail">
@@ -55,8 +59,8 @@ export function AdminTransactionDetailPage() {
             </div>
           </header>
 
-          <div className="admin-transaction-detail-grid">
-            <section className="admin-card admin-transaction-detail-card">
+          <div className={`admin-transaction-detail-grid ${hasReference ? 'has-reference' : 'no-reference'}`}>
+            <section className="admin-card admin-transaction-detail-card admin-transaction-detail-info">
               <h2>Thông tin giao dịch</h2>
               <dl className="admin-transaction-facts">
                 <div className="admin-transaction-fact-wide">
@@ -82,57 +86,53 @@ export function AdminTransactionDetailPage() {
               </dl>
             </section>
 
-            <div className="admin-transaction-detail-side">
-              <section className="admin-card admin-transaction-detail-card">
-                <h2>Người liên quan</h2>
-                <strong className="admin-transaction-user-name">{data.userName || data.userEmail}</strong>
-                <span className="admin-transaction-user-email">{data.userEmail}</span>
+            {hasReference && (
+              <section className="admin-card admin-transaction-detail-card admin-transaction-detail-reference">
+                <h2>Tham chiếu</h2>
+                <dl className="admin-transaction-facts admin-transaction-facts-single">
+                  {data.transactionCode && (
+                    <div>
+                      <dt>Mã thanh toán</dt>
+                      <dd className="admin-transaction-code">{data.transactionCode}</dd>
+                    </div>
+                  )}
+                  {data.transferReference && (
+                    <div>
+                      <dt>Mã chuyển khoản</dt>
+                      <dd className="admin-transaction-code">{data.transferReference}</dd>
+                    </div>
+                  )}
+                  {data.transaction.referenceType && (
+                    <div>
+                      <dt>Loại tham chiếu</dt>
+                      <dd>
+                        {transactionReferenceLabels[data.transaction.referenceType] ?? data.transaction.referenceType}
+                      </dd>
+                    </div>
+                  )}
+                  {data.transaction.referenceId && (
+                    <div>
+                      <dt>Mã tham chiếu</dt>
+                      <dd className="admin-transaction-code">{data.transaction.referenceId}</dd>
+                    </div>
+                  )}
+                </dl>
               </section>
-              {(data.transaction.referenceType ||
-                data.transaction.referenceId ||
-                data.transactionCode ||
-                data.transferReference) && (
-                <section className="admin-card admin-transaction-detail-card">
-                  <h2>Tham chiếu</h2>
-                  <dl className="admin-transaction-facts admin-transaction-facts-single">
-                    {data.transactionCode && (
-                      <div>
-                        <dt>Mã thanh toán</dt>
-                        <dd className="admin-transaction-code">{data.transactionCode}</dd>
-                      </div>
-                    )}
-                    {data.transferReference && (
-                      <div>
-                        <dt>Mã chuyển khoản</dt>
-                        <dd className="admin-transaction-code">{data.transferReference}</dd>
-                      </div>
-                    )}
-                    {data.transaction.referenceType && (
-                      <div>
-                        <dt>Loại tham chiếu</dt>
-                        <dd>
-                          {transactionReferenceLabels[data.transaction.referenceType] ?? data.transaction.referenceType}
-                        </dd>
-                      </div>
-                    )}
-                    {data.transaction.referenceId && (
-                      <div>
-                        <dt>Mã tham chiếu</dt>
-                        <dd className="admin-transaction-code">{data.transaction.referenceId}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </section>
-              )}
-            </div>
-          </div>
+            )}
 
-          {data.transaction.description && (
-            <section className="admin-card admin-transaction-detail-card">
-              <h2>Ghi chú</h2>
-              <p className="admin-transaction-description">{data.transaction.description}</p>
+            <section className="admin-card admin-transaction-detail-card admin-transaction-detail-user">
+              <h2>Người liên quan</h2>
+              <strong className="admin-transaction-user-name">{data.userName || data.userEmail}</strong>
+              <span className="admin-transaction-user-email">{data.userEmail}</span>
             </section>
-          )}
+
+            {data.transaction.description && (
+              <section className="admin-card admin-transaction-detail-card admin-transaction-detail-note">
+                <h2>Ghi chú</h2>
+                <p className="admin-transaction-description">{data.transaction.description}</p>
+              </section>
+            )}
+          </div>
         </>
       )}
     </div>
