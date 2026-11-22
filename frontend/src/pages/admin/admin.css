@@ -150,11 +150,10 @@ html:has(.admin-shell) {
 .admin-main {
   flex: 999 1 560px;
   min-width: 0;
-  padding: 32px 40px 48px;
+  padding: 32px 24px 48px;
 }
 .admin-page {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -300,7 +299,8 @@ html:has(.admin-shell) {
   border-bottom: 1px solid var(--admin-border);
 }
 .admin-filters label,
-.admin-filters fieldset {
+.admin-filters fieldset,
+.admin-transaction-filters label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -320,6 +320,8 @@ html:has(.admin-shell) {
 }
 .admin-filters input,
 .admin-filters select,
+.admin-transaction-filters input,
+.admin-transaction-filters select,
 .admin-page-size select {
   height: 44px;
   padding: 0 12px;
@@ -331,6 +333,8 @@ html:has(.admin-shell) {
 }
 .admin-filters input:focus,
 .admin-filters select:focus,
+.admin-transaction-filters input:focus,
+.admin-transaction-filters select:focus,
 .admin-field textarea:focus {
   outline: 2px solid var(--admin-brand);
   outline-offset: 1px;
@@ -1688,4 +1692,301 @@ html:has(.admin-shell) {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.admin-transaction-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.admin-transaction-filters {
+  display: grid;
+  gap: 16px;
+  padding: 18px 22px 20px;
+  border-bottom: 1px solid var(--admin-border);
+  background: linear-gradient(180deg, #fff 0%, #fcfbff 100%);
+  border-radius: 16px 16px 0 0;
+}
+.admin-transaction-search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.admin-transaction-search-row label {
+  flex: 1;
+  min-width: 0;
+}
+.admin-transaction-search-row input,
+.admin-transaction-filter-grid input,
+.admin-transaction-filter-grid select {
+  width: 100%;
+  min-width: 0;
+}
+.admin-transaction-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-transaction-flow {
+  display: inline-block;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-transaction-flow-in {
+  color: var(--admin-success);
+}
+.admin-transaction-flow-out {
+  color: var(--admin-danger);
+}
+.admin-transaction-flow-internal {
+  color: var(--admin-brand-ink);
+}
+.admin-transaction-flow-none {
+  color: var(--admin-muted);
+}
+.admin-transaction-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+.admin-transaction-table th,
+.admin-transaction-table td {
+  padding: 13px 10px;
+}
+.admin-transaction-table th:nth-child(1) {
+  width: 14%;
+}
+.admin-transaction-table th:nth-child(2) {
+  width: 25%;
+}
+.admin-transaction-table th:nth-child(3) {
+  width: 26%;
+}
+.admin-transaction-table th:nth-child(4) {
+  width: 12%;
+}
+.admin-transaction-table th:nth-child(5) {
+  width: 12%;
+}
+.admin-transaction-table th:nth-child(6) {
+  width: 11%;
+}
+.admin-transaction-table .admin-stack > span {
+  overflow-wrap: anywhere;
+}
+.admin-transaction-row {
+  cursor: pointer;
+}
+.admin-transaction-row td {
+  transition: background-color 150ms ease;
+}
+.admin-transaction-row:hover td {
+  background: #f8f5ff;
+}
+.admin-transaction-row:focus-visible td {
+  background: var(--admin-brand-soft);
+}
+.admin-transaction-row:hover .admin-stack strong,
+.admin-transaction-row:focus-visible .admin-stack strong {
+  color: var(--admin-brand-ink);
+}
+@media (max-width: 1300px) {
+  .admin-transaction-filter-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .admin-transaction-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-transaction-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .admin-transaction-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-transaction-search-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.admin-transaction-detail {
+  gap: 18px;
+}
+.admin-transaction-detail .admin-back {
+  margin-bottom: -8px;
+}
+.admin-transaction-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 26px 28px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-top: 4px solid var(--admin-brand);
+  border-radius: 16px;
+}
+.admin-transaction-hero-in {
+  border-top-color: var(--admin-success);
+}
+.admin-transaction-hero-out {
+  border-top-color: var(--admin-danger);
+}
+.admin-transaction-hero-none {
+  border-top-color: var(--admin-muted);
+}
+.admin-transaction-hero-main {
+  min-width: 0;
+}
+.admin-transaction-eyebrow {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.admin-transaction-hero h1 {
+  margin: 6px 0 14px;
+  color: var(--admin-ink);
+  font-size: 30px;
+  line-height: 1.2;
+}
+.admin-transaction-hero-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.admin-transaction-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.admin-transaction-amount span {
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.admin-transaction-amount strong {
+  color: var(--admin-brand-ink);
+  font-size: 30px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.admin-transaction-hero-in .admin-transaction-amount strong {
+  color: var(--admin-success);
+}
+.admin-transaction-hero-out .admin-transaction-amount strong {
+  color: var(--admin-danger);
+}
+.admin-transaction-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.admin-transaction-detail-grid.has-reference {
+  grid-template-areas:
+    'info reference'
+    'note user';
+}
+.admin-transaction-detail-grid.no-reference {
+  grid-template-areas:
+    'info user'
+    'note note';
+}
+.admin-transaction-detail-info {
+  grid-area: info;
+}
+.admin-transaction-detail-reference {
+  grid-area: reference;
+}
+.admin-transaction-detail-user {
+  grid-area: user;
+}
+.admin-transaction-detail-note {
+  grid-area: note;
+}
+.admin-transaction-detail-card {
+  padding: 24px 28px;
+}
+.admin-transaction-detail-card h2 {
+  margin: 0 0 20px;
+  color: var(--admin-ink);
+  font-size: 17px;
+}
+.admin-transaction-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+  margin: 0;
+}
+.admin-transaction-facts-single {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.admin-transaction-fact-wide {
+  grid-column: 1 / -1;
+}
+.admin-transaction-facts dt {
+  margin-bottom: 5px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.admin-transaction-facts dd {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.admin-transaction-code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+.admin-transaction-user-name,
+.admin-transaction-user-email {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.admin-transaction-user-name {
+  color: var(--admin-ink);
+  font-size: 17px;
+}
+.admin-transaction-user-email {
+  margin-top: 6px;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.admin-transaction-description {
+  margin: 0;
+  color: var(--admin-subtle);
+  line-height: 1.6;
+}
+@media (max-width: 900px) {
+  .admin-transaction-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-transaction-detail-grid.has-reference {
+    grid-template-areas: 'info' 'reference' 'user' 'note';
+  }
+  .admin-transaction-detail-grid.no-reference {
+    grid-template-areas: 'info' 'user' 'note';
+  }
+}
+@media (max-width: 640px) {
+  .admin-transaction-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .admin-transaction-amount {
+    align-items: flex-start;
+  }
+  .admin-transaction-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
