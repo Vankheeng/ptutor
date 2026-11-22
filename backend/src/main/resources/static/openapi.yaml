@@ -5952,6 +5952,8 @@ components:
         userEmail: { type: string, format: email }
         purpose: { type: string }
         flow: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        transactionCode: { type: string, nullable: true }
+        transferReference: { type: string, nullable: true }
         transaction: { $ref: '#/components/schemas/FinancialTransactionResponse' }
 
     AdminTransactionSummaryResponse:

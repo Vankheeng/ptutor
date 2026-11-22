@@ -31,18 +31,20 @@ public class AdminTransactionRepository {
     private static final String TRANSACTIONS = """
             select p.id, 'PAYMENT' as source, p.payment_type as type, p.payment_method as method,
                    p.status, p.amount, p.reference_type, p.reference_id, p.note as description,
-                   coalesce(p.paid_at, p.created_at) as occurred_at, p.user_id, p.payment_type as purpose
+                   coalesce(p.paid_at, p.created_at) as occurred_at, p.user_id, p.payment_type as purpose,
+                   p.transaction_code, null::varchar as transfer_reference
               from payments p where p.deleted_at is null
             union all
             select wt.id, 'WALLET_TRANSACTION', wt.transaction_type, 'WALLET',
                    wt.status, wt.amount, wt.reference_type, wt.reference_id, wt.description,
-                   wt.created_at, w.user_id, wt.purpose
+                   wt.created_at, w.user_id, wt.purpose, null::varchar, null::varchar
               from wallet_transactions wt join wallets w on w.id = wt.wallet_id
              where wt.deleted_at is null and w.deleted_at is null
             union all
             select wr.id, 'WITHDRAWAL', 'WITHDRAWAL', 'WALLET',
                    wr.status, wr.amount, 'WITHDRAWAL_REQUEST', wr.id, wr.note,
-                   coalesce(wr.completed_at, wr.created_at), w.user_id, 'WITHDRAWAL'
+                   coalesce(wr.completed_at, wr.created_at), w.user_id, 'WITHDRAWAL',
+                   null::varchar, wr.transfer_reference
               from withdrawal_requests wr join wallets w on w.id = wr.wallet_id
              where wr.deleted_at is null and w.deleted_at is null
             """;
@@ -57,7 +59,8 @@ public class AdminTransactionRepository {
             + "else 'INTERNAL' end";
     private static final String SELECT = "select tx.id, tx.source, tx.type, tx.method, tx.status, tx.amount, "
             + "tx.reference_type, tx.reference_id, tx.description, tx.occurred_at, u.id, "
-            + "trim(concat_ws(' ', u.first_name, u.last_name)), u.email, tx.purpose, " + FLOW + " as flow ";
+            + "trim(concat_ws(' ', u.first_name, u.last_name)), u.email, tx.purpose, "
+            + FLOW + " as flow, tx.transaction_code, tx.transfer_reference ";
 
     private final EntityManager entityManager;
 
@@ -156,7 +159,9 @@ public class AdminTransactionRepository {
                 row[6] == null ? null : ReferenceType.valueOf(row[6].toString()), uuid(row[7]),
                 row[8] == null ? null : row[8].toString(), dateTime(row[9]));
         return new AdminTransactionResponse(uuid(row[10]), row[11].toString(), row[12].toString(),
-                row[13].toString(), AdminTransactionFlow.valueOf(row[14].toString()), transaction);
+                row[13].toString(), AdminTransactionFlow.valueOf(row[14].toString()),
+                row[15] == null ? null : row[15].toString(),
+                row[16] == null ? null : row[16].toString(), transaction);
     }
 
     private UUID uuid(Object value) {

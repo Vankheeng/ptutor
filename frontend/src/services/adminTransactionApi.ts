@@ -10,6 +10,8 @@ export interface AdminTransaction {
   userEmail: string;
   purpose: string;
   flow: TransactionFlow;
+  transactionCode: string | null;
+  transferReference: string | null;
   transaction: AdminStudentTransaction;
 }
 

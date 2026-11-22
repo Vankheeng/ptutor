@@ -9,5 +9,7 @@ public record AdminTransactionResponse(
         String userEmail,
         String purpose,
         AdminTransactionFlow flow,
+        String transactionCode,
+        String transferReference,
         FinancialTransactionResponse transaction) {
 }
