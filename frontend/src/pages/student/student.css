@@ -2890,6 +2890,72 @@
 .student-application-card {
   border-color: #c4b5fd;
 }
+.student-application-card .tutor-cert-status.student-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 12px;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: none;
+}
+.student-application-card .tutor-cert-status.student-status.pending_review {
+  background: #fff6e6;
+  color: #a9791a;
+}
+.student-application-card .tutor-cert-status.student-status.open {
+  background: #eaf6ff;
+  color: #2673a8;
+}
+.student-application-card .tutor-cert-status.student-status.matched {
+  background: #eaf8f2;
+  color: #27815b;
+}
+.student-application-card .tutor-cert-status.student-status.closed {
+  background: #f0f1f4;
+  color: #74798b;
+}
+.student-application-card .tutor-cert-status.student-status.cancelled {
+  background: #fff0ef;
+  color: #ab4039;
+}
+.student-application-card .tutor-cert-status.student-status.rejected {
+  background: #fff3df;
+  color: #b96a13;
+}
+
+/* Improve text contrast on Student application split cards without changing Tutor UI. */
+.student-application-card .tutor-proposal-request-side h2,
+.student-application-card .tutor-proposal-application-heading h3 {
+  color: #30283d;
+}
+.student-application-card .tutor-eyebrow,
+.student-application-card .tutor-subject-tag {
+  color: #5c4a76;
+}
+.student-application-card .tutor-proposal-grade,
+.student-application-card .tutor-proposal-highlight small,
+.student-application-card .tutor-request-author,
+.student-application-card .tutor-proposal-offer-price small,
+.student-application-card .tutor-proposal-summary small,
+.student-application-card .tutor-proposal-footer small {
+  color: #6f6879;
+}
+.student-application-card .tutor-proposal-highlight strong,
+.student-application-card .tutor-request-author strong,
+.student-application-card .tutor-proposal-offer-price strong,
+.student-application-card .tutor-proposal-summary strong,
+.student-application-card .tutor-application-note p {
+  color: #40384c;
+}
+.student-application-card .tutor-proposal-highlight small,
+.student-application-card .tutor-proposal-summary small {
+  font-weight: 500;
+}
+.student-application-card .tutor-proposal-highlight strong,
+.student-application-card .tutor-proposal-summary strong {
+  font-weight: 600;
+}
 
 .tutor-application-detail-panel .tutor-application-panel-heading p {
   margin: 0;

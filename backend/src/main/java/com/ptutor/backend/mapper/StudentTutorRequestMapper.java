@@ -33,6 +33,7 @@ public interface StudentTutorRequestMapper {
 
     @Mapping(target = "teachingRequestId", source = "teachingRequest.id")
     @Mapping(target = "teachingRequestTitle", source = "teachingRequest.title")
+    @Mapping(target = "teachingRequestStatus", source = "teachingRequest.status")
     @Mapping(target = "subjectId", source = "teachingRequest.subject.id")
     @Mapping(target = "subjectName", source = "teachingRequest.subject.name")
     @Mapping(target = "customSubjectName", source = "teachingRequest.customSubjectName")

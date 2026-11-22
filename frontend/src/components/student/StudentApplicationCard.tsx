@@ -1,18 +1,20 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ApplicationSplitCard } from '../applications/ApplicationSplitCard';
 import type { StudentApplication } from '../../services/studentApi';
 import type { TeachingRequest } from '../../types/api';
 import { applicationStatusLabel, formatDate, formatMoney, learningModeLabel } from './studentApplicationUtils';
+import { studyingRequestStatusText } from './studyingRequestUtils';
 
 interface Props {
   application: StudentApplication;
   request?: TeachingRequest;
+  contractId?: string;
   cancelling: boolean;
   onEdit: () => void;
   onCancel: () => void;
 }
 
-export function StudentApplicationCard({ application, request, cancelling, onEdit, onCancel }: Props) {
+export function StudentApplicationCard({ application, request, contractId, cancelling, onEdit, onCancel }: Props) {
   const navigate = useNavigate();
   const subject =
     request?.subjectName ||
@@ -37,6 +39,8 @@ export function StudentApplicationCard({ application, request, cancelling, onEdi
         subject,
         title,
         grade,
+        statusLabel: studyingRequestStatusText(application.teachingRequestStatus),
+        statusClass: `student-status ${application.teachingRequestStatus.toLowerCase()}`,
         highlights: [
           { icon: '◷', label: 'Thời gian mong muốn', value: preferredSchedule },
           { icon: '▤', label: 'Lớp học', value: grade },
@@ -69,6 +73,11 @@ export function StudentApplicationCard({ application, request, cancelling, onEdi
         footerText: application.nextStep || `Đã gửi ${formatDate(application.createdAt)}`,
         actions: (
           <>
+            {application.status === 'ACCEPTED' && contractId && (
+              <Link className="tutor-button" to={`/student/contracts/${contractId}`}>
+                Xem hợp đồng
+              </Link>
+            )}
             {application.status === 'PENDING' && (
               <>
                 <button className="tutor-button tutor-proposal-edit" type="button" onClick={onEdit}>

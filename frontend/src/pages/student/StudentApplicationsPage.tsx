@@ -3,9 +3,13 @@ import { Link } from 'react-router-dom';
 import { ApiError } from '../../services/httpClient';
 import {
   cancelStudentApplication,
+  getContracts,
   getStudentApplications,
   getTeachingRequest,
-  type ApplicationStatus
+  updateStudentApplication,
+  type ApplicationStatus,
+  type Contract,
+  type RequestStatus
 } from '../../services/studentApi';
 import type { TeachingRequest } from '../../types/api';
 import { useResource } from '../../hooks/useResource';
@@ -16,14 +20,34 @@ import {
   type StudentApplicationFormValues
 } from '../../components/student/StudentApplicationForm';
 import { applicationStatusLabel } from '../../components/student/studentApplicationUtils';
-import { updateStudentApplication } from '../../services/studentApi';
 import '../tutor/tutor.css';
 
 const filters: Array<'ALL' | ApplicationStatus> = ['ALL', 'PENDING', 'ACCEPTED', 'CONNECTED', 'REJECTED', 'CANCELLED'];
 const PAGE_SIZE = 20;
+const requestStatusOptions: Array<{ value: 'ALL' | RequestStatus; label: string }> = [
+  { value: 'ALL', label: 'Tất cả trạng thái yêu cầu' },
+  { value: 'DRAFT', label: 'Bản nháp' },
+  { value: 'PENDING_REVIEW', label: 'Chờ duyệt' },
+  { value: 'OPEN', label: 'Đang mở' },
+  { value: 'MATCHED', label: 'Đã kết nối' },
+  { value: 'CLOSED', label: 'Đã đóng' },
+  { value: 'CANCELLED', label: 'Đã hủy' },
+  { value: 'REJECTED', label: 'Không được duyệt' }
+];
+
+async function getAllStudentContracts(signal: AbortSignal): Promise<Contract[]> {
+  const firstPage = await getContracts(undefined, 0, 100, signal);
+  if (firstPage.totalPages <= 1) return firstPage.content;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) => getContracts(undefined, index + 1, 100, signal))
+  );
+  return [...firstPage.content, ...remainingPages.flatMap((page) => page.content)];
+}
 
 export function StudentApplicationsPage() {
   const [filter, setFilter] = useState<'ALL' | ApplicationStatus>('ALL');
+  const [requestStatus, setRequestStatus] = useState<'ALL' | RequestStatus>('ALL');
   const [search, setSearch] = useState('');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(0);
@@ -35,6 +59,7 @@ export function StudentApplicationsPage() {
   const [editError, setEditError] = useState('');
   const [requestDetails, setRequestDetails] = useState<Record<string, TeachingRequest>>({});
   const [requestDetailErrors, setRequestDetailErrors] = useState<Record<string, string>>({});
+  const [contractIds, setContractIds] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -55,7 +80,32 @@ export function StudentApplicationsPage() {
   const query = useResource(load, revision);
   const pageData = query.data?.key === requestKey ? query.data.page : null;
   const applications = useMemo(() => pageData?.content ?? [], [pageData]);
+  const visibleApplications = useMemo(
+    () =>
+      applications.filter((application) => {
+        if (requestStatus === 'ALL') return true;
+        return application.teachingRequestStatus === requestStatus;
+      }),
+    [applications, requestStatus]
+  );
   const editingItem = pageData?.content.find((item) => item.id === editingApplication);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getAllStudentContracts(controller.signal)
+      .then((contracts) => {
+        if (controller.signal.aborted) return;
+        setContractIds(
+          Object.fromEntries(
+            contracts
+              .filter((contract) => contract.studentTutorRequestId)
+              .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+          )
+        );
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [revision]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -120,7 +170,6 @@ export function StudentApplicationsPage() {
       <div className="tutor-page-heading">
         <div>
           <h1>Ứng tuyển của tôi</h1>
-          <p>Theo dõi các yêu cầu bạn đã gửi đến gia sư.</p>
         </div>
         <Link className="tutor-button tutor-heading-button" to="/student/teaching-requests">
           Tìm yêu cầu dạy
@@ -151,17 +200,29 @@ export function StudentApplicationsPage() {
           setPage(0);
         }}
         filterAriaLabel="Lọc ứng tuyển"
+        filterLabel="Trạng thái ứng tuyển"
+        secondaryFilter={{
+          value: requestStatus,
+          onChange: (value) => {
+            setRequestStatus(value as 'ALL' | RequestStatus);
+            setPage(0);
+          },
+          ariaLabel: 'Lọc theo trạng thái yêu cầu học',
+          label: 'Trạng thái yêu cầu học',
+          options: requestStatusOptions
+        }}
       />
 
       {query.isLoading || (!pageData && !query.error) ? (
         <div className="tutor-empty">Đang tải danh sách ứng tuyển…</div>
-      ) : applications.length ? (
+      ) : visibleApplications.length ? (
         <div className="tutor-proposal-list">
-          {applications.map((application) => (
+          {visibleApplications.map((application) => (
             <StudentApplicationCard
               key={application.id}
               application={application}
               request={requestDetails[application.teachingRequestId]}
+              contractId={contractIds[application.id]}
               cancelling={cancelling === application.id}
               onEdit={() => {
                 setEditError('');
@@ -174,8 +235,12 @@ export function StudentApplicationsPage() {
       ) : (
         <div className="tutor-empty">
           <span>↗</span>
-          <h3>Chưa có ứng tuyển trong mục này</h3>
-          <p>Hãy tìm một yêu cầu dạy phù hợp để gửi ứng tuyển đầu tiên của bạn.</p>
+          <h3>{requestStatus === 'ALL' ? 'Chưa có ứng tuyển trong mục này' : 'Không có ứng tuyển phù hợp'}</h3>
+          <p>
+            {requestStatus === 'ALL'
+              ? 'Hãy tìm một yêu cầu dạy phù hợp để gửi ứng tuyển đầu tiên của bạn.'
+              : 'Thử chọn trạng thái yêu cầu học khác để xem các ứng tuyển phù hợp.'}
+          </p>
         </div>
       )}
 

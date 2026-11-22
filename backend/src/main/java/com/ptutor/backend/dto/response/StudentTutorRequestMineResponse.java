@@ -6,11 +6,13 @@ import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.LearningMode;
+import com.ptutor.backend.entity.enums.RequestStatus;
 
 public record StudentTutorRequestMineResponse(
         UUID id,
         UUID teachingRequestId,
         String teachingRequestTitle,
+        RequestStatus teachingRequestStatus,
         UUID subjectId,
         String subjectName,
         String customSubjectName,
