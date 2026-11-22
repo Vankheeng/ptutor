@@ -24,6 +24,11 @@
   color: var(--admin-ink);
 }
 
+/* Reserve the scrollbar's width so short and long admin pages lay out at the same width. */
+html:has(.admin-shell) {
+  scrollbar-gutter: stable;
+}
+
 /* Layout */
 .admin-sidebar {
   flex: 0 0 280px;
