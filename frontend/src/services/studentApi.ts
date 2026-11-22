@@ -638,6 +638,9 @@ export const confirmBankAccountOtp = (challengeId: string, otp: string) =>
   post<BankAccount>('/api/v1/users/me/bank-account/confirm', { challengeId, otp });
 export const payStudyingRequest = (id: string) =>
   post<PaymentInitiation>(`/api/v1/students/me/studying-requests/${id}/payments/vnpay`, { locale: 'vn' });
+export const payStudyingRequestWithWallet = (id: string) =>
+  post<Payment>(`/api/v1/students/me/studying-requests/${id}/payments/wallet`);
+export const getStudyingRequestPaymentFee = () => get<number>('/api/v1/students/me/studying-requests/payment-fee');
 export const payInstallment = (contractId: string, installmentId: string) =>
   post<PaymentInitiation>(
     `/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/vnpay`,

@@ -3209,6 +3209,21 @@ paths:
         '409': { $ref: '#/components/responses/ConflictError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/students/me/studying-requests/payment-fee:
+    get:
+      tags: [Payments]
+      summary: Get configured studying request publication fee
+      operationId: getStudyingRequestPaymentFee
+      responses:
+        '200':
+          description: Configured fee amount in VND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudyingRequestFeeResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/students/me/studying-requests/{requestId}/payments/vnpay:
     post:
       tags: [Payments]
@@ -8663,6 +8678,13 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/PaymentInitiationResponse' }
+
+    StudyingRequestFeeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { type: number, format: double, example: 10000 }
 
     PaymentResponseEnvelope:
       allOf:
