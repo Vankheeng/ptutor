@@ -4694,6 +4694,150 @@
   color: #d4473e;
 }
 
+.student-studying-request-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.student-studying-request-payment-dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(24 20 43 / 52%);
+}
+.student-studying-request-payment-dialog {
+  width: min(600px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+}
+.student-studying-request-payment-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-studying-request-payment-dialog-header h2 {
+  margin: 0;
+  color: #283657;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.student-studying-request-payment-dialog-close {
+  display: inline-flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f5fa;
+  color: #66718b;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+.student-studying-request-payment-dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.student-studying-request-payment-dialog-body {
+  display: grid;
+  gap: 13px;
+  padding-top: 16px;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 11px;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading h2 {
+  margin: 0;
+  color: #283657;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading p {
+  margin: 4px 0 0;
+  color: #71809c;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-policy {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.student-studying-request-payment-method {
+  display: grid;
+  gap: 6px;
+  color: #303d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+.student-studying-request-payment-method select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ded5ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #303d67;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+.student-studying-request-payment-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid #edf1f7;
+}
+.student-studying-request-payment-dialog-footer .student-button {
+  min-height: 36px;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .student-studying-request-detail-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+  .student-studying-request-payment-dialog-backdrop {
+    padding: 10px;
+  }
+  .student-studying-request-payment-dialog {
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+  }
+  .student-studying-request-payment-dialog-header h2 {
+    font-size: 16px;
+  }
+  .student-studying-request-payment-dialog-body .student-studying-request-payment-heading {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .student-studying-request-payment-dialog-body .student-studying-request-payment-price {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .student-studying-request-payment-dialog-footer {
+    flex-direction: column-reverse;
+  }
+  .student-studying-request-payment-dialog-footer .student-button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 900px) {
   .student-complaint-edit-layout {
     grid-template-columns: 1fr;
