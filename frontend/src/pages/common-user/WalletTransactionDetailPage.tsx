@@ -30,16 +30,18 @@ const inferredReferenceType = (type: string) =>
 const statusName = (status: string, source: string) =>
   source === 'WITHDRAWAL' && status === 'PENDING'
     ? 'Chờ duyệt'
-    : ({
-        PENDING: 'Đang xử lý',
-        PROCESSING: 'Đang xét duyệt',
-        PAID: 'Hoàn tất',
-        COMPLETED: 'Hoàn tất',
-        FAILED: 'Thất bại',
-        CANCELLED: 'Đã hủy',
-        REFUNDED: 'Đã hoàn tiền',
-        REJECTED: 'Từ chối'
-      }[status] ?? status.replaceAll('_', ' '));
+    : source === 'WITHDRAWAL' && status === 'PROCESSING'
+      ? 'Chờ chuyển khoản'
+      : ({
+          PENDING: 'Đang xử lý',
+          PROCESSING: 'Đang xét duyệt',
+          PAID: 'Hoàn tất',
+          COMPLETED: 'Hoàn tất',
+          FAILED: 'Thất bại',
+          CANCELLED: 'Đã hủy',
+          REFUNDED: 'Đã hoàn tiền',
+          REJECTED: 'Từ chối'
+        }[status] ?? status.replaceAll('_', ' '));
 
 export function WalletTransactionDetailPage() {
   const { source = '', transactionId = '' } = useParams();
@@ -156,7 +158,7 @@ export function WalletTransactionDetailPage() {
                 </div>
               )}
             </section>
-            {source === 'WITHDRAWAL' && (transaction.data.status === 'PENDING' || cancelMessage !== '') && (
+            {source === 'WITHDRAWAL' && (cancelMessage !== '' || cancelError !== '') && (
               <div className="transaction-withdrawal-cancel">
                 {cancelMessage && (
                   <div className="wallet-success" role="status">
@@ -168,9 +170,6 @@ export function WalletTransactionDetailPage() {
                     {cancelError}
                   </div>
                 )}
-                <button type="button" disabled={cancelling} onClick={() => void cancelWithdrawal()}>
-                  {cancelling ? 'Đang thu hồi…' : 'Thu hồi yêu cầu rút tiền'}
-                </button>
               </div>
             )}
           </>

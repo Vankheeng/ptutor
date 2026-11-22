@@ -45,7 +45,6 @@ export function WalletPage() {
   const bank = useResource(loadBank, refreshKey);
 
   const refresh = () => {
-    setNotice('');
     setRefreshKey((key) => key + 1);
   };
   const onWithdrawalCreated = () => {

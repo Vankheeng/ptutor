@@ -83,6 +83,11 @@ public final class SecurityConstants {
             "/api/v1/admin/refund-requests/**"
     };
 
+    public static final String[] ADMIN_WITHDRAWAL_API = {
+            "/api/v1/admin/withdrawals",
+            "/api/v1/admin/withdrawals/**"
+    };
+
     public static final String[] ADMIN_SUBJECT_API = {
             "/api/v1/admin/subjects"
     };
