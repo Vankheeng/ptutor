@@ -215,6 +215,15 @@ export function AdminTransactionsPage() {
               <tbody>
                 {data.content.map(({ userName, userEmail, purpose, flow, transaction }) => {
                   const detailPath = `/admin/transactions/${transaction.source}/${transaction.id}`;
+                  const transactionMeta = [
+                    transactionSourceLabels[transaction.source],
+                    transaction.source === 'PAYMENT'
+                      ? (transactionMethodLabels[transaction.method] ?? transaction.method)
+                      : null,
+                    `#${transaction.id.slice(-8)}`
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
                   return (
                     <tr
                       key={`${transaction.source}-${transaction.id}`}
@@ -234,14 +243,7 @@ export function AdminTransactionsPage() {
                       <td>
                         <div className="admin-stack">
                           <strong>{transactionPurposeLabels[purpose] ?? purpose}</strong>
-                          <span title={transaction.id}>
-                            {transactionSourceLabels[transaction.source]}
-                            {transaction.source === 'PAYMENT'
-                              ? ` · ${transactionMethodLabels[transaction.method] ?? transaction.method}`
-                              : ''}
-                            {' · #'}
-                            {transaction.id.slice(-8)}
-                          </span>
+                          <span title={transaction.id}>{transactionMeta}</span>
                         </div>
                       </td>
                       <td>
