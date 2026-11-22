@@ -372,12 +372,12 @@ class ContractServiceTest {
         when(contractRepository.saveAndFlush(contract)).thenReturn(contract);
 
         service.update(studentUserId, contract.getId(), new ContractUpdateRequest(
-                BigDecimal.valueOf(250_000), PaymentPeriod.PER_LESSON, null, null,
+                BigDecimal.valueOf(250_000), PaymentPeriod.PACKAGE, null, null,
                 LocalDate.of(2026, 9, 2), LocalDate.of(2026, 9, 16), null,
                 List.of(new ContractScheduleRequest(3, LocalTime.of(18, 0), LocalTime.of(19, 0)))));
 
         assertThat(contract.getPrice()).isEqualByComparingTo("250000");
-        assertThat(contract.getPaymentPeriod()).isEqualTo(PaymentPeriod.PER_LESSON);
+        assertThat(contract.getPaymentPeriod()).isEqualTo(PaymentPeriod.PACKAGE);
         assertThat(contract.getEndDate()).isEqualTo(LocalDate.of(2026, 9, 16));
         assertThat(contract.getTotalLession()).isEqualTo(3);
         assertThat(contract.getSchedules()).hasSize(1);
