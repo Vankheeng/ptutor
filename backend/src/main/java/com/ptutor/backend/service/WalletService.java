@@ -156,6 +156,33 @@ public class WalletService {
         wallet.setBalance(wallet.getBalance().add(normalizedAmount));
     }
 
+    /** Finalizes funds already reserved when the user submitted the withdrawal. */
+    public WalletTransaction completeWithdrawalBalance(
+            Wallet wallet, UUID withdrawalId, BigDecimal amount, String idempotencyKey, WalletTransaction linkedTransaction) {
+        BigDecimal normalizedAmount = normalizeAmount(amount);
+        if (wallet.getPendingBalance().compareTo(normalizedAmount) < 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "INVALID_PENDING_WALLET_BALANCE",
+                    "Wallet pending balance is inconsistent with the withdrawal request");
+        }
+        wallet.setPendingBalance(wallet.getPendingBalance().subtract(normalizedAmount));
+        if (linkedTransaction != null) {
+            if (linkedTransaction.getStatus() != WalletTransactionStatus.PENDING
+                    || linkedTransaction.getAmount().compareTo(normalizedAmount) != 0) {
+                throw new ApiException(HttpStatus.CONFLICT, "INVALID_WITHDRAWAL_TRANSACTION",
+                        "The linked wallet transaction cannot be completed");
+            }
+            linkedTransaction.setStatus(WalletTransactionStatus.COMPLETED);
+            linkedTransaction.setPendingBalanceAfter(wallet.getPendingBalance());
+            return walletTransactionRepository.saveAndFlush(linkedTransaction);
+        }
+        WalletTransactionCommand command = new WalletTransactionCommand(wallet.getUser().getId(), normalizedAmount,
+                WalletTransactionPurpose.WITHDRAWAL, ReferenceType.WITHDRAWAL_REQUEST, withdrawalId,
+                "Withdrawal to bank account", idempotencyKey);
+        validateCommand(command, WalletTransactionType.DEBIT);
+        return saveTransaction(wallet, command, WalletTransactionType.DEBIT, normalizedAmount,
+                WalletTransactionStatus.COMPLETED);
+    }
+
     private Wallet findWalletForUpdate(UUID userId) {
         Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "WALLET_NOT_FOUND", "Wallet not found"));

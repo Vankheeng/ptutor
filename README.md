@@ -789,7 +789,14 @@ Các trạng thái yêu cầu rút gồm:
 
 Khi có luồng xử lý nội bộ, response đã có các field audit: `reviewedByUserId`, `reviewedAt`, `rejectionReason`, `completedAt` và `transferReference`. Các field này ban đầu là `null`; API Student/Tutor hiện tại không được phép tự ghi chúng.
 
-Giai đoạn hiện tại chỉ cung cấp API cho Student/Tutor tạo, xem và tự hủy yêu cầu. Không có API admin để chuyển trạng thái hoặc thực hiện chuyển tiền.
+Admin và nhân viên kế toán xem danh sách yêu cầu tại `GET /api/v1/admin/withdrawals` và xem tài khoản ngân hàng nhận tiền tại `GET /api/v1/admin/withdrawals/{id}`. Tài khoản đầy đủ chỉ được trả về ở trang chi tiết, không xuất hiện trong danh sách.
+
+- `PATCH /api/v1/admin/withdrawals/{id}/approve`: duyệt yêu cầu `PENDING`, chuyển sang `PROCESSING`. Số tiền vẫn được giữ trong `pendingBalance`.
+- Trang chi tiết của yêu cầu `PROCESSING` tạo mã VietQR nhận tiền từ ngân hàng, số tài khoản và số tiền đã lưu trong yêu cầu. Kế toán quét hoặc tải QR, kiểm tra lại người nhận trong ứng dụng ngân hàng và xác nhận chuyển khoản. QR được tạo offline trên trình duyệt; nếu không tạo được QR, có thể dùng thông tin tài khoản hiển thị trên trang.
+- Sau khi ngân hàng xác nhận thành công, kế toán gọi `PATCH /api/v1/admin/withdrawals/{id}/complete` với `{"transferReference":"<mã giao dịch ngân hàng>"}` để chuyển sang `COMPLETED`, giảm `pendingBalance` và ghi giao dịch rút tiền vào sổ ví.
+- `PATCH /api/v1/admin/withdrawals/{id}/reject` với `{"reason":"<lý do>"}`: từ chối yêu cầu còn `PENDING` và trả khoản tiền đang giữ về `balance`.
+
+Tích hợp VNPay hiện có tạo lệnh `pay` cho tiền đi vào hệ thống và xử lý IPN thanh toán. Repo chưa có API payout để tự động chuyển tiền từ tài khoản PTutor sang tài khoản ngân hàng người rút; thao tác chuyển khoản ngân hàng ở bước `PROCESSING` được kế toán thực hiện bên ngoài hệ thống.
 
 #### 6.14.2. Lịch sử giao dịch ví
 

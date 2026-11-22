@@ -53,6 +53,8 @@ import { AdminTutorTeachingHistoryPage } from './pages/admin/AdminTutorTeachingH
 import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
 import { AdminRefundRequestsPage } from './pages/admin/AdminRefundRequestsPage';
 import { AdminRefundRequestDetailPage } from './pages/admin/AdminRefundRequestDetailPage';
+import { AdminWithdrawalsPage } from './pages/admin/AdminWithdrawalsPage';
+import { AdminWithdrawalDetailPage } from './pages/admin/AdminWithdrawalDetailPage';
 import { StudentContractLessonsPage } from './pages/student/StudentContractLessonsPage';
 import { TutorCalendarPage } from './pages/tutor/TutorCalendarPage';
 import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
@@ -123,6 +125,8 @@ export default function App() {
                 </Route>
                 <Route path="refund-requests" element={<AdminRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
+                <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+                <Route path="withdrawals/:withdrawalId" element={<AdminWithdrawalDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
                 <Route path="accounts" element={<Navigate replace to="/admin/students" />} />

@@ -124,6 +124,12 @@ class NotificationTemplateFactory {
             case WITHDRAWAL_REQUEST_CANCELLED -> content(NotificationType.PAYMENT,
                     "Đã hủy yêu cầu rút tiền",
                     "Yêu cầu rút " + amount + " VND đã được hủy. Tiền đã được cộng lại vào ví.");
+            case WITHDRAWAL_REQUEST_APPROVED -> content(NotificationType.PAYMENT,
+                    "Yêu cầu rút tiền đã được duyệt", "Yêu cầu rút " + amount + " VND đang chờ chuyển khoản.");
+            case WITHDRAWAL_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
+                    "Yêu cầu rút tiền bị từ chối", "Yêu cầu rút " + amount + " VND bị từ chối. Tiền đã được trả lại ví.");
+            case WITHDRAWAL_REQUEST_COMPLETED -> content(NotificationType.PAYMENT,
+                    "Rút tiền hoàn tất", "Đã chuyển " + amount + " VND đến tài khoản ngân hàng của bạn.");
             case WALLET_BALANCE_CHANGED -> {
                 String direction = "CREDIT".equals(data.get("transactionType")) ? "cộng vào" : "trừ khỏi";
                 String balance = data.getOrDefault("balanceAfter", "0");

@@ -133,7 +133,9 @@ export function WalletTransactionsPage() {
         const statusLabel =
           item.source === 'WITHDRAWAL' && status === 'PENDING'
             ? 'Chờ duyệt'
-            : (transactionStatusLabels[status] ?? status.replaceAll('_', ' '));
+            : item.source === 'WITHDRAWAL' && status === 'PROCESSING'
+              ? 'Chờ chuyển khoản'
+              : (transactionStatusLabels[status] ?? status.replaceAll('_', ' '));
         const amount = new Intl.NumberFormat('vi-VN', {
           style: 'currency',
           currency: 'VND',
