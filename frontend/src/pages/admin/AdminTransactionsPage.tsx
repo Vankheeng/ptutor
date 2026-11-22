@@ -19,17 +19,9 @@ import {
 } from './studentFormat';
 import type { TransactionSource } from '../../services/adminStudentApi';
 import { flowLabels } from './transactionFlow';
+import { transactionPurposeLabels } from './transactionFormat';
 
 const sources = Object.entries(transactionSourceLabels) as [TransactionSource, string][];
-const purposeLabels: Record<string, string> = {
-  ...transactionTypeLabels,
-  TOP_UP: 'Nạp ví',
-  TUTOR_EARNING: 'Thu nhập gia sư',
-  CONTRACT_REFUND: 'Hoàn học phí',
-  TEACHING_REQUEST_REFUND: 'Hoàn phí đăng tin dạy',
-  STUDYING_REQUEST_REFUND: 'Hoàn phí đăng yêu cầu học',
-  WITHDRAWAL_REVERSAL: 'Hoàn tiền rút ví'
-};
 
 export function AdminTransactionsPage() {
   const navigate = useNavigate();
@@ -229,7 +221,7 @@ export function AdminTransactionsPage() {
                       className="admin-transaction-row"
                       role="link"
                       tabIndex={0}
-                      aria-label={`Xem giao dịch ${purposeLabels[purpose] ?? purpose} của ${userName || userEmail}`}
+                      aria-label={`Xem giao dịch ${transactionPurposeLabels[purpose] ?? purpose} của ${userName || userEmail}`}
                       onClick={() => navigate(detailPath)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
@@ -241,7 +233,7 @@ export function AdminTransactionsPage() {
                       <td>{formatDateTime(transaction.occurredAt)}</td>
                       <td>
                         <div className="admin-stack">
-                          <strong>{purposeLabels[purpose] ?? purpose}</strong>
+                          <strong>{transactionPurposeLabels[purpose] ?? purpose}</strong>
                           <span title={transaction.id}>
                             {transactionSourceLabels[transaction.source]}
                             {transaction.source === 'PAYMENT'
