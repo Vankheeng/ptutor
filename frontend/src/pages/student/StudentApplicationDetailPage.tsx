@@ -92,7 +92,7 @@ export function StudentApplicationDetailPage() {
   return (
     <>
       <button
-        className="tutor-button secondary tutor-navigation-button tutor-back-link"
+        className="tutor-button secondary tutor-navigation-button tutor-back-link student-application-back-button"
         type="button"
         onClick={() => navigate('/student/applications')}
       >

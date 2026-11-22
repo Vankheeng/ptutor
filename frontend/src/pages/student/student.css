@@ -2980,6 +2980,9 @@
   align-items: start;
   gap: 16px;
 }
+.student-application-back-button {
+  font-size: 11px;
+}
 .student-application-detail-card {
   min-width: 0;
   padding: 22px;
