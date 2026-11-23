@@ -1,0 +1,63 @@
+{
+  "default": {
+    "status": 404,
+    "code": "CONTRACT_NOT_FOUND"
+  },
+  "byArgs": [
+    {
+      "match": {
+        "contractId": "c0000000-0000-4000-8000-000000000001"
+      },
+      "status": 200,
+      "body": {
+        "content": [
+          {
+            "id": "l0000000-0000-4000-8000-000000000011",
+            "contractId": "c0000000-0000-4000-8000-000000000001",
+            "title": "Buổi 6",
+            "date": "2026-10-19",
+            "startTime": "19:00:00",
+            "endTime": "20:30:00",
+            "teachingMode": "OFFLINE",
+            "status": "PENDING_CONFIRMATION",
+            "note": null,
+            "markedTaughtAt": "2026-10-19T13:40:00"
+          },
+          {
+            "id": "l0000000-0000-4000-8000-000000000012",
+            "contractId": "c0000000-0000-4000-8000-000000000001",
+            "title": "Buổi 7",
+            "date": "2026-10-26",
+            "startTime": "19:00:00",
+            "endTime": "20:30:00",
+            "teachingMode": "OFFLINE",
+            "status": "SCHEDULED",
+            "note": null,
+            "markedTaughtAt": null
+          }
+        ],
+        "page": 0,
+        "size": 100,
+        "totalElements": 2,
+        "totalPages": 1,
+        "first": true,
+        "last": true
+      }
+    },
+    {
+      "match": {
+        "contractId": "c0000000-0000-4000-8000-000000000002"
+      },
+      "status": 200,
+      "body": {
+        "content": [],
+        "page": 0,
+        "size": 100,
+        "totalElements": 0,
+        "totalPages": 0,
+        "first": true,
+        "last": true
+      }
+    }
+  ]
+}

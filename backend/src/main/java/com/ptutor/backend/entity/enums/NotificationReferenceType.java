@@ -14,5 +14,6 @@ public enum NotificationReferenceType {
     LESSON,
     WALLET_TRANSACTION,
     WITHDRAWAL_REQUEST,
-    REFUND_REQUEST
+    REFUND_REQUEST,
+    SUPPORT_REQUEST
 }

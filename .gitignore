@@ -33,14 +33,21 @@ package-lock.json
 .env.prod
 
 .idea
-# AI service: local virtualenv, model files and caches are never committed
-ai-service/.venv/
-ai-service/models/
-__pycache__/
-.pytest_cache/
-
 # Learning observations of the L1 end-to-end check (user ids and behaviour; design 13, 13.7)
 l1-observations/
 
 # Keep project documentation locally; exclude it from Git.
 /docs/
+
+# Local Python environments and generated caches
+**/.venv/
+**/.pytest_cache/
+**/__pycache__/
+*.pyc
+
+# Local evaluation output and TypeScript build metadata
+scripts/**/out/
+frontend/tsconfig.tsbuildinfo
+
+# Downloaded/local AI model weights
+ai-service/models/

@@ -1,0 +1,143 @@
+/* Yêu cầu hỗ trợ: hộp thoại trong widget và trang chi tiết (dùng chung khung rf-* của trang hoàn tiền). */
+.support-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  background: rgba(34, 28, 54, 0.35);
+}
+
+.support-dialog {
+  width: min(460px, calc(100vw - 32px));
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(34, 28, 54, 0.25);
+  overflow: hidden;
+}
+
+.support-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--purple-50, #f8f5ff);
+  border-bottom: 1px solid var(--border, #e9e5f1);
+}
+
+.support-dialog header button {
+  border: 0;
+  background: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.support-dialog form,
+.support-dialog-done {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.support-dialog textarea,
+.support-answer-form textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e9e5f1);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.support-dialog-count {
+  justify-self: end;
+  color: var(--muted, #706b7f);
+}
+
+.support-dialog-attach {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.support-dialog-attach small {
+  display: block;
+  color: var(--muted, #706b7f);
+}
+
+.support-dialog-error {
+  color: #b42318;
+}
+
+.support-dialog button[type='submit'] {
+  justify-self: end;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+  cursor: pointer;
+}
+
+.support-dialog button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Văn bản người viết: hiển thị nguyên văn, giữ xuống dòng, không render HTML (14 mục 14.8). */
+.support-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.support-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.support-meta dt {
+  color: var(--muted, #706b7f);
+}
+
+.support-meta dd {
+  margin: 0;
+}
+
+.support-excerpt {
+  display: grid;
+  gap: 8px;
+}
+
+.support-excerpt-turn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--purple-50, #f8f5ff);
+}
+
+.support-excerpt-turn.user {
+  background: #f2f4f7;
+}
+
+.support-excerpt-turn small {
+  display: block;
+  color: var(--muted, #706b7f);
+}
+
+.support-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.support-tabs button[aria-pressed='true'] {
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+}
+
+.support-answer-form {
+  display: grid;
+  gap: 8px;
+}

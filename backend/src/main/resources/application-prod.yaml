@@ -55,6 +55,16 @@ app:
       ipn-url: ${VNPAY_IPN_URL}
       expiry-minutes: ${VNPAY_EXPIRY_MINUTES:15}
       time-zone: ${VNPAY_TIME_ZONE:Asia/Ho_Chi_Minh}
+  # Trợ lý hỗ trợ (docs/support-chatbot/11-lo-trinh-va-van-hanh.md mục 11.2). Tắt mặc định:
+  # enabled=false → /api/v1/assistant/** trả 503 ASSISTANT_UNAVAILABLE, phần còn lại chạy bình thường.
+  assistant-service:
+    enabled: ${APP_ASSISTANT_ENABLED:false}
+    base-url: ${APP_ASSISTANT_SERVICE_BASE_URL:http://127.0.0.1:8100}
+    internal-token: ${APP_ASSISTANT_SERVICE_INTERNAL_TOKEN:}
+    timeout-ms: ${APP_ASSISTANT_TIMEOUT_MS:30000}
+    rate-limit:
+      messages: ${APP_ASSISTANT_RATE_LIMIT_MESSAGES:20}
+      window-seconds: ${APP_ASSISTANT_RATE_LIMIT_WINDOW_SECONDS:300}
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME:xxxxx@xxxx.xxxx}}
   storage:

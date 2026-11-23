@@ -80,6 +80,14 @@ import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaints
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
 import { AdminNotificationDetailPage } from './pages/admin/AdminNotificationDetailPage';
+import { KbDocumentListPage } from './pages/admin/assistant/KbDocumentListPage';
+import { KbDocumentEditorPage } from './pages/admin/assistant/KbDocumentEditorPage';
+import { UnansweredQuestionsPage } from './pages/admin/assistant/UnansweredQuestionsPage';
+import { AssistantStatsPage } from './pages/admin/assistant/AssistantStatsPage';
+import { SupportRequestQueuePage } from './pages/admin/support-requests/SupportRequestQueuePage';
+import { SupportRequestDetailPage as AdminSupportRequestDetailPage } from './pages/admin/support-requests/SupportRequestDetailPage';
+import { SupportRequestsPage } from './pages/common-user/SupportRequestsPage';
+import { SupportRequestDetailPage } from './pages/common-user/SupportRequestDetailPage';
 import { AdminEmployeesPage } from './pages/admin/AdminEmployeesPage';
 import { AdminRecommendationWeightsPage } from './pages/admin/AdminRecommendationWeightsPage';
 import { AdminEmployeeDetailPage } from './pages/admin/AdminEmployeeDetailPage';
@@ -127,6 +135,8 @@ export default function App() {
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestQueuePage />} />
+                <Route path="support-requests/:requestId" element={<AdminSupportRequestDetailPage />} />
                 <Route path="accounts" element={<AdminUserAccountsPage />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
@@ -135,6 +145,11 @@ export default function App() {
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
                 <Route element={<RoleGuard roles={['ADMIN']} />}>
+                  <Route path="assistant/documents" element={<KbDocumentListPage />} />
+                  <Route path="assistant/documents/new" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/documents/:documentId" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/unanswered" element={<UnansweredQuestionsPage />} />
+                  <Route path="assistant/stats" element={<AssistantStatsPage />} />
                   <Route path="employees" element={<AdminEmployeesPage />} />
                   <Route path="employees/new" element={<AdminEmployeeFormPage />} />
                   <Route path="employees/:employeeId" element={<AdminEmployeeDetailPage />} />
@@ -173,6 +188,8 @@ export default function App() {
                   path="complaints/:complaintId"
                   element={<ComplaintDetailPage basePath="/tutor/complaints" role="tutor" />}
                 />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
@@ -217,6 +234,8 @@ export default function App() {
                 <Route path="complaints/received" element={<ComplaintsPage mode="received" />} />
                 <Route path="complaints/received/:complaintId" element={<ComplaintDetailPage mode="received" />} />
                 <Route path="complaints/:complaintId" element={<ComplaintDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />

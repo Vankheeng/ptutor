@@ -1,0 +1,26 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "withdrawalId": "h0000000-0000-4000-8000-000000000001",
+          "amount": 2000000,
+          "note": "Rút tháng 10",
+          "status": "PROCESSING",
+          "reviewedAt": null,
+          "rejectionReason": null,
+          "completedAt": null,
+          "createdAt": "2026-10-17T10:00:00",
+          "bankAccountNumber": "should-be-filtered-0011223344"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

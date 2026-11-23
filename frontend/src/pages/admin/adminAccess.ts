@@ -35,7 +35,17 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
     items: [
       { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền', functions: ACCOUNTANT },
       { to: '/admin/complaints', label: 'Khiếu nại', functions: CUSTOMER_SERVICE },
+      { to: '/admin/support-requests', label: 'Yêu cầu hỗ trợ', functions: CUSTOMER_SERVICE },
       { to: '/admin/accounts', label: 'Tài khoản người dùng', functions: CUSTOMER_SERVICE }
+    ]
+  },
+  {
+    // Trợ lý hỗ trợ: chỉ ADMIN quản lý kho tri thức (docs/support-chatbot/01 mục 1.3, 07 mục 7.1).
+    label: 'Trợ lý',
+    items: [
+      { to: '/admin/assistant/documents', label: 'Kho tri thức', functions: [] },
+      { to: '/admin/assistant/unanswered', label: 'Câu hỏi chưa trả lời', functions: [] },
+      { to: '/admin/assistant/stats', label: 'Thống kê trợ lý', functions: [] }
     ]
   }
 ];

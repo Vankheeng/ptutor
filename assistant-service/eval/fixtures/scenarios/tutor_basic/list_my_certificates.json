@@ -1,0 +1,37 @@
+{
+  "default": {
+    "status": 200,
+    "body": [
+      {
+        "id": "d0000000-0000-4000-8000-000000000001",
+        "tutorId": "t1",
+        "name": "IELTS 8.0",
+        "issuingOrganization": "IDP",
+        "description": "",
+        "issueDate": "2025-03-01",
+        "expiryDate": "2027-03-01",
+        "certificateUrl": "s3://x",
+        "status": "VERIFIED",
+        "rejectionReason": null,
+        "reviewedAt": "2026-08-25T03:00:00",
+        "createdAt": "2026-08-21T09:00:00",
+        "updatedAt": "2026-08-25T10:00:00"
+      },
+      {
+        "id": "d0000000-0000-4000-8000-000000000002",
+        "tutorId": "t1",
+        "name": "TOEIC 950",
+        "issuingOrganization": "IIG",
+        "description": "",
+        "issueDate": "2023-01-01",
+        "expiryDate": "2025-01-01",
+        "certificateUrl": "s3://y",
+        "status": "REJECTED",
+        "rejectionReason": "Chứng chỉ đã hết hạn",
+        "reviewedAt": "2026-08-26T03:00:00",
+        "createdAt": "2026-08-21T09:00:00",
+        "updatedAt": "2026-08-26T10:00:00"
+      }
+    ]
+  }
+}
