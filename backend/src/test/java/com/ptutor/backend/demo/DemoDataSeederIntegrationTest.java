@@ -19,7 +19,7 @@ import com.ptutor.backend.repository.UserRepository;
 
 /** Seeder demo trên PostgreSQL thật: tạo đủ tài khoản theo vai trò và chạy lại không nhân bản dữ liệu. */
 @SpringBootTest(properties = "DEMO_USER_PASSWORD=only-for-test-1")
-@ActiveProfiles({"prod", "demo"})
+@ActiveProfiles("demo")
 @Transactional
 class DemoDataSeederIntegrationTest {
 

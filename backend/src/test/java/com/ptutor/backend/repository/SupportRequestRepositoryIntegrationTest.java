@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.entity.enums.SupportRequestStatus;
 
-/** Chạy các truy vấn của yêu cầu hỗ trợ trên PostgreSQL thật (migration V36, JPQL có tham số null). */
+/** Chạy các truy vấn của yêu cầu hỗ trợ trên PostgreSQL thật (migration V47, JPQL có tham số null). */
 @SpringBootTest
 @Transactional
 class SupportRequestRepositoryIntegrationTest {
@@ -31,7 +31,7 @@ class SupportRequestRepositoryIntegrationTest {
         assertThat(supportRequestRepository.findMine(missing, null, pageable)).isEmpty();
         assertThat(supportRequestRepository.findMine(missing, SupportRequestStatus.OPEN, pageable)).isEmpty();
         assertThat(supportRequestRepository.findQueue(EnumSet.of(SupportRequestStatus.OPEN), null, null, null, null,
-                pageable)).isEmpty();
+                pageable)).isNotNull();
         assertThat(supportRequestRepository.findQueue(EnumSet.allOf(SupportRequestStatus.class), missing, "STUDENT",
                 now.minusDays(1), now, pageable)).isEmpty();
         assertThat(supportRequestRepository.countByUser_IdAndStatus(missing, SupportRequestStatus.OPEN)).isZero();

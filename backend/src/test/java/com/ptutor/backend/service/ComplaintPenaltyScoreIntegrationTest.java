@@ -52,7 +52,7 @@ class ComplaintPenaltyScoreIntegrationTest {
         jdbc.update("INSERT INTO students (id, user_id) VALUES (?, ?)", studentId, studentUserId);
         employeeUserId = insertUser();
         UUID employeeId = UUID.randomUUID();
-        jdbc.update("INSERT INTO employees (id, user_id, role, job_function) VALUES (?, ?, 2, 'COMPLAINT_HANDLER')",
+        jdbc.update("INSERT INTO employees (id, user_id, role, job_function) VALUES (?, ?, 2, 'CUSTOMER_SERVICE')",
                 employeeId, employeeUserId);
 
         contractId = insertContract("ACTIVE", true);
