@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -58,6 +60,7 @@ class LessonServiceTest {
     @Mock StudentRepository studentRepository;
     @Mock ComplaintRepository complaintRepository;
     @Mock ContractPaymentInstallmentService installmentService;
+    @Mock LessonPayoutService payoutService;
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock com.ptutor.backend.repository.RefundRequestLessonRepository refundRequestLessonRepository;
 
@@ -83,6 +86,7 @@ class LessonServiceTest {
                 testMapper(),
                 Clock.fixed(Instant.parse("2026-09-12T21:00:00Z"), ZoneOffset.UTC),
                 installmentService,
+                payoutService,
                 eventPublisher);
         lenient().when(installmentService.canCreateLesson(any(Contract.class))).thenReturn(true);
     }
@@ -243,6 +247,7 @@ class LessonServiceTest {
         LessonResponse response = service.confirmByStudent(userId, lessonId);
 
         assertThat(response.status()).isEqualTo(LessonStatus.CONFIRMED);
+        verify(payoutService).release(lesson);
     }
 
     @Test
@@ -309,6 +314,8 @@ class LessonServiceTest {
         assertThat(completedCount).isEqualTo(1);
         assertThat(held.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
         assertThat(free.getStatus()).isEqualTo(LessonStatus.COMPLETED);
+        verify(payoutService).release(free);
+        verify(payoutService, never()).release(held);
     }
 
     @Test
@@ -342,6 +349,7 @@ class LessonServiceTest {
         assertThat(completedCount).isEqualTo(1);
         assertThat(lesson.getStatus()).isEqualTo(LessonStatus.COMPLETED);
         verify(lessonRepository).saveAll(java.util.List.of(lesson));
+        verify(payoutService).release(lesson);
     }
 
     @Test
@@ -359,6 +367,7 @@ class LessonServiceTest {
 
         assertThat(completedCount).isZero();
         assertThat(lesson.getStatus()).isEqualTo(LessonStatus.PENDING_CONFIRMATION);
+        verifyNoInteractions(payoutService);
     }
 
     @Test

@@ -17,4 +17,6 @@ public interface WalletTransactionRepository
     Optional<WalletTransaction> findByIdAndWallet_User_Id(UUID id, UUID userId);
 
     Optional<WalletTransaction> findByWallet_IdAndIdempotencyKey(UUID walletId, String idempotencyKey);
+
+    Optional<WalletTransaction> findByWallet_User_IdAndIdempotencyKey(UUID userId, String idempotencyKey);
 }

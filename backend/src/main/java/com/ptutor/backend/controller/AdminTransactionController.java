@@ -69,4 +69,13 @@ public class AdminTransactionController {
             @PathVariable FinancialTransactionSource source, @PathVariable UUID id) {
         return ResponseEntity.ok(responses.success(service.findById(source, id), BASE + "/" + source + "/" + id));
     }
+
+    @GetMapping("/wallets/users/{userId}")
+    public ResponseEntity<ApiResponse<PageResponse<AdminTransactionResponse>>> walletUserTransactions(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return ResponseEntity.ok(responses.success(service.findAllForWalletUser(userId, page, size),
+                BASE + "/wallets/users/" + userId));
+    }
 }

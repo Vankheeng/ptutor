@@ -40,6 +40,7 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
     items: [
       { to: '/admin/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund', functions: ACCOUNTANT },
       { to: '/admin/withdrawals', label: 'Yêu cầu rút tiền', icon: 'refund', functions: ACCOUNTANT },
+      { to: '/admin/wallets', label: 'Quản lý ví', icon: 'wallet', functions: ACCOUNTANT },
       { to: '/admin/transactions', label: 'Lịch sử giao dịch', icon: 'chart', functions: ACCOUNTANT },
       { to: '/admin/complaints', label: 'Khiếu nại', icon: 'support', functions: CUSTOMER_SERVICE }
     ]

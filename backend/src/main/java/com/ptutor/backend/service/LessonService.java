@@ -71,6 +71,7 @@ public class LessonService {
     private final LessonMapper lessonMapper;
     private final Clock clock;
     private final ContractPaymentInstallmentService installmentService;
+    private final LessonPayoutService payoutService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Autowired(required = false)
@@ -244,6 +245,7 @@ public class LessonService {
         }
 
         lesson.setStatus(LessonStatus.CONFIRMED);
+        payoutService.release(lesson);
         return toResponse(lessonRepository.saveAndFlush(lesson));
     }
 
@@ -265,7 +267,10 @@ public class LessonService {
         if (completedLessons.isEmpty()) {
             return 0;
         }
-        completedLessons.forEach(lesson -> lesson.setStatus(LessonStatus.COMPLETED));
+        completedLessons.forEach(lesson -> {
+            lesson.setStatus(LessonStatus.COMPLETED);
+            payoutService.release(lesson);
+        });
         lessonRepository.saveAll(completedLessons);
         return completedLessons.size();
     }

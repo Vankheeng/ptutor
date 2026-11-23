@@ -90,6 +90,9 @@ public class RefundRequestService {
                 .filter(value -> value.getStudent().getId().equals(student.getId()))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CONTRACT_NOT_FOUND",
                         "Contract not found: " + source.contractId()));
+        contractRepository.findByIdForSettlement(contract.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CONTRACT_NOT_FOUND",
+                        "Contract not found: " + source.contractId()));
         if (contract.getStatus() == ContractStatus.PENDING || refundAssessor.paidTuition(contract.getId()).signum() <= 0) {
             throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_NOT_REFUNDABLE",
                     "Only a signed contract with paid tuition can be refunded");

@@ -89,9 +89,9 @@ const METRIC_SERIES: Record<string, string> = {
 };
 
 const METRIC_LABELS: Record<string, string> = {
-  total_revenue: 'Tổng doanh thu',
-  platform_fees: 'Phí nền tảng',
-  tuition_revenue: 'Học phí đã thu',
+  total_revenue: 'Doanh thu nền tảng',
+  platform_fees: 'Phí đăng tin phát sinh',
+  tuition_revenue: 'Học phí đã thanh toán',
   platform_revenue_gross: 'Doanh thu nền tảng',
   platform_fees_currently_refunded: 'Phí đang hoàn trả',
   platform_revenue_current_net: 'Doanh thu ròng hiện tại',
@@ -196,9 +196,9 @@ const METRIC_LABELS: Record<string, string> = {
   created: 'Được tạo',
   signed: 'Đã ký',
   initiated: 'Được khởi tạo',
-  totalRevenue: 'Tổng doanh thu',
-  platformFees: 'Phí nền tảng',
-  tuitionRevenue: 'Học phí đã thu',
+  totalRevenue: 'Doanh thu nền tảng',
+  platformFees: 'Phí đăng tin phát sinh',
+  tuitionRevenue: 'Học phí đã thanh toán',
   successful: 'Thành công',
   lessons: 'Buổi học'
 };
@@ -493,6 +493,13 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
       const monthly = { ...filters, ...lastCompletedMonths(6), granularity: 'MONTH' as const };
       setDraftFilters(monthly);
       setFilters(monthly);
+    } else if (activeReport === 'finance' && nextReport !== 'finance'
+        && filters.granularity === 'MONTH'
+        && filters.fromDate === lastCompletedMonths(6).fromDate
+        && filters.toDate === lastCompletedMonths(6).toDate) {
+      const recent = createInitialFilters();
+      setDraftFilters(recent);
+      setFilters(recent);
     }
     setActiveReport(nextReport);
     setMenuOpen(false);
@@ -621,21 +628,22 @@ function StatisticsDashboard({ accessToken }: { accessToken: string }) {
                 <option value="MONTH">Theo tháng</option>
               </select>
             </label>
-            <button type="submit" className="statistics-apply">
-              Áp dụng
-            </button>
-            <button
-              type="button"
-              className="statistics-refresh"
-              onClick={() => {
-                prepareReload();
-                setReloadKey((value) => value + 1);
-              }}
-              disabled={loading}
-              title="Tải lại dữ liệu"
-            >
-              ↻
-            </button>
+            <div className="statistics-filter-actions">
+              <button type="submit" className="statistics-apply">Áp dụng</button>
+              <button
+                type="button"
+                className="statistics-refresh"
+                onClick={() => {
+                  prepareReload();
+                  setReloadKey((value) => value + 1);
+                }}
+                disabled={loading}
+                title="Tải lại dữ liệu"
+                aria-label="Tải lại dữ liệu"
+              >
+                ↻
+              </button>
+            </div>
           </form>
 
           {error ? (
@@ -844,9 +852,9 @@ function RevenueTrendChart({ rows, granularity, selectedPeriod, onSelect, metric
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
   const baseline = top + plotHeight;
-  const maximum = Math.max(...rows.map((row) => row.total), 1) * 1.12;
+  const maximum = Math.max(...rows.map((row) => Math.max(row.total, row.fees, row.tuition)), 1) * 1.12;
   const slot = plotWidth / rows.length;
-  const barWidth = Math.min(slot * .58, 42);
+  const barWidth = Math.min(slot * .3, 24);
   const point = (row: RevenueRow, index: number) => ({
     x: left + slot * (index + .5),
     y: baseline - row.total / maximum * plotHeight
@@ -861,7 +869,7 @@ function RevenueTrendChart({ rows, granularity, selectedPeriod, onSelect, metric
       </g>;
     })}
     {rows.map((row, index) => {
-      const { x, y } = point(row, index);
+      const { x } = point(row, index);
       const feeHeight = row.fees / maximum * plotHeight;
       const tuitionHeight = row.tuition / maximum * plotHeight;
       return <g key={row.period} role="button" tabIndex={0}
@@ -870,8 +878,8 @@ function RevenueTrendChart({ rows, granularity, selectedPeriod, onSelect, metric
         onClick={() => onSelect(row.period)}
         onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(row.period); } }}>
         <title>{revenuePeriodLabel(row.period, granularity)}: {formatMetricValue(metricKey, row.total)}</title>
-        <rect className="statistics-revenue-fee" x={x - barWidth / 2} y={baseline - feeHeight} width={barWidth} height={feeHeight} rx="3" />
-        <rect className="statistics-revenue-tuition" x={x - barWidth / 2} y={y} width={barWidth} height={tuitionHeight} rx="3" />
+        <rect className="statistics-revenue-fee" x={x - barWidth - 3} y={baseline - feeHeight} width={barWidth} height={feeHeight} rx="3" />
+        <rect className="statistics-revenue-tuition" x={x + 3} y={baseline - tuitionHeight} width={barWidth} height={tuitionHeight} rx="3" />
         <rect className="statistics-revenue-hit" x={x - slot / 2} y={top} width={slot} height={plotHeight} />
         <text className="statistics-revenue-period" x={x} y={height - 19} textAnchor="middle">{revenuePeriodLabel(row.period, granularity, true)}</text>
       </g>;
@@ -912,9 +920,9 @@ function RevenueComparisonPanel({ data }: { data: StatisticsResponse }) {
   const currentIndex = rows.indexOf(current);
   const previous = currentIndex > 0 ? rows[currentIndex - 1] : null;
   const values = [
-    { key: 'total', label: 'Tổng doanh thu', current: current.total, previous: previous?.total ?? null },
-    { key: 'fees', label: 'Phí nền tảng', current: current.fees, previous: previous?.fees ?? null },
-    { key: 'tuition', label: 'Học phí đã thu', current: current.tuition, previous: previous?.tuition ?? null }
+    { key: 'total', label: 'Doanh thu nền tảng', current: current.total, previous: previous?.total ?? null },
+    { key: 'fees', label: 'Phí đăng tin phát sinh', current: current.fees, previous: previous?.fees ?? null },
+    { key: 'tuition', label: 'Học phí đã thanh toán', current: current.tuition, previous: previous?.tuition ?? null }
   ];
 
   useEffect(() => {
@@ -929,13 +937,13 @@ function RevenueComparisonPanel({ data }: { data: StatisticsResponse }) {
     <div className="statistics-monthly-heading">
       <div>
         <span>SO SÁNH THEO {periodName.toUpperCase()}</span>
-        <h3>Thu nhập và học phí theo từng {periodName}</h3>
+        <h3>Doanh thu và học phí theo từng {periodName}</h3>
         <strong>Dữ liệu từ {data.range.fromDate.slice(8, 10)}/{data.range.fromDate.slice(5, 7)}/{data.range.fromDate.slice(0, 4)} đến {data.range.toDate.slice(8, 10)}/{data.range.toDate.slice(5, 7)}/{data.range.toDate.slice(0, 4)}</strong>
       </div>
       <div className="statistics-monthly-legend" aria-label="Chú giải biểu đồ">
-        <span><i className="fees" /> Phí nền tảng</span>
-        <span><i className="tuition" /> Học phí</span>
-        <span><i className="total-line" /> Tổng doanh thu</span>
+        <span><i className="fees" /> Phí đăng tin phát sinh</span>
+        <span><i className="tuition" /> Học phí đã thanh toán</span>
+        <span><i className="total-line" /> Doanh thu nền tảng</span>
       </div>
     </div>
     <div ref={chartRef} className="statistics-monthly-chart" aria-label={`Biểu đồ cột doanh thu theo ${periodName}`}>
@@ -963,7 +971,7 @@ function RevenueComparisonPanel({ data }: { data: StatisticsResponse }) {
     </div>
     <div className="statistics-monthly-table-wrap">
       <table className="statistics-monthly-table">
-        <thead><tr><th>{periodName[0].toUpperCase() + periodName.slice(1)}</th><th>Tổng doanh thu</th><th>Phí nền tảng</th><th>Học phí</th><th>So với {periodName} trước</th></tr></thead>
+        <thead><tr><th>{periodName[0].toUpperCase() + periodName.slice(1)}</th><th>Doanh thu nền tảng</th><th>Phí đăng tin phát sinh</th><th>Học phí đã thanh toán</th><th>So với {periodName} trước</th></tr></thead>
         <tbody>{rows.map((row, index) => {
           const change = comparisonChange(row.total, index > 0 ? rows[index - 1].total : null);
           return <tr key={row.period} className={row.period === current.period ? 'is-selected' : ''}>
@@ -1024,7 +1032,6 @@ function MetricCard({
           <span>{METRIC_LABELS[metricKey] ?? humanize(metricKey)}</span>
           <small>{periodLabel}</small>
         </div>
-        {onClick && <b aria-hidden="true">Xem chi tiết ↓</b>}
       </div>
       <strong title={String(metric.value)}>{formatMetricValue(metricKey, metric.value)}</strong>
       <div className={`statistics-change ${change.tone}`}>
@@ -1070,9 +1077,9 @@ function MetricTable({ metrics }: { metrics: [string, StatisticsMetric][] }) {
 
 function chartDescription(report: StatisticsReport, key: string) {
   const descriptions: Record<string, { title: string; unit: string }> = {
-    totalRevenue: { title: 'Tổng doanh thu', unit: 'Đồng (VND)' },
-    platformFees: { title: 'Phí nền tảng đã thu', unit: 'Đồng (VND)' },
-    tuitionRevenue: { title: 'Học phí đã thu', unit: 'Đồng (VND)' },
+    totalRevenue: { title: 'Doanh thu nền tảng', unit: 'Đồng (VND)' },
+    platformFees: { title: 'Phí đăng tin phát sinh', unit: 'Đồng (VND)' },
+    tuitionRevenue: { title: 'Học phí đã thanh toán', unit: 'Đồng (VND)' },
     platformRevenue: { title: 'Phí nền tảng ghi nhận', unit: 'Đồng (VND)' },
     tuitionVolume: { title: 'Học phí đã thanh toán', unit: 'Đồng (VND)' },
     signedContracts: { title: 'Hợp đồng đã ký', unit: 'Hợp đồng' },
@@ -1137,20 +1144,12 @@ function TrendPanel({ series, report, data }: {
           <h3>{chart.title} theo {period}</h3>
           <strong>{formatDateRange(data.range.fromDate, data.range.toDate)}</strong>
         </div>
-        {series.length > 1 && (
-          <div className="statistics-series-tabs" aria-label="Chọn chỉ số biểu đồ">
-            {series.map(([key]) => (
-              <button
-                type="button"
-                className={key === activeSeries[0] ? 'is-active' : ''}
-                onClick={() => setActiveKey(key)}
-                key={key}
-              >
-                {chartDescription(report, key).title}
-              </button>
-            ))}
-          </div>
-        )}
+        {series.length > 1 && <label className="statistics-series-picker">
+          <span>Chỉ số biểu đồ</span>
+          <select aria-label="Chọn chỉ số biểu đồ" value={activeSeries[0]} onChange={(event) => setActiveKey(event.target.value)}>
+            {series.map(([key]) => <option key={key} value={key}>{chartDescription(report, key).title}</option>)}
+          </select>
+        </label>}
       </div>
       <div className="statistics-monthly-legend">
         <span><i className="tuition" /> {chart.title}</span>

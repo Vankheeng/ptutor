@@ -8,6 +8,7 @@ import './admin.css';
 
 const navIcons: Record<string, React.ReactNode> = {
   chart: <><path d="M4 19V5M4 19h16M8 15l4-4 3 2 5-6" /></>,
+  wallet: <><rect x="3" y="6" width="18" height="14" rx="2" /><path d="M3 10h18M15 15h3" /></>,
   student: <><circle cx="12" cy="8" r="3" /><path d="M5 20v-2a7 7 0 0 1 14 0v2" /></>,
   tutor: <><path d="M3 7 12 3l9 4-9 4-9-4ZM7 9v5c0 2 2.2 4 5 4s5-2 5-4V9M21 7v7" /></>,
   contract: <><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm8 0v5h4M9 12h6m-6 4h6" /></>,

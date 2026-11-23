@@ -76,6 +76,7 @@ import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPa
 import { AdminContractsPage } from './pages/admin/AdminContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
 import { AdminTransactionsPage } from './pages/admin/AdminTransactionsPage';
+import { AdminWalletsPage } from './pages/admin/AdminWalletsPage';
 import { AdminTransactionDetailPage } from './pages/admin/AdminTransactionDetailPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
@@ -130,6 +131,7 @@ export default function App() {
                 <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
                 <Route path="withdrawals/:withdrawalId" element={<AdminWithdrawalDetailPage />} />
                 <Route path="transactions" element={<AdminTransactionsPage />} />
+                <Route path="wallets" element={<AdminWalletsPage />} />
                 <Route path="transactions/:source/:transactionId" element={<AdminTransactionDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
