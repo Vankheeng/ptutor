@@ -110,6 +110,7 @@ export interface TutorOffer {
   tutorFirstName: string | null;
   tutorLastName: string | null;
   tutorEmail: string;
+  tutorPhone?: string | null;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
   subjectId?: string;
@@ -130,6 +131,7 @@ export interface StudentApplication {
   id: string;
   teachingRequestId: string;
   teachingRequestTitle: string | null;
+  teachingRequestStatus: RequestStatus;
   subjectId: string | null;
   subjectName: string | null;
   customSubjectName: string | null;

@@ -1306,7 +1306,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestPageResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferPageResponseEnvelope'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1336,7 +1336,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1364,7 +1364,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1394,7 +1394,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -7121,6 +7121,39 @@ components:
           type: string
           format: date-time
 
+    StudentTutorOfferResponse:
+      allOf:
+        - $ref: '#/components/schemas/TutorStudentRequestResponse'
+        - type: object
+          properties:
+            tutorPhone:
+              type: string
+              nullable: true
+
+    StudentTutorOfferPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentTutorOfferResponse'
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+
     PublicReviewResponse:
       type: object
       properties:
@@ -7533,6 +7566,9 @@ components:
         studentEmail:
           type: string
           format: email
+        studentPhone:
+          type: string
+          nullable: true
         gradeId:
           type: string
           format: uuid
@@ -8535,6 +8571,14 @@ components:
             data:
               $ref: '#/components/schemas/TutorStudentRequestResponse'
 
+    StudentTutorOfferResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentTutorOfferResponse'
+
     TutorStudentRequestPageResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8542,6 +8586,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TutorStudentRequestPageResponse'
+
+    StudentTutorOfferPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentTutorOfferPageResponse'
 
     ComplaintResponseEnvelope:
       allOf:

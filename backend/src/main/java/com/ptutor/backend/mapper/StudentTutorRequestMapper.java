@@ -18,6 +18,7 @@ public interface StudentTutorRequestMapper {
     @Mapping(target = "studentFirstName", source = "student.user.firstName")
     @Mapping(target = "studentLastName", source = "student.user.lastName")
     @Mapping(target = "studentEmail", source = "student.user.email")
+    @Mapping(target = "studentPhone", source = "student.user.phone")
     @Mapping(target = "gradeId", source = "grade.id")
     @Mapping(target = "gradeName", source = "grade.name")
     @Mapping(target = "teachingRequestId", source = "teachingRequest.id")
@@ -33,6 +34,7 @@ public interface StudentTutorRequestMapper {
 
     @Mapping(target = "teachingRequestId", source = "teachingRequest.id")
     @Mapping(target = "teachingRequestTitle", source = "teachingRequest.title")
+    @Mapping(target = "teachingRequestStatus", source = "teachingRequest.status")
     @Mapping(target = "subjectId", source = "teachingRequest.subject.id")
     @Mapping(target = "subjectName", source = "teachingRequest.subject.name")
     @Mapping(target = "customSubjectName", source = "teachingRequest.customSubjectName")

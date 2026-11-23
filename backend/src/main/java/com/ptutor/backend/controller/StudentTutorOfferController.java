@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.response.PageResponse;
-import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -37,7 +37,7 @@ public class StudentTutorOfferController {
     private final CurrentUserProvider currentUserProvider;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<TutorStudentRequestResponse>>> findMine(
+    public ResponseEntity<ApiResponse<PageResponse<StudentTutorOfferResponse>>> findMine(
             @PathVariable UUID studyingRequestId,
             @RequestParam(required = false) ApplicationStatus status,
             @RequestParam(defaultValue = "DESC") Sort.Direction sort,
@@ -55,7 +55,7 @@ public class StudentTutorOfferController {
     }
 
     @GetMapping("/{tutorRequestId}")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> findMineById(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> findMineById(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -66,7 +66,7 @@ public class StudentTutorOfferController {
     }
 
     @PatchMapping("/{tutorRequestId}/accept")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> accept(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> accept(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -79,7 +79,7 @@ public class StudentTutorOfferController {
     }
 
     @PatchMapping("/{tutorRequestId}/reject")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> reject(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> reject(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(

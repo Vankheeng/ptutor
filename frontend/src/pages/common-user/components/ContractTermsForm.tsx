@@ -39,6 +39,8 @@ interface Props {
   pdfDetails?: ContractPdfDetails;
   editableScheduleList?: boolean;
   hideLessonPreview?: boolean;
+  requirePositivePrice?: boolean;
+  validateScheduleOverlap?: boolean;
 }
 
 export function ContractTermsForm({
@@ -56,7 +58,9 @@ export function ContractTermsForm({
   cancelLabel = 'Hủy',
   pdfDetails,
   editableScheduleList = false,
-  hideLessonPreview = false
+  hideLessonPreview = false,
+  requirePositivePrice = false,
+  validateScheduleOverlap = false
 }: Props) {
   const [price, setPrice] = useState(initial?.price === undefined ? '' : String(initial.price));
   const [paymentPeriod, setPaymentPeriod] = useState<PaymentPeriod>(initial?.paymentPeriod ?? 'MONTHLY');
@@ -83,6 +87,7 @@ export function ContractTermsForm({
   const invalidSchedule = schedules.some((schedule) =>
     Boolean(schedule.startTime && schedule.endTime && schedule.endTime <= schedule.startTime)
   );
+  const overlappingSchedule = validateScheduleOverlap && hasOverlappingSchedules(schedules);
   const schedulePayload = useMemo<ContractTerms | null>(() => {
     if (
       !startDate ||
@@ -203,8 +208,8 @@ export function ContractTermsForm({
       });
       return;
     }
-    if (!price || Number(price) < 0) {
-      setError('Giá không được là số âm.');
+    if (!price || Number(price) < (requirePositivePrice ? 1 : 0)) {
+      setError(requirePositivePrice ? 'Giá mỗi buổi học phải lớn hơn 0.' : 'Giá không được là số âm.');
       return;
     }
     if (!startDate || !endDate || endDate <= startDate) {
@@ -226,6 +231,10 @@ export function ContractTermsForm({
     }
     if (schedules.some((schedule) => schedule.endTime <= schedule.startTime)) {
       setError('Thời gian kết thúc của mỗi khung phải sau thời gian bắt đầu.');
+      return;
+    }
+    if (overlappingSchedule) {
+      setError('Các khung giờ trong cùng một ngày không được trùng hoặc chồng lên nhau.');
       return;
     }
     if (!lessons.length) {
@@ -256,7 +265,13 @@ export function ContractTermsForm({
         {signingExisting ? (
           <span className="contract-signing-value">{new Intl.NumberFormat('vi-VN').format(Number(price))} VNĐ</span>
         ) : (
-          <input value={price} type="number" min="0" onChange={(event) => setPrice(event.target.value)} required />
+          <input
+            value={price}
+            type="number"
+            min={requirePositivePrice ? 1 : 0}
+            onChange={(event) => setPrice(event.target.value)}
+            required
+          />
         )}
       </label>
       <label>
@@ -525,6 +540,11 @@ export function ContractTermsForm({
         </div>
       )}
       {checkingSchedule && <p className="student-form-hint student-field-full">Đang kiểm tra trùng lịch…</p>}
+      {overlappingSchedule && (
+        <p className="student-form-error student-field-full" role="alert">
+          Các khung giờ trong cùng một ngày không được trùng hoặc chồng lên nhau.
+        </p>
+      )}
       {scheduleWarnings.length > 0 && (
         <div className="contract-schedule-warning student-field-full" role="alert">
           <strong>Lịch học bị trùng</strong>
@@ -582,6 +602,7 @@ export function ContractTermsForm({
             loading ||
             checkingSchedule ||
             invalidSchedule ||
+            overlappingSchedule ||
             scheduleWarnings.length > 0 ||
             (!signingExisting && lessons.length < 1) ||
             (includeAgreement && !agreed)
@@ -639,4 +660,18 @@ function buildLessonPreview(schedules: ContractSchedule[], startDate: string, en
 
 function formatLesson(lesson: LessonPreview) {
   return `${new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${lesson.date}T12:00:00`))}  ${lesson.startTime}-${lesson.endTime}`;
+}
+
+function hasOverlappingSchedules(schedules: ContractSchedule[]) {
+  return schedules.some((left, leftIndex) =>
+    schedules.some(
+      (right, rightIndex) =>
+        rightIndex > leftIndex &&
+        Boolean(left.dayOfWeek) &&
+        left.dayOfWeek === right.dayOfWeek &&
+        Boolean(left.startTime && left.endTime && right.startTime && right.endTime) &&
+        left.startTime < right.endTime &&
+        left.endTime > right.startTime
+    )
+  );
 }

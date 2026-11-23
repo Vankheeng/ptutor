@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
 import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -21,12 +22,14 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
+import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
@@ -37,6 +40,9 @@ import com.ptutor.backend.repository.TutorStudentRequestRepository;
 @Service
 public class TutorStudentRequestService {
 
+    @Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
+
     private final TutorStudentRequestRepository tutorStudentRequestRepository;
     private final StudyingRequestRepository studyingRequestRepository;
     private final TutorRepository tutorRepository;
@@ -45,6 +51,7 @@ public class TutorStudentRequestService {
     private final StudentRepository studentRepository;
     private final TutorStudentRequestMapper tutorStudentRequestMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final ContractRepository contractRepository;
 
     @Autowired
     public TutorStudentRequestService(
@@ -55,7 +62,8 @@ public class TutorStudentRequestService {
             DistrictRepository districtRepository,
             StudentRepository studentRepository,
             TutorStudentRequestMapper tutorStudentRequestMapper,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            ContractRepository contractRepository) {
         this.tutorStudentRequestRepository = tutorStudentRequestRepository;
         this.studyingRequestRepository = studyingRequestRepository;
         this.tutorRepository = tutorRepository;
@@ -64,6 +72,20 @@ public class TutorStudentRequestService {
         this.studentRepository = studentRepository;
         this.tutorStudentRequestMapper = tutorStudentRequestMapper;
         this.eventPublisher = eventPublisher;
+        this.contractRepository = contractRepository;
+    }
+
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher, null);
     }
 
     public TutorStudentRequestService(
@@ -169,7 +191,7 @@ public class TutorStudentRequestService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TutorStudentRequestResponse> findMine(
+    public PageResponse<StudentTutorOfferResponse> findMine(
             UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -182,12 +204,11 @@ public class TutorStudentRequestService {
                                 studyingRequestId, status, pageable);
 
         return PageResponse.from(
-                requests,
-                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TutorStudentRequestResponse> findMineSorted(
+    public PageResponse<StudentTutorOfferResponse> findMineSorted(
             UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -197,20 +218,19 @@ public class TutorStudentRequestService {
                         studyingRequestId, status, pageable);
 
         return PageResponse.from(
-                requests,
-                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
     }
 
     @Transactional(readOnly = true)
-    public TutorStudentRequestResponse findMineById(
+    public StudentTutorOfferResponse findMineById(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
-        return tutorStudentRequestMapper.toResponse(findRequest(tutorRequestId, studyingRequestId));
+        return tutorStudentRequestMapper.toStudentOfferResponse(findRequest(tutorRequestId, studyingRequestId));
     }
 
     @Transactional
-    public TutorStudentRequestResponse accept(
+    public StudentTutorOfferResponse accept(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         StudyingRequest studyingRequest = studyingRequestRepository
@@ -243,11 +263,11 @@ public class TutorStudentRequestService {
                 NotificationEventType.TUTOR_REQUEST_ACCEPTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 savedRequest.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(savedRequest);
+        return tutorStudentRequestMapper.toStudentOfferResponse(savedRequest);
     }
 
     @Transactional
-    public TutorStudentRequestResponse reject(
+    public StudentTutorOfferResponse reject(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -257,6 +277,28 @@ public class TutorStudentRequestService {
                 && tutorRequest.getStatus() != ApplicationStatus.ACCEPTED) {
             throw invalidTransition("Only PENDING or ACCEPTED tutor requests can be rejected");
         }
+
+        if (tutorRequest.getStatus() == ApplicationStatus.ACCEPTED && contractRepository != null) {
+            contractRepository.findTopByTutorStudentRequest_IdOrderByCreatedAtDesc(tutorRequest.getId())
+                    .ifPresent(contract -> {
+                        boolean tutorAlreadySigned = contract.getSignedBy() != null
+                                || (contract.getCreatedBy() != null
+                                && contract.getCreatedBy().getId().equals(tutorRequest.getTutor().getUser().getId()));
+                        if (tutorAlreadySigned || contract.getStatus() == ContractStatus.ACTIVE
+                                || contract.getStatus() == ContractStatus.COMPLETED) {
+                            throw invalidTransition("Cannot reject the tutor offer because the tutor has signed the contract");
+                        }
+                        if (contract.getStatus() == ContractStatus.PENDING) {
+                            contract.setStatus(ContractStatus.CANCELLED);
+                            contract.setCancelledAt(LocalDateTime.now());
+                            contractRepository.saveAndFlush(contract);
+                            if (lessonProvisioningService != null) {
+                                lessonProvisioningService.discardProvisionalLessons(contract);
+                            }
+                        }
+                    });
+        }
+
         tutorRequest.setStatus(ApplicationStatus.REJECTED);
         TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
         if (saved.getStudyingRequest() != null
@@ -273,7 +315,7 @@ public class TutorStudentRequestService {
                 NotificationEventType.TUTOR_REQUEST_REJECTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 saved.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(saved);
+        return tutorStudentRequestMapper.toStudentOfferResponse(saved);
     }
 
     private Tutor findTutorByUserId(UUID userId) {

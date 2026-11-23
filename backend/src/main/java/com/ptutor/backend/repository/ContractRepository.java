@@ -196,6 +196,21 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
 
     Optional<Contract> findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(UUID studentTutorRequestId);
 
+    Optional<Contract> findTopByTutorStudentRequest_IdOrderByCreatedAtDesc(UUID tutorStudentRequestId);
+
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.createdBy.id = contract.student.user.id
+              and contract.status = :pendingStatus
+              and (contract.endDate <= :today or contract.createdAt <= :signingDeadline)
+              and contract.deletedAt is null
+            """)
+    List<Contract> findExpiredStudentCreatedPendingContracts(
+            @Param("today") LocalDate today,
+            @Param("signingDeadline") LocalDateTime signingDeadline,
+            @Param("pendingStatus") ContractStatus pendingStatus);
+
     boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
 
     List<Contract> findAllByStatus(ContractStatus status);

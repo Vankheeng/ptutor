@@ -197,6 +197,8 @@ export function PendingContractSignView(props: Props) {
               showPdf={props.mode === 'edit'}
               editableScheduleList={props.mode === 'edit'}
               editingExisting={props.mode === 'edit'}
+              requirePositivePrice={viewerRole === 'student'}
+              validateScheduleOverlap={viewerRole === 'student'}
               onCancel={props.mode === 'sign' ? props.onReject : props.onCancel}
               onCheckSchedule={(terms) => checkContractSchedule(contract.id, terms).then((result) => result.messages)}
               onSubmit={props.mode === 'sign' ? props.onSign : saveTerms}

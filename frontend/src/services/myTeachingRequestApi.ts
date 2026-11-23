@@ -26,6 +26,7 @@ export interface StudentTeachingApplication {
   studentFirstName: string;
   studentLastName: string;
   studentEmail: string;
+  studentPhone?: string | null;
   gradeId: string;
   gradeName: string;
   teachingRequestId: string;

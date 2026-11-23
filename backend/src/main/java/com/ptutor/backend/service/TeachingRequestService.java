@@ -227,7 +227,9 @@ public class TeachingRequestService {
     public TeachingRequestResponse findVisibleById(UUID requestId, UUID userId, UserRole role) {
         TeachingRequest teachingRequest = teachingRequestRepository.findById(requestId)
                 .orElseThrow(() -> requestNotFound(requestId));
-        if (!isStaff(role) && !isTutorOwner(teachingRequest, userId, role)
+        boolean studentHasApplied = role == UserRole.STUDENT && userId != null
+                && studentTutorRequestRepository.existsByStudent_User_IdAndTeachingRequest_Id(userId, requestId);
+        if (!isStaff(role) && !isTutorOwner(teachingRequest, userId, role) && !studentHasApplied
                 && (teachingRequest.getStatus() != RequestStatus.OPEN
                         || teachingRequest.getTutor().getProfileStatus() != TutorProfileStatus.VERIFIED)) {
             throw requestNotFound(requestId);

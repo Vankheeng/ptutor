@@ -60,7 +60,7 @@ export function StudentContractDetailPage() {
       setNotice(message);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
+      setError(studentContractError(caught));
     } finally {
       setBusy(false);
     }
@@ -297,4 +297,20 @@ export function StudentContractDetailPage() {
       )}
     </>
   );
+}
+
+function studentContractError(error: unknown) {
+  if (error instanceof ApiError) {
+    const messages: Record<string, string> = {
+      CONTRACT_SCHEDULE_ALREADY_STARTED:
+        'Không thể ký hợp đồng vì lịch có buổi học đã bắt đầu. Vui lòng cập nhật lại thời hạn hoặc lịch học.',
+      LESSON_SCHEDULE_CONFLICT: 'Lịch học đang bị trùng. Vui lòng điều chỉnh ngày hoặc giờ trước khi tiếp tục.',
+      OVERLAPPING_CONTRACT_SCHEDULE: 'Các khung giờ trong cùng một ngày không được trùng hoặc chồng lên nhau.',
+      INVALID_CONTRACT_PRICE: 'Giá mỗi buổi học phải lớn hơn 0.',
+      UNSUPPORTED_PAYMENT_PERIOD: 'Hợp đồng chỉ hỗ trợ thanh toán hàng tháng hoặc theo gói.'
+    };
+    return messages[error.code] ?? error.message;
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Không thể cập nhật hợp đồng.';
 }

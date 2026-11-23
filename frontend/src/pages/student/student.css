@@ -1311,7 +1311,7 @@
 }
 .student-offer-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(90px, 0.45fr) minmax(180px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(115px, 0.34fr) auto;
   align-items: center;
   min-height: 82px;
   gap: 12px;
@@ -1368,46 +1368,132 @@
   white-space: nowrap;
 }
 .student-offer-status {
-  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: stretch;
+  transform: translateX(-20px);
 }
 .student-offer-status .student-status {
   padding: 6px 12px;
   font-size: 10px;
 }
-.student-offer-actions {
+.student-offer-detail-trigger {
+  min-height: 31px;
+  padding: 0 10px;
+  border-color: #7138dc;
+  background: #7138dc;
+  color: #fff;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.student-offer-detail-trigger:hover:not(:disabled) {
+  border-color: #5d27c6;
+  background: #5d27c6;
+  color: #fff;
+}
+.student-offer-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #15152a80;
+}
+.student-offer-modal {
+  width: min(700px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 22px;
+  background: #fff;
+}
+.student-offer-modal-header {
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9edf5;
 }
-.student-offer-actions .student-form-actions {
+.student-offer-modal-header h2 {
   margin: 0;
-  display: contents;
+  color: #283657;
+  font-size: 19px;
 }
-.student-offer-actions .offer-action-buttons {
-  display: contents;
+.student-offer-modal-close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f1fa;
+  color: #5d4a83;
+  font-size: 22px;
+  cursor: pointer;
 }
-.student-offer-actions .offer-reject-button {
-  order: 3;
+.student-offer-modal .student-tutor-offer-detail-grid {
+  padding: 18px 0 0;
 }
-.student-offer-create {
-  order: 2;
-  min-width: 120px;
-  background: #6736d6;
-  border-color: #6736d6;
+.student-offer-modal-message {
+  margin-top: 18px;
+  padding: 13px 14px;
+  border: 1px solid #e9e3f6;
+  border-radius: 10px;
+  background: #faf9fd;
 }
-.student-offer-view {
-  min-width: 76px;
-  border-color: #dce5f1;
-  background: #f7f9fc;
-  color: #737b8c;
-  text-decoration: none;
+.student-offer-modal-message > span {
+  color: #5b4b77;
+  font-size: 11px;
+  font-weight: 700;
 }
-.student-offer-actions .student-button.success {
+.student-offer-modal-message p {
+  margin: 7px 0 0;
+  color: #3c3547;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.student-offer-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e9edf5;
+}
+.student-offer-modal-actions .offer-action-buttons {
+  display: flex;
+  gap: 9px;
+}
+.student-offer-modal-actions .student-button.success {
   border-color: #2da66b;
   background: #2da66b;
+  color: #fff;
+}
+.student-offer-modal-actions .offer-reject-button {
+  border-color: #d93036;
+  background: #d93036;
+  color: #fff;
+}
+.student-offer-modal-actions .offer-reject-button:hover:not(:disabled) {
+  border-color: #bd252b;
+  background: #bd252b;
+  color: #fff;
+}
+.student-offer-modal-actions > .student-button.secondary {
+  border-color: #747b8c;
+  background: #747b8c;
+  color: #fff;
+}
+.student-offer-modal-actions > .student-button.secondary:hover:not(:disabled) {
+  border-color: #606777;
+  background: #606777;
   color: #fff;
 }
 .student-tutor-offer-detail {
@@ -2209,18 +2295,45 @@
     justify-content: space-between;
   }
   .student-offer-row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
+  }
+  .student-offer-tutor {
+    grid-column: 1 / -1;
   }
   .student-offer-filters {
     grid-template-columns: 1fr;
   }
   .student-offer-status {
+    grid-column: 1;
+    justify-self: start;
+    transform: none;
+  }
+  .student-offer-detail-trigger {
+    grid-column: 2;
     justify-self: end;
   }
-  .student-offer-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
+  .student-offer-modal-backdrop {
+    padding: 10px;
+  }
+  .student-offer-modal {
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+  }
+  .student-offer-modal .student-tutor-offer-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-offer-modal-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .student-offer-modal-actions > button,
+  .student-offer-modal-actions .offer-action-buttons,
+  .student-offer-modal-actions .offer-action-buttons button {
+    width: 100%;
+  }
+  .student-offer-modal-actions .offer-action-buttons {
+    flex-direction: column;
   }
   .student-tutor-offer-detail-header {
     align-items: flex-start;
@@ -2890,6 +3003,75 @@
 .student-application-card {
   border-color: #c4b5fd;
 }
+.student-application-card.tutor-proposal-split {
+  align-items: stretch;
+}
+.student-application-card .tutor-cert-status.student-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 12px;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: none;
+}
+.student-application-card .tutor-cert-status.student-status.pending_review {
+  background: #fff6e6;
+  color: #a9791a;
+}
+.student-application-card .tutor-cert-status.student-status.open {
+  background: #eaf6ff;
+  color: #2673a8;
+}
+.student-application-card .tutor-cert-status.student-status.matched {
+  background: #eaf8f2;
+  color: #27815b;
+}
+.student-application-card .tutor-cert-status.student-status.closed {
+  background: #f0f1f4;
+  color: #74798b;
+}
+.student-application-card .tutor-cert-status.student-status.cancelled {
+  background: #fff0ef;
+  color: #ab4039;
+}
+.student-application-card .tutor-cert-status.student-status.rejected {
+  background: #fff3df;
+  color: #b96a13;
+}
+
+/* Improve text contrast on Student application split cards without changing Tutor UI. */
+.student-application-card .tutor-proposal-request-side h2,
+.student-application-card .tutor-proposal-application-heading h3 {
+  color: #30283d;
+}
+.student-application-card .tutor-eyebrow,
+.student-application-card .tutor-subject-tag {
+  color: #5c4a76;
+}
+.student-application-card .tutor-proposal-grade,
+.student-application-card .tutor-proposal-highlight small,
+.student-application-card .tutor-request-author,
+.student-application-card .tutor-proposal-offer-price small,
+.student-application-card .tutor-proposal-summary small,
+.student-application-card .tutor-proposal-footer small {
+  color: #6f6879;
+}
+.student-application-card .tutor-proposal-highlight strong,
+.student-application-card .tutor-request-author strong,
+.student-application-card .tutor-proposal-offer-price strong,
+.student-application-card .tutor-proposal-summary strong,
+.student-application-card .tutor-application-note p {
+  color: #40384c;
+}
+.student-application-card .tutor-proposal-highlight small,
+.student-application-card .tutor-proposal-summary small {
+  font-weight: 500;
+}
+.student-application-card .tutor-proposal-highlight strong,
+.student-application-card .tutor-proposal-summary strong {
+  font-weight: 600;
+}
 
 .tutor-application-detail-panel .tutor-application-panel-heading p {
   margin: 0;
@@ -2906,6 +3088,99 @@
   margin-top: 15px;
   padding-top: 14px;
   border-top: 1px solid #f0f1f5;
+}
+
+.student-application-detail-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.student-application-back-button {
+  font-size: 11px;
+}
+.student-application-detail-card {
+  min-width: 0;
+  padding: 22px;
+}
+.student-application-detail-card h2 {
+  margin: 0 0 14px;
+  color: #252a3d;
+  font-size: 17px;
+}
+.student-application-detail-card h3 {
+  margin: 0 0 12px;
+  color: #303448;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.student-application-detail-card dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.student-application-detail-card dl > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.72fr) minmax(0, 1.4fr);
+  gap: 13px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f5;
+  font-size: 11px;
+}
+.student-application-detail-card dt {
+  color: #555a6e;
+  font-weight: 700;
+}
+.student-application-detail-card dd {
+  min-width: 0;
+  margin: 0;
+  color: #303448;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.student-application-detail-card.has-actions dl > div:last-child {
+  border-bottom: 0;
+}
+.student-application-availability {
+  display: grid;
+  gap: 5px;
+}
+.student-application-detail-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f1f5;
+}
+.student-application-detail-card-actions .tutor-button {
+  width: auto;
+  min-height: 34px;
+  justify-content: center;
+  padding: 0 13px;
+}
+.student-application-detail-card-actions .tutor-cancel-proposal-button {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.student-application-detail-card-actions .tutor-cancel-proposal-button:hover:not(:disabled) {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .student-application-detail-cards {
+    grid-template-columns: 1fr;
+  }
+  .student-application-detail-card {
+    height: auto;
+    padding: 17px;
+  }
 }
 
 @media (max-width: 700px) {
@@ -4420,6 +4695,150 @@
   background: #fff;
   border-color: #ef8d87;
   color: #d4473e;
+}
+
+.student-studying-request-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.student-studying-request-payment-dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(24 20 43 / 52%);
+}
+.student-studying-request-payment-dialog {
+  width: min(600px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 22px;
+}
+.student-studying-request-payment-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #edf1f7;
+}
+.student-studying-request-payment-dialog-header h2 {
+  margin: 0;
+  color: #283657;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.student-studying-request-payment-dialog-close {
+  display: inline-flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f5fa;
+  color: #66718b;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+.student-studying-request-payment-dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.student-studying-request-payment-dialog-body {
+  display: grid;
+  gap: 13px;
+  padding-top: 16px;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 11px;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading h2 {
+  margin: 0;
+  color: #283657;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-heading p {
+  margin: 4px 0 0;
+  color: #71809c;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.student-studying-request-payment-dialog-body .student-studying-request-payment-policy {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.student-studying-request-payment-method {
+  display: grid;
+  gap: 6px;
+  color: #303d67;
+  font-size: 12px;
+  font-weight: 700;
+}
+.student-studying-request-payment-method select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ded5ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #303d67;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+.student-studying-request-payment-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid #edf1f7;
+}
+.student-studying-request-payment-dialog-footer .student-button {
+  min-height: 36px;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .student-studying-request-detail-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+  .student-studying-request-payment-dialog-backdrop {
+    padding: 10px;
+  }
+  .student-studying-request-payment-dialog {
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+  }
+  .student-studying-request-payment-dialog-header h2 {
+    font-size: 16px;
+  }
+  .student-studying-request-payment-dialog-body .student-studying-request-payment-heading {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .student-studying-request-payment-dialog-body .student-studying-request-payment-price {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .student-studying-request-payment-dialog-footer {
+    flex-direction: column-reverse;
+  }
+  .student-studying-request-payment-dialog-footer .student-button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 900px) {

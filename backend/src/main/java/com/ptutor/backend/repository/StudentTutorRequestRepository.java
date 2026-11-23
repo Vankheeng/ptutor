@@ -96,6 +96,8 @@ public interface StudentTutorRequestRepository extends JpaRepository<StudentTuto
     boolean existsByStudent_IdAndTeachingRequest_IdAndStatus(
             UUID studentId, UUID teachingRequestId, ApplicationStatus status);
 
+    boolean existsByStudent_User_IdAndTeachingRequest_Id(UUID userId, UUID teachingRequestId);
+
     List<StudentTutorRequest> findAllByTeachingRequest_IdOrderByCreatedAtDesc(UUID teachingRequestId);
 
     List<StudentTutorRequest> findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(

@@ -1,6 +1,7 @@
 package com.ptutor.backend.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.text.Normalizer;
@@ -134,13 +135,19 @@ public class ContractLessonProvisioningService {
     }
 
     public void validateScheduleConflicts(Contract contract, boolean creatorIsTutor) {
-        List<String> messages = findScheduleConflictMessages(contract, creatorIsTutor);
+        List<String> messages = findScheduleConflictMessages(
+                contract, creatorIsTutor, isStudentCreatedContract(contract));
         if (!messages.isEmpty()) {
             throw new ApiException(HttpStatus.CONFLICT, "LESSON_SCHEDULE_CONFLICT", messages.get(0));
         }
     }
 
     public List<String> findScheduleConflictMessages(Contract contract, boolean creatorIsTutor) {
+        return findScheduleConflictMessages(contract, creatorIsTutor, false);
+    }
+
+    public List<String> findScheduleConflictMessages(
+            Contract contract, boolean creatorIsTutor, boolean includePendingContracts) {
         List<String> messages = new ArrayList<>();
         if (contract == null || contract.getStartDate() == null || contract.getEndDate() == null
                 || contract.getStudent() == null || contract.getTutor() == null
@@ -153,9 +160,14 @@ public class ContractLessonProvisioningService {
             for (ScheduleSlot slot : slots) {
                 if (slot.dayOfWeek() != date.getDayOfWeek().getValue()) continue;
                 if (generated >= contract.getTotalLession()) return messages;
-                List<Lesson> conflicts = lessonRepository.findScheduleConflicts(
-                        contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
-                        date, slot.startTime(), slot.endTime(), null);
+                List<Lesson> conflicts = includePendingContracts
+                        ? lessonRepository.findScheduleConflictsIncludingPending(
+                                contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
+                                date, slot.startTime(), slot.endTime(), null,
+                                List.of(ContractStatus.PENDING, ContractStatus.ACTIVE))
+                        : lessonRepository.findScheduleConflicts(
+                                contract.getStudent().getUser().getId(), contract.getTutor().getUser().getId(),
+                                date, slot.startTime(), slot.endTime(), null);
                 if (conflicts != null && !conflicts.isEmpty()) {
                     for (Lesson conflict : conflicts) {
                         if (conflict.getContract() != null
@@ -171,6 +183,37 @@ public class ContractLessonProvisioningService {
             }
         }
         return messages;
+    }
+
+    @Transactional
+    public void discardProvisionalLessons(Contract contract) {
+        if (contract == null || contract.getId() == null || contract.getStatus() == ContractStatus.ACTIVE
+                || contract.getStatus() == ContractStatus.COMPLETED) {
+            return;
+        }
+        List<Lesson> lessons = lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contract.getId());
+        if (!lessons.isEmpty()) {
+            lessonRepository.deleteAll(lessons);
+            lessonRepository.flush();
+        }
+    }
+
+    public void validateNoElapsedProvisionalLesson(Contract contract, LocalDateTime now) {
+        if (contract == null || contract.getId() == null) return;
+        boolean elapsed = lessonRepository.findAllByContract_IdOrderByDateAscStartTimeAsc(contract.getId()).stream()
+                .anyMatch(lesson -> lesson.getDate() != null && lesson.getStartTime() != null
+                        && !LocalDateTime.of(lesson.getDate(), lesson.getStartTime()).isAfter(now));
+        if (elapsed) {
+            throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_SCHEDULE_ALREADY_STARTED",
+                    "Lịch hợp đồng đã có buổi học bắt đầu. Vui lòng cập nhật lịch trước khi ký.");
+        }
+    }
+
+    private boolean isStudentCreatedContract(Contract contract) {
+        return contract != null && (contract.getTutorStudentRequest() != null
+                || (contract.getCreatedBy() != null && contract.getStudent() != null
+                && contract.getStudent().getUser() != null
+                && contract.getCreatedBy().getId().equals(contract.getStudent().getUser().getId())));
     }
 
     private String conflictMessage(Contract contract, Lesson conflict, boolean creatorIsTutor) {
