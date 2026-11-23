@@ -52,6 +52,7 @@ class EmployeeFunctionAuthorizationFilterTest {
     @CsvSource({
             "GET, /api/v1/admin/complaints",
             "PATCH, /api/v1/admin/support-requests/00000000-0000-0000-0000-000000000001/answer",
+            "GET, /api/v1/admin/contracts",
             "POST, /api/v1/admin/notifications",
             "PATCH, /api/v1/admin/tutor-profiles/00000000-0000-0000-0000-000000000001/approve",
             "PATCH, /api/v1/admin/certificates/00000000-0000-0000-0000-000000000001/approve",
@@ -98,6 +99,7 @@ class EmployeeFunctionAuthorizationFilterTest {
     @CsvSource({
             "GET, /api/v1/admin/complaints",
             "GET, /api/v1/admin/support-requests",
+            "GET, /api/v1/admin/contracts",
             "POST, /api/v1/admin/notifications",
             "GET, /api/v1/admin/users",
             "GET, /api/v1/admin/studying-requests",

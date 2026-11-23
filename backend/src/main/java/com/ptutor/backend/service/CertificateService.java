@@ -110,10 +110,6 @@ public class CertificateService {
         Tutor tutor = findTutorByUserId(userId);
         Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
                 .orElseThrow(() -> certificateNotFound(certificateId));
-        if (certificate.getStatus() == CertificateStatus.VERIFIED) {
-            throw new ApiException(HttpStatus.CONFLICT, "VERIFIED_CERTIFICATE_IMMUTABLE",
-                    "A verified certificate cannot be edited");
-        }
         certificate.setName(request.name().strip());
         certificate.setIssuingOrganization(normalize(request.issuingOrganization()));
         certificate.setDescription(normalize(request.description()));

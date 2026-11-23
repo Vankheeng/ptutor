@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import { getTutorOffer, type TutorOffer } from '../../services/studentApi';
 import { formatStudyingRequestDate, formatStudyingRequestMoney } from '../../components/student/studyingRequestUtils';
@@ -44,7 +45,11 @@ export function OfferDetailPage() {
               {getInitials(offer)}
             </span>
             <div>
-              <h2>{tutorName}</h2>
+              <h2>
+                <ProfileNameLink role="tutor" profileId={offer.tutorId}>
+                  {tutorName}
+                </ProfileNameLink>
+              </h2>
               <p>{offer.tutorEmail}</p>
             </div>
           </div>
@@ -87,6 +92,7 @@ function offerStatusLabel(status: TutorOffer['status']) {
   return {
     PENDING: 'Đang chờ',
     ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
     REJECTED: 'Đã từ chối',
     CANCELLED: 'Đã hủy'
   }[status];

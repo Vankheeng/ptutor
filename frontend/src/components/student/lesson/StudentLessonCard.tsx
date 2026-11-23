@@ -1,4 +1,5 @@
 import type { Contract } from '../../../services/studentApi';
+import { ProfileNameLink } from '../../common-user/ProfileNameLink';
 import type { ContractLesson } from '../../../services/refundApi';
 import { confirmationDeadline, formatDateTimeValue, timeLeft } from '../../refund/refundFormat';
 import { isLessonFinished } from './studentLessonUtils';
@@ -41,6 +42,7 @@ function dateParts(value: string) {
 }
 
 export function StudentLessonCard({ lesson, contract, held = false, busy, onConfirm, onRefund }: Props) {
+  const waitingForPayment = lesson.status === 'SCHEDULED' && !lesson.paidAt;
   const finished = isLessonFinished(lesson);
   const canAct = lesson.status === 'PENDING_CONFIRMATION' && finished && !held;
   const deadline = canAct ? confirmationDeadline(lesson.markedTaughtAt) : null;
@@ -49,7 +51,7 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
   const date = dateParts(lesson.date);
 
   return (
-    <article className={`student-lesson-card ${tone[lesson.status]}`}>
+    <article className={`student-lesson-card ${waitingForPayment ? 'waiting-payment' : tone[lesson.status]}`}>
       <div className="student-lesson-card-date" aria-label={`Ngày học ${date.weekday} ${date.day}/${date.monthYear}`}>
         <span>{date.weekday}</span>
         <strong>{date.day}</strong>
@@ -66,12 +68,16 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
 
       <div className="student-lesson-card-tutor">
         <span>♙ Gia sư</span>
-        <strong>{tutorName}</strong>
+        <strong>
+          <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
+            {tutorName}
+          </ProfileNameLink>
+        </strong>
       </div>
 
       <div className="student-lesson-card-state">
         <span className={`student-lesson-badge ${tone[lesson.status]}`}>
-          {held ? 'Đang xử lý hoàn tiền' : statusLabels[lesson.status]}
+          {held ? 'Đang xử lý hoàn tiền' : waitingForPayment ? 'Chờ thanh toán' : statusLabels[lesson.status]}
         </span>
         {lesson.status === 'PENDING_CONFIRMATION' && held && (
           <small>Buổi học đang được giữ để xử lý yêu cầu hoàn tiền.</small>
@@ -94,7 +100,7 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
               ✓ Xác nhận đã học
             </button>
             <button className="student-lesson-outline-danger" type="button" onClick={onRefund} disabled={busy}>
-              △ Khiếu nại / Hoàn tiền
+              △ Yêu cầu hoàn tiền
             </button>
           </>
         ) : null}

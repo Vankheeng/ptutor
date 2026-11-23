@@ -44,7 +44,7 @@ app:
       time-zone: ${CONTRACT_TIME_ZONE:Asia/Ho_Chi_Minh}
   payment:
     fees:
-      studying-request: ${PAYMENT_STUDYING_REQUEST_FEE}
+      studying-request: ${PAYMENT_STUDYING_REQUEST_FEE:100000}
       teaching-request: ${PAYMENT_TEACHING_REQUEST_FEE}
     vnpay:
       tmn-code: ${VNPAY_TMN_CODE}

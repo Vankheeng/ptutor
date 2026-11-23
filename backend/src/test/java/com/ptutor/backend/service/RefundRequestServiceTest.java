@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -106,6 +107,8 @@ class RefundRequestServiceTest {
         lenient().when(studentRepository.findByUser_Id(studentUser.getId())).thenReturn(Optional.of(student));
         lenient().when(contractRepository.findByIdAndParticipantUserId(contract.getId(), studentUser.getId()))
                 .thenReturn(Optional.of(contract));
+        lenient().when(contractRepository.findByIdForSettlement(contract.getId()))
+                .thenReturn(Optional.of(contract));
         lenient().when(paymentRepository.findAllForContract(contract.getId(), ReferenceType.CONTRACT))
                 .thenReturn(List.of(paid));
         lenient().when(refundRequestRepository.saveAndFlush(any(RefundRequest.class))).thenAnswer(invocation -> {
@@ -151,6 +154,39 @@ class RefundRequestServiceTest {
     void claimMustBeAnAbsence() {
         assertError(() -> service.create(studentUser.getId(), createRequest(LessonOutcome.TAUGHT)),
                 HttpStatus.BAD_REQUEST, "INVALID_CLAIMED_OUTCOME");
+    }
+
+    @Test
+    void createsShortLessonClaimWithValidatedMissingMinutes() {
+        pendingLesson.setStartTime(LocalTime.of(18, 0));
+        pendingLesson.setEndTime(LocalTime.of(19, 30));
+        when(lessonRepository.findAllByIdForUpdate(anyCollection())).thenReturn(List.of(pendingLesson));
+        var claim = new RefundRequestCreateRequest(contract.getId(), "Gia sư dạy thiếu 30 phút",
+                List.of(new RefundRequestCreateRequest.DisputedLesson(pendingLesson.getId(),
+                        LessonOutcome.TUTOR_LATE_OR_SHORT, 30)), null);
+
+        service.create(studentUser.getId(), claim);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<RefundRequestLesson>> rows = ArgumentCaptor.forClass(List.class);
+        verify(refundRequestLessonRepository).saveAll(rows.capture());
+        assertThat(rows.getValue()).singleElement().satisfies(row -> {
+            assertThat(row.getClaimedOutcome()).isEqualTo(LessonOutcome.TUTOR_LATE_OR_SHORT);
+            assertThat(row.getMissedMinutes()).isEqualTo(30);
+        });
+    }
+
+    @Test
+    void rejectsMissingMinutesThatEqualTheWholeLesson() {
+        pendingLesson.setStartTime(LocalTime.of(18, 0));
+        pendingLesson.setEndTime(LocalTime.of(19, 0));
+        when(lessonRepository.findAllByIdForUpdate(anyCollection())).thenReturn(List.of(pendingLesson));
+        var claim = new RefundRequestCreateRequest(contract.getId(), "Gia sư dạy thiếu giờ",
+                List.of(new RefundRequestCreateRequest.DisputedLesson(pendingLesson.getId(),
+                        LessonOutcome.TUTOR_LATE_OR_SHORT, 60)), null);
+
+        assertError(() -> service.create(studentUser.getId(), claim), HttpStatus.BAD_REQUEST,
+                "INVALID_MISSED_MINUTES");
     }
 
     @Test

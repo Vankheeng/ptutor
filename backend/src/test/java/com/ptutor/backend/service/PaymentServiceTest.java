@@ -51,6 +51,7 @@ import com.ptutor.backend.entity.enums.PaymentStatus;
 import com.ptutor.backend.entity.enums.PaymentType;
 import com.ptutor.backend.entity.enums.ReferenceType;
 import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -308,7 +309,7 @@ class PaymentServiceTest {
         UUID tutorId = UUID.randomUUID();
         User user = new User();
         user.setId(userId);
-        Tutor tutor = Tutor.builder().user(user).build();
+        Tutor tutor = Tutor.builder().user(user).profileStatus(TutorProfileStatus.VERIFIED).build();
         tutor.setId(tutorId);
         TeachingRequest teachingRequest = TeachingRequest.builder()
                 .tutor(tutor)
@@ -343,6 +344,36 @@ class PaymentServiceTest {
         assertThat(response.status()).isEqualTo(PaymentStatus.PAID);
         verify(teachingRequestService).activateAfterPayment(requestId);
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void unverifiedTutorCannotPayToPublishTeachingRequest() {
+        UUID tutorId = UUID.randomUUID();
+        Tutor tutor = Tutor.builder().profileStatus(TutorProfileStatus.PENDING).build();
+        tutor.setId(tutorId);
+        TeachingRequest teachingRequest = TeachingRequest.builder()
+                .tutor(tutor)
+                .status(RequestStatus.DRAFT)
+                .quantity(1)
+                .build();
+        teachingRequest.setId(requestId);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(tutor));
+        when(teachingRequestRepository.findByIdAndTutor_Id(requestId, tutorId))
+                .thenReturn(Optional.of(teachingRequest));
+
+        assertThatThrownBy(() -> service.createTeachingRequestPayment(
+                userId, requestId, new VnPayPaymentRequest(null, "vn"), "203.0.113.10"))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getCode()).isEqualTo("TUTOR_PROFILE_NOT_VERIFIED");
+                });
+        assertThatThrownBy(() -> service.payTeachingRequestWithWallet(userId, requestId))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getCode()).isEqualTo("TUTOR_PROFILE_NOT_VERIFIED");
+                });
+        verify(walletService, never()).debit(any());
+        verify(paymentRepository, never()).saveAndFlush(any());
     }
 
     @Test

@@ -12,6 +12,7 @@ const statusLabels: Record<string, string> = {
   PENDING: 'Đang chờ',
   PENDING_REVIEW: 'Chờ duyệt',
   ACCEPTED: 'Đã chấp nhận',
+  CONNECTED: 'Đã kết nối',
   VERIFIED: 'Đã xác minh',
   REJECTED: 'Bị từ chối',
   CANCELLED: 'Đã hủy',
@@ -24,6 +25,10 @@ const statusLabels: Record<string, string> = {
 
 export function tutorStatusLabel(status: string) {
   return statusLabels[status] ?? status;
+}
+
+export function tutorNextStepLabel(value: string | null | undefined) {
+  return value === 'CONTRACT_SIGNING' ? 'Chờ học viên tạo và ký hợp đồng' : value || 'Đang chờ xử lý';
 }
 
 export function tutorScheduleLabel(schedule?: string | null, fallback = 'Linh hoạt') {

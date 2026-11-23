@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useResource } from './useResource';
+import type { PageResponse } from '../services/studentApi';
 import {
   filterTutorCertificates,
   getTutorContracts,
@@ -32,6 +33,11 @@ export function useTutorProposals(status?: TutorTeachingProposal['status'], revi
     [status]
   );
   return useResource<TutorTeachingProposal[]>(load, revision);
+}
+
+export function useTutorProposalsPage(status: TutorTeachingProposal['status'] | undefined, page: number, revision = 0) {
+  const load = useCallback((signal: AbortSignal) => getTutorProposals(status, signal, page, 10), [page, status]);
+  return useResource<PageResponse<TutorTeachingProposal>>(load, revision);
 }
 
 export interface TutorDashboardData {

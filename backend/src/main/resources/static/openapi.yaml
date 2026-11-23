@@ -67,6 +67,8 @@ tags:
     description: Tutor profile verification for content-review employees and administrators
   - name: Admin Employees
     description: Administrator-only employee account and job-function management
+  - name: Admin Statistics
+    description: Administrator-only operational and financial reports
   - name: Districts
     description: District catalog used by profile and teaching-request forms
   - name: Provinces
@@ -702,12 +704,18 @@ paths:
       tags:
         - Studying Requests
       summary: List my studying requests
-      description: Returns only studying requests owned by the authenticated student. Results are sorted by creation time descending and support optional status filtering.
+      description: Returns only studying requests owned by the authenticated student. Results support optional keyword and status filtering, pagination, and sorting by creation time.
       operationId: listMyStudyingRequests
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/StudyingRequestStatus'
+        - name: keyword
+          in: query
+          required: false
+          description: Case-insensitive search in the request title, subject name, or custom subject note.
+          schema:
+            type: string
         - name: page
           in: query
           required: false
@@ -717,6 +725,14 @@ paths:
             format: int32
             minimum: 0
             default: 0
+        - name: sort
+          in: query
+          required: false
+          description: Creation-time sort direction.
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
         - name: size
           in: query
           required: false
@@ -851,6 +867,29 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/students/me/studying-requests/{requestId}/detail:
+    get:
+      tags:
+        - Studying Requests
+      summary: Get student studying request detail view
+      description: Returns the authenticated student's studying request fields for its detail page, excluding preferredSchedule.
+      operationId: getStudentStudyingRequestDetailView
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudyingRequestId'
+      responses:
+        '200':
+          description: Studying request detail view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentStudyingRequestDetailResponseEnvelope'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/students/me/studying-requests/{requestId}/status:
     parameters:
@@ -1228,12 +1267,20 @@ paths:
       tags:
         - Tutor Student Requests
       summary: List tutor offers for my studying request
-      description: Returns tutor offers sent to a studying request owned by the authenticated student. Results support pagination and optional status filtering.
+      description: Returns tutor offers sent to a studying request owned by the authenticated student. Results support pagination, status filtering, and ordering by sent date.
       operationId: listTutorStudentRequestsForMyStudyingRequest
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TutorStudentRequestStatus'
+        - name: sort
+          in: query
+          required: false
+          description: Sort by sent date, newest first (DESC) or oldest first (ASC).
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
         - name: page
           in: query
           required: false
@@ -1259,7 +1306,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestPageResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferPageResponseEnvelope'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1289,7 +1336,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1317,7 +1364,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1347,7 +1394,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TutorStudentRequestResponseEnvelope'
+                $ref: '#/components/schemas/StudentTutorOfferResponseEnvelope'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -3162,6 +3209,21 @@ paths:
         '409': { $ref: '#/components/responses/ConflictError' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/students/me/studying-requests/payment-fee:
+    get:
+      tags: [Payments]
+      summary: Get configured studying request publication fee
+      operationId: getStudyingRequestPaymentFee
+      responses:
+        '200':
+          description: Configured fee amount in VND
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudyingRequestFeeResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /api/v1/students/me/studying-requests/{requestId}/payments/vnpay:
     post:
       tags: [Payments]
@@ -4633,6 +4695,286 @@ paths:
         '409': { $ref: '#/components/responses/ConflictError' }
 
 
+  /api/v1/admin/transactions:
+    get:
+      tags: [Admin Transactions]
+      summary: List financial transactions across all users
+      description: Administrator or accounting employee. Results include payments, wallet entries, and withdrawals, newest first.
+      parameters:
+        - name: source
+          in: query
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: flow
+          in: query
+          description: External platform cash in/out, internal balance movement, or no completed movement.
+          schema: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          description: Case insensitive email, name, or transaction ID search.
+          schema: { type: string }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          description: Inclusive end date.
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paginated transactions with user information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionPageResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/transactions/summary:
+    get:
+      tags: [Admin Transactions]
+      summary: Summarize platform cash flow for matching transactions
+      description: Settled VNPay payments count as money in; completed bank withdrawals count as money out. Wallet entries and wallet-funded payments are internal movements and do not increase either amount.
+      parameters:
+        - name: source
+          in: query
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: flow
+          in: query
+          schema: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Totals across all matching rows, independent of pagination
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionSummaryResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/transactions/{source}/{id}:
+    get:
+      tags: [Admin Transactions]
+      summary: Get one financial transaction
+      parameters:
+        - name: source
+          in: path
+          required: true
+          schema: { type: string, enum: [PAYMENT, WALLET_TRANSACTION, WITHDRAWAL] }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Transaction detail with user information
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTransactionResponseEnvelope' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/withdrawals:
+    get:
+      tags: [Admin Withdrawals]
+      summary: List withdrawal requests
+      description: Administrator or accounting employee. Full bank account number is omitted from the list.
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/WithdrawalRequestStatus' }
+        - name: page
+          in: query
+          schema: { type: integer, default: 0, minimum: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Paginated withdrawals
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWithdrawalPageResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+
+  /api/v1/admin/withdrawals/{id}:
+    get:
+      tags: [Admin Withdrawals]
+      summary: Get a withdrawal and its bank transfer details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Withdrawal detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWithdrawalResponseEnvelope' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
+  /api/v1/admin/withdrawals/{id}/approve:
+    patch:
+      tags: [Admin Withdrawals]
+      summary: Approve a pending withdrawal for bank transfer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Withdrawal is awaiting bank transfer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWithdrawalResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/withdrawals/{id}/reject:
+    patch:
+      tags: [Admin Withdrawals]
+      summary: Reject a pending withdrawal and return reserved funds
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        '200':
+          description: Withdrawal rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWithdrawalResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/withdrawals/{id}/complete:
+    patch:
+      tags: [Admin Withdrawals]
+      summary: Record a completed bank transfer
+      description: Call only after the bank transfer succeeds. This endpoint records the transfer reference and finalizes reserved wallet funds; it does not initiate a bank transfer.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [transferReference]
+              properties:
+                transferReference: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '200':
+          description: Withdrawal completed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminWithdrawalResponseEnvelope' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+
+  /api/v1/admin/statistics/{report}:
+    get:
+      tags:
+        - Admin Statistics
+      summary: Get an administrator statistics report
+      description: >-
+        Returns metrics, categorical breakdowns and time series for the selected report. Metrics include the
+        immediately preceding period with the same number of days. This endpoint is restricted to ADMIN.
+        It uses only current PTutor tables and does not reconstruct status history.
+      operationId: getAdminStatisticsReport
+      parameters:
+        - name: report
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - overview
+              - students
+              - tutors
+              - studying-requests
+              - teaching-requests
+              - matching
+              - contracts
+              - lessons
+              - finance
+              - payments
+              - installments
+              - wallets
+              - withdrawals
+              - employees
+        - name: fromDate
+          in: query
+          required: false
+          description: Inclusive local start date. Defaults to 29 days before toDate.
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          required: false
+          description: Inclusive local end date. Defaults to today in the requested timezone.
+          schema: { type: string, format: date }
+        - name: timezone
+          in: query
+          required: false
+          schema: { type: string, default: Asia/Ho_Chi_Minh }
+        - name: granularity
+          in: query
+          required: false
+          description: Automatically selected from the date range when omitted.
+          schema: { type: string, enum: [DAY, WEEK, MONTH] }
+      responses:
+        '200':
+          description: Statistics report generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatisticsReportResponseEnvelope' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '403': { $ref: '#/components/responses/ForbiddenError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -5601,6 +5943,41 @@ components:
         description: { type: string, nullable: true }
         occurredAt: { type: string, format: date-time }
 
+    AdminTransactionResponse:
+      type: object
+      required: [userId, userName, userEmail, purpose, flow, transaction]
+      properties:
+        userId: { type: string, format: uuid }
+        userName: { type: string }
+        userEmail: { type: string, format: email }
+        purpose: { type: string }
+        flow: { type: string, enum: [IN, OUT, INTERNAL, NONE] }
+        transactionCode: { type: string, nullable: true }
+        transferReference: { type: string, nullable: true }
+        transaction: { $ref: '#/components/schemas/FinancialTransactionResponse' }
+
+    AdminTransactionSummaryResponse:
+      type: object
+      required: [moneyIn, moneyOut, net, internalCount]
+      properties:
+        moneyIn: { type: number }
+        moneyOut: { type: number }
+        net: { type: number }
+        internalCount: { type: integer, format: int64 }
+
+    AdminTransactionPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTransactionResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
     FinancialTransactionPageResponse:
       type: object
       properties:
@@ -6349,6 +6726,28 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
+    AdminWithdrawalResponse:
+      type: object
+      properties:
+        withdrawal: { $ref: '#/components/schemas/WithdrawalResponse' }
+        userId: { type: string, format: uuid }
+        userName: { type: string }
+        userEmail: { type: string, format: email }
+        accountNumber: { type: string, nullable: true, description: Only present in detail and action responses. }
+
+    AdminWithdrawalPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AdminWithdrawalResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+
     WithdrawalPageResponse:
       type: object
       required: [content, page, size, totalElements, totalPages, first, last]
@@ -6609,6 +7008,38 @@ components:
           type: string
           format: date-time
 
+    StudentStudyingRequestDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        subjectId: { type: string, format: uuid, nullable: true }
+        subjectName: { type: string, nullable: true }
+        gradeId: { type: string, format: uuid }
+        gradeName: { type: string }
+        districtId: { type: string, format: uuid, nullable: true }
+        districtName: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        detailAddress: { type: string, nullable: true }
+        minPrice: { type: number, format: double, nullable: true }
+        maxPrice: { type: number, format: double, nullable: true }
+        learningGoals: { type: string, nullable: true }
+        learningMode:
+          type: string
+          enum: [OFFLINE, ONLINE]
+        availabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudyingRequestAvailabilityResponse'
+        status:
+          type: string
+          enum: [DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+
     StudyingRequestPageResponse:
       type: object
       properties:
@@ -6689,6 +7120,39 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    StudentTutorOfferResponse:
+      allOf:
+        - $ref: '#/components/schemas/TutorStudentRequestResponse'
+        - type: object
+          properties:
+            tutorPhone:
+              type: string
+              nullable: true
+
+    StudentTutorOfferPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentTutorOfferResponse'
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
 
     PublicReviewResponse:
       type: object
@@ -7102,6 +7566,9 @@ components:
         studentEmail:
           type: string
           format: email
+        studentPhone:
+          type: string
+          nullable: true
         gradeId:
           type: string
           format: uuid
@@ -7939,6 +8406,57 @@ components:
         status: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUNDED] }
         paymentUrl: { type: string, format: uri }
         expiresAt: { type: string, format: date-time }
+    StatisticsRangeResponse:
+      type: object
+      properties:
+        fromDate: { type: string, format: date }
+        toDate: { type: string, format: date }
+        timezone: { type: string }
+        granularity: { type: string, enum: [DAY, WEEK, MONTH] }
+        previousFromDate: { type: string, format: date }
+        previousToDate: { type: string, format: date }
+    StatisticsMetricResponse:
+      type: object
+      properties:
+        value: { type: number }
+        previousValue: { type: number }
+        changePercent: { type: number, nullable: true }
+    StatisticsBucketResponse:
+      type: object
+      properties:
+        key: { type: string }
+        value: { type: number }
+    StatisticsSeriesPointResponse:
+      type: object
+      properties:
+        period: { type: string, format: date }
+        value: { type: number }
+    StatisticsReportResponse:
+      type: object
+      properties:
+        report: { type: string }
+        range: { $ref: '#/components/schemas/StatisticsRangeResponse' }
+        metrics:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/StatisticsMetricResponse' }
+        breakdowns:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/StatisticsBucketResponse' }
+        series:
+          type: object
+          additionalProperties:
+            type: array
+            items: { $ref: '#/components/schemas/StatisticsSeriesPointResponse' }
+        generatedAt: { type: string, format: date-time }
+    StatisticsReportResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/StatisticsReportResponse' }
+
     PaymentResponse:
       type: object
       properties:
@@ -8029,6 +8547,14 @@ components:
             data:
               $ref: '#/components/schemas/StudyingRequestResponse'
 
+    StudentStudyingRequestDetailResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentStudyingRequestDetailResponse'
+
     StudyingRequestPageResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8045,6 +8571,14 @@ components:
             data:
               $ref: '#/components/schemas/TutorStudentRequestResponse'
 
+    StudentTutorOfferResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentTutorOfferResponse'
+
     TutorStudentRequestPageResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8052,6 +8586,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TutorStudentRequestPageResponse'
+
+    StudentTutorOfferPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentTutorOfferPageResponse'
 
     ComplaintResponseEnvelope:
       allOf:
@@ -8171,6 +8713,27 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/AdminStudentComplaintPageResponse' }
+
+    AdminTransactionResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionResponse' }
+
+    AdminTransactionPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionPageResponse' }
+
+    AdminTransactionSummaryResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminTransactionSummaryResponse' }
 
     FinancialTransactionResponseEnvelope:
       allOf:
@@ -8465,6 +9028,13 @@ components:
           properties:
             data: { $ref: '#/components/schemas/PaymentInitiationResponse' }
 
+    StudyingRequestFeeResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { type: number, format: double, example: 10000 }
+
     PaymentResponseEnvelope:
       allOf:
         - $ref: '#/components/schemas/ApiResponseMetadata'
@@ -8499,6 +9069,20 @@ components:
         - type: object
           properties:
             data: { $ref: '#/components/schemas/WalletTransactionPageResponse' }
+
+    AdminWithdrawalResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminWithdrawalResponse' }
+
+    AdminWithdrawalPageResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/AdminWithdrawalPageResponse' }
 
     WithdrawalResponseEnvelope:
       allOf:

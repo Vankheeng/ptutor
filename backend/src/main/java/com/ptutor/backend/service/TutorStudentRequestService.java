@@ -2,6 +2,7 @@ package com.ptutor.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.request.TutorStudentRequestCreateRequest;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
 import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Student;
@@ -21,12 +23,14 @@ import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.TutorStudentRequest;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.entity.enums.NotificationReferenceType;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TutorStudentRequestMapper;
+import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.StudentRepository;
@@ -36,6 +40,9 @@ import com.ptutor.backend.repository.TutorStudentRequestRepository;
 
 @Service
 public class TutorStudentRequestService {
+
+    @Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
 
     private final TutorStudentRequestRepository tutorStudentRequestRepository;
     private final StudyingRequestRepository studyingRequestRepository;
@@ -47,6 +54,7 @@ public class TutorStudentRequestService {
     private final ApplicationEventPublisher eventPublisher;
     /** Null when the service is built without one (unit tests): no willingness snapshots are written. */
     private final DecisionSnapshotRecorder snapshotRecorder;
+    private final ContractRepository contractRepository;
 
     @Autowired
     public TutorStudentRequestService(
@@ -58,7 +66,8 @@ public class TutorStudentRequestService {
             StudentRepository studentRepository,
             TutorStudentRequestMapper tutorStudentRequestMapper,
             ApplicationEventPublisher eventPublisher,
-            DecisionSnapshotRecorder snapshotRecorder) {
+            DecisionSnapshotRecorder snapshotRecorder,
+            ContractRepository contractRepository) {
         this.tutorStudentRequestRepository = tutorStudentRequestRepository;
         this.studyingRequestRepository = studyingRequestRepository;
         this.tutorRepository = tutorRepository;
@@ -68,6 +77,35 @@ public class TutorStudentRequestService {
         this.tutorStudentRequestMapper = tutorStudentRequestMapper;
         this.eventPublisher = eventPublisher;
         this.snapshotRecorder = snapshotRecorder;
+        this.contractRepository = contractRepository;
+    }
+
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher, null, null);
+    }
+
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher,
+            DecisionSnapshotRecorder snapshotRecorder) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher,
+                snapshotRecorder, null);
     }
 
     public TutorStudentRequestService(
@@ -79,7 +117,7 @@ public class TutorStudentRequestService {
             StudentRepository studentRepository,
             TutorStudentRequestMapper tutorStudentRequestMapper) {
         this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
-                districtRepository, studentRepository, tutorStudentRequestMapper, event -> { }, null);
+                districtRepository, studentRepository, tutorStudentRequestMapper, event -> { }, null, null);
     }
 
     @Transactional
@@ -91,7 +129,7 @@ public class TutorStudentRequestService {
                 .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
-        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
+        var preferredLocation = resolvePreferredLocation(source.teachingMode(), studyingRequest);
 
         if (tutorStudentRequestRepository.existsByTutor_IdAndStudyingRequest_IdAndStatus(
                 tutor.getId(), studyingRequestId, ApplicationStatus.PENDING)) {
@@ -168,7 +206,7 @@ public class TutorStudentRequestService {
                 .filter(value -> value.getStatus() == CatalogStatus.ACTIVE)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.BAD_REQUEST, "INVALID_GRADE", "Grade not found or inactive"));
-        var preferredLocation = resolvePreferredLocation(source, source.teachingMode());
+        var preferredLocation = resolvePreferredLocation(source.teachingMode(), request.getStudyingRequest());
         request.setGrade(grade);
         request.setProposedPrice(source.proposedPrice());
         request.setTeachingMode(source.teachingMode());
@@ -180,7 +218,7 @@ public class TutorStudentRequestService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TutorStudentRequestResponse> findMine(
+    public PageResponse<StudentTutorOfferResponse> findMine(
             UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
@@ -193,20 +231,33 @@ public class TutorStudentRequestService {
                                 studyingRequestId, status, pageable);
 
         return PageResponse.from(
-                requests,
-                requests.getContent().stream().map(tutorStudentRequestMapper::toResponse).toList());
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
     }
 
     @Transactional(readOnly = true)
-    public TutorStudentRequestResponse findMineById(
+    public PageResponse<StudentTutorOfferResponse> findMineSorted(
+            UUID userId, UUID studyingRequestId, ApplicationStatus status, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
+        Page<TutorStudentRequest> requests = status == null
+                ? tutorStudentRequestRepository.findAllByStudyingRequest_Id(studyingRequestId, pageable)
+                : tutorStudentRequestRepository.findAllByStudyingRequest_IdAndStatus(
+                        studyingRequestId, status, pageable);
+
+        return PageResponse.from(
+                requests, requests.getContent().stream().map(tutorStudentRequestMapper::toStudentOfferResponse).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public StudentTutorOfferResponse findMineById(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
-        return tutorStudentRequestMapper.toResponse(findRequest(tutorRequestId, studyingRequestId));
+        return tutorStudentRequestMapper.toStudentOfferResponse(findRequest(tutorRequestId, studyingRequestId));
     }
 
     @Transactional
-    public TutorStudentRequestResponse accept(
+    public StudentTutorOfferResponse accept(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         StudyingRequest studyingRequest = studyingRequestRepository
@@ -231,6 +282,7 @@ public class TutorStudentRequestService {
 
         tutorRequest.setStatus(ApplicationStatus.ACCEPTED);
         tutorRequest.setRespondedAt(LocalDateTime.now());
+        tutorRequest.setAcceptedAt(LocalDateTime.now());
         TutorStudentRequest savedRequest = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
         studyingRequest.setStatus(RequestStatus.MATCHED);
         studyingRequestRepository.saveAndFlush(studyingRequest);
@@ -239,26 +291,60 @@ public class TutorStudentRequestService {
                 NotificationEventType.TUTOR_REQUEST_ACCEPTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 savedRequest.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(savedRequest);
+        return tutorStudentRequestMapper.toStudentOfferResponse(savedRequest);
     }
 
     @Transactional
-    public TutorStudentRequestResponse reject(
+    public StudentTutorOfferResponse reject(
             UUID userId, UUID studyingRequestId, UUID tutorRequestId) {
         Student student = findStudentByUserId(userId);
         ensureStudyingRequestBelongsToStudent(studyingRequestId, student.getId());
 
         TutorStudentRequest tutorRequest = findRequest(tutorRequestId, studyingRequestId);
-        ensurePending(tutorRequest);
+        if (tutorRequest.getStatus() != ApplicationStatus.PENDING
+                && tutorRequest.getStatus() != ApplicationStatus.ACCEPTED) {
+            throw invalidTransition("Only PENDING or ACCEPTED tutor requests can be rejected");
+        }
+
+        if (tutorRequest.getStatus() == ApplicationStatus.ACCEPTED && contractRepository != null) {
+            contractRepository.findTopByTutorStudentRequest_IdOrderByCreatedAtDesc(tutorRequest.getId())
+                    .ifPresent(contract -> {
+                        boolean tutorAlreadySigned = contract.getSignedBy() != null
+                                || (contract.getCreatedBy() != null
+                                && contract.getCreatedBy().getId().equals(tutorRequest.getTutor().getUser().getId()));
+                        if (tutorAlreadySigned || contract.getStatus() == ContractStatus.ACTIVE
+                                || contract.getStatus() == ContractStatus.COMPLETED) {
+                            throw invalidTransition("Cannot reject the tutor offer because the tutor has signed the contract");
+                        }
+                        if (contract.getStatus() == ContractStatus.PENDING) {
+                            contract.setStatus(ContractStatus.CANCELLED);
+                            contract.setCancelledAt(LocalDateTime.now());
+                            contractRepository.saveAndFlush(contract);
+                            if (lessonProvisioningService != null) {
+                                lessonProvisioningService.discardProvisionalLessons(contract);
+                            }
+                        }
+                    });
+        }
+
         tutorRequest.setStatus(ApplicationStatus.REJECTED);
         tutorRequest.setRespondedAt(LocalDateTime.now());
         TutorStudentRequest saved = tutorStudentRequestRepository.saveAndFlush(tutorRequest);
+        if (saved.getStudyingRequest() != null
+                && saved.getStudyingRequest().getStatus() == RequestStatus.MATCHED
+                && tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                        saved.getStudyingRequest().getId(), ApplicationStatus.ACCEPTED) == 0
+                && tutorStudentRequestRepository.countByStudyingRequest_IdAndStatus(
+                        saved.getStudyingRequest().getId(), ApplicationStatus.CONNECTED) == 0) {
+            saved.getStudyingRequest().setStatus(RequestStatus.OPEN);
+            studyingRequestRepository.saveAndFlush(saved.getStudyingRequest());
+        }
         eventPublisher.publishEvent(NotificationDomainEvent.of(
                 saved.getTutor().getUser().getId(),
                 NotificationEventType.TUTOR_REQUEST_REJECTED,
                 NotificationReferenceType.TUTOR_STUDENT_REQUEST,
                 saved.getId(), java.util.Map.of()));
-        return tutorStudentRequestMapper.toResponse(saved);
+        return tutorStudentRequestMapper.toStudentOfferResponse(saved);
     }
 
     private Tutor findTutorByUserId(UUID userId) {
@@ -334,24 +420,16 @@ public class TutorStudentRequestService {
     }
 
     private PreferredLocation resolvePreferredLocation(
-            TutorStudentRequestCreateRequest source, com.ptutor.backend.entity.enums.TeachingMode teachingMode) {
+            com.ptutor.backend.entity.enums.TeachingMode teachingMode, StudyingRequest studyingRequest) {
         if (teachingMode != com.ptutor.backend.entity.enums.TeachingMode.OFFLINE) {
             return new PreferredLocation(null, null);
         }
-        if (source.preferredProvinceId() == null || source.preferredDistrictId() == null) {
+        var district = studyingRequest.getDistrict();
+        if (district == null || district.getProvince() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                    "Province and district are required for in-person proposals");
+                    "The studying request must include a location for in-person proposals");
         }
-
-        var district = districtRepository.findById(source.preferredDistrictId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                        "Selected district was not found"));
-        var province = district.getProvince();
-        if (province == null || !province.getId().equals(source.preferredProvinceId())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
-                    "Selected district does not belong to the selected province");
-        }
-        return new PreferredLocation(province, district);
+        return new PreferredLocation(district.getProvince(), district);
     }
 
     private record PreferredLocation(com.ptutor.backend.entity.Province province,

@@ -19,6 +19,8 @@ export function StudentStudyingRequestsPage() {
   const location = useLocation();
   const [status, setStatus] = useState<'ALL' | RequestStatus>('ALL');
   const [sort, setSort] = useState<'ASC' | 'DESC'>('DESC');
+  const [keyword, setKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -28,10 +30,18 @@ export function StudentStudyingRequestsPage() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(
-    (signal: AbortSignal) => getMyStudyingRequests(status === 'ALL' ? undefined : status, page, 20, signal, sort),
-    [status, page, sort]
+    (signal: AbortSignal) =>
+      getMyStudyingRequests(status === 'ALL' ? undefined : status, page, 20, signal, sort, searchKeyword),
+    [status, page, sort, searchKeyword]
   );
   const query = useResource(load, revision);
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
+  const visibleRequests = (query.data?.content ?? []).filter((request) => {
+    if (!normalizedKeyword) return true;
+    return [request.title, request.subjectName, request.note].some((value) =>
+      value?.toLocaleLowerCase('vi').includes(normalizedKeyword)
+    );
+  });
 
   useEffect(() => {
     if (location.state) navigate(location.pathname, { replace: true, state: null });
@@ -67,10 +77,18 @@ export function StudentStudyingRequestsPage() {
       if (action === 'open' || action === 'close') {
         await updateStudyingRequestStatus(id, action.toUpperCase() as RequestStatus);
       }
-      setNotice(action === 'cancel' ? 'Đã huỷ tin.' : action === 'close' ? 'Đã đóng tin.' : 'Đã mở lại tin.');
+      setNotice(
+        action === 'cancel'
+          ? 'Đã hủy yêu cầu tìm gia sư.'
+          : action === 'open'
+            ? 'Đã mở lại yêu cầu.'
+            : 'Đã đóng yêu cầu.'
+      );
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Chưa cập nhật được tin này.');
+      setError(
+        caught instanceof ApiError || caught instanceof Error ? caught.message : 'Could not update this request.'
+      );
     } finally {
       setBusy(null);
     }
@@ -80,12 +98,10 @@ export function StudentStudyingRequestsPage() {
     <>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">NHU CẦU HỌC CỦA BẠN</span>
-          <h1>Tin tìm gia sư của tôi</h1>
-          <p>Quản lý các tin bạn đăng để tìm gia sư.</p>
+          <h1>Yêu cầu tìm gia sư của tôi</h1>
         </div>
         <Link className="student-button draft" to="/student/studying-requests/new">
-          Đăng tin mới
+          Tạo yêu cầu
         </Link>
       </div>
       {notice && (
@@ -99,6 +115,12 @@ export function StudentStudyingRequestsPage() {
         </div>
       )}
       <StudentStudyingRequestToolbar
+        keyword={keyword}
+        onKeywordChange={(value) => {
+          setKeyword(value);
+          setSearchKeyword(value.trim());
+          setPage(0);
+        }}
         status={status}
         sort={sort}
         onStatusChange={(nextStatus) => {
@@ -123,6 +145,10 @@ export function StudentStudyingRequestsPage() {
           last={query.data.last}
           onPrevious={() => setPage((value) => value - 1)}
           onNext={() => setPage((value) => value + 1)}
+          previousLabel="Trước"
+          nextLabel="Sau"
+          pageLabel="Trang"
+          ofLabel="trên"
         />
       )}
       {query.isLoading ? (
@@ -131,9 +157,9 @@ export function StudentStudyingRequestsPage() {
             <div className="student-skeleton" key={item} />
           ))}
         </div>
-      ) : query.data?.content.length ? (
+      ) : visibleRequests.length ? (
         <div className="student-card-grid">
-          {query.data.content.map((request) => (
+          {visibleRequests.map((request) => (
             <StudentStudyingRequestCard
               key={request.id}
               request={request}
@@ -149,8 +175,8 @@ export function StudentStudyingRequestsPage() {
         </div>
       ) : (
         <div className="student-empty">
-          <h3>Không có tin nào ở mục này</h3>
-          <p>Thử trạng thái khác hoặc đăng tin mới.</p>
+          <h3>Không có yêu cầu phù hợp</h3>
+          <p>Thử thay đổi từ khóa hoặc trạng thái lọc.</p>
         </div>
       )}
     </>

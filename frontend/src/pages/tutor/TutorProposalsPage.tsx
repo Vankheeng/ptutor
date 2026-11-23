@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import {
   getMyTeachingRequests,
@@ -10,11 +11,13 @@ import {
 import { getSubjects } from '../../services/subjectApi';
 import type { TeachingRequest } from '../../types/api';
 import { RequestOfferActions } from '../../components/common-user/RequestOfferActions';
+import './tutor-proposal-status.css';
+import { getTutorContracts } from '../../services/tutorApi';
 
 type Status = StudentTeachingApplication['status'];
 type Mode = StudentTeachingApplication['learningMode'];
 type RequestWithContext = StudentTeachingApplication & { teachingRequest: TeachingRequest };
-const statuses: Array<'ALL' | Status> = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED'];
+const statuses: Array<'ALL' | Status> = ['ALL', 'PENDING', 'ACCEPTED', 'CONNECTED', 'REJECTED', 'CANCELLED'];
 
 export function TutorProposalsPage() {
   const navigate = useNavigate();
@@ -31,11 +34,24 @@ export function TutorProposalsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const load = useCallback(async (signal: AbortSignal) => {
-    const [requests, subjects] = await Promise.all([getMyTeachingRequests(signal), getSubjects('name', signal)]);
+    const [requests, subjects, contractsPage] = await Promise.all([
+      getMyTeachingRequests(signal),
+      getSubjects('name', signal),
+      getTutorContracts(signal)
+    ]);
+    const contractByApplicationId = new Map(
+      contractsPage.content
+        .filter((contract) => contract.studentTutorRequestId)
+        .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+    );
     const groups = await Promise.all(
       requests.map(async (teachingRequest) => {
         const applications = await getTeachingRequestApplications(teachingRequest.id, signal);
-        return applications.map((application) => ({ ...application, teachingRequest }));
+        return applications.map((application) => ({
+          ...application,
+          contractId: application.contractId ?? contractByApplicationId.get(application.id) ?? null,
+          teachingRequest
+        }));
       })
     );
     return { requests, subjects, applications: groups.flat() };
@@ -244,7 +260,11 @@ export function TutorProposalsPage() {
               {pageItems.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <strong>{studentName(item)}</strong>
+                    <strong>
+                      <ProfileNameLink role="student" profileId={item.studentId}>
+                        {studentName(item)}
+                      </ProfileNameLink>
+                    </strong>
                     <small>{item.studentEmail}</small>
                   </td>
                   <td>
@@ -256,7 +276,7 @@ export function TutorProposalsPage() {
                   </td>
                   <td>
                     <span className="tutor-proposal-message">
-                      {item.message || item.preferredSchedule || 'Không có lời nhắn'}
+                      {item.message || formatPreferredSchedule(item.preferredSchedule) || 'Không có lời nhắn'}
                     </span>
                   </td>
                   <td>{formatDateTime(item.createdAt)}</td>
@@ -272,7 +292,7 @@ export function TutorProposalsPage() {
                         type="button"
                         onClick={() => navigate(`/tutor/sections/teaching-requests/${item.teachingRequestId}`)}
                       >
-                        Xem chi tiết yêu cầu
+                        Xem chi tiết
                       </button>
                       <RequestOfferActions
                         role="tutor"
@@ -281,6 +301,19 @@ export function TutorProposalsPage() {
                         onAccept={() => void changeStatus(item, 'ACCEPTED')}
                         onReject={() => void changeStatus(item, 'REJECTED')}
                       />
+                      {item.status === 'ACCEPTED' && !item.contractId ? (
+                        <button
+                          className="tutor-button small"
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/tutor/sections/teaching-requests/${item.teachingRequestId}/student-requests/${item.id}/contracts/new`
+                            )
+                          }
+                        >
+                          Tạo hợp đồng
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -318,10 +351,26 @@ function studentName(item: StudentTeachingApplication) {
   return [item.studentFirstName, item.studentLastName].filter(Boolean).join(' ') || item.studentEmail;
 }
 function statusLabel(value: Status | 'ALL') {
-  return { ALL: 'Tất cả', PENDING: 'Chờ xử lý', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Từ chối', CANCELLED: 'Đã hủy' }[
-    value
-  ];
+  return {
+    ALL: 'Tất cả',
+    PENDING: 'Chờ xử lý',
+    ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
+    REJECTED: 'Từ chối',
+    CANCELLED: 'Đã hủy'
+  }[value];
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
+function formatPreferredSchedule(value: string | null) {
+  if (!value) return '';
+  return value
+    .replace(/Monday/g, 'Thứ Hai')
+    .replace(/Tuesday/g, 'Thứ Ba')
+    .replace(/Wednesday/g, 'Thứ Tư')
+    .replace(/Thursday/g, 'Thứ Năm')
+    .replace(/Friday/g, 'Thứ Sáu')
+    .replace(/Saturday/g, 'Thứ Bảy')
+    .replace(/Sunday/g, 'Chủ nhật');
 }

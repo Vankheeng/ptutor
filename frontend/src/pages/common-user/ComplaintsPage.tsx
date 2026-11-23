@@ -141,22 +141,6 @@ export function ComplaintsPage({
       </div>
 
       <div className="student-complaint-toolbar">
-        <div className="student-complaint-status-filters" role="group" aria-label="Lọc trạng thái khiếu nại">
-          {filters.map((value) => (
-            <button
-              className={filter === value ? 'active' : ''}
-              type="button"
-              key={value}
-              onClick={() => {
-                setFilter(value);
-                setPage(0);
-              }}
-            >
-              <i className={value.toLowerCase()} />
-              {value === 'ALL' ? `Tất cả (${query.data?.complaints.totalElements ?? 0})` : complaintStatusLabels[value]}
-            </button>
-          ))}
-        </div>
         <label className="student-complaint-search" htmlFor="student-complaint-search-input">
           <Icon name="search" size={16} />
           <input
@@ -169,6 +153,21 @@ export function ComplaintsPage({
             }}
           />
         </label>
+        <select
+          className="student-complaint-status-select"
+          aria-label="Lọc trạng thái khiếu nại"
+          value={filter}
+          onChange={(event) => {
+            setFilter(event.target.value as Filter);
+            setPage(0);
+          }}
+        >
+          {filters.map((value) => (
+            <option key={value} value={value}>
+              {value === 'ALL' ? 'Tất cả trạng thái' : complaintStatusLabels[value]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {(actionError || query.error) && (
@@ -197,20 +196,7 @@ export function ComplaintsPage({
         </div>
       ) : (
         <div className="student-complaint-empty">
-          <div className="student-complaint-empty-icon">
-            <Icon name="search" size={42} />
-          </div>
-          <h3>{mode === 'submitted' ? 'Bạn chưa có khiếu nại nào' : 'Chưa có khiếu nại về bạn'}</h3>
-          <p>
-            {mode === 'submitted'
-              ? 'Bạn có thể tạo khiếu nại từ nút bên trên khi phát sinh vấn đề.'
-              : 'Các khiếu nại liên quan đến bạn sẽ hiển thị tại đây.'}
-          </p>
-          {mode === 'submitted' && (
-            <Link className="student-button complaint-create-button" to={`${basePath}/new`}>
-              <span aria-hidden="true">+</span> Tạo khiếu nại
-            </Link>
-          )}
+          <h3>Chưa có khiếu nại nào</h3>
         </div>
       )}
       {complaintPage && complaintPage.totalElements > 0 && (

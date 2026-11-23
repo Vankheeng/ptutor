@@ -4,6 +4,7 @@ import { AssistantWidget } from '../../components/assistant/AssistantWidget';
 import { SupportRequestDialog } from '../../components/assistant/SupportRequestDialog';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon, type IconName } from '../../components/ui/Icon';
+import { useNotificationUnreadCount } from '../../hooks/useNotificationUnreadCount';
 import '../student/student-layout.css';
 import '../student/student.css';
 
@@ -38,6 +39,7 @@ const sectionLabels: Record<Section, string> = {
 export function CommonUserLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const unreadNotifications = useNotificationUnreadCount();
   const fullName =
     [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Học viên';
   const initials = fullName
@@ -65,7 +67,7 @@ export function CommonUserLayout() {
         <nav className="student-nav" aria-label="Không gian học viên">
           {(['WORKSPACE', 'LEARNING', 'ACCOUNT'] as Section[]).map((section) => (
             <div className="student-nav-group" key={section}>
-              <span className="student-nav-label">{sectionLabels[section]}</span>
+              {section !== 'WORKSPACE' && <span className="student-nav-label">{sectionLabels[section]}</span>}
               {navigation
                 .filter((item) => item.section === section)
                 .map((item) => (
@@ -79,18 +81,17 @@ export function CommonUserLayout() {
                       <Icon name={item.icon} size={18} />
                     </span>
                     {item.label}
+                    {item.to === '/student/notifications' && unreadNotifications > 0 && (
+                      <b className="notification-nav-badge" aria-label={`${unreadNotifications} thông báo chưa đọc`}>
+                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      </b>
+                    )}
                   </NavLink>
                 ))}
             </div>
           ))}
         </nav>
         <div className="student-sidebar-bottom">
-          <NavLink className="student-nav-link" to="/public">
-            <span aria-hidden="true">
-              <Icon name="home" size={18} />
-            </span>
-            Trang chủ
-          </NavLink>
           <button
             className="student-nav-link student-logout"
             type="button"

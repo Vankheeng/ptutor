@@ -1,14 +1,14 @@
 import './App.css';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { GlobalToastViewport } from './components/ui/GlobalToastViewport';
 import { GuestRoute, ProtectedRoute, RoleGuard } from './auth/RouteGuards';
 import HomePage from './pages/HomePage';
+import AdminStatisticsPage from './pages/AdminStatisticsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { TutorDashboardPage } from './pages/tutor/TutorDashboardPage';
-import { TutorProfilePage } from './pages/tutor/TutorProfilePage';
-import { TutorCertificatesPage } from './pages/tutor/TutorCertificatesPage';
 import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
@@ -32,9 +32,10 @@ import { StudentTutorRecommendations } from './pages/student/StudentTutorRecomme
 import { StudentTeachingRequestDetailPage } from './pages/student/StudentTeachingRequestDetailPage';
 import { StudentApplicationsPage } from './pages/student/StudentApplicationsPage';
 import { StudentApplicationDetailPage } from './pages/student/StudentApplicationDetailPage';
-import { StudentContractsPage } from './pages/student/StudentContractsPage';
+import { ContractsPage } from './pages/common-user/ContractsPage';
 import { StudentContractDetailPage } from './pages/student/StudentContractDetailPage';
 import { StudentContractCreatePage } from './pages/student/StudentContractCreatePage';
+import { TutorContractCreatePage } from './pages/tutor/TutorContractCreatePage';
 import { NotificationsPage } from './pages/common-user/NotificationsPage';
 import { WalletPage } from './pages/common-user/WalletPage';
 import { WalletTransactionsPage } from './pages/common-user/WalletTransactionsPage';
@@ -42,7 +43,7 @@ import { WalletTransactionDetailPage } from './pages/common-user/WalletTransacti
 import { WalletAnalyticsPage } from './pages/common-user/WalletAnalyticsPage';
 import { MyTeachingRequestsPage } from './pages/tutor/MyTeachingRequestsPage';
 import { TeachingRequestDetailPage } from './pages/tutor/TeachingRequestDetailPage';
-import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { ProfileWorkspacePage } from './pages/common-user/ProfileWorkspacePage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminTutorProfilesPage } from './pages/admin/AdminTutorProfilesPage';
 import { AdminCertificateQueuePage } from './pages/admin/AdminCertificateQueuePage';
@@ -54,28 +55,31 @@ import { AdminTutorTeachingHistoryPage } from './pages/admin/AdminTutorTeachingH
 import { AdminTutorScorePage } from './pages/admin/AdminTutorScorePage';
 import { AdminRefundRequestsPage } from './pages/admin/AdminRefundRequestsPage';
 import { AdminRefundRequestDetailPage } from './pages/admin/AdminRefundRequestDetailPage';
+import { AdminWithdrawalsPage } from './pages/admin/AdminWithdrawalsPage';
+import { AdminWithdrawalDetailPage } from './pages/admin/AdminWithdrawalDetailPage';
 import { StudentContractLessonsPage } from './pages/student/StudentContractLessonsPage';
 import { TutorCalendarPage } from './pages/tutor/TutorCalendarPage';
 import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
-import { StudentRefundRequestDetailPage } from './pages/student/StudentRefundRequestDetailPage';
 import { ComplaintsPage } from './pages/common-user/ComplaintsPage';
 import { ComplaintCreatePage } from './pages/common-user/ComplaintCreatePage';
 import { ComplaintDetailPage } from './pages/common-user/ComplaintDetailPage';
-import { TutorRefundRequestsPage } from './pages/tutor/TutorRefundRequestsPage';
-import { TutorRefundRequestDetailPage } from './pages/tutor/TutorRefundRequestDetailPage';
+import { CommonRefundRequestDetailPage } from './pages/common-user/CommonRefundRequestDetailPage';
 import { AdminRequestReviewPage } from './pages/admin/AdminRequestReviewPage';
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage';
-import { AdminUserAccountsPage } from './pages/admin/AdminUserAccountsPage';
 import { AdminUserAccountDetailPage } from './pages/admin/AdminUserAccountDetailPage';
 import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
 import { AdminStudentDetailLayout } from './pages/admin/AdminStudentDetailLayout';
 import { AdminStudentProfilePage } from './pages/admin/AdminStudentProfilePage';
 import { AdminStudentLearningHistoryPage } from './pages/admin/AdminStudentLearningHistoryPage';
 import { AdminStudentContractsPage } from './pages/admin/AdminStudentContractsPage';
+import { AdminContractsPage } from './pages/admin/AdminContractsPage';
 import { AdminStudentTransactionsPage } from './pages/admin/AdminStudentTransactionsPage';
+import { AdminTransactionsPage } from './pages/admin/AdminTransactionsPage';
+import { AdminWalletsPage } from './pages/admin/AdminWalletsPage';
+import { AdminTransactionDetailPage } from './pages/admin/AdminTransactionDetailPage';
 import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaintsPage';
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
@@ -97,6 +101,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <GlobalToastViewport />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/public" element={<HomeLanding />} />
@@ -116,6 +121,7 @@ export default function App() {
                   <Route path="score" element={<AdminTutorScorePage />} />
                 </Route>
                 <Route path="students" element={<AdminStudentsPage />} />
+                <Route path="contracts" element={<AdminContractsPage />} />
                 <Route path="students/:userId" element={<AdminStudentDetailLayout />}>
                   <Route index element={<AdminStudentProfilePage />} />
                   <Route path="learning-history" element={<AdminStudentLearningHistoryPage />} />
@@ -133,11 +139,16 @@ export default function App() {
                 </Route>
                 <Route path="refund-requests" element={<AdminRefundRequestsPage />} />
                 <Route path="refund-requests/:refundRequestId" element={<AdminRefundRequestDetailPage />} />
+                <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+                <Route path="withdrawals/:withdrawalId" element={<AdminWithdrawalDetailPage />} />
+                <Route path="transactions" element={<AdminTransactionsPage />} />
+                <Route path="wallets" element={<AdminWalletsPage />} />
+                <Route path="transactions/:source/:transactionId" element={<AdminTransactionDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
                 <Route path="support-requests" element={<SupportRequestQueuePage />} />
                 <Route path="support-requests/:requestId" element={<AdminSupportRequestDetailPage />} />
-                <Route path="accounts" element={<AdminUserAccountsPage />} />
+                <Route path="accounts" element={<Navigate replace to="/admin/students" />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
                 <Route path="recommendation-weights" element={<AdminRecommendationWeightsPage />} />
@@ -150,6 +161,7 @@ export default function App() {
                   <Route path="assistant/documents/:documentId" element={<KbDocumentEditorPage />} />
                   <Route path="assistant/unanswered" element={<UnansweredQuestionsPage />} />
                   <Route path="assistant/stats" element={<AssistantStatsPage />} />
+                  <Route path="statistics" element={<AdminStatisticsPage />} />
                   <Route path="employees" element={<AdminEmployeesPage />} />
                   <Route path="employees/new" element={<AdminEmployeeFormPage />} />
                   <Route path="employees/:employeeId" element={<AdminEmployeeDetailPage />} />
@@ -163,8 +175,9 @@ export default function App() {
                 <Route path="dashboard" element={<TutorDashboardPage />} />
                 <Route path="calendar" element={<TutorCalendarPage />} />
                 <Route path="sections/calendar" element={<TutorCalendarPage />} />
-                <Route path="profile" element={<TutorProfilePage />} />
-                <Route path="certificates" element={<TutorCertificatesPage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="tutor" own />} />
+                <Route path="certificates" element={<Navigate replace to="/tutor/profile?tab=certificates" />} />
+                <Route path="students/:profileId/profile" element={<ProfileWorkspacePage subjectRole="student" />} />
                 <Route path="students" element={<TutorStudentSearchPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
@@ -172,8 +185,11 @@ export default function App() {
                  <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
-                <Route path="refund-requests" element={<TutorRefundRequestsPage />} />
-                <Route path="refund-requests/:refundRequestId" element={<TutorRefundRequestDetailPage />} />
+                <Route path="refund-requests" element={<Navigate replace to="/tutor/complaints/received" />} />
+                <Route
+                  path="refund-requests/:refundRequestId"
+                  element={<Navigate replace to="/tutor/complaints/received" />}
+                />
                 <Route path="complaints" element={<ComplaintsPage basePath="/tutor/complaints" role="tutor" />} />
                 <Route path="complaints/new" element={<ComplaintCreatePage basePath="/tutor/complaints" />} />
                 <Route
@@ -197,6 +213,10 @@ export default function App() {
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
                 <Route path="sections/teaching-requests" element={<MyTeachingRequestsPage />} />
                 <Route path="sections/teaching-requests/:requestId" element={<TeachingRequestDetailPage />} />
+                <Route
+                  path="sections/teaching-requests/:requestId/student-requests/:applicationId/contracts/new"
+                  element={<TutorContractCreatePage />}
+                />
                 <Route path="sections/:section" element={<TutorComingSoonPage />} />
               </Route>
             </Route>
@@ -219,7 +239,7 @@ export default function App() {
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="tutor-offers" element={<OffersPage />} />
                 <Route path="applications/:applicationId" element={<StudentApplicationDetailPage />} />
-                <Route path="contracts" element={<StudentContractsPage />} />
+                <Route path="contracts" element={<ContractsPage role="student" />} />
                 <Route path="contracts/:contractId" element={<StudentContractDetailPage />} />
                 <Route
                   path="studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new"
@@ -228,7 +248,8 @@ export default function App() {
                 <Route path="contracts/:contractId/lessons" element={<StudentContractLessonsPage />} />
                 <Route path="contracts/:contractId/refund-request" element={<StudentRefundRequestCreatePage />} />
                 <Route path="refund-requests" element={<StudentRefundRequestsPage />} />
-                <Route path="refund-requests/:refundRequestId" element={<StudentRefundRequestDetailPage />} />
+                <Route path="refund-requests/new" element={<StudentRefundRequestCreatePage />} />
+                <Route path="refund-requests/:refundRequestId" element={<CommonRefundRequestDetailPage />} />
                 <Route path="complaints" element={<ComplaintsPage />} />
                 <Route path="complaints/new" element={<ComplaintCreatePage />} />
                 <Route path="complaints/received" element={<ComplaintsPage mode="received" />} />
@@ -241,7 +262,8 @@ export default function App() {
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
                 <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
-                <Route path="profile" element={<StudentProfilePage />} />
+                <Route path="profile" element={<ProfileWorkspacePage subjectRole="student" own />} />
+                <Route path="tutors/:profileId/profile" element={<ProfileWorkspacePage subjectRole="tutor" />} />
               </Route>
             </Route>
           </Route>

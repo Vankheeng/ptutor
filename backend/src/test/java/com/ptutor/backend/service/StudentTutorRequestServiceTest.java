@@ -152,7 +152,7 @@ class StudentTutorRequestServiceTest {
     }
 
     @Test
-    void cannotUpdateAnAlreadyProcessedApplication() {
+    void allowsRejectingAcceptedApplicationBeforeContractSigning() {
         TeachingRequest teachingRequest = teachingRequest(RequestStatus.OPEN);
         StudentTutorRequest application = application(teachingRequest, ApplicationStatus.ACCEPTED);
         when(teachingRequestRepository.findByIdAndTutor_Id(teachingRequestId, tutorId))
@@ -160,14 +160,11 @@ class StudentTutorRequestServiceTest {
         when(studentTutorRequestRepository
                 .findByIdAndTeachingRequest_Id(applicationId, teachingRequestId))
                 .thenReturn(Optional.of(application));
+        when(studentTutorRequestRepository.saveAndFlush(application)).thenReturn(application);
 
-        assertThatThrownBy(() -> service.updateStatus(
-                userId, teachingRequestId, applicationId, ApplicationStatus.REJECTED))
-                .isInstanceOfSatisfying(ApiException.class, exception -> {
-                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(exception.getCode())
-                            .isEqualTo("INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION");
-                });
+        service.updateStatus(userId, teachingRequestId, applicationId, ApplicationStatus.REJECTED);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
     }
 
     private Tutor tutor() {

@@ -21,6 +21,7 @@ import com.ptutor.backend.dto.request.ContractUpdateRequest;
 import com.ptutor.backend.dto.response.ContractResponse;
 import com.ptutor.backend.dto.response.CancelContractRequestResponse;
 import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.ScheduleConflictCheckResponse;
 import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -47,12 +48,16 @@ public class ContractController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContractResponse>>> findMine(
             @RequestParam(required = false) ContractStatus status,
+            @RequestParam(required = false) UUID counterpartyId,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(responseFactory.success(
-                contractService.findMine(currentUserProvider.getCurrentUserId(), status, pageable),
+                counterpartyId == null
+                        ? contractService.findMine(currentUserProvider.getCurrentUserId(), status, pageable)
+                        : contractService.findSharedWith(
+                                currentUserProvider.getCurrentUserId(), counterpartyId, status, pageable),
                 BASE_PATH));
     }
 
@@ -83,6 +88,16 @@ public class ContractController {
                 BASE_PATH + "/" + contractId + "/sign"));
     }
 
+    @PostMapping("/{contractId}/check-schedule")
+    public ResponseEntity<ApiResponse<ScheduleConflictCheckResponse>> checkSchedule(
+            @PathVariable UUID contractId,
+            @Valid @RequestBody ContractTermsRequest request) {
+        return ResponseEntity.ok(responseFactory.success(
+                contractService.checkExistingContractSchedule(
+                        currentUserProvider.getCurrentUserId(), contractId, request),
+                BASE_PATH + "/" + contractId + "/check-schedule"));
+    }
+
     @PatchMapping("/{contractId}/reject")
     public ResponseEntity<ApiResponse<ContractResponse>> reject(@PathVariable UUID contractId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -99,6 +114,15 @@ public class ContractController {
                 "Contract cancelled successfully",
                 contractService.cancel(currentUserProvider.getCurrentUserId(), contractId),
                 BASE_PATH + "/" + contractId + "/cancel"));
+    }
+
+    @PostMapping("/{contractId}/refresh")
+    public ResponseEntity<ApiResponse<ContractResponse>> refresh(@PathVariable UUID contractId) {
+        return ResponseEntity.ok(responseFactory.success(
+                "CONTRACT_REFRESHED",
+                "Contract signing deadline refreshed successfully",
+                contractService.refreshSigningDeadline(currentUserProvider.getCurrentUserId(), contractId),
+                BASE_PATH + "/" + contractId + "/refresh"));
     }
 
     @PostMapping("/{contractId}/renewals")

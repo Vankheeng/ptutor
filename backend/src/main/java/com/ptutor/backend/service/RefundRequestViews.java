@@ -53,7 +53,8 @@ public class RefundRequestViews {
             Lesson lesson = item.getLesson();
             return new RefundRequestResponse.DisputedLesson(
                     lesson.getId(), lesson.getTitle(), lesson.getDate(), lesson.getStartTime(), lesson.getEndTime(),
-                    lesson.getMarkedTaughtAt(), item.getClaimedOutcome(), item.getTutorPosition(), item.getDecision());
+                    lesson.getMarkedTaughtAt(), item.getClaimedOutcome(), item.getMissedMinutes(),
+                    item.getTutorPosition(), item.getDecision());
         }).toList();
     }
 

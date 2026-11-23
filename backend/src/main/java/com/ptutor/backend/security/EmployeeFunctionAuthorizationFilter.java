@@ -36,6 +36,7 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
             "/api/v1/admin/notifications",
             "/api/v1/admin/complaints",
             "/api/v1/admin/support-requests",
+            "/api/v1/admin/contracts",
             "/api/v1/admin/certificates",
             "/api/v1/admin/teaching-requests",
             "/api/v1/admin/studying-requests",
@@ -97,7 +98,8 @@ public class EmployeeFunctionAuthorizationFilter extends OncePerRequestFilter {
 
     private Set<EmployeeJobFunction> allowedFunctions(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/v1/admin/refund-requests")) {
+        if (path.startsWith("/api/v1/admin/refund-requests") || path.startsWith("/api/v1/admin/withdrawals")
+                || path.startsWith("/api/v1/admin/transactions") || path.startsWith("/api/v1/admin/wallets")) {
             return EnumSet.of(EmployeeJobFunction.ACCOUNTANT);
         }
         if (CUSTOMER_SERVICE_PATHS.stream().anyMatch(path::startsWith)) {

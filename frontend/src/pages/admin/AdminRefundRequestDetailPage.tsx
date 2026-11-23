@@ -24,7 +24,7 @@ import { contractStatusMeta, formatDate, paymentPeriodLabels } from './adminForm
 import { AdminModal, AdminState, DefinitionGrid, ReasonField, StatusBadge } from './components/AdminUi';
 import { RefundBadge } from './AdminRefundRequestsPage';
 
-const outcomes: LessonOutcome[] = ['TAUGHT', 'TUTOR_ABSENT', 'STUDENT_ABSENT'];
+const outcomes: LessonOutcome[] = ['TAUGHT', 'TUTOR_ABSENT', 'STUDENT_ABSENT', 'TUTOR_LATE_OR_SHORT'];
 
 export function AdminRefundRequestDetailPage() {
   const { refundRequestId = '' } = useParams();
@@ -65,7 +65,8 @@ export function AdminRefundRequestDetailPage() {
   const refunded = data.status === 'REFUNDED';
   const live = computeRefund(
     calc,
-    pendingDisputed.map((lesson) => decisions[lesson.lessonId])
+    pendingDisputed.map((lesson) => decisions[lesson.lessonId]),
+    pendingDisputed
   );
   const refund = refunded ? (data.refundAmount ?? 0) : live.refund;
   const tutorShare = refunded ? (data.tutorShareAmount ?? 0) : live.tutorShare;
@@ -185,24 +186,27 @@ export function AdminRefundRequestDetailPage() {
                   <div className="admin-stack">
                     <strong>{formatLessonDate(lesson.date, lesson.startTime, lesson.endTime)}</strong>
                     <span>Gia sư báo đã dạy lúc {formatClockTime(lesson.markedTaughtAt)}</span>
+                    {lesson.missedMinutes !== null && <span>Học viên báo dạy thiếu: {lesson.missedMinutes} phút</span>}
                     <span>
                       Học viên: {outcomeLabels[lesson.claimedOutcome].toLowerCase()} · Gia sư:{' '}
                       {lesson.tutorPosition ? outcomeLabels[lesson.tutorPosition].toLowerCase() : 'chưa phản hồi'}
                     </span>
                   </div>
                   <div className="admin-chips" role="group" aria-label={`Kết luận buổi ${lesson.date}`}>
-                    {outcomes.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        aria-pressed={chosen === value}
-                        className={chosen === value ? 'active' : undefined}
-                        disabled={!mine || lesson.decision !== null}
-                        onClick={() => setDecisions((current) => ({ ...current, [lesson.lessonId]: value }))}
-                      >
-                        {outcomeLabels[value]}
-                      </button>
-                    ))}
+                    {outcomes
+                      .filter((value) => value !== 'TUTOR_LATE_OR_SHORT' || lesson.missedMinutes !== null)
+                      .map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={chosen === value}
+                          className={chosen === value ? 'active' : undefined}
+                          disabled={!mine || lesson.decision !== null}
+                          onClick={() => setDecisions((current) => ({ ...current, [lesson.lessonId]: value }))}
+                        >
+                          {outcomeLabels[value]}
+                        </button>
+                      ))}
                   </div>
                 </div>
               );

@@ -60,6 +60,20 @@ class ContractControllerTest {
     }
 
     @Test
+    void listWithCounterpartyOnlyRequestsContractsSharedWithCurrentUser() throws Exception {
+        UUID counterpartyId = UUID.randomUUID();
+        when(contractService.findSharedWith(eq(userId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class)))
+                .thenReturn(null);
+
+        mockMvc.perform(get("/api/v1/users/me/contracts")
+                        .param("counterpartyId", counterpartyId.toString())
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk());
+
+        verify(contractService).findSharedWith(eq(userId), eq(counterpartyId), eq(ContractStatus.ACTIVE), any(Pageable.class));
+    }
+
+    @Test
     void updateUsesCurrentUserAndContractId() throws Exception {
         UUID contractId = UUID.randomUUID();
         when(contractService.update(eq(userId), eq(contractId), any(ContractUpdateRequest.class))).thenReturn(null);

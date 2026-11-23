@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ptutor.backend.dto.response.PageResponse;
-import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.response.ApiResponse;
 import com.ptutor.backend.response.ApiResponseFactory;
@@ -37,21 +37,25 @@ public class StudentTutorOfferController {
     private final CurrentUserProvider currentUserProvider;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<TutorStudentRequestResponse>>> findMine(
+    public ResponseEntity<ApiResponse<PageResponse<StudentTutorOfferResponse>>> findMine(
             @PathVariable UUID studyingRequestId,
             @RequestParam(required = false) ApplicationStatus status,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sort,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must not be negative") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "Size must be at least 1")
             @Max(value = 100, message = "Size must not exceed 100") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort, "createdAt"));
+        var userId = currentUserProvider.getCurrentUserId();
+        var result = sort == Sort.Direction.DESC
+                ? tutorStudentRequestService.findMine(userId, studyingRequestId, status, pageable)
+                : tutorStudentRequestService.findMineSorted(userId, studyingRequestId, status, pageable);
         return ResponseEntity.ok(responseFactory.success(
-                tutorStudentRequestService.findMine(
-                        currentUserProvider.getCurrentUserId(), studyingRequestId, status, pageable),
+                result,
                 "/api/v1/students/me/studying-requests/" + studyingRequestId + "/tutor-requests"));
     }
 
     @GetMapping("/{tutorRequestId}")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> findMineById(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> findMineById(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -62,7 +66,7 @@ public class StudentTutorOfferController {
     }
 
     @PatchMapping("/{tutorRequestId}/accept")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> accept(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> accept(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(
@@ -75,7 +79,7 @@ public class StudentTutorOfferController {
     }
 
     @PatchMapping("/{tutorRequestId}/reject")
-    public ResponseEntity<ApiResponse<TutorStudentRequestResponse>> reject(
+    public ResponseEntity<ApiResponse<StudentTutorOfferResponse>> reject(
             @PathVariable UUID studyingRequestId,
             @PathVariable UUID tutorRequestId) {
         return ResponseEntity.ok(responseFactory.success(

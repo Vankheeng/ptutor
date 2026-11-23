@@ -9,7 +9,8 @@ import {
   type LessonOutcome
 } from '../../services/refundApi';
 import { RefundEvidenceField } from '../../components/refund/RefundEvidenceField';
-import { RefundRequestOverview, RefundStatusBadge } from '../../components/refund/RefundRequestOverview';
+import { RefundRequestOverview } from '../../components/refund/RefundRequestOverview';
+import { RefundRequestSidebar } from '../../components/refund/RefundRequestSidebar';
 import {
   formatClockTime,
   formatLessonDate,
@@ -85,16 +86,30 @@ function ResponseForm({ request, onSent }: { request: RefundRequest; onSent: () 
                   Bạn báo đã dạy lúc {formatClockTime(lesson.markedTaughtAt)} · Học viên:{' '}
                   {outcomeLabels[lesson.claimedOutcome].toLowerCase()}
                 </small>
+                {lesson.missedMinutes !== null && <small>Học viên báo dạy thiếu {lesson.missedMinutes} phút</small>}
               </div>
               <div className="rf-seg" role="group" aria-label={`Phản hồi buổi ${lesson.date}`}>
-                {(['TAUGHT', 'TUTOR_ABSENT', 'STUDENT_ABSENT'] as const).map((value) => (
+                {(
+                  [
+                    'TAUGHT',
+                    'TUTOR_ABSENT',
+                    'STUDENT_ABSENT',
+                    ...(lesson.missedMinutes !== null ? (['TUTOR_LATE_OR_SHORT'] as const) : [])
+                  ] as const
+                ).map((value) => (
                   <button
                     key={value}
                     type="button"
                     aria-pressed={positions[lesson.lessonId] === value}
                     onClick={() => setPositions((current) => ({ ...current, [lesson.lessonId]: value }))}
                   >
-                    {value === 'TAUGHT' ? 'Tôi đã dạy' : value === 'TUTOR_ABSENT' ? 'Tôi không dạy' : 'Học viên nghỉ'}
+                    {value === 'TAUGHT'
+                      ? 'Tôi đã dạy'
+                      : value === 'TUTOR_ABSENT'
+                        ? 'Tôi không dạy'
+                        : value === 'STUDENT_ABSENT'
+                          ? 'Học viên nghỉ'
+                          : 'Tôi dạy muộn/thiếu giờ'}
                   </button>
                 ))}
               </div>
@@ -140,7 +155,7 @@ export function TutorRefundRequestDetailPage() {
   const { data, error, isLoading } = useResource(load, revision);
 
   return (
-    <div className="rf-page">
+    <div className="rf-page rf-detail-page">
       <Link className="rf-back" to="/tutor/refund-requests">
         ‹ Yêu cầu hoàn tiền
       </Link>
@@ -157,20 +172,24 @@ export function TutorRefundRequestDetailPage() {
       )}
       {data && (
         <>
-          <div className="rf-heading-title">
+          <div className="rf-detail-header">
             <h1>Yêu cầu hoàn tiền</h1>
-            <RefundStatusBadge status={data.status} />
           </div>
-          {canRespond(data) && (
-            <ResponseForm
-              request={data}
-              onSent={() => {
-                setNotice('Đã gửi phản hồi.');
-                setRevision((value) => value + 1);
-              }}
-            />
-          )}
-          <RefundRequestOverview request={data} />
+          <div className="rf-columns">
+            <div className="rf-main">
+              <RefundRequestOverview request={data} />
+              {canRespond(data) && (
+                <ResponseForm
+                  request={data}
+                  onSent={() => {
+                    setNotice('Đã gửi phản hồi.');
+                    setRevision((value) => value + 1);
+                  }}
+                />
+              )}
+            </div>
+            <RefundRequestSidebar request={data} />
+          </div>
         </>
       )}
     </div>

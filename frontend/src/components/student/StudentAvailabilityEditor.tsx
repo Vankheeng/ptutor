@@ -1,4 +1,5 @@
 import type { Availability } from '../../services/studentApi';
+import { TimeSelect } from '../ui/TimeSelect';
 
 interface Props {
   values: Availability[];
@@ -33,17 +34,15 @@ export function StudentAvailabilityEditor({ values, onChange, title = 'Thời gi
               </option>
             ))}
           </select>
-          <input
+          <TimeSelect
             aria-label={`Giờ bắt đầu ${index + 1}`}
             value={slot.startTime}
             onChange={(event) => update(index, 'startTime', event.target.value)}
-            type="time"
           />
-          <input
+          <TimeSelect
             aria-label={`Giờ kết thúc ${index + 1}`}
             value={slot.endTime}
             onChange={(event) => update(index, 'endTime', event.target.value)}
-            type="time"
           />
           <button className="student-button secondary" type="button" onClick={() => remove(index)}>
             Xóa

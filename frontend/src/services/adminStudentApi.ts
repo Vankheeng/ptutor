@@ -75,6 +75,7 @@ export interface AdminStudentTransaction {
   method: string;
   status: string;
   amount: number;
+  referenceType: string | null;
   referenceId: string | null;
   description: string | null;
   occurredAt: string;

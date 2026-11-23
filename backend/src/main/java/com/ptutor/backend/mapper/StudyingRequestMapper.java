@@ -33,12 +33,14 @@ public interface StudyingRequestMapper {
     StudyingRequestResponse.Availability toAvailability(StudyingRequestAvailability availability);
 
     @Mapping(target = "id", source = "request.id")
+    @Mapping(target = "studentId", source = "request.student.id")
     @Mapping(target = "subjectId", source = "request.subject.id")
     @Mapping(target = "subjectName", source = "request.subject.name")
     @Mapping(target = "gradeId", source = "request.grade.id")
     @Mapping(target = "gradeName", source = "request.grade.name")
     @Mapping(target = "districtId", source = "request.district.id")
     @Mapping(target = "districtName", source = "request.district.name")
+    @Mapping(target = "provinceId", source = "request.district.province.id")
     @Mapping(target = "provinceName", source = "request.district.province.name")
     @Mapping(target = "availabilities", source = "availabilityResponses")
     @Mapping(target = "studentFirstName", source = "request.student.user.firstName")

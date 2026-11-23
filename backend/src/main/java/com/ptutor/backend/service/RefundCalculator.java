@@ -20,6 +20,9 @@ public final class RefundCalculator {
     public record Rates(int tutorAbsentPercent, int studentAbsentPercent) {
     }
 
+    public record ShortLesson(int missedMinutes, int scheduledMinutes) {
+    }
+
     public record Result(
             BigDecimal unitPrice,
             BigDecimal paidAmount,
@@ -42,6 +45,18 @@ public final class RefundCalculator {
             BigDecimal previouslyRefundedAmount,
             Collection<LessonOutcome> outcomes,
             Rates rates) {
+        return calculate(contractValue, totalLessons, paidAmount, previouslyRefundedAmount, outcomes, rates,
+                java.util.List.of());
+    }
+
+    public static Result calculate(
+            BigDecimal contractValue,
+            int totalLessons,
+            BigDecimal paidAmount,
+            BigDecimal previouslyRefundedAmount,
+            Collection<LessonOutcome> outcomes,
+            Rates rates,
+            Collection<ShortLesson> shortLessons) {
         BigDecimal paid = zeroIfNull(paidAmount);
         BigDecimal previous = zeroIfNull(previouslyRefundedAmount);
         // Whole đồng per lesson, so that the student's and the tutor's parts add up to the lesson price.
@@ -56,6 +71,9 @@ public final class RefundCalculator {
         BigDecimal refundable = paid.subtract(previous).max(BigDecimal.ZERO);
         BigDecimal refund = tutorAbsentPart.multiply(BigDecimal.valueOf(tutorAbsent))
                 .add(studentAbsentPart.multiply(BigDecimal.valueOf(studentAbsent)))
+                .add(shortLessons.stream().map(item -> unitPrice.multiply(BigDecimal.valueOf(item.missedMinutes()))
+                        .divide(BigDecimal.valueOf(item.scheduledMinutes()), 0, RoundingMode.FLOOR))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
                 .min(refundable);
         BigDecimal tutorShare = unitPrice.subtract(studentAbsentPart).multiply(BigDecimal.valueOf(studentAbsent));
 

@@ -19,92 +19,92 @@ class NotificationTemplateFactory {
 
         return switch (event.eventType()) {
             case PAYMENT_SUCCEEDED -> content(NotificationType.PAYMENT,
-                    "Payment successful", "Your payment has been completed successfully.");
+                    "Thanh toán thành công", "Thanh toán của bạn đã được hoàn tất thành công.");
             case PAYMENT_INSTALLMENT_DUE -> content(NotificationType.PAYMENT,
-                    "Tuition payment reminder", "A tuition installment is due today.");
+                    "Nhắc thanh toán học phí", "Một kỳ học phí đến hạn thanh toán hôm nay.");
             case TUTOR_REQUEST_RECEIVED -> content(NotificationType.REQUEST,
-                    "New tutor proposal", "A tutor sent a teaching proposal for your studying request.");
+                    "Đề nghị gia sư mới", "Một gia sư đã gửi đề nghị dạy cho yêu cầu học của bạn.");
             case TUTOR_REQUEST_ACCEPTED -> content(NotificationType.REQUEST,
-                    "Tutor proposal accepted", "Your tutor proposal was accepted by the student.");
+                    "Đề nghị gia sư được chấp nhận", "Học viên đã chấp nhận đề nghị dạy của bạn.");
             case TUTOR_REQUEST_REJECTED -> content(NotificationType.REQUEST,
-                    "Tutor proposal rejected", "Your tutor proposal was rejected by the student.");
+                    "Đề nghị gia sư bị từ chối", "Học viên đã từ chối đề nghị dạy của bạn.");
             case STUDENT_REQUEST_RECEIVED -> content(NotificationType.REQUEST,
-                    "New student application", "A student sent an application for your teaching request.");
+                    "Đơn ứng tuyển học viên mới", "Một học viên đã gửi đơn ứng tuyển cho yêu cầu dạy của bạn.");
             case STUDENT_REQUEST_ACCEPTED -> content(NotificationType.REQUEST,
-                    "Student application accepted", "Your student application was accepted by the tutor.");
+                    "Đơn ứng tuyển được chấp nhận", "Gia sư đã chấp nhận đơn ứng tuyển của bạn.");
             case STUDENT_REQUEST_REJECTED -> content(NotificationType.REQUEST,
-                    "Student application rejected", "Your student application was rejected by the tutor.");
+                    "Đơn ứng tuyển bị từ chối", "Gia sư đã từ chối đơn ứng tuyển của bạn.");
             case CONTRACT_SIGNATURE_REQUIRED -> content(NotificationType.CONTRACT,
-                    "Contract signature required", "A contract is waiting for your signature.");
+                    "Hợp đồng cần ký", "Có một hợp đồng đang chờ bạn ký.");
             case CONTRACT_SIGNED -> content(NotificationType.CONTRACT,
-                    "Contract signed", "The other participant signed the contract.");
+                    "Hợp đồng đã được ký", "Người tham gia còn lại đã ký hợp đồng.");
             case CONTRACT_REJECTED -> content(NotificationType.CONTRACT,
-                    "Contract rejected", "The contract was rejected by the other participant.");
+                    "Hợp đồng bị từ chối", "Người tham gia còn lại đã từ chối hợp đồng.");
             case CONTRACT_CANCELLED -> content(NotificationType.CONTRACT,
-                    "Contract cancelled", "A pending contract was cancelled by its creator.");
+                    "Hợp đồng đã bị hủy", "Hợp đồng đang chờ đã bị người tạo hủy.");
             case CONTRACT_STOP_REQUESTED -> content(NotificationType.CONTRACT,
                     "Yêu cầu dừng hợp đồng",
                     "Gia sư đã gửi yêu cầu dừng hợp đồng. Vui lòng xem và xử lý yêu cầu.");
             case CONTRACT_RENEWAL_PROPOSED -> content(NotificationType.CONTRACT,
-                    "Contract renewal proposed", "A contract renewal is waiting for your signature.");
+                    "Đề nghị gia hạn hợp đồng", "Một đề nghị gia hạn hợp đồng đang chờ bạn ký.");
             case CERTIFICATE_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,
-                    "Certificate review required",
-                    "A certificate \"" + name + "\" is waiting for approval.");
+                    "Chứng chỉ cần được duyệt",
+                    "Chứng chỉ \"" + name + "\" đang chờ được duyệt.");
             case CERTIFICATE_APPROVED -> content(NotificationType.SYSTEM,
-                    "Certificate approved", "Your certificate \"" + name + "\" has been approved.");
+                    "Chứng chỉ đã được duyệt", "Chứng chỉ \"" + name + "\" của bạn đã được duyệt.");
             case CERTIFICATE_REJECTED -> content(NotificationType.SYSTEM,
-                    "Certificate rejected", "Your certificate \"" + name + "\" was rejected. Reason: " + reason);
+                    "Chứng chỉ bị từ chối", "Chứng chỉ \"" + name + "\" của bạn bị từ chối. Lý do: " + reason);
             case TUTOR_PROFILE_APPROVED -> content(NotificationType.SYSTEM,
-                    "Tutor profile approved",
-                    "Your tutor profile has been approved. Students can now find you in recommendations.");
+                    "Hồ sơ gia sư đã được duyệt",
+                    "Hồ sơ gia sư của bạn đã được duyệt. Học viên có thể tìm thấy bạn trong danh sách đề xuất.");
             case TUTOR_PROFILE_REJECTED -> content(NotificationType.SYSTEM,
-                    "Tutor profile rejected", "Your tutor profile was rejected. Reason: " + sentence(reason)
-                            + " Update your teaching profile to submit it for review again.");
+                    "Hồ sơ gia sư bị từ chối", "Hồ sơ gia sư của bạn bị từ chối. Lý do: " + sentence(reason)
+                            + " Hãy cập nhật hồ sơ giảng dạy và gửi lại để được duyệt.");
             case TEACHING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
-                    "Teaching request approved", "Your teaching request \"" + name + "\" has been approved.");
+                    "Yêu cầu dạy đã được duyệt", "Yêu cầu dạy \"" + name + "\" của bạn đã được duyệt.");
             case TEACHING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
-                    "Teaching request rejected", "Your teaching request \"" + name
-                            + "\" was rejected. Reason: " + reason
-                            + ". The posting fee of " + data.getOrDefault("amount", "")
-                            + " has been refunded to your wallet balance.");
+                    "Yêu cầu dạy bị từ chối", "Yêu cầu dạy \"" + name
+                            + "\" bị từ chối. Lý do: " + reason
+                            + ". Phí đăng tin " + data.getOrDefault("amount", "")
+                            + " đã được hoàn vào số dư ví của bạn.");
             case STUDYING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.SYSTEM,
-                    "Studying request review required",
-                    "A studying request \"" + name + "\" is waiting for approval.");
+                    "Yêu cầu học cần được duyệt",
+                    "Yêu cầu học \"" + name + "\" đang chờ được duyệt.");
             case STUDYING_REQUEST_APPROVED -> content(NotificationType.SYSTEM,
-                    "Studying request approved", "Your studying request \"" + name + "\" has been approved.");
+                    "Yêu cầu học đã được duyệt", "Yêu cầu học \"" + name + "\" của bạn đã được duyệt.");
             case STUDYING_REQUEST_REJECTED -> content(NotificationType.SYSTEM,
-                    "Studying request rejected", "Your studying request \"" + name
-                            + "\" was rejected. Reason: " + reason
-                            + ". The posting fee of " + data.getOrDefault("amount", "")
-                            + " has been refunded to your wallet balance.");
+                    "Yêu cầu học bị từ chối", "Yêu cầu học \"" + name
+                            + "\" bị từ chối. Lý do: " + reason
+                            + ". Phí đăng tin " + data.getOrDefault("amount", "")
+                            + " đã được hoàn vào số dư ví của bạn.");
             case COMPLAINT_EVIDENCE_REQUESTED -> content(NotificationType.COMPLAINT,
-                    "Additional evidence required", "Additional evidence is required for your complaint. " + reason);
+                    "Cần bổ sung bằng chứng", "Khiếu nại của bạn cần bổ sung bằng chứng. " + reason);
             case COMPLAINT_RESOLVED -> content(NotificationType.COMPLAINT,
-                    "Complaint accepted", "Your complaint has been accepted. Resolution: " + reason);
+                    "Khiếu nại được chấp nhận", "Khiếu nại của bạn đã được chấp nhận. Kết quả: " + reason);
             case COMPLAINT_REJECTED -> content(NotificationType.COMPLAINT,
-                    "Complaint rejected", "Your complaint has been rejected. Reason: " + reason);
+                    "Khiếu nại bị từ chối", "Khiếu nại của bạn bị từ chối. Lý do: " + reason);
             case COMPLAINT_RECEIVED_AGAINST_YOU -> content(NotificationType.COMPLAINT,
-                    "Complaint received about you",
-                    "A complaint about your contract is now under review. You can submit one response with evidence.");
+                    "Có khiếu nại về bạn",
+                    "Khiếu nại liên quan đến hợp đồng của bạn đang được xem xét. Bạn có thể gửi một lần phản hồi kèm bằng chứng.");
             case COMPLAINT_AGAINST_YOU_RESOLVED -> content(NotificationType.COMPLAINT,
-                    "Complaint about you resolved",
-                    "A complaint about you has been resolved. Party at fault: "
-                            + data.getOrDefault("faultParty", "") + ". Resolution: " + reason);
+                    "Khiếu nại về bạn đã được giải quyết",
+                    "Khiếu nại về bạn đã được giải quyết. Bên có lỗi: "
+                            + data.getOrDefault("faultParty", "") + ". Kết quả: " + reason);
             case COMPLAINT_AGAINST_YOU_REJECTED -> content(NotificationType.COMPLAINT,
-                    "Complaint about you rejected", "A complaint about you has been rejected. Reason: " + reason);
+                    "Khiếu nại về bạn bị từ chối", "Khiếu nại về bạn bị từ chối. Lý do: " + reason);
             case ACCOUNT_SUSPENDED -> {
                 String until = data.getOrDefault("until", "");
                 String duration = "TEMPORARY".equals(data.get("type"))
-                        ? " until " + until
-                        : " permanently";
-                yield content(NotificationType.SYSTEM, "Account suspended",
-                        "Your account has been suspended" + duration + ". Reason: " + reason);
+                        ? " đến " + until
+                        : " vĩnh viễn";
+                yield content(NotificationType.SYSTEM, "Tài khoản bị tạm khóa",
+                        "Tài khoản của bạn đã bị khóa" + duration + ". Lý do: " + reason);
             }
             case ACCOUNT_REACTIVATED -> content(NotificationType.SYSTEM,
-                    "Account reactivated", "Your account has been reactivated.");
+                    "Tài khoản đã được kích hoạt lại", "Tài khoản của bạn đã được kích hoạt lại.");
             case TEACHING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.REQUEST,
-                    "Teaching request review required",
-                    "A teaching request \"" + name + "\" is waiting for approval.");
+                    "Yêu cầu dạy cần được duyệt",
+                    "Yêu cầu dạy \"" + name + "\" đang chờ được duyệt.");
             case RECOMMENDATION_MATCH_FOUND -> {
                 // A tutor may be named to a student; a student is never named to a tutor before any contact.
                 boolean tutorFound = event.referenceType()
@@ -120,19 +120,30 @@ class NotificationTemplateFactory {
                         (who.isBlank() ? "" : who + ". ") + why + ".");
             }
             case LESSON_MARKED_TAUGHT -> content(NotificationType.CONTRACT,
-                    "Lesson awaiting confirmation",
-                    "Your tutor marked lesson \"" + name + "\" as taught. Please confirm it.");
+                    "Buổi học chờ xác nhận",
+                    "Gia sư đã đánh dấu buổi \"" + name + "\" đã dạy. Vui lòng xác nhận.");
             case LESSON_CANCELLED -> content(NotificationType.CONTRACT,
-                    "Lesson cancelled", "Your tutor cancelled lesson \"" + name + "\".");
+                    "Buổi học đã bị hủy", "Gia sư đã hủy buổi \"" + name + "\"."
+                            + (amount.isBlank() ? "" : " " + amount + " VND đã được hoàn vào ví của bạn."));
+            case LESSON_RESCHEDULED -> content(NotificationType.CONTRACT,
+                    "Buổi học đã được đổi lịch",
+                    "Gia sư đã đổi lịch buổi \"" + name + "\" sang "
+                            + data.getOrDefault("newSchedule", "lịch mới") + ". Vui lòng kiểm tra lại lịch học.");
             case WITHDRAWAL_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
-                    "Withdrawal review required",
-                    "A withdrawal request of " + amount + " VND is waiting for approval.");
+                    "Yêu cầu rút tiền cần được duyệt",
+                    "Yêu cầu rút " + amount + " VND đang chờ được duyệt.");
             case WITHDRAWAL_REQUEST_CREATED -> content(NotificationType.PAYMENT,
                     "Đã tạo yêu cầu rút tiền",
                     "Yêu cầu rút " + amount + " VND đã được ghi nhận và đang chờ duyệt.");
             case WITHDRAWAL_REQUEST_CANCELLED -> content(NotificationType.PAYMENT,
                     "Đã hủy yêu cầu rút tiền",
                     "Yêu cầu rút " + amount + " VND đã được hủy. Tiền đã được cộng lại vào ví.");
+            case WITHDRAWAL_REQUEST_APPROVED -> content(NotificationType.PAYMENT,
+                    "Yêu cầu rút tiền đã được duyệt", "Yêu cầu rút " + amount + " VND đang chờ chuyển khoản.");
+            case WITHDRAWAL_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
+                    "Yêu cầu rút tiền bị từ chối", "Yêu cầu rút " + amount + " VND bị từ chối. Tiền đã được trả lại ví.");
+            case WITHDRAWAL_REQUEST_COMPLETED -> content(NotificationType.PAYMENT,
+                    "Rút tiền hoàn tất", "Đã chuyển " + amount + " VND đến tài khoản ngân hàng của bạn.");
             case WALLET_BALANCE_CHANGED -> {
                 String direction = "CREDIT".equals(data.get("transactionType")) ? "cộng vào" : "trừ khỏi";
                 String balance = data.getOrDefault("balanceAfter", "0");
@@ -141,17 +152,17 @@ class NotificationTemplateFactory {
                         amount + " VND đã được " + direction + " ví PTutor. Số dư hiện tại: " + balance + " VND.");
             }
             case REFUND_REQUEST_REVIEW_REQUIRED -> content(NotificationType.PAYMENT,
-                    "Refund review required", "A student refund request is waiting for review.");
+                    "Yêu cầu hoàn tiền cần được xem xét", "Một yêu cầu hoàn tiền của học viên đang chờ được xem xét.");
             case REFUND_REQUEST_SUBMITTED -> content(NotificationType.PAYMENT,
-                    "Student requested a refund",
-                    "A student requested a refund on your contract. Respond before "
+                    "Học viên yêu cầu hoàn tiền",
+                    "Học viên đã yêu cầu hoàn tiền cho hợp đồng của bạn. Vui lòng phản hồi trước "
                             + data.getOrDefault("deadline", "") + ".");
             case REFUND_REQUEST_TUTOR_RESPONDED -> content(NotificationType.PAYMENT,
-                    "Tutor responded to a refund request", "The tutor has responded to a refund request you are reviewing.");
+                    "Gia sư đã phản hồi yêu cầu hoàn tiền", "Gia sư đã phản hồi yêu cầu hoàn tiền bạn đang xem xét.");
             case REFUND_REQUEST_APPROVED -> content(NotificationType.PAYMENT,
-                    "Refund approved", amount + " VND has been refunded to the student's wallet balance.");
+                    "Yêu cầu hoàn tiền được duyệt", amount + " VND đã được hoàn vào số dư ví của học viên.");
             case REFUND_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
-                    "Refund rejected", "The refund request was rejected. Reason: " + reason);
+                    "Yêu cầu hoàn tiền bị từ chối", "Yêu cầu hoàn tiền bị từ chối. Lý do: " + reason);
             case SUPPORT_REQUEST_ANSWERED -> content(NotificationType.SYSTEM,
                     "Support request answered",
                     "Our support team answered your request " + data.getOrDefault("code", "") + ".");

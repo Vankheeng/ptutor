@@ -39,6 +39,26 @@ export interface TutorProfile {
   profileRejectionReason: string | null;
 }
 
+export type PublicTutorProfile = Pick<
+  TutorProfile,
+  | 'tutorId'
+  | 'userId'
+  | 'firstName'
+  | 'lastName'
+  | 'avatarUrl'
+  | 'introduction'
+  | 'experienceYears'
+  | 'education'
+  | 'teachingStyleTags'
+  | 'teachingMethodology'
+  | 'strengthSubjects'
+  | 'targetStudentType'
+  | 'averageRating'
+  | 'totalReviews'
+  | 'completedContractsCount'
+  | 'totalStudentsTaught'
+>;
+
 export type TutorProfileStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface TutorCertificate {
@@ -71,6 +91,11 @@ export interface TutorTeachingProposal {
   id: string;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
+  studentId: string | null;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studyingRequestStatus: 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED' | null;
+  studyingRequestCreatedAt: string | null;
   subjectName: string;
   gradeName: string;
   proposedPrice: number;
@@ -81,14 +106,17 @@ export interface TutorTeachingProposal {
   preferredDistrictId: string | null;
   preferredDistrictName: string | null;
   message: string | null;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  status: 'PENDING' | 'ACCEPTED' | 'CONNECTED' | 'REJECTED' | 'CANCELLED';
   nextStep: string | null;
   createdAt: string;
   updatedAt: string;
+  acceptedAt: string | null;
 }
 
 export interface TutorContract {
   id: string;
+  studentId: string;
+  studentTutorRequestId: string | null;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentDetailAddress: string | null;
@@ -97,6 +125,7 @@ export interface TutorContract {
   teachingMode: 'ONLINE' | 'OFFLINE';
   price: number;
   totalLessons: number | null;
+  tutorStudentRequestId: string | null;
   startDate: string;
   endDate: string;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -113,10 +142,25 @@ export interface TutorLesson {
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
   paidAt: string | null;
+  refund: {
+    id: string;
+    status: 'PENDING' | 'IN_REVIEW' | 'REFUNDED' | 'REJECTED' | 'CANCELLED';
+    refundAmount: number | null;
+    description: string;
+    createdAt: string;
+  } | null;
 }
 
 export function getTutorProfile(signal?: AbortSignal) {
   return get<TutorProfile>('/api/v1/tutors/me', { signal });
+}
+
+export function getPublicTutorProfile(tutorId: string, signal?: AbortSignal) {
+  return get<PublicTutorProfile>(`/api/v1/tutors/${encodeURIComponent(tutorId)}`, { signal });
+}
+
+export function getPublicTutorCertificates(tutorId: string, signal?: AbortSignal) {
+  return get<TutorCertificate[]>(`/api/v1/tutors/${encodeURIComponent(tutorId)}/certificates`, { signal });
 }
 
 export function updateTutorProfile(values: Record<string, unknown>) {
@@ -171,8 +215,8 @@ export function deleteTutorCertificate(id: string) {
   return del<void>(`/api/v1/tutors/me/certificates/${id}`);
 }
 
-export function getTutorProposals(status?: TutorTeachingProposal['status'], signal?: AbortSignal) {
-  const params = new URLSearchParams({ page: '0', size: '100' });
+export function getTutorProposals(status?: TutorTeachingProposal['status'], signal?: AbortSignal, page = 0, size = 20) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
   return get<PageResponse<TutorTeachingProposal>>(`/api/v1/tutors/me/tutor-student-requests?${params}`, { signal });
 }
@@ -204,6 +248,10 @@ export function getTutorContractLessons(contractId: string, signal?: AbortSignal
   return get<PageResponse<TutorLesson>>(`/api/v1/tutors/me/contracts/${contractId}/lessons?page=0&size=100`, {
     signal
   });
+}
+
+export function getTutorLessons(signal?: AbortSignal) {
+  return get<PageResponse<TutorLesson>>('/api/v1/tutors/me/lessons?page=0&size=100', { signal });
 }
 
 export function getTutorContractInstallments(contractId: string, signal?: AbortSignal) {

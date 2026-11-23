@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 
 export interface ApplicationSourceModel {
   eyebrow: string;
@@ -8,6 +9,10 @@ export interface ApplicationSourceModel {
   highlights: Array<{ icon: string; label: string; value: string }>;
   authorLabel: string;
   authorName: string;
+  authorProfileId?: string | null;
+  authorProfileRole?: 'student' | 'tutor';
+  statusLabel?: string;
+  statusClass?: string;
   createdText: string;
   onOpen?: () => void;
 }
@@ -71,7 +76,12 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
       >
         <div className="tutor-proposal-side-heading">
           <span className="tutor-eyebrow">{source.eyebrow}</span>
-          <span className="tutor-subject-tag">{source.subject}</span>
+          <div className="tutor-proposal-source-tags">
+            <span className="tutor-subject-tag">{source.subject}</span>
+            {source.statusLabel ? (
+              <span className={`tutor-cert-status ${source.statusClass ?? ''}`}>{source.statusLabel}</span>
+            ) : null}
+          </div>
         </div>
         <h2>{source.title}</h2>
         <p className="tutor-proposal-grade">{source.grade}</p>
@@ -82,7 +92,16 @@ export function ApplicationSplitCard({ source, application, onCardOpen, classNam
         </div>
         <div className="tutor-request-author">
           <span>
-            {source.authorLabel} <strong>{source.authorName}</strong>
+            {source.authorLabel}{' '}
+            <strong>
+              {source.authorProfileRole ? (
+                <ProfileNameLink role={source.authorProfileRole} profileId={source.authorProfileId}>
+                  {source.authorName}
+                </ProfileNameLink>
+              ) : (
+                source.authorName
+              )}
+            </strong>
           </span>
           <span>{source.createdText}</span>
         </div>

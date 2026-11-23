@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Contract, ContractTerms } from '../../services/studentApi';
-import { StudentContractTermsForm } from './StudentContractTermsForm';
+import { ContractTermsForm } from '../../pages/common-user/components/ContractTermsForm';
 import { Icon } from '../ui/Icon';
 
 export function StudentContractRenewalForm({
@@ -32,7 +32,7 @@ export function StudentContractRenewalForm({
       </div>
       {open && (
         <div className="student-contract-renewal-form">
-          <StudentContractTermsForm
+          <ContractTermsForm
             loading={loading}
             submitLabel="Gửi đề xuất gia hạn"
             initial={{

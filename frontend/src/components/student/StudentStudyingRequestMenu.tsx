@@ -28,12 +28,12 @@ export function StudentStudyingRequestMenu({ status, requestId, busy, onAction, 
   return (
     <div className="student-request-menu" onClick={(event) => event.stopPropagation()}>
       {(status === 'DRAFT' || status === 'OPEN') &&
-        item('Sửa thông tin', () => onNavigate(`/student/studying-requests/${requestId}/edit`), 'warning')}
-      {status === 'DRAFT' && item('Thanh toán để đăng tin', () => onAction(requestId, 'pay'), 'payment')}
-      {status === 'OPEN' && item('Đóng tin', () => onAction(requestId, 'close'))}
-      {status === 'CLOSED' && item('Mở lại tin', () => onAction(requestId, 'open'))}
+        item('Chỉnh sửa thông tin', () => onNavigate(`/student/studying-requests/${requestId}/edit`), 'warning')}
+      {status === 'DRAFT' && item('Thanh toán để đăng', () => onAction(requestId, 'pay'), 'payment')}
+      {status === 'OPEN' && item('Đóng yêu cầu', () => onAction(requestId, 'close'))}
+      {status === 'CLOSED' && item('Mở lại yêu cầu', () => onAction(requestId, 'open'))}
       {['DRAFT', 'OPEN', 'MATCHED', 'CLOSED'].includes(status) &&
-        item('Huỷ tin', () => onAction(requestId, 'cancel'), 'danger')}
+        item('Hủy yêu cầu', () => onAction(requestId, 'cancel'), 'danger')}
     </div>
   );
 }

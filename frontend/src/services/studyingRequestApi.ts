@@ -1,4 +1,5 @@
 import { get, post } from './httpClient';
+import type { TutorTeachingProposal } from './tutorApi';
 
 export type StudyingRequestStatus =
   'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
@@ -16,12 +17,14 @@ export interface StudyingRequestSearchFilters {
 
 export interface StudyingRequestSearchResponse {
   id: string;
+  studentId: string;
   subjectId: string | null;
   subjectName: string | null;
   gradeId: string;
   gradeName: string;
   districtId: string | null;
   districtName: string | null;
+  provinceId: string | null;
   title: string | null;
   description: string | null;
   learningGoals: string | null;
@@ -73,5 +76,8 @@ export function getStudyingRequest(id: string, signal?: AbortSignal) {
 }
 
 export function submitTutorStudyingRequestProposal(id: string, proposal: TutorStudyingRequestProposal) {
-  return post(`/api/v1/tutors/me/studying-requests/${encodeURIComponent(id)}/tutor-student-requests`, proposal);
+  return post<TutorTeachingProposal>(
+    `/api/v1/tutors/me/studying-requests/${encodeURIComponent(id)}/tutor-student-requests`,
+    proposal
+  );
 }

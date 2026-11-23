@@ -1,6 +1,7 @@
 package com.ptutor.backend.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.LessonRepository;
 import com.ptutor.backend.repository.PaymentRepository;
@@ -69,6 +71,7 @@ public class AdminRefundRequestService {
             List.of(ComplaintStatus.PENDING, ComplaintStatus.IN_REVIEW, ComplaintStatus.AWAITING_EVIDENCE);
 
     private final RefundRequestRepository refundRequestRepository;
+    private final ContractRepository contractRepository;
     private final RefundRequestLessonRepository refundRequestLessonRepository;
     private final EmployeeRepository employeeRepository;
     private final ComplaintRepository complaintRepository;
@@ -76,6 +79,7 @@ public class AdminRefundRequestService {
     private final PaymentRepository paymentRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final WalletService walletService;
+    private final LessonPayoutService lessonPayoutService;
     private final RefundAssessor refundAssessor;
     private final RefundPolicy refundPolicy;
     private final RefundRequestViews views;
@@ -136,6 +140,8 @@ public class AdminRefundRequestService {
                     "Wait for the tutor's response or for the response deadline to pass");
         }
         Contract contract = request.getContract();
+        contractRepository.findByIdForSettlement(contract.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CONTRACT_NOT_FOUND", "Contract not found"));
         if (complaintRepository.existsByContract_IdAndStatusIn(contract.getId(), OPEN_COMPLAINT_STATUSES)) {
             throw new ApiException(HttpStatus.CONFLICT, "CONTRACT_HAS_OPEN_COMPLAINT",
                     "The contract has a complaint that has not been concluded yet");
@@ -157,7 +163,15 @@ public class AdminRefundRequestService {
                     "Give exactly one decision for every disputed lesson awaiting confirmation");
         }
 
-        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, List.copyOf(decisions.values()));
+        if (disputed.stream().anyMatch(item -> decisions.get(item.getLesson().getId())
+                == LessonOutcome.TUTOR_LATE_OR_SHORT && item.getMissedMinutes() == null)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_MISSED_MINUTES",
+                    "A late or shortened lesson decision requires missing minutes in the student's claim");
+        }
+
+        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, List.copyOf(decisions.values()),
+                disputed.stream().filter(item -> decisions.get(item.getLesson().getId()) == LessonOutcome.TUTOR_LATE_OR_SHORT)
+                        .toList());
         RefundCalculator.Result result = assessment.result();
         BigDecimal refund = result.refundAmount();
         BigDecimal tutorShare = result.tutorShareAmount();
@@ -186,8 +200,6 @@ public class AdminRefundRequestService {
                     "refund-tutor-share-" + request.getId()));
             request.setTutorWalletTransaction(walletTransactionRepository.getReferenceById(share.transactionId()));
         }
-        settleDisputedLessons(disputed, decisions);
-
         request.setUnitPrice(result.unitPrice());
         request.setRefundAmount(refund);
         request.setTutorShareAmount(tutorShare);
@@ -195,6 +207,7 @@ public class AdminRefundRequestService {
         request.setStatus(RefundRequestStatus.REFUNDED);
         request.setReviewedAt(now);
         RefundRequest saved = refundRequestRepository.saveAndFlush(request);
+        settleDisputedLessons(disputed, decisions, result.unitPrice());
 
         publishToParticipants(saved, NotificationEventType.REFUND_REQUEST_APPROVED,
                 Map.of("amount", RefundRequestService.amountText(refund)));
@@ -269,11 +282,12 @@ public class AdminRefundRequestService {
             }
             remaining = remaining.subtract(portion);
         }
-        paymentRepository.saveAll(ordered);
+        paymentRepository.saveAllAndFlush(ordered);
     }
 
-    // Taught lessons are completed so the tutor is paid for them; absences are cancelled so the tutor is not.
-    private void settleDisputedLessons(List<RefundRequestLesson> disputed, Map<UUID, LessonOutcome> decisions) {
+    // Release the taught portion only after the reviewer has resolved the dispute.
+    private void settleDisputedLessons(List<RefundRequestLesson> disputed, Map<UUID, LessonOutcome> decisions,
+            BigDecimal unitPrice) {
         if (decisions.isEmpty()) {
             return;
         }
@@ -287,7 +301,19 @@ public class AdminRefundRequestService {
                 continue;
             }
             item.setDecision(decision);
-            lesson.setStatus(decision == LessonOutcome.TAUGHT ? LessonStatus.COMPLETED : LessonStatus.CANCELLED);
+            lesson.setStatus(decision == LessonOutcome.TAUGHT || decision == LessonOutcome.TUTOR_LATE_OR_SHORT
+                    ? LessonStatus.COMPLETED : LessonStatus.CANCELLED);
+            if (decision == LessonOutcome.TAUGHT) {
+                lessonPayoutService.release(lesson);
+            } else if (decision == LessonOutcome.TUTOR_LATE_OR_SHORT) {
+                long scheduledMinutes = java.time.Duration.between(lesson.getStartTime(), lesson.getEndTime()).toMinutes();
+                BigDecimal missedPart = unitPrice.multiply(BigDecimal.valueOf(item.getMissedMinutes()))
+                        .divide(BigDecimal.valueOf(scheduledMinutes), 0, RoundingMode.FLOOR);
+                BigDecimal tutorPart = unitPrice.subtract(missedPart);
+                if (tutorPart.signum() > 0) {
+                    lessonPayoutService.release(lesson, tutorPart);
+                }
+            }
         }
         refundRequestLessonRepository.saveAll(disputed);
         lessonRepository.saveAll(lessons.values());
@@ -296,7 +322,10 @@ public class AdminRefundRequestService {
     private AdminRefundRequestDetailResponse toDetail(RefundRequest request) {
         Contract contract = request.getContract();
         List<RefundRequestLesson> disputed = views.disputedLessons(request);
-        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, previewOutcomes(disputed));
+        List<LessonOutcome> preview = previewOutcomes(disputed);
+        RefundAssessor.Assessment assessment = refundAssessor.assess(contract, preview,
+                disputed.stream().filter(item -> (item.getDecision() != null ? item.getDecision() : item.getClaimedOutcome())
+                        == LessonOutcome.TUTOR_LATE_OR_SHORT).toList());
         User student = contract.getStudent().getUser();
         User tutor = contract.getTutor().getUser();
         Employee reviewer = request.getEmployee();

@@ -53,6 +53,10 @@ public class RefundRequestLesson extends BaseEntity {
     @NonFinal
     private LessonOutcome claimedOutcome;
 
+    @Column(name = "missed_minutes")
+    @NonFinal
+    private Integer missedMinutes;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tutor_position", length = 20)
     @NonFinal

@@ -60,6 +60,7 @@ import com.ptutor.backend.entity.enums.WalletTransactionPurpose;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.repository.ComplaintRepository;
+import com.ptutor.backend.repository.ContractRepository;
 import com.ptutor.backend.repository.ContractPaymentInstallmentRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.EvidenceRepository;
@@ -73,6 +74,7 @@ import com.ptutor.backend.repository.WalletTransactionRepository;
 class AdminRefundRequestServiceTest {
 
     @Mock RefundRequestRepository refundRequestRepository;
+    @Mock ContractRepository contractRepository;
     @Mock RefundRequestLessonRepository refundRequestLessonRepository;
     @Mock EmployeeRepository employeeRepository;
     @Mock ComplaintRepository complaintRepository;
@@ -82,6 +84,7 @@ class AdminRefundRequestServiceTest {
     @Mock WalletTransactionRepository walletTransactionRepository;
     @Mock EvidenceRepository evidenceRepository;
     @Mock WalletService walletService;
+    @Mock LessonPayoutService lessonPayoutService;
     @Mock ApplicationEventPublisher eventPublisher;
 
     private AdminRefundRequestService service;
@@ -100,8 +103,8 @@ class AdminRefundRequestServiceTest {
         RefundAssessor assessor = new RefundAssessor(installmentRepository, paymentRepository, refundRequestRepository, policy);
         RefundRequestViews views = new RefundRequestViews(refundRequestLessonRepository, evidenceRepository);
         service = new AdminRefundRequestService(
-                refundRequestRepository, refundRequestLessonRepository, employeeRepository, complaintRepository,
-                lessonRepository, paymentRepository, walletTransactionRepository, walletService, assessor, policy,
+                refundRequestRepository, contractRepository, refundRequestLessonRepository, employeeRepository, complaintRepository,
+                lessonRepository, paymentRepository, walletTransactionRepository, walletService, lessonPayoutService, assessor, policy,
                 views, eventPublisher, clock);
 
         reviewerUserId = UUID.randomUUID();
@@ -115,6 +118,7 @@ class AdminRefundRequestServiceTest {
                 .paymentPeriod(PaymentPeriod.MONTHLY).totalLession(16).status(ContractStatus.ACTIVE)
                 .startDate(LocalDate.of(2026, 10, 1)).endDate(LocalDate.of(2026, 11, 30)).build();
         contract.setId(UUID.randomUUID());
+        lenient().when(contractRepository.findByIdForSettlement(contract.getId())).thenReturn(Optional.of(contract));
 
         // 2 × 2,000,000 for 16 lessons: 250,000 per lesson; installment 1 paid.
         ContractPaymentInstallment first = installment(1, PaymentInstallmentStatus.PAID);
@@ -194,6 +198,27 @@ class AdminRefundRequestServiceTest {
 
         verify(walletService, times(1)).credit(any());
         assertThat(tutorMissed.getStatus()).isEqualTo(LessonStatus.CANCELLED);
+        assertThat(studentSkipped.getStatus()).isEqualTo(LessonStatus.COMPLETED);
+        verify(lessonPayoutService).release(studentSkipped);
+    }
+
+    @Test
+    void shortenedLessonPaysTutorOnlyForTaughtMinutesAfterRefundDecision() {
+        RefundRequestLesson shortened = row(studentSkipped, LessonOutcome.TUTOR_LATE_OR_SHORT);
+        shortened.setMissedMinutes(60);
+        when(refundRequestLessonRepository
+                .findAllByRefundRequest_IdOrderByLesson_DateAscLesson_StartTimeAsc(request.getId()))
+                .thenReturn(List.of(row(tutorMissed, LessonOutcome.TUTOR_ABSENT), shortened));
+        when(lessonRepository.findAllByIdForUpdate(any())).thenReturn(List.of(tutorMissed, studentSkipped));
+        when(walletService.credit(any())).thenReturn(walletResponse(UUID.randomUUID()));
+        when(walletTransactionRepository.getReferenceById(any())).thenReturn(new WalletTransaction());
+        RefundApprovalRequest decisions = new RefundApprovalRequest(new BigDecimal("375000"), List.of(
+                new RefundApprovalRequest.LessonDecision(tutorMissed.getId(), LessonOutcome.TUTOR_ABSENT),
+                new RefundApprovalRequest.LessonDecision(studentSkipped.getId(), LessonOutcome.TUTOR_LATE_OR_SHORT)), null);
+
+        service.approve(reviewerUserId, request.getId(), decisions);
+
+        verify(lessonPayoutService).release(studentSkipped, new BigDecimal("125000.00"));
         assertThat(studentSkipped.getStatus()).isEqualTo(LessonStatus.COMPLETED);
     }
 

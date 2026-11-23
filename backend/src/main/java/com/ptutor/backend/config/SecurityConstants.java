@@ -73,9 +73,29 @@ public final class SecurityConstants {
             "/api/v1/admin/complaints/**"
     };
 
+    public static final String[] ADMIN_CONTRACT_API = {
+            "/api/v1/admin/contracts",
+            "/api/v1/admin/contracts/**"
+    };
+
     public static final String[] ADMIN_REFUND_REQUEST_API = {
             "/api/v1/admin/refund-requests",
             "/api/v1/admin/refund-requests/**"
+    };
+
+    public static final String[] ADMIN_WITHDRAWAL_API = {
+            "/api/v1/admin/withdrawals",
+            "/api/v1/admin/withdrawals/**"
+    };
+
+    public static final String[] ADMIN_TRANSACTION_API = {
+            "/api/v1/admin/transactions",
+            "/api/v1/admin/transactions/**"
+    };
+
+    public static final String[] ADMIN_WALLET_API = {
+            "/api/v1/admin/wallets",
+            "/api/v1/admin/wallets/**"
     };
 
     public static final String[] ADMIN_SUBJECT_API = {
@@ -149,6 +169,11 @@ public final class SecurityConstants {
     public static final String[] ADMIN_SUPPORT_REQUEST_API = {
             "/api/v1/admin/support-requests",
             "/api/v1/admin/support-requests/**"
+    };
+
+    public static final String[] ADMIN_STATISTICS_API = {
+            "/api/v1/admin/statistics",
+            "/api/v1/admin/statistics/**"
     };
 
     public static final String[] EMPLOYEE_SELF_SERVICE_API = {

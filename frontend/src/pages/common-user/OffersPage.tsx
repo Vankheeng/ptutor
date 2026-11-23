@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
 import {
   acceptTutorOffer,
@@ -137,7 +138,11 @@ export function OffersPage() {
               {filtered.map((offer) => (
                 <tr key={offer.id}>
                   <td>
-                    <strong>{tutorName(offer)}</strong>
+                    <strong>
+                      <ProfileNameLink role="tutor" profileId={offer.tutorId}>
+                        {tutorName(offer)}
+                      </ProfileNameLink>
+                    </strong>
                     <small>{offer.tutorEmail}</small>
                   </td>
                   <td>
@@ -198,9 +203,14 @@ function tutorName(offer: TutorOffer) {
   return [offer.tutorFirstName, offer.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
 }
 function statusLabel(status: ApplicationStatus | 'ALL') {
-  return { ALL: 'Tất cả', PENDING: 'Chờ xử lý', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy' }[
-    status
-  ];
+  return {
+    ALL: 'Tất cả',
+    PENDING: 'Chờ xử lý',
+    ACCEPTED: 'Đã chấp nhận',
+    CONNECTED: 'Đã kết nối',
+    REJECTED: 'Đã từ chối',
+    CANCELLED: 'Đã hủy'
+  }[status];
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));

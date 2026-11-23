@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { ProfileNameLink } from '../../common-user/ProfileNameLink';
 import type { Contract } from '../../../services/studentApi';
 import type { LessonStatus } from '../../../services/refundApi';
 import { confirmationDeadline, formatDateTimeValue, timeLeft } from '../../refund/refundFormat';
@@ -12,6 +14,7 @@ export type StudentLessonDetail = {
   endTime: string;
   status: LessonStatus;
   note: string | null;
+  paidAt?: string | null;
   markedTaughtAt?: string | null;
   disputed?: boolean;
   refundRequestId?: string | null;
@@ -58,6 +61,7 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
   const tutorName =
     [contract?.tutorFirstName, contract?.tutorLastName].filter(Boolean).join(' ') || 'Chưa có thông tin';
   const heldByRefund = Boolean(lesson.disputed);
+  const waitingForPayment = lesson.status === 'SCHEDULED' && !lesson.paidAt;
   const waiting = lesson.status === 'PENDING_CONFIRMATION' && !heldByRefund;
   const deadline = waiting ? confirmationDeadline(lesson.markedTaughtAt) : null;
   const dateLabel = new Intl.DateTimeFormat('vi-VN', {
@@ -93,7 +97,14 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
           label="Hợp đồng"
           value={`${contract?.subjectName || 'Hợp đồng'}${contract?.gradeName ? ` · ${contract.gradeName}` : ''}`}
         />
-        <Fact label="Gia sư" value={tutorName} />
+        <Fact
+          label="Gia sư"
+          value={
+            <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
+              {tutorName}
+            </ProfileNameLink>
+          }
+        />
         <Fact label="Ngày học" value={dateLabel} />
         <Fact label="Thời gian" value={`${lesson.startTime.slice(0, 5)} – ${lesson.endTime.slice(0, 5)}`} />
         <Fact label="Hình thức học" value={contract?.teachingMode === 'OFFLINE' ? 'Trực tiếp' : 'Trực tuyến'} />
@@ -102,8 +113,14 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
         )}
         <div className="student-lesson-fact">
           <span>Trạng thái</span>
-          <strong className={`student-lesson-badge ${statusTone[lesson.status]}`}>
-            {heldByRefund ? 'Đang yêu cầu hoàn tiền' : statusLabels[lesson.status]}
+          <strong
+            className={`student-lesson-badge ${waitingForPayment ? 'waiting-payment' : statusTone[lesson.status]}`}
+          >
+            {heldByRefund
+              ? 'Đang yêu cầu hoàn tiền'
+              : waitingForPayment
+                ? 'Chờ thanh toán'
+                : statusLabels[lesson.status]}
           </strong>
         </div>
         {deadline && <Fact label="Hạn xác nhận" value={`${formatDateTimeValue(deadline)} · ${timeLeft(deadline)}`} />}
@@ -116,7 +133,7 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
             ✓ Xác nhận đã học
           </button>
           <Link className="student-lesson-refund" to={`/student/contracts/${lesson.contractId}/refund-request`}>
-            △ Khiếu nại / Hoàn tiền
+            △ Yêu cầu hoàn tiền
           </Link>
         </div>
       )}
@@ -144,7 +161,7 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
   );
 }
 
-function Fact({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
+function Fact({ label, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
   return (
     <div className={`student-lesson-fact${multiline ? ' multiline' : ''}`}>
       <span>{label}</span>

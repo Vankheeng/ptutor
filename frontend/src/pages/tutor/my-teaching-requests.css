@@ -41,8 +41,8 @@
 .student-form-grid .multi-select-option input { width:15px; height:15px; flex:0 0 15px; margin:0; accent-color:#7049c8; }
 .multi-select-empty { margin:0; padding:8px; color:#777185; font-size:11px; }
 .common-create-button { min-height:39px; padding:0 15px; border-radius:8px; font-size:11px; }
-.common-request-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:15px; }
-.common-request-card { display:flex; min-width:0; min-height:186px; flex-direction:column; gap:0; padding:20px; margin:0; border-radius:15px; }
+.common-request-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:15px; }
+.common-request-card { display:flex; min-width:0; min-height:186px; height:100%; flex-direction:column; gap:0; padding:20px; margin:0; border-radius:15px; }
 .common-request-card.status-open { background:#f2f9ff; border-color:#b9dcf5; }
 .common-request-card.status-draft { background:#faf7ff; border-color:#d9caff; }
 .common-request-card.status-pending_review { background:#fffaf0; border-color:#efd49b; }
@@ -60,6 +60,7 @@
 .common-request-card footer span:last-child { text-align:right; white-space:nowrap; }
 .common-request-skeleton { height:186px; border-radius:15px; background:linear-gradient(90deg,#f1f1f4,#fafafa,#f1f1f4); }
 .common-request-message { padding:9px 12px; border-radius:9px; background:#f5f0fc; color:#5e32ad; font-size:11px; }
+.common-request-message.error,.student-notice.error { border:1px solid #f0bbb9; background:#fff0ef; color:#a9312d; }
 @media(max-width:950px) { .common-request-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:680px) { .common-requests-heading { align-items:flex-start; flex-direction:column; }.common-request-form { grid-template-columns:1fr; }.common-request-grid { grid-template-columns:1fr; }.common-request-toolbar { align-items:stretch; flex-direction:column; }.common-request-toolbar label,.common-request-toolbar label:first-child { margin:0; min-width:0; }.common-request-card footer { flex-direction:column; }.common-request-card footer span:last-child { text-align:left; }.common-request-pagination { align-items:flex-start; flex-direction:column; }.common-request-pagination-pages { flex-wrap:wrap; } }
 .teaching-choice-field { min-width: 0; margin: 0; padding: 14px; border: 1px solid #e5def3; border-radius: 10px; }

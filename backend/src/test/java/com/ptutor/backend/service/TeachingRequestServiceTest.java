@@ -37,6 +37,7 @@ import com.ptutor.backend.entity.enums.ApplicationStatus;
 import com.ptutor.backend.entity.enums.CatalogStatus;
 import com.ptutor.backend.entity.enums.RequestStatus;
 import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
 import com.ptutor.backend.entity.enums.NotificationEventType;
 import com.ptutor.backend.event.NotificationDomainEvent;
 import com.ptutor.backend.exception.ApiException;
@@ -307,6 +308,37 @@ class TeachingRequestServiceTest {
     }
 
     @Test
+    void reopeningRequiresApprovedTutorProfile() {
+        TeachingRequest request = existingRequest(RequestStatus.CLOSED);
+        Tutor pendingTutor = tutor();
+        pendingTutor.setProfileStatus(TutorProfileStatus.PENDING);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(pendingTutor));
+        when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
+                .thenReturn(Optional.of(request));
+
+        assertThatThrownBy(() -> service.updateStatus(userId, request.getId(), RequestStatus.OPEN))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(exception.getCode()).isEqualTo("TUTOR_PROFILE_NOT_VERIFIED");
+                });
+        verify(teachingRequestRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void approvedTutorCanReopenTeachingRequest() {
+        TeachingRequest request = existingRequest(RequestStatus.CLOSED);
+        Tutor verifiedTutor = tutor();
+        verifiedTutor.setProfileStatus(TutorProfileStatus.VERIFIED);
+        when(tutorRepository.findByUser_Id(userId)).thenReturn(Optional.of(verifiedTutor));
+        when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
+                .thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        assertThat(service.updateStatus(userId, request.getId(), RequestStatus.OPEN).status())
+                .isEqualTo(RequestStatus.OPEN);
+    }
+
+    @Test
     void updateStatusRejectsMatchedStatus() {
         TeachingRequest request = existingRequest(RequestStatus.OPEN);
         when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
@@ -361,7 +393,8 @@ class TeachingRequestServiceTest {
         TeachingRequest open = existingRequest(RequestStatus.OPEN);
         TeachingRequest draft = existingRequest(RequestStatus.DRAFT);
         TeachingRequest pending = existingRequest(RequestStatus.PENDING_REVIEW);
-        when(teachingRequestRepository.findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, Pageable.unpaged()))
+        when(teachingRequestRepository.findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, Pageable.unpaged()))
                 .thenReturn(List.of(open));
         when(teachingRequestRepository.findAllByOrderByCreatedAtDesc())
                 .thenReturn(List.of(open, draft, pending));
@@ -369,7 +402,8 @@ class TeachingRequestServiceTest {
         assertThat(service.findVisible(UserRole.STUDENT)).hasSize(1)
                 .extracting(TeachingRequestResponse::status).containsExactly(RequestStatus.OPEN);
         assertThat(service.findVisible(UserRole.EMPLOYEE)).hasSize(3);
-        verify(teachingRequestRepository).findAllByStatusOrderByCreatedAtDesc(RequestStatus.OPEN, Pageable.unpaged());
+        verify(teachingRequestRepository).findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, Pageable.unpaged());
         verify(teachingRequestRepository).findAllByOrderByCreatedAtDesc();
     }
 
@@ -404,6 +438,20 @@ class TeachingRequestServiceTest {
                 request.getId(), UUID.randomUUID(), UserRole.STUDENT);
 
         assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+    }
+
+    @Test
+    void nonOwnerCannotViewOpenRequestWhileTutorProfileIsPending() {
+        TeachingRequest request = existingRequest(RequestStatus.OPEN);
+        request.getTutor().setProfileStatus(TutorProfileStatus.PENDING);
+        when(teachingRequestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+
+        assertThatThrownBy(() -> service.findVisibleById(
+                request.getId(), UUID.randomUUID(), UserRole.STUDENT))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("TEACHING_REQUEST_NOT_FOUND");
+                });
     }
 
     @Test
@@ -458,7 +506,7 @@ class TeachingRequestServiceTest {
     private Tutor tutor() {
         User user = User.builder().build();
         user.setId(userId);
-        Tutor tutor = Tutor.builder().user(user).build();
+        Tutor tutor = Tutor.builder().user(user).profileStatus(TutorProfileStatus.VERIFIED).build();
         tutor.setId(tutorId);
         return tutor;
     }

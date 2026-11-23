@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMyTeachingRequests } from '../../hooks/useMyTeachingRequests';
+import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import {
   cancelMyTeachingRequest,
   createMyTeachingRequest,
@@ -17,11 +18,13 @@ import { getAllDistricts, getDistricts, getProvinces } from '../../services/loca
 import { getSubjects } from '../../services/subjectApi';
 import type { District, Grade, Province, Subject, TeachingRequest } from '../../types/api';
 import type { Availability } from '../../services/studentApi';
+import { getTutorLessons, type TutorLesson } from '../../services/tutorApi';
 import { StudentAvailabilityEditor } from '../../components/student/StudentAvailabilityEditor';
 import { TeachingSubjectsField } from '../common-user/components/TeachingSubjectsField';
 import { MultiSelectDropdown } from '../common-user/components/MultiSelectDropdown';
 import { RequestModeField } from '../common-user/components/RequestModeField';
 import { ApiError } from '../../services/httpClient';
+import { notifyGlobalToast } from '../../components/ui/globalToast';
 import './my-teaching-requests.css';
 import '../student/student.css';
 
@@ -31,6 +34,8 @@ export function MyTeachingRequestsPage() {
   const initialEditRequest = (location.state as { editRequest?: TeachingRequest } | null)?.editRequest ?? null;
   const initialEditRequestRef = useRef(initialEditRequest);
   const { data, error, isLoading, reload } = useMyTeachingRequests();
+  const profileQuery = useTutorProfile();
+  const canPublish = profileQuery.data?.profileStatus === 'VERIFIED';
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -45,12 +50,14 @@ export function MyTeachingRequestsPage() {
       ? initialEditRequest.availabilities
       : [{ dayOfWeek: 0, startTime: '', endTime: '' }]
   );
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('ALL');
   const [sort, setSort] = useState<'DESC' | 'ASC'>('DESC');
   const [pagination, setPagination] = useState({ filterKey: '', page: 1 });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [formOpen, setFormOpen] = useState(Boolean(initialEditRequest));
   const [subjectIds, setSubjectIds] = useState<string[]>(() =>
     initialEditRequest ? [initialEditRequest.subjectId ?? 'OTHER'] : []
@@ -75,6 +82,33 @@ export function MyTeachingRequestsPage() {
       })
       .catch(() => setMessage('Không tải được danh mục môn học và khối lớp.'));
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getTutorLessons(controller.signal)
+      .then((result) => {
+        const warnings = result.content.flatMap((lesson: TutorLesson) => {
+          if (lesson.status === 'CANCELLED') return [];
+          const weekday = new Date(`${lesson.date}T00:00:00`).getDay() || 7;
+          const conflict = availabilities.some(
+            (slot) =>
+              slot.dayOfWeek === weekday &&
+              slot.startTime &&
+              slot.endTime &&
+              slot.startTime < lesson.endTime.slice(0, 5) &&
+              slot.endTime > lesson.startTime.slice(0, 5)
+          );
+          return conflict
+            ? [
+                `Bạn đang có buổi học "${lesson.title || 'Buổi học'}" trùng khung giờ ${lesson.date} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}.`
+              ]
+            : [];
+        });
+        setScheduleWarnings([...new Set(warnings)]);
+      })
+      .catch(() => setScheduleWarnings([]));
+    return () => controller.abort();
+  }, [availabilities]);
 
   useEffect(() => {
     if (!provinceId) return;
@@ -153,6 +187,7 @@ export function MyTeachingRequestsPage() {
     const selectedSubjects = subjectIds.filter((id) => id !== 'OTHER');
     if (subjectIds.includes('OTHER') && !customSubjectName.trim()) {
       setBusy(false);
+      setMessageType('error');
       setMessage('Vui lòng nhập tên môn học khác.');
       return;
     }
@@ -168,22 +203,37 @@ export function MyTeachingRequestsPage() {
       teachingMode,
       note: String(form.get('note') ?? '').trim() || undefined,
       description: String(form.get('description') ?? '').trim() || undefined,
-      districtIds,
+      districtIds: teachingMode === 'OFFLINE' ? districtIds : [],
       detailAddress: String(form.get('detailAddress') ?? '').trim() || undefined,
       availabilities: availabilities.filter((slot) => slot.dayOfWeek && slot.startTime && slot.endTime)
     };
+    const invalidAvailability = values.availabilities?.find((slot) => slot.endTime <= slot.startTime);
+    if (invalidAvailability) {
+      setBusy(false);
+      setMessageType('error');
+      setMessage('Giờ kết thúc phải sau giờ bắt đầu.');
+      return;
+    }
     if (requestSubjects.length === 0) {
       setBusy(false);
+      setMessageType('error');
       setMessage('Vui lòng chọn ít nhất một môn có thể dạy.');
       return;
     }
     if (values.gradeIds.length === 0) {
       setBusy(false);
+      setMessageType('error');
       setMessage('Vui lòng chọn ít nhất một khối lớp.');
       return;
     }
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const submitAction = submitter?.value ?? 'draft';
+    if (submitAction === 'pay' && !canPublish) {
+      setBusy(false);
+      setMessageType('error');
+      setMessage('Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu.');
+      return;
+    }
     const canPayImmediately = !editing || editing.status === 'DRAFT';
     const payImmediately = canPayImmediately && submitAction === 'pay';
     const paymentMethod = payImmediately ? String(form.get('paymentMethod')) : '';
@@ -212,20 +262,23 @@ export function MyTeachingRequestsPage() {
           await payTeachingRequestByWallet(request.id);
           paidCount += 1;
         }
-        setMessage(`Đã thanh toán bằng ví và đăng ${paidCount} yêu cầu thành công.`);
+        notifyGlobalToast(`Đã thanh toán bằng ví và đăng ${paidCount} yêu cầu thành công.`);
+        setMessage('');
       } else if (paymentMethod === 'vnpay') {
         paymentStage = true;
         const payment = await startTeachingRequestVnPay(savedRequests[0].id);
         if (!payment.paymentUrl) throw new Error('Không nhận được liên kết thanh toán VNPay.');
         if (paymentTab) paymentTab.location.href = payment.paymentUrl;
         else window.location.assign(payment.paymentUrl);
-        setMessage('Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp cho đến khi thanh toán thành công.');
+        notifyGlobalToast('Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp cho đến khi thanh toán thành công.');
+        setMessage('');
       } else {
-        setMessage(
+        notifyGlobalToast(
           editing
             ? 'Đã cập nhật yêu cầu dạy.'
             : `Đã lưu ${savedRequests.length} bản nháp. Bạn có thể thanh toán sau trong trang chi tiết.`
         );
+        setMessage('');
       }
       setFormOpen(false);
       setEditing(null);
@@ -237,6 +290,7 @@ export function MyTeachingRequestsPage() {
       if (paymentStage && paymentMethod === 'wallet') {
         window.alert(teachingRequestWalletErrorMessage(caught));
       }
+      setMessageType('error');
       setMessage(
         createdCount > 0 && paymentStage
           ? paymentMethod === 'wallet'
@@ -245,7 +299,7 @@ export function MyTeachingRequestsPage() {
           : createdCount > 0
             ? `Đã tạo ${createdCount} yêu cầu ở trạng thái bản nháp${errorDetails}.`
             : caught instanceof Error
-              ? caught.message
+              ? teachingRequestErrorMessage(caught)
               : 'Không thể lưu yêu cầu dạy.'
       );
     } finally {
@@ -285,6 +339,9 @@ export function MyTeachingRequestsPage() {
     setMessage('');
     try {
       if (action === 'cancel') await cancelMyTeachingRequest(request.id);
+      if ((action === 'open' || action === 'pay-wallet' || action === 'pay-vnpay') && !canPublish) {
+        throw new Error('Hồ sơ gia sư cần được duyệt trước khi đăng yêu cầu.');
+      }
       if (action === 'open' || action === 'close')
         await updateMyTeachingRequestStatus(request.id, action.toUpperCase() as 'OPEN' | 'CLOSED');
       if (action === 'pay-wallet') await payTeachingRequestByWallet(request.id);
@@ -300,7 +357,7 @@ export function MyTeachingRequestsPage() {
           throw caught;
         }
       }
-      setMessage(
+      const successMessage =
         action === 'cancel'
           ? 'Đã hủy yêu cầu dạy.'
           : action === 'close'
@@ -311,15 +368,17 @@ export function MyTeachingRequestsPage() {
                 ? 'Đã thanh toán bằng ví và đăng yêu cầu.'
                 : action === 'pay-vnpay'
                   ? 'Đã mở trang thanh toán VNPay. Yêu cầu vẫn là bản nháp nếu chưa thanh toán thành công.'
-                  : 'Đã cập nhật yêu cầu dạy.'
-      );
+                  : 'Đã cập nhật yêu cầu dạy.';
+      notifyGlobalToast(successMessage);
+      setMessage('');
       reload();
     } catch (caught) {
       if (action === 'pay-wallet') {
         window.alert(teachingRequestWalletErrorMessage(caught));
         setMessage(teachingRequestWalletErrorMessage(caught));
       } else {
-        setMessage(caught instanceof Error ? caught.message : 'Không thể cập nhật yêu cầu dạy.');
+        setMessageType('error');
+        setMessage(teachingRequestErrorMessage(caught));
       }
     } finally {
       setBusyId(null);
@@ -359,9 +418,26 @@ export function MyTeachingRequestsPage() {
         </button>
       </header>
       {message && (
-        <p role="status" className="student-notice">
+        <p
+          role={messageType === 'error' ? 'alert' : 'status'}
+          className={`student-notice${messageType === 'error' ? ' error' : ''}`}
+        >
           {message}
         </p>
+      )}
+      {!canPublish && (
+        <div className="teaching-profile-note" role="status">
+          <span>
+            {profileQuery.isLoading
+              ? 'Đang kiểm tra trạng thái hồ sơ gia sư…'
+              : profileQuery.error
+                ? 'Không thể kiểm tra trạng thái hồ sơ gia sư.'
+                : 'Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu. Bạn vẫn có thể lưu bản nháp.'}
+          </span>
+          <button className="teaching-profile-note-action" type="button" onClick={() => navigate('/tutor/profile')}>
+            Xem hồ sơ
+          </button>
+        </div>
       )}
       {formOpen && (
         <form
@@ -422,34 +498,49 @@ export function MyTeachingRequestsPage() {
               required
             />
           </label>
-          <RequestModeField label="Hình thức dạy" value={teachingMode} onChange={setTeachingMode} />
-          <label>
-            Khu vực
-            <select
-              value={provinceId}
-              onChange={(event) => {
-                setProvinceId(event.target.value);
+          <RequestModeField
+            label="Hình thức dạy"
+            value={teachingMode}
+            onChange={(mode) => {
+              setTeachingMode(mode);
+              if (mode === 'ONLINE') {
+                setProvinceId('');
                 setDistrictIds([]);
                 setDistricts([]);
-              }}
-            >
-              <option value="">Chọn tỉnh/thành phố</option>
-              {provinces.map((province) => (
-                <option key={province.id} value={province.id}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <MultiSelectDropdown
-            className="student-field-full"
-            label="Quận/huyện có thể dạy"
-            placeholder={!provinceId ? 'Chọn tỉnh/thành phố trước' : 'Không có quận/huyện để chọn'}
-            options={districts.map((district) => ({ value: district.id, label: district.name }))}
-            values={districtIds}
-            onChange={setDistrictIds}
-            disabled={!provinceId || districts.length === 0}
+              }
+            }}
           />
+          {teachingMode === 'OFFLINE' && (
+            <label>
+              Khu vực
+              <select
+                value={provinceId}
+                onChange={(event) => {
+                  setProvinceId(event.target.value);
+                  setDistrictIds([]);
+                  setDistricts([]);
+                }}
+              >
+                <option value="">Chọn tỉnh/thành phố</option>
+                {provinces.map((province) => (
+                  <option key={province.id} value={province.id}>
+                    {province.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {teachingMode === 'OFFLINE' && (
+            <MultiSelectDropdown
+              className="student-field-full"
+              label="Quận/huyện có thể dạy"
+              placeholder={!provinceId ? 'Chọn tỉnh/thành phố trước' : 'Không có quận/huyện để chọn'}
+              options={districts.map((district) => ({ value: district.id, label: district.name }))}
+              values={districtIds}
+              onChange={setDistrictIds}
+              disabled={!provinceId || districts.length === 0}
+            />
+          )}
           <label className="student-field-full">
             Địa chỉ chi tiết
             <input name="detailAddress" maxLength={255} defaultValue={detailAddress} />
@@ -463,6 +554,15 @@ export function MyTeachingRequestsPage() {
             values={availabilities}
             onChange={setAvailabilities}
           />
+          {scheduleWarnings.length > 0 && (
+            <div className="tutor-schedule-warning student-field-full" role="status">
+              <strong>Lịch có thể bị trùng</strong>
+              {scheduleWarnings.map((warning) => (
+                <div key={warning}>{warning}</div>
+              ))}
+              <div>Bạn vẫn có thể lưu yêu cầu vì chưa xác định ngày bắt đầu hợp đồng.</div>
+            </div>
+          )}
           {(!editing || editing.status === 'DRAFT') && (
             <div className="student-field-full common-payment-summary">
               <strong>Số tiền cần thanh toán: {amountDue.toLocaleString('vi-VN')} VNĐ</strong>
@@ -512,7 +612,12 @@ export function MyTeachingRequestsPage() {
                   <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
                     {busy ? 'Đang xử lý…' : 'Lưu bản nháp'}
                   </button>
-                  <button className="student-button draft" name="submitAction" value="pay" disabled={busy}>
+                  <button
+                    className="student-button draft"
+                    name="submitAction"
+                    value="pay"
+                    disabled={busy || !canPublish}
+                  >
                     {busy ? 'Đang xử lý…' : 'Lưu và thanh toán'}
                   </button>
                 </>
@@ -526,7 +631,7 @@ export function MyTeachingRequestsPage() {
                 <button className="student-button draft" name="submitAction" value="draft" disabled={busy}>
                   {busy ? 'Đang xử lý…' : 'Tạo bản nháp'}
                 </button>
-                <button className="student-button draft" name="submitAction" value="pay" disabled={busy}>
+                <button className="student-button draft" name="submitAction" value="pay" disabled={busy || !canPublish}>
                   {busy ? 'Đang xử lý…' : 'Tạo và thanh toán'}
                 </button>
               </>
@@ -576,14 +681,14 @@ export function MyTeachingRequestsPage() {
               {visibleRequests.map((request) => {
                 const requestStatus = request.status ?? 'OPEN';
                 const canEdit = ['DRAFT', 'OPEN', 'PENDING_REVIEW'].includes(requestStatus);
-                const canPay = requestStatus === 'DRAFT';
+                const canPay = requestStatus === 'DRAFT' && canPublish;
                 const canClose = requestStatus === 'OPEN' && !request.reviewedAt;
-                const canReopen = requestStatus === 'CLOSED' && !request.reviewedAt;
+                const canReopen = requestStatus === 'CLOSED' && !request.reviewedAt && canPublish;
                 const canCancel = requestStatus === 'DRAFT' || requestStatus === 'PENDING_REVIEW';
                 const hasActions = canEdit || canPay || canClose || canReopen || canCancel;
                 return (
                   <article
-                    className={`student-panel student-request-card status-${requestStatus.toLowerCase()}`}
+                    className={`student-panel student-request-card status-${requestStatus.toLowerCase()}${menuId === request.id ? ' menu-open' : ''}`}
                     key={request.id}
                     onClick={() => navigate(`/tutor/sections/teaching-requests/${request.id}`)}
                     onKeyDown={(event) => {
@@ -665,7 +770,7 @@ export function MyTeachingRequestsPage() {
                       </div>
                     </div>
                     <h3>{request.title}</h3>
-                    <p>{request.description || request.note || 'Chưa có mô tả.'}</p>
+                    {(request.description || request.note) && <p>{request.description || request.note}</p>}
                     {requestStatus === 'REJECTED' && request.rejectionReason && (
                       <p className="teaching-rejection-reason" role="alert">
                         <strong>Lý do từ chối:</strong> {request.rejectionReason}
@@ -749,6 +854,41 @@ export function MyTeachingRequestsPage() {
       )}
     </section>
   );
+}
+
+function teachingRequestErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return error instanceof Error ? error.message : 'Không thể lưu yêu cầu dạy.';
+  }
+  const translations: Record<string, string> = {
+    'Request validation failed': 'Thông tin yêu cầu chưa hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.',
+    'End time must be after start time': 'Giờ kết thúc phải sau giờ bắt đầu.',
+    'At least one grade is required': 'Vui lòng chọn ít nhất một khối lớp.',
+    'Expected price is required': 'Vui lòng nhập học phí dự kiến.',
+    'Expected price must not be negative': 'Học phí dự kiến không được âm.',
+    'Quantity is required': 'Vui lòng nhập số lượng học viên.',
+    'Quantity must be greater than zero': 'Số lượng học viên phải lớn hơn 0.'
+  };
+  const translate = (message: string) => translations[message] ?? message;
+  const fieldLabels: Record<string, string> = {
+    title: 'Tiêu đề',
+    quantity: 'Số lượng học viên',
+    expectedPrice: 'Học phí dự kiến',
+    gradeIds: 'Khối lớp',
+    subjectId: 'Môn học',
+    customSubjectName: 'Tên môn học khác',
+    teachingMode: 'Hình thức dạy',
+    'availabilities[].dayOfWeek': 'Ngày trong tuần',
+    'availabilities[].startTime': 'Giờ bắt đầu',
+    'availabilities[].endTime': 'Giờ kết thúc'
+  };
+  const details = Object.entries(error.fieldErrors).map(([field, message]) => {
+    const normalizedField = field.replace(/\[\d+\]/g, '[]');
+    const label = fieldLabels[normalizedField] ?? fieldLabels[field] ?? field;
+    return `${label}: ${translate(message)}`;
+  });
+  if (details.length) return details.join(' ');
+  return translate(error.message);
 }
 
 function statusText(status: string) {

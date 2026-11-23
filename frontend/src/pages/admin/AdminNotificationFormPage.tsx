@@ -80,6 +80,10 @@ function NotificationForm({ campaign }: { campaign: NotificationCampaign | null 
   const save = async (then?: NotificationAction) => {
     setTried(true);
     if (titleInvalid || contentInvalid) return;
+    if (draft.category === 'PROMOTION') {
+      setError('Vui lòng chọn loại thông báo hiện có trước khi lưu.');
+      return;
+    }
     setBusy(true);
     setError(null);
     const payload = { ...draft, title: draft.title.trim(), content: draft.content.trim() };
@@ -181,6 +185,9 @@ function NotificationForm({ campaign }: { campaign: NotificationCampaign | null 
                   </label>
                 ))}
               </div>
+              {draft.category === 'PROMOTION' && (
+                <p className="admin-prose">Thông báo cũ thuộc loại Khuyến mãi. Chọn một loại hiện có trước khi lưu thay đổi.</p>
+              )}
             </fieldset>
           </section>
           <section className="admin-card admin-card-pad">

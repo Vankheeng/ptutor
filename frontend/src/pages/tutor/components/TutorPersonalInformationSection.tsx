@@ -26,16 +26,15 @@ export function TutorPersonalInformationSection({
         <span>01</span>
         <div>
           <h2>Thông tin cá nhân</h2>
-          <p>Thông tin liên hệ và nhận dạng cơ bản của bạn.</p>
         </div>
       </div>
       <div className="tutor-form-grid">
         <label>
-          Tên
+          Họ
           <input name="firstName" defaultValue={profile.firstName ?? ''} maxLength={100} />
         </label>
         <label>
-          Họ
+          Tên
           <input name="lastName" defaultValue={profile.lastName ?? ''} maxLength={100} />
         </label>
         <label>

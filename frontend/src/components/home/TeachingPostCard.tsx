@@ -2,6 +2,7 @@ import './TeachingPostCard.css';
 import type { TeachingRequest } from '../../types/api';
 import { formatCurrency, getInitials } from '../../utils/formatters';
 import { Icon } from '../ui/Icon';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 
 interface TeachingPostCardProps {
   post: TeachingRequest;
@@ -39,7 +40,11 @@ export function TeachingPostCard({ post, index }: TeachingPostCardProps) {
           )}
           <div>
             <small>Gia sư</small>
-            <strong>{post.tutorName || 'Gia sư Ptutor'}</strong>
+            <strong>
+              <ProfileNameLink role="tutor" profileId={post.tutorId}>
+                {post.tutorName || 'Gia sư Ptutor'}
+              </ProfileNameLink>
+            </strong>
           </div>
         </div>
         <h3>{post.title || `Lớp ${subjectName}`}</h3>

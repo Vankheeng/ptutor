@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getMyStudyingRequest, updateStudyingRequest, type StudyingRequestInput } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
 import { StudentStudyingRequestForm } from './StudentStudyingRequestForm';
@@ -20,30 +20,34 @@ export function StudentStudyingRequestEditPage() {
   if (!request)
     return (
       <div className="student-empty">
-        <h3>Đang tải tin…</h3>
+        <h3>Đang tải yêu cầu...</h3>
       </div>
     );
   if (!['DRAFT', 'OPEN'].includes(request.status))
     return (
       <div className="student-error" role="alert">
-        Tin này không còn sửa được.
+        Yêu cầu này không còn có thể chỉnh sửa.
       </div>
     );
   const submit = async (values: StudyingRequestInput) => {
     await updateStudyingRequest(request.id, values);
     setRevision((value) => value + 1);
-    navigate(`/student/studying-requests/${request.id}`, { state: { notice: 'Đã cập nhật tin.' } });
+    navigate(`/student/studying-requests/${request.id}`, { state: { notice: 'Đã cập nhật yêu cầu tìm gia sư.' } });
   };
   return (
     <>
-      <Link className="student-link" to={`/student/studying-requests/${request.id}`}>
-        ← Quay lại chi tiết tin
-      </Link>
+      <div className="student-studying-request-top-actions">
+        <button
+          className="student-button secondary"
+          type="button"
+          onClick={() => navigate(`/student/studying-requests/${request.id}`)}
+        >
+          ← Quay lại chi tiết yêu cầu
+        </button>
+      </div>
       <div className="student-page-heading">
         <div>
-          <span className="student-eyebrow">TIN TÌM GIA SƯ</span>
-          <h1>Sửa tin tìm gia sư</h1>
-          <p>Bạn sửa được tin khi tin còn là bản nháp hoặc đang mở.</p>
+          <h1>Chỉnh sửa yêu cầu tìm gia sư</h1>
         </div>
       </div>
       <StudentStudyingRequestForm

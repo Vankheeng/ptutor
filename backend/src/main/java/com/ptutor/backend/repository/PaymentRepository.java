@@ -2,6 +2,7 @@ package com.ptutor.backend.repository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,27 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
             UUID lessonId, PaymentStatus status);
 
+    Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusInOrderByPaidAtDesc(
+            UUID lessonId, Collection<PaymentStatus> statuses);
+
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusOrderByPaidAtDesc(
+            UUID installmentId, PaymentStatus status);
+
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusInOrderByPaidAtDesc(
+            UUID installmentId, Collection<PaymentStatus> statuses);
+
+    @Query("""
+            select payment
+            from Payment payment
+            join fetch payment.paymentInstallment installment
+            where installment.contract.id = :contractId
+              and payment.status in :statuses
+            order by payment.paidAt desc
+            """)
+    List<Payment> findAllPaidForContract(
+            @Param("contractId") UUID contractId,
+            @Param("statuses") Collection<PaymentStatus> statuses);
+
     List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
 
     @Query("""
@@ -58,6 +80,21 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             @Param("referenceType") ReferenceType referenceType,
             @Param("paymentType") PaymentType paymentType,
             @Param("status") PaymentStatus status,
+            @Param("referenceIds") List<UUID> referenceIds);
+
+    @Query("""
+            select payment.referenceId as referenceId, max(payment.paidAt) as paidAt
+            from Payment payment
+            where payment.referenceType = :referenceType
+              and payment.paymentType = :paymentType
+              and payment.status in :statuses
+              and payment.referenceId in :referenceIds
+            group by payment.referenceId
+            """)
+    List<ReferencePaymentTime> findLatestPaidAtByReferenceIdsAndStatuses(
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("statuses") Collection<PaymentStatus> statuses,
             @Param("referenceIds") List<UUID> referenceIds);
 
     @EntityGraph(attributePaths = { "paymentInstallment" })

@@ -22,6 +22,9 @@ public class ContractLifecycleService {
     private final ContractTimeProvider contractTimeProvider;
     private final ApplicationEventPublisher eventPublisher;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ContractLessonProvisioningService lessonProvisioningService;
+
     /**
      * At the beginning of endDate, active contracts are completed and unsigned
      * contracts are cancelled. Both operations are conditional bulk updates,
@@ -37,6 +40,18 @@ public class ContractLifecycleService {
         // Read before the bulk update: afterwards the affected tutors can no longer be told apart.
         Set<UUID> completedTutorIds = Set.copyOf(contractRepository
                 .findTutorIdsOfActiveContractsEndingOnOrBefore(today, ContractStatus.ACTIVE));
+        var expiredStudentContracts = contractRepository.findExpiredStudentCreatedPendingContracts(
+                today, now.minusDays(7), ContractStatus.PENDING);
+        if (expiredStudentContracts != null && !expiredStudentContracts.isEmpty()) {
+            expiredStudentContracts.forEach(contract -> {
+                contract.setStatus(ContractStatus.CANCELLED);
+                contract.setCancelledAt(now);
+            });
+            contractRepository.saveAllAndFlush(expiredStudentContracts);
+            if (lessonProvisioningService != null) {
+                expiredStudentContracts.forEach(lessonProvisioningService::discardProvisionalLessons);
+            }
+        }
         contractRepository.completeActiveContractsEndingOnOrBefore(
                 today, now, ContractStatus.ACTIVE, ContractStatus.COMPLETED);
         if (!completedTutorIds.isEmpty()) {

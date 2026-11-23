@@ -1,7 +1,9 @@
 package com.ptutor.backend.service;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -28,7 +30,9 @@ import com.ptutor.backend.entity.Complaint;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Evidence;
 import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.ComplaintCategory;
 import com.ptutor.backend.entity.enums.ComplaintStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
 import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.ComplaintMapper;
 import com.ptutor.backend.repository.ComplaintRepository;
@@ -47,6 +51,7 @@ public class ComplaintService {
             ComplaintStatus.IN_REVIEW, ComplaintStatus.AWAITING_EVIDENCE);
     private static final Set<ComplaintStatus> FINAL_STATUSES = EnumSet.of(
             ComplaintStatus.RESOLVED, ComplaintStatus.REJECTED);
+    private static final ZoneId CONTRACT_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ComplaintRepository complaintRepository;
     private final EvidenceRepository evidenceRepository;
@@ -91,6 +96,8 @@ public class ComplaintService {
         Contract contract = contractRepository.findByIdAndParticipantUserId(source.contractId(), userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CONTRACT_NOT_FOUND",
                         "Contract not found: " + source.contractId()));
+        ensureComplaintContractEligible(contract);
+        ensureComplaintCategory(source.category());
 
         Complaint complaint = complaintRepository.saveAndFlush(Complaint.builder()
                 .user(user)
@@ -102,6 +109,18 @@ public class ComplaintService {
                 .build());
         List<Evidence> evidences = saveEvidences(complaint, user, source.evidences());
         return toResponse(complaint, evidences);
+    }
+
+    private void ensureComplaintContractEligible(Contract contract) {
+        LocalDate today = LocalDate.now(clock.withZone(CONTRACT_ZONE));
+        LocalDate endDate = contract.getEndDate();
+        boolean signedContract = contract.getStatus() == ContractStatus.ACTIVE
+                || contract.getStatus() == ContractStatus.COMPLETED;
+        if (!signedContract || endDate == null || today.isAfter(endDate.plusDays(7))
+                || (contract.getStatus() == ContractStatus.COMPLETED && today.isBefore(endDate))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "COMPLAINT_CONTRACT_NOT_ELIGIBLE",
+                    "Complaints are allowed for active contracts or up to 7 days after the contract end date");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +144,7 @@ public class ComplaintService {
     public ComplaintResponse update(UUID userId, UUID complaintId, ComplaintUpdateRequest source) {
         Complaint complaint = findMineForUpdate(userId, complaintId);
         ensurePending(complaint, "updated");
+        ensureComplaintCategory(source.category());
 
         complaint.setTitle(normalize(source.title()));
         complaint.setContent(normalize(source.content()));
@@ -282,6 +302,13 @@ public class ComplaintService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND",
                         "Authenticated user not found"));
+    }
+
+    private void ensureComplaintCategory(ComplaintCategory category) {
+        if (category == ComplaintCategory.ABSENCE || category == ComplaintCategory.LATE_OR_SHORT) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "REFUND_REQUEST_REQUIRED",
+                    "Absence and late or shortened lessons must be submitted as refund requests");
+        }
     }
 
     private Complaint findMineForUpdate(UUID userId, UUID complaintId) {

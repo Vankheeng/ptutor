@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useAuth } from '../../auth/useAuth';
 import { ApiError } from '../../services/httpClient';
 import {
@@ -10,6 +11,7 @@ import {
   payInstallment,
   payInstallmentWithWallet,
   rejectContract,
+  refreshContract,
   renewContract,
   signContract,
   updateContract,
@@ -19,8 +21,8 @@ import {
   type WalletBalance
 } from '../../services/studentApi';
 import { useResource } from '../../hooks/useResource';
-import { StudentContractActionBar } from '../../components/student/StudentContractActionBar';
-import { StudentContractEditForm } from '../../components/student/StudentContractEditForm';
+import { ContractActionBar } from '../common-user/components/ContractActionBar';
+import { PendingContractSignView } from '../common-user/components/PendingContractSignView';
 import { StudentContractOverview } from '../../components/student/StudentContractOverview';
 import { StudentContractRenewalForm } from '../../components/student/StudentContractRenewalForm';
 import { StudentContractStatusBadge } from '../../components/student/StudentContractStatusBadge';
@@ -58,17 +60,13 @@ export function StudentContractDetailPage() {
       setNotice(message);
       setRevision((value) => value + 1);
     } catch (caught) {
-      setError(caught instanceof ApiError || caught instanceof Error ? caught.message : 'Không thể cập nhật hợp đồng.');
+      setError(studentContractError(caught));
     } finally {
       setBusy(false);
     }
   };
 
-  const saveTerms = async (values: {
-    price: number;
-    preferredSchedule?: string;
-    schedules?: import('../../services/studentApi').ContractSchedule[];
-  }) => {
+  const saveTerms = async (values: Partial<ContractTerms>) => {
     if (!contract) return;
     await action(() => updateContract(contract.id, values), 'Đã cập nhật hợp đồng.');
   };
@@ -152,6 +150,37 @@ export function StudentContractDetailPage() {
   const createdByYou = contract.createdByUserId === user?.userId;
   const pendingForSignature = contract.status === 'PENDING' && Boolean(user?.userId) && !createdByYou;
   const pendingCreatedByYou = contract.status === 'PENDING' && Boolean(user?.userId) && createdByYou;
+  if (pendingForSignature) {
+    return (
+      <PendingContractSignView
+        mode="sign"
+        viewerRole="student"
+        contract={contract}
+        backPath="/student/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSign={() => action(() => signContract(contract.id), 'Đã ký hợp đồng.')}
+        onReject={() => void action(() => rejectContract(contract.id), 'Đã từ chối hợp đồng.')}
+      />
+    );
+  }
+  if (pendingCreatedByYou) {
+    return (
+      <PendingContractSignView
+        mode="edit"
+        viewerRole="student"
+        contract={contract}
+        backPath="/student/contracts"
+        busy={busy}
+        error={error}
+        notice={notice}
+        onSave={saveTerms}
+        onCancel={() => void action(() => cancelContract(contract.id), 'Đã hủy hợp đồng.')}
+        onRefresh={() => action(() => refreshContract(contract.id), 'Đã làm mới thời hạn ký hợp đồng.')}
+      />
+    );
+  }
   const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
   const tutorInitials = tutorName
     .split(/\s+/)
@@ -186,7 +215,11 @@ export function StudentContractDetailPage() {
             {tutorInitials}
           </span>
           <div>
-            <strong>{tutorName}</strong>
+            <strong>
+              <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+                {tutorName}
+              </ProfileNameLink>
+            </strong>
             <span>
               {contract.status === 'PENDING'
                 ? pendingCreatedByYou
@@ -214,7 +247,7 @@ export function StudentContractDetailPage() {
         </div>
       )}
       <StudentContractOverview contract={contract} createdByYou={createdByYou} />
-      <StudentContractActionBar
+      <ContractActionBar
         contract={contract}
         currentUserId={user?.userId}
         busy={busy}
@@ -228,16 +261,11 @@ export function StudentContractDetailPage() {
         </p>
       )}
 
-      {contract.status === 'PENDING' && createdByYou && (
-        <section className="student-panel student-contract-section">
-          <h2 className="student-contract-panel-heading">
-            <Icon name="contract" size={16} /> Chỉnh sửa điều khoản hợp đồng
-          </h2>
-          <StudentContractEditForm contract={contract} loading={busy} onSubmit={saveTerms} />
-        </section>
-      )}
       {contract.status !== 'PENDING' && (
         <div className="student-form-actions student-contract-related-actions">
+          <Link className="student-button secondary" to={`/student/complaints/new?contractId=${contract.id}`}>
+            Khiếu nại hợp đồng
+          </Link>
           <Link className="student-button secondary" to={`/student/contracts/${contract.id}/lessons`}>
             Buổi học và hoàn tiền
           </Link>
@@ -269,4 +297,20 @@ export function StudentContractDetailPage() {
       )}
     </>
   );
+}
+
+function studentContractError(error: unknown) {
+  if (error instanceof ApiError) {
+    const messages: Record<string, string> = {
+      CONTRACT_SCHEDULE_ALREADY_STARTED:
+        'Không thể ký hợp đồng vì lịch có buổi học đã bắt đầu. Vui lòng cập nhật lại thời hạn hoặc lịch học.',
+      LESSON_SCHEDULE_CONFLICT: 'Lịch học đang bị trùng. Vui lòng điều chỉnh ngày hoặc giờ trước khi tiếp tục.',
+      OVERLAPPING_CONTRACT_SCHEDULE: 'Các khung giờ trong cùng một ngày không được trùng hoặc chồng lên nhau.',
+      INVALID_CONTRACT_PRICE: 'Giá mỗi buổi học phải lớn hơn 0.',
+      UNSUPPORTED_PAYMENT_PERIOD: 'Hợp đồng chỉ hỗ trợ thanh toán hàng tháng hoặc theo gói.'
+    };
+    return messages[error.code] ?? error.message;
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Không thể cập nhật hợp đồng.';
 }

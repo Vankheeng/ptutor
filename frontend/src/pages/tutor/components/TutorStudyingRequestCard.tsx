@@ -1,8 +1,12 @@
 import { useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
+import { ProfileNameLink } from '../../../components/common-user/ProfileNameLink';
 import { tutorScheduleLabel } from '../../../utils/tutorDisplay';
-import { submitTutorStudyingRequestProposal, type StudyingRequestSearchResponse } from '../../../services/studyingRequestApi';
+import {
+  submitTutorStudyingRequestProposal,
+  type StudyingRequestSearchResponse
+} from '../../../services/studyingRequestApi';
 import { cancelTutorProposal, updateTutorProposal, type TutorTeachingProposal } from '../../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './TutorApplicationForm';
 
@@ -17,24 +21,38 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
   const navigate = useNavigate();
   const detailPath = `/tutor/studying-requests/${request.id}`;
   const [showApply, setShowApply] = useState(false);
+  const [proposalOverride, setProposalOverride] = useState<{ requestId: string; value: TutorTeachingProposal } | null>(
+    null
+  );
   const [sending, setSending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const gradeName = request.gradeName?.trim();
+  const gradeLabel = gradeName && /^Lớp\b/i.test(gradeName) ? gradeName : `Lớp ${gradeName || 'chưa xác định'}`;
+
+  const currentProposal = cancelled
+    ? undefined
+    : proposalOverride?.requestId === request.id
+      ? proposalOverride.value
+      : proposal;
 
   const submitApplication = async (values: TutorApplicationValues) => {
     setSending(true);
     setError('');
     try {
       const payload = { ...values, gradeId: request.gradeId };
-      if (proposal?.status === 'PENDING') {
-        await updateTutorProposal(proposal.id, payload);
+      if (currentProposal?.status === 'PENDING') {
+        const updated = await updateTutorProposal(currentProposal.id, payload);
+        setProposalOverride({ requestId: request.id, value: updated });
         setNotice('Đề xuất của bạn đã được cập nhật.');
       } else {
-        await submitTutorStudyingRequestProposal(request.id, payload);
+        const created = await submitTutorStudyingRequestProposal(request.id, payload);
+        setProposalOverride({ requestId: request.id, value: created });
         setNotice('Đề xuất đã được gửi đến học viên.');
       }
+      setCancelled(false);
       setShowApply(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Không thể gửi đề xuất.');
@@ -45,11 +63,11 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
 
   const cancelApplication = async (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (!proposal) return;
+    if (!currentProposal) return;
     setCancelling(true);
     setError('');
     try {
-      await cancelTutorProposal(proposal.id);
+      await cancelTutorProposal(currentProposal.id);
       setCancelled(true);
       setNotice('Đề xuất đã được hủy.');
     } catch (caught) {
@@ -78,9 +96,12 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
       </div>
       <h3>{request.title || `Tìm gia sư môn ${request.subjectName ?? ''}`}</h3>
       <p className="tutor-request-meta">
-        {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
-        {' · '}Lớp {request.gradeName}
-        {request.districtName ? ` · ${request.districtName}` : ''}
+        <ProfileNameLink role="student" profileId={request.studentId}>
+          {[request.studentFirstName, request.studentLastName].filter(Boolean).join(' ') || 'Học viên'}
+        </ProfileNameLink>
+        {' · '}
+        {gradeLabel}
+        {request.learningMode === 'OFFLINE' && request.districtName ? ` · ${request.districtName}` : ''}
       </p>
       <p className="tutor-request-description">
         {request.description || request.learningGoals || 'Học viên chưa bổ sung mô tả.'}
@@ -98,20 +119,28 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
           <small>Phương thức</small>
           <strong>{request.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
         </span>
-        <span>
-          <small>Địa chỉ</small>
-          <strong>
-            {request.learningMode === 'ONLINE'
-              ? 'Học trực tuyến'
-              : [request.detailAddress, request.districtName, request.provinceName].filter(Boolean).join(', ') ||
+        {request.learningMode === 'OFFLINE' && (
+          <span>
+            <small>Địa chỉ</small>
+            <strong>
+              {[request.districtName, request.provinceName].filter(Boolean).join(', ') ||
                 'Học viên chưa cung cấp địa chỉ'}
-          </strong>
-        </span>
+            </strong>
+          </span>
+        )}
       </div>
-      {notice && <div className="tutor-notice" role="status">{notice}</div>}
-      {error && !showApply && <div className="tutor-error" role="alert">{error}</div>}
+      {notice && (
+        <div className="tutor-notice" role="status">
+          {notice}
+        </div>
+      )}
+      {error && !showApply && (
+        <div className="tutor-error" role="alert">
+          {error}
+        </div>
+      )}
       {applyInPlace ? (
-        proposal?.status === 'PENDING' && !cancelled ? (
+        currentProposal?.status === 'PENDING' && !cancelled ? (
           <div className="tutor-student-card-actions">
             <button
               className="tutor-button tutor-student-apply-button"
@@ -146,7 +175,7 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
             }}
             onKeyDown={(event) => event.stopPropagation()}
           >
-            {cancelled || proposal?.status === 'CANCELLED' ? 'Gửi lại đề xuất' : actionLabel}
+            {cancelled || currentProposal?.status === 'CANCELLED' ? 'Gửi lại đề xuất' : actionLabel}
           </button>
         )
       ) : (
@@ -165,8 +194,10 @@ export function TutorStudyingRequestCard({ request, actionLabel, applyInPlace = 
             <TutorApplicationForm
               subjectName={request.subjectName}
               requestMode={request.learningMode}
-              proposal={proposal?.status === 'PENDING' ? proposal : undefined}
-              editing={proposal?.status === 'PENDING'}
+              requestProvinceId={request.provinceId}
+              requestDistrictId={request.districtId}
+              proposal={currentProposal?.status === 'PENDING' ? currentProposal : undefined}
+              editing={currentProposal?.status === 'PENDING'}
               sending={sending}
               error={error}
               onClose={() => setShowApply(false)}

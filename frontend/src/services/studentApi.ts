@@ -11,8 +11,21 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface StudentScheduleLesson {
+  id: string;
+  title: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+export function getStudentLessons(signal?: AbortSignal) {
+  return get<PageResponse<StudentScheduleLesson>>('/api/v1/students/me/lessons?page=0&size=100', { signal });
+}
+
 export type RequestStatus = 'DRAFT' | 'PENDING_REVIEW' | 'OPEN' | 'MATCHED' | 'CLOSED' | 'CANCELLED' | 'REJECTED';
-export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'CONNECTED' | 'REJECTED' | 'CANCELLED';
 export type LearningMode = 'ONLINE' | 'OFFLINE';
 export type ContractStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
@@ -42,6 +55,20 @@ export interface StudentProfile {
   currentLevel: string | null;
   weakPoints: string | null;
 }
+
+export type PublicStudentProfile = Pick<
+  StudentProfile,
+  | 'studentId'
+  | 'firstName'
+  | 'lastName'
+  | 'avatarUrl'
+  | 'introduction'
+  | 'learningStyle'
+  | 'personalityTags'
+  | 'goalsDescription'
+  | 'currentLevel'
+  | 'weakPoints'
+> & { districtName: string | null; provinceName: string | null };
 
 export interface Availability {
   dayOfWeek: number;
@@ -73,12 +100,17 @@ export interface StudyingRequest {
   updatedAt: string;
 }
 
+export type StudentStudyingRequestDetail = Omit<StudyingRequest, 'preferredSchedule'> & {
+  paidAt: string | null;
+};
+
 export interface TutorOffer {
   id: string;
   tutorId: string;
   tutorFirstName: string | null;
   tutorLastName: string | null;
   tutorEmail: string;
+  tutorPhone?: string | null;
   studyingRequestId: string;
   studyingRequestTitle: string | null;
   subjectId?: string;
@@ -99,6 +131,7 @@ export interface StudentApplication {
   id: string;
   teachingRequestId: string;
   teachingRequestTitle: string | null;
+  teachingRequestStatus: RequestStatus;
   subjectId: string | null;
   subjectName: string | null;
   customSubjectName: string | null;
@@ -111,6 +144,11 @@ export interface StudentApplication {
   proposedPrice: number;
   learningMode: LearningMode;
   preferredSchedule: string | null;
+  preferredProvinceId: string | null;
+  preferredProvinceName: string | null;
+  preferredDistrictId: string | null;
+  preferredDistrictName: string | null;
+  detailAddress: string | null;
   message: string | null;
   status: ApplicationStatus;
   nextStep: string | null;
@@ -129,11 +167,13 @@ export interface ContractSchedule {
 export interface Contract {
   id: string;
   studentId: string;
+  studentUserId: string;
   studentFirstName: string | null;
   studentLastName: string | null;
   studentEmail: string;
   studentDetailAddress: string | null;
   tutorId: string;
+  tutorUserId: string;
   tutorFirstName: string | null;
   tutorLastName: string | null;
   tutorEmail: string;
@@ -156,6 +196,7 @@ export interface Contract {
   studentTutorRequestId: string | null;
   renewedFromContractId: string | null;
   signedAt: string | null;
+  cancelledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -301,6 +342,19 @@ export interface ContractTerms {
   schedules: ContractSchedule[];
   startDate: string;
   endDate: string;
+  deferScheduleCreation?: boolean;
+}
+
+export interface ScheduleConflictCheckResponse {
+  hasConflict: boolean;
+  messages: string[];
+}
+
+export function checkContractSchedule(contractId: string, terms: ContractTerms) {
+  return post<ScheduleConflictCheckResponse>(
+    `/api/v1/users/me/contracts/${encodeURIComponent(contractId)}/check-schedule`,
+    terms
+  );
 }
 
 const pageParams = (page = 0, size = 20, status?: string, sort?: 'ASC' | 'DESC') => {
@@ -311,6 +365,8 @@ const pageParams = (page = 0, size = 20, status?: string, sort?: 'ASC' | 'DESC')
 };
 
 export const getStudentProfile = (signal?: AbortSignal) => get<StudentProfile>('/api/v1/students/me', { signal });
+export const getPublicStudentProfile = (studentId: string, signal?: AbortSignal) =>
+  get<PublicStudentProfile>(`/api/v1/students/${encodeURIComponent(studentId)}/profile`, { signal });
 export const updateStudentProfile = (values: StudentProfileUpdate) =>
   patch<StudentProfile>('/api/v1/students/me', values);
 
@@ -319,16 +375,18 @@ export function getMyStudyingRequests(
   page = 0,
   size = 20,
   signal?: AbortSignal,
-  sort: 'ASC' | 'DESC' = 'DESC'
+  sort: 'ASC' | 'DESC' = 'DESC',
+  keyword = ''
 ) {
-  return get<PageResponse<StudyingRequest>>(
-    `/api/v1/students/me/studying-requests?${pageParams(page, size, status, sort)}`,
-    {
-      signal
-    }
-  );
+  const params = new URLSearchParams(pageParams(page, size, status, sort));
+  if (keyword.trim()) params.set('keyword', keyword.trim());
+  return get<PageResponse<StudyingRequest>>(`/api/v1/students/me/studying-requests?${params.toString()}`, {
+    signal
+  });
 }
 export const getMyStudyingRequest = (id: string) => get<StudyingRequest>(`/api/v1/students/me/studying-requests/${id}`);
+export const getMyStudyingRequestDetail = (id: string, signal?: AbortSignal) =>
+  get<StudentStudyingRequestDetail>(`/api/v1/students/me/studying-requests/${id}/detail`, { signal });
 export const createStudyingRequest = (values: StudyingRequestInput) =>
   post<StudyingRequest>('/api/v1/students/me/studying-requests', values);
 export const updateStudyingRequest = (id: string, values: Partial<StudyingRequestInput>) =>
@@ -338,15 +396,39 @@ export const updateStudyingRequestStatus = (id: string, status: RequestStatus) =
 export const cancelStudyingRequest = (id: string) =>
   post<StudyingRequest>(`/api/v1/students/me/studying-requests/${id}/cancel`);
 
+interface TutorOfferQueryOptions {
+  status?: ApplicationStatus;
+  sort?: 'ASC' | 'DESC';
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+}
+
+export function getTutorOffers(
+  studyingRequestId: string,
+  options?: TutorOfferQueryOptions
+): Promise<PageResponse<TutorOffer>>;
 export function getTutorOffers(
   studyingRequestId: string,
   status?: ApplicationStatus,
-  page = 0,
-  size = 20,
+  page?: number,
+  size?: number,
   signal?: AbortSignal
+): Promise<PageResponse<TutorOffer>>;
+export function getTutorOffers(
+  studyingRequestId: string,
+  optionsOrStatus?: TutorOfferQueryOptions | ApplicationStatus,
+  legacyPage = 0,
+  legacySize = 20,
+  legacySignal?: AbortSignal
 ) {
+  const options: TutorOfferQueryOptions =
+    typeof optionsOrStatus === 'object' && optionsOrStatus !== null
+      ? optionsOrStatus
+      : { status: optionsOrStatus, page: legacyPage, size: legacySize, signal: legacySignal };
+  const { status, sort, page = 0, size = 20, signal } = options;
   return get<PageResponse<TutorOffer>>(
-    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests?${pageParams(page, size, status)}`,
+    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests?${pageParams(page, size, status, sort)}`,
     { signal }
   );
 }
@@ -368,6 +450,9 @@ export const createStudentApplication = (
     proposedPrice: number;
     learningMode: LearningMode;
     preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    detailAddress?: string | null;
     message?: string;
   }
 ) =>
@@ -395,6 +480,9 @@ export const updateStudentApplication = (
     proposedPrice: number;
     learningMode: LearningMode;
     preferredSchedule?: string;
+    preferredProvinceId?: string | null;
+    preferredDistrictId?: string | null;
+    detailAddress?: string | null;
     message?: string;
   }
 ) => patch<StudentApplication>(`/api/v1/students/me/student-tutor-requests/${id}`, values);
@@ -406,8 +494,24 @@ export const createStudentContract = (studyingRequestId: string, tutorRequestId:
     `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests/${tutorRequestId}/contracts`,
     terms
   );
+export const checkStudentContractSchedule = (studyingRequestId: string, tutorRequestId: string, terms: ContractTerms) =>
+  post<ScheduleConflictCheckResponse>(
+    `/api/v1/students/me/studying-requests/${studyingRequestId}/tutor-requests/${tutorRequestId}/contracts/check-schedule`,
+    terms
+  );
 export function getContracts(status?: ContractStatus, page = 0, size = 20, signal?: AbortSignal) {
   return get<PageResponse<Contract>>(`/api/v1/users/me/contracts?${pageParams(page, size, status)}`, { signal });
+}
+export function getSharedContracts(
+  counterpartyId: string,
+  status?: ContractStatus,
+  page = 0,
+  size = 10,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams(pageParams(page, size, status));
+  params.set('counterpartyId', counterpartyId);
+  return get<PageResponse<Contract>>(`/api/v1/users/me/contracts?${params}`, { signal });
 }
 export const getContract = (id: string) => get<Contract>(`/api/v1/users/me/contracts/${id}`);
 export const updateContract = (id: string, values: Partial<ContractTerms> & { gradeId?: string }) =>
@@ -415,6 +519,7 @@ export const updateContract = (id: string, values: Partial<ContractTerms> & { gr
 export const signContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/sign`);
 export const rejectContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/reject`);
 export const cancelContract = (id: string) => patch<Contract>(`/api/v1/users/me/contracts/${id}/cancel`);
+export const refreshContract = (id: string) => post<Contract>(`/api/v1/users/me/contracts/${id}/refresh`);
 export const renewContract = (id: string, terms: ContractTerms) =>
   post<Contract>(`/api/v1/users/me/contracts/${id}/renewals`, terms);
 
@@ -535,6 +640,9 @@ export const confirmBankAccountOtp = (challengeId: string, otp: string) =>
   post<BankAccount>('/api/v1/users/me/bank-account/confirm', { challengeId, otp });
 export const payStudyingRequest = (id: string) =>
   post<PaymentInitiation>(`/api/v1/students/me/studying-requests/${id}/payments/vnpay`, { locale: 'vn' });
+export const payStudyingRequestWithWallet = (id: string) =>
+  post<Payment>(`/api/v1/students/me/studying-requests/${id}/payments/wallet`);
+export const getStudyingRequestPaymentFee = () => get<number>('/api/v1/students/me/studying-requests/payment-fee');
 export const payInstallment = (contractId: string, installmentId: string) =>
   post<PaymentInitiation>(
     `/api/v1/students/me/contracts/${contractId}/payment-installments/${installmentId}/payments/vnpay`,

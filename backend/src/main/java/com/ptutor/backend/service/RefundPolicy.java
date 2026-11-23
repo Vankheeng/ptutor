@@ -46,4 +46,8 @@ public class RefundPolicy {
     static boolean isAbsence(LessonOutcome outcome) {
         return outcome == LessonOutcome.TUTOR_ABSENT || outcome == LessonOutcome.STUDENT_ABSENT;
     }
+
+    static boolean isRefundClaim(LessonOutcome outcome) {
+        return isAbsence(outcome) || outcome == LessonOutcome.TUTOR_LATE_OR_SHORT;
+    }
 }

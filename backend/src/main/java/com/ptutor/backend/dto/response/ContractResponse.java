@@ -14,11 +14,13 @@ import com.ptutor.backend.entity.enums.PaymentPeriod;
 public record ContractResponse(
         UUID id,
         UUID studentId,
+        UUID studentUserId,
         String studentFirstName,
         String studentLastName,
         String studentEmail,
         String studentDetailAddress,
         UUID tutorId,
+        UUID tutorUserId,
         String tutorFirstName,
         String tutorLastName,
         String tutorEmail,
@@ -41,6 +43,7 @@ public record ContractResponse(
         UUID studentTutorRequestId,
         UUID renewedFromContractId,
         LocalDateTime signedAt,
+        LocalDateTime cancelledAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 

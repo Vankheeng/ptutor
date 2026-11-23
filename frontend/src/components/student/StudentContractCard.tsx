@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { ProfileNameLink } from '../common-user/ProfileNameLink';
 import type { Contract } from '../../services/studentApi';
 import { Icon } from '../ui/Icon';
 import { StudentContractStatusBadge } from './StudentContractStatusBadge';
+import { formatLessonPrice } from '../../utils/contractPricing';
 
 export function StudentContractCard({ contract, currentUserId }: { contract: Contract; currentUserId?: string }) {
   const tutorName = [contract.tutorFirstName, contract.tutorLastName].filter(Boolean).join(' ') || 'Gia sư';
@@ -13,7 +15,6 @@ export function StudentContractCard({ contract, currentUserId }: { contract: Con
     .toUpperCase();
   const subjectName = contract.subjectName || 'Môn học';
   const gradeName = contract.gradeName || 'Chưa có lớp';
-  const paymentPeriod = formatPaymentPeriod(contract.paymentPeriod);
   const isPendingForSignature =
     contract.status === 'PENDING' && Boolean(currentUserId) && contract.createdByUserId !== currentUserId;
   const isPendingCreatedByYou = contract.status === 'PENDING' && Boolean(currentUserId) && !isPendingForSignature;
@@ -35,16 +36,17 @@ export function StudentContractCard({ contract, currentUserId }: { contract: Con
           {tutorInitials}
         </span>
         <div>
-          <strong>{tutorName}</strong>
+          <strong>
+            <ProfileNameLink role="tutor" profileId={contract.tutorId}>
+              {tutorName}
+            </ProfileNameLink>
+          </strong>
           <span>Gia sư</span>
         </div>
       </div>
 
       <div className="student-contract-terms">
-        <strong>
-          {formatMoney(contract.price)} / {paymentPeriod.toLowerCase()}
-        </strong>
-        <span>{paymentPeriod}</span>
+        <strong>{formatLessonPrice(contract)}</strong>
         <span className="student-contract-date">
           <span className="student-contract-calendar-icon" aria-hidden="true" />
           {formatDate(contract.startDate)} - {formatDate(contract.endDate)}
@@ -67,19 +69,6 @@ export function StudentContractCard({ contract, currentUserId }: { contract: Con
       </div>
     </article>
   );
-}
-
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
-}
-
-function formatPaymentPeriod(value: Contract['paymentPeriod']) {
-  return {
-    PER_LESSON: 'Mỗi buổi',
-    WEEKLY: 'Hàng tuần',
-    MONTHLY: 'Hàng tháng',
-    PACKAGE: 'Theo gói'
-  }[value];
 }
 
 function formatDate(value: string) {

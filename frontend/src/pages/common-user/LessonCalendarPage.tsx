@@ -6,8 +6,11 @@ import {
   type CalendarRole
 } from '../../hooks/useLessonCalendarData';
 import { useLessonCalendarActions } from '../../hooks/useLessonCalendarActions';
+import { TimeSelect } from '../../components/ui/TimeSelect';
 import { LessonCalendarToolbar } from './components/LessonCalendarToolbar';
 import { LessonCalendarGrid } from './components/LessonCalendarGrid';
+import { TutorLessonCancellationDialog } from '../../components/tutor/TutorLessonCancellationDialog';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import './lesson-calendar.css';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -20,6 +23,11 @@ const statusText: Record<string, string> = {
   CANCELLED: 'Đã hủy'
 };
 
+function eventStatusText(event: Event) {
+  if (event.status === 'SCHEDULED' && !event.paidAt) return 'Chờ thanh toán';
+  return statusText[event.status] ?? event.status;
+}
+
 export function LessonCalendarPage({ role }: { role: CalendarRole }) {
   const [cursor, setCursor] = useState(() => new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -31,6 +39,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
   const [notice, setNotice] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
+  const [cancellationEvent, setCancellationEvent] = useState<Event | null>(null);
 
   const { data, error, isLoading } = useLessonCalendarData(role, revision);
   const actions = useLessonCalendarActions(
@@ -100,8 +109,11 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
       <button
         key={event.id}
         type="button"
-        className={`lc-event ${event.status.toLowerCase()}${event.disputed ? ' disputed' : ''}`}
-        onClick={() => setSelectedEvent(event)}
+        className={`lc-event ${event.status === 'SCHEDULED' && !event.paidAt ? 'waiting-payment' : event.status.toLowerCase()}${event.disputed ? ' disputed' : ''}`}
+        onClick={() => {
+          actions.setActionError('');
+          setSelectedEvent(event);
+        }}
       >
         <strong>
           {event.startTime.slice(0, 5)}–{event.endTime.slice(0, 5)}
@@ -111,9 +123,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
         {contract?.teachingMode === 'OFFLINE' && contract.studentDetailAddress && (
           <small className="lc-event-location">⌖ {contract.studentDetailAddress}</small>
         )}
-        <span className="lc-event-status">
-          {event.disputed ? 'Đang khiếu nại' : (statusText[event.status] ?? event.status)}
-        </span>
+        <span className="lc-event-status">{event.disputed ? 'Đang khiếu nại' : eventStatusText(event)}</span>
       </button>
     );
   };
@@ -175,6 +185,10 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
           Đã lên lịch
         </span>
         <span>
+          <i className="waiting-payment" />
+          Chờ thanh toán
+        </span>
+        <span>
           <i className="cancelled" />
           Đã hủy
         </span>
@@ -202,13 +216,18 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                   <div>
                     <small>
                       {role === 'TUTOR' ? 'BUỔI DẠY' : 'BUỔI HỌC'} ·{' '}
-                      {editingEvent
-                        ? 'S\u1eeda L\u1ecbch h\u1ecdc'
-                        : (statusText[selectedEvent.status] ?? selectedEvent.status)}
+                      {editingEvent ? 'S\u1eeda L\u1ecbch h\u1ecdc' : eventStatusText(selectedEvent)}
                     </small>
                     <h2 id="lc-lesson-title">{selectedEvent.title}</h2>
                   </div>
-                  <button type="button" aria-label="Đóng" onClick={() => setSelectedEvent(null)}>
+                  <button
+                    type="button"
+                    aria-label="Đóng"
+                    onClick={() => {
+                      actions.setActionError('');
+                      setSelectedEvent(null);
+                    }}
+                  >
                     ×
                   </button>
                 </header>
@@ -233,11 +252,11 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                     <div className="lc-time-fields">
                       <label>
                         Bắt đầu
-                        <input name="startTime" type="time" required defaultValue={selectedEvent.startTime} />
+                        <TimeSelect name="startTime" required defaultValue={selectedEvent.startTime.slice(0, 5)} />
                       </label>
                       <label>
                         Kết thúc
-                        <input name="endTime" type="time" required defaultValue={selectedEvent.endTime} />
+                        <TimeSelect name="endTime" required defaultValue={selectedEvent.endTime.slice(0, 5)} />
                       </label>
                     </div>
                     <label>
@@ -250,7 +269,13 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                       </p>
                     )}
                     <div className="lc-modal-actions">
-                      <button type="button" onClick={() => setEditingEvent(false)}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          actions.setActionError('');
+                          setEditingEvent(false);
+                        }}
+                      >
                         Quay lại
                       </button>
                       <button className="lc-primary" type="submit">
@@ -266,7 +291,15 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                     </p>
                     <p>
                       <span>{role === 'TUTOR' ? 'Học viên' : 'Gia sư'}</span>
-                      <strong>{person || 'Chưa có thông tin'}</strong>
+                      <strong>
+                        {role === 'TUTOR' ? (
+                          <ProfileNameLink role="student" profileId={contract?.studentId}>
+                            {person || 'Chưa có thông tin'}
+                          </ProfileNameLink>
+                        ) : (
+                          person || 'Chưa có thông tin'
+                        )}
+                      </strong>
                     </p>
                     <p>
                       <span>Ngày học</span>
@@ -287,11 +320,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                     </p>
                     <p>
                       <span>Trạng thái</span>
-                      <strong>
-                        {selectedEvent.disputed
-                          ? 'Đang khiếu nại'
-                          : (statusText[selectedEvent.status] ?? selectedEvent.status)}
-                      </strong>
+                      <strong>{selectedEvent.disputed ? 'Đang khiếu nại' : eventStatusText(selectedEvent)}</strong>
                     </p>
                     {contract?.teachingMode === 'OFFLINE' && contract.studentDetailAddress && (
                       <p>
@@ -313,35 +342,46 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                   </p>
                 )}
                 <div className="lc-modal-actions">
-                  {role === 'TUTOR' && selectedEvent.status === 'SCHEDULED' && !editingEvent && (
-                    <button
-                      className="lc-primary"
-                      disabled={actions.busy === selectedEvent.id}
-                      onClick={() => void actions.markTaught(selectedEvent)}
-                    >
-                      Đánh dấu đã dạy
-                    </button>
-                  )}
-                  {role === 'TUTOR' && selectedEvent.status === 'SCHEDULED' && !editingEvent && (
-                    <>
+                  {role === 'TUTOR' &&
+                    selectedEvent.contractStatus === 'ACTIVE' &&
+                    selectedEvent.status === 'SCHEDULED' &&
+                    selectedEvent.paidAt &&
+                    !editingEvent && (
                       <button
-                        type="button"
-                        onClick={() => {
-                          actions.setActionError('');
-                          setEditingEvent(true);
-                        }}
+                        className="lc-primary"
+                        disabled={actions.busy === selectedEvent.id}
+                        onClick={() => void actions.markTaught(selectedEvent)}
                       >
-                        Sửa lịch
+                        Đánh dấu đã dạy
                       </button>
-                      <button
-                        type="button"
-                        className="lc-danger-button"
-                        onClick={() => void actions.cancelSchedule(selectedEvent)}
-                      >
-                        Hủy buổi học
-                      </button>
-                    </>
-                  )}
+                    )}
+                  {role === 'TUTOR' &&
+                    selectedEvent.contractStatus === 'ACTIVE' &&
+                    selectedEvent.status === 'SCHEDULED' &&
+                    !editingEvent && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            actions.setActionError('');
+                            setEditingEvent(true);
+                          }}
+                        >
+                          Sửa lịch
+                        </button>
+                        <button
+                          type="button"
+                          className="lc-danger-button"
+                          onClick={() => {
+                            actions.setActionError('');
+                            setCancellationEvent(selectedEvent);
+                            setSelectedEvent(null);
+                          }}
+                        >
+                          Hủy buổi học
+                        </button>
+                      </>
+                    )}
                   {role === 'STUDENT' && selectedEvent.status === 'PENDING_CONFIRMATION' && (
                     <button
                       className="lc-primary"
@@ -356,29 +396,51 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                       className="lc-complaint-link"
                       to={`/student/contracts/${selectedEvent.contractId}/refund-request`}
                     >
-                      Khiếu nại / Hoàn tiền
+                      Yêu cầu hoàn tiền
                     </Link>
                   )}
                   {role === 'TUTOR' && selectedEvent.disputed && (
-                    <Link className="lc-action-link" to={`/tutor/refund-requests/${selectedEvent.refundRequestId}`}>
+                    <Link className="lc-action-link" to="/tutor/complaints/received">
                       Thêm bằng chứng
                     </Link>
                   )}
                   {role === 'TUTOR' && selectedEvent.disputed && (
-                    <Link className="lc-action-link" to={`/tutor/refund-requests/${selectedEvent.refundRequestId}`}>
+                    <Link className="lc-action-link" to="/tutor/complaints/received">
                       Phản hồi giải trình
                     </Link>
                   )}
                   {!editingEvent && (
-                    <button type="button" onClick={() => setSelectedEvent(null)}>
-                      Đóng
-                    </button>
+                    <Link
+                      className="lc-action-link"
+                      to={
+                        role === 'TUTOR'
+                          ? `/tutor/sections/contracts/${selectedEvent.contractId}`
+                          : `/student/contracts/${selectedEvent.contractId}`
+                      }
+                    >
+                      Xem hợp đồng
+                    </Link>
                   )}
                 </div>
               </section>
             </div>
           );
         })()}
+      {cancellationEvent && (
+        <TutorLessonCancellationDialog
+          busy={actions.busy === cancellationEvent.id}
+          onClose={() => {
+            setCancellationEvent(null);
+            setSelectedEvent(cancellationEvent);
+          }}
+          onEdit={() => {
+            setCancellationEvent(null);
+            setSelectedEvent(cancellationEvent);
+            setEditingEvent(true);
+          }}
+          onRefund={() => void actions.cancelSchedule(cancellationEvent).then(() => setCancellationEvent(null))}
+        />
+      )}
       {showCreate && (
         <div
           className="lc-overlay"
@@ -437,11 +499,11 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
                 <div className="lc-time-fields">
                   <label>
                     Bắt đầu
-                    <input name="startTime" type="time" required />
+                    <TimeSelect name="startTime" required />
                   </label>
                   <label>
                     Kết thúc
-                    <input name="endTime" type="time" required />
+                    <TimeSelect name="endTime" required />
                   </label>
                 </div>
               </>

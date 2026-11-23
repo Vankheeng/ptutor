@@ -1,7 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { getDistricts, getProvinces } from '../../../services/locationApi';
-import type { District, Province } from '../../../types/api';
-import type { TutorTeachingProposal } from '../../../services/tutorApi';
+import {
+  getTutorContractLessons,
+  getTutorContracts,
+  getTutorLessons,
+  type TutorLesson,
+  type TutorTeachingProposal
+} from '../../../services/tutorApi';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const weekdayLabels: Record<string, string> = {
@@ -14,8 +18,9 @@ const weekdayLabels: Record<string, string> = {
   Saturday: 'Thứ Bảy'
 };
 const times = Array.from(
-  { length: 48 },
-  (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
+  { length: 96 },
+  (_, index) =>
+    `${String(Math.floor((index * 15) / 60)).padStart(2, '0')}:${String((index * 15) % 60).padStart(2, '0')}`
 );
 type AvailableTime = { day: string; start: string; end: string };
 
@@ -31,6 +36,8 @@ export interface TutorApplicationValues {
 interface TutorApplicationFormProps {
   subjectName: string | null;
   requestMode: 'ONLINE' | 'OFFLINE';
+  requestProvinceId?: string | null;
+  requestDistrictId?: string | null;
   proposal?: TutorTeachingProposal;
   editing: boolean;
   sending: boolean;
@@ -40,7 +47,6 @@ interface TutorApplicationFormProps {
 }
 
 export function TutorApplicationForm({
-  subjectName,
   requestMode,
   proposal,
   editing,
@@ -53,55 +59,41 @@ export function TutorApplicationForm({
     parseAvailableTimes(proposal?.preferredSchedule)
   );
   const [teachingMode, setTeachingMode] = useState<'ONLINE' | 'OFFLINE'>(proposal?.teachingMode ?? requestMode);
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [provinceId, setProvinceId] = useState(proposal?.preferredProvinceId ?? '');
-  const [districtId, setDistrictId] = useState(proposal?.preferredDistrictId ?? '');
-  const [locationLoading, setLocationLoading] = useState((proposal?.teachingMode ?? requestMode) === 'OFFLINE');
   const [validationError, setValidationError] = useState('');
+  const [scheduleWarnings, setScheduleWarnings] = useState<string[]>([]);
+  const invalidSchedule = availableTimes.some((slot) => slot.start >= slot.end);
 
   useEffect(() => {
-    if (teachingMode !== 'OFFLINE') return;
-    let active = true;
-    getProvinces()
-      .then((items) => {
-        if (active) setProvinces(items);
+    const controller = new AbortController();
+    loadTutorLessons(controller.signal)
+      .then((result) => {
+        const conflicts = result.content.filter((lesson) => {
+          if (lesson.status === 'CANCELLED') return false;
+          const day = weekdayFromDate(lesson.date);
+          const slot = availableTimes.find((item) => item.day === day);
+          return Boolean(slot && slot.start < lesson.endTime.slice(0, 5) && slot.end > lesson.startTime.slice(0, 5));
+        });
+        if (!conflicts.length) {
+          setScheduleWarnings([]);
+          return;
+        }
+        setScheduleWarnings([
+          ...conflicts.map(
+            (conflict) =>
+              `Bạn đang có buổi học "${conflict.title || 'Buổi học'}" trùng lịch (${formatLessonConflict(conflict)}).`
+          ),
+          'Bạn vẫn có thể gửi đề xuất vì chưa xác định ngày bắt đầu hợp đồng.'
+        ]);
       })
-      .catch(() => {
-        if (active) setProvinces([]);
-      })
-      .finally(() => {
-        if (active) setLocationLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [teachingMode]);
-
-  useEffect(() => {
-    if (teachingMode !== 'OFFLINE' || !provinceId) return;
-    let active = true;
-    getDistricts(provinceId)
-      .then((items) => {
-        if (active) setDistricts(items);
-      })
-      .catch(() => {
-        if (active) setDistricts([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [teachingMode, provinceId]);
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [availableTimes]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    if (availableTimes.some((slot) => slot.start >= slot.end)) {
+    if (invalidSchedule) {
       setValidationError('Giờ kết thúc phải sau giờ bắt đầu.');
-      return;
-    }
-    if (teachingMode === 'OFFLINE' && (!provinceId || !districtId)) {
-      setValidationError('Vui lòng chọn tỉnh/thành và quận/huyện để dạy trực tiếp.');
       return;
     }
     setValidationError('');
@@ -109,16 +101,22 @@ export function TutorApplicationForm({
       proposedPrice: Number(data.get('proposedPrice')),
       teachingMode,
       preferredSchedule: availableTimes.map((slot) => `${slot.day}, ${slot.start}–${slot.end}`).join('; '),
-      preferredProvinceId: teachingMode === 'OFFLINE' ? provinceId : null,
-      preferredDistrictId: teachingMode === 'OFFLINE' ? districtId : null,
+      preferredProvinceId: null,
+      preferredDistrictId: null,
       message: String(data.get('message') ?? '')
     });
   };
 
   const addDay = () =>
     setAvailableTimes((current) => {
-      const nextDay = weekdays.find((day) => !current.some((slot) => slot.day === day)) || 'Monday';
-      return [...current, { day: nextDay, start: '16:00', end: '17:00' }];
+      const lastSlot = current[current.length - 1] ?? { day: 'Monday', start: '16:00', end: '17:00' };
+      const lastDayIndex = weekdays.indexOf(lastSlot.day);
+      const nextDay =
+        Array.from(
+          { length: weekdays.length },
+          (_, offset) => weekdays[(lastDayIndex + offset + 1) % weekdays.length]
+        ).find((day) => !current.some((slot) => slot.day === day)) || 'Monday';
+      return [...current, { day: nextDay, start: lastSlot.start, end: lastSlot.end }];
     });
 
   const updateTime = (index: number, field: keyof AvailableTime, value: string) => {
@@ -139,9 +137,7 @@ export function TutorApplicationForm({
         <button className="tutor-modal-close" type="button" aria-label="Đóng" onClick={onClose}>
           ×
         </button>
-        <h2 id="tutor-apply-title">
-          {editing ? 'Chỉnh sửa chi tiết ứng tuyển' : 'Chi tiết ứng tuyển'}
-        </h2>
+        <h2 id="tutor-apply-title">{editing ? 'Chỉnh sửa chi tiết ứng tuyển' : 'Chi tiết ứng tuyển'}</h2>
         {(error || validationError) && (
           <div className="tutor-error" role="alert">
             {error || validationError}
@@ -160,7 +156,6 @@ export function TutorApplicationForm({
               onChange={(event) => {
                 const mode = event.target.value as 'ONLINE' | 'OFFLINE';
                 setTeachingMode(mode);
-                if (mode === 'OFFLINE' && provinces.length === 0) setLocationLoading(true);
               }}
             >
               <option value="ONLINE">Trực tuyến</option>
@@ -222,49 +217,20 @@ export function TutorApplicationForm({
                 </button>
               </div>
             ))}
-          </div>
-          {teachingMode === 'OFFLINE' && (
-            <div className="tutor-offline-location">
-              <strong>Địa điểm dạy</strong>
-              <div className="tutor-location-fields">
-                <label>
-                  Tỉnh/thành phố
-                  <select
-                    value={provinceId}
-                    onChange={(event) => {
-                      setProvinceId(event.target.value);
-                      setDistrictId('');
-                      setDistricts([]);
-                    }}
-                    required
-                  >
-                    <option value="">{locationLoading ? 'Đang tải tỉnh/thành…' : 'Chọn tỉnh/thành'}</option>
-                    {provinces.map((province) => (
-                      <option key={province.id} value={province.id}>
-                        {province.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Quận/huyện
-                  <select
-                    value={districtId}
-                    onChange={(event) => setDistrictId(event.target.value)}
-                    disabled={!provinceId || districts.length === 0}
-                    required
-                  >
-                    <option value="">{provinceId ? 'Chọn quận/huyện' : 'Chọn tỉnh/thành trước'}</option>
-                    {districts.map((district) => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            {scheduleWarnings.length > 0 && (
+              <div className="tutor-schedule-warning" role="status">
+                <strong>Lịch có thể bị trùng</strong>
+                {scheduleWarnings.map((warning) => (
+                  <div key={warning}>{warning}</div>
+                ))}
               </div>
-            </div>
-          )}
+            )}
+            {invalidSchedule && (
+              <div className="tutor-schedule-time-warning" role="alert">
+                Giờ kết thúc phải sau giờ bắt đầu. Vui lòng điều chỉnh trước khi tiếp tục.
+              </div>
+            )}
+          </div>
           <label>
             Lời nhắn cho học viên
             <textarea
@@ -279,7 +245,7 @@ export function TutorApplicationForm({
             <button className="tutor-button secondary" type="button" onClick={onClose}>
               Hủy
             </button>
-            <button className="tutor-button" type="submit" disabled={sending}>
+            <button className="tutor-button" type="submit" disabled={sending || invalidSchedule}>
               {sending
                 ? 'Đang lưu…'
                 : editing
@@ -304,4 +270,25 @@ function parseAvailableTimes(schedule?: string | null): AvailableTime[] {
     end: match[3]
   }));
   return parsed.length ? parsed : [{ day: 'Monday', start: '16:00', end: '17:00' }];
+}
+
+async function loadTutorLessons(signal: AbortSignal) {
+  try {
+    return await getTutorLessons(signal);
+  } catch {
+    const contracts = await getTutorContracts(signal);
+    const pages = await Promise.all(contracts.content.map((contract) => getTutorContractLessons(contract.id, signal)));
+    return {
+      content: pages.flatMap((page) => page.content)
+    };
+  }
+}
+
+function weekdayFromDate(value: string) {
+  return weekdays[new Date(`${value}T12:00:00`).getDay()];
+}
+
+function formatLessonConflict(lesson: TutorLesson) {
+  const [year, month, day] = lesson.date.split('-');
+  return `${day}/${month}/${year} ${lesson.startTime.slice(0, 5)} - ${lesson.endTime.slice(0, 5)}`;
 }

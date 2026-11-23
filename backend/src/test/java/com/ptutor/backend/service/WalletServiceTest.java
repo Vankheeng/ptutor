@@ -85,6 +85,27 @@ class WalletServiceTest {
     }
 
     @Test
+    void completingWithdrawalConsumesOnlyPendingBalanceAndWritesOneDebit() {
+        User owner = User.builder().build();
+        owner.setId(userId);
+        Wallet wallet = Wallet.builder().user(owner).balance(new BigDecimal("250000.00"))
+                .pendingBalance(new BigDecimal("100000.00")).build();
+        wallet.setId(UUID.randomUUID());
+        UUID withdrawalId = UUID.randomUUID();
+        when(walletTransactionRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        WalletTransaction transaction = walletService.completeWithdrawalBalance(wallet, withdrawalId,
+                new BigDecimal("100000.00"), "withdrawal:" + withdrawalId, null);
+
+        assertThat(wallet.getBalance()).isEqualByComparingTo("250000.00");
+        assertThat(wallet.getPendingBalance()).isEqualByComparingTo("0.00");
+        assertThat(transaction.getAmount()).isEqualByComparingTo("100000.00");
+        assertThat(transaction.getTransactionType()).isEqualTo(WalletTransactionType.DEBIT);
+        assertThat(transaction.getStatus()).isEqualTo(WalletTransactionStatus.COMPLETED);
+        assertThat(transaction.getReferenceId()).isEqualTo(withdrawalId);
+    }
+
+    @Test
     void getCurrentBalanceRejectsMissingWallet() {
         when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
         when(walletRepository.findByUser_Id(userId)).thenReturn(Optional.empty());

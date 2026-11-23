@@ -3,7 +3,7 @@ import type { PageResponse } from './studentApi';
 
 export type RefundRequestStatus = 'PENDING' | 'IN_REVIEW' | 'REFUNDED' | 'REJECTED' | 'CANCELLED';
 /** What happened in a disputed lesson: claimed by the student, answered by the tutor, decided by the reviewer. */
-export type LessonOutcome = 'TAUGHT' | 'TUTOR_ABSENT' | 'STUDENT_ABSENT';
+export type LessonOutcome = 'TAUGHT' | 'TUTOR_ABSENT' | 'STUDENT_ABSENT' | 'TUTOR_LATE_OR_SHORT';
 export type AbsenceOutcome = Exclude<LessonOutcome, 'TAUGHT'>;
 export type RefundBlocker = 'TUTOR_RESPONSE_WINDOW_OPEN' | 'CONTRACT_HAS_OPEN_COMPLAINT' | 'NOTHING_TO_REFUND';
 export type LessonStatus = 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
@@ -32,6 +32,7 @@ export interface DisputedLesson {
   endTime: string;
   markedTaughtAt: string | null;
   claimedOutcome: AbsenceOutcome;
+  missedMinutes: number | null;
   tutorPosition: LessonOutcome | null;
   decision: LessonOutcome | null;
 }
@@ -152,7 +153,7 @@ export interface AdminRefundDetail {
 export interface RefundCreateInput {
   contractId: string;
   description: string;
-  lessons: { lessonId: string; claimedOutcome: AbsenceOutcome }[];
+  lessons: { lessonId: string; claimedOutcome: AbsenceOutcome; missedMinutes?: number | null }[];
   evidences: EvidenceInput[];
 }
 

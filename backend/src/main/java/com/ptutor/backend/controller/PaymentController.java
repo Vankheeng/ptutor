@@ -1,5 +1,6 @@
 package com.ptutor.backend.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +48,12 @@ public class PaymentController {
     private final CurrentUserProvider currentUserProvider;
     private final ApiResponseFactory responseFactory;
     private final VnPayService vnPayService;
+
+    @GetMapping("/students/me/studying-requests/payment-fee")
+    public ResponseEntity<ApiResponse<BigDecimal>> studyingRequestPaymentFee() {
+        String path = "/api/v1/students/me/studying-requests/payment-fee";
+        return ResponseEntity.ok(responseFactory.success(paymentService.getStudyingRequestFee(), path));
+    }
 
     @PostMapping("/users/me/wallet/top-ups/vnpay")
     public ResponseEntity<ApiResponse<PaymentInitiationResponse>> createWalletTopUp(

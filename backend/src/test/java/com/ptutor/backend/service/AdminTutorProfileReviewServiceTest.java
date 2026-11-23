@@ -113,8 +113,8 @@ class AdminTutorProfileReviewServiceTest {
                 tutorUserId, NotificationEventType.TUTOR_PROFILE_REJECTED, NotificationReferenceType.USER,
                 tutorUserId, java.util.Map.of("reason", "Missing teaching methodology")));
 
-        assertThat(content.title()).isEqualTo("Tutor profile rejected");
-        assertThat(content.content()).contains("Missing teaching methodology.", "submit it for review again");
+        assertThat(content.title()).isEqualTo("Hồ sơ gia sư bị từ chối");
+        assertThat(content.content()).contains("Missing teaching methodology.", "Hãy cập nhật hồ sơ");
     }
 
     @Test
@@ -123,7 +123,7 @@ class AdminTutorProfileReviewServiceTest {
                 tutorUserId, NotificationEventType.TUTOR_PROFILE_REJECTED, NotificationReferenceType.USER,
                 tutorUserId, java.util.Map.of("reason", "Introduction is too short.")));
 
-        assertThat(content.content()).contains("Introduction is too short. Update").doesNotContain("..");
+        assertThat(content.content()).contains("Introduction is too short.").doesNotContain("..");
     }
 
     private void givenPendingTutorAndReviewer() {

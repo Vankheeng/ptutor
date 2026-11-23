@@ -1,10 +1,12 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { useResource } from '../../hooks/useResource';
+import { useTutorProfile } from '../../hooks/useTutorWorkspace';
 import {
-  createTeachingRequestContract,
   getMyTeachingRequest,
   getTeachingRequestApplications,
+  cancelMyTeachingRequest,
   payTeachingRequestByWallet,
   startTeachingRequestVnPay,
   teachingRequestWalletErrorMessage,
@@ -14,6 +16,7 @@ import {
   type StudentTeachingApplication
 } from '../../services/myTeachingRequestApi';
 import type { TeachingRequest } from '../../types/api';
+import { getTutorContracts } from '../../services/tutorApi';
 import '../student/student.css';
 import './teaching-request-detail.css';
 
@@ -24,25 +27,61 @@ export function TeachingRequestDetailPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [contractFor, setContractFor] = useState<StudentTeachingApplication | null>(null);
+  const [confirmingApplication, setConfirmingApplication] = useState<StudentTeachingApplication | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<StudentTeachingApplication | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'vnpay'>('wallet');
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState<'' | StudentTeachingApplication['status']>('');
+  const [applicationSort, setApplicationSort] = useState<'DESC' | 'ASC'>('DESC');
+
+  useEffect(() => {
+    if (!selectedApplication) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedApplication(null);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [selectedApplication]);
+  const profileQuery = useTutorProfile();
+  const canPublish = profileQuery.data?.profileStatus === 'VERIFIED';
   const load = useCallback(
     async (signal: AbortSignal) => {
-      const [request, applications] = await Promise.all([
+      const [request, applications, contracts] = await Promise.all([
         getMyTeachingRequest(requestId, signal),
-        getTeachingRequestApplications(requestId, signal)
+        getTeachingRequestApplications(requestId, signal),
+        getTutorContracts(signal)
       ]);
-      return { request, applications };
+      return { request, applications, contracts: contracts.content };
     },
     [requestId]
   );
   const query = useResource(load, revision);
   const request: TeachingRequest | null = query.data?.request ?? null;
   const applications = query.data?.applications ?? [];
+  const visibleApplications = applications
+    .filter((application) => !applicationStatusFilter || application.status === applicationStatusFilter)
+    .slice()
+    .sort((left, right) => {
+      const difference = Date.parse(left.createdAt) - Date.parse(right.createdAt);
+      return applicationSort === 'DESC' ? -difference : difference;
+    });
+  const currentContractByApplicationId = new Map(
+    (query.data?.contracts ?? [])
+      .filter((contract) => contract.studentTutorRequestId && contract.status !== 'CANCELLED')
+      .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+  );
+  const previousContractByApplicationId = new Map(
+    (query.data?.contracts ?? [])
+      .filter((contract) => contract.studentTutorRequestId)
+      .map((contract) => [contract.studentTutorRequestId as string, contract.id])
+  );
 
   const toggleRequestStatus = async () => {
     if (!request || !['OPEN', 'CLOSED'].includes(request.status ?? '') || request.reviewedAt) return;
     const nextStatus = request.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    if (nextStatus === 'OPEN' && !canPublish) {
+      setError('Hồ sơ gia sư cần được duyệt trước khi mở lại yêu cầu.');
+      return;
+    }
     setBusy('status');
     setError('');
     setNotice('');
@@ -57,7 +96,7 @@ export function TeachingRequestDetailPage() {
     }
   };
 
-  const updateApplication = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
+  const applyApplicationStatus = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
     setBusy(application.id);
     setError('');
     setNotice('');
@@ -72,32 +111,26 @@ export function TeachingRequestDetailPage() {
     }
   };
 
-  const createContract = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!contractFor) return;
-    setBusy(contractFor.id);
-    setError('');
-    const data = new FormData(event.currentTarget);
-    try {
-      await createTeachingRequestContract(requestId, contractFor.id, {
-        price: Number(data.get('price')),
-        paymentPeriod: String(data.get('paymentPeriod')) as 'PER_LESSON' | 'WEEKLY' | 'MONTHLY' | 'PACKAGE',
-        startDate: String(data.get('startDate')),
-        endDate: String(data.get('endDate')),
-        totalLessons: data.get('totalLessons') ? Number(data.get('totalLessons')) : undefined,
-        preferredSchedule: String(data.get('preferredSchedule') ?? '') || undefined
-      });
-      setContractFor(null);
-      setNotice('Đã tạo hợp đồng và gửi cho học viên ký.');
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể tạo hợp đồng.');
-    } finally {
-      setBusy(null);
+  const updateApplication = async (application: StudentTeachingApplication, status: 'ACCEPTED' | 'REJECTED') => {
+    if (status === 'ACCEPTED' && request) {
+      const acceptedCount = applications.filter((item) => item.status === 'ACCEPTED').length;
+      const remainingPending = applications.filter(
+        (item) => item.status === 'PENDING' && item.id !== application.id
+      ).length;
+      if (acceptedCount + 1 >= (request.quantity ?? 0) && remainingPending > 0) {
+        setConfirmingApplication(application);
+        return;
+      }
     }
+    await applyApplicationStatus(application, status);
   };
 
   const payDraft = async () => {
     if (!request) return;
+    if (!canPublish) {
+      setError('Hồ sơ gia sư cần được duyệt trước khi thanh toán và đăng yêu cầu.');
+      return;
+    }
     const paymentTab = paymentMethod === 'vnpay' ? window.open('about:blank', '_blank') : null;
     setBusy('payment');
     setError('');
@@ -127,6 +160,164 @@ export function TeachingRequestDetailPage() {
     }
   };
 
+  const cancelDraft = async () => {
+    if (!request || request.status !== 'DRAFT' || !window.confirm('Bạn có chắc muốn hủy bản nháp này không?')) return;
+    setBusy('cancel');
+    setError('');
+    setNotice('');
+    try {
+      await cancelMyTeachingRequest(request.id);
+      setNotice('Đã hủy bản nháp yêu cầu dạy.');
+      setRevision((value) => value + 1);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Không thể hủy bản nháp yêu cầu dạy.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const renderApplicationActions = (application: StudentTeachingApplication) => {
+    const currentContractId = application.contractId ?? currentContractByApplicationId.get(application.id);
+    const previousContractId = application.previousContractId ?? previousContractByApplicationId.get(application.id);
+    const oldContractId = previousContractId && previousContractId !== currentContractId ? previousContractId : null;
+    const previousContract = (query.data?.contracts ?? []).find((item) => item.id === previousContractId);
+    const previousContractStatus = application.previousContractStatus ?? previousContract?.status ?? null;
+    const canCreateContract =
+      !currentContractId &&
+      (!previousContractId || previousContractStatus === 'CANCELLED' || previousContractStatus === null);
+    const contract = (query.data?.contracts ?? []).find((item) => item.id === currentContractId);
+    const canRejectAccepted = application.status === 'ACCEPTED' && (!contract || contract.status === 'PENDING');
+
+    if (application.status === 'PENDING' && request?.status === 'OPEN') {
+      return (
+        <div className="teaching-application-actions teaching-application-modal-actions">
+          <button
+            className="student-button draft"
+            type="button"
+            disabled={busy === application.id}
+            onClick={() => {
+              setSelectedApplication(null);
+              void updateApplication(application, 'ACCEPTED');
+            }}
+          >
+            Chấp nhận
+          </button>
+          <button
+            className="student-button danger"
+            type="button"
+            disabled={busy === application.id}
+            onClick={() => {
+              setSelectedApplication(null);
+              void updateApplication(application, 'REJECTED');
+            }}
+          >
+            Từ chối
+          </button>
+        </div>
+      );
+    }
+
+    if (application.status === 'PENDING' && request?.status === 'MATCHED') {
+      return <span className="teaching-application-closed-note">Yêu cầu đã đủ số lượng học viên.</span>;
+    }
+
+    if (application.status === 'ACCEPTED' && canRejectAccepted) {
+      return (
+        <div className="teaching-application-actions teaching-application-modal-actions">
+          {currentContractId ? (
+            <Link className="student-button draft" to={`/tutor/sections/contracts/${currentContractId}`}>
+              Xem hợp đồng
+            </Link>
+          ) : null}
+          {!currentContractId && canCreateContract ? (
+            <button
+              className="student-button draft"
+              type="button"
+              onClick={() => {
+                setSelectedApplication(null);
+                navigate(
+                  `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                );
+              }}
+            >
+              Tạo hợp đồng
+            </button>
+          ) : null}
+          <button
+            className="student-button danger"
+            disabled={busy === application.id}
+            onClick={() => {
+              setSelectedApplication(null);
+              void updateApplication(application, 'REJECTED');
+            }}
+          >
+            Từ chối
+          </button>
+          {oldContractId ? (
+            <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+              Xem hợp đồng cũ
+            </Link>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (['ACCEPTED', 'CONNECTED'].includes(application.status) && currentContractId) {
+      return (
+        <div className="teaching-application-actions teaching-application-modal-actions">
+          <Link className="student-button draft" to={`/tutor/sections/contracts/${currentContractId}`}>
+            Xem hợp đồng
+          </Link>
+          <Link className="student-button secondary" to={`/tutor/complaints/new?contractId=${currentContractId}`}>
+            Khiếu nại
+          </Link>
+        </div>
+      );
+    }
+
+    if (application.status === 'ACCEPTED') {
+      return (
+        <div className="teaching-application-actions teaching-application-modal-actions">
+          {canCreateContract ? (
+            <button
+              className="student-button draft"
+              type="button"
+              onClick={() => {
+                setSelectedApplication(null);
+                navigate(
+                  `/tutor/sections/teaching-requests/${requestId}/student-requests/${application.id}/contracts/new`
+                );
+              }}
+            >
+              Tạo hợp đồng
+            </button>
+          ) : previousContractId ? (
+            <Link className="student-button draft" to={`/tutor/sections/contracts/${previousContractId}`}>
+              Xem hợp đồng
+            </Link>
+          ) : null}
+          {oldContractId ? (
+            <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+              Xem hợp đồng cũ
+            </Link>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (oldContractId && ['REJECTED', 'CANCELLED'].includes(application.status)) {
+      return (
+        <div className="teaching-application-actions teaching-application-modal-actions">
+          <Link className="student-button secondary" to={`/tutor/sections/contracts/${oldContractId}`}>
+            Xem hợp đồng cũ
+          </Link>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   if (query.error)
     return (
       <div className="student-error" role="alert">
@@ -141,6 +332,20 @@ export function TeachingRequestDetailPage() {
     );
   return (
     <>
+      {!canPublish && (request.status === 'DRAFT' || request.status === 'CLOSED') && (
+        <div className="teaching-profile-note" role="status">
+          <span>
+            {profileQuery.isLoading
+              ? 'Đang kiểm tra trạng thái hồ sơ gia sư…'
+              : profileQuery.error
+                ? 'Không thể kiểm tra trạng thái hồ sơ gia sư.'
+                : 'Hồ sơ gia sư cần được duyệt trước khi thanh toán hoặc mở lại yêu cầu.'}
+          </span>
+          <button className="teaching-profile-note-action" type="button" onClick={() => navigate('/tutor/profile')}>
+            Xem hồ sơ
+          </button>
+        </div>
+      )}
       <div className="teaching-detail-top-actions">
         <button className="student-button secondary" onClick={() => navigate('/tutor/sections/teaching-requests')}>
           ← Quay lại danh sách
@@ -149,7 +354,7 @@ export function TeachingRequestDetailPage() {
           {['OPEN', 'CLOSED'].includes(request.status ?? '') && !request.reviewedAt && (
             <button
               className="student-button draft"
-              disabled={busy === 'status'}
+              disabled={busy === 'status' || (request.status === 'CLOSED' && !canPublish)}
               onClick={() => void toggleRequestStatus()}
             >
               {busy === 'status' ? 'Đang cập nhật…' : request.status === 'OPEN' ? 'Đóng yêu cầu' : 'Mở lại yêu cầu'}
@@ -163,15 +368,25 @@ export function TeachingRequestDetailPage() {
               Chỉnh sửa
             </button>
           )}
+          {request.status === 'DRAFT' && (
+            <button
+              className="student-button secondary"
+              type="button"
+              disabled={busy === 'cancel'}
+              onClick={() => void cancelDraft()}
+            >
+              {busy === 'cancel' ? 'Đang hủy…' : 'Hủy bản nháp'}
+            </button>
+          )}
         </div>
       </div>
       {notice && (
-        <div className="student-notice" role="status">
+        <div className="student-notice tutor-toast-source" role="status">
           {notice}
         </div>
       )}
       {error && (
-        <div className="student-error" role="alert">
+        <div className="student-error tutor-toast-source" role="alert">
           {error}
         </div>
       )}
@@ -187,10 +402,12 @@ export function TeachingRequestDetailPage() {
                 </span>
               </dd>
             </div>
-            <div>
-              <dt>Mô tả</dt>
-              <dd>{request.description || request.note || 'Chưa có mô tả.'}</dd>
-            </div>
+            {(request.description || request.note) && (
+              <div>
+                <dt>Mô tả</dt>
+                <dd>{request.description || request.note}</dd>
+              </div>
+            )}
             <div>
               <dt>Môn học</dt>
               <dd>{request.subjectName || request.customSubjectName || 'Môn học tùy chỉnh'}</dd>
@@ -263,7 +480,11 @@ export function TeachingRequestDetailPage() {
                   <option value="vnpay">VNPay</option>
                 </select>
               </label>
-              <button className="student-button draft" disabled={busy === 'payment'} onClick={() => void payDraft()}>
+              <button
+                className="student-button draft"
+                disabled={busy === 'payment' || !canPublish}
+                onClick={() => void payDraft()}
+              >
                 {busy === 'payment' ? 'Đang xử lý…' : 'Thanh toán và đăng yêu cầu'}
               </button>
             </div>
@@ -271,100 +492,194 @@ export function TeachingRequestDetailPage() {
         </section>
         <section className="student-panel teaching-detail-applications">
           <h2>Đề nghị từ học viên</h2>
-          <p>Xem và quản lý các đề nghị nhận được cho yêu cầu này.</p>
+          <div className="student-offer-filters">
+            <label>
+              <span>Trạng thái</span>
+              <select
+                value={applicationStatusFilter}
+                onChange={(event) =>
+                  setApplicationStatusFilter(event.target.value as '' | StudentTeachingApplication['status'])
+                }
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="PENDING">Đang chờ</option>
+                <option value="ACCEPTED">Đã chấp nhận</option>
+                <option value="CONNECTED">Đã kết nối</option>
+                <option value="REJECTED">Đã từ chối</option>
+                <option value="CANCELLED">Đã hủy</option>
+              </select>
+            </label>
+            <label>
+              <span>Sắp xếp</span>
+              <select
+                value={applicationSort}
+                onChange={(event) => setApplicationSort(event.target.value as 'DESC' | 'ASC')}
+              >
+                <option value="DESC">Mới nhất</option>
+                <option value="ASC">Cũ nhất</option>
+              </select>
+            </label>
+          </div>
           {!applications.length ? (
             <div className="student-empty">
-              <h3>Chưa có đề nghị nào</h3>
-              <p>Đề nghị từ học viên sẽ xuất hiện ở đây.</p>
+              <h3>Chưa có đề nghị từ học viên</h3>
+            </div>
+          ) : !visibleApplications.length ? (
+            <div className="student-empty">
+              <h3>Không có đề nghị phù hợp với bộ lọc</h3>
             </div>
           ) : (
-            applications.map((application) => (
+            visibleApplications.map((application) => (
               <article className="teaching-application" key={application.id}>
-                <div className="teaching-application-avatar">{application.studentFirstName?.[0] ?? 'H'}</div>
-                <div className="teaching-application-content">
-                  <strong>
-                    {[application.studentFirstName, application.studentLastName].filter(Boolean).join(' ') ||
-                      application.studentEmail}
-                  </strong>
-                  <span>
-                    {application.gradeName} · {application.proposedPrice.toLocaleString('vi-VN')} VNĐ
-                  </span>
-                  <span>{application.message || application.preferredSchedule || 'Chưa có lời nhắn.'}</span>
-                </div>
-                <span className={`student-status ${application.status.toLowerCase()}`}>
-                  {applicationStatusText(application.status)}
-                </span>
-                {application.status === 'PENDING' && (
-                  <div className="teaching-application-actions">
-                    <button
-                      className="student-button draft"
-                      disabled={busy === application.id}
-                      onClick={() => void updateApplication(application, 'ACCEPTED')}
-                    >
-                      Chấp nhận
-                    </button>
-                    <button
-                      className="student-button secondary"
-                      disabled={busy === application.id}
-                      onClick={() => void updateApplication(application, 'REJECTED')}
-                    >
-                      Từ chối
-                    </button>
+                <div className="teaching-application-summary">
+                  <div className="teaching-application-avatar">{application.studentFirstName?.[0] ?? 'H'}</div>
+                  <div className="teaching-application-content">
+                    <strong>
+                      <ProfileNameLink role="student" profileId={application.studentId}>
+                        {[application.studentFirstName, application.studentLastName].filter(Boolean).join(' ') ||
+                          application.studentEmail}
+                      </ProfileNameLink>
+                    </strong>
+                    <span>
+                      {application.gradeName} · {application.proposedPrice.toLocaleString('vi-VN')} VNĐ
+                    </span>
+                    <time dateTime={application.createdAt}>Gửi lúc {formatApplicationDate(application.createdAt)}</time>
                   </div>
-                )}
-                {application.status === 'ACCEPTED' && (
-                  <button className="student-button draft" onClick={() => setContractFor(application)}>
-                    Tạo hợp đồng
-                  </button>
-                )}
+                </div>
+                <div className="student-offer-status">
+                  <span className={`student-status ${application.status.toLowerCase()}`}>
+                    {applicationStatusText(application.status)}
+                  </span>
+                </div>
+                <button
+                  className="student-button student-offer-detail-trigger"
+                  type="button"
+                  onClick={() => setSelectedApplication(application)}
+                >
+                  Xem chi tiết
+                </button>
               </article>
             ))
           )}
         </section>
       </div>
-      {contractFor && (
-        <div className="teaching-contract-backdrop">
-          <form className="student-panel teaching-contract-form" onSubmit={(event) => void createContract(event)}>
-            <h2>Tạo hợp đồng</h2>
-            <p>Học viên: {[contractFor.studentFirstName, contractFor.studentLastName].filter(Boolean).join(' ')}</p>
-            <label>
-              Học phí (VNĐ)
-              <input name="price" type="number" min="0" defaultValue={contractFor.proposedPrice} required />
-            </label>
-            <label>
-              Chu kỳ thanh toán
-              <select name="paymentPeriod">
-                <option value="PER_LESSON">Theo buổi</option>
-                <option value="WEEKLY">Hàng tuần</option>
-                <option value="MONTHLY">Hàng tháng</option>
-                <option value="PACKAGE">Trọn gói</option>
-              </select>
-            </label>
-            <label>
-              Ngày bắt đầu
-              <input name="startDate" type="date" required />
-            </label>
-            <label>
-              Ngày kết thúc
-              <input name="endDate" type="date" required />
-            </label>
-            <label>
-              Số buổi
-              <input name="totalLessons" type="number" min="1" />
-            </label>
-            <label>
-              Lịch học
-              <input name="preferredSchedule" defaultValue={contractFor.preferredSchedule ?? ''} />
-            </label>
-            <div className="student-form-actions">
-              <button className="student-button draft" disabled={busy === contractFor.id}>
-                Tạo hợp đồng
+      {selectedApplication && (
+        <div className="student-offer-modal-backdrop" role="presentation" onClick={() => setSelectedApplication(null)}>
+          <section
+            className="student-panel student-offer-modal teaching-application-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="teaching-application-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="student-offer-modal-header">
+              <h2 id="teaching-application-modal-title">Chi tiết đề nghị từ học viên</h2>
+              <button
+                className="student-offer-modal-close"
+                type="button"
+                aria-label="Đóng"
+                onClick={() => setSelectedApplication(null)}
+              >
+                ×
               </button>
-              <button type="button" className="student-button secondary" onClick={() => setContractFor(null)}>
+            </header>
+            <div className="student-tutor-offer-detail-grid">
+              <div className="student-tutor-offer-detail-item">
+                <span>Học viên</span>
+                <strong>
+                  <ProfileNameLink role="student" profileId={selectedApplication.studentId}>
+                    {[selectedApplication.studentFirstName, selectedApplication.studentLastName]
+                      .filter(Boolean)
+                      .join(' ') || selectedApplication.studentEmail}
+                  </ProfileNameLink>
+                </strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Email</span>
+                <strong>{selectedApplication.studentEmail}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Số điện thoại liên hệ</span>
+                <strong>{selectedApplication.studentPhone?.trim() || 'Chưa cung cấp'}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Yêu cầu dạy</span>
+                <strong>{request.title}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Lớp đề xuất</span>
+                <strong>{selectedApplication.gradeName}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Học phí đề xuất</span>
+                <strong>{selectedApplication.proposedPrice.toLocaleString('vi-VN')} VNĐ</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Hình thức học</span>
+                <strong>{selectedApplication.learningMode === 'ONLINE' ? 'Trực tuyến' : 'Trực tiếp'}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Thời gian có thể học</span>
+                <strong>{formatPreferredSchedule(selectedApplication.preferredSchedule) || 'Linh hoạt'}</strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Trạng thái</span>
+                <strong>
+                  <span className={`student-status ${selectedApplication.status.toLowerCase()}`}>
+                    {applicationStatusText(selectedApplication.status)}
+                  </span>
+                </strong>
+              </div>
+              <div className="student-tutor-offer-detail-item">
+                <span>Thời gian gửi</span>
+                <strong>{formatApplicationDate(selectedApplication.createdAt)}</strong>
+              </div>
+              {selectedApplication.updatedAt && (
+                <div className="student-tutor-offer-detail-item">
+                  <span>Cập nhật lần cuối</span>
+                  <strong>{formatApplicationDate(selectedApplication.updatedAt)}</strong>
+                </div>
+              )}
+            </div>
+            <div className="student-offer-modal-message">
+              <span>Lời nhắn của học viên</span>
+              <p>{selectedApplication.message?.trim() || 'Học viên không gửi kèm lời nhắn.'}</p>
+            </div>
+            <footer className="student-offer-modal-actions teaching-application-modal-footer">
+              {renderApplicationActions(selectedApplication)}
+              <button className="student-button secondary" type="button" onClick={() => setSelectedApplication(null)}>
+                Đóng
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+      {confirmingApplication && (
+        <div className="teaching-confirm-backdrop" role="presentation">
+          <section className="student-panel teaching-confirm-dialog" role="dialog" aria-modal="true">
+            <h2>Xác nhận học viên cuối cùng</h2>
+            <p>
+              Sau khi chấp nhận học viên này, yêu cầu sẽ đủ số lượng học viên. Các đề nghị đang chờ còn lại sẽ tự động
+              chuyển sang trạng thái từ chối.
+            </p>
+            <div className="student-form-actions">
+              <button className="student-button secondary" type="button" onClick={() => setConfirmingApplication(null)}>
                 Hủy
               </button>
+              <button
+                className="student-button draft"
+                type="button"
+                disabled={busy !== null}
+                onClick={() => {
+                  const application = confirmingApplication;
+                  setConfirmingApplication(null);
+                  void applyApplicationStatus(application, 'ACCEPTED');
+                }}
+              >
+                {busy ? 'Đang cập nhật…' : 'Xác nhận và từ chối còn lại'}
+              </button>
             </div>
-          </form>
+          </section>
         </div>
       )}
     </>
@@ -386,13 +701,44 @@ function statusText(status: string) {
     )[status] ?? status
   );
 }
+
 function applicationStatusText(status: string) {
   return (
     (
-      { PENDING: 'Đang chờ', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy' } as Record<
-        string,
-        string
-      >
+      {
+        PENDING: 'Đang chờ',
+        ACCEPTED: 'Đã chấp nhận',
+        CONNECTED: 'Đã kết nối',
+        REJECTED: 'Đã từ chối',
+        CANCELLED: 'Đã hủy'
+      } as Record<string, string>
     )[status] ?? status
   );
+}
+
+function formatPreferredSchedule(value: string | null) {
+  if (!value) return '';
+  const labels: Record<string, string> = {
+    Sunday: 'Chủ Nhật',
+    Monday: 'Thứ Hai',
+    Tuesday: 'Thứ Ba',
+    Wednesday: 'Thứ Tư',
+    Thursday: 'Thứ Năm',
+    Friday: 'Thứ Sáu',
+    Saturday: 'Thứ Bảy'
+  };
+  return value.replace(
+    /Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday/gi,
+    (day) => labels[day[0].toUpperCase() + day.slice(1).toLowerCase()] ?? day
+  );
+}
+
+function formatApplicationDate(value: string) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
 }

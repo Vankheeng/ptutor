@@ -67,6 +67,20 @@ public class StudentTutorRequest extends BaseEntity {
     @NonFinal
     private String preferredSchedule;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_province_id")
+    @NonFinal
+    private Province preferredProvince;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_district_id")
+    @NonFinal
+    private District preferredDistrict;
+
+    @Column(name = "detail_address", length = 255)
+    @NonFinal
+    private String detailAddress;
+
     @Column(name = "message", columnDefinition = "text")
     @NonFinal
     private String message;

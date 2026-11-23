@@ -1,6 +1,7 @@
 import type { StudyingRequestSearchResponse } from '../../../services/studyingRequestApi';
 import type { TutorTeachingProposal } from '../../../services/tutorApi';
-import { tutorScheduleLabel, tutorStatusLabel } from '../../../utils/tutorDisplay';
+import { Link } from 'react-router-dom';
+import { tutorNextStepLabel, tutorScheduleLabel, tutorStatusLabel } from '../../../utils/tutorDisplay';
 import { ApplicationSplitCard } from '../../../components/applications/ApplicationSplitCard';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -8,6 +9,7 @@ const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 interface TutorProposalCardProps {
   proposal: TutorTeachingProposal;
   request?: StudyingRequestSearchResponse;
+  contractId?: string;
   cancelling: boolean;
   onCancel: () => void;
   onOpenRequest: () => void;
@@ -17,6 +19,7 @@ interface TutorProposalCardProps {
 export function TutorProposalCard({
   proposal,
   request,
+  contractId,
   cancelling,
   onCancel,
   onOpenRequest,
@@ -26,8 +29,11 @@ export function TutorProposalCard({
     <ApplicationSplitCard
       source={{
         eyebrow: 'YÊU CẦU HỌC',
-        subject: request?.subjectName || proposal.subjectName,
-        title: request?.title || proposal.studyingRequestTitle || `Yêu cầu học môn ${proposal.subjectName}`,
+        subject: request?.subjectName || proposal.subjectName || 'Môn học',
+        title:
+          request?.title ||
+          proposal.studyingRequestTitle ||
+          `Yêu cầu học môn ${request?.subjectName || proposal.subjectName || 'Môn học'}`,
         grade: request?.gradeName || proposal.gradeName,
         highlights: [
           {
@@ -55,10 +61,18 @@ export function TutorProposalCard({
           }
         ],
         authorLabel: 'Đăng bởi',
-        authorName: [request?.studentFirstName, request?.studentLastName].filter(Boolean).join(' ') || 'Học viên',
-        createdText: request
-          ? `Đăng ngày ${new Date(request.createdAt).toLocaleDateString('vi-VN')}`
-          : 'Chưa có ngày đăng',
+        authorName:
+          [request?.studentFirstName ?? proposal.studentFirstName, request?.studentLastName ?? proposal.studentLastName]
+            .filter(Boolean)
+            .join(' ') || 'Học viên',
+        authorProfileId: request?.studentId ?? proposal.studentId,
+        authorProfileRole: 'student',
+        statusLabel: requestStatusLabel(request, proposal, contractId),
+        statusClass: requestStatusClass(request, proposal, contractId),
+        createdText:
+          request?.createdAt || proposal.studyingRequestCreatedAt
+            ? `Đăng ngày ${new Date(request?.createdAt ?? proposal.studyingRequestCreatedAt!).toLocaleDateString('vi-VN')}`
+            : 'Chưa có ngày đăng',
         onOpen: onOpenRequest
       }}
       application={{
@@ -91,7 +105,11 @@ export function TutorProposalCard({
             : []),
           ...(proposal.message?.trim() ? [{ label: 'Lời nhắn', value: proposal.message }] : [])
         ],
-        footerText: proposal.nextStep || `Đã gửi ${new Date(proposal.createdAt).toLocaleDateString('vi-VN')}`,
+        footerText: contractId
+          ? 'Đã có hợp đồng'
+          : proposal.nextStep
+            ? tutorNextStepLabel(proposal.nextStep)
+            : `Đã gửi ${new Date(proposal.createdAt).toLocaleDateString('vi-VN')}`,
         actions:
           proposal.status === 'PENDING' ? (
             <>
@@ -102,8 +120,13 @@ export function TutorProposalCard({
                 {cancelling ? 'Đang hủy…' : 'Hủy đề xuất'}
               </button>
             </>
+          ) : proposal.status === 'ACCEPTED' && contractId ? (
+            <Link className="tutor-button" to={`/tutor/sections/contracts/${contractId}`}>
+              Xem hợp đồng
+            </Link>
           ) : undefined
       }}
+      onCardOpen={onOpenRequest}
     />
   );
 }
@@ -125,4 +148,40 @@ function formatBudget(min?: number | null, max?: number | null) {
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function studyingRequestStatusLabel(status: string | null | undefined) {
+  return (
+    {
+      DRAFT: 'Bản nháp',
+      PENDING_REVIEW: 'Chờ duyệt',
+      OPEN: 'Đang mở',
+      MATCHED: 'Đã kết nối',
+      CLOSED: 'Đã đóng',
+      CANCELLED: 'Đã hủy',
+      REJECTED: 'Bị từ chối'
+    } as Record<string, string>
+  )[status ?? 'OPEN'];
+}
+
+function requestStatusLabel(
+  request: StudyingRequestSearchResponse | undefined,
+  proposal: TutorTeachingProposal,
+  contractId: string | undefined
+) {
+  if (proposal.status === 'ACCEPTED' && proposal.nextStep === 'CONTRACT_SIGNING' && !contractId) {
+    return 'Chờ học viên tạo hợp đồng';
+  }
+  return studyingRequestStatusLabel(request?.status ?? proposal.studyingRequestStatus);
+}
+
+function requestStatusClass(
+  request: StudyingRequestSearchResponse | undefined,
+  proposal: TutorTeachingProposal,
+  contractId: string | undefined
+) {
+  if (proposal.status === 'ACCEPTED' && proposal.nextStep === 'CONTRACT_SIGNING' && !contractId) {
+    return 'status-request-contract';
+  }
+  return `status-request-${(request?.status ?? proposal.studyingRequestStatus ?? 'OPEN').toLowerCase()}`;
 }

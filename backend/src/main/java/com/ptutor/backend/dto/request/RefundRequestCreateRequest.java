@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 public record RefundRequestCreateRequest(
@@ -30,6 +31,11 @@ public record RefundRequestCreateRequest(
             @NotNull(message = "Lesson ID is required")
             UUID lessonId,
             @NotNull(message = "Claimed outcome is required")
-            LessonOutcome claimedOutcome) {
+            LessonOutcome claimedOutcome,
+            @Min(value = 1, message = "Missing minutes must be positive") Integer missedMinutes) {
+
+        public DisputedLesson(UUID lessonId, LessonOutcome claimedOutcome) {
+            this(lessonId, claimedOutcome, null);
+        }
     }
 }

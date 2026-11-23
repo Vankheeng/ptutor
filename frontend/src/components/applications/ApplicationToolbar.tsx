@@ -12,6 +12,14 @@ interface ApplicationToolbarProps {
   selectedFilter: string;
   onFilterChange: (value: string) => void;
   filterAriaLabel: string;
+  filterLabel?: string;
+  secondaryFilter?: {
+    value: string;
+    onChange: (value: string) => void;
+    ariaLabel: string;
+    label: string;
+    options: readonly ApplicationToolbarFilter[];
+  };
 }
 
 export function ApplicationToolbar({
@@ -22,7 +30,9 @@ export function ApplicationToolbar({
   filters,
   selectedFilter,
   onFilterChange,
-  filterAriaLabel
+  filterAriaLabel,
+  filterLabel,
+  secondaryFilter
 }: ApplicationToolbarProps) {
   return (
     <div className="tutor-proposal-controls">
@@ -35,20 +45,38 @@ export function ApplicationToolbar({
           aria-label={searchAriaLabel}
         />
       </label>
-      <div className="tutor-filter-tabs" role="tablist" aria-label={filterAriaLabel}>
-        {filters.map((filter) => (
-          <button
-            key={filter.value}
-            className={selectedFilter === filter.value ? 'active' : ''}
-            type="button"
-            role="tab"
-            aria-selected={selectedFilter === filter.value}
-            onClick={() => onFilterChange(filter.value)}
+      <label className="tutor-filter-group">
+        {filterLabel && <span className="tutor-filter-group-label">{filterLabel}</span>}
+        <select
+          className="tutor-request-status-filter"
+          value={selectedFilter}
+          aria-label={filterAriaLabel}
+          onChange={(event) => onFilterChange(event.target.value)}
+        >
+          {filters.map((filter) => (
+            <option key={filter.value} value={filter.value}>
+              {filter.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {secondaryFilter && (
+        <label className="tutor-filter-group tutor-filter-select-group">
+          <span className="tutor-filter-group-label">{secondaryFilter.label}</span>
+          <select
+            className="tutor-request-status-filter"
+            value={secondaryFilter.value}
+            aria-label={secondaryFilter.ariaLabel}
+            onChange={(event) => secondaryFilter.onChange(event.target.value)}
           >
-            {filter.label}
-          </button>
-        ))}
-      </div>
+            {secondaryFilter.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }

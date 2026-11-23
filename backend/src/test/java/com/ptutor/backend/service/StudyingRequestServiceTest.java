@@ -55,6 +55,7 @@ import com.ptutor.backend.mapper.StudyingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
 import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentRepository;
 import com.ptutor.backend.repository.StudyingRequestAvailabilityRepository;
 import com.ptutor.backend.repository.StudyingRequestRepository;
@@ -73,6 +74,7 @@ class StudyingRequestServiceTest {
     @Mock StudentRepository studentRepository;
     @Mock SubjectRepository subjectRepository;
     @Mock GradeRepository gradeRepository;
+    @Mock PaymentRepository paymentRepository;
     @Mock DistrictRepository districtRepository;
     @Mock EmployeeRepository employeeRepository;
     @Mock ApplicationEventPublisher eventPublisher;
@@ -98,6 +100,7 @@ class StudyingRequestServiceTest {
                 studentRepository,
                 subjectRepository,
                 gradeRepository,
+                paymentRepository,
                 districtRepository,
                 employeeRepository,
                 Clock.fixed(NOW, ZoneOffset.UTC),

@@ -1,11 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import type { Contract, ContractSchedule } from '../../services/studentApi';
+import { quarterHourTimes } from '../ui/quarterHourTimes';
 
 const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
-const times = Array.from(
-  { length: 48 },
-  (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`
-);
 
 export function StudentContractEditForm({
   contract,
@@ -36,7 +33,7 @@ export function StudentContractEditForm({
   return (
     <form className="student-form-grid" onSubmit={(event) => void submit(event)}>
       <label>
-        Giá
+        Giá mỗi buổi học (VNĐ/buổi)
         <input value={price} type="number" min="0" onChange={(event) => setPrice(event.target.value)} required />
       </label>
       {!schedules.length && (
@@ -72,7 +69,7 @@ export function StudentContractEditForm({
                   value={schedule.startTime}
                   onChange={(event) => update(index, { startTime: event.target.value })}
                 >
-                  {times.map((time) => (
+                  {quarterHourTimes.map((time) => (
                     <option key={time}>{time}</option>
                   ))}
                 </select>
@@ -80,7 +77,7 @@ export function StudentContractEditForm({
               <label>
                 Đến
                 <select value={schedule.endTime} onChange={(event) => update(index, { endTime: event.target.value })}>
-                  {times.map((time) => (
+                  {quarterHourTimes.map((time) => (
                     <option key={time}>{time}</option>
                   ))}
                 </select>
