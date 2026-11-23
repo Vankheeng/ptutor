@@ -23,6 +23,10 @@ import com.ptutor.backend.entity.enums.ContractStatus;
 import jakarta.persistence.LockModeType;
 
 public interface ContractRepository extends JpaRepository<Contract, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select contract from Contract contract where contract.id = :contractId")
+    Optional<Contract> findByIdForSettlement(@Param("contractId") UUID contractId);
+
 
     @Query("""
             select contract

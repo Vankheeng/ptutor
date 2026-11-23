@@ -107,6 +107,8 @@ class RefundRequestServiceTest {
         lenient().when(studentRepository.findByUser_Id(studentUser.getId())).thenReturn(Optional.of(student));
         lenient().when(contractRepository.findByIdAndParticipantUserId(contract.getId(), studentUser.getId()))
                 .thenReturn(Optional.of(contract));
+        lenient().when(contractRepository.findByIdForSettlement(contract.getId()))
+                .thenReturn(Optional.of(contract));
         lenient().when(paymentRepository.findAllForContract(contract.getId(), ReferenceType.CONTRACT))
                 .thenReturn(List.of(paid));
         lenient().when(refundRequestRepository.saveAndFlush(any(RefundRequest.class))).thenAnswer(invocation -> {

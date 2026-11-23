@@ -93,6 +93,11 @@ public final class SecurityConstants {
             "/api/v1/admin/transactions/**"
     };
 
+    public static final String[] ADMIN_WALLET_API = {
+            "/api/v1/admin/wallets",
+            "/api/v1/admin/wallets/**"
+    };
+
     public static final String[] ADMIN_SUBJECT_API = {
             "/api/v1/admin/subjects"
     };

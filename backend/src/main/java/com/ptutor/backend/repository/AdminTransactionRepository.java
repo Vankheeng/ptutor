@@ -59,7 +59,7 @@ public class AdminTransactionRepository {
             + "else 'INTERNAL' end";
     private static final String SELECT = "select tx.id, tx.source, tx.type, tx.method, tx.status, tx.amount, "
             + "tx.reference_type, tx.reference_id, tx.description, tx.occurred_at, u.id, "
-            + "trim(concat_ws(' ', u.first_name, u.last_name)), u.email, tx.purpose, "
+            + "trim(concat_ws(' ', u.last_name, u.first_name)), u.email, tx.purpose, "
             + FLOW + " as flow, tx.transaction_code, tx.transfer_reference ";
 
     private final EntityManager entityManager;
@@ -88,6 +88,21 @@ public class AdminTransactionRepository {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();
         return rows.stream().findFirst().map(this::map);
+    }
+
+    public Page<AdminTransactionResponse> findAllForWalletUser(UUID userId, Pageable pageable) {
+        String condition = " where tx.source = 'WALLET_TRANSACTION' and tx.user_id = :userId";
+        Query query = entityManager.createNativeQuery(SELECT + FROM + condition
+                + " order by tx.occurred_at desc, tx.id desc limit :limit offset :offset");
+        query.setParameter("userId", userId);
+        query.setParameter("limit", pageable.getPageSize());
+        query.setParameter("offset", pageable.getOffset());
+        Query count = entityManager.createNativeQuery("select count(*) " + FROM + condition);
+        count.setParameter("userId", userId);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return new PageImpl<>(rows.stream().map(this::map).toList(), pageable,
+                ((Number) count.getSingleResult()).longValue());
     }
 
     public AdminTransactionSummaryResponse summarize(

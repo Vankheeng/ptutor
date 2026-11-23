@@ -1697,6 +1697,316 @@ html:has(.admin-shell) {
 .admin-transaction-summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+
+/* Admin wallet overview */
+.admin-wallet-page {
+  max-width: 1380px;
+  margin: 0 auto;
+  gap: 24px;
+}
+.admin-wallet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.admin-wallet-shortcuts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-wallet-shortcuts a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #ded5ef;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--admin-brand-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color .15s ease, background .15s ease;
+}
+.admin-wallet-shortcuts a:hover,
+.admin-wallet-shortcuts a:focus-visible {
+  border-color: var(--admin-brand);
+  background: #f6f1ff;
+}
+.admin-wallet-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-wallet-metric {
+  min-width: 0;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: var(--admin-surface);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.admin-wallet-metric:hover,
+.admin-wallet-metric:focus-visible {
+  border-color: var(--admin-brand);
+  background: #fcfaff;
+}
+.admin-wallet-metric-primary {
+  color: var(--admin-ink);
+}
+.admin-wallet-metric-primary:hover,
+.admin-wallet-metric-primary:focus-visible { border-color: var(--admin-brand); }
+.admin-wallet-metric-label {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-wallet-metric-primary .admin-wallet-metric-label { color: var(--admin-muted); }
+.admin-wallet-metric strong {
+  display: block;
+  max-width: 100%;
+  margin-top: 10px;
+  color: var(--admin-ink);
+  font-size: 24px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.admin-wallet-metric-primary strong {
+  color: var(--admin-brand-ink);
+  font-size: 24px;
+}
+.admin-wallet-metric-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.admin-wallet-metric-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding: 12px 0 0;
+  color: var(--admin-brand-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.admin-wallet-metric:hover .admin-wallet-metric-link { text-decoration: underline; }
+.admin-wallet-directory { overflow: hidden; }
+.admin-wallet-directory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 24px 18px;
+}
+.admin-wallet-directory-header h2 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -.02em;
+}
+.admin-wallet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f3eff9;
+}
+.admin-wallet-tabs button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--admin-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-wallet-tabs button.active {
+  background: #fff;
+  color: var(--admin-brand-ink);
+  box-shadow: 0 2px 8px rgb(39 19 84 / 10%);
+}
+.admin-wallet-tab-count {
+  display: inline-grid;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: #e9e0fa;
+  color: var(--admin-brand-ink);
+  font-size: 11px;
+}
+.admin-wallet-directory .admin-transaction-filters {
+  padding: 0 24px 20px;
+  background: #fff;
+  border-radius: 0;
+}
+.admin-wallet-directory .admin-transaction-search-row { align-items: flex-end; }
+.admin-wallet-directory .admin-transaction-search-row input { background: #faf9fc; }
+.admin-wallet-table { min-width: 880px; }
+.admin-wallet-tuition-table { min-width: 1180px; }
+.admin-wallet-page .admin-modal-xl {
+  max-width: 920px;
+  height: auto;
+  max-height: calc(100vh - 64px);
+}
+.admin-contract-dialog-content { padding: 22px 24px 24px; }
+.admin-contract-dialog-title { display: inline-flex; align-items: center; gap: 12px; }
+.admin-contract-back-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--admin-border);
+  border-radius: 9px;
+  background: #fff;
+  color: #5730ae;
+  font: inherit;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+.admin-contract-back-button:hover { background: #f2edfc; }
+.admin-contract-dialog-context {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.65fr;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #f7f4fd;
+  border: 1px solid #e9e2f7;
+  border-radius: 14px;
+}
+.admin-contract-dialog-context > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.admin-contract-dialog-context span, .admin-contract-detail-facts dt { color: var(--admin-muted); font-size: 12px; font-weight: 700; }
+.admin-contract-dialog-context strong { font-size: 14px; }
+.admin-contract-dialog-code { overflow-wrap: anywhere; font-size: 12px; }
+.admin-contract-transaction-list { display: grid; gap: 10px; margin-top: 18px; }
+.admin-contract-transaction-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 145px 145px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  text-align: left;
+  color: var(--admin-ink);
+  background: #fff;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+}
+.admin-contract-transaction-item:hover, .admin-contract-transaction-item:focus-visible {
+  border-color: #7851dc;
+  background: #fcfaff;
+  outline: none;
+  box-shadow: 0 3px 12px rgba(81, 45, 152, .08);
+}
+.admin-contract-transaction-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #6035c5;
+  background: #f1eafd;
+  font-size: 20px;
+  font-weight: 700;
+}
+.admin-contract-transaction-icon-tuition_refund { color: #aa4d2b; background: #fff1e9; }
+.admin-contract-transaction-icon-tutor_payout { color: #14764a; background: #e8f8ef; }
+.admin-wallet-credit-icon { color: var(--admin-success); background: var(--admin-success-soft); }
+.admin-wallet-debit-icon { color: var(--admin-brand-ink); background: var(--admin-brand-soft); }
+.admin-contract-transaction-main, .admin-contract-transaction-right { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.admin-contract-transaction-main strong, .admin-contract-transaction-right strong { font-size: 15px; }
+.admin-contract-transaction-main small, .admin-contract-transaction-right small, .admin-contract-transaction-date { color: var(--admin-muted); font-size: 13px; }
+.admin-contract-transaction-right { text-align: right; }
+.admin-contract-dialog-content .admin-card-footer { padding: 15px 2px 0; border: 0; }
+.admin-contract-detail { display: grid; justify-items: start; gap: 18px; margin-top: 18px; }
+.admin-contract-detail-hero {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  background: #f7f4fd;
+  border-radius: 14px;
+}
+.admin-contract-detail-hero > div { display: grid; gap: 8px; }
+.admin-contract-detail-hero span { color: var(--admin-muted); font-size: 13px; font-weight: 700; }
+.admin-contract-detail-hero strong { color: #4c22b0; font-size: 28px; }
+.admin-contract-detail-facts {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.admin-contract-detail-facts > div { min-width: 0; padding: 14px 16px; border: 1px solid var(--admin-border); border-radius: 12px; }
+.admin-contract-detail-facts dt { margin-bottom: 7px; }
+.admin-contract-detail-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.admin-contract-detail-wide { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .admin-wallet-page .admin-modal-xl { max-height: calc(100vh - 24px); }
+  .admin-contract-dialog-content { padding: 16px; }
+  .admin-contract-dialog-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-contract-dialog-context > div:last-child { grid-column: 1 / -1; }
+  .admin-contract-transaction-item { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; padding: 12px; }
+  .admin-contract-transaction-date { grid-column: 2; }
+  .admin-contract-transaction-right { grid-column: 3; grid-row: 1 / span 2; }
+  .admin-contract-detail-facts { grid-template-columns: 1fr; }
+}
+.admin-wallet-table thead { background: #faf9fc; }
+.admin-wallet-table th { font-size: 13px; }
+.admin-wallet-table td { padding-top: 16px; padding-bottom: 16px; }
+.admin-wallet-table tbody tr:hover { background: #fcfaff; }
+.admin-wallet-amount { font-weight: 700; white-space: nowrap; }
+.admin-wallet-code { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.admin-wallet-role {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #3153a5;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-wallet-role-tutor { background: #f0e9ff; color: #6331b7; }
+.admin-wallet-role-other { background: #f0eef3; color: #625b6b; }
+.admin-wallet-row-button { min-height: 36px !important; }
+.admin-wallet-row-button:hover { border-color: var(--admin-brand); color: var(--admin-brand-ink); }
+@media (max-width: 1250px) {
+  .admin-wallet-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .admin-wallet-overview { grid-template-columns: 1fr; }
+  .admin-wallet-metric { min-height: 142px; }
+  .admin-wallet-directory-header { padding: 18px 16px; }
+  .admin-wallet-directory .admin-transaction-filters { padding: 0 16px 16px; }
+  .admin-wallet-directory .admin-transaction-search-row { flex-wrap: wrap; }
+  .admin-wallet-directory .admin-transaction-search-row label { flex-basis: 100%; }
+}
 .admin-transaction-filters {
   display: grid;
   gap: 16px;

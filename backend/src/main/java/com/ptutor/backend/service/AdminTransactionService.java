@@ -52,6 +52,12 @@ public class AdminTransactionService {
                         "Transaction not found: " + id));
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<AdminTransactionResponse> findAllForWalletUser(UUID userId, int page, int size) {
+        Page<AdminTransactionResponse> result = repository.findAllForWalletUser(userId, PageRequest.of(page, size));
+        return PageResponse.from(result, result.getContent());
+    }
+
     private void validateDates(LocalDate fromDate, LocalDate toDate) {
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_DATE_RANGE", "fromDate must not be after toDate");

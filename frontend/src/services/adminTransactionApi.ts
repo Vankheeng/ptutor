@@ -58,3 +58,7 @@ export function getAdminTransactionSummary(filters: AdminTransactionFilters, sig
 export function getAdminTransaction(source: TransactionSource, id: string, signal?: AbortSignal) {
   return get<AdminTransaction>(`${base}/${source}/${id}`, { signal });
 }
+
+export function getAdminWalletUserTransactions(userId: string, page: number, signal?: AbortSignal) {
+  return get<PageResponse<AdminTransaction>>(`${base}/wallets/users/${userId}?page=${page}&size=20`, { signal });
+}

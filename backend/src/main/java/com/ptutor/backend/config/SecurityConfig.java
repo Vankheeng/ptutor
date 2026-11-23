@@ -50,6 +50,7 @@ import static com.ptutor.backend.config.SecurityConstants.ADMIN_CONTRACT_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_REFUND_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_WITHDRAWAL_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TRANSACTION_API;
+import static com.ptutor.backend.config.SecurityConstants.ADMIN_WALLET_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_STUDYING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_TEACHING_REQUEST_API;
 import static com.ptutor.backend.config.SecurityConstants.ADMIN_GRADE_API;
@@ -180,6 +181,7 @@ public class SecurityConfig {
                         .requestMatchers(ADMIN_REFUND_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_WITHDRAWAL_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TRANSACTION_API).hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(ADMIN_WALLET_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_TEACHING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_STUDYING_REQUEST_API).hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(ADMIN_SUBJECT_API).hasAnyRole("ADMIN", "EMPLOYEE")
