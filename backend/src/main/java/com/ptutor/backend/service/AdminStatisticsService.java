@@ -46,12 +46,12 @@ public class AdminStatisticsService {
                 select
                   (select coalesce(sum(amount), 0) from payments
                     where deleted_at is null and paid_at >= :from and paid_at < :to
-                      and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT')
+                      and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
                       and status = 'PAID') as total_revenue,
                   (select coalesce(sum(amount), 0) from payments
                     where deleted_at is null and paid_at >= :from and paid_at < :to
                       and payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
-                      and status = 'PAID') as platform_fees,
+                      and status in ('PAID', 'REFUNDED')) as platform_fees,
                   (select coalesce(sum(amount), 0) from payments
                     where deleted_at is null and paid_at >= :from and paid_at < :to
                       and payment_type = 'TUITION_PAYMENT' and status = 'PAID') as tuition_revenue,
@@ -87,9 +87,9 @@ public class AdminStatisticsService {
                 """;
         Map<String, String> series = new LinkedHashMap<>();
         series.put("totalRevenue", paymentSeries(
-                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT') and status = 'PAID'", "sum(amount)"));
-        series.put("platformFees", paymentSeries(
                 "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status = 'PAID'", "sum(amount)"));
+        series.put("platformFees", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status in ('PAID', 'REFUNDED')", "sum(amount)"));
         series.put("tuitionRevenue", paymentSeries(
                 "payment_type = 'TUITION_PAYMENT' and status = 'PAID'", "sum(amount)"));
         series.put("platformRevenue", paymentSeries(
@@ -423,11 +423,11 @@ public class AdminStatisticsService {
         String metrics = """
                 select
                   coalesce(sum(amount) filter (where payment_type in
-                      ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT')
+                      ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
                       and status = 'PAID'), 0) as total_revenue,
                   coalesce(sum(amount) filter (where payment_type in
                       ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
-                      and status = 'PAID'), 0) as platform_fees,
+                      and status in ('PAID', 'REFUNDED')), 0) as platform_fees,
                   coalesce(sum(amount) filter (where payment_type = 'TUITION_PAYMENT'
                       and status = 'PAID'), 0) as tuition_revenue,
                   coalesce(sum(amount) filter (where payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE')
@@ -448,9 +448,9 @@ public class AdminStatisticsService {
         breakdowns.put("paymentMethod", paidPaymentBreakdown("payment_method"));
         Map<String, String> series = new LinkedHashMap<>();
         series.put("totalRevenue", paymentSeries(
-                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE', 'TUITION_PAYMENT') and status = 'PAID'", "sum(amount)"));
-        series.put("platformFees", paymentSeries(
                 "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status = 'PAID'", "sum(amount)"));
+        series.put("platformFees", paymentSeries(
+                "payment_type in ('STUDYING_REQUEST_FEE', 'TEACHING_REQUEST_FEE') and status in ('PAID', 'REFUNDED')", "sum(amount)"));
         series.put("tuitionRevenue", paymentSeries(
                 "payment_type = 'TUITION_PAYMENT' and status = 'PAID'", "sum(amount)"));
         series.put("platformRevenue", paymentSeries(
