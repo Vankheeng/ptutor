@@ -387,6 +387,7 @@ export function TutorDashboardPage() {
       {cancellationLesson && (
         <TutorLessonCancellationDialog
           busy={lessonBusy}
+          lesson={cancellationLesson}
           onClose={() => {
             setCancellationLesson(null);
             setSelectedLesson(cancellationLesson);
