@@ -21,7 +21,7 @@ public interface LessonMapper {
         LessonResponse response = toResponse(lesson);
         return new LessonResponse(
                 response.id(), response.contractId(), response.title(), response.date(),
-                response.startTime(), response.endTime(), response.teachingMode(), response.status(),
+                response.startTime(), response.endTime(), response.teachingMode(), response.meetingLink(), response.status(),
                 response.note(), response.markedTaughtAt(), response.createdAt(), response.updatedAt(), paidAt, refund);
     }
 }

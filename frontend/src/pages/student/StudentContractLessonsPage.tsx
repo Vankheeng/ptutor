@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import {
   confirmContractLesson,
@@ -54,6 +54,7 @@ function sortLessons(lessons: ContractLesson[], order: SortOrder) {
 
 export function StudentContractLessonsPage() {
   const { contractId = '' } = useParams();
+  const navigate = useNavigate();
   const [revision, setRevision] = useState(0);
   const [filter, setFilter] = useState<LessonFilter>('ALL');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
@@ -138,9 +139,13 @@ export function StudentContractLessonsPage() {
 
   return (
     <div className="student-lesson-page student-contract-lessons-page">
-      <Link className="student-lesson-back" to={`/student/contracts/${contractId}`}>
-        ‹ Quay lại hợp đồng
-      </Link>
+      <button
+        className="student-button secondary student-lesson-back"
+        type="button"
+        onClick={() => navigate(`/student/contracts/${contractId}`)}
+      >
+        ← Quay lại hợp đồng
+      </button>
 
       <header className="student-lesson-heading">
         <h1>Danh sách buổi học</h1>
