@@ -621,3 +621,363 @@
     flex-direction: column;
   }
 }
+
+/* Student refund request list. Kept fully namespaced so shared Student/Tutor refund screens are unaffected. */
+.student-refund-list-page {
+  max-width: none;
+  gap: 16px;
+}
+.student-refund-list-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+.student-refund-list-header-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.student-refund-list-header h1 {
+  color: #321267;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.student-refund-list-create {
+  min-height: 40px;
+  padding-inline: 17px;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px #7833df2e;
+}
+.student-refund-list-create > span {
+  font-size: 18px;
+  line-height: 1;
+}
+.student-refund-list-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #eadff8;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 7px 24px #4d25800a;
+}
+.student-refund-list-tabs button {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #e2d7f5;
+  border-radius: 999px;
+  background: #fff;
+  color: #5f4b83;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.student-refund-list-tabs button:hover {
+  border-color: #a982ed;
+  color: #6423c7;
+  transform: translateY(-1px);
+}
+.student-refund-list-tabs button.active {
+  border-color: #8127ea;
+  background: linear-gradient(135deg, #7724e4, #9810eb);
+  color: #fff;
+  box-shadow: 0 7px 15px #7a22df2d;
+}
+.student-refund-list-tabs button span {
+  font-variant-numeric: tabular-nums;
+}
+.student-refund-list-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.student-refund-list-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid #e6daf8;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 8px 26px #4d25800c;
+  color: #2b194c;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.student-refund-list-card:hover,
+.student-refund-list-card:focus-visible {
+  border-color: #a974ed;
+  box-shadow: 0 12px 30px #5e2aaa1a;
+  transform: translateY(-1px);
+  outline: none;
+}
+.student-refund-list-card-section {
+  min-width: 0;
+  min-height: 132px;
+  padding: 18px 20px;
+  position: relative;
+}
+.student-refund-list-card-section + .student-refund-list-card-section::before {
+  content: '';
+  position: absolute;
+  top: 17px;
+  bottom: 17px;
+  left: 0;
+  width: 1px;
+  background: #e6dbf6;
+}
+.student-refund-list-card-main {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+.student-refund-list-card-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #f0e6ff, #f8f3ff);
+  color: #7b28e5;
+}
+.student-refund-list-card-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.student-refund-list-subject {
+  max-width: 100%;
+  padding: 4px 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f3e9ff;
+  color: #7a25d7;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-refund-list-card-copy h2 {
+  max-width: 100%;
+  overflow: hidden;
+  color: #32155e;
+  font-size: 15px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-refund-list-meta {
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #756b8b;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+.student-refund-list-meta svg {
+  flex: none;
+  color: #7950bd;
+}
+.student-refund-list-card-center,
+.student-refund-list-card-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-align: center;
+}
+.student-refund-list-section-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6f5a92;
+  font-size: 11px;
+  font-weight: 700;
+}
+.student-refund-list-section-title svg {
+  color: #7629d6;
+}
+.student-refund-list-tutor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+}
+.student-refund-list-avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ebdbff, #f7f0ff);
+  color: #7528dd;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-refund-list-tutor > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.student-refund-list-tutor strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #38215d;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-refund-list-tutor small,
+.student-refund-list-card-center > small,
+.student-refund-list-card-status > small {
+  color: #8b809d;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+.student-refund-list-amount {
+  color: #7720d8;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.student-refund-list-unknown {
+  color: #625879;
+  font-size: 13px;
+}
+.student-refund-list-empty {
+  min-height: 230px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.student-refund-list-empty > span {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #f2e8ff;
+  color: #7a25df;
+}
+.student-refund-list-empty h2 {
+  color: #352052;
+}
+.student-refund-list-empty p {
+  margin: -5px 0 0;
+  color: #80758f;
+  font-size: 13px;
+}
+.student-refund-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 3px;
+}
+.student-refund-list-pagination button {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #e1d9ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #604d7c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-refund-list-pagination button:first-child,
+.student-refund-list-pagination button:last-child {
+  font-size: 18px;
+}
+.student-refund-list-pagination button.active {
+  border-color: #7924df;
+  background: #7924df;
+  color: #fff;
+  box-shadow: 0 5px 13px #7022d42b;
+}
+.student-refund-list-pagination button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1050px) {
+  .student-refund-list-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .student-refund-list-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .student-refund-list-card-section:nth-child(3)::before {
+    display: none;
+  }
+  .student-refund-list-card-section:nth-child(n + 3) {
+    border-top: 1px solid #eee5f8;
+  }
+}
+
+@media (max-width: 650px) {
+  .student-refund-list-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .student-refund-list-create {
+    align-self: flex-start;
+  }
+  .student-refund-list-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 11px;
+  }
+  .student-refund-list-tabs button {
+    min-height: 36px;
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+  .student-refund-list-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .student-refund-list-card-section {
+    min-height: auto;
+    padding: 16px 18px;
+  }
+  .student-refund-list-card-section + .student-refund-list-card-section::before {
+    top: 0;
+    right: 18px;
+    bottom: auto;
+    left: 18px;
+    width: auto;
+    height: 1px;
+  }
+  .student-refund-list-card-section:nth-child(3)::before {
+    display: block;
+  }
+  .student-refund-list-card-section:nth-child(n + 3) {
+    border-top: 0;
+  }
+  .student-refund-list-card-center,
+  .student-refund-list-card-status {
+    min-height: 96px;
+  }
+}

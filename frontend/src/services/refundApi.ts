@@ -196,8 +196,8 @@ export const confirmContractLesson = (lessonId: string) =>
   post<ContractLesson>(`/api/v1/students/me/lessons/${lessonId}/confirm`);
 
 export const createRefundRequest = (input: RefundCreateInput) => post<RefundRequest>(studentPath, input);
-export const getMyRefundRequests = (page: number, signal?: AbortSignal, status?: RefundRequestStatus) =>
-  get<PageResponse<RefundRequest>>(`${studentPath}${query({ page, size: 20, status })}`, { signal });
+export const getMyRefundRequests = (page: number, signal?: AbortSignal, status?: RefundRequestStatus, size = 20) =>
+  get<PageResponse<RefundRequest>>(`${studentPath}${query({ page, size, status })}`, { signal });
 export const getMyRefundRequest = (id: string, signal?: AbortSignal) =>
   get<RefundRequest>(`${studentPath}/${id}`, { signal });
 export const cancelRefundRequest = (id: string) => patch<RefundRequest>(`${studentPath}/${id}/cancel`);
