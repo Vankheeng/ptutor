@@ -59,7 +59,7 @@ export function LessonCalendarToolbar(props: Props) {
   const isStudentVariant = variant === 'student';
   return (
     <section className={`lc-toolbar${isStudentVariant ? ' student-calendar-toolbar' : ''}`}>
-      <h1>{isStudentVariant ? 'Bộ lọc' : role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>
+      {!isStudentVariant && <h1>{role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>}
       {!isStudentVariant && (
         <>
           <button onClick={props.onToday}>Hôm nay</button>

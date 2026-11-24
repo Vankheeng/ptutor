@@ -14,6 +14,7 @@ export type StudentLessonDetail = {
   endTime: string;
   status: LessonStatus;
   note: string | null;
+  meetingLink?: string | null;
   paidAt?: string | null;
   markedTaughtAt?: string | null;
   disputed?: boolean;
@@ -75,7 +76,6 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
     <aside className="student-lesson-detail">
       <header className="student-lesson-detail-header">
         <div>
-          <span className="student-lesson-kicker">CHI TIẾT BUỔI HỌC</span>
           <h2>{lesson.title || contract?.subjectName || 'Buổi học'}</h2>
         </div>
         {onClose && (
@@ -108,6 +108,20 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
         <Fact label="Ngày học" value={dateLabel} />
         <Fact label="Thời gian" value={`${lesson.startTime.slice(0, 5)} – ${lesson.endTime.slice(0, 5)}`} />
         <Fact label="Hình thức học" value={contract?.teachingMode === 'OFFLINE' ? 'Trực tiếp' : 'Trực tuyến'} />
+        {(contract?.teachingMode !== 'OFFLINE' || lesson.meetingLink) && (
+          <Fact
+            label="Lớp học trực tuyến"
+            value={
+              lesson.meetingLink ? (
+                <a className="student-lesson-meeting-link" href={lesson.meetingLink} target="_blank" rel="noreferrer">
+                  Truy cập lớp học ↗
+                </a>
+              ) : (
+                'Chưa có đường dẫn'
+              )
+            }
+          />
+        )}
         {contract?.teachingMode === 'OFFLINE' && contract.studentDetailAddress && (
           <Fact label="Địa điểm" value={contract.studentDetailAddress} />
         )}
