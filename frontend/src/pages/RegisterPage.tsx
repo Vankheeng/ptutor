@@ -8,7 +8,7 @@ import type { RegisterRequest } from '../types/auth';
 import { PasswordField } from '../components/auth/PasswordField';
 import './AuthPage.css';
 
-type FormValues = RegisterRequest;
+type FormValues = Omit<RegisterRequest, 'gender'> & { gender: RegisterRequest['gender'] | '' };
 type FormErrors = Record<string, string>;
 
 const initialValues: FormValues = {
@@ -18,7 +18,7 @@ const initialValues: FormValues = {
   firstName: '',
   lastName: '',
   phone: '',
-  gender: 'MALE',
+  gender: '',
   dateOfBirth: '',
   citizenId: '',
   provinceId: '',
@@ -88,6 +88,7 @@ export default function RegisterPage() {
     if (!values.firstName.trim()) next.firstName = 'Vui lòng nhập tên.';
     if (!values.lastName.trim()) next.lastName = 'Vui lòng nhập họ.';
     if (!values.phone.trim()) next.phone = 'Vui lòng nhập số điện thoại.';
+    if (!values.gender) next.gender = 'Vui lòng chọn giới tính.';
     if (!values.dateOfBirth) next.dateOfBirth = 'Vui lòng chọn ngày sinh.';
     else if (values.dateOfBirth > maxDate) next.dateOfBirth = 'Ngày sinh không được ở tương lai.';
     if (!/^\d{12}$/.test(values.citizenId)) next.citizenId = 'CCCD phải gồm đúng 12 chữ số.';
@@ -105,7 +106,7 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await register(values);
+      await register({ ...values, gender: values.gender as RegisterRequest['gender'] });
       navigate('/login', {
         replace: true,
         state: { email: values.email, message: 'Đăng ký thành công. Vui lòng đăng nhập để tiếp tục.' }
@@ -132,7 +133,6 @@ export default function RegisterPage() {
         </Link>
         <div className="auth-heading">
           <h1 id="register-title">Tạo tài khoản</h1>
-          <p>Điền thông tin để bắt đầu kết nối với cộng đồng Ptutor.</p>
         </div>
         <form className="auth-form register-form" onSubmit={submit} noValidate>
           <div className="role-picker" role="group" aria-label="Vai trò đăng ký">
@@ -229,6 +229,7 @@ export default function RegisterPage() {
             <label className="auth-field">
               <span>Giới tính</span>
               <select value={values.gender} onChange={(e) => update('gender', e.target.value as FormValues['gender'])}>
+                <option value="">Chọn giới tính</option>
                 <option value="MALE">Nam</option>
                 <option value="FEMALE">Nữ</option>
                 <option value="OTHER">Khác</option>

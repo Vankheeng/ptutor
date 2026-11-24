@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../../auth/useAuth';
 import { ApiError } from '../../../services/httpClient';
 import {
   confirmBankAccountOtp,
@@ -43,6 +44,8 @@ const BANK_OPTIONS = [
 ];
 
 export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCreated, onBankUpdated }: Props) {
+  const { user } = useAuth();
+  const profileName = [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ');
   const [topUpAmount, setTopUpAmount] = useState('500000');
   const [amount, setAmount] = useState('50000');
   const [note, setNote] = useState('');
@@ -53,7 +56,7 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
   const [error, setError] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
-  const [accountHolderName, setAccountHolderName] = useState(bank?.accountHolderName ?? '');
+  const [accountHolderName, setAccountHolderName] = useState(bank?.accountHolderName ?? profileName);
   const [bankChallenge, setBankChallenge] = useState<WalletSecurityChallenge | null>(null);
   const [bankOtp, setBankOtp] = useState('');
 
@@ -247,8 +250,7 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
             <div>
               <span className="wallet-modal-icon">⇧</span>
               <div>
-                <h2 id="wallet-withdraw-title">Lập Lệnh Rút Tiền Về Ngân Hàng</h2>
-                <p>Yêu cầu được gửi chờ Admin đối soát và phê duyệt</p>
+                <h2 id="wallet-withdraw-title">Tạo yêu cầu rút tiền</h2>
               </div>
             </div>
             <button type="button" onClick={close} aria-label="Đóng">
@@ -262,6 +264,10 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
                 <b>Chú ý:</b> Hệ thống không tự động chuyển tiền ngay. Yêu cầu rút sẽ được PTutor kiểm tra và giải ngân
                 theo quy trình xét duyệt.
               </span>
+            </div>
+            <div className="wallet-otp-step">
+              {challenge ? <span>1 · Tạo yêu cầu rút tiền</span> : <b>1 · Tạo yêu cầu rút tiền</b>}
+              {challenge ? <b>2 · Xác thực Email Code</b> : <span>2 · Xác thực Email Code</span>}
             </div>
             {!challenge ? (
               <>
@@ -311,10 +317,6 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
               </>
             ) : (
               <>
-                <div className="wallet-otp-step">
-                  <span>1 · Lập lệnh rút tiền</span>
-                  <b>2 · Xác thực Email Code</b>
-                </div>
                 <div className="wallet-modal-info">
                   Mã OTP 6 chữ số đã được gửi đến email của bạn. Mã hết hạn lúc {formatLocalExpiry(challenge.expiresAt)}
                   .
@@ -393,7 +395,6 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
               <span className="wallet-modal-icon">▤</span>
               <div>
                 <h2 id="wallet-bank-title">Tài Khoản Ngân Hàng Thụ Hưởng</h2>
-                <p>Xác thực thay đổi bằng mã OTP email</p>
               </div>
             </div>
             <button type="button" onClick={close} aria-label="Đóng">
@@ -401,10 +402,6 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
             </button>
           </header>
           <div className="wallet-modal-body">
-            <div className="wallet-modal-info">
-              Tên chủ tài khoản cần khớp với hồ sơ xác minh của bạn. Số tài khoản được lưu an toàn và chỉ hiển thị dạng
-              ẩn.
-            </div>
             {!bankChallenge ? (
               <>
                 {bank && (

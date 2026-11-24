@@ -145,6 +145,11 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
       {lesson.status === 'PENDING_CONFIRMATION' && !waiting && !lesson.refundRequestId && (
         <p className="student-lesson-held-note">Buổi học đang được giữ để xử lý yêu cầu hoàn tiền.</p>
       )}
+      <div className="student-lesson-actions">
+        <Link className="student-lesson-view" to={`/student/contracts/${lesson.contractId}`}>
+          Xem hợp đồng
+        </Link>
+      </div>
     </aside>
   );
 

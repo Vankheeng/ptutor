@@ -5,10 +5,20 @@ type ToastType = 'success' | 'error';
 type ToastItem = { id: number; message: string; type: ToastType };
 
 function normalizeToastMessage(message: string) {
+  if (/A lesson can only be marked as taught after it ends/i.test(message)) {
+    return 'Chỉ có thể đánh dấu buổi học đã dạy sau khi buổi học kết thúc.';
+  }
+  if (/A lesson can only be confirmed after it ends/i.test(message)) {
+    return 'Chỉ có thể xác nhận buổi học sau khi buổi học kết thúc.';
+  }
+  if (/The related tuition installment must be paid before this lesson can be marked as taught/i.test(message)) {
+    return 'Kỳ học phí liên quan phải được thanh toán trước khi đánh dấu buổi học đã dạy.';
+  }
+  if (message.length >= 40) return message;
   return /trùng lịch|lịch(?: học| của (?:gia sư|học viên))?.*bị trùng/i.test(message) ? 'Lịch học bị trùng' : message;
 }
 
-const NOTICE_CLASSES = /(?:^|\s)[\w-]*(?:notice|error|alert|message)[\w-]*(?:\s|$)/i;
+const NOTICE_CLASSES = /(?:^|\s)[\w-]*(?:notice|error|alert|message|success)[\w-]*(?:\s|$)/i;
 
 export function GlobalToastViewport() {
   const [items, setItems] = useState<ToastItem[]>([]);
@@ -23,7 +33,11 @@ export function GlobalToastViewport() {
     const scan = () => {
       frame = 0;
       document.querySelectorAll<HTMLElement>('[role="alert"], [role="status"]').forEach((element) => {
-        if (element.closest('.global-toast-viewport') || element.matches('.tutor-review-pending')) return;
+        if (
+          element.closest('.global-toast-viewport') ||
+          element.matches('.tutor-review-pending, .tutor-lesson-edit-error')
+        )
+          return;
         const role = element.getAttribute('role');
         if (role === 'status' && !NOTICE_CLASSES.test(element.className)) return;
         // Inline notices are intentionally hidden from the page layout, but
