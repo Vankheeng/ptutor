@@ -68,6 +68,7 @@ export interface ContractLesson {
   date: string;
   startTime: string;
   endTime: string;
+  meetingLink: string | null;
   status: LessonStatus;
   note: string | null;
   markedTaughtAt: string | null;

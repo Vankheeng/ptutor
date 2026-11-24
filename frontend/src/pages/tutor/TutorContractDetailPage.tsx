@@ -105,7 +105,8 @@ export function TutorContractDetailPage() {
         title: String(data.get('title') || `Buổi học ${contract.subjectName}`),
         date,
         startTime: String(data.get('startTime')),
-        endTime: String(data.get('endTime'))
+        endTime: String(data.get('endTime')),
+        meetingLink: String(data.get('meetingLink') || '')
       });
       event.currentTarget.reset();
       refreshLessons();
@@ -137,7 +138,8 @@ export function TutorContractDetailPage() {
         title: String(data.get('title') || editingLesson.title),
         date,
         startTime: String(data.get('startTime')),
-        endTime: String(data.get('endTime'))
+        endTime: String(data.get('endTime')),
+        meetingLink: String(data.get('meetingLink') || '')
       });
       setEditingLesson(null);
       refreshLessons();
@@ -429,6 +431,15 @@ export function TutorContractDetailPage() {
                   Giờ kết thúc
                   <TimeSelect name="endTime" required />
                 </label>
+                <label className="tutor-field-full">
+                  Đường dẫn lớp học trực tuyến
+                  <input
+                    name="meetingLink"
+                    type="url"
+                    maxLength={2048}
+                    placeholder="https://meet.google.com/... hoặc https://zoom.us/..."
+                  />
+                </label>
                 <div className="tutor-form-actions tutor-field-full">
                   <button className="tutor-button" disabled={busy}>
                     {busy ? 'Đang tạo...' : 'Tạo buổi học'}
@@ -594,6 +605,16 @@ export function TutorContractDetailPage() {
             <label>
               Giờ kết thúc
               <TimeSelect name="endTime" defaultValue={editingLesson.endTime.slice(0, 5)} required />
+            </label>
+            <label>
+              Đường dẫn lớp học trực tuyến
+              <input
+                name="meetingLink"
+                type="url"
+                maxLength={2048}
+                defaultValue={editingLesson.meetingLink ?? ''}
+                placeholder="https://meet.google.com/... hoặc https://zoom.us/..."
+              />
             </label>
             {error && (
               <div className="tutor-lesson-edit-error" role="alert">
