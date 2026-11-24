@@ -981,3 +981,470 @@
     min-height: 96px;
   }
 }
+
+/* Student refund request detail. Namespaced to avoid changing Tutor refund screens. */
+.student-refund-detail-page {
+  max-width: none;
+  gap: 14px;
+}
+.student-refund-detail-back {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e1d9ec;
+  border-radius: 10px;
+  background: #fff;
+  color: #5c4a73;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px #4d25800b;
+}
+.student-refund-detail-back:hover {
+  border-color: #ad8bdc;
+  color: #6728bd;
+}
+.student-refund-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.student-refund-detail-header h1 {
+  color: #32135f;
+  font-size: 27px;
+}
+.student-refund-detail-cancel {
+  min-height: 38px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #ef5a55;
+  border-radius: 10px;
+  background: #fff;
+  color: #d5312e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-refund-detail-cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.student-refund-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.student-refund-detail-main,
+.student-refund-detail-sidebar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.student-refund-detail-card {
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid #e7dcf7;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 25px #4d25800b;
+}
+.student-refund-detail-card-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ede6f6;
+  color: #371568;
+  font-size: 16px;
+  font-weight: 800;
+}
+.student-refund-detail-card-title svg {
+  flex: none;
+  color: #8325e6;
+}
+.student-refund-detail-information-body {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 0;
+}
+.student-refund-detail-main-icon {
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #ecd9ff, #f7edff);
+  color: #801fe1;
+}
+.student-refund-detail-information-copy {
+  min-width: 0;
+}
+.student-refund-detail-claim-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.student-refund-detail-claim-badges span {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f1e4ff;
+  color: #811bd7;
+  font-size: 10px;
+  font-weight: 800;
+}
+.student-refund-detail-information-copy h3 {
+  margin: 8px 0 13px;
+  color: #321653;
+  font-size: 17px;
+  line-height: 1.35;
+}
+.student-refund-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #eee8f5;
+}
+.student-refund-detail-facts > div {
+  min-width: 0;
+  padding: 11px 12px 3px 0;
+}
+.student-refund-detail-facts > div:not(:nth-child(3n + 1)) {
+  padding-left: 12px;
+  border-left: 1px solid #eee8f5;
+}
+.student-refund-detail-facts small,
+.student-refund-detail-participants small {
+  display: block;
+  color: #847794;
+  font-size: 10px;
+}
+.student-refund-detail-facts strong,
+.student-refund-detail-participants strong {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #3e3150;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}
+.student-refund-detail-participants {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 13px;
+  border-top: 1px solid #e9e1f3;
+}
+.student-refund-detail-participants > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+.student-refund-detail-participants > div:first-child {
+  padding-left: 0;
+}
+.student-refund-detail-participants > div + div {
+  border-left: 1px solid #e9e1f3;
+}
+.student-refund-detail-participants > div > svg {
+  flex: none;
+  color: #7629d7;
+}
+.student-refund-detail-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eee0ff;
+  color: #7726db;
+  font-size: 10px;
+  font-weight: 800;
+}
+.student-refund-detail-content > p,
+.student-refund-detail-tutor-response > p {
+  margin: 13px 0 0;
+  color: #4d415d;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+.student-refund-detail-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 13px;
+}
+.student-refund-detail-evidence {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #eee7f5;
+  border-radius: 10px;
+  background: #fff;
+}
+.student-refund-detail-evidence-preview {
+  width: 78px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #f2e8ff;
+  color: #7d2cdf;
+}
+.student-refund-detail-evidence-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.student-refund-detail-evidence-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.student-refund-detail-evidence-copy strong {
+  overflow: hidden;
+  color: #3d3150;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-refund-detail-evidence-copy small {
+  color: #8b8099;
+  font-size: 10px;
+}
+.student-refund-detail-download {
+  min-height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dcbdf9;
+  border-radius: 8px;
+  background: #f5e8ff;
+  color: #7b21d5;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.student-refund-detail-empty-copy {
+  margin: 13px 0 0;
+  color: #8a8095;
+  font-size: 12px;
+}
+.student-refund-detail-response-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ede6f6;
+}
+.student-refund-detail-response-heading .student-refund-detail-card-title {
+  padding: 0;
+  border: 0;
+}
+.student-refund-detail-response-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #79678f;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.student-refund-detail-response-heading > span svg {
+  color: #7e2ed8;
+}
+.student-refund-detail-tutor-response > small {
+  display: block;
+  margin-top: 7px;
+  color: #887c94;
+  font-size: 10px;
+}
+.student-refund-detail-status-card {
+  text-align: center;
+}
+.student-refund-detail-status-card .student-refund-detail-card-title {
+  text-align: left;
+}
+.student-refund-detail-status-badge {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+.student-refund-detail-status-badge .rf-badge {
+  min-width: 150px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.student-refund-detail-status-card > p {
+  margin: 11px 0 0;
+  color: #766b84;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.student-refund-detail-refunded-amount {
+  display: block;
+  margin-top: 10px;
+  color: #0f7c50;
+  font-size: 14px;
+}
+.student-refund-detail-rejection {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff0f1;
+  color: #a02d37;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: left;
+}
+.student-refund-detail-timeline {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+.student-refund-detail-timeline > div {
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  position: relative;
+}
+.student-refund-detail-timeline > div:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 25px;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: #e0d2f1;
+}
+.student-refund-detail-timeline > div > span {
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ccb6e8;
+  border-radius: 50%;
+  background: #fff;
+  color: #9273b9;
+  font-size: 10px;
+  font-weight: 800;
+}
+.student-refund-detail-timeline > div.done > span {
+  border-color: #8d20ec;
+  background: #8d20ec;
+  color: #fff;
+}
+.student-refund-detail-timeline > div.active > span {
+  border-color: #8d20ec;
+  color: #8d20ec;
+}
+.student-refund-detail-timeline > div > div {
+  min-width: 0;
+}
+.student-refund-detail-timeline strong {
+  display: block;
+  color: #402258;
+  font-size: 12px;
+}
+.student-refund-detail-timeline small {
+  display: block;
+  margin-top: 3px;
+  color: #947db0;
+  font-size: 9.5px;
+}
+.student-refund-detail-timeline p {
+  margin: 4px 0 0;
+  color: #766887;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .student-refund-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .student-refund-detail-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .student-refund-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-refund-detail-header h1 {
+    font-size: 23px;
+  }
+  .student-refund-detail-information-body {
+    grid-template-columns: 1fr;
+  }
+  .student-refund-detail-main-icon {
+    width: 58px;
+    height: 58px;
+  }
+  .student-refund-detail-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .student-refund-detail-facts > div:not(:nth-child(3n + 1)) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .student-refund-detail-facts > div:nth-child(even) {
+    padding-left: 11px;
+    border-left: 1px solid #eee8f5;
+  }
+  .student-refund-detail-participants,
+  .student-refund-detail-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .student-refund-detail-participants {
+    gap: 10px;
+  }
+  .student-refund-detail-participants > div,
+  .student-refund-detail-participants > div:first-child {
+    padding: 0;
+  }
+  .student-refund-detail-participants > div + div {
+    padding-top: 10px;
+    border-top: 1px solid #eee8f5;
+    border-left: 0;
+  }
+  .student-refund-detail-response-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .student-refund-detail-evidence {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+  .student-refund-detail-evidence-preview {
+    width: 58px;
+  }
+  .student-refund-detail-download {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    justify-content: center;
+  }
+}
