@@ -480,7 +480,13 @@ export function TutorContractDetailPage() {
                   lesson={lesson}
                   key={lesson.id}
                   onEdit={() => setEditingLesson(lesson)}
-                  onCancel={() => setCancellationLesson(lesson)}
+                  onCancel={() => {
+                    if (!lesson.paidAt) {
+                      void cancelLesson(lesson);
+                      return;
+                    }
+                    setCancellationLesson(lesson);
+                  }}
                   onMarkTaught={() => void markLessonTaught(lesson)}
                   editable={contract.status === 'ACTIVE'}
                 />
@@ -589,6 +595,11 @@ export function TutorContractDetailPage() {
               Giờ kết thúc
               <TimeSelect name="endTime" defaultValue={editingLesson.endTime.slice(0, 5)} required />
             </label>
+            {error && (
+              <div className="tutor-lesson-edit-error" role="alert">
+                {error}
+              </div>
+            )}
             <div className="tutor-form-actions">
               <button
                 className="tutor-button secondary"
@@ -611,6 +622,7 @@ export function TutorContractDetailPage() {
       {cancellationLesson && (
         <TutorLessonCancellationDialog
           busy={busy}
+          lesson={cancellationLesson}
           onClose={() => setCancellationLesson(null)}
           onEdit={() => {
             setCancellationLesson(null);

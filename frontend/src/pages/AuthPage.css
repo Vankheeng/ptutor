@@ -25,7 +25,7 @@
 .auth-switch a { color: #7041cf; font-weight: 700; text-decoration: none; }
 .role-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 5px; border-radius: 12px; background: #f5f0fd; }
 .role-picker button { border: 0; border-radius: 9px; padding: 11px; background: transparent; color: #786e89; font-size: 12px; font-weight: 700; cursor: pointer; }
-.role-picker button.selected { background: var(--purple-600); color: #000; box-shadow: 0 4px 12px rgb(81 39 165 / 18%); }
+.role-picker button.selected { background: var(--purple-600); color: #fff; box-shadow: 0 4px 12px rgb(81 39 165 / 18%); }
 .forgot-password-link { justify-self: end; color: var(--purple-700); font-size: 12px; font-weight: 700; text-decoration: none; }
 .forgot-password-link:hover, .auth-back:hover, .auth-switch a:hover { color: var(--purple-800); }
 .otp-email { padding: 12px 14px; border-radius: 10px; background: var(--purple-50); color: var(--muted); font-size: 12px; line-height: 1.5; }
