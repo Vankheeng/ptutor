@@ -18,6 +18,7 @@ public record LessonResponse(
         LocalTime startTime,
         LocalTime endTime,
         TeachingMode teachingMode,
+        String meetingLink,
         LessonStatus status,
         String note,
         LocalDateTime markedTaughtAt,
@@ -39,7 +40,25 @@ public record LessonResponse(
             LocalDateTime markedTaughtAt,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
-        this(id, contractId, title, date, startTime, endTime, teachingMode, status, note,
+        this(id, contractId, title, date, startTime, endTime, teachingMode, null, status, note,
+                markedTaughtAt, createdAt, updatedAt, null, null);
+    }
+
+    public LessonResponse(
+            UUID id,
+            UUID contractId,
+            String title,
+            LocalDate date,
+            LocalTime startTime,
+            LocalTime endTime,
+            TeachingMode teachingMode,
+            String meetingLink,
+            LessonStatus status,
+            String note,
+            LocalDateTime markedTaughtAt,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
+        this(id, contractId, title, date, startTime, endTime, teachingMode, meetingLink, status, note,
                 markedTaughtAt, createdAt, updatedAt, null, null);
     }
 

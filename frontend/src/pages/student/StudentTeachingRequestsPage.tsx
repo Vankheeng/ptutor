@@ -59,9 +59,7 @@ export function StudentTeachingRequestsPage() {
     <>
       <header className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">TÌM KIẾM GIA SƯ</span>
           <h1>Tìm kiếm gia sư</h1>
-          <p>Tìm những yêu cầu dạy phù hợp với nhu cầu học tập của bạn.</p>
         </div>
         <span className="tutor-count">{filteredRequests.length} kết quả</span>
       </header>

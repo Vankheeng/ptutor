@@ -177,7 +177,7 @@ export function ComplaintDetailPage({
     : 'Chưa cập nhật';
 
   return (
-    <div className="student-complaint-detail-page">
+    <div className="student-complaint-detail-page student-complaint-detail-page--redesigned">
       <button className="student-complaint-back" type="button" onClick={() => navigate(backPath)}>
         <span aria-hidden="true">←</span> Quay lại danh sách khiếu nại
       </button>
@@ -364,6 +364,7 @@ export function ComplaintDetailPage({
                 contract={contract}
                 mode={mode}
                 role={role}
+                variant="redesigned"
                 contractHref={`${basePath.startsWith('/tutor') ? '/tutor/sections/contracts' : '/student/contracts'}/${complaint.contractId}`}
               />
               {mode === 'received' &&
@@ -382,18 +383,11 @@ export function ComplaintDetailPage({
               )}
             </main>
             <aside className="student-complaint-detail-side">
-              <ComplaintCurrentStatus complaint={complaint} />
+              <ComplaintCurrentStatus complaint={complaint} title="Trạng thái" />
               <ComplaintProgress complaint={complaint} />
-              <ComplaintResult complaint={complaint} mode={mode} />
-              <section className="student-complaint-note">
-                <h2>
-                  <Icon name="bell" size={17} /> Lưu ý
-                </h2>
-                <ul>
-                  <li>Bạn có thể gửi thêm minh chứng trong thời gian khiếu nại đang được xử lý.</li>
-                  <li>Sau khi có kết quả, bạn sẽ nhận được thông báo qua hệ thống.</li>
-                </ul>
-              </section>
+              {(complaint.status === 'RESOLVED' || complaint.status === 'REJECTED') && (
+                <ComplaintResult complaint={complaint} mode={mode} />
+              )}
               {mode === 'submitted' && complaint.status === 'AWAITING_EVIDENCE' && (
                 <section className="student-complaint-action-panel student-complaint-evidence-action">
                   {!evidenceOpen ? (
@@ -437,7 +431,13 @@ export function ComplaintDetailPage({
   );
 }
 
-function ComplaintCurrentStatus({ complaint }: { complaint: StudentComplaint }) {
+function ComplaintCurrentStatus({
+  complaint,
+  title = 'Trạng thái hiện tại'
+}: {
+  complaint: StudentComplaint;
+  title?: string;
+}) {
   const active = complaint.status === 'IN_REVIEW' || complaint.status === 'AWAITING_EVIDENCE';
   const final = complaint.status === 'RESOLVED' || complaint.status === 'REJECTED';
   const message =
@@ -452,7 +452,7 @@ function ComplaintCurrentStatus({ complaint }: { complaint: StudentComplaint }) 
   return (
     <section className="student-panel student-complaint-current-status">
       <h2 className="student-complaint-card-title">
-        <Icon name="bell" size={18} /> Trạng thái hiện tại
+        <Icon name="bell" size={18} /> {title}
       </h2>
       <div className="student-complaint-current-status-badge">
         <ComplaintStatusBadge status={complaint.status} />

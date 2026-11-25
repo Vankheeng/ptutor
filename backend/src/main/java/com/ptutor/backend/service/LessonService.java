@@ -1,5 +1,6 @@
 package com.ptutor.backend.service;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -101,6 +102,7 @@ public class LessonService {
                 .startTime(source.startTime())
                 .endTime(source.endTime())
                 .teachingMode(contract.getTeachingMode())
+                .meetingLink(normalizeMeetingLink(source.meetingLink()))
                 .note(normalize(source.note()))
                 .status(LessonStatus.SCHEDULED)
                 .build();
@@ -175,6 +177,7 @@ public class LessonService {
         lesson.setDate(source.date());
         lesson.setStartTime(source.startTime());
         lesson.setEndTime(source.endTime());
+        lesson.setMeetingLink(normalizeMeetingLink(source.meetingLink()));
         lesson.setNote(normalize(source.note()));
         Lesson saved = lessonRepository.saveAndFlush(lesson);
         installmentService.updatePendingLessonInstallmentDueDate(saved);
@@ -534,6 +537,23 @@ public class LessonService {
 
     private String normalize(String value) {
         return value == null ? null : value.strip();
+    }
+
+    private String normalizeMeetingLink(String value) {
+        String normalized = normalize(value);
+        if (normalized == null || normalized.isBlank()) return null;
+        try {
+            URI uri = URI.create(normalized);
+            String scheme = uri.getScheme();
+            if (("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+                    && uri.getHost() != null && !uri.getHost().isBlank()) {
+                return normalized;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Converted to the domain validation error below.
+        }
+        throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_LESSON_MEETING_LINK",
+                "Meeting link must be a valid HTTP or HTTPS URL");
     }
 
     private <T> T require(T value, String code, String message) {

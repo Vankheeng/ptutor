@@ -2,6 +2,7 @@ import type { Contract } from '../../../services/studentApi';
 import { ProfileNameLink } from '../../common-user/ProfileNameLink';
 import type { ContractLesson } from '../../../services/refundApi';
 import { confirmationDeadline, formatDateTimeValue, timeLeft } from '../../refund/refundFormat';
+import { Icon } from '../../ui/Icon';
 import { isLessonFinished } from './studentLessonUtils';
 
 type Props = {
@@ -11,14 +12,6 @@ type Props = {
   busy?: boolean;
   onConfirm: () => void;
   onRefund: () => void;
-};
-
-const statusLabels: Record<ContractLesson['status'], string> = {
-  SCHEDULED: 'Đã lên lịch',
-  PENDING_CONFIRMATION: 'Chờ xác nhận',
-  CONFIRMED: 'Đã học',
-  COMPLETED: 'Đã hoàn tất',
-  CANCELLED: 'Đã hủy'
 };
 
 const tone: Record<ContractLesson['status'], string> = {
@@ -42,32 +35,38 @@ function dateParts(value: string) {
 }
 
 export function StudentLessonCard({ lesson, contract, held = false, busy, onConfirm, onRefund }: Props) {
-  const waitingForPayment = lesson.status === 'SCHEDULED' && !lesson.paidAt;
+  const waitingForPayment = !lesson.paidAt;
   const finished = isLessonFinished(lesson);
   const canAct = lesson.status === 'PENDING_CONFIRMATION' && finished && !held;
   const deadline = canAct ? confirmationDeadline(lesson.markedTaughtAt) : null;
   const tutorName =
     [contract?.tutorFirstName, contract?.tutorLastName].filter(Boolean).join(' ') || 'Chưa có thông tin';
   const date = dateParts(lesson.date);
+  const paymentLabel = held ? 'Đang xử lý hoàn tiền' : waitingForPayment ? 'Chưa thanh toán' : 'Đã thanh toán';
+  const paymentTone = held ? 'pending' : waitingForPayment ? 'waiting-payment' : 'success';
 
   return (
     <article className={`student-lesson-card ${waitingForPayment ? 'waiting-payment' : tone[lesson.status]}`}>
-      <div className="student-lesson-card-date" aria-label={`Ngày học ${date.weekday} ${date.day}/${date.monthYear}`}>
-        <span>{date.weekday}</span>
-        <strong>{date.day}</strong>
-        <small>{date.monthYear}</small>
-      </div>
+      <div className="student-lesson-card-summary">
+        <div className="student-lesson-card-date" aria-label={`Ngày học ${date.weekday} ${date.day}/${date.monthYear}`}>
+          <span>{date.weekday}</span>
+          <strong>{date.day}</strong>
+          <small>{date.monthYear}</small>
+        </div>
 
-      <div className="student-lesson-card-content">
-        <strong>
-          {lesson.startTime.slice(0, 5)} – {lesson.endTime.slice(0, 5)}
-        </strong>
-        <b>{lesson.title || contract?.subjectName || 'Buổi học'}</b>
-        {lesson.note && <small>▧ {lesson.note}</small>}
+        <div className="student-lesson-card-content">
+          <strong>
+            {lesson.startTime.slice(0, 5)} – {lesson.endTime.slice(0, 5)}
+          </strong>
+          <b>{lesson.title || contract?.subjectName || 'Buổi học'}</b>
+          {lesson.note && <small>▧ {lesson.note}</small>}
+        </div>
       </div>
 
       <div className="student-lesson-card-tutor">
-        <span>♙ Gia sư</span>
+        <span className="student-lesson-card-section-label">
+          <Icon name="user" size={11} /> Gia sư
+        </span>
         <strong>
           <ProfileNameLink role="tutor" profileId={contract?.tutorId}>
             {tutorName}
@@ -76,22 +75,44 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
       </div>
 
       <div className="student-lesson-card-state">
-        <span className={`student-lesson-badge ${tone[lesson.status]}`}>
-          {held ? 'Đang xử lý hoàn tiền' : waitingForPayment ? 'Chờ thanh toán' : statusLabels[lesson.status]}
+        <span className="student-lesson-card-section-label">
+          <Icon name="wallet" size={11} /> Tình trạng thanh toán
         </span>
-        {lesson.status === 'PENDING_CONFIRMATION' && held && (
-          <small>Buổi học đang được giữ để xử lý yêu cầu hoàn tiền.</small>
-        )}
-        {lesson.status === 'PENDING_CONFIRMATION' && !held && !finished && (
-          <small>Chưa đến thời điểm xác nhận buổi học.</small>
-        )}
-        {lesson.status === 'SCHEDULED' && finished && <small>Đang chờ gia sư xác nhận buổi học.</small>}
-        {deadline && (
-          <small>
-            Hạn xác nhận: {formatDateTimeValue(deadline)} · {timeLeft(deadline)}
-          </small>
+        <span className={`student-lesson-badge ${paymentTone}`}>{paymentLabel}</span>
+      </div>
+
+      <div className="student-lesson-card-meeting">
+        <span className="student-lesson-card-section-label">
+          <Icon name="book" size={11} /> Lớp học trực tuyến
+        </span>
+        {lesson.meetingLink ? (
+          <a href={lesson.meetingLink} target="_blank" rel="noreferrer">
+            Truy cập lớp học <span aria-hidden="true">↗</span>
+          </a>
+        ) : (
+          <small>Chưa có đường dẫn</small>
         )}
       </div>
+
+      {(held ||
+        (lesson.status === 'PENDING_CONFIRMATION' && !finished) ||
+        (lesson.status === 'SCHEDULED' && finished) ||
+        deadline) && (
+        <div className="student-lesson-card-notes">
+          {lesson.status === 'PENDING_CONFIRMATION' && held && (
+            <small>Buổi học đang được giữ để xử lý yêu cầu hoàn tiền.</small>
+          )}
+          {lesson.status === 'PENDING_CONFIRMATION' && !held && !finished && (
+            <small>Chưa đến thời điểm xác nhận buổi học.</small>
+          )}
+          {lesson.status === 'SCHEDULED' && finished && <small>Đang chờ gia sư xác nhận buổi học.</small>}
+          {deadline && (
+            <small>
+              Hạn xác nhận: {formatDateTimeValue(deadline)} · {timeLeft(deadline)}
+            </small>
+          )}
+        </div>
+      )}
 
       <div className="student-lesson-card-actions">
         {canAct ? (
