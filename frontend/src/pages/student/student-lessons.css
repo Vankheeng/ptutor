@@ -158,3 +158,4 @@
   .student-contract-lessons-page .student-lesson-card-actions{grid-column:1;flex-direction:column;border-top:0}
   .student-contract-lessons-page .student-lesson-card-actions button{width:100%;min-width:0}
 }
+.student-lesson-card{cursor:pointer}.student-lesson-card-open{position:absolute;inset:0;z-index:0;width:100%;height:100%;padding:0;border:0;border-radius:inherit;background:transparent;cursor:pointer}.student-lesson-card>:not(.student-lesson-card-open){position:relative;z-index:1;pointer-events:none}.student-lesson-card a,.student-lesson-card button:not(.student-lesson-card-open){position:relative;z-index:2;pointer-events:auto}.student-lesson-card-open:focus-visible{outline:2px solid #7625df;outline-offset:-3px}

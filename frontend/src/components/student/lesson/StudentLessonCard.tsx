@@ -10,6 +10,7 @@ type Props = {
   contract?: Contract | null;
   held?: boolean;
   busy?: boolean;
+  onOpen: () => void;
   onConfirm: () => void;
   onRefund: () => void;
 };
@@ -34,7 +35,7 @@ function dateParts(value: string) {
   };
 }
 
-export function StudentLessonCard({ lesson, contract, held = false, busy, onConfirm, onRefund }: Props) {
+export function StudentLessonCard({ lesson, contract, held = false, busy, onOpen, onConfirm, onRefund }: Props) {
   const waitingForPayment = !lesson.paidAt;
   const finished = isLessonFinished(lesson);
   const canAct = lesson.status === 'PENDING_CONFIRMATION' && finished && !held;
@@ -47,6 +48,12 @@ export function StudentLessonCard({ lesson, contract, held = false, busy, onConf
 
   return (
     <article className={`student-lesson-card ${waitingForPayment ? 'waiting-payment' : tone[lesson.status]}`}>
+      <button
+        className="student-lesson-card-open"
+        type="button"
+        aria-label={`Xem chi tiết buổi học ${lesson.title || contract?.subjectName || ''}, ${date.weekday} ${date.day}/${date.monthYear}`}
+        onClick={onOpen}
+      />
       <div className="student-lesson-card-summary">
         <div className="student-lesson-card-date" aria-label={`Ngày học ${date.weekday} ${date.day}/${date.monthYear}`}>
           <span>{date.weekday}</span>

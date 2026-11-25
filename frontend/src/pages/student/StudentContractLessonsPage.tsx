@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useResource } from '../../hooks/useResource';
 import {
@@ -11,6 +11,7 @@ import {
 import { getContract, type Contract } from '../../services/studentApi';
 import { refundErrorMessage } from '../../components/refund/refundFormat';
 import { StudentLessonCard } from '../../components/student/lesson/StudentLessonCard';
+import { StudentLessonDetailPanel } from '../../components/student/lesson/StudentLessonDetailPanel';
 import { StudentLessonRefundDialog } from '../../components/student/lesson/StudentLessonRefundDialog';
 import { isLessonFinished } from '../../components/student/lesson/studentLessonUtils';
 import './student-lessons.css';
@@ -61,6 +62,7 @@ export function StudentContractLessonsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('NEWEST');
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [page, setPage] = useState(0);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [refundLessonId, setRefundLessonId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -101,6 +103,7 @@ export function StudentContractLessonsPage() {
   const totalPages = Math.max(1, Math.ceil(filteredLessons.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
   const pageLessons = filteredLessons.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const selectedLesson = data?.lessons.find((lesson) => lesson.id === selectedLessonId) ?? null;
   const refundLesson = data?.lessons.find((lesson) => lesson.id === refundLessonId) ?? null;
   const lessons = data?.lessons ?? [];
   const learnedCount = lessons.filter(
@@ -111,6 +114,15 @@ export function StudentContractLessonsPage() {
   const cancelledCount = lessons.filter((lesson) => lesson.status === 'CANCELLED').length;
   const expectedLessons = lessons.length;
   const progress = expectedLessons > 0 ? Math.min(100, Math.round((learnedCount / expectedLessons) * 100)) : 0;
+
+  useEffect(() => {
+    if (!selectedLessonId) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedLessonId(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [selectedLessonId]);
 
   const confirm = async (lesson: ContractLesson) => {
     if (!isLessonFinished(lesson)) {
@@ -315,6 +327,7 @@ export function StudentContractLessonsPage() {
               contract={contract}
               held={heldIds.has(lesson.id)}
               busy={busyId === lesson.id}
+              onOpen={() => setSelectedLessonId(lesson.id)}
               onConfirm={() => void confirm(lesson)}
               onRefund={() => setRefundLessonId(lesson.id)}
             />
@@ -383,6 +396,25 @@ export function StudentContractLessonsPage() {
             setMessage({ tone: 'success', text: 'Đã gửi yêu cầu hoàn tiền.' });
             setRevision((value) => value + 1);
           }}
+        />
+      )}
+
+      {selectedLesson && (
+        <StudentLessonDetailPanel
+          lesson={{
+            ...selectedLesson,
+            disputed: heldIds.has(selectedLesson.id),
+            refundRequestId: heldIds.has(selectedLesson.id) ? openRefund?.id : null
+          }}
+          contract={contract}
+          busy={busyId === selectedLesson.id}
+          onConfirm={() => void confirm(selectedLesson)}
+          onRefund={() => {
+            setSelectedLessonId(null);
+            setRefundLessonId(selectedLesson.id);
+          }}
+          onClose={() => setSelectedLessonId(null)}
+          dialog
         />
       )}
     </div>

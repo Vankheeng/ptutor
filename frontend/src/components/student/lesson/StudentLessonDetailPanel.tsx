@@ -42,11 +42,20 @@ type Props = {
   contract?: Contract | null;
   busy?: boolean;
   onConfirm?: () => void;
+  onRefund?: () => void;
   onClose?: () => void;
   dialog?: boolean;
 };
 
-export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, onClose, dialog = false }: Props) {
+export function StudentLessonDetailPanel({
+  lesson,
+  contract,
+  busy,
+  onConfirm,
+  onRefund,
+  onClose,
+  dialog = false
+}: Props) {
   if (!lesson) {
     return (
       <aside className="student-lesson-detail student-lesson-detail-empty">
@@ -146,9 +155,15 @@ export function StudentLessonDetailPanel({ lesson, contract, busy, onConfirm, on
           <button className="student-lesson-confirm" type="button" disabled={busy} onClick={onConfirm}>
             ✓ Xác nhận đã học
           </button>
-          <Link className="student-lesson-refund" to={`/student/contracts/${lesson.contractId}/refund-request`}>
-            △ Yêu cầu hoàn tiền
-          </Link>
+          {onRefund ? (
+            <button className="student-lesson-refund" type="button" disabled={busy} onClick={onRefund}>
+              △ Yêu cầu hoàn tiền
+            </button>
+          ) : (
+            <Link className="student-lesson-refund" to={`/student/contracts/${lesson.contractId}/refund-request`}>
+              △ Yêu cầu hoàn tiền
+            </Link>
+          )}
         </div>
       )}
       {heldByRefund && lesson.refundRequestId && (
