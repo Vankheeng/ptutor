@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AreaPicker } from '../../components/recommendation/AreaPicker';
-import { AvailabilityEditor } from '../../components/recommendation/AvailabilityEditor';
 import { SavedSearchControls } from '../../components/recommendation/SavedSearches';
 import { hasInvalidSlot } from '../../components/recommendation/availability';
 import { TagChips } from '../../components/recommendation/TagChips';
@@ -25,7 +23,7 @@ import {
   type StudentSearchFilters
 } from '../../services/recommendationApi';
 import { getSubjects } from '../../services/subjectApi';
-import { getMyTeachingRequests, getTutorProfile } from '../../services/tutorApi';
+import { getMyTeachingRequests } from '../../services/tutorApi';
 import type { Grade, Subject, TeachingRequest } from '../../types/api';
 import { formatCurrency } from '../../utils/formatters';
 import { TutorStudentSearchPage } from './TutorStudentSearchPage';
@@ -42,9 +40,9 @@ export function TutorStudentRecommendationsPage() {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [segmentTags, setSegmentTags] = useState<RecommendationTag[]>([]);
   const [myPostings, setMyPostings] = useState<TeachingRequest[]>([]);
-  const [homeProvinceId, setHomeProvinceId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<StudentSearchFilters>({});
+  const [activeSmartFilters, setActiveSmartFilters] = useState<StudentSearchFilters>({});
   const [regularFilters, setRegularFilters] = useState<TutorStudentFilters>(initialTutorStudentFilters);
   const [appliedRegularFilters, setAppliedRegularFilters] = useState<TutorStudentFilters>(initialTutorStudentFilters);
   const [regularSearchVersion, setRegularSearchVersion] = useState(0);
@@ -81,9 +79,6 @@ export function TutorStudentRecommendationsPage() {
     getMyTeachingRequests('OPEN', controller.signal)
       .then(setMyPostings)
       .catch(() => undefined);
-    getTutorProfile(controller.signal)
-      .then((profile) => setHomeProvinceId(profile.address?.provinceId ?? null))
-      .catch(() => undefined);
     return () => controller.abort();
   }, []);
 
@@ -105,6 +100,7 @@ export function TutorStudentRecommendationsPage() {
       }
       setError('');
       setResultsMode('smart');
+      setActiveSmartFilters(searchFilters);
       setResult(null);
       setIsSearching(true);
       try {
@@ -145,6 +141,8 @@ export function TutorStudentRecommendationsPage() {
     const slots = regularFilters.scheduleSlots
       .filter((slot) => slot.dayOfWeek && slot.startTime && slot.endTime)
       .map((slot) => ({ dayOfWeek: Number(slot.dayOfWeek), startTime: slot.startTime, endTime: slot.endTime }));
+    const minimum = Number(regularFilters.minBudget) || 0;
+    const maximum = Number(regularFilters.maxBudget) || 0;
     const next: StudentSearchFilters = {
       ...filters,
       ...(regularFilters.subjectId ? { subjectId: regularFilters.subjectId } : {}),
@@ -152,7 +150,7 @@ export function TutorStudentRecommendationsPage() {
         ? { gradeIds: Array.from(new Set([regularFilters.gradeId, ...(filters.gradeIds ?? [])])) }
         : {}),
       ...(regularFilters.learningMode !== 'ALL' ? { learningMode: regularFilters.learningMode } : {}),
-      ...(!filters.area && regularFilters.districtId
+      ...(regularFilters.districtId
         ? {
             area: {
               scope: 'DISTRICTS' as const,
@@ -160,15 +158,14 @@ export function TutorStudentRecommendationsPage() {
               districtIds: [regularFilters.districtId]
             }
           }
-        : !filters.area && regularFilters.provinceId
+        : regularFilters.provinceId
           ? { area: { scope: 'PROVINCE' as const, provinceId: regularFilters.provinceId } }
           : {}),
-      ...((filters.expectedPrice === undefined || filters.expectedPrice === null) && regularFilters.maxBudget
-        ? { expectedPrice: Number(regularFilters.maxBudget) }
+      ...(regularFilters.maxBudget || regularFilters.minBudget
+        ? { expectedPrice: minimum && maximum ? Math.round((minimum + maximum) / 2) : minimum || maximum }
         : {}),
-      ...(!filters.availabilities?.length && slots.length ? { availabilities: slots } : {})
+      ...(slots.length ? { availabilities: slots } : {})
     };
-    setFilters(next);
     void run(next);
   };
 
@@ -177,6 +174,7 @@ export function TutorStudentRecommendationsPage() {
     setAppliedRegularFilters({ ...initialTutorStudentFilters });
     setRegularSearchVersion((version) => version + 1);
     setFilters({});
+    setActiveSmartFilters({});
     setFromSentence(new Set());
     setNotes([]);
     setSentence('');
@@ -271,7 +269,7 @@ export function TutorStudentRecommendationsPage() {
   };
 
   const applyRelaxation = (relaxation: Relaxation) => {
-    const next = { ...filters, ...relaxation.apply } as StudentSearchFilters;
+    const next = { ...activeSmartFilters, ...relaxation.apply } as StudentSearchFilters;
     setFilters(next);
     void run(next);
   };
@@ -341,47 +339,30 @@ export function TutorStudentRecommendationsPage() {
                 </select>
               </label>
             )}
-            <div className="rec-field">
+            <div className="rec-field tutor-smart-grades">
               <span>Thêm lớp cho gợi ý {mark('gradeIds')}</span>
-              <div className="rec-chips">
-                {grades.map((grade) => {
-                  const chosen = (filters.gradeIds ?? []).includes(grade.id);
-                  return (
-                    <button
-                      key={grade.id}
-                      type="button"
-                      className={chosen ? 'rec-chip active' : 'rec-chip'}
-                      aria-pressed={chosen}
-                      onClick={() => toggleGrade(grade.id)}
-                    >
+              <details className="rec-tag-dropdown tutor-grade-dropdown">
+                <summary>
+                  {filters.gradeIds?.length
+                    ? grades
+                        .filter((grade) => filters.gradeIds?.includes(grade.id))
+                        .map((grade) => grade.name)
+                        .join(', ')
+                    : 'Chọn thêm lớp'}
+                </summary>
+                <div className="rec-tag-options">
+                  {grades.map((grade) => (
+                    <label key={grade.id}>
+                      <input
+                        type="checkbox"
+                        checked={(filters.gradeIds ?? []).includes(grade.id)}
+                        onChange={() => toggleGrade(grade.id)}
+                      />
                       {grade.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="rec-field">
-              <span>Khu vực gợi ý mở rộng {mark('area')}</span>
-              <AreaPicker value={filters.area} onChange={(area) => change({ area })} homeProvinceId={homeProvinceId} />
-            </div>
-            <label className="rec-field">
-              <span>Học phí mong muốn mỗi buổi (đồng) {mark('expectedPrice')}</span>
-              <input
-                type="number"
-                min={0}
-                step={10000}
-                value={filters.expectedPrice ?? ''}
-                onChange={(event) =>
-                  change({ expectedPrice: event.target.value === '' ? undefined : Number(event.target.value) })
-                }
-              />
-            </label>
-            <div className="rec-field">
-              <span>Lịch rảnh cho gợi ý {mark('availabilities')}</span>
-              <AvailabilityEditor
-                value={filters.availabilities ?? []}
-                onChange={(next) => change({ availabilities: next.length ? next : undefined })}
-              />
+                    </label>
+                  ))}
+                </div>
+              </details>
             </div>
             <div className="rec-field">
               <span>Đối tượng muốn dạy {mark('targetSegmentCodes')}</span>
@@ -394,14 +375,19 @@ export function TutorStudentRecommendationsPage() {
           </div>
         }
       />
+      {error && (
+        <div className="tutor-error" role="alert">
+          {error}
+        </div>
+      )}
       <div className="tutor-student-saved-searches">
         <SavedSearchControls
           direction="TUTOR_TO_STUDENT"
-          filters={filters}
+          filters={activeSmartFilters}
           suggestedName={[
-            subjects.find((subject) => subject.id === filters.subjectId)?.name,
+            subjects.find((subject) => subject.id === activeSmartFilters.subjectId)?.name,
             grades
-              .filter((grade) => (filters.gradeIds ?? []).includes(grade.id))
+              .filter((grade) => (activeSmartFilters.gradeIds ?? []).includes(grade.id))
               .map((grade) => grade.name)
               .join(', ')
           ]
@@ -428,12 +414,6 @@ export function TutorStudentRecommendationsPage() {
                 : 'Gợi ý thông minh'}
             </strong>
           </div>
-          {error && (
-            <div className="tutor-error" role="alert">
-              {error}
-            </div>
-          )}
-
           {notVerified && (
             <div className="tutor-empty">
               <h3>Hồ sơ của bạn chưa được duyệt</h3>
@@ -444,7 +424,9 @@ export function TutorStudentRecommendationsPage() {
             </div>
           )}
 
-          {!result && !isSearching && !notVerified && (
+          {isSearching && <div className="tutor-empty">Đang tìm học viên phù hợp…</div>}
+
+          {!result && !isSearching && !notVerified && !error && (
             <div className="tutor-empty">
               <h3>Chọn môn và lớp rồi bấm “Tìm học viên phù hợp”</h3>
             </div>

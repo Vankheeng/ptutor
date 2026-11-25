@@ -51,16 +51,19 @@ export function TutorStudentSearchFilters({
   return (
     <div className="tutor-student-filter-panel">
       <div className="tutor-student-search-basic">
-        <label className="tutor-search">
-          <Icon name="search" size={18} />
-          <input
-            type="search"
-            value={filters.search}
-            onChange={(event) => update({ search: event.target.value })}
-            placeholder={searchPlaceholder}
-            aria-label={searchAriaLabel}
-          />
-        </label>
+        <div className="tutor-search-field">
+          <span>Từ khóa</span>
+          <label className="tutor-search">
+            <Icon name="search" size={18} />
+            <input
+              type="search"
+              value={filters.search}
+              onChange={(event) => update({ search: event.target.value })}
+              placeholder={searchPlaceholder}
+              aria-label={searchAriaLabel}
+            />
+          </label>
+        </div>
         <label>
           Môn học
           <select value={filters.subjectId} onChange={(event) => update({ subjectId: event.target.value })}>
@@ -212,37 +215,45 @@ export function TutorStudentSearchFilters({
               + Thêm ngày / giờ
             </button>
           </fieldset>
-          <label>
-            Giá từ
-            <input
-              type="number"
-              min="0"
-              value={filters.minBudget}
-              onChange={(event) => update({ minBudget: event.target.value })}
-              placeholder="₫ tối thiểu"
-            />
-          </label>
-          <label>
-            Giá đến
-            <input
-              type="number"
-              min="0"
-              value={filters.maxBudget}
-              onChange={(event) => update({ maxBudget: event.target.value })}
-              placeholder="₫ tối đa"
-            />
-          </label>
+          <div className="tutor-student-price-filter">
+            <span>Học phí mỗi buổi (đồng)</span>
+            <div>
+              <input
+                type="number"
+                min="0"
+                value={filters.minBudget}
+                onChange={(event) => update({ minBudget: event.target.value })}
+                placeholder="Từ"
+                aria-label="Học phí tối thiểu"
+              />
+              <input
+                type="number"
+                min="0"
+                value={filters.maxBudget}
+                onChange={(event) => update({ maxBudget: event.target.value })}
+                placeholder="Đến"
+                aria-label="Học phí tối đa"
+              />
+            </div>
+          </div>
           {advancedContent && <div className="tutor-student-ai-fields">{advancedContent}</div>}
         </div>
       )}
       <div className="tutor-student-filter-actions">
         {onClear && (
-          <button className="tutor-button secondary" type="button" onClick={onClear}>
+          <button
+            className="tutor-button secondary"
+            type="button"
+            onClick={() => {
+              onClear();
+              setShowAdvanced(false);
+            }}
+          >
             Xoá bộ lọc
           </button>
         )}
         <button className="tutor-button" type="button" onClick={onSearch}>
-          Tìm kiếm
+          Tìm học viên
         </button>
         {showAdvanced && onSmartSearch && (
           <button
