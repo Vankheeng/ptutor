@@ -16,7 +16,6 @@ import {
   recordEvent,
   refineStudents,
   searchStudents,
-  type ModePreference,
   type RecommendationAction,
   type RecommendationTag,
   type Relaxation,
@@ -29,16 +28,14 @@ import { getSubjects } from '../../services/subjectApi';
 import { getMyTeachingRequests, getTutorProfile } from '../../services/tutorApi';
 import type { Grade, Subject, TeachingRequest } from '../../types/api';
 import { formatCurrency } from '../../utils/formatters';
+import { TutorStudentSearchPage } from './TutorStudentSearchPage';
+import { TutorStudentSearchFilters, type TutorStudentFilters } from './components/TutorStudentSearchFilters';
+import { initialTutorStudentFilters } from './tutorStudentFilterDefaults';
 
 const PAGE_SIZE = 20;
-const MODES: { value: ModePreference; label: string }[] = [
-  { value: 'ANY', label: 'Cả hai' },
-  { value: 'ONLINE', label: 'Online' },
-  { value: 'OFFLINE', label: 'Trực tiếp' }
-];
 const NEEDS_INPUT: Record<string, string> = { subjectId: 'môn dạy', gradeIds: 'lớp' };
 
-/** "Gợi ý học viên": studying postings ranked for this tutor (design 05, 5.3). Students are shown in short. */
+/** Shared tutor search: ordinary request list and ranked student recommendations. */
 export function TutorStudentRecommendationsPage() {
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -48,6 +45,10 @@ export function TutorStudentRecommendationsPage() {
   const [homeProvinceId, setHomeProvinceId] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<StudentSearchFilters>({});
+  const [regularFilters, setRegularFilters] = useState<TutorStudentFilters>(initialTutorStudentFilters);
+  const [appliedRegularFilters, setAppliedRegularFilters] = useState<TutorStudentFilters>(initialTutorStudentFilters);
+  const [regularSearchVersion, setRegularSearchVersion] = useState(0);
+  const [resultsMode, setResultsMode] = useState<'regular' | 'smart'>('regular');
   const [usePostingId, setUsePostingId] = useState('');
   const [sentence, setSentence] = useState('');
   const [fromSentence, setFromSentence] = useState<Set<string>>(new Set());
@@ -97,16 +98,18 @@ export function TutorStudentRecommendationsPage() {
 
   /** @param savedSearchId run a saved search: the server uses its saved criteria */
   const run = useCallback(
-    async (searchFilters: StudentSearchFilters, savedSearchId?: string) => {
+    async (searchFilters: StudentSearchFilters, savedSearchId?: string, postingId = usePostingId) => {
       if (hasInvalidSlot(searchFilters.availabilities ?? [])) {
         setError('Khung giờ rảnh chưa hợp lệ: giờ kết thúc phải sau giờ bắt đầu.');
         return;
       }
       setError('');
+      setResultsMode('smart');
+      setResult(null);
       setIsSearching(true);
       try {
         const response = await searchStudents(
-          { filters: searchFilters, useTeachingRequestId: usePostingId || undefined, savedSearchId },
+          { filters: searchFilters, useTeachingRequestId: postingId || undefined, savedSearchId },
           PAGE_SIZE
         );
         setNotVerified(false);
@@ -131,6 +134,58 @@ export function TutorStudentRecommendationsPage() {
     [usePostingId]
   );
 
+  const runRegular = () => {
+    setAppliedRegularFilters({ ...regularFilters });
+    setRegularSearchVersion((version) => version + 1);
+    setResultsMode('regular');
+    setError('');
+  };
+
+  const runSmart = () => {
+    const slots = regularFilters.scheduleSlots
+      .filter((slot) => slot.dayOfWeek && slot.startTime && slot.endTime)
+      .map((slot) => ({ dayOfWeek: Number(slot.dayOfWeek), startTime: slot.startTime, endTime: slot.endTime }));
+    const next: StudentSearchFilters = {
+      ...filters,
+      ...(regularFilters.subjectId ? { subjectId: regularFilters.subjectId } : {}),
+      ...(regularFilters.gradeId
+        ? { gradeIds: Array.from(new Set([regularFilters.gradeId, ...(filters.gradeIds ?? [])])) }
+        : {}),
+      ...(regularFilters.learningMode !== 'ALL' ? { learningMode: regularFilters.learningMode } : {}),
+      ...(!filters.area && regularFilters.districtId
+        ? {
+            area: {
+              scope: 'DISTRICTS' as const,
+              provinceId: regularFilters.provinceId,
+              districtIds: [regularFilters.districtId]
+            }
+          }
+        : !filters.area && regularFilters.provinceId
+          ? { area: { scope: 'PROVINCE' as const, provinceId: regularFilters.provinceId } }
+          : {}),
+      ...((filters.expectedPrice === undefined || filters.expectedPrice === null) && regularFilters.maxBudget
+        ? { expectedPrice: Number(regularFilters.maxBudget) }
+        : {}),
+      ...(!filters.availabilities?.length && slots.length ? { availabilities: slots } : {})
+    };
+    setFilters(next);
+    void run(next);
+  };
+
+  const clearAll = () => {
+    setRegularFilters({ ...initialTutorStudentFilters });
+    setAppliedRegularFilters({ ...initialTutorStudentFilters });
+    setRegularSearchVersion((version) => version + 1);
+    setFilters({});
+    setFromSentence(new Set());
+    setNotes([]);
+    setSentence('');
+    setUsePostingId('');
+    setResult(null);
+    setError('');
+    setResultsMode('regular');
+  };
+
   const fillFromSentence = async () => {
     const text = sentence.trim();
     if (!text) return;
@@ -140,6 +195,15 @@ export function TutorStudentRecommendationsPage() {
       const parsed = await parseQuery(text, 'TUTOR_TO_STUDENT');
       const parsedFilters = parsed.filters as unknown as StudentSearchFilters;
       setFilters((previous) => ({ ...previous, ...parsedFilters }));
+      setRegularFilters((previous) => ({
+        ...previous,
+        subjectId: parsedFilters.subjectId ?? previous.subjectId,
+        gradeId: parsedFilters.gradeIds?.[0] ?? previous.gradeId,
+        learningMode:
+          parsedFilters.learningMode === 'ONLINE' || parsedFilters.learningMode === 'OFFLINE'
+            ? parsedFilters.learningMode
+            : previous.learningMode
+      }));
       setFromSentence(new Set(Object.keys(parsedFilters)));
       setNotes(parsed.notes);
     } catch (caught) {
@@ -203,7 +267,7 @@ export function TutorStudentRecommendationsPage() {
     setFromSentence(new Set());
     setNotes([]);
     setUsePostingId('');
-    void run(search.filters as StudentSearchFilters, search.id);
+    void run(search.filters as StudentSearchFilters, search.id, '');
   };
 
   const applyRelaxation = (relaxation: Relaxation) => {
@@ -225,193 +289,144 @@ export function TutorStudentRecommendationsPage() {
     <section className="tutor-student-recommendations">
       <div className="tutor-page-heading">
         <div>
-          <span className="tutor-eyebrow">GỢI Ý HỌC VIÊN</span>
-          <h1>Học viên phù hợp với bạn</h1>
+          <h1>Tìm kiếm học viên</h1>
         </div>
       </div>
 
-      <div className="rec-layout">
-        <form
-          className="tutor-panel rec-filters"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void run(filters);
-          }}
-        >
-          <label className="rec-field">
-            <span>Mô tả nhanh bằng một câu</span>
-            <textarea
-              rows={3}
-              maxLength={500}
-              value={sentence}
-              onChange={(event) => setSentence(event.target.value)}
-              placeholder="Ví dụ: Dạy Toán lớp 8, 9 online, tối thứ 2 và 4, khoảng 200k một buổi"
-            />
-          </label>
-          <button
-            className="tutor-button secondary"
-            type="button"
-            disabled={isParsing || !sentence.trim()}
-            onClick={() => void fillFromSentence()}
-          >
-            {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
-          </button>
-          {notes.length > 0 && (
-            <ul className="rec-notes">
-              {notes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          )}
-
-          <div className="rec-divider" />
-
-          {myPostings.length > 0 && (
-            <label className="rec-field">
-              <span>Dùng tiêu chí từ tin dạy của tôi</span>
-              <select value={usePostingId} onChange={(event) => setUsePostingId(event.target.value)}>
-                <option value="">Không dùng</option>
-                {myPostings.map((posting) => (
-                  <option key={posting.id} value={posting.id}>
-                    {posting.title || posting.subjectName || 'Tin dạy'}
-                  </option>
-                ))}
-              </select>
+      <TutorStudentSearchFilters
+        filters={regularFilters}
+        onChange={setRegularFilters}
+        onSearch={runRegular}
+        onSmartSearch={runSmart}
+        onClear={clearAll}
+        smartSearching={isSearching}
+        advancedContent={
+          <div className="tutor-smart-fields">
+            <h3>Tiêu chí gợi ý thông minh</h3>
+            <label className="rec-field tutor-smart-sentence">
+              <span>Mô tả nhanh bằng một câu</span>
+              <textarea
+                rows={3}
+                maxLength={500}
+                value={sentence}
+                onChange={(event) => setSentence(event.target.value)}
+                placeholder="Ví dụ: Dạy Toán lớp 8, 9 online, tối thứ 2 và 4"
+              />
             </label>
-          )}
-
-          <label className="rec-field">
-            <span>Môn dạy {mark('subjectId')}</span>
-            <select
-              value={filters.subjectId ?? ''}
-              onChange={(event) => change({ subjectId: event.target.value || undefined })}
-            >
-              <option value="">Chọn môn</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="rec-field">
-            <span>Lớp {mark('gradeIds')}</span>
-            <div className="rec-chips">
-              {grades.map((grade) => {
-                const chosen = (filters.gradeIds ?? []).includes(grade.id);
-                return (
-                  <button
-                    key={grade.id}
-                    type="button"
-                    className={chosen ? 'rec-chip active' : 'rec-chip'}
-                    aria-pressed={chosen}
-                    onClick={() => toggleGrade(grade.id)}
-                  >
-                    {grade.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rec-field">
-            <span>Hình thức dạy {mark('learningMode')}</span>
-            <div className="rec-segmented" role="radiogroup" aria-label="Hình thức dạy">
-              {MODES.map((mode) => (
-                <button
-                  key={mode.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={(filters.learningMode ?? 'ANY') === mode.value}
-                  className={(filters.learningMode ?? 'ANY') === mode.value ? 'active' : ''}
-                  onClick={() => change({ learningMode: mode.value === 'ANY' ? undefined : mode.value })}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filters.learningMode !== 'ONLINE' && (
-            <div className="rec-field">
-              <span>Khu vực dạy trực tiếp được {mark('area')}</span>
-              <AreaPicker value={filters.area} onChange={(area) => change({ area })} homeProvinceId={homeProvinceId} />
-            </div>
-          )}
-
-          <label className="rec-field">
-            <span>Học phí mong muốn mỗi buổi (đồng) {mark('expectedPrice')}</span>
-            <input
-              type="number"
-              min={0}
-              step={10000}
-              placeholder="Để trống: lấy mức giữa các tin dạy của bạn"
-              value={filters.expectedPrice ?? ''}
-              onChange={(event) =>
-                change({ expectedPrice: event.target.value === '' ? undefined : Number(event.target.value) })
-              }
-            />
-          </label>
-
-          <div className="rec-field">
-            <span>Lịch rảnh {mark('availabilities')}</span>
-            <AvailabilityEditor
-              value={filters.availabilities ?? []}
-              onChange={(next) => change({ availabilities: next.length ? next : undefined })}
-            />
-          </div>
-
-          <div className="rec-field">
-            <span>Đối tượng muốn dạy {mark('targetSegmentCodes')}</span>
-            <TagChips
-              tags={segmentTags}
-              value={filters.targetSegmentCodes ?? []}
-              onChange={(codes) => change({ targetSegmentCodes: codes.length ? codes : undefined })}
-            />
-          </div>
-
-          <div className="rec-actions">
             <button
               className="tutor-button secondary"
               type="button"
-              onClick={() => {
-                setFilters({});
-                setFromSentence(new Set());
-                setNotes([]);
-                setSentence('');
-                setUsePostingId('');
-              }}
+              disabled={isParsing || !sentence.trim()}
+              onClick={() => void fillFromSentence()}
             >
-              Xoá bộ lọc
+              {isParsing ? 'Đang phân tích…' : 'Điền bộ lọc từ câu này'}
             </button>
-            <button className="tutor-button" type="submit" disabled={isSearching}>
-              {isSearching ? 'Đang tìm…' : 'Tìm học viên phù hợp'}
-            </button>
+            {notes.length > 0 && (
+              <ul className="rec-notes">
+                {notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            )}
+            {myPostings.length > 0 && (
+              <label className="rec-field">
+                <span>Dùng tiêu chí từ tin dạy của tôi</span>
+                <select value={usePostingId} onChange={(event) => setUsePostingId(event.target.value)}>
+                  <option value="">Không dùng</option>
+                  {myPostings.map((posting) => (
+                    <option key={posting.id} value={posting.id}>
+                      {posting.title || posting.subjectName || 'Tin dạy'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <div className="rec-field">
+              <span>Thêm lớp cho gợi ý {mark('gradeIds')}</span>
+              <div className="rec-chips">
+                {grades.map((grade) => {
+                  const chosen = (filters.gradeIds ?? []).includes(grade.id);
+                  return (
+                    <button
+                      key={grade.id}
+                      type="button"
+                      className={chosen ? 'rec-chip active' : 'rec-chip'}
+                      aria-pressed={chosen}
+                      onClick={() => toggleGrade(grade.id)}
+                    >
+                      {grade.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rec-field">
+              <span>Khu vực gợi ý mở rộng {mark('area')}</span>
+              <AreaPicker value={filters.area} onChange={(area) => change({ area })} homeProvinceId={homeProvinceId} />
+            </div>
+            <label className="rec-field">
+              <span>Học phí mong muốn mỗi buổi (đồng) {mark('expectedPrice')}</span>
+              <input
+                type="number"
+                min={0}
+                step={10000}
+                value={filters.expectedPrice ?? ''}
+                onChange={(event) =>
+                  change({ expectedPrice: event.target.value === '' ? undefined : Number(event.target.value) })
+                }
+              />
+            </label>
+            <div className="rec-field">
+              <span>Lịch rảnh cho gợi ý {mark('availabilities')}</span>
+              <AvailabilityEditor
+                value={filters.availabilities ?? []}
+                onChange={(next) => change({ availabilities: next.length ? next : undefined })}
+              />
+            </div>
+            <div className="rec-field">
+              <span>Đối tượng muốn dạy {mark('targetSegmentCodes')}</span>
+              <TagChips
+                tags={segmentTags}
+                value={filters.targetSegmentCodes ?? []}
+                onChange={(codes) => change({ targetSegmentCodes: codes.length ? codes : undefined })}
+              />
+            </div>
           </div>
-        </form>
-
+        }
+      />
+      <div className="tutor-student-saved-searches">
+        <SavedSearchControls
+          direction="TUTOR_TO_STUDENT"
+          filters={filters}
+          suggestedName={[
+            subjects.find((subject) => subject.id === filters.subjectId)?.name,
+            grades
+              .filter((grade) => (filters.gradeIds ?? []).includes(grade.id))
+              .map((grade) => grade.name)
+              .join(', ')
+          ]
+            .filter(Boolean)
+            .join(' – ')}
+          canSave={Boolean(resultsMode === 'smart' && result && result.needsInput.length === 0)}
+          onRun={runSaved}
+          variant="tutor"
+        />
+      </div>
+      {resultsMode === 'regular' ? (
+        <TutorStudentSearchPage
+          key={regularSearchVersion}
+          embedded
+          appliedFilters={appliedRegularFilters}
+          hasSearched={regularSearchVersion > 0}
+        />
+      ) : (
         <section className="rec-results" aria-live="polite">
           <div className="rec-toolbar">
             <strong>
-              {result && result.needsInput.length === 0 ? `${result.totalElements} học viên phù hợp` : ''}
+              {result && result.needsInput.length === 0
+                ? `Gợi ý thông minh · ${result.totalElements} học viên phù hợp`
+                : 'Gợi ý thông minh'}
             </strong>
-            <SavedSearchControls
-              direction="TUTOR_TO_STUDENT"
-              filters={filters}
-              suggestedName={[
-                subjects.find((subject) => subject.id === filters.subjectId)?.name,
-                grades
-                  .filter((grade) => (filters.gradeIds ?? []).includes(grade.id))
-                  .map((grade) => grade.name)
-                  .join(', ')
-              ]
-                .filter(Boolean)
-                .join(' – ')}
-              canSave={Boolean(result && result.needsInput.length === 0)}
-              onRun={runSaved}
-              variant="tutor"
-            />
           </div>
           {error && (
             <div className="tutor-error" role="alert">
@@ -445,7 +460,9 @@ export function TutorStudentRecommendationsPage() {
             <>
               <div className="rec-summary">
                 {result.lowConfidence && (
-                  <span className="rec-low-confidence">Còn ít thông tin để so khớp. Thêm tiêu chí để gợi ý sát hơn.</span>
+                  <span className="rec-low-confidence">
+                    Còn ít thông tin để so khớp. Thêm tiêu chí để gợi ý sát hơn.
+                  </span>
                 )}
               </div>
 
@@ -485,7 +502,9 @@ export function TutorStudentRecommendationsPage() {
                         <small>điểm phù hợp</small>
                       </span>
                     </div>
-                    <button className="rec-title rec-title-button" type="button" onClick={() => open(item)}>{item.title || 'Tin tìm gia sư'}</button>
+                    <button className="rec-title rec-title-button" type="button" onClick={() => open(item)}>
+                      {item.title || 'Tin tìm gia sư'}
+                    </button>
                     {item.learningGoals && <p className="rec-hint">{item.learningGoals}</p>}
                     <div className="rec-facts">
                       <span>{priceText(item.priceRange)}</span>
@@ -501,7 +520,9 @@ export function TutorStudentRecommendationsPage() {
                     )}
                     {item.caution && <p className="rec-caution">{item.caution}</p>}
                     <div className="rec-card-actions">
-                      <button className="rec-link" type="button" onClick={() => open(item)}>Xem chi tiết tin</button>
+                      <button className="rec-link" type="button" onClick={() => open(item)}>
+                        Xem chi tiết tin
+                      </button>
                       <button className="rec-link" type="button" onClick={() => dismiss(item)}>
                         Không quan tâm
                       </button>
@@ -542,13 +563,14 @@ export function TutorStudentRecommendationsPage() {
             </>
           )}
         </section>
-      </div>
+      )}
     </section>
   );
 }
 
 function priceText(range: StudentRecommendationItem['priceRange']) {
   if (!range || (range.min === null && range.max === null)) return 'Học phí thoả thuận';
-  if (range.min !== null && range.max !== null) return `${formatCurrency(range.min)} – ${formatCurrency(range.max)} / buổi`;
+  if (range.min !== null && range.max !== null)
+    return `${formatCurrency(range.min)} – ${formatCurrency(range.max)} / buổi`;
   return `${range.max !== null ? 'Đến' : 'Từ'} ${formatCurrency((range.max ?? range.min) as number)} / buổi`;
 }

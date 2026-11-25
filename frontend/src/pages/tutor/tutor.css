@@ -53,6 +53,10 @@
 .tutor-offline-location{display:grid;gap:8px;padding:11px;border:1px solid #eeeaf6;border-radius:9px;background:#fbfaff;color:#555a6e;font-size:10px;font-weight:700}.tutor-location-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tutor-location-fields label{display:grid;gap:5px;color:#777c8e;font-size:9px}.tutor-location-fields select{width:100%;min-width:0;height:37px;padding:0 8px;border:1px solid #e3e5ed;border-radius:8px;background:#fff;color:#303448;font:inherit;font-size:10px}
 @media(max-width:500px){.tutor-location-fields{grid-template-columns:1fr}.tutor-application-location{grid-template-columns:1fr}.tutor-application-location-full{grid-column:auto}.tutor-availability-row{grid-template-columns:minmax(80px,1fr) minmax(70px,.8fr) minmax(70px,.8fr) 25px;gap:4px}}
 .tutor-student-filter-panel{display:grid;gap:12px;margin:0 0 16px;padding:12px;border:1px solid #eceef4;border-radius:12px;background:#fff}
+.tutor-student-recommendations .tutor-student-filter-panel{padding:18px;box-shadow:0 8px 24px #26204a0a}
+.tutor-student-recommendations .tutor-student-search-basic{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tutor-student-recommendations .tutor-student-search-basic>.tutor-search{grid-column:span 2}
+.tutor-student-recommendations .tutor-student-search-basic>.tutor-student-advanced-toggle{align-self:end}
 .tutor-student-search-basic{display:grid;grid-template-columns:minmax(200px,1.5fr) repeat(5,minmax(105px,1fr)) auto;gap:10px;align-items:end}
 .tutor-student-search-advanced{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:12px;border-top:1px solid #f0f1f5;align-items:start}
 .tutor-student-search-basic>label,.tutor-student-search-advanced>label{display:grid;min-width:0;gap:5px;color:#8c91a1;font-size:9px;font-weight:700}
@@ -73,7 +77,26 @@
 .tutor-schedule-filter-remove:disabled{opacity:.35;cursor:default}
 .tutor-schedule-filter-add{padding:5px 0;border:0;background:transparent;color:#6944ca;font:inherit;font-size:9px;font-weight:700;text-align:left;cursor:pointer}
 .tutor-student-filter-actions{display:flex;justify-content:flex-end;padding-top:10px;border-top:1px solid #f0f1f5}
+.tutor-student-filter-actions{gap:8px}
 .tutor-student-filter-actions .tutor-button{min-height:34px;font-size:10px}
+.tutor-student-ai-fields{grid-column:1/-1;min-width:0}
+.tutor-smart-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;padding:14px 0 2px;border-top:1px solid #f0f1f5}
+.tutor-smart-fields h3,.tutor-smart-fields .tutor-smart-sentence,.tutor-smart-fields .rec-notes{grid-column:1/-1}
+.tutor-smart-fields h3{margin:0;color:#50546a;font-size:12px}
+.tutor-smart-fields .rec-field{gap:6px;font-size:10px}
+.tutor-smart-fields input,.tutor-smart-fields select,.tutor-smart-fields textarea{width:100%;min-width:0;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px}
+.tutor-smart-fields textarea{min-height:80px;padding:9px 10px;resize:vertical}
+.tutor-smart-fields>.tutor-button{justify-self:start}
+.tutor-student-recommendations>.rec-results{min-width:0}
+.tutor-student-saved-searches{display:flex;justify-content:flex-end;min-height:30px;margin:-4px 0 14px}
+.tutor-student-recommendations .rec-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.tutor-student-recommendations .rec-card{min-width:0;height:100%}
+.tutor-student-recommendations .rec-card-actions{flex-wrap:wrap;gap:8px;margin-top:auto}
+.tutor-student-recommendations .rec-card-actions .tutor-button{width:100%;justify-content:center}
+@media(max-width:1100px){.tutor-student-recommendations .rec-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.tutor-smart-fields,.tutor-student-recommendations .rec-list{grid-template-columns:1fr}}
+@media(max-width:900px){.tutor-student-recommendations .tutor-student-search-basic{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.tutor-student-recommendations .tutor-student-search-basic{grid-template-columns:1fr}.tutor-student-recommendations .tutor-student-search-basic>.tutor-search{grid-column:auto}.tutor-student-filter-actions{flex-wrap:wrap}}
 .tutor-student-search-card{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .tutor-student-search-card:hover{transform:translateY(-3px);border-color:#c9b9ed;box-shadow:0 12px 28px #3c2b681c}
 .tutor-student-search-card:focus-visible{outline:2px solid #997be1;outline-offset:3px}

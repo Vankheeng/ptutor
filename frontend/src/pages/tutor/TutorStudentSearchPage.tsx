@@ -3,37 +3,34 @@ import { useStudyingRequests } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
 import { TutorStudentSearchFilters, type TutorStudentFilters } from './components/TutorStudentSearchFilters';
 import { TutorStudyingRequestCard } from './components/TutorStudyingRequestCard';
+import { initialTutorStudentFilters } from './tutorStudentFilterDefaults';
 
 const PAGE_SIZE = 6;
 
-export function TutorStudentSearchPage() {
-  const [filters, setFilters] = useState<TutorStudentFilters>({
-    search: '',
-    learningMode: 'ALL',
-    provinceId: '',
-    provinceName: '',
-    districtId: '',
-    subjectId: '',
-    gradeId: '',
-    minBudget: '',
-    maxBudget: '',
-    scheduleSlots: [{ dayOfWeek: '', startTime: '', endTime: '' }]
-  });
+interface Props {
+  embedded?: boolean;
+  appliedFilters?: TutorStudentFilters;
+  hasSearched?: boolean;
+}
+
+export function TutorStudentSearchPage({ embedded = false, appliedFilters, hasSearched = false }: Props) {
+  const [filters, setFilters] = useState<TutorStudentFilters>(initialTutorStudentFilters);
   const [activeFilters, setActiveFilters] = useState(filters);
+  const currentFilters = appliedFilters ?? activeFilters;
   const [page, setPage] = useState(0);
   const requestsQuery = useStudyingRequests({
     page: 0,
     size: 50,
     status: 'OPEN',
-    ...(activeFilters.learningMode === 'ALL' ? {} : { learningMode: activeFilters.learningMode })
+    ...(currentFilters.learningMode === 'ALL' ? {} : { learningMode: currentFilters.learningMode })
   });
   const proposalsQuery = useTutorProposals();
 
   const requests = useMemo(() => {
-    const term = activeFilters.search.trim().toLocaleLowerCase('vi-VN');
-    const provinceName = activeFilters.provinceName.toLocaleLowerCase('vi-VN');
-    const minimum = activeFilters.minBudget === '' ? null : Number(activeFilters.minBudget);
-    const maximum = activeFilters.maxBudget === '' ? null : Number(activeFilters.maxBudget);
+    const term = currentFilters.search.trim().toLocaleLowerCase('vi-VN');
+    const provinceName = currentFilters.provinceName.toLocaleLowerCase('vi-VN');
+    const minimum = currentFilters.minBudget === '' ? null : Number(currentFilters.minBudget);
+    const maximum = currentFilters.maxBudget === '' ? null : Number(currentFilters.maxBudget);
     const englishDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const vietnameseDays = ['thứ 2', 'thứ 3', 'thứ 4', 'thứ 5', 'thứ 6', 'thứ 7', 'chủ nhật'];
 
@@ -51,12 +48,12 @@ export function TutorStudentSearchPage() {
         request.learningGoals
       ].some((value) => value?.toLocaleLowerCase('vi-VN').includes(term));
       const matchesProvince = !provinceName || request.provinceName?.toLocaleLowerCase('vi-VN') === provinceName;
-      const matchesDistrict = !activeFilters.districtId || request.districtId === activeFilters.districtId;
-      const matchesSubject = !activeFilters.subjectId || request.subjectId === activeFilters.subjectId;
-      const matchesGrade = !activeFilters.gradeId || request.gradeId === activeFilters.gradeId;
+      const matchesDistrict = !currentFilters.districtId || request.districtId === currentFilters.districtId;
+      const matchesSubject = !currentFilters.subjectId || request.subjectId === currentFilters.subjectId;
+      const matchesGrade = !currentFilters.gradeId || request.gradeId === currentFilters.gradeId;
       const scheduleText = request.preferredSchedule?.toLocaleLowerCase('vi-VN') ?? '';
       const slots = request.availabilities ?? [];
-      const requestedSlots = activeFilters.scheduleSlots.filter(
+      const requestedSlots = currentFilters.scheduleSlots.filter(
         (slot) => slot.dayOfWeek || slot.startTime || slot.endTime
       );
       const matchesLegacySchedule = requestedSlots.some((filterSlot) => {
@@ -77,38 +74,61 @@ export function TutorStudentSearchPage() {
           return matchesDay && matchesStart && matchesEnd;
         })
       );
-      const matchesSchedule = requestedSlots.length === 0 || (slots.length ? matchesStructuredSchedule : matchesLegacySchedule);
+      const matchesSchedule =
+        requestedSlots.length === 0 || (slots.length ? matchesStructuredSchedule : matchesLegacySchedule);
       const matchesBudget =
         (minimum === null || request.maxPrice === null || request.maxPrice >= minimum) &&
         (maximum === null || request.minPrice === null || request.minPrice <= maximum);
 
-      return matchesText && matchesProvince && matchesDistrict && matchesSubject && matchesGrade && matchesSchedule && matchesBudget;
+      return (
+        matchesText &&
+        matchesProvince &&
+        matchesDistrict &&
+        matchesSubject &&
+        matchesGrade &&
+        matchesSchedule &&
+        matchesBudget
+      );
     });
-  }, [activeFilters, requestsQuery.data]);
+  }, [currentFilters, requestsQuery.data]);
 
   const pageCount = Math.ceil(requests.length / PAGE_SIZE);
   const pageRequests = requests.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <>
-      <header className="tutor-page-heading">
-        <h1>Tìm kiếm học viên</h1>
-        <span className="tutor-count">{requests.length} kết quả</span>
-      </header>
+      {!embedded && (
+        <header className="tutor-page-heading">
+          <h1>Tìm kiếm học viên</h1>
+          <span className="tutor-count">{requests.length} kết quả</span>
+        </header>
+      )}
       <section className="tutor-marketplace" aria-label="Tìm kiếm học viên">
-        <TutorStudentSearchFilters
-          filters={filters}
-          onChange={setFilters}
-          onSearch={() => {
-            setActiveFilters(filters);
-            setPage(0);
-          }}
-        />
+        {!embedded && (
+          <TutorStudentSearchFilters
+            filters={filters}
+            onChange={setFilters}
+            onSearch={() => {
+              setActiveFilters(filters);
+              setPage(0);
+            }}
+          />
+        )}
+        {embedded && (
+          <div className="tutor-section-heading">
+            <h2>{hasSearched ? 'Kết quả tìm kiếm' : 'Tất cả học viên'}</h2>
+            <span className="tutor-count">{requests.length} kết quả</span>
+          </div>
+        )}
         {requestsQuery.error ? (
-          <div className="tutor-error" role="alert">{requestsQuery.error}</div>
+          <div className="tutor-error" role="alert">
+            {requestsQuery.error}
+          </div>
         ) : requestsQuery.isLoading ? (
           <div className="tutor-request-grid">
-            {[0, 1, 2].map((index) => <div className="tutor-skeleton" key={index} />)}
+            {[0, 1, 2].map((index) => (
+              <div className="tutor-skeleton" key={index} />
+            ))}
           </div>
         ) : requests.length ? (
           <>
@@ -128,7 +148,9 @@ export function TutorStudentSearchPage() {
                 <button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)}>
                   Trước
                 </button>
-                <span>Trang {page + 1}/{pageCount}</span>
+                <span>
+                  Trang {page + 1}/{pageCount}
+                </span>
                 <button
                   type="button"
                   disabled={page + 1 >= pageCount}
@@ -141,7 +163,7 @@ export function TutorStudentSearchPage() {
           </>
         ) : (
           <div className="tutor-empty">
-            <h3>{activeFilters.search ? 'Không tìm thấy học viên phù hợp' : 'Chưa có yêu cầu học đang mở'}</h3>
+            <h3>{currentFilters.search ? 'Không tìm thấy học viên phù hợp' : 'Chưa có yêu cầu học đang mở'}</h3>
             <p>Thử thay đổi bộ lọc hoặc quay lại sau để xem yêu cầu mới.</p>
           </div>
         )}

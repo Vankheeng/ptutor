@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Icon } from '../../../components/ui/Icon';
 import { useLocationOptions } from '../../../hooks/useLocationOptions';
 import { useStudyCatalogOptions } from '../../../hooks/useStudyCatalogOptions';
@@ -20,6 +20,10 @@ interface Props {
   filters: TutorStudentFilters;
   onChange: (next: TutorStudentFilters) => void;
   onSearch: () => void;
+  onSmartSearch?: () => void;
+  onClear?: () => void;
+  smartSearching?: boolean;
+  advancedContent?: ReactNode;
   searchPlaceholder?: string;
   searchAriaLabel?: string;
   scheduleLabel?: string;
@@ -31,6 +35,10 @@ export function TutorStudentSearchFilters({
   filters,
   onChange,
   onSearch,
+  onSmartSearch,
+  onClear,
+  smartSearching = false,
+  advancedContent,
   searchPlaceholder = 'Tìm theo tên, môn học hoặc lớp',
   searchAriaLabel = 'Tìm theo tên học viên, môn học hoặc lớp',
   scheduleLabel = 'Lịch mong muốn'
@@ -224,12 +232,28 @@ export function TutorStudentSearchFilters({
               placeholder="₫ tối đa"
             />
           </label>
+          {advancedContent && <div className="tutor-student-ai-fields">{advancedContent}</div>}
         </div>
       )}
       <div className="tutor-student-filter-actions">
+        {onClear && (
+          <button className="tutor-button secondary" type="button" onClick={onClear}>
+            Xoá bộ lọc
+          </button>
+        )}
         <button className="tutor-button" type="button" onClick={onSearch}>
           Tìm kiếm
         </button>
+        {showAdvanced && onSmartSearch && (
+          <button
+            className="tutor-button secondary tutor-smart-search-button"
+            type="button"
+            disabled={smartSearching}
+            onClick={onSmartSearch}
+          >
+            {smartSearching ? 'Đang gợi ý…' : 'Gợi ý thông minh'}
+          </button>
+        )}
       </div>
     </div>
   );
