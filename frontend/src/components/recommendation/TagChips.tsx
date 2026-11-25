@@ -8,26 +8,27 @@ interface TagChipsProps {
   emptyText?: string;
 }
 
-/** Multi-select as chips: what the user picks here is matched exactly, unlike free text. */
+/** Keep multi-selection while showing the choices only when the field is opened. */
 export function TagChips({ tags, value, onChange, emptyText }: TagChipsProps) {
   if (!tags.length) return <small className="rec-hint">{emptyText ?? 'Chưa có lựa chọn'}</small>;
+  const chosenNames = tags.filter((tag) => value.includes(tag.code)).map((tag) => tag.name);
   return (
-    <div className="rec-chips">
-      {tags.map((tag) => {
-        const chosen = value.includes(tag.code);
-        return (
-          <button
-            key={tag.code}
-            type="button"
-            className={chosen ? 'rec-chip active' : 'rec-chip'}
-            aria-pressed={chosen}
-            title={tag.description ?? undefined}
-            onClick={() => onChange(chosen ? value.filter((code) => code !== tag.code) : [...value, tag.code])}
-          >
+    <details className="rec-tag-dropdown">
+      <summary>{chosenNames.length ? chosenNames.join(', ') : 'Chọn lựa chọn'}</summary>
+      <div className="rec-tag-options">
+        {tags.map((tag) => (
+          <label key={tag.code} title={tag.description ?? undefined}>
+            <input
+              type="checkbox"
+              checked={value.includes(tag.code)}
+              onChange={() =>
+                onChange(value.includes(tag.code) ? value.filter((code) => code !== tag.code) : [...value, tag.code])
+              }
+            />
             {tag.name}
-          </button>
-        );
-      })}
-    </div>
+          </label>
+        ))}
+      </div>
+    </details>
   );
 }

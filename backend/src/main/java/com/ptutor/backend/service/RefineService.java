@@ -80,21 +80,21 @@ public class RefineService {
             return Optional.empty();
         }
 
-        Set<UUID> liked = new HashSet<>();
-        Set<UUID> dismissed = new HashSet<>();
-        for (RecommendationClickLog click : clickLogRepository.findAllByRecommendationLog_Id(log.getId())) {
+        Map<UUID, RecommendationAction> latestAction = new HashMap<>();
+        for (RecommendationClickLog click : clickLogRepository.findAllByRecommendationLog_IdOrderByCreatedAtAsc(log.getId())) {
             UUID candidateId = click.getCandidateTeachingRequest() != null ? click.getCandidateTeachingRequest().getId()
                     : click.getCandidateStudyingRequest() != null ? click.getCandidateStudyingRequest().getId() : null;
             if (candidateId == null) {
                 continue;
             }
-            if (click.getAction() == RecommendationAction.DISMISSED) {
-                dismissed.add(candidateId);
-            } else if (POSITIVE.contains(click.getAction())) {
-                liked.add(candidateId);
-            }
+            latestAction.put(candidateId, click.getAction());
         }
-        liked.removeAll(dismissed);
+        Set<UUID> liked = new HashSet<>();
+        Set<UUID> dismissed = new HashSet<>();
+        latestAction.forEach((candidateId, action) -> {
+            if (action == RecommendationAction.DISMISSED) dismissed.add(candidateId);
+            else if (POSITIVE.contains(action)) liked.add(candidateId);
+        });
         if (liked.isEmpty()) {
             return Optional.empty();
         }

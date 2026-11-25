@@ -5,10 +5,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,11 +32,13 @@ import com.ptutor.backend.security.CurrentUserProvider;
 import com.ptutor.backend.service.PreferenceProfileService;
 import com.ptutor.backend.service.RecommendationEventService;
 import com.ptutor.backend.service.RefineService;
+import com.ptutor.backend.service.TeachingRequestService;
 
 @ExtendWith(MockitoExtension.class)
 class RecommendationInteractionControllerTest {
 
     @Mock RecommendationEventService eventService;
+    @Mock TeachingRequestService teachingRequestService;
     @Mock RefineService refineService;
     @Mock PreferenceProfileService profileService;
     @Mock com.ptutor.backend.service.QueryParseService queryParseService;
@@ -47,7 +51,7 @@ class RecommendationInteractionControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new RecommendationInteractionController(
-                eventService, refineService, profileService, queryParseService,
+                eventService, teachingRequestService, refineService, profileService, queryParseService,
                 new ApiResponseFactory(Clock.systemUTC()),
                 currentUserProvider)).build();
     }
@@ -125,5 +129,24 @@ class RecommendationInteractionControllerTest {
         mockMvc.perform(delete("/api/v1/users/me/recommendation-profile")).andExpect(status().isOk());
 
         verify(profileService).deleteHistory(userId);
+    }
+
+    @Test
+    void listsAndRemovesFavoritesForTheSignedInStudent() throws Exception {
+        UUID tutorId = UUID.randomUUID();
+        UUID postingId = UUID.randomUUID();
+        when(currentUserProvider.getCurrentUserId()).thenReturn(userId);
+        when(teachingRequestService.findFavoritesForStudent(userId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/students/me/favorite-tutors/teaching-requests"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/students/me/favorite-tutors/teaching-requests/" + postingId))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/students/me/favorite-tutors/" + tutorId))
+                .andExpect(status().isOk());
+
+        verify(teachingRequestService).findFavoritesForStudent(userId);
+        verify(eventService).favoriteTutorFromOrdinarySearch(userId, postingId);
+        verify(eventService).removeFavoriteTutor(userId, tutorId);
     }
 }

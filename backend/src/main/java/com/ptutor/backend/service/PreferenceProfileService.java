@@ -211,8 +211,10 @@ public class PreferenceProfileService {
                 dismissed.merge(signal.candidateId(), signal,
                         (old, fresh) -> fresh.happenedAt().isAfter(old.happenedAt()) ? fresh : old);
             } else if (weights.containsKey(signal.kind())) {
-                best.merge(signal.candidateId(), signal, (old, fresh) ->
-                        weights.get(fresh.kind()) > weights.get(old.kind()) ? fresh : old);
+                best.merge(signal.candidateId(), signal, (old, fresh) -> {
+                    int strength = Double.compare(weights.get(fresh.kind()), weights.get(old.kind()));
+                    return strength > 0 || (strength == 0 && fresh.happenedAt().isAfter(old.happenedAt())) ? fresh : old;
+                });
             }
         }
         dismissed.forEach((posting, signal) -> {

@@ -120,6 +120,19 @@ public class TutorStudentRequestService {
                 districtRepository, studentRepository, tutorStudentRequestMapper, event -> { }, null, null);
     }
 
+    public TutorStudentRequestService(
+            TutorStudentRequestRepository tutorStudentRequestRepository,
+            StudyingRequestRepository studyingRequestRepository,
+            TutorRepository tutorRepository,
+            GradeRepository gradeRepository,
+            DistrictRepository districtRepository,
+            StudentRepository studentRepository,
+            TutorStudentRequestMapper tutorStudentRequestMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
+                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher, null);
+    }
+
     @Transactional
     public TutorStudentRequestResponse create(
             UUID userId, UUID studyingRequestId, TutorStudentRequestCreateRequest source) {

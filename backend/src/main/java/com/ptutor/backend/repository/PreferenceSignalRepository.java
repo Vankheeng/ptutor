@@ -56,6 +56,15 @@ public class PreferenceSignalRepository {
             WHERE r.student_id = :id AND r.deleted_at IS NULL AND r.created_at > :since
             """;
 
+    /** Hearts from both ordinary and recommended tutor cards, including a later removal. */
+    private static final String STUDENT_FAVORITES = """
+            SELECT f.teaching_request_id AS candidate_id,
+                   CASE WHEN f.deleted_at IS NULL THEN 'FAVORITED' ELSE 'DISMISSED' END AS kind,
+                   f.updated_at AS happened_at
+            FROM favorite_tutors f
+            WHERE f.student_id = :id AND f.teaching_request_id IS NOT NULL AND f.updated_at > :since
+            """;
+
     private static final String TUTOR_REQUESTS = """
             SELECT r.studying_request_id AS candidate_id,
                    CASE WHEN r.status = 'ACCEPTED' THEN 'ACCEPTED' ELSE 'REQUESTED' END AS kind,
@@ -73,7 +82,8 @@ public class PreferenceSignalRepository {
 
     /** Everything a student did with teaching postings since {@code since}. */
     public List<Signal> ofStudent(UUID studentId, LocalDateTime since) {
-        return signals(STUDENT_CLICKS + " UNION ALL " + STUDENT_REQUESTS, studentId, since);
+        return signals(STUDENT_CLICKS + " UNION ALL " + STUDENT_REQUESTS + " UNION ALL "
+                + STUDENT_FAVORITES, studentId, since);
     }
 
     /** Everything a tutor did with studying postings since {@code since}. */

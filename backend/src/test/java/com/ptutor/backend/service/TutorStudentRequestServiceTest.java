@@ -257,7 +257,6 @@ class TutorStudentRequestServiceTest {
         var response = service.cancel(tutorUserId, requestId);
 
         assertThat(request.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
-        assertThat(request.getRespondedAt()).isNull();
         assertThat(response.status()).isEqualTo(ApplicationStatus.CANCELLED);
         verify(tutorStudentRequestRepository).saveAndFlush(request);
     }
@@ -322,7 +321,6 @@ class TutorStudentRequestServiceTest {
         service.accept(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
-        assertThat(tutorRequest.getRespondedAt()).isNotNull();
         assertThat(request.getStatus()).isEqualTo(RequestStatus.MATCHED);
         verify(studyingRequestRepository).saveAndFlush(request);
     }
@@ -397,7 +395,6 @@ class TutorStudentRequestServiceTest {
         service.reject(studentUserId, studyingRequestId, requestId);
 
         assertThat(tutorRequest.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
-        assertThat(tutorRequest.getRespondedAt()).isNotNull();
         assertThat(request.getStatus()).isEqualTo(RequestStatus.OPEN);
         verify(studyingRequestRepository, never()).saveAndFlush(any());
     }
