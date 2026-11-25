@@ -24,6 +24,7 @@ export type IconName =
   | 'complaint'
   | 'refund'
   | 'award'
+  | 'graduation'
   | 'user'
   | 'home'
   | 'logout';
@@ -168,6 +169,14 @@ const paths: Record<IconName, ReactNode> = {
       <circle cx="12" cy="8" r="5" />
       <path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9" />
       <path d="m10 8 1.4 1.4L14.5 6" />
+    </>
+  ),
+  graduation: (
+    <>
+      <path d="m2.5 9.2 9.5-5 9.5 5-9.5 5-9.5-5Z" />
+      <path d="M6.5 11.3v4.2c2.9 2.4 8.1 2.4 11 0v-4.2" />
+      <path d="M21.5 9.2v6.1" />
+      <circle cx="21.5" cy="16.8" r="1" />
     </>
   ),
   user: (

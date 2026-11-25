@@ -20,6 +20,7 @@ public interface StudentProfileMapper {
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "studentId", source = "id")
     @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "status", source = "user.status")
     @Mapping(target = "firstName", source = "user.firstName")
     @Mapping(target = "lastName", source = "user.lastName")
     @Mapping(target = "phone", source = "user.phone")

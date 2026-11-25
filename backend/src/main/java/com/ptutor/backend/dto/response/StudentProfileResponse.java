@@ -4,11 +4,13 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import com.ptutor.backend.entity.enums.Gender;
+import com.ptutor.backend.entity.enums.UserStatus;
 
 public record StudentProfileResponse(
         UUID userId,
         UUID studentId,
         String email,
+        UserStatus status,
         String firstName,
         String lastName,
         String phone,

@@ -41,6 +41,7 @@ export interface StudentProfile {
   userId: string;
   studentId: string;
   email: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
   firstName: string | null;
   lastName: string | null;
   phone: string | null;

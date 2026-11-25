@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/ui/Icon';
 import { useResource } from '../../hooks/useResource';
 import { getStudentProfile, type StudentProfile } from '../../services/studentApi';
@@ -11,6 +11,24 @@ const genderLabels: Record<NonNullable<StudentProfile['gender']>, string> = {
   FEMALE: 'Nữ',
   OTHER: 'Khác'
 };
+
+const accountStatus = {
+  ACTIVE: {
+    label: 'Hoạt động',
+    description: 'Bạn có thể sử dụng đầy đủ các tính năng của hệ thống.',
+    className: 'active'
+  },
+  INACTIVE: {
+    label: 'Không hoạt động',
+    description: 'Tài khoản hiện đang không hoạt động.',
+    className: 'inactive'
+  },
+  BLOCKED: {
+    label: 'Đã bị khóa',
+    description: 'Tài khoản hiện đang bị hạn chế theo trạng thái hệ thống.',
+    className: 'blocked'
+  }
+} satisfies Record<StudentProfile['status'], { label: string; description: string; className: string }>;
 
 function display(value: string | null | undefined) {
   return value?.trim() || 'Chưa cập nhật';
@@ -60,6 +78,7 @@ function StudentProfileOverview({ profile, onEdit }: { profile: StudentProfile; 
     .filter(Boolean)
     .join(', ');
   const tags = splitTags(profile.personalityTags);
+  const status = accountStatus[profile.status];
 
   return (
     <div className="student-profile-overview">
@@ -110,10 +129,10 @@ function StudentProfileOverview({ profile, onEdit }: { profile: StudentProfile; 
             <Icon name="shield" size={19} /> Trạng thái tài khoản
           </h2>
         </header>
-        <div className="student-profile-status-unavailable">
+        <div className={`student-profile-account-status ${status.className}`}>
           <Icon name="shield" size={31} />
-          <strong>Chưa có dữ liệu trạng thái</strong>
-          <p>API hồ sơ hiện chưa cung cấp trạng thái tài khoản.</p>
+          <strong>{status.label}</strong>
+          <p>{status.description}</p>
         </div>
       </aside>
 
@@ -142,7 +161,6 @@ function StudentProfileOverview({ profile, onEdit }: { profile: StudentProfile; 
 }
 
 export function StudentProfileWorkspacePage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [revision, setRevision] = useState(0);
   const tab = searchParams.get('tab') === 'edit' ? 'edit' : 'overview';
@@ -180,9 +198,6 @@ export function StudentProfileWorkspacePage() {
   return (
     <main className="student-profile-page">
       <header className="student-profile-hero">
-        <button className="student-profile-back" type="button" onClick={() => navigate(-1)}>
-          ← Quay lại
-        </button>
         <div className="student-profile-identity">
           <div className="student-profile-avatar">
             {profile.avatarUrl ? <img src={profile.avatarUrl} alt="Ảnh đại diện" /> : initials}
@@ -204,10 +219,6 @@ export function StudentProfileWorkspacePage() {
               )}
             </p>
           </div>
-        </div>
-        <div className="student-profile-hero-art" aria-hidden="true">
-          <Icon name="book" size={74} />
-          <Icon name="award" size={39} />
         </div>
       </header>
 
