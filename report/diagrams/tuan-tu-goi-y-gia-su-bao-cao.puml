@@ -1,0 +1,71 @@
+@startuml
+title Biểu đồ tuần tự: Gợi ý gia sư cho học viên
+hide footbox
+autonumber
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Học viên" as Student
+participant "Giao diện\nReact" as UI
+participant "StudentRecommendation\nController" as Controller
+participant "Recommendation\nService" as Service
+participant "Student\nRepository" as StudentRepo
+entity "Student\n(JPA entity)" as StudentEntity
+participant "QueryContext\nBuilder" as Builder
+participant "QueryEmbedding\nService" as Embedding
+participant "Tạo vector ngữ nghĩa\nAiServiceClient / FastAPI / BGE-M3" as AI #E4F5EB
+participant "Candidate\nRepository" as Candidates
+participant "TeachingCandidate\n(DTO)" as CandidateDTO
+participant "Ranker" as Ranker
+participant "Recommendation\nLogger" as Logger
+entity "RecommendationLog\n(JPA entity)" as LogEntity
+participant "RecommendationLog\nRepository" as LogRepo
+
+Student -> UI: Nhập tiêu chí và mô tả nhu cầu học
+Student -> UI: Tìm gia sư phù hợp
+UI -> Controller: Gửi TutorRecommendationRequest
+Controller -> Service: Yêu cầu đề xuất gia sư
+Service -> StudentRepo: findProfileByUserId(userId)
+StudentRepo -> StudentRepo: JPA thực thi JPQL với hồ sơ và địa bàn
+StudentRepo -> StudentEntity: JPA tạo đối tượng từ kết quả truy vấn
+StudentEntity --> StudentRepo: Student
+StudentRepo --> Service: Student
+Service -> Builder: forStudent(student, request)
+Builder -> Builder: Tra danh mục, nhãn và hợp nhất tiêu chí
+Builder --> Service: QueryContext
+
+Service -> Embedding: forSearch(): lấy vector nhu cầu học
+Embedding -> AI: Tạo vector từ văn bản qua API /embed
+AI -> AI: Mã hóa văn bản bằng BGE-M3
+AI --> Embedding: Vector tìm kiếm
+Embedding --> Service: Vector nhu cầu học
+
+Service -> Candidates: findHits(): lọc yêu cầu dạy
+Candidates -> Candidates: Chạy truy vấn lọc và tính tương đồng
+Candidates --> Service: Danh sách Hit
+Service -> Candidates: platformAcceptanceRate(): lấy tỷ lệ chung
+Candidates -> Candidates: SQL tính tỷ lệ tiếp nhận từ lịch sử
+Candidates --> Service: Tỷ lệ tiếp nhận chung
+Service -> Candidates: load(): tải dữ liệu ứng viên
+Candidates -> Candidates: Đọc dữ liệu hồ sơ và yêu cầu dạy
+Candidates -> CandidateDTO: new TeachingCandidate(...)
+CandidateDTO --> Candidates: TeachingCandidate
+Candidates --> Service: Danh sách TeachingCandidate
+Service -> Ranker: rank(): chấm điểm và xếp hạng
+Ranker -> Ranker: Tính đặc trưng và điểm phù hợp
+Ranker --> Service: Danh sách ScoredCandidate
+Service -> Service: Tạo lý do phù hợp và gợi ý điều chỉnh
+Service -> Logger: logStudentSearch(): ghi lượt gợi ý
+Logger -> LogEntity: builder().build()
+LogEntity --> Logger: RecommendationLog
+Logger -> LogRepo: save(log)
+LogRepo -> LogRepo: JPA ghi bản ghi lượt gợi ý
+LogRepo --> Logger: Bản ghi đã lưu
+Logger --> Service: Mã lượt gợi ý (logId)
+Service --> Controller: TutorRecommendationResponse
+Controller --> UI: Danh sách gia sư và lý do phù hợp
+UI --> Student: Hiển thị danh sách đề xuất
+@enduml

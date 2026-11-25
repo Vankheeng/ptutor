@@ -141,7 +141,7 @@ public class AdminWalletService {
         String pattern = "%" + term + "%";
         long count = jdbc.queryForObject("select count(*) " + WALLET_FROM, Long.class, term, pattern, pattern);
         var content = jdbc.query("""
-                select w.id, u.id as user_id, trim(concat_ws(' ', u.last_name, u.first_name)) as user_name,
+                select w.id, u.id as user_id, trim(concat_ws(' ', u.first_name, u.last_name)) as user_name,
                        u.email, case when exists (select 1 from tutors t where t.user_id = u.id and t.deleted_at is null)
                             then 'TUTOR' when exists (select 1 from students s where s.user_id = u.id and s.deleted_at is null)
                             then 'STUDENT' else 'OTHER' end as user_type,
@@ -185,7 +185,7 @@ public class AdminWalletService {
         long count = jdbc.queryForObject(CONTRACT_TRANSACTIONS + "select count(*) from entries", Long.class,
                 contractId, contractId, contractId, contractId);
         var content = jdbc.query(CONTRACT_TRANSACTIONS + """
-                select e.id, e.type, trim(concat_ws(' ', u.last_name, u.first_name)) as user_name,
+                select e.id, e.type, trim(concat_ws(' ', u.first_name, u.last_name)) as user_name,
                        e.amount, e.status, e.occurred_at, e.transaction_code
                 from entries e join users u on u.id = e.user_id and u.deleted_at is null
                 order by e.occurred_at desc, e.id desc limit ? offset ?

@@ -1,0 +1,40 @@
+@startuml
+title Kiến trúc tổng thể hệ thống PTutor
+!pragma layout smetana
+top to bottom direction
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam shadowing false
+skinparam rectangle {
+  RoundCorner 12
+  BorderColor #62578A
+}
+skinparam database {
+  BorderColor #336B72
+}
+skinparam ArrowColor #5F6378
+
+actor "Học viên / Gia sư / Nhân viên" as User
+rectangle "Giao diện web\nReact + TypeScript\nNginx phục vụ bản dựng Vite" as Front #F2EFFF
+rectangle "Backend nghiệp vụ\nSpring Boot + Java 21\nController - Service - Repository\nSpring Security / JWT" as Backend #E9E7F8
+rectangle "Dịch vụ AI gợi ý\nFastAPI + ONNX Runtime\nBGE-M3 tạo vector" as Ai #E8F5EF
+rectangle "Trợ lý hỗ trợ\nFastAPI + RAG\nTruy xuất tài liệu, gọi LLM" as Assistant #FFF3E6
+database "PostgreSQL + pgvector\npublic: dữ liệu nghiệp vụ\nassistant: hội thoại, tri thức" as Db #E8F4F6
+cloud "VNPay Sandbox" as Vnpay #F7F7F7
+cloud "API LLM" as Llm #F7F7F7
+
+User -down-> Front : thao tác trên trình duyệt
+Front -down-> Backend : REST /api
+Backend -down-> Db : truy vấn và lưu dữ liệu public
+Backend -left-> Ai : HTTP nội bộ /embed, /parse-query
+Backend -right-> Assistant : HTTP nội bộ /v1
+Assistant -down-> Db : dữ liệu assistant
+Assistant -right-> Llm : tạo câu trả lời
+Backend -right-> Vnpay : tạo và xác minh thanh toán
+
+note bottom of Backend
+  Backend kiểm soát xác thực,
+  phân quyền và nghiệp vụ chính.
+end note
+@enduml

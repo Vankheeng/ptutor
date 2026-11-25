@@ -1,0 +1,55 @@
+@startuml
+hide footbox
+autonumber
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #26323F
+  LifeLineBorderColor #7B8794
+  ParticipantBorderColor #4B83A4
+  ParticipantBackgroundColor #BCE9FA
+  GroupBorderColor #8DA7B8
+  GroupBackgroundColor #F7FBFD
+  ActivationBorderColor #4B83A4
+  ActivationBackgroundColor #BCE9FA
+}
+
+actor "Học viên" as Student
+boundary "Giao diện\nđề xuất" as View
+control "RecommendationInteraction\nController" as Controller
+control "QueryParse\nService" as Parse
+control "Subject / Grade / District /\nRecommendationTag Repository" as Catalog
+entity "Subject / Grade / District /\nRecommendationTag" as CatalogData
+control "AiService\nClient" as Client
+control "PTutor AI\nservice" as AI
+entity "QueryParseResponse" as Response
+
+Student -> View: Nhập nhu cầu bằng câu tự nhiên
+View -> Controller: Gửi nội dung cần phân tích
+Controller -> Parse: Yêu cầu nhận diện tiêu chí
+Parse -> Parse: Loại thông tin liên hệ và kiểm tra bộ nhớ đệm
+alt Có kết quả còn hiệu lực trong bộ nhớ đệm
+  Parse --> Controller: Bộ lọc đã phân tích
+else Cần phân tích mới
+  Parse -> Catalog: Lấy danh mục đang hoạt động
+  Catalog -> CatalogData: Đọc môn, lớp, khu vực và nhóm nhu cầu
+  CatalogData --> Catalog: Danh mục hợp lệ
+  Catalog --> Parse: Danh mục dùng để đối chiếu
+  Parse -> Client: Gửi câu và danh mục hợp lệ
+  Client -> AI: Phân tích câu bằng LLM
+  AI --> Client: Các tiêu chí được nhận diện
+  Client --> Parse: Kết quả phân tích
+  alt AI trả lời hợp lệ
+    Parse -> Parse: Đối chiếu tên với danh mục và chuẩn hóa
+  else Không phân tích được
+    Parse -> Parse: Giữ nguyên câu làm mô tả nhu cầu
+  end
+  Parse -> Response: Tạo bộ lọc gợi ý
+  Response --> Parse: Kết quả để hiển thị
+  Parse --> Controller: Bộ lọc gợi ý
+end
+Controller --> View: Trả tiêu chí đã nhận diện
+View --> Student: Hiển thị bộ lọc để xác nhận hoặc sửa
+@enduml

@@ -109,3 +109,29 @@
     position: static;
   }
 }
+
+.kb-unanswered-page { width: 100%; }
+.kb-unanswered-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 22px; }
+.kb-unanswered-header .admin-title { margin: 0; font-size: 28px; line-height: 1.2; }
+.kb-unanswered-header p:not(.kb-unanswered-eyebrow) { max-width: 650px; margin: 9px 0 0; color: #6f687e; font-size: 14px; line-height: 1.5; }
+.kb-unanswered-period { display: grid; gap: 5px; flex: 0 0 auto; color: #6a627a; font-size: 12px; font-weight: 650; }
+.kb-unanswered-period select { min-height: 38px; padding: 0 34px 0 11px; border: 1px solid #e5deef; border-radius: 9px; background: #fff; color: #241c3e; font: inherit; font-size: 13px; }
+.kb-unanswered-summary { display: flex; align-items: baseline; gap: 8px; margin-bottom: 15px; color: #675e79; font-size: 13px; }
+.kb-unanswered-summary strong { color: #241c3e; font-size: 25px; line-height: 1; }
+.kb-unanswered-list { display: grid; gap: 14px; }
+.kb-unanswered-item { padding: 21px 24px 18px; border: 1px solid #e8e2f0; border-radius: 16px; background: #fff; box-shadow: 0 4px 18px rgba(44, 28, 79, .035); }
+.kb-unanswered-item-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.kb-unanswered-item-top time { color: #7c7489; font-size: 12px; }
+.kb-unanswered-reason { padding: 5px 9px; border-radius: 999px; background: #fff2e4; color: #8b530d; font-size: 11px; font-weight: 700; }
+.kb-unanswered-reason.is-feedback { background: #f2eafe; color: #6330ad; }
+.kb-unanswered-item h2 { margin: 14px 0 6px; color: #241c3e; font-size: 17px; line-height: 1.45; }
+.kb-unanswered-explanation { margin: 0; color: #6b637b; font-size: 13px; }
+.kb-unanswered-rewrite { margin: 10px 0 0; color: #7a7289; font-size: 12px; }
+.kb-unanswered-item-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0edf5; }
+.kb-unanswered-item-footer > span { max-width: 520px; color: #827a8f; font-size: 12px; line-height: 1.5; }
+.kb-unanswered-item-footer .admin-button-row { margin-left: auto; }
+.kb-unanswered-added { color: #28724c; font-size: 12px; font-weight: 650; }
+@media (max-width: 720px) {
+  .kb-unanswered-header { align-items: flex-start; flex-direction: column; }
+  .kb-unanswered-item-footer .admin-button-row { margin-left: 0; }
+}

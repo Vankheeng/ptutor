@@ -16,7 +16,7 @@ export const supportSourceLabels: Record<SupportSource, string> = {
   ASSISTANT_ABSTAIN: 'Trợ lý chưa trả lời được',
   ASSISTANT_PARTIAL: 'Trợ lý trả lời một phần',
   ASSISTANT_FEEDBACK: 'Đánh giá chưa tốt',
-  MENU: 'Từ menu trợ lý'
+  MENU: 'Gửi trực tiếp từ mục hỗ trợ'
 };
 
 const FORMAT: Intl.DateTimeFormatOptions = {
