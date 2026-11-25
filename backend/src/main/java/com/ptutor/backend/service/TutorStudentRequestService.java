@@ -2,7 +2,6 @@ package com.ptutor.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -118,19 +117,6 @@ public class TutorStudentRequestService {
             TutorStudentRequestMapper tutorStudentRequestMapper) {
         this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
                 districtRepository, studentRepository, tutorStudentRequestMapper, event -> { }, null, null);
-    }
-
-    public TutorStudentRequestService(
-            TutorStudentRequestRepository tutorStudentRequestRepository,
-            StudyingRequestRepository studyingRequestRepository,
-            TutorRepository tutorRepository,
-            GradeRepository gradeRepository,
-            DistrictRepository districtRepository,
-            StudentRepository studentRepository,
-            TutorStudentRequestMapper tutorStudentRequestMapper,
-            ApplicationEventPublisher eventPublisher) {
-        this(tutorStudentRequestRepository, studyingRequestRepository, tutorRepository, gradeRepository,
-                districtRepository, studentRepository, tutorStudentRequestMapper, eventPublisher, null);
     }
 
     @Transactional
