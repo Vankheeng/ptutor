@@ -72,7 +72,7 @@ export function OffersPage() {
     }
   };
   return (
-    <>
+    <div className="student-offers-page">
       <div className="tutor-page-heading tutor-proposals-heading">
         <div>
           <h1>Đề nghị từ gia sư</h1>
@@ -165,7 +165,7 @@ export function OffersPage() {
                   <td>
                     <div className="tutor-proposal-row-actions">
                       <button
-                        className="tutor-button secondary small"
+                        className="tutor-button secondary small student-offer-view-button"
                         type="button"
                         onClick={() => navigate(`/student/studying-requests/${offer.request.id}`)}
                       >
@@ -187,7 +187,7 @@ export function OffersPage() {
           </table>
         </section>
       )}
-    </>
+    </div>
   );
 }
 

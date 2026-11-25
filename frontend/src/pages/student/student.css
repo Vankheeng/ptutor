@@ -1302,6 +1302,34 @@
   color: #81879b;
   font-size: 10px;
 }
+.student-offers-page .tutor-proposals-table th,
+.student-offers-page .tutor-proposals-table td {
+  font-size: 11px;
+}
+.student-offers-page .tutor-proposals-table th {
+  font-size: 10px;
+}
+.student-offers-page .tutor-proposals-table td > strong {
+  font-size: 11px;
+}
+.student-offers-page .tutor-proposals-table td > small {
+  font-size: 10px;
+}
+.student-offers-page .tutor-proposal-status {
+  font-size: 10px;
+}
+.student-offers-page .student-offer-view-button {
+  min-height: 32px;
+  border-color: #7138dc;
+  background: #7138dc;
+  color: #fff;
+  font-size: 11px;
+}
+.student-offers-page .student-offer-view-button:hover:not(:disabled) {
+  border-color: #5d27c6;
+  background: #5d27c6;
+  color: #fff;
+}
 .student-offer-list {
   display: grid;
   max-height: 520px;
