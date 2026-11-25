@@ -1,0 +1,113 @@
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/useAuth';
+import logo from '../../assets/ptutor-logo.svg';
+import { Icon, type IconName } from '../../components/ui/Icon';
+import { useNotificationUnreadCount } from '../../hooks/useNotificationUnreadCount';
+import './tutor.css';
+import './tutor-layout.css';
+
+const navigation = [
+  { section: 'WORKSPACE', to: '/tutor/dashboard', label: 'Tổng quan', icon: 'home' },
+  { section: 'TEACHING', to: '/tutor/students', label: 'Tìm kiếm học viên', icon: 'search' },
+  { section: 'TEACHING', to: '/tutor/sections/teaching-requests', label: 'Yêu cầu dạy của tôi', icon: 'book' },
+  { section: 'TEACHING', to: '/tutor/proposals', label: 'Đề nghị từ học viên', icon: 'send' },
+  { section: 'TEACHING', to: '/tutor/applications', label: 'Ứng tuyển của tôi', icon: 'edit' },
+  { section: 'TEACHING', to: '/tutor/sections/contracts', label: 'Hợp đồng', icon: 'contract' },
+  { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
+  { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
+  { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
+  { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
+  { section: 'ACCOUNT', to: '/tutor/profile', label: 'Hồ sơ của tôi', icon: 'user' }
+];
+
+const sectionLabels = { WORKSPACE: '', TEACHING: 'GIẢNG DẠY', ACCOUNT: 'TÀI KHOẢN' } as const;
+
+export function TutorLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const unreadNotifications = useNotificationUnreadCount();
+  const fullName =
+    [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ') || user?.email || 'Gia sư';
+  const initials = fullName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="tutor-shell">
+      <header className="tutor-topbar">
+        <div className="tutor-topbar-brand">
+          <NavLink className="tutor-brand" to="/tutor/dashboard" aria-label="Ptutor dashboard">
+            <img src={logo} alt="Ptutor" />
+          </NavLink>
+        </div>
+        <div className="tutor-topbar-workspace">
+          <span className="tutor-topbar-kicker">PTUTOR / KHÔNG GIAN GIA SƯ</span>
+          <strong>{fullName}</strong>
+        </div>
+        <span className="tutor-topbar-status">
+          <i /> Tài khoản đang hoạt động
+        </span>
+      </header>
+      <aside className="tutor-sidebar">
+        <div className="tutor-identity">
+          <span className="tutor-avatar">
+            {user?.profile?.avatarUrl ? <img src={user.profile.avatarUrl} alt="" /> : initials}
+          </span>
+          <span>
+            <strong>{fullName}</strong>
+            <small>Gia sư</small>
+          </span>
+        </div>
+        <nav className="tutor-nav" aria-label="Không gian gia sư">
+          {(['WORKSPACE', 'TEACHING', 'ACCOUNT'] as const).map((section) => (
+            <div className="tutor-nav-group" key={section}>
+              {sectionLabels[section] && <span className="tutor-nav-label">{sectionLabels[section]}</span>}
+              {navigation
+                .filter((item) => item.section === section)
+                .map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/tutor/wallet'}
+                    className={({ isActive }) => (isActive ? 'tutor-nav-link active' : 'tutor-nav-link')}
+                  >
+                    <span aria-hidden="true">
+                      <Icon name={item.icon as IconName} size={18} />
+                    </span>
+                    {item.label}
+                    {item.to === '/tutor/notifications' && unreadNotifications > 0 && (
+                      <b className="notification-nav-badge" aria-label={`${unreadNotifications} thông báo chưa đọc`}>
+                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      </b>
+                    )}
+                  </NavLink>
+                ))}
+            </div>
+          ))}
+          <div className="tutor-nav-actions">
+            <button
+              className="tutor-nav-link tutor-logout"
+              type="button"
+              onClick={() => {
+                void logout();
+                navigate('/');
+              }}
+            >
+              <span aria-hidden="true">⇥</span>Đăng xuất
+            </button>
+          </div>
+        </nav>
+      </aside>
+      <main className="tutor-main">
+        <div className="tutor-content">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}

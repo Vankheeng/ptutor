@@ -1,0 +1,168 @@
+package com.ptutor.backend.repository;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.ptutor.backend.entity.Payment;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.ReferenceType;
+
+import jakarta.persistence.LockModeType;
+
+public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+
+    interface ReferencePaymentTime {
+        UUID getReferenceId();
+
+        LocalDateTime getPaidAt();
+    }
+
+    @EntityGraph(attributePaths = { "paymentInstallment", "paymentInstallment.contract" })
+    Optional<Payment> findByTransactionCode(String transactionCode);
+
+    @EntityGraph(attributePaths = { "paymentInstallment", "paymentInstallment.contract" })
+    Optional<Payment> findByIdAndUser_Id(UUID id, UUID userId);
+
+    @EntityGraph(attributePaths = { "paymentInstallment", "paymentInstallment.contract" })
+    Optional<Payment> findFirstByUser_IdAndPaymentTypeAndReferenceTypeAndReferenceIdAndStatusOrderByCreatedAtDesc(
+            UUID userId, PaymentType paymentType, ReferenceType referenceType, UUID referenceId, PaymentStatus status);
+
+    Optional<Payment> findFirstByUser_IdAndPaymentInstallment_IdAndStatusOrderByCreatedAtDesc(
+            UUID userId, UUID paymentInstallmentId, PaymentStatus status);
+
+    Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusOrderByPaidAtDesc(
+            UUID lessonId, PaymentStatus status);
+
+    Optional<Payment> findFirstByPaymentInstallment_Lesson_IdAndStatusInOrderByPaidAtDesc(
+            UUID lessonId, Collection<PaymentStatus> statuses);
+
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusOrderByPaidAtDesc(
+            UUID installmentId, PaymentStatus status);
+
+    Optional<Payment> findFirstByPaymentInstallment_IdAndStatusInOrderByPaidAtDesc(
+            UUID installmentId, Collection<PaymentStatus> statuses);
+
+    @Query("""
+            select payment
+            from Payment payment
+            join fetch payment.paymentInstallment installment
+            where installment.contract.id = :contractId
+              and payment.status in :statuses
+            order by payment.paidAt desc
+            """)
+    List<Payment> findAllPaidForContract(
+            @Param("contractId") UUID contractId,
+            @Param("statuses") Collection<PaymentStatus> statuses);
+
+    List<Payment> findAllByUser_IdOrderByCreatedAtDesc(UUID userId);
+
+    @Query("""
+            select payment.referenceId as referenceId, max(payment.paidAt) as paidAt
+            from Payment payment
+            where payment.referenceType = :referenceType
+              and payment.paymentType = :paymentType
+              and payment.status = :status
+              and payment.referenceId in :referenceIds
+            group by payment.referenceId
+            """)
+    List<ReferencePaymentTime> findLatestPaidAtByReferenceIds(
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("status") PaymentStatus status,
+            @Param("referenceIds") List<UUID> referenceIds);
+
+    @Query("""
+            select payment.referenceId as referenceId, max(payment.paidAt) as paidAt
+            from Payment payment
+            where payment.referenceType = :referenceType
+              and payment.paymentType = :paymentType
+              and payment.status in :statuses
+              and payment.referenceId in :referenceIds
+            group by payment.referenceId
+            """)
+    List<ReferencePaymentTime> findLatestPaidAtByReferenceIdsAndStatuses(
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("statuses") Collection<PaymentStatus> statuses,
+            @Param("referenceIds") List<UUID> referenceIds);
+
+    @EntityGraph(attributePaths = { "paymentInstallment" })
+    @Query("""
+            select payment
+            from Payment payment
+            left join payment.paymentInstallment installment
+            where installment.contract.id = :contractId
+               or (payment.referenceType = :referenceType and payment.referenceId = :contractId)
+            order by payment.createdAt desc
+            """)
+    List<Payment> findAllForContract(
+            @Param("contractId") UUID contractId,
+            @Param("referenceType") ReferenceType referenceType);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select payment from Payment payment
+            join fetch payment.user
+            where payment.user.id = :userId
+              and payment.paymentType = :paymentType
+              and payment.referenceType = :referenceType
+              and payment.referenceId = :referenceId
+              and payment.status = :status
+            order by payment.createdAt desc
+            """)
+    List<Payment> findForRefund(
+            @Param("userId") UUID userId,
+            @Param("paymentType") PaymentType paymentType,
+            @Param("referenceType") ReferenceType referenceType,
+            @Param("referenceId") UUID referenceId,
+            @Param("status") PaymentStatus status,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Payment payment
+               set payment.status = :paidStatus,
+                   payment.providerTransactionNo = :providerTransactionNo,
+                   payment.providerResponseCode = :responseCode,
+                   payment.paidAt = :paidAt,
+                   payment.updatedAt = :paidAt
+             where payment.id = :paymentId
+               and payment.status = :pendingStatus
+               and payment.deletedAt is null
+            """)
+    int markPaidIfPending(
+            @Param("paymentId") UUID paymentId,
+            @Param("pendingStatus") PaymentStatus pendingStatus,
+            @Param("paidStatus") PaymentStatus paidStatus,
+            @Param("providerTransactionNo") String providerTransactionNo,
+            @Param("responseCode") String responseCode,
+            @Param("paidAt") LocalDateTime paidAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Payment payment
+               set payment.status = :failedStatus,
+                   payment.providerResponseCode = :responseCode,
+                   payment.updatedAt = :now
+             where payment.id = :paymentId
+               and payment.status = :pendingStatus
+               and payment.deletedAt is null
+            """)
+    int markFailedIfPending(
+            @Param("paymentId") UUID paymentId,
+            @Param("pendingStatus") PaymentStatus pendingStatus,
+            @Param("failedStatus") PaymentStatus failedStatus,
+            @Param("responseCode") String responseCode,
+            @Param("now") LocalDateTime now);
+}

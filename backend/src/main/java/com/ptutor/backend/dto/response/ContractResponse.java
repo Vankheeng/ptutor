@@ -1,0 +1,52 @@
+package com.ptutor.backend.dto.response;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import java.util.List;
+import java.time.LocalTime;
+
+import com.ptutor.backend.entity.enums.ContractStatus;
+import com.ptutor.backend.entity.enums.TeachingMode;
+import com.ptutor.backend.entity.enums.PaymentPeriod;
+
+public record ContractResponse(
+        UUID id,
+        UUID studentId,
+        UUID studentUserId,
+        String studentFirstName,
+        String studentLastName,
+        String studentEmail,
+        String studentDetailAddress,
+        UUID tutorId,
+        UUID tutorUserId,
+        String tutorFirstName,
+        String tutorLastName,
+        String tutorEmail,
+        UUID subjectId,
+        String subjectName,
+        UUID gradeId,
+        String gradeName,
+        TeachingMode teachingMode,
+        BigDecimal price,
+        PaymentPeriod paymentPeriod,
+        Integer totalLessons,
+        String preferredSchedule,
+        List<Schedule> schedules,
+        LocalDate startDate,
+        LocalDate endDate,
+        ContractStatus status,
+        UUID createdByUserId,
+        UUID signedByUserId,
+        UUID tutorStudentRequestId,
+        UUID studentTutorRequestId,
+        UUID renewedFromContractId,
+        LocalDateTime signedAt,
+        LocalDateTime cancelledAt,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt) {
+
+    public record Schedule(Integer dayOfWeek, LocalTime startTime, LocalTime endTime) {
+    }
+}

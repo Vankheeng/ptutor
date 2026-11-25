@@ -1,0 +1,32 @@
+package com.ptutor.backend.repository;
+
+import java.util.Optional;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import com.ptutor.backend.entity.enums.WithdrawalRequestStatus;
+
+import com.ptutor.backend.entity.WithdrawalRequest;
+
+public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalRequest, UUID> {
+
+    Optional<WithdrawalRequest> findByWallet_IdAndIdempotencyKey(UUID walletId, String idempotencyKey);
+
+    Optional<WithdrawalRequest> findByIdAndWallet_Id(UUID withdrawalId, UUID walletId);
+
+    Optional<WithdrawalRequest> findByIdAndWallet_User_Id(UUID withdrawalId, UUID userId);
+
+    Page<WithdrawalRequest> findAllByWallet_User_Id(UUID userId, Pageable pageable);
+
+    List<WithdrawalRequest> findAllByWallet_User_IdOrderByCreatedAtDesc(UUID userId);
+
+    Page<WithdrawalRequest> findAllByStatus(WithdrawalRequestStatus status, Pageable pageable);
+
+    @Query("select request.wallet.user.id from WithdrawalRequest request where request.id = :id")
+    Optional<UUID> findOwnerId(@Param("id") UUID id);
+}

@@ -1,0 +1,4 @@
+.review-tutor { display: flex; align-items: center; gap: 9px; margin-bottom: 18px; }
+.review-tutor img,.review-tutor-fallback { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+.review-tutor-fallback { display: grid; place-items: center; color: #fff; font-size: 9px; font-weight: 700; }
+.review-tutor small,.review-tutor strong { display: block; }.review-tutor small { margin-bottom: 3px; color: #9d96a5; font-size: 8px; }.review-tutor strong { color: #3c3547; font-size: 11px; }

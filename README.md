@@ -37,6 +37,8 @@ Dự án kết nối học viên và gia sư.
 ```bash
 git clone <repository-url>
 cd ptutor
+git fetch origin
+git switch --track -c dev origin/dev
 ```
 
 ### 2. Cài đặt Git Hooks
@@ -49,7 +51,33 @@ npm install
 
 Lệnh trên tự chạy script `prepare` để kích hoạt Husky — không cần chạy thêm lệnh nào khác.
 
-### 3. Khởi động PostgreSQL
+### 3. Chuẩn bị các file cấu hình local
+
+Sau khi checkout hoặc pull code từ nhánh `dev`, tạo các file cấu hình local một lần. Các file này đã được Git ignore nên sẽ được giữ lại khi chuyển sang các nhánh khác.
+
+Windows PowerShell:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+if (-not (Test-Path backend/src/main/resources/application.yml)) { Copy-Item backend/src/main/resources/application-prod.yaml backend/src/main/resources/application.yml }
+notepad .env
+notepad backend/src/main/resources/application.yml
+```
+
+Linux/macOS:
+
+```bash
+test -f .env || cp .env.example .env
+test -f backend/src/main/resources/application.yml || cp backend/src/main/resources/application-prod.yaml backend/src/main/resources/application.yml
+nano .env
+nano backend/src/main/resources/application.yml
+```
+
+Điền các giá trị cấu hình tương ứng trong `.env` và `backend/src/main/resources/application.yml`. Không cần tạo lại hai file này khi chuyển sang các nhánh khác.
+
+Docker Compose tự động đọc `.env` ở thư mục gốc project. Spring Boot sử dụng cấu hình trong `backend/src/main/resources/application.yml`.
+
+### 4. Khởi động PostgreSQL
 
 ```bash
 docker compose up -d
@@ -61,6 +89,21 @@ Kiểm tra container đang chạy:
 docker ps
 ```
 
+Kiểm tra riêng service PostgreSQL và trạng thái sẵn sàng của database:
+
+```powershell
+docker compose ps
+docker compose exec postgres pg_isready -U postgres -d ptutor
+```
+
+Kiểm tra extension `vector`, cần thiết cho các cột embedding của `Student` và `Tutor`:
+
+```powershell
+docker compose exec postgres psql -U postgres -d ptutor -c "SELECT extname FROM pg_extension WHERE extname = 'vector';"
+```
+
+Kết quả phải có extension `vector`. Nếu bạn thay đổi `POSTGRES_USER` hoặc `POSTGRES_DB` trong `.env`, hãy thay `postgres` và `ptutor` trong các lệnh trên bằng giá trị tương ứng.
+
 Cấu hình database mặc định:
 
 ```text
@@ -69,19 +112,13 @@ Username: postgres
 Port: 5432
 ```
 
-Dừng PostgreSQL:
-
-```bash
-docker compose down
-```
-
-> Không dùng `docker compose down -v` nếu muốn giữ lại dữ liệu database.
-
-### 4. Khởi động Backend
+### 5. Khởi động Backend
 
 ```bash
 cd backend
 ```
+
+Khi backend khởi động, Flyway sẽ tự động tạo schema, dữ liệu tỉnh thành, tài khoản Admin và các thay đổi schema từ migration `V1` đến migration mới nhất.
 
 Windows:
 
@@ -97,7 +134,1159 @@ Linux/macOS:
 
 Backend mặc định chạy tại `http://localhost:8080`.
 
-### 5. Khởi động Frontend
+### 6. Mở Swagger API Documentation
+
+Sau khi backend khởi động thành công, mở Swagger UI tại:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+> **Mẹo:** Thay vì cấu hình request thủ công trên Postman, hãy mở Swagger UI, chọn API cần kiểm thử, nhấn `Try it out` rồi `Execute`. Sau đó copy đoạn cURL được hiển thị và dán vào Postman để tạo request nhanh hơn.
+
+### 6.1. API danh mục lớp học
+
+API public không yêu cầu access token, trả về các lớp `ACTIVE`, sắp xếp từ lớp 1 đến lớp 12. Sử dụng `id` trong response làm `gradeId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/grades` | Lấy danh sách grade `ACTIVE`, sắp xếp theo `level`. |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "4e5f8a08-41fb-4f14-85f7-01c9cfb5a2b0",
+      "name": "Lớp 1",
+      "level": 1,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/grades"
+}
+```
+
+`ADMIN` hoặc `EMPLOYEE` có thể lấy cả record `ACTIVE` và `INACTIVE`:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/grades` | Lấy tất cả lớp học, sắp xếp theo level. |
+
+### 6.2. API danh mục môn học
+
+API public không yêu cầu access token, trả về các môn học `ACTIVE`. Có thể truyền `sort=popular` để phục vụ trang chủ.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/subjects?sort=popular` | Lấy danh sách môn học `ACTIVE`, sắp xếp theo độ phổ biến (`name` là giá trị mặc định). |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "1f8f8a2a-29e4-4f65-a5d5-2a2c9fdc6c3c",
+      "name": "Toán",
+      "description": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/subjects"
+}
+```
+
+`ADMIN` hoặc `EMPLOYEE` có thể lấy cả record `ACTIVE` và `INACTIVE`:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/subjects` | Lấy tất cả môn học, sắp xếp theo tên. |
+
+### 6.3. API danh mục quận huyện
+
+API yêu cầu access token và trả về danh sách district đã có trong hệ thống. Có thể truyền `provinceId` để chỉ lấy các district thuộc một tỉnh/thành phố. Sử dụng `id` trong response làm `districtId` khi tạo hoặc cập nhật teaching request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/districts` | Lấy tất cả district, sắp xếp theo tỉnh và tên district |
+| `GET` | `/api/v1/districts?provinceId={provinceId}` | Lấy district thuộc một tỉnh/thành phố |
+
+Ví dụ response:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": [
+    {
+      "id": "5c2f2f3e-1e2f-4f3b-8a5b-1d3a8e0d6f10",
+      "name": "Ba Đình",
+      "provinceId": "11111111-1111-1111-1111-111111111111",
+      "provinceName": "Hà Nội",
+      "createdAt": "2026-09-02T08:00:00Z",
+      "updatedAt": "2026-09-02T08:00:00Z"
+    }
+  ],
+  "errors": {},
+  "timestamp": "2026-09-02T08:00:00Z",
+  "path": "/api/v1/districts"
+}
+```
+
+### 6.4. API đăng yêu cầu tìm học viên
+
+Các API này dành cho tài khoản `TUTOR` và sử dụng tutor từ access token. Request mới tạo luôn ở trạng thái `DRAFT` vì gia sư chưa hoàn tất thanh toán, nên chưa hiển thị cho student hoặc tutor khác.
+
+Sau khi payment flow xác nhận thanh toán thành công, service nội bộ sẽ kích hoạt request:
+
+- Subject có sẵn: `DRAFT` → `OPEN`.
+- Subject tự nhập: `DRAFT` → `PENDING_REVIEW` để admin/employee duyệt.
+
+Gia sư có thể cập nhật request ở `DRAFT`, `OPEN` hoặc `PENDING_REVIEW`. Request `DRAFT` vẫn giữ `DRAFT` sau khi cập nhật. Gia sư có thể hủy request ở `DRAFT`, `OPEN`, `CLOSED` hoặc `PENDING_REVIEW`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/teaching-requests` | Tạo request ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/tutors/me/teaching-requests` | Xem các request của mình |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{requestId}` | Xem chi tiết request |
+| `PUT` | `/api/v1/tutors/me/teaching-requests/{requestId}` | Cập nhật request |
+| `PATCH` | `/api/v1/tutors/me/teaching-requests/{requestId}/status` | Chuyển `OPEN` ↔ `CLOSED` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/cancel` | Hủy request |
+
+API public không yêu cầu access token:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/teaching-requests?limit=3&subjectId={uuid}&gradeId={uuid}` | Chỉ trả bài đăng `OPEN`; có thể lọc theo môn, lớp và giới hạn tối đa 50 kết quả. |
+
+`GET /api/v1/teaching-requests/{requestId}` cần access token: `ADMIN`/`EMPLOYEE` xem mọi trạng thái, tutor chủ bài xem bài của mình, người dùng khác chỉ xem bài `OPEN`.
+
+### 6.5. API quản lý certificate của gia sư
+
+Các API quản lý certificate của chính mình dành cho tài khoản có role `TUTOR`. Hệ thống lấy tutor từ user trong access token, vì vậy client không truyền `tutorId` khi quản lý certificate của mình. Student có thể xem certificate đã được duyệt của một tutor qua API đọc riêng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/certificates/upload` | Upload PDF/JPEG/PNG (tối đa 10 MB) vào object storage đã cấu hình |
+| `POST` | `/api/v1/tutors/me/certificates` | Tạo certificate mới ở trạng thái `PENDING` |
+| `GET` | `/api/v1/tutors/me/certificates` | Xem tất cả certificate của mình |
+| `GET` | `/api/v1/tutors/me/certificates?status=VERIFIED` | Lọc certificate của mình theo trạng thái |
+| `GET` | `/api/v1/tutors/me/certificates/{certificateId}` | Xem chi tiết một certificate |
+| `PUT` | `/api/v1/tutors/me/certificates/{certificateId}` | Cập nhật certificate và đưa về `PENDING` |
+| `DELETE` | `/api/v1/tutors/me/certificates/{certificateId}` | Xóa mềm certificate |
+
+Tutor tự xem hồ sơ cá nhân:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me` | Xem hồ sơ cá nhân, thông tin liên hệ và địa chỉ của mình |
+| `PATCH` | `/api/v1/tutors/me` | Cập nhật từng phần thông tin cá nhân, địa chỉ và hồ sơ nghề nghiệp |
+
+Các field truyền với giá trị `null` sẽ được giữ nguyên. Email, password, citizen ID, trạng thái tài khoản, rating và các thống kê của tutor không thể cập nhật. `provinceId` và `districtId` phải được truyền cùng nhau; district phải thuộc province đã chọn.
+
+Student xem hồ sơ và certificate đã duyệt của tutor:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/{tutorId}` | Xem thông tin hồ sơ công khai của tutor |
+| `GET` | `/api/v1/tutors/{tutorId}/certificates` | Chỉ trả certificate có trạng thái `VERIFIED` |
+
+API `/api/v1/tutors/me` chỉ dành cho role `TUTOR` và trả thêm email, số điện thoại, ngày sinh, giới tính và địa chỉ của chính tutor. API hồ sơ/certificate theo `tutorId` chỉ dành cho role `STUDENT`; response hồ sơ công khai không trả email, số điện thoại, mật khẩu hoặc citizen ID.
+
+Request tạo/cập nhật:
+
+```json
+{
+  "name": "IELTS 8.0",
+  "issuingOrganization": "British Council",
+  "description": "English language certificate",
+  "issueDate": "2025-05-20",
+  "expiryDate": "2027-05-20",
+  "certificateUrl": "https://cdn.example.com/certificates/ielts.pdf"
+}
+```
+
+`name` là bắt buộc. Nếu truyền cả hai ngày, `expiryDate` không được trước `issueDate`. Upload file trước bằng `POST /api/v1/tutors/me/certificates/upload` với multipart field `file`, sau đó truyền `certificateUrl` nhận được khi tạo certificate. API cũng tiếp tục chấp nhận URL HTTPS hiện có.
+
+Certificate file storage hỗ trợ S3-compatible storage, gồm Supabase Storage. Với Supabase, bật S3 access trong Storage settings, tạo bucket **private**, rồi đặt `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY` và `S3_SECRET_KEY` trong file `.env` ở root backend. Dùng generated S3 access key pair, không dùng anon/service-role key. `S3_PUBLIC_ENDPOINT` thường giống `S3_ENDPOINT`; `S3_PRESIGN_DURATION` mặc định là `PT15M`. Không đưa các credential này vào frontend hoặc commit vào repository. Xem [Supabase S3 compatibility](https://supabase.com/docs/guides/storage/s3/compatibility) và [S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication).
+
+Certificate mới luôn có trạng thái `PENDING`. Certificate `VERIFIED` không được phép chỉnh sửa; gia sư cần tạo certificate mới nếu thông tin đã xác minh thay đổi. Các response thành công đều sử dụng format `ApiResponse` chung của backend.
+
+### 6.6. API hồ sơ Student và tài khoản
+
+Các API dưới đây yêu cầu access token JWT. API hồ sơ chỉ dành cho role `STUDENT`; API đổi mật khẩu dùng chung cho `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`. Hệ thống lấy người dùng hiện tại từ JWT, client không truyền `userId`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/students/me` | Xem hồ sơ và địa chỉ của Student đang đăng nhập |
+| `PATCH` | `/api/v1/students/me` | Cập nhật một phần thông tin hồ sơ Student |
+| `PUT` | `/api/v1/users/me/password` | Đổi mật khẩu của tài khoản đang đăng nhập |
+
+Response hồ sơ không chứa password, CCCD hoặc thông tin nhạy cảm không cần thiết. Khi cập nhật hồ sơ, các field không gửi lên sẽ được giữ nguyên. Đổi mật khẩu yêu cầu mật khẩu hiện tại, mật khẩu mới và xác nhận mật khẩu mới.
+
+### 6.7. API Studying Request của Student
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Mỗi request chỉ được truy cập hoặc chỉnh sửa bởi Student sở hữu request đó.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/studying-requests` | Tạo studying request ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/students/me/studying-requests` | Lấy danh sách studying request của mình |
+| `GET` | `/api/v1/students/me/studying-requests/{requestId}` | Xem chi tiết một studying request |
+| `PATCH` | `/api/v1/students/me/studying-requests/{requestId}` | Cập nhật một phần thông tin studying request |
+| `PATCH` | `/api/v1/students/me/studying-requests/{requestId}/status` | Cập nhật status theo luồng `OPEN` ↔ `CLOSED` |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/cancel` | Hủy studying request |
+
+API danh sách hỗ trợ các query parameter `page`, `size` và `status`:
+
+```text
+GET /api/v1/students/me/studying-requests?page=0&size=20&status=OPEN
+```
+
+`page` bắt đầu từ `0`, `size` tối đa là `100`. Request chỉ được cập nhật thông tin khi đang ở trạng thái `DRAFT` hoặc `OPEN`. API cập nhật status chỉ cho phép chuyển giữa `OPEN` và `CLOSED`; việc chuyển từ `DRAFT` sang `OPEN` được thực hiện qua payment flow sau này.
+
+Khi gọi các API cần xác thực, thêm header:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+Ví dụ tạo studying request:
+
+```json
+{
+  "subjectId": "5f68e2cf-d21f-1c69-3fbd-1404b89f26ff",
+  "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "title": "Cần gia sư Toán lớp 10",
+  "description": "Cần hỗ trợ ôn thi học kỳ.",
+  "districtId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "minPrice": 100000,
+  "maxPrice": 200000,
+  "learningMode": "ONLINE",
+  "preferredSchedule": "Buổi tối các ngày trong tuần"
+}
+```
+
+Ví dụ cập nhật thông tin:
+
+```json
+{
+  "title": "Cần gia sư Toán lớp 10 - cập nhật",
+  "maxPrice": 250000
+}
+```
+
+Ví dụ cập nhật status:
+
+```json
+{
+  "status": "CLOSED"
+}
+```
+
+`requestId` được lấy từ trường `id` trong response khi tạo request hoặc trong danh sách request. Khi gọi API cập nhật, xem chi tiết, cập nhật status hoặc hủy, phải truyền UUID cụ thể trong URL; không sử dụng URL collection không có `requestId`.
+
+### 6.8. API Tutor Student Request của Student
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Student chỉ có thể xem hoặc xử lý các đề nghị Tutor được gửi tới `studying_request` thuộc về chính mình.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests` | Lấy danh sách đề nghị Tutor, hỗ trợ phân trang và lọc status |
+| `GET` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}` | Xem chi tiết một đề nghị Tutor |
+| `PATCH` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/accept` | Chấp nhận đề nghị đang `PENDING` |
+| `PATCH` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/reject` | Từ chối đề nghị đang `PENDING` |
+
+API danh sách hỗ trợ các query parameter:
+
+```text
+GET /api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests?page=0&size=20&status=PENDING
+```
+
+Các status của Tutor Request gồm `PENDING`, `ACCEPTED`, `REJECTED` và `CANCELLED`. Hai API `accept` và `reject` không cần request body. Khi Student chấp nhận Tutor đầu tiên, studying request sẽ chuyển sang `MATCHED`. Các đề nghị `PENDING` còn lại được giữ nguyên và Student có thể tự reject từng đề nghị.
+
+Khi gọi API, thêm header:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+`studyingRequestId` lấy từ trường `id` của Studying Request. `tutorRequestId` lấy từ trường `id` trong response của API danh sách hoặc API chi tiết. Nếu đề nghị đã được xử lý hoặc studying request không thuộc Student hiện tại, API sẽ trả lỗi phù hợp.
+### 6.9. API Student gửi đề nghị đăng ký học (Student Tutor Request)
+
+Các API dưới đây yêu cầu access token JWT với role `STUDENT`. Student chỉ có thể tạo, xem danh sách và hủy các request do chính mình tạo.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/teaching-requests/{teachingRequestId}/student-tutor-requests` | Gửi đề nghị đăng ký học tới một teaching request đang `OPEN` |
+| `GET` | `/api/v1/students/me/student-tutor-requests` | Xem danh sách đề nghị đã gửi; hỗ trợ `page`, `size`, `status` |
+| `PATCH` | `/api/v1/students/me/student-tutor-requests/{requestId}/status` | Hủy đề nghị đang `PENDING` bằng status `CANCELLED` |
+
+Ví dụ tạo đề nghị:
+
+```json
+{
+  "gradeId": "2f2dd357-1839-4330-2f8a-16c4b36cfd3a",
+  "proposedPrice": 150000,
+  "learningMode": "ONLINE",
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "message": "Tôi muốn đăng ký học."
+}
+```
+
+API danh sách có thể gọi như sau:
+
+```text
+GET /api/v1/students/me/student-tutor-requests?page=0&size=20&status=PENDING
+```
+
+Request mới có status `PENDING`. Chỉ request `PENDING` bị xem là trùng; request đã `REJECTED` hoặc `CANCELLED` được phép đăng ký lại. Khi hủy, dùng UUID cụ thể lấy từ trường `id` của response:
+
+```http
+PATCH /api/v1/students/me/student-tutor-requests/{requestId}/status
+```
+
+```json
+{
+  "status": "CANCELLED"
+}
+```
+
+Header xác thực:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+### 6.9.1. API gia sư duyệt đề nghị học từ học viên (Student Tutor Request)
+
+Các API này dành cho role `TUTOR`. Gia sư chỉ xem và xử lý các đề nghị gửi đến teaching request do chính mình sở hữu.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests` | Lấy các đề nghị học của một teaching request; có thể lọc `status` |
+| `GET` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}` | Xem chi tiết một đề nghị học |
+| `PATCH` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{requestId}/status` | Chấp nhận hoặc từ chối đề nghị |
+
+Chỉ đề nghị `PENDING` được chuyển sang `ACCEPTED` hoặc `REJECTED`:
+
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+Mỗi đề nghị được chấp nhận sẽ được tính vào `quantity` của teaching request. Teaching request chỉ chuyển sang `MATCHED` khi số đề nghị `ACCEPTED` đạt đủ `quantity`; trước đó request vẫn có thể tiếp tục nhận học viên. API danh sách hiện hỗ trợ lọc trạng thái, chưa phân trang.
+
+### 6.10. Tìm kiếm studying request (Tutor và Employee)
+
+API dùng chung cho role `TUTOR` và `EMPLOYEE`; response không trả student ID, địa chỉ chi tiết hoặc thông tin liên hệ riêng tư. Tutor luôn chỉ nhận request `OPEN`, kể cả khi gửi status khác. Employee có thể lọc theo status.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/studying-requests` | Tìm request; hỗ trợ `status`, `subjectId`, `gradeId`, `districtId`, `learningMode`, `page`, `size` |
+| `GET` | `/api/v1/studying-requests/{studyingRequestId}` | Lấy chi tiết request có thể xem theo role |
+
+Kết quả danh sách có `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`; mặc định sắp xếp mới nhất trước, `size` tối đa 50.
+
+### 6.11. API gia sư gửi đề nghị dạy (Tutor Student Request)
+
+Các API này dành cho role `TUTOR`. Gia sư gửi đề nghị dạy đến studying request đang `OPEN` của học viên. Hệ thống tạo đề nghị ở `PENDING` và không cho tạo trùng một đề nghị `PENDING` trên cùng studying request.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/studying-requests/{studyingRequestId}/tutor-student-requests` | Gửi đề nghị dạy, gồm `gradeId`, `proposedPrice`, `teachingMode`, lịch và lời nhắn |
+| `GET` | `/api/v1/tutors/me/tutor-student-requests` | Lấy các đề nghị dạy của tôi; hỗ trợ `status`, `page`, `size` |
+| `POST` | `/api/v1/tutors/me/tutor-student-requests/{requestId}/cancel` | Hủy đề nghị dạy đang chờ |
+
+Chỉ đề nghị `PENDING` mới được hủy và khi hủy sẽ chuyển sang `CANCELLED`. Ví dụ tạo đề nghị:
+
+```json
+{
+  "gradeId": "3878ce4c-8136-4468-a47a-0bd7b803e719",
+  "proposedPrice": 150000,
+  "teachingMode": "ONLINE",
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "message": "Tôi có kinh nghiệm dạy môn này."
+}
+```
+
+### 6.12. API khiếu nại (Complaint)
+
+API dùng chung cho `STUDENT` và `TUTOR`. Người gửi phải là một trong hai bên tham gia hợp đồng (`contractId`) được khiếu nại; bên còn lại của hợp đồng là bên bị khiếu nại (respondent). Mỗi người chỉ xem, cập nhật hoặc hủy khiếu nại do chính mình tạo.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/me/complaints` | Tạo khiếu nại `PENDING` với `category` bắt buộc, có thể kèm evidence URL |
+| `GET` | `/api/v1/users/me/complaints` | Lấy khiếu nại của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/users/me/complaints/{complaintId}` | Xem trạng thái, resolution và evidence |
+| `PUT` | `/api/v1/users/me/complaints/{complaintId}` | Cập nhật category, title, content và evidence của khiếu nại `PENDING` |
+| `POST` | `/api/v1/users/me/complaints/{complaintId}/cancel` | Hủy khiếu nại `PENDING` |
+| `POST` | `/api/v1/users/me/complaints/{complaintId}/evidences` | Bổ sung evidence khi complaint đang `AWAITING_EVIDENCE`; hệ thống đưa complaint về `IN_REVIEW` |
+| `GET` | `/api/v1/users/me/complaints/against-me` | Bên bị khiếu nại xem các khiếu nại về mình; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/users/me/complaints/against-me/{complaintId}` | Bên bị khiếu nại xem chi tiết, evidence của hai bên và kết luận |
+| `POST` | `/api/v1/users/me/complaints/against-me/{complaintId}/responses` | Bên bị khiếu nại gửi một phản hồi duy nhất, có thể kèm tối đa 5 evidence |
+
+Các trạng thái gồm `PENDING`, `IN_REVIEW`, `AWAITING_EVIDENCE`, `RESOLVED`, `REJECTED`, `CANCELLED`. Khi cập nhật complaint, không thể đổi `contractId`; bỏ field `evidences` để giữ evidence cũ, gửi `[]` để xóa toàn bộ evidence, hoặc gửi danh sách mới để thay thế. Complaint chỉ được cập nhật/hủy khi còn `PENDING`. Evidence bổ sung được append và không thay thế evidence đã có.
+
+`category` là nhận định của người gửi về loại vấn đề: `ABSENCE` (vắng mặt), `LATE_OR_SHORT` (đi muộn, dạy thiếu giờ), `TEACHING_QUALITY`, `MISCONDUCT`, `SERIOUS_MISCONDUCT` (quấy rối, lừa đảo, giao dịch ngoài nền tảng) hoặc `OTHER`. Complaint tạo trước khi có trường này trả về `category = null`.
+
+Bên bị khiếu nại chỉ thấy complaint từ khi nhân viên tiếp nhận (`IN_REVIEW`) trở đi, vì trước đó người gửi vẫn có thể sửa hoặc hủy. Họ được thông báo khi complaint được tiếp nhận và được gửi đúng một phản hồi trong lúc complaint còn `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; phản hồi và evidence đã gửi không sửa được. Khi complaint chưa có kết quả, API của bên bị khiếu nại không trả `resolution`, vì trường này đang chứa yêu cầu của nhân viên gửi cho người gửi. Mỗi evidence có `uploadedByUserId` để phân biệt evidence của hai bên.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `COMPLAINT_NOT_FOUND` (`404`) | Complaint không tồn tại, không liên quan tới user hiện tại, hoặc chưa được tiếp nhận khi gọi API của bên bị khiếu nại |
+| `RESPONDENT_RESPONSE_NOT_ALLOWED` (`409`) | Gửi phản hồi khi complaint không còn `IN_REVIEW`/`AWAITING_EVIDENCE` |
+| `RESPONDENT_RESPONSE_ALREADY_SUBMITTED` (`409`) | Bên bị khiếu nại gửi phản hồi lần thứ hai |
+
+### 6.13. API hợp đồng (Contract)
+
+Các API hợp đồng chỉ dành cho `STUDENT` và `TUTOR` đã đăng nhập. Hệ thống luôn xác định người dùng từ JWT; chỉ hai bên tham gia mới có thể xem chi tiết, ký, từ chối hoặc gia hạn hợp đồng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/studying-requests/{studyingRequestId}/tutor-requests/{tutorRequestId}/contracts` | Student tạo hợp đồng từ Tutor Student Request đã `ACCEPTED` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{teachingRequestId}/student-requests/{studentRequestId}/contracts` | Tutor tạo hợp đồng từ Student Tutor Request đã `ACCEPTED` |
+| `GET` | `/api/v1/users/me/contracts` | Lấy danh sách hợp đồng của tôi, hỗ trợ `page`, `size`, `status` |
+| `GET` | `/api/v1/users/me/contracts/{contractId}` | Xem chi tiết hợp đồng mà tôi là một bên tham gia |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}` | Creator cập nhật điều khoản của hợp đồng `PENDING` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/sign` | Bên còn lại ký hợp đồng, chuyển sang `ACTIVE` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/reject` | Bên còn lại từ chối hợp đồng `PENDING` |
+| `PATCH` | `/api/v1/users/me/contracts/{contractId}/cancel` | Creator hủy hợp đồng `PENDING` trước khi bên còn lại ký |
+| `POST` | `/api/v1/users/me/contracts/{contractId}/renewals` | Student hoặc Tutor đề xuất gia hạn từ hợp đồng `ACTIVE` |
+
+Khi tạo hợp đồng, request gốc phải ở `OPEN` hoặc `MATCHED` và đề nghị tương ứng phải ở `ACCEPTED`. Contract mới bắt đầu với status `PENDING`; chỉ bên không phải creator được ký. Hai bên có thể dùng `reject` hoặc `cancel` theo đúng quyền nêu trên. Một nguồn đề nghị chỉ có một Contract chưa `CANCELLED`; sau khi Contract bị hủy/từ chối, có thể tạo lại từ cùng đề nghị.
+
+Trạng thái Contract gồm `PENDING`, `ACTIVE`, `COMPLETED`, `CANCELLED`. Lúc `00:00` ngày `endDate`, Contract `ACTIVE` tự chuyển thành `COMPLETED`, còn Contract chưa ký (`PENDING`) tự chuyển thành `CANCELLED`.
+
+Ví dụ body tạo/gia hạn Contract:
+
+```json
+{
+  "price": 200000,
+  "paymentPeriod": "MONTHLY",
+  "totalLessons": 16,
+  "preferredSchedule": "Tối thứ 2 và thứ 4",
+  "startDate": "2026-10-01",
+  "endDate": "2026-12-01"
+}
+```
+
+Tutor có thể gửi thêm `gradeId` khi tạo Contract từ Teaching Request để chọn một grade thuộc request đó. Khi gia hạn, chỉ thay đổi `price`, `preferredSchedule`, `paymentPeriod`, `totalLessons`, `startDate` và `endDate`; subject, grade, teaching mode và hai bên tham gia được giữ nguyên.
+
+Khi gọi `PATCH /api/v1/users/me/contracts/{contractId}`, Contract phải còn `PENDING` và người gọi phải là creator của Contract. Các field được phép cập nhật tùy theo nguồn tạo Contract:
+
+| Nguồn tạo Contract | Field được phép cập nhật |
+| --- | --- |
+| Student tạo từ Tutor Student Request | `price`, `preferredSchedule` |
+| Tutor tạo từ Student Tutor Request | `price`, `preferredSchedule`, `gradeId` (grade phải thuộc Teaching Request nguồn) |
+| Contract gia hạn | `price`, `preferredSchedule`, `paymentPeriod`, `totalLessons`, `startDate`, `endDate` |
+
+Các field không gửi hoặc có giá trị `null` sẽ được giữ nguyên. Không thể cập nhật bên tham gia, subject, teaching mode, status, request nguồn, người tạo/ký hoặc audit fields. Bên không phải creator và Contract không còn `PENDING` không có quyền cập nhật.
+
+Header xác thực:
+
+```text
+Authorization: Bearer <access-token>
+```
+### 6.14. API buổi học của hợp đồng (Lesson)
+
+Các API này dành cho role `TUTOR`. Gia sư chỉ quản lý buổi học thuộc contract của chính mình. Tạo hoặc sửa lịch chỉ thực hiện được khi contract `ACTIVE`; ngày học phải nằm trong thời hạn contract và `startTime` phải trước `endTime`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/tutors/me/contracts/{contractId}/lessons` | Tạo buổi học mới cho contract |
+| `GET` | `/api/v1/tutors/me/contracts/{contractId}/lessons` | Lấy danh sách buổi học của contract; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/tutors/me/lessons/{lessonId}` | Xem chi tiết một buổi học |
+| `PUT` | `/api/v1/tutors/me/lessons/{lessonId}` | Cập nhật tiêu đề, lịch và ghi chú của buổi `SCHEDULED` |
+| `PATCH` | `/api/v1/tutors/me/lessons/{lessonId}/status` | Cập nhật trạng thái buổi học |
+| `GET` | `/api/v1/students/me/contracts/{contractId}/lessons` | Học viên xem mọi buổi học của hợp đồng của mình, sắp theo ngày và giờ bắt đầu |
+| `POST` | `/api/v1/students/me/lessons/{lessonId}/confirm` | Học viên xác nhận buổi học `PENDING_CONFIRMATION` |
+
+Ví dụ tạo buổi học:
+
+```json
+{
+  "title": "Buổi 1: Ôn tập đại số",
+  "date": "2026-09-12",
+  "startTime": "18:00:00",
+  "endTime": "20:00:00",
+  "note": "Chuẩn bị bài tập chương 1"
+}
+```
+
+Khi tạo, hệ thống tự gán `SCHEDULED` nếu `date + endTime` chưa qua; nếu buổi học đã kết thúc thì gán `PENDING_CONFIRMATION`. API danh sách sắp xếp theo `date`, rồi `startTime`.
+
+#### Ma trận chuyển trạng thái Lesson
+
+| Chủ thể | Chuyển trạng thái đã implement | Điều kiện |
+| --- | --- | --- |
+| System khi tạo lesson | `→ SCHEDULED` | `date + endTime` lớn hơn thời điểm tạo. |
+| System khi tạo lesson | `→ PENDING_CONFIRMATION` | `date + endTime` đã qua tại thời điểm tạo. |
+| Tutor | `SCHEDULED → PENDING_CONFIRMATION` | Tutor sở hữu contract; buổi học đã kết thúc (`date + endTime ≤ now`). |
+| Tutor | `SCHEDULED → CANCELLED` | Tutor sở hữu contract. |
+| Tutor | `PENDING_CONFIRMATION → CANCELLED` | Tutor sở hữu contract. |
+| Student | `PENDING_CONFIRMATION → CONFIRMED` | Student thuộc contract, contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, và lesson không bị phản đối trong một yêu cầu hoàn tiền đang mở. |
+| System (job tự động) | `PENDING_CONFIRMATION → COMPLETED` | Đã ít nhất 3 ngày kể từ lúc buổi học được đánh dấu đã dạy (`markedTaughtAt`), student chưa xác nhận (vẫn `PENDING_CONFIRMATION`), contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, và lesson không bị phản đối trong một yêu cầu hoàn tiền đang mở. |
+| Kế toán khi duyệt hoàn tiền | `PENDING_CONFIRMATION → COMPLETED` hoặc `→ CANCELLED` | Lesson bị phản đối trong yêu cầu hoàn tiền: `TAUGHT` thành `COMPLETED`, `TUTOR_ABSENT`/`STUDENT_ABSENT` thành `CANCELLED` (mục 6.24.3). |
+| Admin | Chưa có | Ngoài luồng hoàn tiền, chưa có API/service để admin đổi `LessonStatus`. |
+
+`CONFIRMED`, `COMPLETED` và `CANCELLED` là trạng thái kết thúc trong luồng Lesson hiện tại, không có transition đi tiếp. Job tự động chạy theo chu kỳ cấu hình (`app.lesson.auto-completion-interval-ms`, mặc định 1 giờ); mốc chờ xác nhận cấu hình bằng `app.lesson.auto-completion-grace-days`, mặc định 3 ngày.
+
+`markedTaughtAt` là thời điểm buổi học chuyển sang `PENDING_CONFIRMATION`: lúc tutor đánh dấu đã dạy, hoặc lúc tạo nếu buổi học đã kết thúc. Thời gian chờ được tính từ mốc này, không tính từ giờ kết thúc buổi học, nên tutor đánh dấu muộn thì student vẫn có đủ 3 ngày để xác nhận hoặc phản đối. Với các buổi học khác, trường này là `null`.
+
+Complaint đang xử lý sẽ giữ mọi lesson `PENDING_CONFIRMATION` của contract; kết luận complaint không đổi trạng thái Lesson. Student phản đối một buổi không diễn ra bằng yêu cầu hoàn tiền (mục 6.24): yêu cầu đang mở chỉ giữ các buổi bị phản đối, và trạng thái của chúng được chốt khi kế toán duyệt.
+
+### 6.15. API ví và tài khoản ngân hàng
+
+Các API này chỉ dành cho người dùng đã đăng nhập có role `STUDENT` hoặc `TUTOR`. Danh tính luôn lấy từ access token JWT; client không truyền `userId` hay `walletId`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/users/me/wallet` | Xem số dư ví hiện tại |
+| `GET` | `/api/v1/users/me/wallet/transactions` | Xem lịch sử giao dịch ví, có phân trang và lọc |
+| `GET` | `/api/v1/users/me/wallet/transactions/{transactionId}` | Xem chi tiết giao dịch ví của chính mình |
+| `GET` | `/api/v1/users/me/bank-account` | Xem tài khoản ngân hàng nhận tiền đã cấu hình |
+| `POST` | `/api/v1/users/me/bank-account/otp` | Gửi OTP để tạo hoặc cập nhật tài khoản ngân hàng nhận tiền |
+| `POST` | `/api/v1/users/me/bank-account/confirm` | Xác nhận OTP và lưu tài khoản ngân hàng |
+| `POST` | `/api/v1/users/me/wallet/withdrawals/otp` | Gửi OTP cho yêu cầu rút tiền (tối thiểu 50.000 VND) |
+| `POST` | `/api/v1/users/me/wallet/withdrawals/confirm` | Xác nhận OTP và tạo yêu cầu rút tiền |
+| `POST` | `/api/v1/users/me/wallet/withdrawals` | Endpoint cũ, trả `410`; dùng quy trình OTP |
+| `GET` | `/api/v1/users/me/wallet/withdrawals` | Xem lịch sử yêu cầu rút tiền của chính mình |
+| `PATCH` | `/api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel` | Tự hủy yêu cầu rút đang `PENDING` và hoàn tiền về ví |
+
+Ví được tạo tự động khi một Student hoặc Tutor đăng ký, với `balance = 0` và `pendingBalance = 0`.
+
+- `balance`: số tiền khả dụng trong ví.
+- `pendingBalance`: số tiền đã được giữ cho các yêu cầu rút chưa hoàn tất.
+
+Ví dụ response `GET /api/v1/users/me/wallet`:
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": {
+    "walletId": "6d163c03-a24f-46f7-bd18-08afc2f9a7f5",
+    "userId": "e958f901-c4ec-4ff7-a29b-4c0180597765",
+    "balance": 150000.00,
+    "pendingBalance": 50000.00,
+    "currency": "VND",
+    "updatedAt": "2026-09-10T18:37:07.137286"
+  },
+  "errors": {},
+  "timestamp": "2026-09-10T11:37:07.211387Z",
+  "path": "/api/v1/users/me/wallet"
+}
+```
+
+Khi chưa cấu hình tài khoản ngân hàng, `GET /api/v1/users/me/bank-account` trả `200 SUCCESS` với `data: null`; đây là trạng thái bình thường. Gửi thông tin tài khoản tới endpoint OTP:
+
+```json
+{
+  "bankCode": "MB",
+  "bankName": "MB Bank",
+  "accountNumber": "0123456789",
+  "accountHolderName": "Nguyen Van A"
+}
+```
+
+API trả `challengeId` và thời điểm hết hạn. OTP gồm 6 chữ số, hết hạn sau 5 phút và tối đa 5 lần nhập sai. Yêu cầu mã mới sẽ vô hiệu hóa mã trước đó. Gửi `challengeId` và `otp` tới `POST /api/v1/users/me/bank-account/confirm` để lưu tài khoản.
+
+Số tài khoản được mã hóa khi lưu trong database. API chỉ trả bốn số cuối qua `maskedAccountNumber`; `bankCode`, `bankName` và `accountHolderName` được trả nguyên văn cho chính chủ tài khoản.
+
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "Request processed successfully",
+  "data": {
+    "bankAccountId": "6d163c03-a24f-46f7-bd18-08afc2f9a7f5",
+    "userId": "e958f901-c4ec-4ff7-a29b-4c0180597765",
+    "bankCode": "MB",
+    "bankName": "MB Bank",
+    "maskedAccountNumber": "****6789",
+    "accountHolderName": "Nguyen Van A",
+    "createdAt": "2026-09-10T18:25:53.988407",
+    "updatedAt": "2026-09-10T18:37:07.137286"
+  },
+  "errors": {},
+  "timestamp": "2026-09-10T11:37:07.211387Z",
+  "path": "/api/v1/users/me/bank-account"
+}
+```
+
+#### 6.14.1. Rút tiền
+
+Luồng rút tiền áp dụng cho `STUDENT` và `TUTOR` đã đăng nhập. Client không gửi `userId`, `walletId` hoặc thông tin tài khoản nhận tiền trong body; hệ thống luôn lấy các thông tin này từ JWT và Bank Account của chính người dùng.
+
+1. Cấu hình tài khoản nhận tiền qua `POST /api/v1/users/me/bank-account/otp`, sau đó xác nhận tại `/api/v1/users/me/bank-account/confirm`.
+2. Xem số dư khả dụng bằng `GET /api/v1/users/me/wallet`.
+3. Gửi yêu cầu OTP bằng `POST /api/v1/users/me/wallet/withdrawals/otp`, rồi xác nhận tại `/api/v1/users/me/wallet/withdrawals/confirm`.
+4. Dùng `GET /api/v1/users/me/wallet/withdrawals?page=0&size=20` để xem lịch sử của chính mình.
+5. Nếu chưa được xử lý, hủy bằng `PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel`.
+
+##### 6.14.1.1. Tạo yêu cầu rút
+
+Trước khi tạo yêu cầu, tài khoản ngân hàng phải tồn tại và `balance` phải lớn hơn hoặc bằng `amount`. Số tiền rút tối thiểu là `50,000` VND. Header `Idempotency-Key` là bắt buộc và phải dùng cùng giá trị khi yêu cầu OTP và xác nhận:
+
+```text
+Idempotency-Key: withdrawal-2026-09-10-001
+```
+
+```json
+{
+  "amount": 500000.00,
+  "note": "Rút tiền dạy học"
+}
+```
+
+OTP gồm 6 chữ số, hết hạn sau 5 phút và tối đa 5 lần nhập sai. Yêu cầu OTP mới sẽ vô hiệu hóa mã cũ. `Idempotency-Key` phải là chuỗi riêng cho mỗi ý định rút tiền. Xác nhận lặp lại cùng challenge và key trả về yêu cầu đã tạo, không giữ tiền lần nữa. Dùng key mới cho một yêu cầu khác.
+
+Khi tạo thành công:
+
+- `balance` giảm đúng bằng `amount`.
+- `pendingBalance` tăng đúng bằng `amount`.
+- Yêu cầu mới có status `PENDING`.
+- Hệ thống snapshot thông tin tài khoản nhận tiền: mã/tên ngân hàng, chủ tài khoản, số tài khoản mã hóa và bốn số cuối. Việc cập nhật Bank Account sau đó không làm thay đổi nơi nhận tiền của yêu cầu đã tạo.
+
+Ví dụ: trước khi rút, `balance = 1,000,000` và `pendingBalance = 0`. Tạo yêu cầu rút `500,000` thành công sẽ cho kết quả `balance = 500,000`, `pendingBalance = 500,000`.
+
+##### 6.14.1.2. Hủy yêu cầu rút
+
+Chỉ chủ sở hữu của request mới được hủy, và chỉ hủy được khi status là `PENDING`. API cancel không cần request body. Khi hủy thành công, hệ thống đổi status của yêu cầu và giao dịch rút tiền hiện có thành `CANCELLED`, giảm `pendingBalance` và cộng lại cùng số tiền vào `balance`. Không tạo giao dịch hoàn tiền riêng.
+
+```http
+PATCH /api/v1/users/me/wallet/withdrawals/{withdrawalId}/cancel
+Authorization: Bearer <access-token>
+```
+
+Các trạng thái yêu cầu rút gồm:
+
+- `PENDING`: chờ được xử lý.
+- `PROCESSING`: đang được xử lý/chuyển tiền.
+- `COMPLETED`: đã chuyển tiền thành công.
+- `REJECTED`: bị từ chối.
+- `CANCELLED`: người dùng tự hủy khi còn `PENDING`; số tiền được chuyển từ `pendingBalance` về `balance`.
+
+Khi có luồng xử lý nội bộ, response đã có các field audit: `reviewedByUserId`, `reviewedAt`, `rejectionReason`, `completedAt` và `transferReference`. Các field này ban đầu là `null`; API Student/Tutor hiện tại không được phép tự ghi chúng.
+
+Admin và nhân viên kế toán xem danh sách yêu cầu tại `GET /api/v1/admin/withdrawals` và xem tài khoản ngân hàng nhận tiền tại `GET /api/v1/admin/withdrawals/{id}`. Tài khoản đầy đủ chỉ được trả về ở trang chi tiết, không xuất hiện trong danh sách.
+
+- `PATCH /api/v1/admin/withdrawals/{id}/approve`: duyệt yêu cầu `PENDING`, chuyển sang `PROCESSING`. Số tiền vẫn được giữ trong `pendingBalance`.
+- Trang chi tiết của yêu cầu `PROCESSING` tạo mã VietQR nhận tiền từ ngân hàng, số tài khoản và số tiền đã lưu trong yêu cầu. Kế toán quét hoặc tải QR, kiểm tra lại người nhận trong ứng dụng ngân hàng và xác nhận chuyển khoản. QR được tạo offline trên trình duyệt; nếu không tạo được QR, có thể dùng thông tin tài khoản hiển thị trên trang.
+- Sau khi ngân hàng xác nhận thành công, kế toán gọi `PATCH /api/v1/admin/withdrawals/{id}/complete` với `{"transferReference":"<mã giao dịch ngân hàng>"}` để chuyển sang `COMPLETED`, giảm `pendingBalance` và ghi giao dịch rút tiền vào sổ ví.
+- `PATCH /api/v1/admin/withdrawals/{id}/reject` với `{"reason":"<lý do>"}`: từ chối yêu cầu còn `PENDING` và trả khoản tiền đang giữ về `balance`.
+
+Tích hợp VNPay hiện có tạo lệnh `pay` cho tiền đi vào hệ thống và xử lý IPN thanh toán. Repo chưa có API payout để tự động chuyển tiền từ tài khoản PTutor sang tài khoản ngân hàng người rút; thao tác chuyển khoản ngân hàng ở bước `PROCESSING` được kế toán thực hiện bên ngoài hệ thống.
+
+#### 6.14.2. Lịch sử giao dịch ví
+
+`GET /api/v1/users/me/wallet/transactions` trả lịch sử của chính user JWT, sắp xếp mới nhất trước. Hỗ trợ các query parameter tùy chọn: `transactionType` (`CREDIT`/`DEBIT`), `purpose`, `status`, `createdFrom`, `createdTo`, `page` và `size`.
+
+Mỗi record có `amount`, `balanceAfter`, `pendingBalanceAfter`, nguồn nghiệp vụ (`referenceType`, `referenceId`) và trạng thái. Một lần rút tiền chỉ có một transaction `DEBIT + WITHDRAWAL`; khi hủy, transaction đó chuyển sang `CANCELLED`, không tạo transaction `CREDIT` riêng. `WITHDRAWAL_REVERSAL` vẫn có thể xuất hiện trong dữ liệu lịch sử cũ.
+
+Việc cộng/trừ tiền (`TOP_UP`, `TUTOR_EARNING`, học phí hoặc hoàn tiền) luôn đi qua `WalletService` với idempotency key. Student/Tutor có thể tạo yêu cầu nạp ví qua VNPay; hệ thống không cung cấp API cộng số dư trực tiếp. Số dư chỉ được cộng sau khi backend xác minh IPN thành công từ VNPay.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `INVALID_IDEMPOTENCY_KEY` (`400`) | POST không có `Idempotency-Key`, key rỗng hoặc dài quá 100 ký tự. |
+| `BANK_ACCOUNT_REQUIRED` (`409`) | User trong JWT chưa cấu hình Bank Account. |
+| `INSUFFICIENT_WALLET_BALANCE` (`409`) | `balance` nhỏ hơn số tiền muốn rút. |
+| `WITHDRAWAL_NOT_FOUND` (`404`) | Request không tồn tại hoặc không thuộc user hiện tại. |
+| `WITHDRAWAL_NOT_CANCELLABLE` (`409`) | Request không còn `PENDING`. |
+
+### 6.16. API Admin/Employee duyệt certificate của gia sư
+
+Các API này chỉ dành cho tài khoản có role `ADMIN` hoặc `EMPLOYEE`. Người duyệt xem thông tin certificate, file minh chứng và thông tin cơ bản của gia sư trước khi phê duyệt hoặc từ chối thủ công.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/certificates` | Danh sách certificate, mặc định lọc `PENDING` và cũ nhất trước |
+| `GET` | `/api/v1/admin/certificates/{certificateId}` | Xem certificate, file minh chứng và thông tin gia sư |
+| `PATCH` | `/api/v1/admin/certificates/{certificateId}/approve` | Phê duyệt certificate `PENDING` |
+| `PATCH` | `/api/v1/admin/certificates/{certificateId}/reject` | Từ chối certificate `PENDING`, bắt buộc có lý do |
+
+API danh sách hỗ trợ `page`, `size`, `status`, `keyword` và `excludePendingProfiles` (bỏ chứng chỉ của hồ sơ gia sư còn `PENDING`, vì các chứng chỉ đó được duyệt cùng hồ sơ). Kết quả có `tutorUserId` để mở `/api/v1/admin/tutors/{userId}`. Khi xử lý, hệ thống lấy Employee/Admin từ JWT, lưu người duyệt và thời gian server, sau đó tạo notification cho gia sư. Khóa bản ghi trong transaction ngăn hai người duyệt đồng thời cùng một certificate.
+
+### 6.17. API Admin/Employee duyệt yêu cầu dạy
+
+Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Danh sách mặc định trả về các yêu cầu
+`PENDING_REVIEW`; có thể lọc thêm `OPEN` và `REJECTED`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/teaching-requests` | Danh sách yêu cầu theo `status`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/teaching-requests/{teachingRequestId}` | Xem chi tiết yêu cầu và kết quả duyệt |
+| `PATCH` | `/api/v1/admin/teaching-requests/{teachingRequestId}/approve` | Duyệt nội dung; tạo môn mới hoặc liên kết môn có sẵn nếu tutor đề xuất môn ngoài danh mục, rồi chuyển sang `OPEN` |
+| `PATCH` | `/api/v1/admin/teaching-requests/{teachingRequestId}/reject` | Chuyển sang `REJECTED` và hoàn phí đăng vào số dư ví gia sư |
+
+Chỉ yêu cầu `PENDING_REVIEW` mới được approve hoặc reject. Khi reject, hệ thống hoàn đúng
+`Payment.amount` vào `wallet.balance`, tạo ledger `TEACHING_REQUEST_REFUND`, chuyển payment từ
+`PAID` sang `REFUNDED`, rồi lưu người duyệt, thời gian và lý do từ chối trong cùng transaction.
+
+Yêu cầu sau thanh toán chuyển vào `PENDING_REVIEW` khi trường `note` có nội dung **hoặc** tutor
+đề xuất môn chưa có trong hệ thống. Nếu là môn tự nhập, admin gửi `subjectResolution.action` bằng
+`CREATE` cùng tên/mô tả đã chỉnh sửa để tạo môn `ACTIVE`, hoặc `USE_EXISTING` cùng `subjectId` để
+liên kết một môn `ACTIVE` có sẵn. Việc xử lý môn và mở yêu cầu chạy trong cùng một transaction.
+
+### 6.18. Đánh giá (Review)
+
+API public không yêu cầu access token. Chỉ các đánh giá 5 sao mới nhất được trả về; tên học viên được ẩn danh.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/reviews?limit=3` | Lấy tối đa 50 đánh giá 5 sao mới nhất. |
+
+### 6.19. API Payment VNPay và Wallet
+
+Payment chỉ xác nhận thành công khi backend nhận IPN hợp lệ từ VNPay. Browser return URL chỉ chuyển người dùng về frontend để kiểm tra lại trạng thái Payment.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/me/wallet/top-ups/vnpay` | Tạo URL VNPay để Student/Tutor nạp tiền vào ví |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Studying Request `DRAFT` |
+| `POST` | `/api/v1/students/me/studying-requests/{requestId}/payments/wallet` | Thanh toán phí đăng Studying Request `DRAFT` bằng số dư ví |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/vnpay` | Tạo URL VNPay thanh toán phí đăng Teaching Request `DRAFT` |
+| `POST` | `/api/v1/tutors/me/teaching-requests/{requestId}/payments/wallet` | Thanh toán phí đăng Teaching Request `DRAFT` bằng số dư ví |
+| `GET` | `/api/v1/students/me/contracts/{contractId}/payment-installments` | Xem các kỳ học phí của Contract `ACTIVE` |
+| `POST` | `/api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay` | Tạo URL VNPay thanh toán một kỳ học phí |
+| `POST` | `/api/v1/students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/wallet` | Thanh toán một kỳ học phí bằng số dư ví |
+| `GET` | `/api/v1/users/me/payments/{paymentId}` | Kiểm tra trạng thái Payment của chính mình |
+| `GET` | `/api/v1/users/me/transactions` | Xem lịch sử Payment, Wallet Transaction và Withdrawal của chính mình |
+
+API tạo Payment cho phí đăng request hoặc học phí có thể nhận body tùy chọn:
+
+```json
+{
+  "bankCode": "NCB",
+  "locale": "vn"
+}
+```
+
+Backend luôn tự lấy amount từ phí cấu hình hoặc installment; client không gửi amount. Với Contract, `paymentPeriod` chỉ nhận `PER_LESSON`, `WEEKLY`, `MONTHLY` hoặc `PACKAGE`; `price` là giá mỗi kỳ, riêng `PACKAGE` là tổng giá của gói.
+
+API nạp ví yêu cầu client gửi số tiền muốn nạp:
+
+```http
+POST /api/v1/users/me/wallet/top-ups/vnpay
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 250000,
+  "bankCode": "NCB",
+  "locale": "vn"
+}
+```
+
+`amount` là số VND nguyên, tối thiểu `10,000` và tối đa `100,000,000`; `bankCode` và `locale` (`vn` hoặc `en`) là tùy chọn. API trả HTTP `201` cùng `paymentId`, `paymentType = WALLET_TOP_UP`, `status = PENDING`, `paymentUrl` và `expiresAt`. Client chuyển người dùng đến `paymentUrl`, sau đó dùng `GET /api/v1/users/me/payments/{paymentId}` để kiểm tra trạng thái.
+
+Nạp ví không cộng tiền khi tạo URL hoặc khi browser quay về return URL. Chỉ IPN VNPay có chữ ký hợp lệ, đúng merchant, đúng số tiền và có mã thành công mới chuyển Payment sang `PAID`, đồng thời tạo Wallet Transaction `CREDIT + TOP_UP + COMPLETED`. Payment và idempotency key theo `paymentId` bảo đảm cùng một IPN không cộng số dư lần thứ hai.
+
+Các endpoint `/payments/wallet` không nhận request body và hoàn tất thanh toán ngay khi ví đủ số dư. Mỗi khoản thanh toán có idempotency key riêng để retry không bị trừ tiền lần thứ hai. Nếu cùng khoản đang có Payment VNPay `PENDING`, Payment đó được chuyển thành `CANCELLED` sau khi ví thanh toán thành công.
+
+Khi chạy VNPay Sandbox/production, `VNPAY_IPN_URL` phải là URL HTTPS public trỏ tới `/api/v1/payments/vnpay/ipn`. Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, URL VNPay và hai phí đăng request trong file cấu hình local/environment; không commit secret.
+
+
+### 6.20. API Notifications in-app
+
+Các API notification yêu cầu `Authorization: Bearer <access-token>` và chỉ trả về notification của user đang đăng nhập. Hỗ trợ các role `STUDENT`, `TUTOR`, `EMPLOYEE` và `ADMIN`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/users/me/notifications?page=0&size=20&status=READ` | Lấy danh sách notification của chính user; `status` nhận `READ` hoặc `UNREAD`, sắp xếp mới nhất trước. |
+| `PATCH` | `/api/v1/users/me/notifications/{notificationId}/read` | Đánh dấu một notification của chính user là đã đọc; gọi lại vẫn an toàn. |
+| `PATCH` | `/api/v1/users/me/notifications/read-all` | Đánh dấu toàn bộ notification chưa đọc của chính user là đã đọc. |
+| `GET` | `/api/v1/users/me/notifications/unread-count` | Lấy số lượng notification chưa đọc. |
+
+Notification có `type` theo nhóm `SYSTEM`, `REQUEST`, `CONTRACT`, `PAYMENT`, `COMPLAINT`, cùng `eventType`, `referenceType` và `referenceId` để frontend điều hướng tới dữ liệu liên quan. Các event Payment chỉ được tạo sau khi VNPay IPN xác nhận thanh toán thành công; reminder học phí được chống trùng theo installment.
+
+Các workflow hiện tạo notification tự động:
+
+| Workflow | Event | Người nhận | Reference |
+| --- | --- | --- | --- |
+| Tutor tạo hoặc cập nhật certificate cần duyệt | `CERTIFICATE_REVIEW_REQUIRED` | Admin/Employee | `CERTIFICATE` |
+| Admin/Employee duyệt hoặc từ chối certificate | `CERTIFICATE_APPROVED`, `CERTIFICATE_REJECTED` | Tutor sở hữu certificate | `CERTIFICATE` |
+| Teaching Request có custom subject hoặc note cần duyệt | `TEACHING_REQUEST_REVIEW_REQUIRED` | Admin/Employee | `TEACHING_REQUEST` |
+| Admin/Employee duyệt hoặc từ chối Teaching Request | `TEACHING_REQUEST_APPROVED`, `TEACHING_REQUEST_REJECTED` | Tutor sở hữu request | `TEACHING_REQUEST` |
+| Tutor gửi đề nghị dạy vào Studying Request | `TUTOR_REQUEST_RECEIVED` | Student sở hữu request | `TUTOR_STUDENT_REQUEST` |
+| Student chấp nhận hoặc từ chối đề nghị của Tutor | `TUTOR_REQUEST_ACCEPTED`, `TUTOR_REQUEST_REJECTED` | Tutor gửi đề nghị | `TUTOR_STUDENT_REQUEST` |
+| Student đăng ký vào Teaching Request | `STUDENT_REQUEST_RECEIVED` | Tutor sở hữu request | `STUDENT_TUTOR_REQUEST` |
+| Tutor chấp nhận hoặc từ chối đăng ký của Student | `STUDENT_REQUEST_ACCEPTED`, `STUDENT_REQUEST_REJECTED` | Student đăng ký | `STUDENT_TUTOR_REQUEST` |
+| Tạo, ký, từ chối, hủy hoặc đề xuất gia hạn Contract | `CONTRACT_SIGNATURE_REQUIRED`, `CONTRACT_SIGNED`, `CONTRACT_REJECTED`, `CONTRACT_CANCELLED`, `CONTRACT_RENEWAL_PROPOSED` | Bên còn lại của Contract | `CONTRACT` |
+| Tutor đánh dấu đã dạy hoặc hủy Lesson | `LESSON_MARKED_TAUGHT`, `LESSON_CANCELLED` | Student của Contract | `LESSON` |
+| Thanh toán thành công hoặc sắp đến hạn học phí | `PAYMENT_SUCCEEDED`, `PAYMENT_INSTALLMENT_DUE` | Người thanh toán/Student | Đối tượng thanh toán hoặc `INSTALLMENT` |
+| Người dùng tạo yêu cầu rút tiền | `WITHDRAWAL_REQUEST_CREATED`, `WITHDRAWAL_REVIEW_REQUIRED` | Người dùng, Admin/Employee | `WITHDRAWAL_REQUEST` |
+| Người dùng hủy yêu cầu rút tiền đang chờ | `WITHDRAWAL_REQUEST_CANCELLED` | Người dùng | `WITHDRAWAL_REQUEST` |
+| Số dư ví thay đổi sau giao dịch thành công | `WALLET_BALANCE_CHANGED` | Người dùng sở hữu ví | `WALLET_TRANSACTION` khi có giao dịch liên kết |
+| Xử lý Complaint | `COMPLAINT_EVIDENCE_REQUESTED`, `COMPLAINT_RESOLVED`, `COMPLAINT_REJECTED` | Người gửi Complaint | `COMPLAINT` |
+| Tiếp nhận và kết luận Complaint | `COMPLAINT_RECEIVED_AGAINST_YOU`, `COMPLAINT_AGAINST_YOU_RESOLVED`, `COMPLAINT_AGAINST_YOU_REJECTED` | Bên bị khiếu nại | `COMPLAINT` |
+| Student gửi yêu cầu hoàn tiền | `REFUND_REQUEST_REVIEW_REQUIRED` | Admin/Employee kế toán | `REFUND_REQUEST` |
+| Student gửi yêu cầu hoàn tiền | `REFUND_REQUEST_SUBMITTED` | Tutor của Contract | `REFUND_REQUEST` |
+| Tutor phản hồi yêu cầu hoàn tiền | `REFUND_REQUEST_TUTOR_RESPONDED` | Nhân viên đang xử lý | `REFUND_REQUEST` |
+| Duyệt hoặc từ chối yêu cầu hoàn tiền | `REFUND_REQUEST_APPROVED`, `REFUND_REQUEST_REJECTED` | Student và Tutor của Contract | `REFUND_REQUEST` |
+| Khóa hoặc mở lại tài khoản | `ACCOUNT_SUSPENDED`, `ACCOUNT_REACTIVATED` | Tài khoản bị tác động | `USER` |
+
+Notification nghiệp vụ được tạo với `isRead=false`. Với các workflow phát `NotificationDomainEvent`, listener chỉ lưu notification sau khi transaction nghiệp vụ commit thành công; vì vậy không tạo thông báo cho thao tác đã rollback. `referenceId` là ID của record liên quan, frontend nên kết hợp `referenceType` và `referenceId` để mở đúng màn hình chi tiết.
+
+Kiểm tra nhanh sau khi thực hiện một workflow:
+
+```http
+GET /api/v1/users/me/notifications?status=UNREAD&page=0&size=100
+Authorization: Bearer <access-token-của-người-nhận>
+```
+
+Đối chiếu notification trả về với hành động vừa thực hiện: đúng `eventType`, đúng người nhận, đúng `referenceType` và đúng `referenceId`. Nếu API nghiệp vụ thành công nhưng không thấy notification, kiểm tra backend log với thông báo `Unable to persist notification`.
+
+### 6.20.1. API Admin/Employee quản lý thông báo
+
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Hệ thống sử dụng chính bảng `notifications`: bản ghi `BROADCAST_MASTER` quản lý nội dung và lịch gửi, còn mỗi `BROADCAST_DELIVERY` lưu trạng thái đọc của một người nhận. Dữ liệu notification nghiệp vụ hiện có được giữ dưới loại `SYSTEM_EVENT`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/admin/notifications` | Tạo thông báo ở trạng thái `DRAFT` |
+| `GET` | `/api/v1/admin/notifications` | Danh sách; hỗ trợ `status`, `audience`, `category`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/notifications/{notificationId}` | Xem nội dung, trạng thái và thống kê đọc |
+| `PUT` | `/api/v1/admin/notifications/{notificationId}` | Cập nhật thông báo theo quy tắc trạng thái |
+| `DELETE` | `/api/v1/admin/notifications/{notificationId}` | Hủy thông báo chưa gửi hoặc thu hồi thông báo đã gửi |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/send` | Gửi ngay thông báo `DRAFT` hoặc `FAILED` |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/schedule` | Lên lịch gửi, tối thiểu 5 phút trong tương lai |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/cancel-schedule` | Hủy lịch và đưa thông báo về `DRAFT` |
+| `POST` | `/api/v1/admin/notifications/{notificationId}/retry` | Gửi lại thông báo `FAILED` |
+| `GET` | `/api/v1/admin/notifications/{notificationId}/statistics` | Lấy số người nhận, đã đọc và chưa đọc |
+
+`audience` nhận `ALL`, `STUDENT` hoặc `TUTOR`; `ALL` gồm Student và Tutor đang `ACTIVE`, không gồm tài khoản quản trị. Tài khoản `INACTIVE`, `BLOCKED` hoặc đã xóa mềm không được nhận. `category` nhận `MAINTENANCE`, `PROMOTION`, `SERVICE_UPDATE` hoặc `GENERAL`.
+
+Trạng thái chiến dịch gồm `DRAFT`, `SCHEDULED`, `PROCESSING`, `SENT`, `FAILED`, `CANCELLED`, `RETRACTED`. Không thể sửa hoặc xóa trong lúc `PROCESSING`. Thông báo `SENT` chỉ cho sửa tiêu đề, nội dung và category; audience không đổi. Khi thu hồi, các delivery được xóa mềm và biến mất khỏi hộp thư người dùng. Scheduler khóa chiến dịch trước khi phân phối và unique index theo chiến dịch/người nhận ngăn gửi trùng.
+
+### 6.20.2. API Admin/Employee xử lý khiếu nại
+
+Các API này chỉ dành cho role `ADMIN` hoặc `EMPLOYEE`. Complaint được tiếp nhận bằng tài khoản nhân viên hiện tại; sau khi tiếp nhận, chỉ nhân viên được gán mới có thể yêu cầu evidence hoặc đưa ra quyết định.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/complaints` | Danh sách complaint; hỗ trợ `status`, `contractId`, `category`, `faultParty`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/complaints/{complaintId}` | Chi tiết complaint, người gửi, bên bị khiếu nại và phản hồi của họ, evidence, hợp đồng, buổi học, kỳ thanh toán và payment |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/start-review` | Gán nhân viên hiện tại, chuyển `PENDING → IN_REVIEW` và thông báo bên bị khiếu nại |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/request-evidence` | Lưu yêu cầu vào `resolution`, chuyển `IN_REVIEW → AWAITING_EVIDENCE` và thông báo người gửi |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reassign` | Admin chuyển complaint đang mở sang một nhân viên khác mà không đổi trạng thái |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/accept` | Lưu kết luận và `faultParty`, chuyển `IN_REVIEW → RESOLVED` và thông báo hai bên |
+| `PATCH` | `/api/v1/admin/complaints/{complaintId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` và thông báo hai bên |
+
+Khi chấp nhận complaint, nhân viên bắt buộc chọn bên có lỗi:
+
+```json
+{
+  "resolution": "Gia sư không tham gia buổi học ngày 12/10 và không báo trước.",
+  "faultParty": "RESPONDENT"
+}
+```
+
+| `faultParty` | Ý nghĩa |
+| --- | --- |
+| `RESPONDENT` | Bên bị khiếu nại có lỗi |
+| `COMPLAINANT` | Chính người gửi có lỗi, ví dụ gia sư khiếu nại để phản đối nhưng minh chứng cho thấy buổi học không diễn ra |
+| `BOTH` | Cả hai bên có lỗi |
+| `NONE` | Không bên nào có lỗi, ví dụ sự cố khách quan |
+
+`faultParty` chỉ có giá trị khi complaint `RESOLVED`; complaint `REJECTED` (không đủ căn cứ để xét) và complaint được kết luận trước khi có trường này luôn trả `faultParty = null`. Database cũng chặn việc lưu `fault_party` cho complaint chưa `RESOLVED`. API `reject` giữ nguyên body `{ "resolution": "..." }`.
+
+Các thao tác thay đổi trạng thái và chuyển giao đều khóa complaint trong transaction để tránh hai nhân viên xử lý đồng thời. Chỉ `ADMIN` được chuyển giao complaint `IN_REVIEW` hoặc `AWAITING_EVIDENCE`; tài khoản nhân viên nhận phải đang `ACTIVE` và khác người đang phụ trách. `resolution` phản ánh yêu cầu hoặc kết luận hiện tại; khi người gửi bổ sung evidence, trường này được xóa. Kết quả xử lý complaint không tự hoàn tiền, thay đổi ví, hợp đồng hoặc trạng thái buổi học; tiền được hoàn qua yêu cầu hoàn tiền (mục 6.24). Complaint đang mở chặn việc duyệt hoàn tiền trên cùng contract.
+
+### 6.21. API Admin/Employee quản lý học viên
+
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Danh sách tài khoản và thao tác vô hiệu hoá hỗ trợ tài khoản `STUDENT`/`TUTOR`; các API hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại bên dưới chỉ áp dụng cho `STUDENT`. Thông tin lần vô hiệu hoá gần nhất được lưu trực tiếp trên bảng `users`; hệ thống không tạo bảng lịch sử riêng.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/users` | Danh sách tài khoản; hỗ trợ `role`, `status`, `keyword`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}` | Xem trạng thái và thông tin vô hiệu hoá gần nhất |
+| `PATCH` | `/api/v1/admin/users/{userId}/suspend` | Vô hiệu hoá tạm thời hoặc vĩnh viễn |
+| `PATCH` | `/api/v1/admin/users/{userId}/reactivate` | Mở lại tài khoản thủ công, bắt buộc có lý do |
+
+Để lấy đúng danh sách học viên cho màn hình quản lý, gọi `GET /api/v1/admin/users?role=STUDENT`; có thể kết hợp `status`, `keyword`, `page` và `size`. Sau khi chọn một học viên, dùng `userId` trong kết quả để gọi các API chi tiết bên dưới.
+
+Request vô hiệu hoá tạm thời:
+
+```json
+{
+  "type": "TEMPORARY",
+  "reason": "Tài khoản nhiều lần vi phạm quy định cộng đồng.",
+  "suspendedUntil": "2026-10-26T10:00:00Z"
+}
+```
+
+`suspendedUntil` bắt buộc với `TEMPORARY` và không được truyền với `PERMANENT`. Lý do phải có từ 10 đến 1000 ký tự. Khi vô hiệu hoá, hệ thống chuyển user sang `BLOCKED`, tăng `suspensionCount`, thu hồi toàn bộ refresh token và chặn cả access token hiện tại từ request kế tiếp. Tài khoản tạm thời tự chuyển lại `ACTIVE` khi hết hạn qua scheduler hoặc khi được kiểm tra trạng thái ở lần truy cập tiếp theo.
+
+Hệ thống giữ thông tin lần vô hiệu hoá gần nhất sau khi mở lại, tạo notification `ACCOUNT_SUSPENDED`/`ACCOUNT_REACTIVATED` và gửi email sau khi transaction thành công. Không tự động huỷ hợp đồng, lesson, payment, complaint hoặc thay đổi số dư ví.
+
+#### Tra cứu hồ sơ và hoạt động của học viên
+
+Nhóm API dưới đây phục vụ màn hình quản lý học viên. Chỉ `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE` được truy cập. `userId` luôn là ID trong bảng `users`, không phải ID của bản ghi `students`. Nếu tài khoản không tồn tại, đã bị xoá mềm hoặc không có đúng một hồ sơ `STUDENT`, API trả lỗi phù hợp và không trả dữ liệu của vai trò khác.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/users/{userId}/student-profile` | Xem hồ sơ học viên cùng thông tin cá nhân, địa chỉ, phong cách học, mục tiêu, trình độ hiện tại và điểm cần cải thiện |
+| `GET` | `/api/v1/admin/users/{userId}/learning-history` | Xem lịch sử các buổi học; hỗ trợ `lessonStatus`, `contractStatus`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/learning-history/{lessonId}` | Xem chi tiết một buổi học thuộc học viên, bao gồm hợp đồng, gia sư, môn học, lớp, thời gian, hình thức và tài liệu |
+| `GET` | `/api/v1/admin/users/{userId}/contracts` | Xem danh sách hợp đồng của học viên; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/contracts/{contractId}` | Xem chi tiết một hợp đồng thuộc học viên |
+| `GET` | `/api/v1/admin/users/{userId}/transactions` | Xem hợp nhất Payment, Wallet Transaction và Withdrawal của học viên; hỗ trợ `source`, `status`, `type`, `method`, `page`, `size` |
+| `GET` | `/api/v1/admin/users/{userId}/transactions/{source}/{transactionId}` | Xem chi tiết một giao dịch thuộc học viên theo đúng nguồn dữ liệu |
+| `GET` | `/api/v1/admin/users/{userId}/complaints` | Xem khiếu nại do học viên gửi hoặc khiếu nại mà học viên là bên bị phản ánh; hỗ trợ `relation`, `status`, `page`, `size` |
+
+Các API danh sách dùng phân trang zero-based: `page` mặc định là `0`, `size` mặc định là `20` và tối đa `100`. Kết quả được sắp xếp mới nhất trước. Các bộ lọc tùy chọn nhận các giá trị sau:
+
+- `lessonStatus`: `SCHEDULED`, `PENDING_CONFIRMATION`, `CONFIRMED`, `COMPLETED`, `CANCELLED`.
+- `contractStatus`: `PENDING`, `ACTIVE`, `COMPLETED`, `CANCELLED`.
+- `source`: `PAYMENT`, `WALLET_TRANSACTION`, `WITHDRAWAL`.
+- `relation`: `SUBMITTED`, `RECEIVED`, `ALL`; mặc định là `ALL`.
+- `status`, `type`, `method` của giao dịch được đối chiếu không phân biệt chữ hoa/chữ thường với dữ liệu của từng nguồn.
+
+API chi tiết luôn kiểm tra quan hệ sở hữu. Một `lessonId`, `contractId` hoặc `transactionId` hợp lệ nhưng không thuộc học viên trong URL vẫn bị từ chối, tránh truy xuất chéo dữ liệu giữa các học viên. Việc xem hồ sơ, lịch sử học tập, hợp đồng, giao dịch và khiếu nại là chỉ đọc; thao tác thay đổi trạng thái tài khoản tiếp tục sử dụng hai API `suspend` và `reactivate` ở trên.
+
+### 6.22. API Admin/Employee quản lý gia sư
+
+Các API đọc dưới đây dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`. Mọi URL dùng `userId` của bảng `users`; hệ thống từ chối tài khoản không có đúng hồ sơ `TUTOR`. Trạng thái tài khoản và trạng thái duyệt hồ sơ là độc lập: `users.status` dùng `ACTIVE`/`INACTIVE`/`BLOCKED`, còn `tutors.profile_status` dùng `PENDING`/`VERIFIED`/`REJECTED`.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/tutors` | Danh sách gia sư; hỗ trợ `keyword`, `accountStatus`, `profileStatus`, `minRecommendationScore`, `maxRecommendationScore`, `sortBy`, `sortDirection`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}` | Hồ sơ quản trị, trạng thái tài khoản, trạng thái duyệt và các chỉ số hoạt động |
+| `GET` | `/api/v1/admin/tutors/{userId}/certificates` | Danh sách chứng chỉ; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/contracts` | Danh sách hợp đồng; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/contracts/{contractId}` | Chi tiết hợp đồng thuộc gia sư |
+| `GET` | `/api/v1/admin/tutors/{userId}/reviews` | Danh sách đánh giá; hỗ trợ `rating` từ 1 đến 5 |
+| `GET` | `/api/v1/admin/tutors/{userId}/teaching-history` | Lịch sử buổi dạy; hỗ trợ `lessonStatus`, `contractStatus`, `page`, `size` |
+| `GET` | `/api/v1/admin/tutors/{userId}/teaching-history/{lessonId}` | Chi tiết buổi dạy thuộc gia sư |
+| `GET` | `/api/v1/admin/tutors/{userId}/score-details` | Điểm đề xuất hiện tại, thành phần điểm, phiên bản công thức và thời gian tính |
+
+`keyword` tìm không phân biệt hoa thường theo tên, email hoặc số điện thoại. Điểm lọc nằm trong khoảng `0` đến `100` và điểm tối thiểu không được lớn hơn điểm tối đa. `sortBy` chỉ nhận `createdAt`, `recommendationScore` hoặc `averageRating`; `sortDirection` nhận `ASC` hoặc `DESC`. Các danh sách dùng page zero-based, `size=20` mặc định và tối đa `100`.
+
+Điểm đề xuất không có API ghi và không thể chỉnh thủ công. `TutorRecommendationScoreService` tính điểm từ rating có điều chỉnh theo số lượng review, hợp đồng hoàn thành, tỉ lệ chấp nhận, thời gian phản hồi, số học viên, trạng thái xác minh/chứng chỉ và số lần bị khoá. Điểm được giới hạn trong `[0,100]`, lưu cùng `score_breakdown`, `score_updated_at` và `score_formula_version`. Hệ thống tính lại sau các event tài khoản/chứng chỉ/hợp đồng có liên quan và chạy đối soát hằng ngày lúc `02:30 UTC`; cron có thể cấu hình bằng `app.tutor-recommendation.recalculation-cron`.
+
+Hồ sơ mới ở `PENDING`. Hai API duyệt hồ sơ chỉ dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=CUSTOMER_SERVICE`:
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/approve` | Chuyển hồ sơ `PENDING → VERIFIED` |
+| `PATCH` | `/api/v1/admin/tutor-profiles/{userId}/reject` | Chuyển hồ sơ `PENDING → REJECTED`; lý do bắt buộc từ 10 đến 500 ký tự |
+
+Sau khi duyệt, gia sư nhận thông báo `TUTOR_PROFILE_APPROVED` hoặc `TUTOR_PROFILE_REJECTED` (kèm lý do). `GET /api/v1/tutors/me` trả về `profileStatus`, `profileReviewedAt` và `profileRejectionReason` để trang hồ sơ của gia sư hiển thị kết quả duyệt.
+
+Việc cập nhật các trường nghề nghiệp của Tutor đưa hồ sơ về `PENDING` và xoá metadata lần duyệt trước. Quy trình duyệt khóa bản ghi Tutor trong transaction để tránh hai người xử lý đồng thời. Chỉ tài khoản `ACTIVE` có hồ sơ `VERIFIED` mới đủ điều kiện tham gia đề xuất; trạng thái không đủ điều kiện không làm điểm bị ép về `0`.
+
+Khoá/mở khoá tiếp tục dùng `PATCH /api/v1/admin/users/{userId}/suspend` và `PATCH /api/v1/admin/users/{userId}/reactivate`. Không tạo API khoá riêng cho gia sư và không tự động huỷ hợp đồng, lesson, payment hoặc thay đổi ví. Các API chi tiết hợp đồng và buổi dạy luôn kiểm tra quan hệ sở hữu để ngăn truy xuất chéo.
+
+### 6.23. API Admin quản lý nhân viên
+
+Các API này chỉ dành cho role `ADMIN`. Tài khoản `EMPLOYEE` không được xem, tạo, sửa hoặc thay đổi trạng thái của nhân viên khác. Mỗi nhân viên có đúng một chức năng công việc: `CUSTOMER_SERVICE` (chăm sóc khách hàng) hoặc `ACCOUNTANT` (kế toán).
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/employees` | Danh sách nhân viên; hỗ trợ `status`, `jobFunction`, `keyword`, `page`, `size` |
+| `POST` | `/api/v1/admin/employees` | Tạo tài khoản nhân viên ở trạng thái `ACTIVE` với mật khẩu ban đầu |
+| `GET` | `/api/v1/admin/employees/{employeeId}` | Xem chi tiết nhân viên; CCCD chỉ trả dạng che |
+| `PUT` | `/api/v1/admin/employees/{employeeId}` | Cập nhật thông tin cá nhân và chức năng công việc |
+| `GET` | `/api/v1/admin/employees/{employeeId}/open-assignments` | Khiếu nại và yêu cầu hoàn tiền đang xử lý của nhân viên, cần chuyển giao trước khi vô hiệu hóa hoặc đổi chức năng |
+| `PATCH` | `/api/v1/admin/employees/{employeeId}/deactivate` | Chuyển tài khoản sang `INACTIVE` và thu hồi refresh token |
+| `PATCH` | `/api/v1/admin/employees/{employeeId}/reactivate` | Cấp lại quyền truy cập cho nhân viên `INACTIVE` |
+
+Khi tạo nhân viên, backend chuẩn hóa email, kiểm tra email/CCCD không trùng, mã hóa CCCD, hash mật khẩu bằng BCrypt và không tạo ví. Tài khoản hoạt động ngay sau khi tạo; Admin tự bàn giao email và mật khẩu ban đầu cho nhân viên. API không bao giờ trả lại mật khẩu, CCCD đầy đủ, ciphertext hoặc hash CCCD.
+
+`employees.role` tiếp tục chỉ biểu diễn role hệ thống `ADMIN`/`EMPLOYEE`; cột `job_function` biểu diễn chức năng nghiệp vụ. Admin luôn có toàn quyền. Nhân viên chỉ được truy cập phân hệ phù hợp: `CUSTOMER_SERVICE` xử lý khiếu nại, quản lý thông báo, duyệt hồ sơ gia sư/chứng chỉ/yêu cầu dạy/yêu cầu học và danh mục, quản lý tài khoản Student/Tutor; `ACCOUNTANT` xử lý yêu cầu hoàn tiền. Quyền được đọc từ database ở mỗi request nên thay đổi có hiệu lực ngay, không chờ JWT hết hạn. Tài khoản `ADMIN`/`EMPLOYEE` gọi `GET /api/v1/employees/me` để lấy `role` và `jobFunction` của chính mình; giao diện quản trị dùng thông tin này để chỉ hiện các phân hệ được phép.
+
+Không thể vô hiệu hóa hoặc đổi chức năng của nhân viên khi họ còn complaint ở trạng thái `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, hoặc còn yêu cầu hoàn tiền `IN_REVIEW`; Admin phải chuyển giao trước. Khi vô hiệu hóa, hệ thống dùng `users.status = INACTIVE`, lưu lý do/người thực hiện vào các trường trạng thái tài khoản hiện có, thu hồi toàn bộ refresh token và `AccountStatusFilter` chặn access token cũ từ request tiếp theo. Dữ liệu `users`/`employees` không bị xóa để giữ nguyên lịch sử tham chiếu.
+
+### 6.24. API hoàn tiền buổi học (Refund Request)
+
+Chức năng này xử lý một trường hợp: buổi học Tutor đã đánh dấu đã dạy (`PENDING_CONFIRMATION`) nhưng thực tế không diễn ra. Student gửi yêu cầu cho các buổi đó, Tutor phản hồi, nhân viên kế toán kết luận từng buổi. Tiền chỉ được cộng vào `wallet.balance` qua `WalletService`, không có chuyển khoản ngân hàng, và chức năng không thay đổi trạng thái Contract.
+
+Mỗi buổi bị phản đối có một kết quả (`LessonOutcome`) do Student nêu, Tutor phản hồi và kế toán kết luận:
+
+| Kết quả | Hoàn cho Student | Cộng cho Tutor | Lesson sau khi duyệt |
+| --- | --- | --- | --- |
+| `TUTOR_ABSENT` (gia sư không dạy) | 100% học phí của buổi | 0 | `CANCELLED` |
+| `STUDENT_ABSENT` (học viên nghỉ) | 80% học phí của buổi | 20% còn lại (`TUTOR_EARNING`) | `CANCELLED` |
+| `TAUGHT` (thực tế đã dạy) | 0 | 0 | `COMPLETED` |
+
+Học phí một buổi = tổng `amount` các kỳ thanh toán chưa `CANCELLED` / `totalLessons`, làm tròn tới đồng. Tỷ lệ cấu hình bằng `app.refund.rates.tutor-absent` (mặc định 100) và `app.refund.rates.student-absent` (mặc định 80). Tổng tiền hoàn của một Contract không vượt tổng học phí `PAID` trừ phần đã hoàn trước đó.
+
+Trạng thái gồm `PENDING`, `IN_REVIEW`, `REFUNDED`, `REJECTED`, `CANCELLED`:
+
+| Chuyển trạng thái | Chủ thể | Điều kiện |
+| --- | --- | --- |
+| `→ PENDING` | Student | Student thuộc Contract đã ký và đã đóng học phí, chưa có yêu cầu `PENDING`/`IN_REVIEW` khác trên Contract |
+| `PENDING → CANCELLED` | Student | Student đã gửi yêu cầu |
+| `PENDING → IN_REVIEW` | Admin/Employee | Gán nhân viên hiện tại làm người xử lý |
+| `IN_REVIEW → REFUNDED` | Nhân viên được gán | Tutor đã phản hồi hoặc đã quá hạn phản hồi, đã kết luận mọi buổi, Contract không có complaint `PENDING`, `IN_REVIEW` hoặc `AWAITING_EVIDENCE`, có ít nhất một buổi không phải `TAUGHT` |
+| `IN_REVIEW → REJECTED` | Nhân viên được gán | Có lý do từ chối |
+
+#### 6.24.1. Student gửi và theo dõi yêu cầu
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `POST` | `/api/v1/students/me/refund-requests` | Tạo yêu cầu `PENDING` |
+| `GET` | `/api/v1/students/me/refund-requests` | Danh sách yêu cầu của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/students/me/refund-requests/{refundRequestId}` | Chi tiết, phản hồi của Tutor và kết quả |
+| `PATCH` | `/api/v1/students/me/refund-requests/{refundRequestId}/cancel` | Hủy yêu cầu còn `PENDING` |
+
+```json
+{
+  "contractId": "11111111-1111-1111-1111-111111111111",
+  "description": "Buổi 21/10 gia sư không vào lớp, buổi 23/10 em bị ốm nên xin nghỉ.",
+  "lessons": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "claimedOutcome": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "claimedOutcome": "STUDENT_ABSENT" }
+  ],
+  "evidences": [{ "fileUrl": "https://cdn.example.com/tin-nhan.png", "fileType": "image/png" }]
+}
+```
+
+`lessons` có ít nhất một buổi; `claimedOutcome` chỉ nhận `TUTOR_ABSENT` hoặc `STUDENT_ABSENT`. Chỉ chọn được Lesson `PENDING_CONFIRMATION` của Contract, tức là trong vòng 3 ngày kể từ `markedTaughtAt`. `description` bắt buộc, tối đa 2000 ký tự; `evidences` tối đa 5 file. Trong lúc yêu cầu còn `PENDING` hoặc `IN_REVIEW`, các buổi bị phản đối không xác nhận được và không bị job tự động chuyển `COMPLETED`; các buổi khác của Contract vẫn chạy bình thường.
+
+#### 6.24.2. Tutor phản hồi
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/tutors/me/refund-requests` | Các yêu cầu hoàn tiền trên Contract của tôi; hỗ trợ `status`, `page`, `size` |
+| `GET` | `/api/v1/tutors/me/refund-requests/{refundRequestId}` | Chi tiết yêu cầu, các buổi bị phản đối và hạn phản hồi |
+| `POST` | `/api/v1/tutors/me/refund-requests/{refundRequestId}/response` | Gửi phản hồi duy nhất |
+
+```json
+{
+  "message": "Buổi 21/10 tôi bị ốm, quên hủy trên hệ thống. Buổi 23/10 học viên không vào lớp.",
+  "lessonPositions": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "position": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "position": "STUDENT_ABSENT" }
+  ],
+  "evidences": [{ "fileUrl": "https://cdn.example.com/ban-ghi.mp4", "fileType": "video/mp4" }]
+}
+```
+
+Tutor nhận notification ngay khi Student gửi yêu cầu. Phản hồi chỉ gửi được một lần, khi yêu cầu còn `PENDING` hoặc `IN_REVIEW`, và phải có `position` (`TAUGHT`, `TUTOR_ABSENT` hoặc `STUDENT_ABSENT`) cho đúng từng buổi bị phản đối. Hạn phản hồi (`tutorResponseDeadline`) là 48 giờ kể từ lúc Student gửi, cấu hình bằng `app.refund.tutor-response-hours`. Quá hạn mà chưa phản hồi thì kế toán được xử lý tiếp; Tutor vẫn có thể gửi complaint trên Contract, và complaint đang mở sẽ chặn việc duyệt.
+
+#### 6.24.3. Admin/Employee xử lý yêu cầu
+
+Các API này dành cho `ADMIN` hoặc `EMPLOYEE` có `jobFunction=ACCOUNTANT`. Sau khi tiếp nhận, chỉ nhân viên được gán mới duyệt hoặc từ chối được.
+
+| Method | Endpoint | Mô tả |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/refund-requests` | Danh sách; hỗ trợ `status` (mặc định `PENDING`), `contractId`, `keyword`, `page`, `size`; cũ nhất trước |
+| `GET` | `/api/v1/admin/refund-requests/{refundRequestId}` | Chi tiết yêu cầu, phản hồi của Tutor, Contract, payment học phí, complaint đang mở và bảng tính |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/start-review` | Gán nhân viên hiện tại, chuyển `PENDING → IN_REVIEW` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/approve` | Kết luận từng buổi, hoàn tiền, chuyển `IN_REVIEW → REFUNDED` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/reject` | Lưu lý do, chuyển `IN_REVIEW → REJECTED` |
+| `PATCH` | `/api/v1/admin/refund-requests/{refundRequestId}/reassign` | Admin chuyển yêu cầu `IN_REVIEW` cho một kế toán khác |
+
+```json
+{
+  "expectedAmount": 450000,
+  "lessonDecisions": [
+    { "lessonId": "22222222-2222-2222-2222-222222222222", "decision": "TUTOR_ABSENT" },
+    { "lessonId": "33333333-3333-3333-3333-333333333333", "decision": "STUDENT_ABSENT" }
+  ],
+  "note": "Gia sư xác nhận nghỉ buổi 21/10."
+}
+```
+
+Ví dụ: Contract 2 kỳ × 2.000.000đ cho 16 buổi có học phí 250.000đ một buổi. Với hai kết luận trên, Student được hoàn 250.000 + 200.000 = 450.000đ và Tutor được cộng 50.000đ. Bảng tính trong API chi tiết dùng kết luận đã có, còn buổi chưa kết luận thì dùng nguyên nhân Student nêu. Backend luôn tự tính lại; nếu khác `expectedAmount` thì trả lỗi để nhân viên xem lại số liệu mới. Nếu mọi buổi được kết luận `TAUGHT`, nhân viên dùng `reject` thay vì `approve`.
+
+Khi duyệt, trong cùng một transaction:
+
+1. Cộng tiền vào ví Student bằng giao dịch `CREDIT + CONTRACT_REFUND + COMPLETED`, `referenceType = REFUND_REQUEST`, idempotency key `contract-refund-{refundRequestId}`.
+2. Cộng phần của Tutor (nếu có) bằng `CREDIT + TUTOR_EARNING + COMPLETED`, idempotency key `refund-tutor-share-{refundRequestId}`.
+3. Phân bổ số tiền hoàn vào `refundedAmount` của các payment học phí, payment mới nhất trước; payment được hoàn đủ chuyển `REFUNDED`.
+4. Chuyển buổi `TAUGHT` sang `COMPLETED`, buổi `TUTOR_ABSENT`/`STUDENT_ABSENT` sang `CANCELLED`.
+5. Lưu học phí mỗi buổi, số tiền hoàn, phần của Tutor, người duyệt và thời điểm duyệt, rồi thông báo cho Student và Tutor.
+
+Khi từ chối, ví không thay đổi và các buổi bị phản đối được trả về luồng xác nhận bình thường. Gọi lại `approve` không cộng ví lần thứ hai. Thao tác thay đổi trạng thái khóa yêu cầu trong transaction để hai nhân viên không xử lý đồng thời. Nếu tài khoản Student hoặc Tutor không `ACTIVE`, `WalletService` từ chối cộng tiền và yêu cầu giữ nguyên trạng thái.
+
+| Code | Khi xảy ra |
+| --- | --- |
+| `REFUND_REQUEST_NOT_FOUND` (`404`) | Yêu cầu không tồn tại hoặc không liên quan tới user hiện tại |
+| `REFUND_REQUEST_ALREADY_OPEN` (`409`) | Contract đã có yêu cầu `PENDING` hoặc `IN_REVIEW` |
+| `CONTRACT_NOT_REFUNDABLE` (`409`) | Contract còn `PENDING` hoặc chưa có học phí `PAID` |
+| `INVALID_CLAIMED_OUTCOME` (`400`) | `claimedOutcome` là `TAUGHT` |
+| `DUPLICATE_DISPUTED_LESSON` (`400`) | Một buổi xuất hiện hai lần trong `lessons` |
+| `LESSON_NOT_DISPUTABLE` (`409`) | Buổi được chọn không thuộc Contract hoặc không còn `PENDING_CONFIRMATION` |
+| `INVALID_REFUND_REQUEST_STATUS_TRANSITION` (`409`) | Thao tác không hợp lệ với trạng thái hiện tại |
+| `REFUND_REQUEST_REVIEW_FORBIDDEN` (`403`) | Nhân viên không phải người được gán |
+| `TUTOR_RESPONSE_ALREADY_SUBMITTED` (`409`) | Tutor gửi phản hồi lần thứ hai |
+| `TUTOR_RESPONSE_NOT_ALLOWED` (`409`) | Tutor phản hồi khi yêu cầu đã kết thúc hoặc đã quá hạn phản hồi |
+| `LESSON_POSITION_REQUIRED` (`400`) | `lessonPositions` thiếu hoặc thừa so với các buổi bị phản đối |
+| `TUTOR_RESPONSE_WINDOW_OPEN` (`409`) | Duyệt khi Tutor chưa phản hồi và chưa quá hạn |
+| `CONTRACT_HAS_OPEN_COMPLAINT` (`409`) | Duyệt khi Contract còn complaint chưa có kết luận |
+| `LESSON_DECISION_REQUIRED` (`400`) | `lessonDecisions` thiếu hoặc thừa so với các buổi bị phản đối |
+| `NOTHING_TO_REFUND` (`409`) | Mọi buổi được kết luận `TAUGHT` |
+| `REFUND_AMOUNT_CHANGED` (`409`) | `expectedAmount` khác số tiền backend tính lại |
+
+### 6.24. API Admin xem thống kê
+
+Các API thống kê chỉ dành cho role `ADMIN`. Báo cáo sử dụng dữ liệu hiện có trong database, không tái dựng
+lịch sử chuyển trạng thái. Khoảng ngày mặc định là 30 ngày gần nhất theo `Asia/Ho_Chi_Minh`, tối đa 731 ngày.
+Mỗi metric trả thêm giá trị của kỳ liền trước có cùng số ngày và phần trăm thay đổi. Nếu kỳ trước bằng `0`,
+`changePercent` là `null`.
+
+| Method | Endpoint | Nội dung |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/statistics/overview` | KPI và chuỗi thời gian tổng quan |
+| `GET` | `/api/v1/admin/statistics/students` | Tăng trưởng, trạng thái, độ tuổi, giới tính và hoạt động học viên |
+| `GET` | `/api/v1/admin/statistics/tutors` | Tăng trưởng, xác minh, kinh nghiệm và hoạt động gia sư |
+| `GET` | `/api/v1/admin/statistics/studying-requests` | Yêu cầu tìm gia sư theo trạng thái, môn, lớp, khu vực và hình thức học |
+| `GET` | `/api/v1/admin/statistics/teaching-requests` | Yêu cầu dạy theo trạng thái, môn, lớp và hình thức dạy |
+| `GET` | `/api/v1/admin/statistics/matching` | Đề nghị ghép nối hai chiều và tỷ lệ chấp nhận |
+| `GET` | `/api/v1/admin/statistics/contracts` | Hợp đồng, ký, hoàn thành, gia hạn, môn, lớp và chu kỳ thanh toán |
+| `GET` | `/api/v1/admin/statistics/lessons` | Buổi học, thời lượng, trạng thái, môn và hình thức dạy |
+| `GET` | `/api/v1/admin/statistics/finance` | Doanh thu phí nền tảng và tổng giá trị học phí |
+| `GET` | `/api/v1/admin/statistics/payments` | Thanh toán theo trạng thái, loại và phương thức |
+| `GET` | `/api/v1/admin/statistics/installments` | Kỳ thanh toán, số tiền đã trả, chưa trả và quá hạn |
+| `GET` | `/api/v1/admin/statistics/wallets` | Số dư hiện tại và giao dịch ví theo loại, mục đích, trạng thái |
+| `GET` | `/api/v1/admin/statistics/withdrawals` | Yêu cầu rút tiền, trạng thái, ngân hàng và thời gian xử lý |
+| `GET` | `/api/v1/admin/statistics/employees` | Nhân viên và khối lượng nghiệp vụ hiện được ghi nhận |
+
+Tất cả endpoint trên dùng chung các query parameter:
+
+| Parameter | Bắt buộc | Mặc định | Quy tắc |
+| --- | --- | --- | --- |
+| `fromDate` | Không | 29 ngày trước `toDate` | Ngày bắt đầu, định dạng `yyyy-MM-dd` |
+| `toDate` | Không | Ngày hiện tại | Ngày kết thúc, định dạng `yyyy-MM-dd` |
+| `timezone` | Không | `Asia/Ho_Chi_Minh` | Múi giờ IANA hợp lệ |
+| `granularity` | Không | Tự động | Nhận `DAY`, `WEEK` hoặc `MONTH` |
+
+Ví dụ:
+
+```text
+GET /api/v1/admin/statistics/finance?fromDate=2026-09-01&toDate=2026-09-30&timezone=Asia/Ho_Chi_Minh&granularity=DAY
+```
+
+`granularity` nhận `DAY`, `WEEK` hoặc `MONTH`. Khi bỏ trống, backend tự chọn theo độ dài khoảng báo cáo.
+Response dùng cấu trúc chung gồm `metrics`, `breakdowns`, `series`, `range` và `generatedAt`. Do payment chưa lưu
+thời điểm hoàn tiền riêng, `platform_fees_currently_refunded` biểu diễn các khoản của kỳ được chọn hiện đang mang
+trạng thái `REFUNDED`, không phải số tiền được hoàn ngay trong kỳ.
+
+### 7. Khởi động Frontend
 
 Mở terminal mới:
 
@@ -117,27 +1306,27 @@ Frontend mặc định chạy tại `http://localhost:5173`.
 
 Chạy trong thư mục `frontend/`:
 
-| Lệnh | Chức năng |
-|---|---|
-| `npm run dev` | Chạy frontend ở môi trường development |
-| `npm run lint` | Kiểm tra code bằng ESLint |
-| `npm run lint:fix` | Tự sửa lỗi ESLint có thể fix |
-| `npm run format` | Format code bằng Prettier |
-| `npm run format:check` | Kiểm tra format mà không sửa code |
-| `npm test` | Chạy unit test |
+| Lệnh                   | Chức năng                              |
+| ---------------------- | -------------------------------------- |
+| `npm run dev`          | Chạy frontend ở môi trường development |
+| `npm run lint`         | Kiểm tra code bằng ESLint              |
+| `npm run lint:fix`     | Tự sửa lỗi ESLint có thể fix           |
+| `npm run format`       | Format code bằng Prettier              |
+| `npm run format:check` | Kiểm tra format mà không sửa code      |
+| `npm test`             | Chạy unit test                         |
 
 ### Backend
 
 Chạy trong thư mục `backend/`:
 
-| Lệnh | Chức năng |
-|---|---|
-| `./mvnw spring-boot:run` | Chạy Spring Boot |
-| `./mvnw test` | Chạy unit test |
-| `./mvnw checkstyle:check` | Kiểm tra style code |
-| `./mvnw spotless:apply` | Tự động format code Java |
-| `./mvnw spotless:check` | Kiểm tra format mà không sửa |
-| `./mvnw clean package` | Build project |
+| Lệnh                      | Chức năng                    |
+| ------------------------- | ---------------------------- |
+| `./mvnw spring-boot:run`  | Chạy Spring Boot             |
+| `./mvnw test`             | Chạy unit test               |
+| `./mvnw checkstyle:check` | Kiểm tra style code          |
+| `./mvnw spotless:apply`   | Tự động format code Java     |
+| `./mvnw spotless:check`   | Kiểm tra format mà không sửa |
+| `./mvnw clean package`    | Build project                |
 
 ---
 
@@ -252,16 +1441,16 @@ ptutor/
 
 ## Cấu trúc file cấu hình
 
-| File | Vai trò |
-|---|---|
-| `frontend/eslint.config.js` | Rule kiểm tra JavaScript/React |
-| `frontend/.prettierrc.json` | Rule format frontend |
-| `backend/pom.xml` (plugin Checkstyle + Spotless) | Rule kiểm tra & format backend |
-| `commitlint.config.js` | Rule kiểm tra commit message |
-| `package.json` (root) | Quản lý Husky + Commitlint |
-| `docker-compose.yml` | Cấu hình PostgreSQL development |
-| `.github/pull_request_template.md` | Checklist hiện khi tạo PR trên GitHub (không cần CI để hoạt động) |
-| `CONTRIBUTING.md` | Quy định Git workflow của project |
+| File                                             | Vai trò                                                           |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| `frontend/eslint.config.js`                      | Rule kiểm tra JavaScript/React                                    |
+| `frontend/.prettierrc.json`                      | Rule format frontend                                              |
+| `backend/pom.xml` (plugin Checkstyle + Spotless) | Rule kiểm tra & format backend                                    |
+| `commitlint.config.js`                           | Rule kiểm tra commit message                                      |
+| `package.json` (root)                            | Quản lý Husky + Commitlint                                        |
+| `docker-compose.yml`                             | Cấu hình PostgreSQL development                                   |
+| `.github/pull_request_template.md`               | Checklist hiện khi tạo PR trên GitHub (không cần CI để hoạt động) |
+| `CONTRIBUTING.md`                                | Quy định Git workflow của project                                 |
 
 ---
 

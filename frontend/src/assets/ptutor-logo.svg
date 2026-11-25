@@ -1,0 +1,6 @@
+<svg width="262" height="74" viewBox="0 0 262 74" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="pGradient" x1="12" y1="17" x2="66" y2="69" gradientUnits="userSpaceOnUse"><stop stop-color="#9B6BFF"/><stop offset="1" stop-color="#6130CB"/></linearGradient><linearGradient id="bookGradient" x1="16" y1="4" x2="55" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#B995FF"/><stop offset="1" stop-color="#7140D8"/></linearGradient></defs>
+  <path d="M12 23C12 18.582 15.582 15 20 15H40.5C56.24 15 67 24.176 67 38.5C67 52.824 56.24 62 40.5 62H30V69H12V23ZM30 30V47H39C45.285 47 49 43.76 49 38.5C49 33.24 45.285 30 39 30H30Z" fill="url(#pGradient)"/>
+  <path d="M17 9.25C23.1 5.05 29.35 5.5 36 9.2V22.3C29.5 18.75 23.2 18.45 17 22.15V9.25Z" fill="url(#bookGradient)"/><path d="M36 9.2C42.65 5.5 48.9 5.05 55 9.25V22.15C48.8 18.45 42.5 18.75 36 22.3V9.2Z" fill="#8B5CF6"/><path d="M36 9.5V23" stroke="white" stroke-width="1.7" stroke-linecap="round" opacity=".9"/><circle cx="65" cy="61" r="4" fill="#E9DFFF"/>
+  <text x="76" y="55" fill="#261E39" font-family="Be Vietnam Pro, Segoe UI, Arial, sans-serif" font-size="40" font-weight="800" letter-spacing="-2">tutor</text>
+</svg>

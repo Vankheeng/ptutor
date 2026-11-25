@@ -1,0 +1,24 @@
+.student-button.contract-lesson-remove-button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #efb9b9;
+  background: #fff;
+  color: #c14848;
+  font-size: 10px;
+}
+
+.student-button.contract-lesson-remove-button:hover {
+  border-color: #d88c8c;
+  background: #fff5f5;
+  color: #a93636;
+}
+
+.contract-lesson-add-button {
+  margin-top: 10px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-color: #6944ca;
+  background: #fff;
+  color: #6944ca;
+  font-size: 11px;
+}

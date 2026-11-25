@@ -1,0 +1,56 @@
+package com.ptutor.backend.mapper;
+
+import java.util.List;
+import java.time.LocalDateTime;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.entity.GradeTeachingRequest;
+import com.ptutor.backend.entity.TeachingRequest;
+import com.ptutor.backend.entity.TeachingRequestAvailability;
+import com.ptutor.backend.entity.TeachingRequestDistrict;
+
+@Mapper(componentModel = "spring")
+public interface TeachingRequestMapper {
+
+    @Mapping(target = "tutorId", source = "request.tutor.id")
+    @Mapping(target = "tutorName", expression = "java(tutorName(request))")
+    @Mapping(target = "tutorAvatarUrl", source = "request.tutor.user.avatarUrl")
+    @Mapping(target = "subjectId", source = "request.subject.id")
+    @Mapping(target = "subjectName", source = "request.subject.name")
+    @Mapping(target = "reviewedBy", source = "request.reviewedBy.id")
+    @Mapping(target = "paidAt", source = "paidAt")
+    TeachingRequestResponse toResponse(
+            TeachingRequest request,
+            List<TeachingRequestResponse.Reference> grades,
+            List<TeachingRequestResponse.Reference> districts,
+            List<TeachingRequestResponse.Availability> availabilities,
+            long studentRequestCount,
+            long pendingStudentRequestCount,
+            LocalDateTime paidAt);
+
+    default String tutorName(TeachingRequest request) {
+        if (request.getTutor() == null || request.getTutor().getUser() == null) {
+            return "";
+        }
+        String firstName = request.getTutor().getUser().getFirstName();
+        String lastName = request.getTutor().getUser().getLastName();
+        String first = firstName == null ? "" : firstName.strip();
+        String last = lastName == null ? "" : lastName.strip();
+        return String.join(" ", java.util.stream.Stream.of(first, last)
+                .filter(value -> !value.isBlank())
+                .toList());
+    }
+
+    @Mapping(target = "id", source = "grade.id")
+    @Mapping(target = "name", source = "grade.name")
+    TeachingRequestResponse.Reference toReference(GradeTeachingRequest association);
+
+    @Mapping(target = "id", source = "district.id")
+    @Mapping(target = "name", source = "district.name")
+    TeachingRequestResponse.Reference toReference(TeachingRequestDistrict association);
+
+    TeachingRequestResponse.Availability toAvailability(TeachingRequestAvailability availability);
+}

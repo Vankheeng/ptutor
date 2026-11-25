@@ -1,0 +1,433 @@
+package com.ptutor.backend.service;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ptutor.backend.dto.enums.UserRole;
+import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.Grade;
+import com.ptutor.backend.entity.GradeTeachingRequest;
+import com.ptutor.backend.entity.Subject;
+import com.ptutor.backend.entity.TeachingRequest;
+import com.ptutor.backend.entity.TeachingRequestAvailability;
+import com.ptutor.backend.entity.TeachingRequestDistrict;
+import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.ApplicationStatus;
+import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.entity.enums.PaymentStatus;
+import com.ptutor.backend.entity.enums.PaymentType;
+import com.ptutor.backend.entity.enums.ReferenceType;
+import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.TutorProfileStatus;
+import com.ptutor.backend.event.NotificationDomainEvent;
+import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.TeachingRequestMapper;
+import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
+import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.PaymentRepository;
+import com.ptutor.backend.repository.SubjectRepository;
+import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.repository.StudentTutorRequestRepository;
+import com.ptutor.backend.dto.request.TeachingRequestRequest;
+import com.ptutor.backend.dto.response.TeachingRequestResponse;
+import com.ptutor.backend.repository.TeachingRequestRepository;
+import com.ptutor.backend.repository.TeachingRequestStudentRequestCount;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class TeachingRequestService {
+
+    public static final int DEFAULT_PUBLIC_LIMIT = 20;
+    public static final int MAX_PUBLIC_LIMIT = 50;
+
+    private final TeachingRequestRepository teachingRequestRepository;
+    private final StudentTutorRequestRepository studentTutorRequestRepository;
+    private final PaymentRepository paymentRepository;
+    private final TeachingRequestMapper teachingRequestMapper;
+    private final TutorRepository tutorRepository;
+    private final SubjectRepository subjectRepository;
+    private final GradeRepository gradeRepository;
+    private final DistrictRepository districtRepository;
+    private final EmployeeRepository employeeRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Transactional
+    public TeachingRequestResponse create(UUID userId, TeachingRequestRequest request) {
+        Tutor tutor = findTutorByUserId(userId);
+        Subject subject = resolveSubject(request);
+        String customSubjectName = normalize(request.customSubjectName());
+
+        TeachingRequest teachingRequest = TeachingRequest.builder()
+                .tutor(tutor)
+                .subject(subject)
+                .customSubjectName(subject == null ? customSubjectName : null)
+                .title(normalize(request.title()))
+                .note(normalize(request.note()))
+                .quantity(request.quantity())
+                .detailAddress(normalize(request.detailAddress()))
+                .expectedPrice(request.expectedPrice())
+                .teachingMode(request.teachingMode())
+                .preferredSchedule(normalize(request.preferredSchedule()))
+                .description(normalize(request.description()))
+                .status(RequestStatus.DRAFT)
+                .build();
+
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        replaceAssociations(saved, request);
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findMine(UUID userId, RequestStatus status) {
+        Tutor tutor = findTutorByUserId(userId);
+        List<TeachingRequest> requests = status == null
+                ? teachingRequestRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
+                : teachingRequestRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
+        return toResponses(requests);
+    }
+
+    @Transactional(readOnly = true)
+    public TeachingRequestResponse findMineById(UUID userId, UUID requestId) {
+        Tutor tutor = findTutorByUserId(userId);
+        return toResponse(teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> requestNotFound(requestId)));
+    }
+
+    @Transactional
+    public TeachingRequestResponse update(UUID userId, UUID requestId, TeachingRequestRequest request) {
+        Tutor tutor = findTutorByUserId(userId);
+        TeachingRequest teachingRequest = teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> requestNotFound(requestId));
+        boolean draft = teachingRequest.getStatus() == RequestStatus.DRAFT;
+        if (!draft && teachingRequest.getStatus() != RequestStatus.OPEN
+                && teachingRequest.getStatus() != RequestStatus.PENDING_REVIEW) {
+            throw invalidTransition("Only DRAFT, OPEN or PENDING_REVIEW requests can be updated");
+        }
+        if (!draft && !java.util.Objects.equals(teachingRequest.getQuantity(), request.quantity())) {
+            throw badRequest("PAID_REQUEST_QUANTITY_IMMUTABLE",
+                    "Student quantity cannot be changed after the request has been paid");
+        }
+
+        Subject subject = resolveSubject(request);
+        teachingRequest.setSubject(subject);
+        teachingRequest.setCustomSubjectName(subject == null ? normalize(request.customSubjectName()) : null);
+        teachingRequest.setTitle(normalize(request.title()));
+        teachingRequest.setNote(normalize(request.note()));
+        teachingRequest.setQuantity(request.quantity());
+        teachingRequest.setDetailAddress(normalize(request.detailAddress()));
+        teachingRequest.setExpectedPrice(request.expectedPrice());
+        teachingRequest.setTeachingMode(request.teachingMode());
+        teachingRequest.setPreferredSchedule(normalize(request.preferredSchedule()));
+        teachingRequest.setDescription(normalize(request.description()));
+        teachingRequest.setStatus(draft
+                ? RequestStatus.DRAFT
+                : requiresReview(teachingRequest) ? RequestStatus.PENDING_REVIEW : RequestStatus.OPEN);
+        clearReviewMetadata(teachingRequest);
+
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        replaceAssociations(saved, request);
+        if (!draft && saved.getStatus() == RequestStatus.PENDING_REVIEW) {
+            publishReviewRequired(saved);
+        }
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public TeachingRequestResponse updateStatus(UUID userId, UUID requestId, RequestStatus targetStatus) {
+        Tutor tutor = findTutorByUserId(userId);
+        TeachingRequest teachingRequest = teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> requestNotFound(requestId));
+        if ((targetStatus != RequestStatus.OPEN && targetStatus != RequestStatus.CLOSED)
+                || (teachingRequest.getStatus() != RequestStatus.OPEN
+                        && teachingRequest.getStatus() != RequestStatus.CLOSED)
+                || teachingRequest.getReviewedAt() != null) {
+            throw invalidTransition("Only requests that did not require review can be opened or closed");
+        }
+        if (targetStatus == RequestStatus.OPEN && tutor.getProfileStatus() != TutorProfileStatus.VERIFIED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "TUTOR_PROFILE_NOT_VERIFIED",
+                    "Tutor profile must be approved before publishing a teaching request");
+        }
+
+        teachingRequest.setStatus(targetStatus);
+        return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
+    }
+
+    @Transactional
+    public TeachingRequestResponse cancel(UUID userId, UUID requestId) {
+        Tutor tutor = findTutorByUserId(userId);
+        TeachingRequest teachingRequest = teachingRequestRepository.findByIdAndTutor_Id(requestId, tutor.getId())
+                .orElseThrow(() -> requestNotFound(requestId));
+        if (teachingRequest.getStatus() != RequestStatus.DRAFT
+                && teachingRequest.getStatus() != RequestStatus.PENDING_REVIEW) {
+            throw invalidTransition("Only unpaid drafts or requests awaiting review can be cancelled");
+        }
+
+        teachingRequest.setStatus(RequestStatus.CANCELLED);
+        return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
+    }
+
+    /**
+     * Activates a draft after the payment flow has confirmed a successful payment.
+     * This method is intentionally not exposed as a public API yet.
+     */
+    @Transactional
+    public TeachingRequestResponse activateAfterPayment(UUID requestId) {
+        TeachingRequest teachingRequest = teachingRequestRepository.findById(requestId)
+                .orElseThrow(() -> requestNotFound(requestId));
+        if (teachingRequest.getStatus() != RequestStatus.DRAFT) {
+            throw invalidTransition("Only DRAFT requests can be activated after payment");
+        }
+
+        teachingRequest.setStatus(requiresReview(teachingRequest)
+                ? RequestStatus.PENDING_REVIEW
+                : RequestStatus.OPEN);
+        clearReviewMetadata(teachingRequest);
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
+            publishReviewRequired(saved);
+        }
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findVisible(UserRole role) {
+        if (isStaff(role)) {
+            return toResponses(teachingRequestRepository.findAllByOrderByCreatedAtDesc());
+        }
+        return findOpenRequests(Pageable.unpaged());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findPublicVisible(int requestedLimit, UUID subjectId, UUID gradeId) {
+        return toResponses(teachingRequestRepository.findPublicByFilters(
+                RequestStatus.OPEN,
+                TutorProfileStatus.VERIFIED,
+                subjectId,
+                gradeId,
+                PageRequest.of(0, normalizePublicLimit(requestedLimit))));
+    }
+
+    @Transactional(readOnly = true)
+    public TeachingRequestResponse findVisibleById(UUID requestId, UUID userId, UserRole role) {
+        TeachingRequest teachingRequest = teachingRequestRepository.findById(requestId)
+                .orElseThrow(() -> requestNotFound(requestId));
+        boolean studentHasApplied = role == UserRole.STUDENT && userId != null
+                && studentTutorRequestRepository.existsByStudent_User_IdAndTeachingRequest_Id(userId, requestId);
+        if (!isStaff(role) && !isTutorOwner(teachingRequest, userId, role) && !studentHasApplied
+                && (teachingRequest.getStatus() != RequestStatus.OPEN
+                        || teachingRequest.getTutor().getProfileStatus() != TutorProfileStatus.VERIFIED)) {
+            throw requestNotFound(requestId);
+        }
+        return toResponse(teachingRequest);
+    }
+
+    private List<TeachingRequestResponse> findOpenRequests(Pageable pageable) {
+        return toResponses(teachingRequestRepository.findAllByStatusAndTutor_ProfileStatusOrderByCreatedAtDesc(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, pageable));
+    }
+
+    private void replaceAssociations(TeachingRequest request, TeachingRequestRequest source) {
+        List<Grade> grades = resolveGrades(source.gradeIds());
+        List<District> districts = resolveDistricts(source.districtIds());
+
+        request.getGradeAssociations().clear();
+        request.getGradeAssociations().addAll(grades.stream()
+                .map(grade -> GradeTeachingRequest.builder().grade(grade).teachingRequest(request).build())
+                .toList());
+        request.getDistrictAssociations().clear();
+        request.getDistrictAssociations().addAll(districts.stream()
+                .map(district -> TeachingRequestDistrict.builder().district(district).teachingRequest(request).build())
+                .toList());
+        request.getAvailabilities().clear();
+        if (source.availabilities() != null && !source.availabilities().isEmpty()) {
+            request.getAvailabilities().addAll(source.availabilities().stream()
+                    .map(availability -> TeachingRequestAvailability.builder()
+                            .teachingRequest(request)
+                            .dayOfWeek(availability.dayOfWeek())
+                            .startTime(availability.startTime())
+                            .endTime(availability.endTime())
+                            .build())
+                    .toList());
+        }
+    }
+
+    private Subject resolveSubject(TeachingRequestRequest request) {
+        String customSubjectName = normalize(request.customSubjectName());
+        boolean hasSubjectId = request.subjectId() != null;
+        boolean hasCustomSubject = customSubjectName != null;
+        if (hasSubjectId == hasCustomSubject) {
+            throw badRequest("SUBJECT_SOURCE_REQUIRED", "Exactly one subject source must be provided");
+        }
+        if (!hasSubjectId) {
+            return null;
+        }
+
+        Subject subject = subjectRepository.findById(request.subjectId())
+                .orElseThrow(() -> badRequest("INVALID_SUBJECT", "Subject not found"));
+        if (subject.getStatus() != CatalogStatus.ACTIVE) {
+            throw badRequest("INVALID_SUBJECT", "Subject is not active");
+        }
+        return subject;
+    }
+
+    private boolean requiresReview(TeachingRequest request) {
+        return request.getNote() != null || request.getSubject() == null;
+    }
+
+    private List<Grade> resolveGrades(List<UUID> ids) {
+        return distinctIds(ids).stream()
+                .map(id -> gradeRepository.findById(id)
+                        .filter(grade -> grade.getStatus() == CatalogStatus.ACTIVE)
+                        .orElseThrow(() -> badRequest("INVALID_GRADE", "Grade not found or inactive: " + id)))
+                .toList();
+    }
+
+    private List<District> resolveDistricts(List<UUID> ids) {
+        return distinctIds(ids).stream()
+                .map(id -> districtRepository.findById(id)
+                        .orElseThrow(() -> badRequest("INVALID_DISTRICT", "District not found: " + id)))
+                .toList();
+    }
+
+    private List<UUID> distinctIds(List<UUID> ids) {
+        if (ids == null) {
+            return Collections.emptyList();
+        }
+        return ids.stream().distinct().toList();
+    }
+
+    private TeachingRequestResponse toResponse(TeachingRequest request) {
+        return toResponses(List.of(request)).getFirst();
+    }
+
+    private List<TeachingRequestResponse> toResponses(List<TeachingRequest> requests) {
+        if (requests.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, TeachingRequestStudentRequestCount> countsByTeachingRequestId = studentTutorRequestRepository
+                .countByTeachingRequestIds(
+                        requests.stream().map(TeachingRequest::getId).toList(),
+                        ApplicationStatus.PENDING)
+                .stream()
+                .collect(Collectors.toMap(
+                        TeachingRequestStudentRequestCount::getTeachingRequestId,
+                        count -> count));
+        Map<UUID, LocalDateTime> paidAtByTeachingRequestId = paymentRepository.findLatestPaidAtByReferenceIds(
+                        ReferenceType.TEACHING_REQUEST,
+                        PaymentType.TEACHING_REQUEST_FEE,
+                        PaymentStatus.PAID,
+                        requests.stream().map(TeachingRequest::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        PaymentRepository.ReferencePaymentTime::getReferenceId,
+                        PaymentRepository.ReferencePaymentTime::getPaidAt));
+
+        return requests.stream()
+                .map(request -> toResponse(
+                        request,
+                        countsByTeachingRequestId.get(request.getId()),
+                        paidAtByTeachingRequestId.get(request.getId())))
+                .toList();
+    }
+
+    private TeachingRequestResponse toResponse(
+            TeachingRequest request,
+            TeachingRequestStudentRequestCount studentRequestCount,
+            LocalDateTime paidAt) {
+        List<TeachingRequestResponse.Reference> grades = request.getGradeAssociations().stream()
+                .map(teachingRequestMapper::toReference)
+                .toList();
+        List<TeachingRequestResponse.Reference> districts = request.getDistrictAssociations().stream()
+                .map(teachingRequestMapper::toReference)
+                .toList();
+        List<TeachingRequestResponse.Availability> availabilities = request.getAvailabilities().stream()
+                .map(teachingRequestMapper::toAvailability)
+                .toList();
+        long totalCount = studentRequestCount == null ? 0 : studentRequestCount.getStudentRequestCount();
+        long pendingCount = studentRequestCount == null ? 0 : studentRequestCount.getPendingStudentRequestCount();
+        return teachingRequestMapper.toResponse(
+                request, grades, districts, availabilities, totalCount, pendingCount, paidAt);
+    }
+
+    private Tutor findTutorByUserId(UUID userId) {
+        return tutorRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "TUTOR_PROFILE_REQUIRED",
+                        "Only a tutor can manage teaching requests"));
+    }
+
+    private boolean isStaff(UserRole role) {
+        return role == UserRole.ADMIN || role == UserRole.EMPLOYEE;
+    }
+
+    private boolean isTutorOwner(TeachingRequest teachingRequest, UUID userId, UserRole role) {
+        return role == UserRole.TUTOR
+                && userId != null
+                && teachingRequest.getTutor() != null
+                && teachingRequest.getTutor().getUser() != null
+                && userId.equals(teachingRequest.getTutor().getUser().getId());
+    }
+
+    private int normalizePublicLimit(int requestedLimit) {
+        if (requestedLimit < 1) {
+            return DEFAULT_PUBLIC_LIMIT;
+        }
+        return Math.min(requestedLimit, MAX_PUBLIC_LIMIT);
+    }
+
+    private void clearReviewMetadata(TeachingRequest request) {
+        request.setReviewedBy(null);
+        request.setReviewedAt(null);
+        request.setRejectionReason(null);
+    }
+
+
+    private void publishReviewRequired(TeachingRequest request) {
+        String name = request.getTitle() == null ? "Teaching request" : request.getTitle();
+        Map<String, String> data = Map.of("name", name);
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.TEACHING_REQUEST_REVIEW_REQUIRED,
+                        NotificationReferenceType.TEACHING_REQUEST,
+                        request.getId(),
+                        data)));
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.strip();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private ApiException requestNotFound(UUID requestId) {
+        return new ApiException(HttpStatus.NOT_FOUND, "TEACHING_REQUEST_NOT_FOUND",
+                "Teaching request not found: " + requestId);
+    }
+
+    private ApiException invalidTransition(String message) {
+        return new ApiException(HttpStatus.CONFLICT, "INVALID_TEACHING_REQUEST_STATUS_TRANSITION", message);
+    }
+
+    private ApiException badRequest(String code, String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, code, message);
+    }
+}

@@ -1,0 +1,203 @@
+package com.ptutor.backend.config;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class SecurityConstants {
+
+    /**
+     * Endpoints that can be called without an access-token JWT.
+     *
+     * Refresh and logout still authenticate the caller by validating the
+     * refresh token in the request body at the service layer.
+     */
+    public static final String[] API_PUBLIC = {
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
+            "/api/v1/subjects",
+            "/api/v1/grades",
+            "/api/v1/teaching-requests",
+            "/api/v1/reviews",
+            "/api/v1/auth/password-reset/otp",
+            "/api/v1/auth/password-reset/verify",
+            "/api/v1/auth/password-reset/reset",
+            "/api/v1/provinces",
+            "/api/v1/districts",
+            "/api/v1/districts/**"
+    };
+
+    public static final String[] PAYMENT_CALLBACK_API = {
+            "/api/v1/payments/vnpay/ipn",
+            "/api/v1/payments/vnpay/return"
+    };
+
+    public static final String[] PAYMENT_SELF_SERVICE_API = {
+            "/api/v1/users/me/payments",
+            "/api/v1/users/me/payments/**",
+            "/api/v1/users/me/transactions",
+            "/api/v1/users/me/transactions/**"
+    };
+
+    public static final String[] NOTIFICATION_SELF_SERVICE_API = {
+            "/api/v1/users/me/notifications",
+            "/api/v1/users/me/notifications/**"
+    };
+
+    public static final String[] API_DOCUMENTATION = {
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/webjars/swagger-ui/**",
+            "/openapi.yaml"
+    };
+
+    public static final String[] ADMIN_CERTIFICATE_API = {
+            "/api/v1/admin/certificates",
+            "/api/v1/admin/certificates/**"
+    };
+
+    public static final String[] ADMIN_TEACHING_REQUEST_API = {
+            "/api/v1/admin/teaching-requests",
+            "/api/v1/admin/teaching-requests/**"
+    };
+
+    public static final String[] ADMIN_STUDYING_REQUEST_API = {
+            "/api/v1/admin/studying-requests",
+            "/api/v1/admin/studying-requests/**"
+    };
+
+    public static final String[] ADMIN_COMPLAINT_API = {
+            "/api/v1/admin/complaints",
+            "/api/v1/admin/complaints/**"
+    };
+
+    public static final String[] ADMIN_CONTRACT_API = {
+            "/api/v1/admin/contracts",
+            "/api/v1/admin/contracts/**"
+    };
+
+    public static final String[] ADMIN_REFUND_REQUEST_API = {
+            "/api/v1/admin/refund-requests",
+            "/api/v1/admin/refund-requests/**"
+    };
+
+    public static final String[] ADMIN_WITHDRAWAL_API = {
+            "/api/v1/admin/withdrawals",
+            "/api/v1/admin/withdrawals/**"
+    };
+
+    public static final String[] ADMIN_TRANSACTION_API = {
+            "/api/v1/admin/transactions",
+            "/api/v1/admin/transactions/**"
+    };
+
+    public static final String[] ADMIN_WALLET_API = {
+            "/api/v1/admin/wallets",
+            "/api/v1/admin/wallets/**"
+    };
+
+    public static final String[] ADMIN_SUBJECT_API = {
+            "/api/v1/admin/subjects"
+    };
+
+    public static final String[] ADMIN_GRADE_API = {
+            "/api/v1/admin/grades"
+    };
+
+    public static final String[] ADMIN_USER_API = {
+            "/api/v1/admin/users",
+            "/api/v1/admin/users/**"
+    };
+
+    public static final String[] ADMIN_TUTOR_API = {
+            "/api/v1/admin/tutors",
+            "/api/v1/admin/tutors/**"
+    };
+
+    public static final String[] ADMIN_TUTOR_PROFILE_REVIEW_API = {
+            "/api/v1/admin/tutor-profiles/**"
+    };
+
+    public static final String[] ADMIN_EMPLOYEE_API = {
+            "/api/v1/admin/employees",
+            "/api/v1/admin/employees/**"
+    };
+
+    public static final String[] ADMIN_NOTIFICATION_API = {
+            "/api/v1/admin/notifications",
+            "/api/v1/admin/notifications/**"
+    };
+
+    public static final String[] ADMIN_STATISTICS_API = {
+            "/api/v1/admin/statistics",
+            "/api/v1/admin/statistics/**"
+    };
+
+    public static final String[] EMPLOYEE_SELF_SERVICE_API = {
+            "/api/v1/employees/me"
+    };
+
+    public static final String[] STUDENT_SELF_SERVICE_API = {
+            "/api/v1/students/me",
+            "/api/v1/students/me/**"
+    };
+
+    public static final String[] TUTOR_SELF_SERVICE_API = {
+            "/api/v1/tutors/me",
+            "/api/v1/tutors/me/**"
+    };
+
+    // Shared studying request reads are available to tutors and employees.
+    public static final String[] STUDYING_REQUEST_READ_API = {
+            "/api/v1/studying-requests",
+            "/api/v1/studying-requests/*"
+    };
+
+    public static final String[] CONTRACT_SELF_SERVICE_API = {
+            "/api/v1/users/me/contracts",
+            "/api/v1/users/me/contracts/**"
+    };
+
+    public static final String[] COMPLAINT_SELF_SERVICE_API = {
+            "/api/v1/users/me/complaints",
+            "/api/v1/users/me/complaints/**"
+    };
+
+    public static final String[] WALLET_SELF_SERVICE_API = {
+            "/api/v1/users/me/wallet",
+            "/api/v1/users/me/wallet/**",
+            "/api/v1/users/me/bank-account",
+            "/api/v1/users/me/bank-account/**"
+    };
+
+    public static final String[] TUTOR_CERTIFICATE_READ_API = {
+            "/api/v1/tutors/*/certificates"
+    };
+
+    public static final String[] TUTOR_PROFILE_READ_API = {
+            "/api/v1/tutors/*"
+    };
+
+    public static final String[] GRADE_READ_API = {
+            "/api/v1/grades",
+            "/api/v1/grades/**"
+    };
+    
+    public static final String[] TEACHING_REQUEST_READ_API = {
+            "/api/v1/teaching-requests",
+            "/api/v1/teaching-requests/**"
+    };
+
+    public static final String[] SUBJECT_READ_API = {
+            "/api/v1/subjects",
+            "/api/v1/subjects/**"
+    };
+
+    public static final String[] DISTRICT_READ_API = {
+            "/api/v1/districts",
+            "/api/v1/districts/**"
+    };
+
+}

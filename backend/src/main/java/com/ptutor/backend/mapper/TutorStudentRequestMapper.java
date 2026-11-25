@@ -1,0 +1,61 @@
+package com.ptutor.backend.mapper;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import com.ptutor.backend.dto.response.StudentTutorOfferResponse;
+import com.ptutor.backend.dto.response.TutorStudentRequestResponse;
+import com.ptutor.backend.entity.TutorStudentRequest;
+
+@Mapper(componentModel = "spring")
+public interface TutorStudentRequestMapper {
+
+    @Mapping(target = "tutorId", source = "tutor.id")
+    @Mapping(target = "tutorFirstName", source = "tutor.user.firstName")
+    @Mapping(target = "tutorLastName", source = "tutor.user.lastName")
+    @Mapping(target = "tutorEmail", source = "tutor.user.email")
+    @Mapping(target = "studyingRequestId", source = "studyingRequest.id")
+    @Mapping(target = "studyingRequestTitle", source = "studyingRequest.title")
+    @Mapping(target = "studentId", source = "studyingRequest.student.id")
+    @Mapping(target = "studentFirstName", source = "studyingRequest.student.user.firstName")
+    @Mapping(target = "studentLastName", source = "studyingRequest.student.user.lastName")
+    @Mapping(target = "studyingRequestStatus", source = "studyingRequest.status")
+    @Mapping(target = "studyingRequestCreatedAt", source = "studyingRequest.createdAt")
+    @Mapping(target = "subjectId", source = "studyingRequest.subject.id")
+    @Mapping(target = "subjectName", source = "studyingRequest.subject.name")
+    @Mapping(target = "gradeId", source = "grade.id")
+    @Mapping(target = "gradeName", source = "grade.name")
+    @Mapping(target = "preferredProvinceId", source = "preferredProvince.id")
+    @Mapping(target = "preferredProvinceName", source = "preferredProvince.name")
+    @Mapping(target = "preferredDistrictId", source = "preferredDistrict.id")
+    @Mapping(target = "preferredDistrictName", source = "preferredDistrict.name")
+    @Mapping(
+            target = "nextStep",
+            expression = "java(request.getStatus() == com.ptutor.backend.entity.enums.ApplicationStatus.ACCEPTED ? \"CONTRACT_SIGNING\" : null)")
+    TutorStudentRequestResponse toResponse(TutorStudentRequest request);
+
+    @Mapping(target = "tutorId", source = "tutor.id")
+    @Mapping(target = "tutorFirstName", source = "tutor.user.firstName")
+    @Mapping(target = "tutorLastName", source = "tutor.user.lastName")
+    @Mapping(target = "tutorEmail", source = "tutor.user.email")
+    @Mapping(target = "tutorPhone", source = "tutor.user.phone")
+    @Mapping(target = "studyingRequestId", source = "studyingRequest.id")
+    @Mapping(target = "studyingRequestTitle", source = "studyingRequest.title")
+    @Mapping(target = "studentId", source = "studyingRequest.student.id")
+    @Mapping(target = "studentFirstName", source = "studyingRequest.student.user.firstName")
+    @Mapping(target = "studentLastName", source = "studyingRequest.student.user.lastName")
+    @Mapping(target = "studyingRequestStatus", source = "studyingRequest.status")
+    @Mapping(target = "studyingRequestCreatedAt", source = "studyingRequest.createdAt")
+    @Mapping(target = "subjectId", source = "studyingRequest.subject.id")
+    @Mapping(target = "subjectName", source = "studyingRequest.subject.name")
+    @Mapping(target = "gradeId", source = "grade.id")
+    @Mapping(target = "gradeName", source = "grade.name")
+    @Mapping(target = "preferredProvinceId", source = "preferredProvince.id")
+    @Mapping(target = "preferredProvinceName", source = "preferredProvince.name")
+    @Mapping(target = "preferredDistrictId", source = "preferredDistrict.id")
+    @Mapping(target = "preferredDistrictName", source = "preferredDistrict.name")
+    @Mapping(
+            target = "nextStep",
+            expression = "java(request.getStatus() == com.ptutor.backend.entity.enums.ApplicationStatus.ACCEPTED ? \"CONTRACT_SIGNING\" : null)")
+    StudentTutorOfferResponse toStudentOfferResponse(TutorStudentRequest request);
+}

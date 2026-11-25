@@ -1,0 +1,490 @@
+package com.ptutor.backend.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ptutor.backend.dto.request.StudentTutorRequestCreateRequest;
+import com.ptutor.backend.dto.request.StudentTutorRequestUpdateRequest;
+import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.StudentTutorRequestMineResponse;
+import com.ptutor.backend.dto.response.StudentTutorRequestResponse;
+import com.ptutor.backend.entity.Grade;
+import com.ptutor.backend.entity.Student;
+import com.ptutor.backend.entity.StudentTutorRequest;
+import com.ptutor.backend.entity.TeachingRequest;
+import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.ApplicationStatus;
+import com.ptutor.backend.entity.enums.CatalogStatus;
+import com.ptutor.backend.entity.enums.ContractStatus;
+import com.ptutor.backend.entity.enums.RequestStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
+import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.StudentTutorRequestMapper;
+import com.ptutor.backend.repository.GradeRepository;
+import com.ptutor.backend.repository.GradeTeachingRequestRepository;
+import com.ptutor.backend.repository.ContractRepository;
+import com.ptutor.backend.repository.DistrictRepository;
+import com.ptutor.backend.repository.StudentRepository;
+import com.ptutor.backend.repository.StudentTutorRequestRepository;
+import com.ptutor.backend.repository.TeachingRequestRepository;
+import com.ptutor.backend.repository.TutorRepository;
+
+@Service
+public class StudentTutorRequestService {
+
+    private final StudentTutorRequestRepository studentTutorRequestRepository;
+    private final TeachingRequestRepository teachingRequestRepository;
+    private final TutorRepository tutorRepository;
+    private final StudentTutorRequestMapper studentTutorRequestMapper;
+    private final StudentRepository studentRepository;
+    private final GradeRepository gradeRepository;
+    private final GradeTeachingRequestRepository gradeTeachingRequestRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ContractRepository contractRepository;
+    private final DistrictRepository districtRepository;
+
+    @Autowired
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ApplicationEventPublisher eventPublisher,
+            ContractRepository contractRepository,
+            DistrictRepository districtRepository) {
+        this.studentTutorRequestRepository = studentTutorRequestRepository;
+        this.teachingRequestRepository = teachingRequestRepository;
+        this.tutorRepository = tutorRepository;
+        this.studentTutorRequestMapper = studentTutorRequestMapper;
+        this.studentRepository = studentRepository;
+        this.gradeRepository = gradeRepository;
+        this.gradeTeachingRequestRepository = gradeTeachingRequestRepository;
+        this.eventPublisher = eventPublisher;
+        this.contractRepository = contractRepository;
+        this.districtRepository = districtRepository;
+    }
+
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository) {
+        this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, event -> { }, null, null);
+    }
+
+    public StudentTutorRequestService(
+            StudentTutorRequestRepository studentTutorRequestRepository,
+            TeachingRequestRepository teachingRequestRepository,
+            TutorRepository tutorRepository,
+            StudentTutorRequestMapper studentTutorRequestMapper,
+            StudentRepository studentRepository,
+            GradeRepository gradeRepository,
+            GradeTeachingRequestRepository gradeTeachingRequestRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this(studentTutorRequestRepository, teachingRequestRepository, tutorRepository, studentTutorRequestMapper,
+                studentRepository, gradeRepository, gradeTeachingRequestRepository, eventPublisher, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentTutorRequestResponse> findMine(
+            UUID userId, UUID teachingRequestId, ApplicationStatus status) {
+        Tutor tutor = findTutorByUserId(userId);
+        ensureTeachingRequestBelongsToTutor(teachingRequestId, tutor.getId());
+
+        List<StudentTutorRequest> requests = status == null
+                ? studentTutorRequestRepository
+                        .findAllByTeachingRequest_IdOrderByCreatedAtDesc(teachingRequestId)
+                : studentTutorRequestRepository
+                        .findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(teachingRequestId, status);
+        return requests.stream().map(this::toResponse).toList();
+    }
+
+    private StudentTutorRequestResponse toResponse(StudentTutorRequest request) {
+        UUID contractId = contractRepository == null
+                ? null
+                : contractRepository.findIdByStudentTutorRequestIdAndStatusNot(
+                        request.getId(), ContractStatus.CANCELLED).orElse(null);
+        var previousContract = contractRepository == null
+                ? java.util.Optional.<com.ptutor.backend.entity.Contract>empty()
+                : contractRepository.findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(request.getId());
+        UUID previousContractId = previousContract.map(contract -> contract.getId()).orElse(null);
+        ContractStatus previousContractStatus = previousContract.map(contract -> contract.getStatus()).orElse(null);
+        return studentTutorRequestMapper.toResponse(request)
+                .withContractId(contractId)
+                .withPreviousContractId(previousContractId)
+                .withPreviousContractStatus(previousContractStatus);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentTutorRequestResponse findMineById(
+        UUID userId, UUID teachingRequestId, UUID requestId) {
+        Tutor tutor = findTutorByUserId(userId);
+        ensureTeachingRequestBelongsToTutor(teachingRequestId, tutor.getId());
+        return toResponse(findRequest(requestId, teachingRequestId));
+    }
+
+    @Transactional
+    public StudentTutorRequestResponse updateStatus(
+            UUID userId, UUID teachingRequestId, UUID requestId, ApplicationStatus targetStatus) {
+        Tutor tutor = findTutorByUserId(userId);
+        ensureTeachingRequestBelongsToTutor(teachingRequestId, tutor.getId());
+        StudentTutorRequest request = findRequest(requestId, teachingRequestId);
+
+        if (targetStatus != ApplicationStatus.ACCEPTED && targetStatus != ApplicationStatus.REJECTED) {
+            throw invalidTransition("Only ACCEPTED or REJECTED status is allowed");
+        }
+        if (request.getStatus() != ApplicationStatus.PENDING
+                && !(targetStatus == ApplicationStatus.REJECTED && request.getStatus() == ApplicationStatus.ACCEPTED)) {
+            throw invalidTransition("Only PENDING applications can be accepted or rejected");
+        }
+
+        if (targetStatus == ApplicationStatus.REJECTED && contractRepository != null) {
+            contractRepository.findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(request.getId())
+                    .ifPresent(contract -> {
+                        boolean studentAlreadySigned = contract.getSignedBy() != null
+                                || (contract.getCreatedBy() != null
+                                && contract.getCreatedBy().getId().equals(request.getStudent().getUser().getId()));
+                        if (studentAlreadySigned || contract.getStatus() == ContractStatus.ACTIVE
+                                || contract.getStatus() == ContractStatus.COMPLETED) {
+                            throw invalidTransition("Không thể từ chối vì học viên đã ký hợp đồng");
+                        }
+                        if (contract.getStatus() == ContractStatus.PENDING) {
+                            contract.setStatus(ContractStatus.CANCELLED);
+                            contract.setCancelledAt(java.time.LocalDateTime.now());
+                            contractRepository.saveAndFlush(contract);
+                        }
+                    });
+        }
+
+        TeachingRequest teachingRequest = request.getTeachingRequest();
+        if (targetStatus == ApplicationStatus.ACCEPTED) {
+            if (teachingRequest.getStatus() != RequestStatus.OPEN) {
+                throw invalidTransition("Only OPEN teaching requests can accept student applications");
+            }
+            request.setStatus(ApplicationStatus.ACCEPTED);
+            StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
+            long acceptedCount = studentTutorRequestRepository
+                    .countByTeachingRequest_IdAndStatus(teachingRequestId, ApplicationStatus.ACCEPTED);
+            if (acceptedCount >= teachingRequest.getQuantity()) {
+                teachingRequest.setStatus(RequestStatus.MATCHED);
+                teachingRequestRepository.saveAndFlush(teachingRequest);
+                var remainingApplications = studentTutorRequestRepository
+                        .findAllByTeachingRequest_IdAndStatusOrderByCreatedAtDesc(
+                                teachingRequestId, ApplicationStatus.PENDING);
+                remainingApplications.forEach(remaining -> remaining.setStatus(ApplicationStatus.REJECTED));
+                if (!remainingApplications.isEmpty()) {
+                    studentTutorRequestRepository.saveAllAndFlush(remainingApplications);
+                    remainingApplications.forEach(remaining -> eventPublisher.publishEvent(NotificationDomainEvent.of(
+                            remaining.getStudent().getUser().getId(),
+                            NotificationEventType.STUDENT_REQUEST_REJECTED,
+                            NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                            remaining.getId(), java.util.Map.of())));
+                }
+            }
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    request.getStudent().getUser().getId(),
+                    NotificationEventType.STUDENT_REQUEST_ACCEPTED,
+                    NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                    savedRequest.getId(), java.util.Map.of()));
+            return toResponse(savedRequest);
+        } else {
+            request.setStatus(ApplicationStatus.REJECTED);
+        }
+
+        StudentTutorRequest savedRequest = studentTutorRequestRepository.saveAndFlush(request);
+        teachingRequest = savedRequest.getTeachingRequest();
+        if (teachingRequest != null && teachingRequest.getStatus() == RequestStatus.MATCHED
+                && studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                        teachingRequest.getId(), ApplicationStatus.ACCEPTED) == 0
+                && studentTutorRequestRepository.countByTeachingRequest_IdAndStatus(
+                        teachingRequest.getId(), ApplicationStatus.CONNECTED) < teachingRequest.getQuantity()) {
+            teachingRequest.setStatus(RequestStatus.OPEN);
+            teachingRequestRepository.saveAndFlush(teachingRequest);
+        }
+        eventPublisher.publishEvent(NotificationDomainEvent.of(
+                savedRequest.getStudent().getUser().getId(),
+                NotificationEventType.STUDENT_REQUEST_REJECTED,
+                NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                savedRequest.getId(), java.util.Map.of()));
+        return toResponse(savedRequest);
+    }
+
+    @Transactional
+    public StudentTutorRequestMineResponse createForStudent(
+            UUID userId, UUID teachingRequestId, StudentTutorRequestCreateRequest source) {
+        Student student = findStudentByUserId(userId);
+        TeachingRequest teachingRequest = teachingRequestRepository.findById(teachingRequestId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "TEACHING_REQUEST_NOT_FOUND",
+                        "Teaching request not found: " + teachingRequestId));
+
+        if (teachingRequest.getStatus() != RequestStatus.OPEN) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "INVALID_TEACHING_REQUEST_STATUS",
+                    "Only OPEN teaching requests can receive student applications");
+        }
+
+        Grade grade = gradeRepository.findById(source.gradeId())
+                .filter(candidate -> candidate.getStatus() == CatalogStatus.ACTIVE)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_GRADE",
+                        "Grade is not available: " + source.gradeId()));
+
+        if (!gradeTeachingRequestRepository.existsByTeachingRequest_IdAndGrade_Id(
+                teachingRequestId, source.gradeId())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_GRADE",
+                    "Grade is not associated with the teaching request");
+        }
+
+        if (studentTutorRequestRepository.existsByStudent_IdAndTeachingRequest_IdAndStatus(
+                student.getId(), teachingRequestId, ApplicationStatus.PENDING)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "DUPLICATE_STUDENT_TUTOR_REQUEST",
+                    "A pending student tutor request already exists");
+        }
+
+        var preferredLocation = resolvePreferredLocation(source);
+        StudentTutorRequest request = StudentTutorRequest.builder()
+                .student(student)
+                .grade(grade)
+                .teachingRequest(teachingRequest)
+                .proposedPrice(source.proposedPrice())
+                .learningMode(source.learningMode())
+                .preferredSchedule(normalize(source.preferredSchedule()))
+                .preferredProvince(preferredLocation.province())
+                .preferredDistrict(preferredLocation.district())
+                .detailAddress(source.learningMode() == com.ptutor.backend.entity.enums.LearningMode.OFFLINE
+                        ? normalize(source.detailAddress()) : null)
+                .message(normalize(source.message()))
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        StudentTutorRequest saved = studentTutorRequestRepository.saveAndFlush(request);
+        if (teachingRequest.getTutor() != null && teachingRequest.getTutor().getUser() != null) {
+            eventPublisher.publishEvent(NotificationDomainEvent.of(
+                    teachingRequest.getTutor().getUser().getId(),
+                    NotificationEventType.STUDENT_REQUEST_RECEIVED,
+                    NotificationReferenceType.STUDENT_TUTOR_REQUEST,
+                    saved.getId(), java.util.Map.of()));
+        }
+        return studentTutorRequestMapper.toMineResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<StudentTutorRequestMineResponse> findMineForStudent(
+            UUID userId, ApplicationStatus status, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        Page<StudentTutorRequest> requests = status == null
+                ? studentTutorRequestRepository.findAllByStudent_IdOrderByCreatedAtDesc(student.getId(), pageable)
+                : studentTutorRequestRepository.findAllByStudent_IdAndStatusOrderByCreatedAtDesc(
+                        student.getId(), status, pageable);
+
+        List<StudentTutorRequestMineResponse> responses = requests.getContent().stream()
+                .map(studentTutorRequestMapper::toMineResponse)
+                .toList();
+        return PageResponse.from(requests, responses);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<StudentTutorRequestMineResponse> findMineForStudent(
+            UUID userId, ApplicationStatus status, String keyword, Pageable pageable) {
+        Student student = findStudentByUserId(userId);
+        String normalizedKeyword = keyword == null ? "" : keyword.strip();
+        Page<StudentTutorRequest> requests = studentTutorRequestRepository.findAllForStudent(
+                student.getId(), status, normalizedKeyword, pageable);
+
+        List<StudentTutorRequestMineResponse> responses = requests.getContent().stream()
+                .map(studentTutorRequestMapper::toMineResponse)
+                .toList();
+        return PageResponse.from(requests, responses);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentTutorRequestMineResponse findMineById(UUID userId, UUID requestId) {
+        Student student = findStudentByUserId(userId);
+        StudentTutorRequest request = studentTutorRequestRepository.findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+        return studentTutorRequestMapper.toMineResponse(request);
+    }
+
+    @Transactional
+    public StudentTutorRequestMineResponse updateForStudent(
+            UUID userId, UUID requestId, StudentTutorRequestUpdateRequest source) {
+        Student student = findStudentByUserId(userId);
+        StudentTutorRequest request = studentTutorRequestRepository
+                .findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+
+        if (request.getStatus() != ApplicationStatus.PENDING) {
+            throw invalidStudentTransition("Only PENDING requests can be updated");
+        }
+
+        Grade grade = gradeRepository.findById(source.gradeId())
+                .filter(candidate -> candidate.getStatus() == CatalogStatus.ACTIVE)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_GRADE",
+                        "Grade is not available: " + source.gradeId()));
+
+        if (!gradeTeachingRequestRepository.existsByTeachingRequest_IdAndGrade_Id(
+                request.getTeachingRequest().getId(), source.gradeId())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_GRADE",
+                    "Grade is not associated with the teaching request");
+        }
+
+        request.setGrade(grade);
+        request.setProposedPrice(source.proposedPrice());
+        request.setLearningMode(source.learningMode());
+        request.setPreferredSchedule(normalize(source.preferredSchedule()));
+        var preferredLocation = resolvePreferredLocation(source);
+        request.setPreferredProvince(preferredLocation.province());
+        request.setPreferredDistrict(preferredLocation.district());
+        request.setDetailAddress(source.learningMode() == com.ptutor.backend.entity.enums.LearningMode.OFFLINE
+                ? normalize(source.detailAddress()) : null);
+        request.setMessage(normalize(source.message()));
+        return studentTutorRequestMapper.toMineResponse(
+                studentTutorRequestRepository.saveAndFlush(request));
+    }
+
+    @Transactional
+    public StudentTutorRequestMineResponse cancelForStudent(
+            UUID userId, UUID requestId, ApplicationStatus targetStatus) {
+        if (targetStatus != ApplicationStatus.CANCELLED) {
+            throw invalidStudentTransition("Students can only cancel their own requests");
+        }
+
+        Student student = findStudentByUserId(userId);
+        StudentTutorRequest request = studentTutorRequestRepository
+                .findByIdAndStudent_Id(requestId, student.getId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+
+        if (request.getStatus() != ApplicationStatus.PENDING) {
+            throw invalidStudentTransition("Only PENDING requests can be cancelled");
+        }
+
+        request.setStatus(ApplicationStatus.CANCELLED);
+        return studentTutorRequestMapper.toMineResponse(
+                studentTutorRequestRepository.saveAndFlush(request));
+    }
+
+    private Student findStudentByUserId(UUID userId) {
+        return studentRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "STUDENT_PROFILE_REQUIRED",
+                        "Only a student can manage student tutor requests"));
+    }
+
+    private ApiException invalidStudentTransition(String message) {
+        return new ApiException(
+                HttpStatus.CONFLICT,
+                "INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION",
+                message);
+    }
+
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private PreferredLocation resolvePreferredLocation(StudentTutorRequestCreateRequest source) {
+        return resolvePreferredLocation(source.learningMode(), source.preferredProvinceId(), source.preferredDistrictId());
+    }
+
+    private PreferredLocation resolvePreferredLocation(StudentTutorRequestUpdateRequest source) {
+        return resolvePreferredLocation(source.learningMode(), source.preferredProvinceId(), source.preferredDistrictId());
+    }
+
+    private PreferredLocation resolvePreferredLocation(
+            com.ptutor.backend.entity.enums.LearningMode learningMode,
+            UUID preferredProvinceId,
+            UUID preferredDistrictId) {
+        if (learningMode != com.ptutor.backend.entity.enums.LearningMode.OFFLINE) {
+            return new PreferredLocation(null, null);
+        }
+        if (districtRepository == null) {
+            return new PreferredLocation(null, null);
+        }
+        if (preferredProvinceId == null || preferredDistrictId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Province and district are required for in-person applications");
+        }
+        var district = districtRepository.findById(preferredDistrictId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                        "Selected district was not found"));
+        var province = district.getProvince();
+        if (province == null || !province.getId().equals(preferredProvinceId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PREFERRED_LOCATION",
+                    "Selected district does not belong to the selected province");
+        }
+        return new PreferredLocation(province, district);
+    }
+
+    private record PreferredLocation(com.ptutor.backend.entity.Province province,
+                                     com.ptutor.backend.entity.District district) { }
+
+    private StudentTutorRequest findRequest(UUID requestId, UUID teachingRequestId) {
+        return studentTutorRequestRepository
+                .findByIdAndTeachingRequest_Id(requestId, teachingRequestId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "STUDENT_TUTOR_REQUEST_NOT_FOUND",
+                        "Student tutor request not found: " + requestId));
+    }
+
+    private void ensureTeachingRequestBelongsToTutor(UUID teachingRequestId, UUID tutorId) {
+        teachingRequestRepository.findByIdAndTutor_Id(teachingRequestId, tutorId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "TEACHING_REQUEST_NOT_FOUND",
+                        "Teaching request not found: " + teachingRequestId));
+    }
+
+    private Tutor findTutorByUserId(UUID userId) {
+        return tutorRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "TUTOR_PROFILE_REQUIRED",
+                        "Only a tutor can manage student applications"));
+    }
+
+    private ApiException invalidTransition(String message) {
+        return new ApiException(
+                HttpStatus.CONFLICT,
+                "INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION",
+                message);
+    }
+}

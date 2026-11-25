@@ -1,0 +1,177 @@
+package com.ptutor.backend.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ptutor.backend.exception.ApiException;
+import com.ptutor.backend.mapper.CertificateMapper;
+import com.ptutor.backend.repository.TutorRepository;
+import com.ptutor.backend.entity.Certificate;
+import com.ptutor.backend.entity.Tutor;
+import com.ptutor.backend.entity.enums.CertificateStatus;
+import com.ptutor.backend.entity.enums.NotificationEventType;
+import com.ptutor.backend.entity.enums.NotificationReferenceType;
+import com.ptutor.backend.event.NotificationDomainEvent;
+import com.ptutor.backend.dto.request.CertificateRequest;
+import com.ptutor.backend.dto.response.CertificateResponse;
+import com.ptutor.backend.repository.CertificateRepository;
+import com.ptutor.backend.repository.EmployeeRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Service
+public class CertificateService {
+
+    private final CertificateRepository certificateRepository;
+    private final TutorRepository tutorRepository;
+    private final CertificateMapper certificateMapper;
+    private final EmployeeRepository employeeRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CertificateFileStorageService fileStorageService;
+
+    @Autowired
+    public CertificateService(
+            CertificateRepository certificateRepository,
+            TutorRepository tutorRepository,
+            CertificateMapper certificateMapper,
+            EmployeeRepository employeeRepository,
+            ApplicationEventPublisher eventPublisher,
+            CertificateFileStorageService fileStorageService) {
+        this.certificateRepository = certificateRepository;
+        this.tutorRepository = tutorRepository;
+        this.certificateMapper = certificateMapper;
+        this.employeeRepository = employeeRepository;
+        this.eventPublisher = eventPublisher;
+        this.fileStorageService = fileStorageService;
+    }
+
+    public CertificateService(
+            CertificateRepository certificateRepository,
+            TutorRepository tutorRepository,
+            CertificateMapper certificateMapper,
+            EmployeeRepository employeeRepository,
+            ApplicationEventPublisher eventPublisher) {
+        this(certificateRepository, tutorRepository, certificateMapper, employeeRepository, eventPublisher, null);
+    }
+
+    @Transactional
+    public CertificateResponse create(UUID userId, CertificateRequest request) {
+        Tutor tutor = findTutorByUserId(userId);
+        Certificate certificate = Certificate.builder()
+                .tutor(tutor)
+                .name(request.name().strip())
+                .issuingOrganization(normalize(request.issuingOrganization()))
+                .description(normalize(request.description()))
+                .issueDate(request.issueDate())
+                .expiryDate(request.expiryDate())
+                .certificateUrl(normalize(request.certificateUrl()))
+                .status(CertificateStatus.PENDING)
+                .build();
+        Certificate saved = certificateRepository.saveAndFlush(certificate);
+        publishReviewRequired(saved);
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CertificateResponse> findMine(UUID userId, CertificateStatus status) {
+        Tutor tutor = findTutorByUserId(userId);
+        List<Certificate> certificates = status == null
+                ? certificateRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
+                : certificateRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
+        return certificates.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CertificateResponse> findVerifiedByTutorId(UUID tutorId) {
+        findTutorById(tutorId);
+        return certificateRepository
+                .findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutorId, CertificateStatus.VERIFIED).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public CertificateResponse findMineById(UUID userId, UUID certificateId) {
+        Tutor tutor = findTutorByUserId(userId);
+        Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
+                .orElseThrow(() -> certificateNotFound(certificateId));
+        return toResponse(certificate);
+    }
+
+    @Transactional
+    public CertificateResponse update(UUID userId, UUID certificateId, CertificateRequest request) {
+        Tutor tutor = findTutorByUserId(userId);
+        Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
+                .orElseThrow(() -> certificateNotFound(certificateId));
+        certificate.setName(request.name().strip());
+        certificate.setIssuingOrganization(normalize(request.issuingOrganization()));
+        certificate.setDescription(normalize(request.description()));
+        certificate.setIssueDate(request.issueDate());
+        certificate.setExpiryDate(request.expiryDate());
+        if (request.certificateUrl() != null) {
+            certificate.setCertificateUrl(normalize(request.certificateUrl()));
+        }
+        certificate.setStatus(CertificateStatus.PENDING);
+        certificate.setReviewedBy(null);
+        certificate.setReviewedAt(null);
+        certificate.setRejectionReason(null);
+        Certificate saved = certificateRepository.saveAndFlush(certificate);
+        publishReviewRequired(saved);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void delete(UUID userId, UUID certificateId) {
+        Tutor tutor = findTutorByUserId(userId);
+        Certificate certificate = certificateRepository.findByIdAndTutor_Id(certificateId, tutor.getId())
+                .orElseThrow(() -> certificateNotFound(certificateId));
+        certificateRepository.delete(certificate);
+    }
+
+    private Tutor findTutorByUserId(UUID userId) {
+        return tutorRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "TUTOR_PROFILE_REQUIRED",
+                        "Only a tutor can manage certificates"));
+    }
+
+    private Tutor findTutorById(UUID tutorId) {
+        return tutorRepository.findById(tutorId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TUTOR_NOT_FOUND",
+                        "Tutor not found: " + tutorId));
+    }
+
+    private ApiException certificateNotFound(UUID certificateId) {
+        return new ApiException(HttpStatus.NOT_FOUND, "CERTIFICATE_NOT_FOUND",
+                "Certificate not found: " + certificateId);
+    }
+
+    private void publishReviewRequired(Certificate certificate) {
+        java.util.Map<String, String> data = java.util.Map.of("name", certificate.getName());
+        employeeRepository.findAllUserIds().forEach(recipientUserId ->
+                eventPublisher.publishEvent(NotificationDomainEvent.of(
+                        recipientUserId,
+                        NotificationEventType.CERTIFICATE_REVIEW_REQUIRED,
+                        NotificationReferenceType.CERTIFICATE,
+                        certificate.getId(),
+                        data)));
+    }
+
+    private CertificateResponse toResponse(Certificate certificate) {
+        String certificateUrl = certificate.getCertificateUrl();
+        if (fileStorageService != null) {
+            certificateUrl = fileStorageService.accessUrl(certificateUrl);
+        }
+        return certificateMapper.toResponse(certificate, certificateUrl);
+    }
+
+    private String normalize(String value) {
+        return value == null ? null : value.strip();
+    }
+}

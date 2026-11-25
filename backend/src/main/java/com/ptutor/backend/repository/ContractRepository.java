@@ -1,0 +1,333 @@
+package com.ptutor.backend.repository;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.ptutor.backend.entity.Contract;
+import com.ptutor.backend.entity.User;
+import com.ptutor.backend.entity.enums.ContractStatus;
+
+import jakarta.persistence.LockModeType;
+
+public interface ContractRepository extends JpaRepository<Contract, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select contract from Contract contract where contract.id = :contractId")
+    Optional<Contract> findByIdForSettlement(@Param("contractId") UUID contractId);
+
+
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+            """)
+    Optional<Contract> findByIdAndParticipantUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllForParticipant(
+            @Param("userId") UUID userId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade"
+    })
+    @Query("""
+            select contract from Contract contract
+            where (:status is null or contract.status = :status)
+              and (:keyword = '%' or
+                   lower(contract.subject.name) like :keyword or
+                   lower(contract.grade.name) like :keyword or
+                   lower(contract.student.user.email) like :keyword or
+                   lower(contract.tutor.user.email) like :keyword or
+                   lower(concat(coalesce(contract.student.user.firstName, ''), ' ', coalesce(contract.student.user.lastName, ''))) like :keyword or
+                   lower(concat(coalesce(contract.tutor.user.firstName, ''), ' ', coalesce(contract.tutor.user.lastName, ''))) like :keyword)
+            """)
+    Page<Contract> findAllForAdmin(@Param("status") ContractStatus status,
+                                   @Param("keyword") String keyword, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "schedules"
+    })
+    @Query("select contract from Contract contract where contract.id = :contractId")
+    Optional<Contract> findDetailedByIdForAdmin(@Param("contractId") UUID contractId);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where ((contract.student.user.id = :userId and contract.tutor.id = :counterpartyId)
+                or (contract.tutor.user.id = :userId and contract.student.id = :counterpartyId))
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllSharedWithParticipant(
+            @Param("userId") UUID userId,
+            @Param("counterpartyId") UUID counterpartyId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+            """)
+    Optional<Contract> findDetailedByIdAndParticipantUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.student.user.id = :userId
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllForStudentUser(
+            @Param("userId") UUID userId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and contract.student.user.id = :userId
+            """)
+    Optional<Contract> findDetailedByIdAndStudentUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.tutor.user.id = :userId
+              and (:status is null or contract.status = :status)
+            """)
+    Page<Contract> findAllForTutorUser(
+            @Param("userId") UUID userId,
+            @Param("status") ContractStatus status,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and contract.tutor.user.id = :userId
+            """)
+    Optional<Contract> findDetailedByIdAndTutorUserId(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    @Query("select contract.tutor.user.id from Contract contract where contract.id = :contractId")
+    Optional<UUID> findTutorUserIdByContractId(@Param("contractId") UUID contractId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {
+            "student", "student.user", "tutor", "tutor.user", "subject", "grade", "createdBy", "signedBy",
+            "tutorStudentRequest", "studentTutorRequest", "renewedFromContract"
+    })
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.id = :contractId
+              and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+            """)
+    Optional<Contract> findDetailedByIdAndParticipantUserIdForUpdate(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId);
+
+    boolean existsByTutorStudentRequest_IdAndStatusNot(UUID tutorStudentRequestId, ContractStatus excludedStatus);
+
+    boolean existsByStudentTutorRequest_IdAndStatusNot(UUID studentTutorRequestId, ContractStatus excludedStatus);
+
+    @Query("select case when count(contract) > 0 then true else false end from Contract contract "
+            + "where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status in :statuses")
+    boolean existsActiveByStudentTutorRequestId(
+            @Param("studentTutorRequestId") UUID studentTutorRequestId,
+            @Param("statuses") Collection<ContractStatus> statuses);
+
+    @Query("select contract.id from Contract contract where contract.studentTutorRequest.id = :studentTutorRequestId and contract.status <> :excludedStatus order by contract.createdAt desc")
+    Optional<UUID> findIdByStudentTutorRequestIdAndStatusNot(
+            @Param("studentTutorRequestId") UUID studentTutorRequestId,
+            @Param("excludedStatus") ContractStatus excludedStatus);
+
+    Optional<Contract> findTopByStudentTutorRequest_IdOrderByCreatedAtDesc(UUID studentTutorRequestId);
+
+    Optional<Contract> findTopByTutorStudentRequest_IdOrderByCreatedAtDesc(UUID tutorStudentRequestId);
+
+    @Query("""
+            select contract
+            from Contract contract
+            where contract.createdBy.id = contract.student.user.id
+              and contract.status = :pendingStatus
+              and (contract.endDate <= :today or contract.createdAt <= :signingDeadline)
+              and contract.deletedAt is null
+            """)
+    List<Contract> findExpiredStudentCreatedPendingContracts(
+            @Param("today") LocalDate today,
+            @Param("signingDeadline") LocalDateTime signingDeadline,
+            @Param("pendingStatus") ContractStatus pendingStatus);
+
+    boolean existsByRenewedFromContract_IdAndStatusNot(UUID renewedFromContractId, ContractStatus excludedStatus);
+
+    List<Contract> findAllByStatus(ContractStatus status);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :activeStatus,
+                   contract.signedBy = :signedBy,
+                   contract.signedAt = :now,
+                   contract.updatedAt = :now
+             where contract.id = :contractId
+               and contract.status = :pendingStatus
+               and contract.createdBy.id <> :userId
+               and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+               and contract.endDate > :today
+               and contract.deletedAt is null
+            """)
+    int activatePendingByCounterparty(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId,
+            @Param("signedBy") User signedBy,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("activeStatus") ContractStatus activeStatus,
+            @Param("today") LocalDate today,
+            @Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
+                   contract.updatedAt = :now
+             where contract.id = :contractId
+               and contract.status = :pendingStatus
+               and contract.createdBy.id <> :userId
+               and (contract.student.user.id = :userId or contract.tutor.user.id = :userId)
+               and contract.deletedAt is null
+            """)
+    int rejectPendingByCounterparty(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("cancelledStatus") ContractStatus cancelledStatus,
+            @Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
+                   contract.updatedAt = :now
+             where contract.id = :contractId
+               and contract.status = :pendingStatus
+               and contract.createdBy.id = :userId
+               and contract.deletedAt is null
+            """)
+    int cancelPendingByCreator(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("cancelledStatus") ContractStatus cancelledStatus,
+            @Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :pendingStatus,
+                   contract.createdAt = :now,
+                   contract.cancelledAt = null,
+                   contract.updatedAt = :now
+             where contract.id = :contractId
+               and contract.createdBy.id = :userId
+               and contract.status in (:pendingStatus, :cancelledStatus)
+               and contract.endDate > :today
+               and contract.deletedAt is null
+            """)
+    int refreshSigningDeadline(
+            @Param("contractId") UUID contractId,
+            @Param("userId") UUID userId,
+            @Param("today") LocalDate today,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("cancelledStatus") ContractStatus cancelledStatus,
+            @Param("now") LocalDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :completedStatus,
+                   contract.updatedAt = :now
+             where contract.status = :activeStatus
+               and contract.endDate <= :today
+               and contract.deletedAt is null
+            """)
+    int completeActiveContractsEndingOnOrBefore(
+            @Param("today") LocalDate today,
+            @Param("now") LocalDateTime now,
+            @Param("activeStatus") ContractStatus activeStatus,
+            @Param("completedStatus") ContractStatus completedStatus);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Contract contract
+               set contract.status = :cancelledStatus,
+                   contract.cancelledAt = :now,
+                   contract.updatedAt = :now
+             where contract.status = :pendingStatus
+               and contract.endDate <= :today
+               and contract.deletedAt is null
+            """)
+    int cancelPendingContractsEndingOnOrBefore(
+            @Param("today") LocalDate today,
+            @Param("now") LocalDateTime now,
+            @Param("pendingStatus") ContractStatus pendingStatus,
+            @Param("cancelledStatus") ContractStatus cancelledStatus);
+}
