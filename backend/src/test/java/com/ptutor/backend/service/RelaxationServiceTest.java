@@ -94,6 +94,24 @@ class RelaxationServiceTest {
     }
 
     @Test
+    void keepsOnlyTheLighterAreaLooseningWhenBothFindTheSamePeople() {
+        Result first = result(0.8);
+        Result second = result(0.75);
+        Map<String, List<Result>> outcome = Map.of(
+                "AREA_PROVINCE", List.of(first, second),
+                "AREA_ANY", List.of(second, first));
+
+        assertThat(suggest(List.of(), outcome)).extracting(RelaxationSuggestion::code)
+                .containsExactly("AREA_PROVINCE");
+
+        Map<String, List<Result>> differentPeople = Map.of(
+                "AREA_PROVINCE", List.of(first, second),
+                "AREA_ANY", List.of(first, result(0.9)));
+        assertThat(suggest(List.of(), differentPeople)).extracting(RelaxationSuggestion::code)
+                .containsExactly("AREA_PROVINCE", "AREA_ANY");
+    }
+
+    @Test
     void stopsWhenTheTimeBudgetIsUsedUpAndSurvivesALooseningThatFails() {
         Map<String, List<Result>> outcome = Map.of(
                 "PRICE_15", List.of(result(0.7), result(0.7)), "AREA_ANY", List.of(result(0.7), result(0.7)));

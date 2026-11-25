@@ -300,7 +300,10 @@ export function TutorStudentRecommendationsPage() {
         smartSearching={isSearching}
         advancedContent={
           <div className="tutor-smart-fields">
-            <h3>Tiêu chí gợi ý thông minh</h3>
+            <h3>Tiêu chí bổ sung cho gợi ý thông minh</h3>
+            <p className="tutor-smart-hint">
+              Môn học, lớp, hình thức, khu vực, học phí và lịch bạn chọn trên trang cũng được dùng để gợi ý.
+            </p>
             <label className="rec-field tutor-smart-sentence">
               <span>Mô tả nhanh bằng một câu</span>
               <textarea

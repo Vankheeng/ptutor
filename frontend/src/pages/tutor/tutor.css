@@ -60,9 +60,9 @@
 .tutor-student-search-basic{display:grid;grid-template-columns:minmax(200px,1.5fr) repeat(5,minmax(105px,1fr)) auto;gap:10px;align-items:end}
 .tutor-student-search-advanced{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:12px;border-top:1px solid #f0f1f5;align-items:start}
 .tutor-student-search-basic>label,.tutor-student-search-advanced>label{display:grid;min-width:0;gap:5px;color:#8c91a1;font-size:9px;font-weight:700}
-.tutor-student-filter-panel input,.tutor-student-filter-panel select{width:100%;min-width:0;height:37px;padding:0 10px;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px;outline:none}
-.tutor-student-filter-panel input,.tutor-student-filter-panel select{font-weight:400}
-.tutor-student-filter-panel input:focus,.tutor-student-filter-panel select:focus{border-color:#997be1;box-shadow:0 0 0 3px #8b68d21c}
+.tutor-student-filter-panel input:not([type=checkbox]),.tutor-student-filter-panel select{width:100%;min-width:0;height:37px;padding:0 10px;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px;outline:none}
+.tutor-student-filter-panel input:not([type=checkbox]),.tutor-student-filter-panel select{font-weight:400}
+.tutor-student-filter-panel input:not([type=checkbox]):focus,.tutor-student-filter-panel select:focus{border-color:#997be1;box-shadow:0 0 0 3px #8b68d21c}
 .tutor-student-filter-panel .tutor-search{display:flex;align-self:end;grid-template-columns:none;align-items:center;gap:8px;padding:0 10px}
 .tutor-student-filter-panel .tutor-search input{height:35px;padding:0;border:0;box-shadow:none}
 .tutor-student-filter-panel .tutor-search svg{flex:none;color:#8f94a4}
@@ -84,7 +84,7 @@
 .tutor-smart-fields h3,.tutor-smart-fields .tutor-smart-sentence,.tutor-smart-fields .rec-notes{grid-column:1/-1}
 .tutor-smart-fields h3{margin:0;color:#50546a;font-size:12px}
 .tutor-smart-fields .rec-field{gap:6px;font-size:10px}
-.tutor-smart-fields input,.tutor-smart-fields select,.tutor-smart-fields textarea{width:100%;min-width:0;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px}
+.tutor-smart-fields input:not([type=checkbox]),.tutor-smart-fields select,.tutor-smart-fields textarea{width:100%;min-width:0;border:1px solid #e5e6ee;border-radius:8px;background:#fff;color:#3d4255;font:inherit;font-size:10px}
 .tutor-smart-fields textarea{min-height:80px;padding:9px 10px;resize:vertical}
 .tutor-smart-fields>.tutor-button{justify-self:start}
 .tutor-student-recommendations>.rec-results{min-width:0}
@@ -120,7 +120,7 @@
 .tutor-student-recommendations .tutor-search-field{grid-column:span 2;display:grid;gap:6px;min-width:0}
 .tutor-student-recommendations .tutor-search-field>span,.tutor-student-recommendations .tutor-student-search-basic>label,.tutor-student-recommendations .tutor-student-price-filter>span,.tutor-student-recommendations .tutor-schedule-filter legend{color:#51566c;font-size:11px;font-weight:700}
 .tutor-student-recommendations .tutor-student-search-basic>label{gap:6px}
-.tutor-student-recommendations .tutor-student-filter-panel input,.tutor-student-recommendations .tutor-student-filter-panel select{height:42px;font-size:11px}
+.tutor-student-recommendations .tutor-student-filter-panel input:not([type=checkbox]),.tutor-student-recommendations .tutor-student-filter-panel select{height:42px;font-size:11px}
 .tutor-student-recommendations .tutor-student-filter-panel select{appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2 4 4 4 4-4' fill='none' stroke='%2320243a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:12px 12px}
 .tutor-student-recommendations .tutor-search-field .tutor-search{height:42px;box-sizing:border-box}
 .tutor-student-recommendations .tutor-search-field .tutor-search input{height:39px}
@@ -132,12 +132,13 @@
 .tutor-student-recommendations .tutor-schedule-filter{order:3;grid-column:1/-1;padding-top:16px;border-top:1px solid #eceef4}
 .tutor-student-recommendations .tutor-smart-fields{padding:0;border:0;gap:14px 16px}
 .tutor-student-recommendations .tutor-smart-fields h3{font-size:12px}
+.tutor-student-recommendations .tutor-smart-hint{grid-column:1/-1;margin:-8px 0 0;color:#85899a;font-size:11px;line-height:1.5}
 .tutor-student-recommendations .tutor-smart-fields .rec-field{font-size:11px}
 .tutor-student-recommendations .tutor-smart-fields textarea{min-height:90px;font-size:11px}
 .tutor-student-recommendations .tutor-smart-fields>.tutor-button{min-height:40px;align-self:end;border-color:#6736d6;background:#6736d6;color:#fff}
 .tutor-student-recommendations .tutor-smart-fields>.tutor-button:disabled{border-color:#e3e4eb;background:#fff;color:#a4a8b7}
 .tutor-student-recommendations .tutor-grade-dropdown summary{height:42px;box-sizing:border-box;padding-top:12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2 4 4 4 4-4' fill='none' stroke='%2320243a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-.tutor-student-recommendations .tutor-grade-dropdown .rec-tag-options input[type=checkbox]{width:14px;height:14px;min-width:14px;margin:0;accent-color:#6736d6}
+.tutor-student-recommendations .rec-tag-options input[type=checkbox]{flex:0 0 14px;width:14px;height:14px;min-width:14px;margin:0;padding:0;accent-color:#6736d6}
 .tutor-student-recommendations .tutor-student-filter-actions{padding-top:16px}
 .tutor-student-recommendations .tutor-student-filter-actions .tutor-button{min-height:42px;font-size:11px}
 .tutor-student-recommendations .tutor-smart-search-button{border-color:#bda6f1;background:#f5f0ff;color:#6736d6}

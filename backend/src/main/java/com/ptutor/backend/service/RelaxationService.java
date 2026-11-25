@@ -128,14 +128,31 @@ public class RelaxationService {
             if (gained.size() >= settings.getRelaxationMinGain()
                     || (!gained.isEmpty() && best >= currentBest + settings.getRelaxationBestScoreMargin())) {
                 kept.add(new Evaluated(LIGHTEST_FIRST.indexOf(variant.code()), new RelaxationSuggestion(
-                        variant.code(), message.apply(variant, gained), gained.size(), variant.apply())));
+                        variant.code(), message.apply(variant, gained), gained.size(), variant.apply()),
+                        gained.stream().map(person).collect(Collectors.toSet())));
             }
         }
-        return kept.stream()
+        List<Evaluated> sorted = kept.stream()
                 .sorted(Comparator.comparingInt((Evaluated evaluated) -> evaluated.suggestion().gain()).reversed()
                         .thenComparingInt(Evaluated::weight))
-                .limit(settings.getRelaxationMaxSuggestions())
-                .map(Evaluated::suggestion).toList();
+                .toList();
+        List<Evaluated> distinct = new ArrayList<>();
+        for (Evaluated candidate : sorted) {
+            boolean samePeopleAlreadyOffered = distinct.stream().anyMatch(previous ->
+                    sameLooseningFamily(previous.suggestion().code(), candidate.suggestion().code())
+                            && previous.gainedPeople().equals(candidate.gainedPeople()));
+            if (!samePeopleAlreadyOffered) {
+                distinct.add(candidate);
+            }
+        }
+        return distinct.stream().limit(settings.getRelaxationMaxSuggestions()).map(Evaluated::suggestion).toList();
+    }
+
+    private boolean sameLooseningFamily(String first, String second) {
+        return (List.of(AREA_PROVINCE, AREA_ANY).contains(first)
+                && List.of(AREA_PROVINCE, AREA_ANY).contains(second))
+                || (List.of(PRICE_15, PRICE_30).contains(first)
+                        && List.of(PRICE_15, PRICE_30).contains(second));
     }
 
     // ---------------------------------------------------------------- a student looks for tutors
@@ -286,6 +303,6 @@ public class RelaxationService {
         return apply;
     }
 
-    private record Evaluated(int weight, RelaxationSuggestion suggestion) {
+    private record Evaluated(int weight, RelaxationSuggestion suggestion, Set<UUID> gainedPeople) {
     }
 }
