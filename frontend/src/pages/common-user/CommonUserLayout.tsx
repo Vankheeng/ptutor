@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { AssistantWidget } from '../../components/assistant/AssistantWidget';
+import { SupportRequestDialog } from '../../components/assistant/SupportRequestDialog';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon, type IconName } from '../../components/ui/Icon';
 import { useNotificationUnreadCount } from '../../hooks/useNotificationUnreadCount';
@@ -20,6 +22,7 @@ const navigation: NavigationItem[] = [
   { section: 'LEARNING', to: '/student/refund-requests', label: 'Yêu cầu hoàn tiền', icon: 'refund' },
   { section: 'LEARNING', to: '/student/complaints', label: 'Khiếu nại', icon: 'shield' },
   { section: 'ACCOUNT', to: '/student/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/student/support-requests', label: 'Yêu cầu hỗ trợ', icon: 'support' },
   { section: 'ACCOUNT', to: '/student/wallet', label: 'Ví tiền & thanh toán', icon: 'wallet' },
   { section: 'ACCOUNT', to: '/student/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
   { section: 'ACCOUNT', to: '/student/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
@@ -117,6 +120,11 @@ export function CommonUserLayout() {
           <Outlet />
         </div>
       </main>
+      <AssistantWidget
+        renderSupportDialog={(draft, close) => (
+          <SupportRequestDialog draft={draft} basePath="/student" onClose={close} />
+        )}
+      />
     </div>
   );
 }

@@ -105,6 +105,20 @@ class NotificationTemplateFactory {
             case TEACHING_REQUEST_REVIEW_REQUIRED -> content(NotificationType.REQUEST,
                     "Yêu cầu dạy cần được duyệt",
                     "Yêu cầu dạy \"" + name + "\" đang chờ được duyệt.");
+            case RECOMMENDATION_MATCH_FOUND -> {
+                // A tutor may be named to a student; a student is never named to a tutor before any contact.
+                boolean tutorFound = event.referenceType()
+                        == com.ptutor.backend.entity.enums.NotificationReferenceType.TEACHING_REQUEST;
+                String posting = data.getOrDefault("title", "");
+                String who = tutorFound && !name.isBlank() ? name + (posting.isBlank() ? "" : " — " + posting)
+                        : posting;
+                String why = reason.isBlank()
+                        ? (tutorFound ? "Xem tin dạy để biết thêm" : "Xem tin học để biết thêm") : reason;
+                yield content(NotificationType.REQUEST,
+                        tutorFound ? "Có gia sư mới rất phù hợp với tiêu chí của bạn"
+                                : "Có học viên mới phù hợp với tiêu chí của bạn",
+                        (who.isBlank() ? "" : who + ". ") + why + ".");
+            }
             case LESSON_MARKED_TAUGHT -> content(NotificationType.CONTRACT,
                     "Buổi học chờ xác nhận",
                     "Gia sư đã đánh dấu buổi \"" + name + "\" đã dạy. Vui lòng xác nhận.");
@@ -149,6 +163,12 @@ class NotificationTemplateFactory {
                     "Yêu cầu hoàn tiền được duyệt", amount + " VND đã được hoàn vào số dư ví của học viên.");
             case REFUND_REQUEST_REJECTED -> content(NotificationType.PAYMENT,
                     "Yêu cầu hoàn tiền bị từ chối", "Yêu cầu hoàn tiền bị từ chối. Lý do: " + reason);
+            case SUPPORT_REQUEST_ANSWERED -> content(NotificationType.SYSTEM,
+                    "Support request answered",
+                    "Our support team answered your request " + data.getOrDefault("code", "") + ".");
+            case SUPPORT_REQUEST_RECEIVED -> content(NotificationType.SYSTEM,
+                    "New support request",
+                    "Support request " + data.getOrDefault("code", "") + " is waiting in the queue.");
         };
     }
 

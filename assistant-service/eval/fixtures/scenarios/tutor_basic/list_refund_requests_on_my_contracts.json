@@ -1,0 +1,34 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "g0000000-0000-4000-8000-000000000005",
+          "contractId": "c0000000-0000-4000-8000-000000000002",
+          "subjectName": "Tiếng Anh",
+          "gradeName": "Lớp 7",
+          "status": "PENDING",
+          "description": "Học viên báo buổi 3 không diễn ra",
+          "disputedLessons": [],
+          "evidences": [],
+          "tutorResponse": null,
+          "tutorRespondedAt": null,
+          "tutorResponseDeadline": "2026-10-22T08:00:00",
+          "refundAmount": null,
+          "tutorShareAmount": null,
+          "rejectionReason": null,
+          "reviewedAt": null,
+          "createdAt": "2026-10-19T08:00:00",
+          "studentEmail": "should-be-filtered@example.com"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

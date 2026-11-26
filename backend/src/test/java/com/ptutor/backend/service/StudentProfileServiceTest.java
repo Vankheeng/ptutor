@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ptutor.backend.dto.request.UpdateStudentProfileRequest;
@@ -39,6 +42,8 @@ class StudentProfileServiceTest {
     @Mock DistrictRepository districtRepository;
     @Mock CurrentUserProvider currentUserProvider;
 
+    @Mock ApplicationEventPublisher eventPublisher;
+
     private StudentProfileService studentProfileService;
     private UUID userId;
     private UUID studentId;
@@ -53,7 +58,7 @@ class StudentProfileServiceTest {
     void setUp() {
         StudentProfileMapper mapper = Mappers.getMapper(StudentProfileMapper.class);
         studentProfileService = new StudentProfileService(
-                studentRepository, provinceRepository, districtRepository, mapper, currentUserProvider);
+                studentRepository, provinceRepository, districtRepository, mapper, currentUserProvider, eventPublisher);
         userId = UUID.randomUUID();
         studentId = UUID.randomUUID();
         provinceId = UUID.randomUUID();
@@ -129,6 +134,8 @@ class StudentProfileServiceTest {
         UpdateStudentProfileRequest request = request("Nguyen Van", null, null, "New introduction");
 
         StudentProfileResponse response = studentProfileService.updateCurrentProfile(request);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.STUDENT, studentId));
 
         assertThat(user.getFirstName()).isEqualTo("Nguyen Van");
         assertThat(user.getLastName()).isEqualTo("An");

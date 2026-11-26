@@ -1,0 +1,312 @@
+/* Widget trợ lý: nút nổi góc dưới phải; khung ~380 × 560 trên máy tính, toàn màn hình trên điện thoại (08 mục 8.1). */
+.assistant-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  font-size: 14px;
+}
+.assistant-fab {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(57, 20, 124, 0.28);
+}
+.assistant-fab:focus-visible {
+  outline: 3px solid var(--purple-500, #9367ff);
+  outline-offset: 3px;
+}
+.assistant-panel {
+  width: 380px;
+  height: 560px;
+  max-height: calc(100vh - 110px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--border, #e9e5f1);
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(34, 28, 54, 0.18);
+  overflow: hidden;
+}
+.assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--purple-50, #f8f5ff);
+  border-bottom: 1px solid var(--border, #e9e5f1);
+  position: relative;
+}
+.assistant-header-tools {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.assistant-header-tools > button {
+  border: 0;
+  background: transparent;
+  color: var(--purple-800, #5020a8);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.assistant-header-tools > button:hover {
+  background: var(--purple-100, #eee7ff);
+}
+.assistant-menu {
+  position: absolute;
+  right: 12px;
+  top: 48px;
+  background: #fff;
+  border: 1px solid var(--border, #e9e5f1);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(34, 28, 54, 0.12);
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  min-width: 200px;
+}
+.assistant-menu > * {
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink, #221c36);
+  text-decoration: none;
+}
+.assistant-menu > *:hover {
+  background: var(--purple-50, #f8f5ff);
+}
+.assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.assistant-welcome p {
+  margin: 0 0 10px;
+  color: var(--muted, #706b7f);
+}
+.assistant-message {
+  max-width: 88%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.assistant-message.user {
+  align-self: flex-end;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+}
+.assistant-message.assistant {
+  align-self: flex-start;
+  background: #f6f5f9;
+  color: var(--ink, #221c36);
+}
+.assistant-message.abstain {
+  background: #fff8ec;
+  border: 1px solid #f3dfb7;
+}
+.assistant-message.failed {
+  background: #fdeeee;
+  color: #8a1f1f;
+}
+.assistant-message.pending {
+  color: var(--muted, #706b7f);
+  font-style: italic;
+}
+.assistant-markdown p {
+  margin: 0 0 6px;
+}
+.assistant-markdown p:last-child {
+  margin-bottom: 0;
+}
+.assistant-markdown ul,
+.assistant-markdown ol {
+  margin: 4px 0 6px;
+  padding-left: 20px;
+}
+.assistant-notice {
+  display: block;
+  color: var(--muted, #706b7f);
+  font-size: 12px;
+  margin: 4px 0;
+}
+.assistant-citation {
+  position: relative;
+  display: inline-block;
+}
+.assistant-citation-chip {
+  border: 0;
+  background: var(--purple-100, #eee7ff);
+  color: var(--purple-800, #5020a8);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 5px;
+  margin: 0 2px;
+  cursor: pointer;
+  vertical-align: super;
+  line-height: 1.4;
+}
+.assistant-citation-tooltip {
+  position: absolute;
+  bottom: 130%;
+  left: 0;
+  min-width: 180px;
+  max-width: 260px;
+  background: var(--ink, #221c36);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  z-index: 3;
+}
+.assistant-actions,
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.assistant-actions button {
+  border: 1px solid var(--purple-600, #7c4dff);
+  background: #fff;
+  color: var(--purple-800, #5020a8);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.assistant-suggestions button {
+  border: 1px solid var(--border, #e9e5f1);
+  background: #fff;
+  color: var(--ink, #221c36);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.assistant-suggestions button:hover,
+.assistant-actions button:hover {
+  background: var(--purple-50, #f8f5ff);
+}
+.assistant-support-button {
+  margin-top: 8px;
+  border: 0;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.assistant-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  align-items: center;
+}
+.assistant-feedback > button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.55;
+  padding: 2px 4px;
+}
+.assistant-feedback > button.active,
+.assistant-feedback > button:hover {
+  opacity: 1;
+}
+.assistant-feedback-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+.assistant-feedback-form select,
+.assistant-feedback-form input {
+  border: 1px solid var(--border, #e9e5f1);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 12px;
+  flex: 1 1 120px;
+}
+.assistant-feedback-form button {
+  border: 0;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.assistant-new-hint {
+  align-self: center;
+  border: 1px dashed var(--purple-500, #9367ff);
+  background: #fff;
+  color: var(--purple-800, #5020a8);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.assistant-input {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border, #e9e5f1);
+}
+.assistant-input textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border, #e9e5f1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+}
+.assistant-input button {
+  border: 0;
+  background: var(--purple-700, #6736d6);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.assistant-input button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.assistant-disclaimer {
+  display: block;
+  padding: 0 12px 10px;
+  color: var(--muted, #706b7f);
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .assistant-widget {
+    right: 12px;
+    bottom: 12px;
+  }
+  .assistant-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+}

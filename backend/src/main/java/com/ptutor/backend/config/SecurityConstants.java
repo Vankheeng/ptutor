@@ -102,6 +102,23 @@ public final class SecurityConstants {
             "/api/v1/admin/subjects"
     };
 
+    public static final String[] RECOMMENDATION_INTERACTION_API = {
+            "/api/v1/recommendations/**",
+            "/api/v1/users/me/recommendation-profile",
+            "/api/v1/users/me/saved-searches",
+            "/api/v1/users/me/saved-searches/**"
+    };
+
+    public static final String[] ADMIN_RECOMMENDATION_TAG_API = {
+            "/api/v1/admin/recommendation-tags",
+            "/api/v1/admin/recommendation-tags/**"
+    };
+
+    public static final String[] ADMIN_RECOMMENDATION_WEIGHT_API = {
+            "/api/v1/admin/recommendations/weights",
+            "/api/v1/admin/recommendations/weights/**"
+    };
+
     public static final String[] ADMIN_GRADE_API = {
             "/api/v1/admin/grades"
     };
@@ -128,6 +145,30 @@ public final class SecurityConstants {
     public static final String[] ADMIN_NOTIFICATION_API = {
             "/api/v1/admin/notifications",
             "/api/v1/admin/notifications/**"
+    };
+
+    /** Trợ lý hỗ trợ (docs/support-chatbot/07-api.md mục 7.1): widget của học viên, gia sư. */
+    public static final String[] ASSISTANT_API = {
+            "/api/v1/assistant",
+            "/api/v1/assistant/**"
+    };
+
+    /** Quản trị kho tri thức của trợ lý: chỉ ADMIN. */
+    public static final String[] ADMIN_ASSISTANT_API = {
+            "/api/v1/admin/assistant",
+            "/api/v1/admin/assistant/**"
+    };
+
+    /** Yêu cầu hỗ trợ gửi nhân viên (docs/support-chatbot/14-yeu-cau-ho-tro.md mục 14.5): học viên, gia sư. */
+    public static final String[] SUPPORT_REQUEST_SELF_SERVICE_API = {
+            "/api/v1/users/me/support-requests",
+            "/api/v1/users/me/support-requests/**"
+    };
+
+    /** Hàng chờ yêu cầu hỗ trợ: ADMIN và EMPLOYEE có chức năng CUSTOMER_SERVICE. */
+    public static final String[] ADMIN_SUPPORT_REQUEST_API = {
+            "/api/v1/admin/support-requests",
+            "/api/v1/admin/support-requests/**"
     };
 
     public static final String[] ADMIN_STATISTICS_API = {

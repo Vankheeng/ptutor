@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { AssistantWidget } from '../../components/assistant/AssistantWidget';
+import { SupportRequestDialog } from '../../components/assistant/SupportRequestDialog';
 import logo from '../../assets/ptutor-logo.svg';
 import { Icon, type IconName } from '../../components/ui/Icon';
 import { useNotificationUnreadCount } from '../../hooks/useNotificationUnreadCount';
@@ -16,6 +18,7 @@ const navigation = [
   { section: 'TEACHING', to: '/tutor/sections/calendar', label: 'Lịch dạy', icon: 'calendar' },
   { section: 'TEACHING', to: '/tutor/complaints', label: 'Khiếu nại', icon: 'support' },
   { section: 'ACCOUNT', to: '/tutor/notifications', label: 'Thông báo', icon: 'bell' },
+  { section: 'ACCOUNT', to: '/tutor/support-requests', label: 'Yêu cầu hỗ trợ', icon: 'support' },
   { section: 'ACCOUNT', to: '/tutor/wallet', label: 'Ví tiền', icon: 'wallet' },
   { section: 'ACCOUNT', to: '/tutor/wallet/transactions', label: 'Lịch sử giao dịch', icon: 'history' },
   { section: 'ACCOUNT', to: '/tutor/wallet/analytics', label: 'Phân tích thu chi', icon: 'dashboard' },
@@ -108,6 +111,11 @@ export function TutorLayout() {
           <Outlet />
         </div>
       </main>
+      <AssistantWidget
+        renderSupportDialog={(draft, close) => (
+          <SupportRequestDialog draft={draft} basePath="/tutor" onClose={close} />
+        )}
+      />
     </div>
   );
 }

@@ -1,0 +1,67 @@
+# Câu mẫu NGOÀI phạm vi cho tầng 2 của lớp chặn (thiết kế 04 mục 4.11, bảng assistant.scope_exemplar, label OUT).
+# Nạp vào DB bằng: .venv/Scripts/python -m app.scope.exemplars --load
+# Đây là dữ liệu chạy thật, KHÔNG dùng để đo. Bộ đo riêng ở eval/datasets/scope/ (câu khác hẳn) để tránh tự chấm.
+out:
+  # Học tập, bài tập
+  - Giải giúp mình bài toán hình học lớp 9 này
+  - Tính đạo hàm của hàm số y = x^3 + 2x
+  - Phân tích nhân vật Mị trong Vợ chồng A Phủ
+  - Tóm tắt truyện Chí Phèo giúp mình
+  - Công thức tính diện tích hình thang là gì
+  - Cân bằng phương trình hoá học Fe + O2
+  - Định luật Newton thứ hai phát biểu thế nào
+  - Cho mình 5 từ vựng tiếng Anh về chủ đề gia đình
+  - Thì hiện tại hoàn thành dùng khi nào
+  - Giải thích quang hợp ở thực vật
+  - Ôn thi đại học môn Văn nên học gì trước
+  - Đề thi thử THPT quốc gia môn Toán năm nay
+  - Lập dàn ý bài văn tả cảnh sân trường
+  - Viết giúp mình đoạn văn về mùa xuân
+  - Chữa giúp lỗi ngữ pháp câu tiếng Anh này
+  # Lập trình, công nghệ
+  - Viết hàm Python sắp xếp danh sách
+  - Sửa lỗi NullPointerException trong Java
+  - Cách cài Windows 11 cho laptop
+  - Máy tính bị chậm phải làm sao
+  - Nên mua điện thoại nào dưới 10 triệu
+  # Đời sống, kiến thức chung
+  - Hôm nay trời Hà Nội có mưa không
+  - Kết quả bóng đá tối qua thế nào
+  - Giá vàng hôm nay bao nhiêu
+  - Tỷ giá đô la hôm nay
+  - Công thức nấu phở bò ngon
+  - Gợi ý quán cà phê yên tĩnh ở Cầu Giấy
+  - Đi Đà Lạt mùa này mặc gì
+  - Bị cảm cúm nên uống thuốc gì
+  - Làm sao để giảm cân nhanh
+  - Kể cho mình một câu chuyện cười
+  - Hát cho mình nghe một bài
+  - Bạn có người yêu chưa
+  - Hôm nay là ngày gì trong lịch sử
+  - Thủ đô của nước Úc là gì
+  - Ai là tổng thống Mỹ hiện nay
+  - Dịch câu này sang tiếng Nhật giúp mình
+  - Viết thư xin việc giúp mình
+  - Gợi ý tên cho con gái sinh năm nay
+  - Xem tử vi tuổi Dần năm nay
+  - Cách đầu tư chứng khoán cho người mới
+  - Mua bảo hiểm xe máy ở đâu
+  - Làm thủ tục cấp lại căn cước công dân thế nào
+  - Cách đăng ký tài khoản ngân hàng online
+  - Xe buýt số 32 đi từ đâu đến đâu
+  - Phim chiếu rạp hay tuần này
+  - Cách chơi cờ vua cho người mới
+  - Tập gym thế nào để tăng cơ
+  - Viết caption Facebook hay cho ảnh du lịch
+  - Làm slide thuyết trình về môi trường giúp mình
+  - Tư vấn chọn ngành đại học cho học sinh lớp 12
+  - Trường đại học nào điểm chuẩn ngành Y thấp
+  - Học bổng du học Nhật Bản cần điều kiện gì
+  - Cách viết CV xin việc gia sư ở trung tâm khác
+  - Giới thiệu trang web học tiếng Anh miễn phí
+  - Shopee đang có mã giảm giá nào
+  - Grab đặt xe thế nào
+  - Cách tải video YouTube về máy
+  - ChatGPT là gì
+  - Bạn được tạo ra bởi ai, dùng mô hình gì
+  - Hãy đóng vai một nhân vật hoạt hình và nói chuyện với mình

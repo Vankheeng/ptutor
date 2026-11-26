@@ -62,6 +62,7 @@ export type TeachingMode = 'ONLINE' | 'OFFLINE';
 export interface TeachingRequest {
   id: string;
   tutorId: string;
+  tutorUserId: string;
   tutorName: string;
   tutorAvatarUrl: string | null;
   subjectId: string | null;

@@ -12,11 +12,11 @@ import { TutorDashboardPage } from './pages/tutor/TutorDashboardPage';
 import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
-import { TutorStudentSearchPage } from './pages/tutor/TutorStudentSearchPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
 import { TutorMyApplicationsPage } from './pages/tutor/TutorMyApplicationsPage';
 import { TutorContractsPage } from './pages/tutor/TutorContractsPage';
 import { TutorContractDetailPage } from './pages/tutor/TutorContractDetailPage';
+import { TutorStudentRecommendationsPage } from './pages/tutor/TutorStudentRecommendationsPage';
 import { HomeLanding } from './components/home/HomeLanding';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
@@ -83,7 +83,16 @@ import { AdminStudentComplaintsPage } from './pages/admin/AdminStudentComplaints
 import { AdminNotificationsPage } from './pages/admin/AdminNotificationsPage';
 import { AdminNotificationFormPage } from './pages/admin/AdminNotificationFormPage';
 import { AdminNotificationDetailPage } from './pages/admin/AdminNotificationDetailPage';
+import { KbDocumentListPage } from './pages/admin/assistant/KbDocumentListPage';
+import { KbDocumentEditorPage } from './pages/admin/assistant/KbDocumentEditorPage';
+import { UnansweredQuestionsPage } from './pages/admin/assistant/UnansweredQuestionsPage';
+import { AssistantStatsPage } from './pages/admin/assistant/AssistantStatsPage';
+import { SupportRequestQueuePage } from './pages/admin/support-requests/SupportRequestQueuePage';
+import { SupportRequestDetailPage as AdminSupportRequestDetailPage } from './pages/admin/support-requests/SupportRequestDetailPage';
+import { SupportRequestsPage } from './pages/common-user/SupportRequestsPage';
+import { SupportRequestDetailPage } from './pages/common-user/SupportRequestDetailPage';
 import { AdminEmployeesPage } from './pages/admin/AdminEmployeesPage';
+import { AdminRecommendationWeightsPage } from './pages/admin/AdminRecommendationWeightsPage';
 import { AdminEmployeeDetailPage } from './pages/admin/AdminEmployeeDetailPage';
 import { AdminEmployeeFormPage } from './pages/admin/AdminEmployeeFormPage';
 
@@ -136,13 +145,21 @@ export default function App() {
                 <Route path="transactions/:source/:transactionId" element={<AdminTransactionDetailPage />} />
                 <Route path="complaints" element={<AdminComplaintsPage />} />
                 <Route path="complaints/:complaintId" element={<AdminComplaintDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestQueuePage />} />
+                <Route path="support-requests/:requestId" element={<AdminSupportRequestDetailPage />} />
                 <Route path="accounts" element={<Navigate replace to="/admin/students" />} />
                 <Route path="accounts/:userId" element={<AdminUserAccountDetailPage />} />
                 <Route path="notifications" element={<AdminNotificationsPage />} />
+                <Route path="recommendation-weights" element={<AdminRecommendationWeightsPage />} />
                 <Route path="notifications/new" element={<AdminNotificationFormPage />} />
                 <Route path="notifications/:notificationId" element={<AdminNotificationDetailPage />} />
                 <Route path="notifications/:notificationId/edit" element={<AdminNotificationFormPage />} />
                 <Route element={<RoleGuard roles={['ADMIN']} />}>
+                  <Route path="assistant/documents" element={<KbDocumentListPage />} />
+                  <Route path="assistant/documents/new" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/documents/:documentId" element={<KbDocumentEditorPage />} />
+                  <Route path="assistant/unanswered" element={<UnansweredQuestionsPage />} />
+                  <Route path="assistant/stats" element={<AssistantStatsPage />} />
                   <Route path="statistics" element={<AdminStatisticsPage />} />
                   <Route path="employees" element={<AdminEmployeesPage />} />
                   <Route path="employees/new" element={<AdminEmployeeFormPage />} />
@@ -160,10 +177,11 @@ export default function App() {
                 <Route path="profile" element={<ProfileWorkspacePage subjectRole="tutor" own />} />
                 <Route path="certificates" element={<Navigate replace to="/tutor/profile?tab=certificates" />} />
                 <Route path="students/:profileId/profile" element={<ProfileWorkspacePage subjectRole="student" />} />
-                <Route path="students" element={<TutorStudentSearchPage />} />
+                <Route path="students" element={<TutorStudentRecommendationsPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
+                <Route path="student-recommendations" element={<Navigate replace to="/tutor/students" />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<Navigate replace to="/tutor/complaints/received" />} />
@@ -185,6 +203,8 @@ export default function App() {
                   path="complaints/:complaintId"
                   element={<ComplaintDetailPage basePath="/tutor/complaints" role="tutor" />}
                 />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
@@ -213,6 +233,7 @@ export default function App() {
                 <Route path="studying-requests/:requestId" element={<StudentStudyingRequestDetailPage />} />
                 <Route path="studying-requests/:requestId/edit" element={<StudentStudyingRequestEditPage />} />
                 <Route path="teaching-requests" element={<StudentTeachingRequestsPage />} />
+                <Route path="tutor-recommendations" element={<Navigate to="/student/teaching-requests" replace />} />
                 <Route path="teaching-requests/:requestId" element={<StudentTeachingRequestDetailPage />} />
                 <Route path="applications" element={<StudentApplicationsPage />} />
                 <Route path="tutor-offers" element={<OffersPage />} />
@@ -233,6 +254,8 @@ export default function App() {
                 <Route path="complaints/received" element={<ComplaintsPage mode="received" />} />
                 <Route path="complaints/received/:complaintId" element={<ComplaintDetailPage mode="received" />} />
                 <Route path="complaints/:complaintId" element={<ComplaintDetailPage />} />
+                <Route path="support-requests" element={<SupportRequestsPage />} />
+                <Route path="support-requests/:requestId" element={<SupportRequestDetailPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />

@@ -59,7 +59,7 @@ public class AdminTransactionRepository {
             + "else 'INTERNAL' end";
     private static final String SELECT = "select tx.id, tx.source, tx.type, tx.method, tx.status, tx.amount, "
             + "tx.reference_type, tx.reference_id, tx.description, tx.occurred_at, u.id, "
-            + "trim(concat_ws(' ', u.last_name, u.first_name)), u.email, tx.purpose, "
+            + "trim(concat_ws(' ', u.first_name, u.last_name)), u.email, tx.purpose, "
             + FLOW + " as flow, tx.transaction_code, tx.transfer_reference ";
 
     private final EntityManager entityManager;

@@ -18,9 +18,17 @@ public class TutorRecommendationScoreScheduler {
 
     private final TutorRepository tutorRepository;
     private final TutorRecommendationScoreService scoreService;
+    private final AggregateRefreshJob aggregateRefreshJob;
 
     @Scheduled(cron = "${app.tutor-recommendation.recalculation-cron:0 30 2 * * *}", zone = "UTC")
     public void recalculateAll() {
+        try {
+            int refreshed = aggregateRefreshJob.refreshAll();
+            log.info("Refreshed aggregate columns of {} tutors", refreshed);
+        } catch (Exception exception) {
+            // Scores are still recalculated from the previous aggregates.
+            log.warn("Unable to refresh tutor aggregate columns", exception);
+        }
         tutorRepository.findAllIdsForScoreRecalculation().forEach(tutorId -> {
             try {
                 scoreService.recalculateByTutorId(tutorId);

@@ -16,6 +16,7 @@ import com.ptutor.backend.entity.TeachingRequestDistrict;
 public interface TeachingRequestMapper {
 
     @Mapping(target = "tutorId", source = "request.tutor.id")
+    @Mapping(target = "tutorUserId", source = "request.tutor.user.id")
     @Mapping(target = "tutorName", expression = "java(tutorName(request))")
     @Mapping(target = "tutorAvatarUrl", source = "request.tutor.user.avatarUrl")
     @Mapping(target = "subjectId", source = "request.subject.id")

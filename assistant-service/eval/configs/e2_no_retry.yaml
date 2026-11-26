@@ -1,0 +1,7 @@
+# Thí nghiệm e2 (thiết kế 10 mục 10.5): chỉ đổi một yếu tố so với baseline.
+name: e2_no_retry
+llm: scripted
+store: memory
+kb_snapshot: ../knowledge-base
+settings:
+  max_verify_retries: 0

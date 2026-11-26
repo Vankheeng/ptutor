@@ -132,7 +132,7 @@ public class AdminWithdrawalService {
 
     private AdminWithdrawalResponse response(WithdrawalRequest request, boolean revealAccount) {
         User owner = request.getWallet().getUser();
-        String name = java.util.stream.Stream.of(owner.getLastName(), owner.getFirstName())
+        String name = java.util.stream.Stream.of(owner.getFirstName(), owner.getLastName())
                 .filter(part -> part != null && !part.isBlank()).collect(java.util.stream.Collectors.joining(" "));
         return new AdminWithdrawalResponse(mapper.toResponse(request), owner.getId(), name, owner.getEmail(),
                 revealAccount ? crypto.decrypt(request.getEncryptedAccountNumber()) : null);

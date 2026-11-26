@@ -1,5 +1,7 @@
 package com.ptutor.backend.service;
 
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +31,7 @@ import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.Subject;
 import com.ptutor.backend.entity.TeachingRequest;
+import com.ptutor.backend.entity.FavoriteTutor;
 import com.ptutor.backend.entity.Tutor;
 import com.ptutor.backend.entity.User;
 import com.ptutor.backend.entity.enums.ApplicationStatus;
@@ -42,6 +45,7 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
+import com.ptutor.backend.repository.FavoriteTutorRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.StudentTutorRequestRepository;
@@ -56,6 +60,7 @@ import com.ptutor.backend.repository.TeachingRequestStudentRequestCount;
 class TeachingRequestServiceTest {
 
     @Mock TeachingRequestRepository teachingRequestRepository;
+    @Mock FavoriteTutorRepository favoriteTutorRepository;
     @Mock StudentTutorRequestRepository studentTutorRequestRepository;
     @Mock PaymentRepository paymentRepository;
     @Mock TutorRepository tutorRepository;
@@ -75,6 +80,7 @@ class TeachingRequestServiceTest {
     void setUp() {
         service = new TeachingRequestService(
                 teachingRequestRepository,
+                favoriteTutorRepository,
                 studentTutorRequestRepository,
                 paymentRepository,
                 Mappers.getMapper(TeachingRequestMapper.class),
@@ -108,6 +114,7 @@ class TeachingRequestServiceTest {
                 });
 
         TeachingRequestResponse response = service.create(userId, requestWithSubject());
+        verify(eventPublisher).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
 
         assertThat(response.status()).isEqualTo(RequestStatus.DRAFT);
         assertThat(response.subjectId()).isEqualTo(subjectId);
@@ -188,6 +195,8 @@ class TeachingRequestServiceTest {
 
         assertThat(response.status()).isEqualTo(RequestStatus.PENDING_REVIEW);
         verify(teachingRequestRepository).findById(request.getId());
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TEACHING_REQUEST, request.getId()));
         ArgumentCaptor<NotificationDomainEvent> captor = ArgumentCaptor.forClass(NotificationDomainEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().recipientUserId()).isEqualTo(employeeUserId);
@@ -285,6 +294,21 @@ class TeachingRequestServiceTest {
         TeachingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.CLOSED);
 
         assertThat(response.status()).isEqualTo(RequestStatus.CLOSED);
+        verify(eventPublisher, never()).publishEvent(any(EmbeddingRefreshRequestedEvent.class));
+    }
+
+    @Test
+    void reopeningClosedRequestQueuesItsEmbedding() {
+        TeachingRequest request = existingRequest(RequestStatus.CLOSED);
+        when(teachingRequestRepository.findByIdAndTutor_Id(request.getId(), tutorId))
+                .thenReturn(Optional.of(request));
+        when(teachingRequestRepository.saveAndFlush(request)).thenReturn(request);
+
+        TeachingRequestResponse response = service.updateStatus(userId, request.getId(), RequestStatus.OPEN);
+
+        assertThat(response.status()).isEqualTo(RequestStatus.OPEN);
+        verify(eventPublisher).publishEvent(
+                new EmbeddingRefreshRequestedEvent(RecommendationEntityType.TEACHING_REQUEST, request.getId()));
     }
 
     @Test
@@ -468,6 +492,39 @@ class TeachingRequestServiceTest {
             null,
             "Robotics tutoring",
             List.of());
+    }
+
+    @Test
+    void favoritesShowThePostingThatWasHearted() {
+        TeachingRequest saved = existingRequest(RequestStatus.OPEN);
+        FavoriteTutor favorite = FavoriteTutor.builder()
+                .tutor(saved.getTutor())
+                .teachingRequest(saved)
+                .build();
+        when(favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId))
+                .thenReturn(List.of(favorite));
+        when(teachingRequestRepository.findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, List.of(saved.getId())))
+                .thenReturn(List.of(saved));
+
+        List<TeachingRequestResponse> results = service.findFavoritesForStudent(userId);
+
+        assertThat(results).extracting(TeachingRequestResponse::id).containsExactly(saved.getId());
+    }
+
+    @Test
+    void closedFavoriteDoesNotSwitchToAnotherPostingFromTheSameTutor() {
+        TeachingRequest closed = existingRequest(RequestStatus.CLOSED);
+        FavoriteTutor favorite = FavoriteTutor.builder()
+                .tutor(closed.getTutor())
+                .teachingRequest(closed)
+                .build();
+        when(favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId))
+                .thenReturn(List.of(favorite));
+
+        assertThat(service.findFavoritesForStudent(userId)).isEmpty();
+        verify(teachingRequestRepository).findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, List.of(closed.getId()));
     }
 
     private TeachingRequest existingRequest(RequestStatus status) {

@@ -1,0 +1,8 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "unreadCount": 0
+    }
+  }
+}

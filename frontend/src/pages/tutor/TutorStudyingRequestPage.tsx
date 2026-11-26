@@ -4,6 +4,7 @@ import { ProfileNameLink } from '../../components/common-user/ProfileNameLink';
 import { ApiError } from '../../services/httpClient';
 import { useStudyingRequest } from '../../hooks/useStudyingRequests';
 import { useTutorProposals } from '../../hooks/useTutorWorkspace';
+import { recordEvent } from '../../services/recommendationApi';
 import { submitTutorStudyingRequestProposal } from '../../services/studyingRequestApi';
 import { cancelTutorProposal, getTutorContracts, updateTutorProposal } from '../../services/tutorApi';
 import { TutorApplicationForm, type TutorApplicationValues } from './components/TutorApplicationForm';
@@ -15,6 +16,8 @@ export function TutorStudyingRequestPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
+  // Opened from the recommendations: the search to report the proposal to.
+  const recommendationLogId = (useLocation().state as { recommendationLogId?: string } | null)?.recommendationLogId;
   const { data: request, isLoading: loading, error: requestError } = useStudyingRequest(requestId);
   const [proposalRevision, setProposalRevision] = useState(0);
   const [contractIds, setContractIds] = useState<Record<string, string>>({});
@@ -72,6 +75,9 @@ export function TutorStudyingRequestPage() {
         setNotice('Đề xuất của bạn đã được cập nhật.');
       } else {
         await submitTutorStudyingRequestProposal(request.id, payload);
+        if (recommendationLogId) {
+          recordEvent(recommendationLogId, request.id, 'CONTACTED').catch(() => undefined);
+        }
         setNotice(myProposal?.status === 'CANCELLED' ? 'Bạn đã gửi lại đề xuất.' : 'Đề xuất đã được gửi đến học viên.');
       }
       setShowApply(false);
