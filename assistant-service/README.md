@@ -24,7 +24,7 @@ Biến môi trường chính (tiền tố `ASSISTANT_`, xem `app/config.py`):
 | `ASSISTANT_LLM_MODEL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` | Model tương thích OpenAI. Thiếu → `/v1/chat` trả 503 |
 | `ASSISTANT_LLM_PROVIDER` | `openai` (mặc định) hoặc `scripted` — chỉ để demo khi chưa có model |
 | `ASSISTANT_TURN_TOKEN_BUDGET` | Trần token của một lượt hỏi (mọi lời gọi model) |
-| `ASSISTANT_EMBEDDING_PROVIDER` | `fake` (mặc định) hoặc `ai-service` (bge-m3, cần `AI_SERVICE_URL`, `AI_INTERNAL_TOKEN`) |
+| `ASSISTANT_EMBEDDING_PROVIDER` | `ai-service` (mặc định, bge-m3; cần `AI_SERVICE_URL`, `AI_INTERNAL_TOKEN`); `fake` chỉ dùng cho test |
 | `ASSISTANT_TOOLS_MODE` | `live` (gọi backend), `mock` (fixture eval), `off` |
 | `ASSISTANT_BACKEND_JVM_TIME_ZONE` | Múi giờ JVM của backend, để đổi đúng các trường thời gian (nhãn `time_zone` trong `tools.yaml`) |
 

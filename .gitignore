@@ -38,6 +38,11 @@ l1-observations/
 
 # Keep project documentation locally; exclude it from Git.
 /docs/
+/report/
+/tmp/
+/scripts/
+/BAO-CAO.md
+/worktrees/
 
 # Local Python environments and generated caches
 **/.venv/

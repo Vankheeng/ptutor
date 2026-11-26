@@ -33,6 +33,18 @@ spring:
       mail.smtp.starttls.enable: true
 
 app:
+  recommendation:
+    learning:
+      enabled: true
+      models:
+        A_S2T:
+          mode: ACTIVE
+        A_T2S:
+          mode: ACTIVE
+        B_S2T:
+          mode: ACTIVE
+        B_T2S:
+          mode: ACTIVE
   account-suspension:
     expiration-interval-ms: ${ACCOUNT_SUSPENSION_EXPIRATION_INTERVAL_MS:60000}
   notification:
