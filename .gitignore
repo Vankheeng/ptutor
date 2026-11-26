@@ -41,8 +41,10 @@ l1-observations/
 /report/
 /tmp/
 /scripts/
-/BAO-CAO.md
+**/BAO-CAO.md
 /worktrees/
+/knowledge-base/_bao-cao-sinh-tai-lieu.md
+/knowledge-base/pdf/
 
 # Local Python environments and generated caches
 **/.venv/
