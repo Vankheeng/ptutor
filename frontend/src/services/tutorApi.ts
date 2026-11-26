@@ -139,6 +139,7 @@ export interface TutorLesson {
   startTime: string;
   endTime: string;
   teachingMode: 'ONLINE' | 'OFFLINE';
+  meetingLink: string | null;
   status: 'SCHEDULED' | 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   note: string | null;
   paidAt: string | null;
@@ -264,14 +265,14 @@ export function requestTutorContractStop(contractId: string) {
 
 export function createTutorLesson(
   contractId: string,
-  values: { title: string; date: string; startTime: string; endTime: string }
+  values: { title: string; date: string; startTime: string; endTime: string; meetingLink?: string }
 ) {
   return post<TutorLesson>(`/api/v1/tutors/me/contracts/${contractId}/lessons`, values);
 }
 
 export function updateTutorLesson(
   id: string,
-  values: { title: string; date: string; startTime: string; endTime: string; note?: string }
+  values: { title: string; date: string; startTime: string; endTime: string; note?: string; meetingLink?: string }
 ) {
   return put<TutorLesson>(`/api/v1/tutors/me/lessons/${id}`, values);
 }

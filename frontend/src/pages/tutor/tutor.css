@@ -171,6 +171,7 @@
 .tutor-apply-sidebar-empty { display: none; }
 .tutor-request-detail-layout.tutor-market-detail.tutor-market-detail-no-sidebar { grid-template-columns: 1fr; }
 .tutor-toast-source { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.tutor-lesson-edit-error { margin: 0; padding: 10px 12px; border: 1px solid #f1b8b5; border-radius: 8px; background: #fff0ef; color: #ab4039; font-size: 12px; line-height: 1.5; }
 .tutor-proposal-history-table-wrap { overflow-x: auto; }
 .tutor-proposal-history-table { width: 100%; min-width: 650px; border-collapse: collapse; }
 .tutor-proposal-history-table th { padding: 9px 10px; border-bottom: 1px solid #eceaf4; color: #999dad; font-size: 9px; font-weight: 700; text-align: left; white-space: nowrap; }

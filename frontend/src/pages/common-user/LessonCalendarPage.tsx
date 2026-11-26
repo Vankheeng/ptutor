@@ -429,6 +429,7 @@ export function LessonCalendarPage({ role }: { role: CalendarRole }) {
       {cancellationEvent && (
         <TutorLessonCancellationDialog
           busy={actions.busy === cancellationEvent.id}
+          lesson={cancellationEvent}
           onClose={() => {
             setCancellationEvent(null);
             setSelectedEvent(cancellationEvent);

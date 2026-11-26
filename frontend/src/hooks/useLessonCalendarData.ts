@@ -22,6 +22,7 @@ export type CalendarEvent = {
   endTime: string;
   status: LessonStatus;
   paidAt: string | null;
+  meetingLink: string | null;
   note: string | null;
   markedTaughtAt: string | null;
   disputed: boolean;
@@ -59,6 +60,7 @@ export function useLessonCalendarData(role: CalendarRole, refreshKey: number) {
               endTime: lesson.endTime,
               status: lesson.status,
               paidAt: lesson.paidAt,
+              meetingLink: lesson.meetingLink,
               note: lesson.note,
               markedTaughtAt: 'markedTaughtAt' in lesson ? lesson.markedTaughtAt : null,
               disputed: disputeByLesson.has(lesson.id),

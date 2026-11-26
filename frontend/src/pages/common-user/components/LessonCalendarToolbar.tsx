@@ -2,6 +2,20 @@ import type { Contract } from '../../../services/studentApi';
 import type { CalendarRole } from '../../../hooks/useLessonCalendarData';
 
 const pad = (value: number) => String(value).padStart(2, '0');
+const monthNames = [
+  'Tháng 1',
+  'Tháng 2',
+  'Tháng 3',
+  'Tháng 4',
+  'Tháng 5',
+  'Tháng 6',
+  'Tháng 7',
+  'Tháng 8',
+  'Tháng 9',
+  'Tháng 10',
+  'Tháng 11',
+  'Tháng 12'
+];
 const statusLabels: Record<string, string> = {
   SCHEDULED: 'Đã lên lịch',
   PENDING_CONFIRMATION: 'Chờ học viên xác nhận',
@@ -45,7 +59,7 @@ export function LessonCalendarToolbar(props: Props) {
   const isStudentVariant = variant === 'student';
   return (
     <section className={`lc-toolbar${isStudentVariant ? ' student-calendar-toolbar' : ''}`}>
-      <h1>{isStudentVariant ? 'Bộ lọc' : role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>
+      {!isStudentVariant && <h1>{role === 'TUTOR' ? 'Lịch dạy gia sư' : 'Lịch học của tôi'}</h1>}
       {!isStudentVariant && (
         <>
           <button onClick={props.onToday}>Hôm nay</button>
@@ -57,27 +71,33 @@ export function LessonCalendarToolbar(props: Props) {
           </button>
         </>
       )}
-      {isStudentVariant ? (
-        <label className="lc-month-picker lc-filter-stack">
-          <span>Tháng</span>
-          <input
-            aria-label="Chọn tháng và năm"
-            type="month"
-            value={`${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`}
-            onChange={(event) => props.onMonthChange(event.target.value)}
-          />
-        </label>
-      ) : (
-        <label className="lc-month-picker">
-          <span>Tháng</span>
-          <input
-            aria-label="Chọn tháng và năm"
-            type="month"
-            value={`${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`}
-            onChange={(event) => props.onMonthChange(event.target.value)}
-          />
-        </label>
-      )}
+      <label className={`lc-month-picker${isStudentVariant ? ' lc-filter-stack' : ''}`}>
+        <span>Tháng</span>
+        <div className="lc-month-select" aria-label="Chọn tháng và năm">
+          <select
+            aria-label="Chọn tháng"
+            value={cursor.getMonth()}
+            onChange={(event) => props.onMonthChange(`${cursor.getFullYear()}-${pad(Number(event.target.value) + 1)}`)}
+          >
+            {monthNames.map((name, index) => (
+              <option key={name} value={index}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Chọn năm"
+            value={cursor.getFullYear()}
+            onChange={(event) => props.onMonthChange(`${event.target.value}-${pad(cursor.getMonth() + 1)}`)}
+          >
+            {Array.from({ length: 21 }, (_, index) => cursor.getFullYear() - 10 + index).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+      </label>
       {isStudentVariant ? (
         <label className="lc-view-mode lc-filter-stack">
           <span>Chế độ xem</span>

@@ -61,6 +61,7 @@ import { TutorCalendarPage } from './pages/tutor/TutorCalendarPage';
 import { StudentCalendarPage } from './pages/student/StudentCalendarPage';
 import { StudentRefundRequestCreatePage } from './pages/student/StudentRefundRequestCreatePage';
 import { StudentRefundRequestsPage } from './pages/student/StudentRefundRequestsPage';
+import { StudentProfileWorkspacePage } from './pages/student/StudentProfileWorkspacePage';
 import { ComplaintsPage } from './pages/common-user/ComplaintsPage';
 import { ComplaintCreatePage } from './pages/common-user/ComplaintCreatePage';
 import { ComplaintDetailPage } from './pages/common-user/ComplaintDetailPage';
@@ -261,7 +262,7 @@ export default function App() {
                 <Route path="wallet/transactions" element={<WalletTransactionsPage />} />
                 <Route path="wallet/analytics" element={<WalletAnalyticsPage />} />
                 <Route path="wallet/transactions/:source/:transactionId" element={<WalletTransactionDetailPage />} />
-                <Route path="profile" element={<ProfileWorkspacePage subjectRole="student" own />} />
+                <Route path="profile" element={<StudentProfileWorkspacePage />} />
                 <Route path="tutors/:profileId/profile" element={<ProfileWorkspacePage subjectRole="tutor" />} />
               </Route>
             </Route>

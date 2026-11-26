@@ -22,6 +22,8 @@
   flex-wrap: wrap;
   background: var(--admin-bg);
   color: var(--admin-ink);
+  /* Match the text scale of the main application workspace. */
+  zoom: 1.08;
 }
 
 /* Reserve the scrollbar's width so short and long admin pages lay out at the same width. */

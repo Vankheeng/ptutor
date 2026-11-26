@@ -129,7 +129,6 @@ export function StudentCalendarPage() {
     <div className="student-lesson-page">
       <header className="student-lesson-heading">
         <div>
-          <span className="student-lesson-kicker">LỊCH HỌC</span>
           <h1>Lịch học của tôi</h1>
         </div>
       </header>
