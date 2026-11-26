@@ -12,7 +12,6 @@ import { TutorDashboardPage } from './pages/tutor/TutorDashboardPage';
 import { TutorLayout } from './pages/tutor/TutorLayout';
 import { TutorComingSoonPage } from './pages/tutor/TutorComingSoonPage';
 import { TutorStudyingRequestPage } from './pages/tutor/TutorStudyingRequestPage';
-import { TutorStudentSearchPage } from './pages/tutor/TutorStudentSearchPage';
 import { TutorProposalsPage } from './pages/tutor/TutorProposalsPage';
 import { TutorMyApplicationsPage } from './pages/tutor/TutorMyApplicationsPage';
 import { TutorContractsPage } from './pages/tutor/TutorContractsPage';
@@ -178,11 +177,11 @@ export default function App() {
                 <Route path="profile" element={<ProfileWorkspacePage subjectRole="tutor" own />} />
                 <Route path="certificates" element={<Navigate replace to="/tutor/profile?tab=certificates" />} />
                 <Route path="students/:profileId/profile" element={<ProfileWorkspacePage subjectRole="student" />} />
-                <Route path="students" element={<TutorStudentSearchPage />} />
+                <Route path="students" element={<TutorStudentRecommendationsPage />} />
                 <Route path="studying-requests/:requestId" element={<TutorStudyingRequestPage />} />
                 <Route path="proposals" element={<TutorProposalsPage />} />
                 <Route path="applications" element={<TutorMyApplicationsPage />} />
-                <Route path="student-recommendations" element={<TutorStudentRecommendationsPage />} />
+                <Route path="student-recommendations" element={<Navigate replace to="/tutor/students" />} />
                 <Route path="sections/contracts" element={<TutorContractsPage />} />
                 <Route path="sections/contracts/:contractId" element={<TutorContractDetailPage />} />
                 <Route path="refund-requests" element={<Navigate replace to="/tutor/complaints/received" />} />
