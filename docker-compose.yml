@@ -91,9 +91,9 @@ services:
     ports:
       - "${FRONTEND_PORT:-8088}:80"
 
-  # Internal AI service (embedding). Opt-in: docker compose --profile ai up -d ai-service
+  # Internal AI service (embedding). Starts with the assistant profile; the ai profile can run it separately.
   ai-service:
-    profiles: ["ai"]
+    profiles: ["ai", "assistant"]
     build: ./ai-service
     container_name: ${AI_SERVICE_CONTAINER_NAME:-ptutor-ai-service}
     restart: ${AI_SERVICE_RESTART:-unless-stopped}
