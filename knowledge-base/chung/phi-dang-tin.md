@@ -7,7 +7,7 @@ features: [studying-request, teaching-request]
 routes: [/student/studying-requests, /student/studying-requests/new, /student/wallet, /tutor/wallet]
 status: draft
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: PaymentController POST .../studying-requests/{id}/payments/vnpay|wallet, .../teaching-requests/{id}/payments/vnpay|wallet"
   - "backend: PaymentService.createStudyingRequestPayment, payStudyingRequestWithWallet, createTeachingRequestPayment, payTeachingRequestWithWallet, activatePaidPayment"
@@ -16,10 +16,7 @@ source:
   - "enum: PaymentType STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE; WalletTransactionPurpose STUDYING_REQUEST_REFUND, TEACHING_REQUEST_REFUND"
 error_codes: [INVALID_STUDYING_REQUEST_PAYMENT_STATUS, INVALID_TEACHING_REQUEST_PAYMENT_STATUS, INSUFFICIENT_WALLET_BALANCE]
 keywords: [phí đăng tin, phí đăng bài, hoàn phí, tin bị từ chối, phi dang tin, hoan phi, bao nhieu tien dang tin, posting fee]
-todo:
-  - "Mức phí đăng tin tìm gia sư và phí đăng tin nhận dạy hiện là bao nhiêu? (cấu hình không có giá trị mặc định)"
-  - "Khi người dùng tự hủy tin đã trả phí thì có được hoàn phí không? (code không hoàn)"
-  - "Khi tin hết hạn hoặc không có ai ứng tuyển thì có được hoàn phí không?"
+todo: []
 ---
 
 # Phí đăng tin và hoàn phí khi tin bị từ chối
@@ -34,7 +31,7 @@ Mức phí theo mức hiển thị khi bạn thanh toán, tức số tiền trê
 
 Bạn trả phí đăng tin bằng VNPay. Học viên bấm **Create & pay** khi tạo tin, hoặc **Pay to publish** ở tin đang là bản nháp. Link thanh toán VNPay có hiệu lực 15 phút.
 
-Hệ thống còn cho phép trả phí đăng tin bằng số dư ví, nhưng hiện giao diện chưa có nút này.
+Giao diện thanh toán cho phép chọn VNPay hoặc số dư ví khi tin đủ điều kiện.
 
 Chỉ tin đang là bản nháp mới trả phí được. Tin đã trả phí rồi thì không bị thu thêm lần nữa.
 
@@ -53,4 +50,8 @@ Tiền hoàn nằm trong ví PTutor, không tự chuyển về tài khoản ngâ
 
 ## Khi tự hủy tin đã trả phí
 
-Hệ thống không tự hoàn phí khi bạn tự hủy tin đã trả phí. Trường hợp này do PTutor quy định riêng.
+Hệ thống **không tự hoàn phí** nếu bạn chủ động hủy tin đã trả phí. Hãy xem số tiền và trạng thái tin trước khi hủy.
+
+## Tin không có người ứng tuyển
+
+Tin đang mở không tự hết hạn theo thời gian trong mã nguồn. Việc chưa nhận được đề nghị hoặc đơn đăng ký không tạo giao dịch hoàn phí. Phí chỉ tự hoàn đầy đủ khi tin chờ duyệt bị nhân viên từ chối. Mức phí cụ thể do cấu hình môi trường quyết định và hiển thị trước khi người dùng xác nhận thanh toán.

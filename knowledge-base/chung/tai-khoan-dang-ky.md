@@ -5,9 +5,9 @@ type: guide
 audience: [PUBLIC]
 features: [account]
 routes: [/register, /login, /student/profile]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: AuthController POST /api/v1/auth/register -> AuthService.register"
   - "backend: dto/request/RegisterRequest; dto/enums/RegistrationRole"
@@ -16,12 +16,7 @@ source:
   - "backend: StudentProfileController GET/PATCH /api/v1/students/me -> StudentProfileService"
 error_codes: [EMAIL_ALREADY_EXISTS, CITIZEN_ID_ALREADY_EXISTS, INVALID_REGISTRATION_ROLE, INVALID_PROVINCE, INVALID_DISTRICT, DISTRICT_PROVINCE_MISMATCH, ADDRESS_IDS_REQUIRED_TOGETHER, EMPTY_UPDATE_REQUEST]
 keywords: [đăng ký, tạo tài khoản, mở tài khoản, CCCD, căn cước, dang ky, tao tai khoan, sign up, register, hồ sơ học viên, sửa hồ sơ, thông tin cá nhân, đổi số điện thoại, ho so hoc vien, sua ho so, thong tin ca nhan, my profile]
-todo:
-  - "Vì sao PTutor yêu cầu số CCCD khi đăng ký và dùng số này vào việc gì? (để trả lời người dùng hỏi về quyền riêng tư)"
-  - "Người dưới 18 tuổi hoặc chưa có CCCD (ví dụ học sinh tiểu học) đăng ký học viên bằng cách nào?"
-  - "Nhập sai CCCD lúc đăng ký thì người dùng liên hệ ai để sửa?"
-  - "Học viên muốn đổi email hoặc số CCCD đã đăng ký thì làm thế nào?"
-  - "Thông tin học tập trong hồ sơ (phong cách học, trình độ, mục tiêu, điểm yếu) được dùng vào việc gì, ai xem được?"
+todo: []
 ---
 
 # Đăng ký tài khoản và cập nhật hồ sơ học viên
@@ -73,3 +68,11 @@ Lưu thành công, trang báo "Your profile has been saved." (đã lưu hồ sơ
 ## Hồ sơ học viên dùng vào việc gì
 
 Địa chỉ trong hồ sơ được điền sẵn khi bạn tạo tin tìm gia sư. Bạn vẫn sửa được địa chỉ riêng cho từng tin.
+
+## CCCD, trẻ chưa có CCCD và sửa thông tin định danh
+
+PTutor yêu cầu CCCD 12 chữ số để tránh đăng ký trùng danh tính; mã nguồn mã hóa số CCCD khi lưu và dùng giá trị băm để kiểm tra trùng. Biểu mẫu hiện không hỗ trợ người chưa có CCCD tự đăng ký. Đề xuất người giám hộ đứng tên tài khoản học viên bằng **CCCD của chính mình** và ghi nhu cầu học của con trong từng tin; không mượn CCCD hoặc nhập số giả. Email và CCCD không có ô tự sửa trong hồ sơ. Nếu nhập nhầm, nhân viên phải xác minh và xử lý theo quy trình riêng; hiện sản phẩm chưa công bố kênh cho người chưa đăng nhập, vì vậy không nên hướng dẫn gửi CCCD/OTP qua chatbot.
+
+## Thông tin học tập được dùng ở đâu
+
+Thông tin phong cách học, trình độ, mục tiêu và điểm yếu giúp mô tả nhu cầu và có thể được dùng trong tìm kiếm, gợi ý mức độ phù hợp. Hồ sơ công khai cho bên xem hồ sơ học viên có thể hiển thị thông tin học tập. Trước khi lưu, chỉ điền thông tin cần thiết, tránh đưa số giấy tờ hoặc thông tin sức khỏe nhạy cảm vào phần giới thiệu.

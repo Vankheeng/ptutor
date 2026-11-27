@@ -5,10 +5,11 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [lesson]
 routes: [/student/contracts/:contractId/lessons, /student/contracts/:contractId]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "backend: LessonPayoutService.release (cộng TUTOR_EARNING vào ví khi buổi final và học phí đã đóng)"
   - "backend: LessonController (tutor) POST /contracts/{id}/lessons, PUT /lessons/{id}, PATCH /lessons/{id}/status"
   - "backend: StudentLessonController POST /api/v1/students/me/lessons/{lessonId}/confirm"
   - "backend: LessonService.create/updateStatus/confirmByStudent/completeExpiredPendingLessons/initialStatus/hasBlockingComplaint"
@@ -17,8 +18,7 @@ source:
   - "enum: LessonStatus; NotificationEventType LESSON_MARKED_TAUGHT, LESSON_CANCELLED"
 error_codes: [LESSON_COMPLETION_ON_HOLD, LESSON_NOT_FINISHED, CONTRACT_LESSON_LIMIT_REACHED, LESSON_OUTSIDE_CONTRACT_PERIOD, CONTRACT_NOT_ACTIVE]
 keywords: [buổi học, xác nhận buổi học, đánh dấu đã dạy, tự hoàn tất, 3 ngày, buổi bị giữ, buoi hoc, xac nhan buoi hoc, danh dau da day, tu hoan tat]
-todo:
-  - "Sau khi buổi học được xác nhận hoặc tự hoàn tất, gia sư nhận tiền dạy của buổi đó khi nào và bằng cách nào?"
+todo: []
 ---
 
 # Buổi học: đánh dấu đã dạy, xác nhận, tự hoàn tất sau 3 ngày, buổi bị giữ lại
@@ -53,3 +53,7 @@ Buổi học "Chờ xác nhận" bị giữ lại, không xác nhận được v
 - Hợp đồng có khiếu nại chưa có kết luận (đang chờ tiếp nhận, đang xử lý hoặc chờ bằng chứng).
 
 Khi yêu cầu hoàn tiền hoặc khiếu nại có kết luận, buổi học được xử lý tiếp bình thường.
+
+## Tiền dạy của buổi đã hoàn tất
+
+Khi học viên xác nhận hoặc hệ thống tự hoàn tất buổi học, PTutor cộng phần học phí của buổi đó vào **ví gia sư** trong cùng luồng xử lý, nếu kỳ học phí tương ứng đã thanh toán và khoản tiền không bị giữ do yêu cầu hoàn tiền. Gia sư xem giao dịch **Thu nhập gia sư** trong ví và có thể gửi yêu cầu rút về ngân hàng. Mỗi buổi chỉ được ghi nhận tiền dạy một lần.

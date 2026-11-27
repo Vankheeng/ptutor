@@ -5,7 +5,7 @@ type: guide
 audience: [STUDENT]
 features: [lesson]
 routes: [/student/contracts/:contractId, /student/contracts/:contractId/lessons]
-status: draft
+status: published
 version: 1
 updated: 2026-11-03
 source:

@@ -5,9 +5,9 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [studying-request, teaching-request]
 routes: [/student/studying-requests, /student/studying-requests/:requestId, /tutor/sections/:section]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "enum: RequestStatus (DRAFT, PENDING_REVIEW, OPEN, MATCHED, CLOSED, CANCELLED, REJECTED)"
   - "backend: StudyingRequestService (update/updateStatus/cancel/activateAfterPayment); TeachingRequestService"
@@ -15,9 +15,7 @@ source:
   - "frontend: components/student/studyingRequestUtils.ts statusLabel (hiển thị mã tiếng Anh viết thường); pages/admin/requestReviewFormat.ts (Chờ duyệt)"
 error_codes: [INVALID_STUDYING_REQUEST_STATUS_TRANSITION, INVALID_TEACHING_REQUEST_STATUS_TRANSITION]
 keywords: [trạng thái tin, tin đăng, chờ duyệt, bản nháp, đang mở, tạm đóng, đã ghép, bị từ chối, trang thai tin dang, cho duyet, ban nhap, dang mo, tam dong, draft, pending review, open, matched, closed]
-todo:
-  - "Trang của học viên hiện hiển thị trạng thái tin bằng chữ tiếng Anh viết thường (draft, pending review, open, matched, closed, cancelled, rejected). Admin xác nhận các nhãn tiếng Việt dùng trong tài liệu: Bản nháp, Chờ duyệt, Đang mở, Đã ghép, Tạm đóng, Đã hủy, Bị từ chối."
-  - "Tin chờ duyệt được xét trong bao lâu?"
+todo: []
 ---
 
 # Giải nghĩa trạng thái tin đăng
@@ -51,3 +49,7 @@ Tin "Đã hủy" do người đăng hủy. Tin không dùng lại được. Khi 
 ## Bị từ chối (rejected)
 
 Tin "Bị từ chối" không được nhân viên chăm sóc khách hàng duyệt. Bạn nhận thông báo ghi lý do, và phí đăng tin được hoàn vào số dư ví. Muốn đăng lại, bạn tạo tin mới.
+
+Một số màn hình có thể dùng chữ tiếng Anh cho trạng thái tin. Các nhãn tiếng Việt trong tài liệu là cách diễn giải để người dùng hiểu ý nghĩa trạng thái; hãy dựa vào thao tác đang hiện trên trang tin cụ thể.
+
+Mã nguồn chưa có hạn tự động cho nhân viên duyệt tin chờ. Dự thảo vận hành đề xuất xử lý trong 2 ngày làm việc và ghi lý do cụ thể khi từ chối; thời hạn này chưa được hệ thống bảo đảm.

@@ -5,19 +5,18 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [complaint]
 routes: [/student/notifications, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: ComplaintEvidenceField; backend: ComplaintController /evidence-upload"
   - "backend: AdminComplaintService.requestEvidence (chuyển AWAITING_EVIDENCE; lời yêu cầu tối đa 5000 ký tự)"
   - "backend: ComplaintController POST /{complaintId}/evidences -> ComplaintService.submitEvidence (chỉ khi AWAITING_EVIDENCE; quay lại IN_REVIEW)"
   - "backend: dto/request/ComplaintEvidenceSubmissionRequest (1–5 minh chứng mỗi lần)"
   - "enum: NotificationEventType COMPLAINT_EVIDENCE_REQUESTED"
 error_codes: [INVALID_COMPLAINT_STATUS_TRANSITION]
 keywords: [bổ sung bằng chứng, minh chứng khiếu nại, chờ bằng chứng, bo sung bang chung, minh chung, cho bang chung, evidence]
-todo:
-  - "Người khiếu nại có thời hạn bao lâu để bổ sung bằng chứng? Quá hạn thì khiếu nại xử lý thế nào? (code không có thời hạn)"
-  - "Người dùng tải ảnh, video lên đâu để có đường dẫn làm bằng chứng?"
+todo: []
 ---
 
 # Bổ sung bằng chứng cho khiếu nại
@@ -31,7 +30,7 @@ Trong lúc xử lý khiếu nại, nhân viên chăm sóc khách hàng có thể
 Khi khiếu nại ở trạng thái "Chờ bằng chứng", người gửi khiếu nại gửi thêm bằng chứng:
 
 - Mỗi lần gửi từ 1 đến 5 bằng chứng.
-- Mỗi bằng chứng là một đường dẫn tới ảnh, video hoặc tài liệu.
+- Mỗi bằng chứng là tệp ảnh, video hoặc tài liệu tải trực tiếp lên PTutor.
 
 Sau khi gửi, khiếu nại tự quay lại "Đang xử lý" để nhân viên xem tiếp.
 
@@ -41,4 +40,12 @@ Chỉ bổ sung được bằng chứng khi khiếu nại đang "Chờ bằng ch
 
 ## Giao diện bổ sung bằng chứng
 
-Hiện chưa có giao diện khiếu nại cho học viên và gia sư. Quy định trên sẽ áp dụng khi có giao diện.
+Vào **Khiếu nại** → mở vụ việc ở trạng thái **Chờ bằng chứng** → dùng mục bổ sung minh chứng để tải tệp rồi gửi.
+
+## Tải minh chứng trực tiếp
+
+Trong biểu mẫu tạo khiếu nại hoặc phần bổ sung minh chứng, chọn tệp trên thiết bị để tải trực tiếp lên PTutor. Không cần đưa ảnh hoặc video lên một dịch vụ bên ngoài để lấy đường dẫn.
+
+## Thời hạn bổ sung
+
+Mã nguồn hiện không tự đặt hạn bổ sung minh chứng hay tự từ chối khiếu nại vì quá hạn. Đề xuất vận hành là **3 ngày làm việc** từ khi nhân viên yêu cầu, có nhắc trong thông báo; nếu cần thêm thời gian, người gửi nên phản hồi qua **Yêu cầu hỗ trợ**. Cho tới khi quy trình này được áp dụng, hãy xem nội dung yêu cầu bổ sung và gửi sớm nhất có thể.

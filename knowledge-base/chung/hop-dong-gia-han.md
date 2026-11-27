@@ -5,7 +5,7 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [contract]
 routes: [/student/contracts/:contractId, /student/contracts]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

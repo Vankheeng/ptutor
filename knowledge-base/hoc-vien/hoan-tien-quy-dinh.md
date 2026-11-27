@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT]
 features: [refund]
 routes: [/student/contracts/:contractId/lessons, /student/contracts/:contractId/refund-request, /student/refund-requests]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: RefundRequestService.create (hợp đồng đã ký và đã đóng học phí; chỉ buổi PENDING_CONFIRMATION; một yêu cầu mở mỗi hợp đồng; tối đa 50 buổi, 5 minh chứng, mô tả 2000 ký tự)"
   - "backend: RefundPolicy (app.refund.rates.tutor-absent mặc định 100, app.refund.rates.student-absent mặc định 80, app.refund.tutor-response-hours mặc định 48)"
@@ -16,10 +16,7 @@ source:
   - "backend: LessonService (buổi trong yêu cầu mở bị giữ lại)"
 error_codes: [CONTRACT_NOT_REFUNDABLE, REFUND_REQUEST_ALREADY_OPEN, LESSON_NOT_DISPUTABLE, INVALID_CLAIMED_OUTCOME, DUPLICATE_DISPUTED_LESSON]
 keywords: [hoàn tiền, hoàn học phí, gia sư vắng, học viên nghỉ, mức hoàn, 100%, 80%, hoan tien, hoan hoc phi, gia su vang, hoc vien nghi, muc hoan, refund]
-todo:
-  - "Vì sao học viên tự nghỉ vẫn được hoàn 80% và gia sư nhận 20%? (để giải thích khi người dùng hỏi)"
-  - "Muốn hoàn học phí cho buổi đã qua hạn xác nhận 3 ngày hoặc đã xác nhận nhầm thì làm thế nào?"
-  - "Tiền hoàn vào ví có rút về ngân hàng được không, khi nào?"
+todo: []
 ---
 
 # Quy định hoàn tiền: điều kiện, gia sư phản hồi trong 48 giờ, mức hoàn
@@ -32,7 +29,7 @@ Học viên yêu cầu hoàn tiền cho những buổi học gia sư đã đánh
 - Buổi học đang ở trạng thái "Chờ xác nhận", tức trong vòng 3 ngày kể từ lúc gia sư đánh dấu đã dạy. Buổi đã xác nhận, đã tự hoàn tất hoặc đã hủy thì không yêu cầu được.
 - Hợp đồng chưa có yêu cầu hoàn tiền nào đang chờ hoặc đang xử lý.
 
-Mỗi yêu cầu chọn tối đa 50 buổi, mỗi buổi chọn một nguyên nhân: **Gia sư không dạy** hoặc **Tôi nghỉ buổi này**. Mô tả tối đa 2.000 ký tự, kèm tối đa 5 đường dẫn minh chứng.
+Mỗi yêu cầu chọn tối đa 50 buổi, mỗi buổi chọn một nguyên nhân: **Gia sư không dạy** hoặc **Tôi nghỉ buổi này**. Mô tả tối đa 2.000 ký tự, kèm tối đa 5 tệp minh chứng tải trực tiếp lên PTutor.
 
 ## Gia sư phản hồi trong 48 giờ
 
@@ -65,3 +62,15 @@ Hợp đồng **Hàng tháng**, hai kỳ mỗi kỳ 1.600.000đ, tổng 16 buổ
 ## Buổi học trong lúc chờ kết luận
 
 Trong lúc yêu cầu hoàn tiền chưa có kết luận, các buổi trong yêu cầu bị giữ lại: học viên không xác nhận được và buổi không tự hoàn tất sau 3 ngày.
+
+## Vì sao buổi học viên nghỉ chia 80% và 20%?
+
+Đây là tỷ lệ hoàn tiền đang được cấu hình: học viên nhận lại 80%, gia sư nhận 20% cho lịch đã giữ. Phần 20% là tiền của gia sư, **không phải phí nền tảng**. Nếu sự việc bị ghi sai là học viên nghỉ, hãy cung cấp minh chứng trong thời hạn yêu cầu hoàn tiền.
+
+## Buổi đã xác nhận hoặc tự hoàn tất
+
+Luồng hoàn tiền tự phục vụ chỉ nhận buổi đang **Chờ xác nhận**. Nếu đã xác nhận nhầm hoặc quá 3 ngày và buổi tự hoàn tất, học viên không thể tạo yêu cầu hoàn tiền cho buổi đó qua biểu mẫu hiện tại. Hãy gửi **Khiếu nại** trong thời hạn của hợp đồng hoặc **Yêu cầu hỗ trợ** để nhân viên xem xét thủ công; hệ thống chưa có quy trình tự đảo khoản đã giải ngân.
+
+## Rút tiền hoàn từ ví
+
+Tiền hoàn vào ví PTutor có thể gửi yêu cầu rút về tài khoản ngân hàng đã liên kết, với mức tối thiểu 50.000đ và xác thực OTP. Yêu cầu cần nhân viên duyệt, chuyển khoản; mã nguồn chưa bảo đảm một thời hạn giải ngân cố định.

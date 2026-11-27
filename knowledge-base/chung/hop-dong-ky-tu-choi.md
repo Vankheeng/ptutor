@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [contract]
 routes: [/student/contracts, /student/contracts/:contractId]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: ContractController PATCH /{contractId}/sign, /{contractId}/reject"
   - "backend: ContractService.sign (ensurePending, ensureCounterparty, ensureNotExpired), reject"
@@ -20,10 +20,7 @@ source:
   - "frontend: components/student/StudentContractActionBar.tsx (Hủy hợp đồng khi PENDING)"
 error_codes: [CONTRACT_COUNTERPARTY_REQUIRED, CONTRACT_EXPIRED, INVALID_CONTRACT_STATUS_TRANSITION, CONTRACT_CREATOR_REQUIRED]
 keywords: [ký hợp đồng, từ chối hợp đồng, xác nhận hợp đồng, ky hop dong, tu choi hop dong, sign contract, hủy hợp đồng, chấm dứt hợp đồng, dừng học, ngừng học giữa chừng, huy hop dong, cham dut hop dong, dung hoc, cancel contract]
-todo:
-  - "Hợp đồng chờ ký có thời hạn ký riêng không, hay chỉ tự hủy khi tới ngày kết thúc như code hiện tại?"
-  - "Học viên hoặc gia sư muốn chấm dứt hợp đồng đang hoạt động thì làm thế nào, liên hệ ai?"
-  - "Khi chấm dứt hợp đồng đang hoạt động, học phí đã đóng cho các buổi chưa học được xử lý thế nào?"
+todo: []
 ---
 
 # Ký, từ chối hoặc hủy hợp đồng
@@ -70,3 +67,11 @@ Nếu bạn là bên nhận và không đồng ý với hợp đồng, bạn dù
 Hiện PTutor chưa hỗ trợ hủy hay chấm dứt hợp đồng đã ký (đang hoạt động). Không bên nào tự hủy được trên giao diện. Hợp đồng đang hoạt động kết thúc khi tới ngày kết thúc.
 
 Nếu một buổi học không diễn ra, học viên có thể gửi yêu cầu hoàn tiền cho buổi đó. Nếu có vi phạm, bạn có thể gửi khiếu nại về hợp đồng.
+
+## Thời hạn ký
+
+Hệ thống hiện không có hạn ký riêng tính từ lúc tạo hợp đồng. Hợp đồng chưa được ký sẽ tự chuyển sang **Đã hủy** khi tới ngày kết thúc đã ghi trong hợp đồng, và không thể ký từ ngày đó trở đi.
+
+## Muốn dừng hợp đồng đang hoạt động
+
+Hai bên không có nút chấm dứt sớm sau khi ký. Nếu muốn ngừng dạy hoặc học, hãy trao đổi với bên kia, kiểm tra các buổi chưa diễn ra và kỳ đã đóng, rồi gửi **Yêu cầu hỗ trợ** hoặc **Khiếu nại** nếu có tranh chấp. Mã nguồn chưa có phép tính tự động hoàn phần học phí chưa học khi chấm dứt sớm; nhân viên phải đối soát từng khoản, kể cả khoản đã chuyển cho gia sư. Đề xuất quy trình đối soát nằm trong `_quy-dinh-van-hanh-de-xuat.md`.

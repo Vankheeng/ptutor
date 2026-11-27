@@ -5,7 +5,7 @@ type: error
 audience: [STUDENT, TUTOR]
 features: [studying-request, teaching-request]
 routes: [/student/studying-requests, /student/studying-requests/new, /student/studying-requests/:requestId/edit]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

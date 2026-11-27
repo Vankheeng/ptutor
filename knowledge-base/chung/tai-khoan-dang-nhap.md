@@ -5,19 +5,18 @@ type: guide
 audience: [PUBLIC]
 features: [account]
 routes: [/login, /register, /forgot-password]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "backend: application-prod.yaml JWT_ACCESS_TOKEN_TTL=36000, JWT_REFRESH_TOKEN_TTL=2592000"
   - "backend: AuthController POST /api/v1/auth/login, /refresh, /logout -> AuthService.login"
   - "backend: JwtService (app.security.jwt.access-token-ttl), RefreshTokenService (app.security.jwt.refresh-token-ttl)"
   - "config: application-prod.yaml JWT_ACCESS_TOKEN_TTL=36000, JWT_REFRESH_TOKEN_TTL=2592000"
   - "frontend: pages/LoginPage.tsx; services/httpClient.ts (tự làm mới phiên)"
 error_codes: [INVALID_CREDENTIALS, ACCOUNT_TEMPORARILY_SUSPENDED, ACCOUNT_PERMANENTLY_SUSPENDED, ACCOUNT_INACTIVE]
 keywords: [đăng nhập, đăng xuất, phiên đăng nhập, bị đăng xuất, login, dang nhap, dang xuat, het phien]
-todo:
-  - "Xác nhận thời hạn phiên đăng nhập trên môi trường thật (mặc định cấu hình: 10 giờ cho phiên làm việc, 30 ngày cho phiên ghi nhớ)."
-  - "Nền tảng có giới hạn số lần đăng nhập sai không? (code hiện không giới hạn)"
+todo: []
 ---
 
 # Đăng nhập, đăng xuất và thời hạn phiên
@@ -47,3 +46,7 @@ Khi tài khoản bị khóa, PTutor đăng xuất tài khoản khỏi mọi thi�
 ## Đăng xuất
 
 Đăng xuất làm phiên trên thiết bị đó hết hiệu lực. Bạn nên đăng xuất khi dùng máy tính chung.
+
+## Khi nhập sai nhiều lần
+
+Mã nguồn xác thực hiện không có quy tắc khóa tài khoản tự động dựa trên số lần nhập sai mật khẩu. Nếu không đăng nhập được, kiểm tra email và mật khẩu hoặc dùng **Quên mật khẩu?**. Thời hạn phiên trên môi trường triển khai phụ thuộc biến cấu hình; mặc định trong tệp cấu hình production là 10 giờ cho access token và 30 ngày cho refresh token.

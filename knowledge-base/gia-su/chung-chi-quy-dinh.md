@@ -5,9 +5,9 @@ type: policy
 audience: [TUTOR]
 features: [certificate]
 routes: [/tutor/certificates, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: CertificateController (upload, create, update, delete) -> CertificateService (tạo PENDING; sửa -> PENDING; không sửa được VERIFIED; xoá ở mọi trạng thái)"
   - "backend: AdminCertificateService.approve (không duyệt chứng chỉ đã quá ngày hết hạn), reject (lý do tối đa 500 ký tự)"
@@ -19,11 +19,7 @@ source:
   - "backend: CertificateService; AdminCertificateService"
 error_codes: [VERIFIED_CERTIFICATE_IMMUTABLE, CERTIFICATE_EXPIRED, CERTIFICATE_NOT_FOUND]
 keywords: [chứng chỉ, duyệt chứng chỉ, chứng chỉ hết hạn, sửa chứng chỉ, xóa chứng chỉ, chung chi, duyet chung chi, het han, xoa chung chi, certificate, trạng thái chứng chỉ, đang chờ, đã xác minh, bị từ chối, đã hết hạn, trang thai chung chi, da xac minh, bi tu choi, da het han]
-todo:
-  - "Trạng thái Đã hết hạn chưa được hệ thống tự đặt khi chứng chỉ qua ngày hết hạn. Chứng chỉ đã duyệt mà hết hạn thì xử lý thế nào?"
-  - "Gia sư muốn cập nhật chứng chỉ đã duyệt (ví dụ điểm mới) thì làm thế nào ngoài việc xóa và thêm lại?"
-  - "Tiêu chí duyệt chứng chỉ và thời gian duyệt là bao lâu?"
-  - "Hệ thống chưa tự đặt trạng thái Đã hết hạn; admin xác nhận chứng chỉ chuyển sang trạng thái này khi nào."
+todo: []
 ---
 
 # Quy định và trạng thái chứng chỉ: duyệt, hết hạn, sửa, xóa
@@ -68,3 +64,11 @@ Chứng chỉ "Bị từ chối" không được duyệt, kèm lý do trong thô
 ## Đã hết hạn
 
 Chứng chỉ "Đã hết hạn" đã qua ngày hết hạn. Chứng chỉ quá hạn không được duyệt. Bước tiếp theo: thêm chứng chỉ mới còn hiệu lực.
+
+## Chứng chỉ đã duyệt tới ngày hết hạn
+
+Khi chứng chỉ đã xác minh hết hạn, mã nguồn hiện chưa có tác vụ tự chuyển trạng thái sang **Đã hết hạn**. Gia sư không thể sửa chứng chỉ đã xác minh; muốn cập nhật điểm hoặc tài liệu, hãy thêm chứng chỉ mới và gửi duyệt, sau đó xóa chứng chỉ cũ nếu không còn dùng. Không nên trình bày chứng chỉ hết hạn như còn hiệu lực cho học viên.
+
+## Tiêu chí và thời gian duyệt (đề xuất)
+
+Nhân viên nên kiểm tra tên chứng chỉ, đơn vị cấp, ngày cấp, ngày hết hạn và tệp minh chứng đọc được, khớp thông tin gia sư; từ chối tài liệu mờ, giả hoặc không liên quan tới môn dạy. Đề xuất xử lý trong 2 ngày làm việc và ghi lý do nếu từ chối. Mã nguồn hiện chỉ kiểm tra các điều kiện dữ liệu và không có đồng hồ bảo đảm thời hạn này.

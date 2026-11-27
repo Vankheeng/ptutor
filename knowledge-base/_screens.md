@@ -1,6 +1,6 @@
 # Danh mục màn hình (học viên, gia sư, công khai)
 
-Nguồn: `frontend/src/App.tsx` và `frontend/src/pages/` trên nhánh `dev`, commit `27f6eeb09815385bf92d3d552b0f8f705070a23c`.
+Nguồn: `frontend/src/App.tsx` và `frontend/src/pages/` trên nhánh `feat/tutor-recommendation-support-chatbot-dev`, commit `595d86e6`.
 Tên trang, nút, nhãn ghi đúng như trong code, kể cả chỗ đang là tiếng Anh. Khu vực `/admin/*` (nhân viên, quản trị) cố ý không liệt kê vì trợ lý không phục vụ vai trò này.
 
 ## Menu
@@ -17,15 +17,21 @@ Tên trang, nút, nhãn ghi đúng như trong code, kể cả chỗ đang là ti
 | Học viên | Wallet & Payments | /student/wallet |
 | Học viên | My Profile | /student/profile |
 | Gia sư | Tổng quan | /tutor/dashboard |
-| Gia sư | Yêu cầu dạy của tôi | /tutor/sections/teaching-requests (Sắp ra mắt) |
+| Gia sư | Yêu cầu dạy của tôi | /tutor/sections/teaching-requests |
 | Gia sư | Đề xuất giảng dạy | /tutor/proposals |
-| Gia sư | Hợp đồng | /tutor/sections/contracts (Sắp ra mắt) |
+| Gia sư | Hợp đồng | /tutor/sections/contracts |
 | Gia sư | Yêu cầu hoàn tiền | /tutor/refund-requests |
-| Gia sư | Lịch dạy | /tutor/sections/calendar (Sắp ra mắt) |
+| Gia sư | Lịch dạy | /tutor/calendar |
 | Gia sư | Thông báo | /tutor/notifications |
 | Gia sư | Ví tiền | /tutor/wallet |
 | Gia sư | Chứng chỉ | /tutor/certificates |
 | Gia sư | Hồ sơ của tôi | /tutor/profile |
+| Học viên | Khiếu nại | /student/complaints |
+| Gia sư | Khiếu nại | /tutor/complaints |
+| Học viên | Yêu cầu hỗ trợ của tôi | /student/support-requests |
+| Gia sư | Yêu cầu hỗ trợ của tôi | /tutor/support-requests |
+| Học viên | Tìm kiếm gia sư và gợi ý thông minh | /student/teaching-requests |
+| Gia sư | Tìm kiếm học viên và gợi ý thông minh | /tutor/students |
 
 ## Màn hình công khai
 
@@ -47,16 +53,19 @@ Tên trang, nút, nhãn ghi đúng như trong code, kể cả chỗ đang là ti
 | /student/studying-requests/:requestId/edit | Edit studying request | Như form tạo; **Save changes** | Chỉ khi tin draft/open |
 | /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId | Chi tiết đề nghị từ gia sư | Giá đề nghị, Hình thức dạy, Lịch học mong muốn, Lời nhắn, Gửi lúc, Cập nhật lúc | — |
 | /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new | Tạo hợp đồng | Thông tin học viên, Thông tin gia sư, Môn học, Lớp, Hình thức dạy (cố định); Giá, Chu kỳ thanh toán (Mỗi buổi/Hàng tuần/Hàng tháng/Theo gói), Lịch học (Ngày, Từ, Đến, **Thêm khung giờ**, **Xóa**), Ngày bắt đầu, Ngày kết thúc; **Hủy**, **Tạo hợp đồng** | Nút tạo khóa khi thiếu ngày hoặc khung giờ |
-| /student/teaching-requests | Browse Teaching Requests | **Apply to study**; form: Grade ID, Proposed price, Learning mode, Preferred schedule, Message; **Cancel**, **Send application** | Chỉ hiện tin nhận dạy open |
+| /student/teaching-requests | Tìm kiếm gia sư | **Tìm gia sư**, **Gợi ý thông minh**, lọc môn/lớp/khu vực/giá/lịch, **Gia sư đã quan tâm**; xem tin nhận dạy và **Đăng ký học** | Gợi ý thông minh cần môn và lớp |
 | /student/applications | My requests to studying | Thẻ lọc All/…; **Cancel**; **Previous**, **Next** | Cancel: đơn pending |
 | /student/contracts | Hợp đồng | Lọc Tất cả, Đang chờ, Đang hoạt động, Đã hoàn tất, Đã hủy; **Xem hợp đồng**; **Trang trước**, **Trang sau** | — |
 | /student/contracts/:contractId | Chi tiết hợp đồng | **Ký hợp đồng**, **Từ chối hợp đồng**, **Hủy hợp đồng**; form sửa (Giá, Lịch học, **Thêm khung giờ**, **Lưu thay đổi**); **Đề xuất gia hạn** → **Gửi đề xuất gia hạn**; **Các kỳ thanh toán** (Ngày đến hạn, Số tiền, Trạng thái, **Thanh toán**); liên kết **Buổi học và hoàn tiền** | Ký/Từ chối: hợp đồng Đang chờ và là bên nhận. Hủy, sửa: Đang chờ và là người tạo. Gia hạn: Đang hoạt động. Thanh toán: kỳ Đang chờ |
 | /student/contracts/:contractId/lessons | Buổi học | **Yêu cầu hoàn tiền**, **Xem yêu cầu hoàn tiền**; mỗi buổi: Hạn xác nhận, **Xác nhận đã học**; nhãn Sắp diễn ra, Chờ xác nhận, Đã học, Đã huỷ, Đang yêu cầu hoàn tiền | Xác nhận đã học: buổi Chờ xác nhận và không bị giữ |
-| /student/contracts/:contractId/refund-request | Yêu cầu hoàn tiền (tạo) | Chọn buổi; nguyên nhân **Gia sư không dạy** / **Tôi nghỉ buổi này**; mô tả; **Minh chứng** (đường dẫn http/https); **Huỷ**, **Gửi yêu cầu** | Chỉ liệt kê buổi Chờ xác nhận |
+| /student/contracts/:contractId/refund-request | Yêu cầu hoàn tiền (tạo) | Chọn buổi; nguyên nhân **Gia sư không dạy** / **Tôi nghỉ buổi này**; mô tả; **Minh chứng** (tải tệp); **Huỷ**, **Gửi yêu cầu** | Chỉ liệt kê buổi Chờ xác nhận |
 | /student/refund-requests | Yêu cầu hoàn tiền | Danh sách; **Trước**, **Sau** | — |
 | /student/refund-requests/:refundRequestId | Yêu cầu hoàn tiền (chi tiết) | Tiến trình: Đã gửi yêu cầu, Kế toán xem xét, Hoàn vào ví hoặc từ chối; Buổi học bị phản đối; Phản hồi của gia sư; **Huỷ yêu cầu** | Huỷ yêu cầu: trạng thái Chờ tiếp nhận |
 | /student/notifications | Notifications | Lọc All / unread / read; số unread; **Mark all as read**; bấm thông báo để đánh dấu đã đọc | — |
-| /student/wallet | Wallet & Payments | Available balance; Top up wallet: Amount (VND), **Open VNPay**; Transactions (20 giao dịch gần nhất) | Open VNPay khóa khi ô số tiền trống |
+| /student/wallet | Wallet & Payments | Số dư, nạp tiền, **↗ Rút tiền**, **Liên kết ngân hàng**, danh sách yêu cầu rút; liên kết **Lịch sử giao dịch** | Rút tiền tối thiểu 50.000đ và cần OTP |
+| /student/wallet/transactions | Lịch sử giao dịch | Lọc ngày/loại, tìm kiếm, phân trang 10/20/50 dòng | — |
+| /student/complaints, /student/complaints/new | Khiếu nại | Danh sách, **Tạo khiếu nại**, tải minh chứng, xem khiếu nại nhận được | Hợp đồng còn hiệu lực hoặc trong 7 ngày sau kết thúc |
+| /student/support-requests | Yêu cầu hỗ trợ của tôi | Xem câu trả lời nhân viên, xác nhận đã giải quyết | Chỉ tài khoản đã đăng nhập |
 | /student/profile | My Profile | First name, Last name, Email (chỉ xem), Phone, Date of birth, Gender, Province, District, Avatar URL, Introduction, Learning style, Current level, Goals, Personality tags, Weak points; **Save profile** | — |
 
 ## Màn hình gia sư
@@ -66,10 +75,16 @@ Tên trang, nút, nhãn ghi đúng như trong code, kể cả chỗ đang là ti
 | /tutor, /tutor/dashboard | Tổng quan (GÓC GIẢNG DẠY CỦA BẠN) | Hợp đồng đang dạy, Hợp đồng chờ xử lý; Buổi học sắp tới (7 ngày tới); Yêu cầu tìm gia sư: ô "Tìm môn học, lớp, khu vực...", lọc Tất cả/Trực tuyến/Trực tiếp, sắp xếp Mới nhất/Ngân sách cao nhất | Chỉ hiện tin tìm gia sư đang mở |
 | /tutor/studying-requests/:requestId | Chi tiết yêu cầu học | **Ứng tuyển yêu cầu này**, **Sửa đề xuất**, **Gửi lại đề xuất**, **Xem đề xuất của tôi**; form: Học phí đề xuất (VNĐ), Hình thức dạy, Thời gian có thể dạy (**+ Thêm ngày**, Thứ, Từ, Đến), Địa điểm dạy (Tỉnh/thành phố, Quận/huyện), Lời nhắn cho học viên; **Hủy**, **Gửi đề xuất** / **Lưu thay đổi** | Sửa đề xuất: có đề xuất đang chờ. Gửi lại đề xuất: đề xuất trước không còn chờ. Tỉnh/quận bắt buộc khi dạy trực tiếp |
 | /tutor/proposals | Đề xuất giảng dạy của tôi | Ô "Tìm môn học, lịch dạy, giá hoặc địa chỉ"; lọc Tất cả/Đang chờ/Đã chấp nhận/Bị từ chối/Đã hủy; **Hủy đề xuất** | Hủy đề xuất: đề xuất đang chờ |
-| /tutor/refund-requests | Yêu cầu hoàn tiền | Danh sách; **Trước**, **Sau** | — |
-| /tutor/refund-requests/:refundRequestId | Yêu cầu hoàn tiền (chi tiết) | Phản hồi của bạn: **Tôi đã dạy** / **Tôi không dạy** / **Học viên nghỉ** cho từng buổi; lời nhắn; minh chứng; **Gửi phản hồi** | Chỉ hiện form khi chưa phản hồi và còn trong hạn |
+| /tutor/refund-requests | Chuyển hướng | Chuyển tới **Khiếu nại nhận được** | — |
+| /tutor/refund-requests/:refundRequestId | Chuyển hướng | Chuyển tới **Khiếu nại nhận được** | — |
 | /tutor/certificates | Chứng chỉ | Thêm chứng chỉ: Tên chứng chỉ, Đơn vị cấp, Ngày cấp, Ngày hết hạn, Mô tả, tệp, Hoặc đường dẫn chứng chỉ, **Tải lên và gửi**; **Chỉnh sửa**, **Thay tệp chứng chỉ**, **Lưu thay đổi**, **Hủy chỉnh sửa**; **Xem tài liệu ↗**; xóa (có hộp thoại xác nhận); Lọc theo trạng thái | — |
-| /tutor/profile | Chỉnh sửa hồ sơ | Thông tin cá nhân (Tên, Họ, Địa chỉ email, Số điện thoại, Ngày sinh, Giới tính, Tỉnh/thành phố, Quận/huyện, Địa chỉ cụ thể); Ảnh hồ sơ (**Chọn ảnh**, JPG/PNG tối đa 10 MB); Hồ sơ giảng dạy (Giới thiệu bản thân, Số năm kinh nghiệm, Trình độ học vấn, Môn học giảng dạy, Từ khóa phong cách giảng dạy, Phương pháp giảng dạy, Đối tượng học viên phù hợp); **Lưu hồ sơ**; trạng thái Waiting for review / Verified profile / Not approved | — |
+| /tutor/profile | Hồ sơ gia sư | Thông tin cá nhân, ảnh, hồ sơ giảng dạy và chứng chỉ; **Lưu hồ sơ**; trạng thái **Chờ duyệt / Đã duyệt / Đã từ chối** | — |
 | /tutor/notifications | Notifications | Như trang của học viên | — |
 | /tutor/wallet | Wallet & Payments | Như trang của học viên | — |
-| /tutor/sections/:section | Sắp ra mắt | Tiêu đề theo mục: Yêu cầu dạy của tôi, Hợp đồng, Lịch dạy; "Mục này sẽ sớm được đưa vào hoạt động." | Trang giữ chỗ, chưa có chức năng |
+| /tutor/students | Tìm kiếm học viên | Bộ lọc, **Gợi ý thông minh**, **Lưu học viên**, **Xem và gửi đề nghị** | Gợi ý thông minh cần hồ sơ đã duyệt |
+| /tutor/sections/teaching-requests | Yêu cầu dạy của tôi | **Tạo yêu cầu dạy**, **Chỉnh sửa yêu cầu dạy**, quản lý đơn đăng ký | — |
+| /tutor/sections/contracts/:contractId | Chi tiết hợp đồng | Ký/từ chối, gia hạn, **Tạo buổi học**, **Đánh dấu đã dạy** | Theo trạng thái hợp đồng và buổi học |
+| /tutor/calendar | Lịch dạy | Xem các buổi học theo lịch | — |
+| /tutor/complaints, /tutor/complaints/new | Khiếu nại | Danh sách, **Tạo khiếu nại**, phản hồi khiếu nại nhận được | Theo trạng thái vụ việc |
+| /tutor/wallet | Ví tiền | Số dư, nạp tiền, **↗ Rút tiền**, **Liên kết ngân hàng**, lịch sử giao dịch | Rút tiền tối thiểu 50.000đ và cần OTP |
+| /tutor/support-requests | Yêu cầu hỗ trợ của tôi | Theo dõi và xem phản hồi của nhân viên | Chỉ tài khoản đã đăng nhập |

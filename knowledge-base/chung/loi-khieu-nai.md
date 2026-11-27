@@ -5,17 +5,16 @@ type: error
 audience: [STUDENT, TUTOR]
 features: [complaint]
 routes: [/student/notifications, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: ComplaintService (create, update, cancel, submitEvidence, respond, ensurePending)"
   - "backend: dto/request/ComplaintCreateRequest, ComplaintEvidenceSubmissionRequest, ComplaintRespondentResponseRequest"
   - "frontend: chưa có trang khiếu nại cho người dùng; câu báo lỗi là câu tiếng Anh của máy chủ"
 error_codes: [CONTRACT_NOT_FOUND, INVALID_COMPLAINT_STATUS_TRANSITION, RESPONDENT_RESPONSE_NOT_ALLOWED, RESPONDENT_RESPONSE_ALREADY_SUBMITTED, COMPLAINT_NOT_FOUND]
 keywords: [lỗi khiếu nại, không gửi được khiếu nại, không sửa được khiếu nại, loi khieu nai, khong gui duoc khieu nai]
-todo:
-  - "Khi có giao diện khiếu nại, cập nhật các câu báo lỗi theo câu hiển thị thật."
+todo: []
 ---
 
 # Lỗi thường gặp với khiếu nại
@@ -47,3 +46,5 @@ Câu này nghĩa là bạn đã gửi phản hồi rồi. Mỗi bên bị khiế
 ## "Title must not exceed 255 characters" / "Content must not exceed 10000 characters"
 
 Câu này nghĩa là tiêu đề hoặc nội dung quá dài. Cách khắc phục: rút gọn tiêu đề dưới 255 ký tự, nội dung dưới 10.000 ký tự.
+
+Học viên và gia sư hiện đã có trang **Khiếu nại** để tạo, xem và phản hồi. Nếu thao tác báo lỗi, hãy đọc câu báo lỗi ngay trên biểu mẫu và kiểm tra trạng thái vụ việc; chỉ khiếu nại còn **Chờ tiếp nhận** mới sửa hoặc hủy được.

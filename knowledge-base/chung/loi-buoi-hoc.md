@@ -5,21 +5,20 @@ type: error
 audience: [STUDENT, TUTOR]
 features: [lesson]
 routes: [/student/contracts/:contractId/lessons, /tutor/dashboard]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: TutorContractDetailPage; backend: ContractLessonProvisioningService"
   - "backend: LessonController (tutor) POST /contracts/{contractId}/lessons, PUT /lessons/{lessonId}, PATCH /lessons/{lessonId}/status"
   - "backend: StudentLessonController POST /api/v1/students/me/lessons/{lessonId}/confirm"
   - "backend: LessonService.create, update, updateStatus, confirmByStudent, validateActiveContract, validateSchedule, ensureScheduled, ensurePendingConfirmation, ensureNoBlockingComplaint"
   - "backend: ContractPaymentInstallmentService.canCreateLesson, assignNextInstallment (hợp đồng Mỗi buổi)"
   - "frontend: pages/student/StudentContractLessonsPage.tsx; components/refund/refundFormat.ts errorMessages (LESSON_COMPLETION_ON_HOLD -> Buổi học đang bị tạm giữ, chưa thể xác nhận.)"
-  - "frontend: chưa có giao diện buổi học cho gia sư (Lịch dạy là trang Sắp ra mắt); câu lỗi phía gia sư là câu tiếng Anh của máy chủ"
+  - "frontend: TutorContractDetailPage và TutorCalendarPage"
 error_codes: [LESSON_NOT_FINISHED, LESSON_COMPLETION_ON_HOLD, CONTRACT_LESSON_LIMIT_REACHED, CONTRACT_NOT_ACTIVE, LESSON_OUTSIDE_CONTRACT_PERIOD, INVALID_LESSON_TIME, INVALID_LESSON_STATUS, INVALID_LESSON_STATUS_TRANSITION, LESSON_DATE_REQUIRED, LESSON_START_TIME_REQUIRED, LESSON_END_TIME_REQUIRED]
 keywords: [lỗi buổi học, không đánh dấu đã dạy được, không xác nhận được buổi học, buổi học bị tạm giữ, hết số buổi, loi buoi hoc, khong danh dau da day, khong xac nhan duoc, bi tam giu, het so buoi]
-todo:
-  - "Khi có giao diện buổi học cho gia sư, cập nhật các câu báo lỗi phía gia sư theo câu hiển thị thật."
-  - "Hợp đồng Mỗi buổi đã tạo đủ số buổi mà cần dạy thêm buổi bù thì gia sư làm thế nào?"
+todo: []
 ---
 
 # Lỗi thường gặp với buổi học
@@ -72,3 +71,7 @@ Khi hủy buổi học, gia sư có thể thấy câu tiếng Anh bắt đầu b
 ## "Tutor can only mark a lesson as taught or cancel it"
 
 Câu này nghĩa là gia sư chỉ được đánh dấu buổi học là đã dạy hoặc hủy buổi học. Việc xác nhận "Đã học" là của học viên, hoặc hệ thống tự làm sau 3 ngày.
+
+## Cần dạy thêm buổi bù khi đã đủ số buổi
+
+Hợp đồng **Mỗi buổi** không cho tạo vượt tổng số buổi đã thỏa thuận. Hai bên cần thống nhất việc gia hạn hoặc tạo hợp đồng mới trước khi ghi thêm buổi vào PTutor; không nên tạo buổi ngoài hệ thống vì sẽ không có kỳ học phí tương ứng. Trên trang chi tiết hợp đồng của gia sư, các lỗi tạo buổi được hiển thị khi bấm **Tạo buổi học**.

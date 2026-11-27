@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [account]
 routes: [/login, /student/notifications, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: AccountSuspensionService.suspend/reactivate (lý do 10–1000 ký tự; thu hồi mọi phiên đăng nhập)"
   - "backend: UserAccessService.refreshAccessState, reactivateExpiredAccounts (tự mở khóa khi hết hạn)"
@@ -20,12 +20,7 @@ source:
   - "backend: AuthService.accountUnavailable; AccountStatusFilter"
 error_codes: [ACCOUNT_TEMPORARILY_SUSPENDED, ACCOUNT_PERMANENTLY_SUSPENDED, ACCOUNT_SUSPENDED, ACCOUNT_INACTIVE, USER_INACTIVE]
 keywords: [tài khoản bị khóa, tạm khóa, khóa vĩnh viễn, mở khóa tài khoản, bị chặn, tai khoan bi khoa, tam khoa, khoa vinh vien, mo khoa, account suspended, trạng thái tài khoản, đang hoạt động, ngừng hoạt động, đã khóa, trang thai tai khoan, dang hoat dong, ngung hoat dong, da khoa]
-todo:
-  - "Những hành vi nào dẫn tới tạm khóa và những hành vi nào dẫn tới khóa vĩnh viễn?"
-  - "Người dùng muốn khiếu nại quyết định khóa tài khoản thì liên hệ kênh nào, trong bao lâu?"
-  - "Khi tài khoản bị khóa, hợp đồng đang hiệu lực, buổi học và số dư ví của người đó được xử lý thế nào?"
-  - "Khi nào một tài khoản chuyển sang trạng thái Ngừng hoạt động? (code không có thao tác nào đặt trạng thái này) Người dùng làm gì để kích hoạt lại?"
-  - "Nhãn 'Tạm khóa' và 'Khóa vĩnh viễn' do người soạn đặt vì giao diện người dùng không hiển thị; admin xác nhận nhãn."
+todo: []
 ---
 
 # Tài khoản bị tạm khóa hoặc khóa vĩnh viễn
@@ -80,3 +75,11 @@ Tài khoản tạm khóa có thời điểm kết thúc. Khi qua thời điểm 
 ### Khóa vĩnh viễn
 
 Tài khoản khóa vĩnh viễn không tự mở lại. Chỉ nhân viên hoặc quản trị viên mở khóa được sau khi xem xét. Chi tiết xem mục "Khi nào tài khoản được mở lại" trong tài liệu này.
+
+## Căn cứ khóa và đề nghị xem xét
+
+Mã nguồn yêu cầu nhân viên ghi lý do nhưng không tự phân loại hành vi thành tạm khóa hay khóa không thời hạn. Dự thảo đề xuất tạm khóa với spam, quấy rối hoặc thông tin sai có thể khắc phục; khóa không thời hạn với giả mạo danh tính, gian lận thanh toán hoặc vi phạm nghiêm trọng có chứng cứ. Người dùng nên được quyền yêu cầu xem xét trong 7 ngày, nhưng PTutor cần công bố một kênh liên hệ cho người không đăng nhập được trước khi áp dụng mốc này. Chatbot không được hứa tự mở khóa theo khiếu nại.
+
+## Hợp đồng và tiền khi tài khoản bị khóa
+
+Việc khóa tài khoản không tự xóa hợp đồng, buổi học hoặc số dư ví. Người dùng bị chặn đăng nhập và thao tác; nhân viên phải đối soát các nghĩa vụ còn mở theo hợp đồng. Trạng thái **Ngừng hoạt động** có trong mô hình dữ liệu nhưng mã nguồn hiện chưa có thao tác nghiệp vụ đưa tài khoản vào trạng thái này. Nhãn **Tạm khóa** và **Khóa vĩnh viễn** ở đây giải thích hai cách đặt thời hạn khóa; giao diện người dùng chủ yếu hiển thị **Đã khóa**.

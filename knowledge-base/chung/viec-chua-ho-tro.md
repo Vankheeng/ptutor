@@ -1,33 +1,32 @@
 ---
 id: viec-chua-ho-tro
-title: "Những việc nền tảng chưa hỗ trợ"
+title: "Chức năng còn giới hạn và cách nhận hỗ trợ"
 type: faq
 audience: [STUDENT, TUTOR]
 features: [contract, withdrawal, review, complaint]
 routes: [/student/contracts, /student/wallet, /tutor/wallet, /, /public]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "backend: StudentReviewController/ReviewService; frontend: chưa có form đánh giá trong khu vực học viên"
+  - "frontend: App.tsx các route ví, khiếu nại, hợp đồng và lịch dạy; backend: LessonPayoutService/AdminWithdrawalService"
   - "backend: ContractService.cancel (chỉ PENDING); CancelContractRequestStatus không có endpoint"
-  - "backend: WithdrawalService (không có thao tác xử lý yêu cầu rút cho nhân viên)"
-  - "backend: AdminRefundRequestService (TUTOR_EARNING chỉ cho buổi học viên nghỉ); LessonService (không cộng tiền khi xác nhận)"
+  - "backend: WithdrawalService và AdminWithdrawalService (duyệt, từ chối, hoàn tất yêu cầu rút)"
+  - "backend: LessonPayoutService.release và AdminRefundRequestService.approve"
   - "backend: PublicReviewController (chỉ đọc)"
   - "backend: AdminComplaintService (ghi bên có lỗi, không áp dụng hình phạt)"
-  - "frontend: TutorComingSoonPage (Yêu cầu dạy của tôi, Hợp đồng, Lịch dạy); không có trang khiếu nại, rút tiền, đổi mật khẩu"
+  - "frontend: App.tsx, MyTeachingRequestsPage, TutorContractsPage, TutorCalendarPage, ComplaintsPage, WalletPage"
   - "backend: PublicReviewController GET /api/v1/reviews -> ReviewService.findLatestPublicReviews (chỉ đánh giá 5 sao, mặc định 3, tối đa 50)"
-  - "backend: không có endpoint tạo, sửa, xoá đánh giá"
+  - "backend: StudentReviewController có endpoint tạo đánh giá; chưa có sửa hoặc xóa"
   - "frontend: components/home/HomeLanding.tsx (Học viên nói gì về Ptutor?), components/home/ReviewCard.tsx"
   - "backend: TutorRecommendationScoreService.ratingScore (đánh giá ảnh hưởng điểm đề xuất)"
 error_codes: []
 keywords: [chưa hỗ trợ, không làm được, chức năng chưa có, sắp ra mắt, chua ho tro, khong lam duoc, chuc nang chua co, sap ra mat, đánh giá gia sư, viết đánh giá, chấm sao, nhận xét gia sư, danh gia gia su, viet danh gia, cham sao, nhan xet, review]
-todo:
-  - "Với từng mục dưới đây, PTutor hướng dẫn người dùng liên hệ ai và bằng kênh nào trong thời gian chưa hỗ trợ?"
-  - "Khi nào học viên viết được đánh giá gia sư, và đánh giá sau mỗi hợp đồng hay mỗi buổi học?"
-  - "Gia sư có phản hồi hoặc yêu cầu gỡ đánh giá không đúng sự thật được không?"
+todo: []
 ---
 
-# Những việc nền tảng chưa hỗ trợ
+# Chức năng còn giới hạn và cách nhận hỗ trợ
 
 ## Hủy hợp đồng đang hoạt động được không?
 
@@ -35,15 +34,15 @@ Chưa. PTutor chỉ cho người soạn hủy hợp đồng chưa ký. Hợp đ�
 
 ## Nhân viên xử lý yêu cầu rút tiền thế nào?
 
-Chưa có. Hệ thống ghi nhận và tạm giữ tiền khi bạn gửi yêu cầu rút, nhưng chưa có quy trình để nhân viên chuyển tiền hay từ chối yêu cầu. Giao diện rút tiền và khai báo tài khoản ngân hàng cũng chưa có.
+Nhân viên PTutor có trang duyệt, từ chối và xác nhận chuyển khoản. Người dùng gửi yêu cầu rút và liên kết ngân hàng tại trang **Ví tiền**; yêu cầu cần xác thực OTP.
 
 ## Gia sư nhận tiền dạy thế nào?
 
-Chưa tự động. Học phí của buổi đã dạy chưa được tự cộng vào ví gia sư. Gia sư chỉ được cộng phần 20% của buổi học viên nghỉ khi kế toán kết luận yêu cầu hoàn tiền.
+Buổi đã được xác nhận hoặc tự hoàn tất được cộng tiền dạy vào ví gia sư nếu học phí đã đóng và không còn yêu cầu hoàn tiền đang xử lý. Gia sư có thể rút số dư ví về ngân hàng.
 
 ## Học viên viết đánh giá gia sư được không?
 
-Chưa. Học viên chưa viết, sửa hay xóa được đánh giá. Trang chủ chỉ hiện các đánh giá 5 sao mới nhất.
+Giao diện học viên hiện chưa có biểu mẫu đánh giá. Backend cho phép học viên tạo **một đánh giá cho mỗi hợp đồng đã hoàn tất**, chấm 1–5 sao và ghi nhận xét tối đa 2.000 ký tự; chưa có API sửa hoặc xóa đánh giá.
 
 ## Vi phạm thì bị phạt thế nào?
 
@@ -51,11 +50,11 @@ Hệ thống chưa có hình phạt tự động. Khi khiếu nại được ch�
 
 ## Gửi khiếu nại trên giao diện được không?
 
-Chưa. Hệ thống đã có quy trình khiếu nại, nhưng chưa có trang để học viên và gia sư gửi, theo dõi và phản hồi khiếu nại.
+Có. Học viên và gia sư mở **Khiếu nại** để gửi, theo dõi và phản hồi khiếu nại.
 
 ## Gia sư quản lý tin nhận dạy, hợp đồng, lịch dạy ở đâu?
 
-Các mục **Yêu cầu dạy của tôi**, **Hợp đồng** và **Lịch dạy** trong menu gia sư đang hiện "Sắp ra mắt".
+Các mục **Yêu cầu dạy của tôi**, **Hợp đồng** và **Lịch dạy** trong menu gia sư đã có trang chức năng.
 
 ## Đổi mật khẩu khi đang đăng nhập được không?
 
@@ -63,11 +62,7 @@ Chưa có nút đổi mật khẩu trong trang hồ sơ. Bạn dùng trang **Qu�
 
 ## Đóng học phí, trả phí đăng tin bằng số dư ví được không?
 
-Hệ thống hỗ trợ, nhưng giao diện chưa có nút trả bằng ví. Hiện bạn trả qua VNPay.
-
-## Học viên có viết đánh giá gia sư được không?
-
-Hiện chưa. PTutor chưa hỗ trợ học viên viết, sửa hay xóa đánh giá gia sư trên giao diện.
+Có. Khi đủ điều kiện thanh toán, bạn có thể chọn VNPay hoặc Ví PTutor trên giao diện.
 
 ## Đánh giá hiện hiển thị ở đâu?
 
@@ -76,3 +71,11 @@ Trang chủ PTutor có mục "Học viên nói gì về Ptutor?", hiện các đ
 ## Đánh giá có ảnh hưởng gì tới gia sư?
 
 Điểm đánh giá trung bình và số lượt đánh giá là một phần của điểm đề xuất gia sư. Gia sư có nhiều đánh giá tốt được xếp hạng cao hơn khi PTutor gợi ý gia sư cho học viên.
+
+## Khi cần nhân viên hỗ trợ
+
+Học viên và gia sư đã đăng nhập chọn **Yêu cầu hỗ trợ của tôi** hoặc **Hỏi nhân viên hỗ trợ** trong trợ lý. Nếu tài khoản không đăng nhập được, hiện chưa có kênh ngoài ứng dụng được PTutor công bố; không gửi CCCD, mật khẩu hoặc OTP cho tài khoản tự xưng hỗ trợ.
+
+## Tranh chấp đánh giá
+
+Gia sư hiện chưa có nút phản hồi công khai hoặc yêu cầu gỡ đánh giá. Nếu cho rằng đánh giá sai sự thật, gia sư có thể gửi **Yêu cầu hỗ trợ**, kèm mã hợp đồng và nội dung cần xem xét. Mã nguồn chưa có quy trình tự gỡ hay sửa đánh giá; đề xuất nhân viên đối chiếu hợp đồng và chứng cứ trước khi quyết định.

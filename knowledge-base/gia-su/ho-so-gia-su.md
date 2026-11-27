@@ -5,7 +5,7 @@ type: guide
 audience: [TUTOR]
 features: [tutor-profile]
 routes: [/tutor/profile]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

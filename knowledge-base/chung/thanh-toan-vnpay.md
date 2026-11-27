@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [payment]
 routes: [/student/wallet, /tutor/wallet, /student/contracts/:contractId, /student/studying-requests]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: VnPayService (app.payment.vnpay.expiry-minutes mặc định 15; time-zone Asia/Ho_Chi_Minh)"
   - "backend: PaymentService.createVnPayPayment (dùng lại link còn hạn; quá hạn -> đánh dấu FAILED/EXPIRED và tạo mới), processIpn, inspectReturn, activatePaidPayment"
@@ -16,9 +16,7 @@ source:
   - "enum: PaymentType (WALLET_TOP_UP, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE); NotificationEventType PAYMENT_SUCCEEDED"
 error_codes: [INVALID_VNPAY_SIGNATURE, INVALID_VNPAY_AMOUNT, PAYMENT_NOT_FOUND]
 keywords: [vnpay, thanh toán online, thanh toán thất bại, bị trừ tiền nhưng chưa cập nhật, thanh toan vnpay, thanh toan that bai, tru tien chua cap nhat]
-todo:
-  - "Bị trừ tiền ở ngân hàng nhưng PTutor chưa ghi nhận thanh toán thì người dùng liên hệ ai, cần cung cấp thông tin gì, xử lý trong bao lâu?"
-  - "PTutor có thu phí giao dịch VNPay của người dùng không?"
+todo: []
 ---
 
 # Thanh toán qua VNPay
@@ -44,3 +42,7 @@ Bạn nhận thông báo "Payment successful". Mỗi giao dịch chỉ được 
 ## Khi thanh toán không thành công
 
 Khi bạn hủy giao dịch trên VNPay, nhập sai thông tin, hoặc ngân hàng từ chối, thanh toán được ghi là thất bại. Khoản cần trả (kỳ học phí, tin đăng) giữ nguyên trạng thái chờ. Bạn bấm thanh toán lại để tạo giao dịch mới.
+
+## Ngân hàng đã trừ tiền nhưng PTutor chưa ghi nhận
+
+Đừng thanh toán lại ngay nếu ngân hàng đã báo trừ tiền. Kiểm tra lịch sử giao dịch ví và trạng thái kỳ/tin; lưu mã giao dịch ngân hàng, thời gian, số tiền và ảnh biên nhận đã che thông tin nhạy cảm. Khi đăng nhập được, gửi **Yêu cầu hỗ trợ** để PTutor đối soát với VNPay. Mã nguồn hiện không thu thêm một khoản phí VNPay riêng ngoài số tiền giao dịch đã hiển thị; mọi phụ phí nếu có phải được công bố trước khi xác nhận. Dự thảo vận hành đề xuất phản hồi đầu trong 4 giờ làm việc, chưa phải cam kết đã triển khai.

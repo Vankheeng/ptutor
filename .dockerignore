@@ -14,3 +14,9 @@ assistant-service/eval/.cache
 assistant-service/.env
 .env
 .git
+tmp
+worktrees
+report
+ai-service
+scripts
+deploy

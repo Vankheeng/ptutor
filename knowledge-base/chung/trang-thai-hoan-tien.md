@@ -5,17 +5,16 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [refund]
 routes: [/student/refund-requests, /student/refund-requests/:refundRequestId, /tutor/refund-requests, /tutor/refund-requests/:refundRequestId]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "enum: RefundRequestStatus (PENDING, IN_REVIEW, REFUNDED, REJECTED, CANCELLED); LessonOutcome (TAUGHT, TUTOR_ABSENT, STUDENT_ABSENT)"
   - "frontend: components/refund/refundFormat.ts (Chờ tiếp nhận, Đang xử lý, Đã hoàn tiền, Đã từ chối, Đã huỷ; Đã dạy, Gia sư không dạy, Học viên nghỉ)"
   - "backend: RefundRequestService.create/cancel; AdminRefundRequestService.startReview/approve/reject"
 error_codes: [INVALID_REFUND_REQUEST_STATUS_TRANSITION]
 keywords: [trạng thái hoàn tiền, chờ tiếp nhận, đang xử lý, đã hoàn tiền, đã từ chối, trang thai hoan tien, cho tiep nhan, dang xu ly, da hoan tien]
-todo:
-  - "Kế toán tiếp nhận và kết luận yêu cầu hoàn tiền trong bao lâu?"
+todo: []
 ---
 
 # Giải nghĩa trạng thái yêu cầu hoàn tiền
@@ -43,3 +42,5 @@ Yêu cầu hoàn tiền "Đã huỷ" do học viên hủy khi còn chờ tiếp 
 ## Kết luận từng buổi học
 
 Mỗi buổi bị phản đối có một kết luận: "Đã dạy" (buổi chuyển sang đã học, không hoàn), "Gia sư không dạy" (hoàn 100% đơn giá), hoặc "Học viên nghỉ" (hoàn 80% đơn giá, gia sư nhận 20%).
+
+Hệ thống có hạn **48 giờ** cho gia sư phản hồi yêu cầu hoàn tiền, nhưng chưa áp đặt thời hạn cố định để kế toán kết luận. Người dùng theo dõi trạng thái và thông báo trong mục **Yêu cầu hoàn tiền**.

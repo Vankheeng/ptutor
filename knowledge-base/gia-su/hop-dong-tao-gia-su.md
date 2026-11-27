@@ -4,25 +4,25 @@ title: Gia sư soạn hợp đồng và quản lý hợp đồng
 type: policy
 audience: [TUTOR]
 features: [contract]
-routes: [/tutor/sections/:section, /tutor/dashboard, /tutor/notifications]
-status: draft
+routes: [/tutor/sections/contracts, /tutor/sections/contracts/:contractId]
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: TutorContractsPage/TutorContractDetailPage"
   - "backend: TutorContractController POST /api/v1/tutors/me/teaching-requests/{id}/student-requests/{id}/contracts -> ContractService.createFromStudentTutorRequest"
   - "backend: ContractController (sign, reject, cancel, renew, update) dùng chung cho gia sư"
-  - "frontend: TutorLayout mục Hợp đồng -> /tutor/sections/contracts (TutorComingSoonPage: Sắp ra mắt); TutorDashboardPage (Hợp đồng đang dạy, Hợp đồng chờ xử lý)"
+  - "frontend: TutorContractsPage, TutorContractDetailPage"
 error_codes: [CONTRACT_SUBJECT_REQUIRED, DUPLICATE_CONTRACT, INVALID_CONTRACT_SOURCE_STATUS, INVALID_CONTRACT_APPLICATION_STATUS]
 keywords: [gia sư tạo hợp đồng, gia sư ký hợp đồng, hợp đồng của gia sư, gia su tao hop dong, gia su ky hop dong, hop dong gia su]
-todo:
-  - "Khi nào có trang Hợp đồng cho gia sư? Tên các nút ký, từ chối, hủy, gia hạn trên trang gia sư là gì?"
+todo: []
 ---
 
 # Gia sư soạn hợp đồng và quản lý hợp đồng
 
 ## Giao diện hợp đồng của gia sư
 
-Hiện mục **Hợp đồng** trong menu gia sư đang hiện "Sắp ra mắt". Trang **Tổng quan** của gia sư có số **Hợp đồng đang dạy**, **Hợp đồng chờ xử lý** và mục **Buổi học sắp tới** trong 7 ngày tới. Khi có hợp đồng chờ bạn ký, bạn nhận thông báo "Contract signature required".
+Gia sư mở **Hợp đồng** trong menu để xem danh sách và chi tiết hợp đồng. Tại trang chi tiết, các thao tác ký, từ chối, hủy và gia hạn xuất hiện khi trạng thái hợp đồng cho phép. Khi có hợp đồng chờ ký, gia sư cũng nhận thông báo.
 
 ## Khi nào gia sư soạn hợp đồng
 

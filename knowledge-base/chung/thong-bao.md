@@ -5,9 +5,9 @@ type: guide
 audience: [STUDENT, TUTOR]
 features: [notification]
 routes: [/student/notifications, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "frontend: pages/common-user/NotificationsPage.tsx (Notifications, Mark all as read), components/NotificationFilters.tsx (All, unread, read; số chưa đọc), components/NotificationList.tsx (bấm để đánh dấu đã đọc)"
   - "backend: NotificationController GET, PATCH /{id}/read, PATCH /read-all, GET /unread-count"
@@ -15,8 +15,7 @@ source:
   - "enum: NotificationType (PAYMENT, REQUEST, CONTRACT, SYSTEM, COMPLAINT)"
 error_codes: []
 keywords: [thông báo, đánh dấu đã đọc, thông báo chưa đọc, không nhận được thông báo, thong bao, danh dau da doc, chua doc, notifications]
-todo:
-  - "PTutor có gửi thông báo qua email hoặc điện thoại không, hay chỉ trong ứng dụng? (code chỉ gửi email cho mã OTP)"
+todo: []
 ---
 
 # Xem thông báo và đánh dấu đã đọc
@@ -46,3 +45,5 @@ Tiêu đề và nội dung thông báo hiện bằng tiếng Anh. Một số ti�
 - "Lesson awaiting confirmation": buổi học chờ bạn xác nhận.
 - "Student requested a refund": học viên yêu cầu hoàn tiền.
 - "Additional evidence required": cần bổ sung bằng chứng cho khiếu nại.
+
+Thông báo nghiệp vụ hiện được ghi và hiển thị **trong ứng dụng**. Email được dùng cho mã OTP đặt lại mật khẩu và xác thực liên quan; mã nguồn không có luồng gửi SMS cho các thông báo nghiệp vụ thông thường. Hãy kiểm tra mục **Thông báo** trên PTutor để không bỏ lỡ yêu cầu cần xử lý.

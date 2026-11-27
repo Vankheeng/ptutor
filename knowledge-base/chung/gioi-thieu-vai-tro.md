@@ -5,10 +5,11 @@ type: policy
 audience: [PUBLIC]
 features: [account]
 routes: [/, /public, /register, /login]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: AssistantPanel/SupportRequestsPage; backend: SupportRequestService"
   - "backend: dto/enums/RegistrationRole (STUDENT, TUTOR)"
   - "backend: dto/enums/UserRole (STUDENT, TUTOR, EMPLOYEE, ADMIN)"
   - "backend: entity/enums/EmployeeJobFunction"
@@ -17,12 +18,7 @@ source:
   - "backend: không có cấu hình kênh liên hệ, giờ hỗ trợ"
 error_codes: [INVALID_REGISTRATION_ROLE]
 keywords: [vai trò, học viên, gia sư, nhân viên, phụ huynh, ptutor là gì, vai tro, hoc vien, gia su, nhan vien, phu huynh, liên hệ, hỗ trợ, hotline, email hỗ trợ, gặp nhân viên, giờ làm việc, lien he, ho tro, gap nhan vien, gio lam viec, contact]
-todo:
-  - "Phụ huynh muốn tìm gia sư cho con thì đăng ký tài khoản với vai trò nào? Nền tảng có cho một người dùng một tài khoản cho nhiều con không?"
-  - "Một người có thể vừa là học viên vừa là gia sư (hai tài khoản, hai email) không?"
-  - "Kênh liên hệ chính thức của PTutor là gì (email, số điện thoại, Zalo, fanpage)?"
-  - "Giờ hỗ trợ trong tuần là mấy giờ đến mấy giờ?"
-  - "Thời gian phản hồi dự kiến cho từng loại yêu cầu là bao lâu?"
+todo: []
 ---
 
 # PTutor, các vai trò và liên hệ hỗ trợ
@@ -54,7 +50,7 @@ Trợ lý hỗ trợ trên PTutor chỉ phục vụ học viên và gia sư đã
 
 ## Liên hệ PTutor bằng cách nào?
 
-Kênh liên hệ chính thức của PTutor đang được cập nhật. Trang chủ có mục **Hỗ trợ** với các liên kết "Liên hệ Ptutor" và "Trung tâm trợ giúp", nhưng các liên kết này chưa dẫn tới trang liên hệ riêng.
+Học viên và gia sư đã đăng nhập dùng **Yêu cầu hỗ trợ của tôi** trong ứng dụng để hỏi nhân viên. Từ khung trợ lý cũng có nút **Hỏi nhân viên hỗ trợ**. PTutor chưa công bố email, số điện thoại, Zalo hoặc fanpage hỗ trợ đã xác minh; không gửi thông tin nhạy cảm tới tài khoản tự nhận là PTutor.
 
 ## Bộ phận nào xử lý việc của tôi?
 
@@ -66,3 +62,11 @@ Kênh liên hệ chính thức của PTutor đang được cập nhật. Trang c
 ## Trợ lý hỗ trợ giúp được gì?
 
 Trợ lý hỗ trợ trả lời quy định, hướng dẫn thao tác và tra cứu thông tin của chính bạn. Trợ lý không làm thay bạn các thao tác như ký, hủy hợp đồng, thanh toán, rút tiền hay gửi khiếu nại, và không quyết định thay nhân viên về khiếu nại hay hoàn tiền.
+
+## Phụ huynh và nhiều vai trò
+
+PTutor chưa có vai trò **phụ huynh** hoặc hồ sơ riêng cho nhiều con. Người giám hộ có thể dùng vai trò **Học viên** để đăng nhu cầu học cho con, nhưng phải đăng ký bằng email và CCCD của chính người đứng tên; mỗi tin cần ghi rõ lớp và mục tiêu học. Một tài khoản có thể tạo nhiều tin, còn hồ sơ cá nhân là một hồ sơ chung. Mỗi CCCD chỉ được dùng cho một tài khoản, vì vậy hiện không thể mở thêm tài khoản gia sư thứ hai bằng cùng CCCD dù dùng email khác.
+
+## Thời gian hỗ trợ
+
+Hệ thống nhận yêu cầu hỗ trợ trực tuyến mọi lúc. PTutor chưa cấu hình hoặc công bố giờ làm việc và thời hạn phản hồi bắt buộc. Dự thảo vận hành đề xuất nhân viên trực thứ Hai–thứ Sáu 08:00–17:00 và phản hồi đầu tiên trong 1 ngày làm việc; đây **chưa phải cam kết hiện hành**.

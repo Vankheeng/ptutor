@@ -5,7 +5,7 @@ type: error
 audience: [TUTOR]
 features: [tutor-profile, certificate]
 routes: [/tutor/profile, /tutor/certificates]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

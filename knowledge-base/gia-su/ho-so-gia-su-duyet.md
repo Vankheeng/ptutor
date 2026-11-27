@@ -5,24 +5,22 @@ type: policy
 audience: [TUTOR]
 features: [tutor-profile]
 routes: [/tutor/profile, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: ProfileWorkspacePage/adminFormat.profileStatusMeta; backend: PaymentService.requireVerifiedTutorProfile, StudentRecommendationService"
   - "backend: AdminTutorProfileReviewController; AdminTutorService (duyệt chỉ khi PENDING; lý do từ chối 10–500 ký tự)"
   - "backend: TutorProfileService.updateMine (sửa hồ sơ giảng dạy -> PENDING)"
   - "backend: TutorRecommendationScoreService.verificationScore (hồ sơ đã duyệt được cộng điểm)"
   - "enum: NotificationEventType TUTOR_PROFILE_APPROVED, TUTOR_PROFILE_REJECTED"
   - "frontend: pages/tutor/TutorProfilePage.tsx (thông báo tiếng Anh về trạng thái hồ sơ)"
   - "enum: TutorProfileStatus (PENDING, VERIFIED, REJECTED)"
-  - "frontend: pages/tutor/TutorProfilePage.tsx (Waiting for review, Verified profile, Not approved)"
+  - "frontend: ProfileWorkspacePage, adminFormat.profileStatusMeta (Chờ duyệt, Đã duyệt, Đã từ chối)"
   - "backend: AuthService.register (PENDING), TutorProfileService.updateMine, AdminTutorService"
 error_codes: [INVALID_PROFILE_REJECTION_REASON]
 keywords: [duyệt hồ sơ gia sư, hồ sơ bị từ chối, xác minh gia sư, hồ sơ chờ duyệt, duyet ho so, ho so bi tu choi, xac minh gia su, trạng thái hồ sơ, chờ duyệt, đã xác minh, không được duyệt, waiting for review, verified profile, not approved, trang thai ho so, cho duyet, da xac minh]
-todo:
-  - "Tiêu chí duyệt hồ sơ gia sư là gì? Hồ sơ được duyệt trong bao lâu?"
-  - "Gia sư chưa được duyệt hồ sơ bị hạn chế những gì? (code hiện không chặn gửi đề xuất hay nhận hợp đồng)"
-  - "Trang hồ sơ gia sư đang hiển thị trạng thái bằng tiếng Anh; admin xác nhận nhãn tiếng Việt: Chờ duyệt, Đã xác minh, Không được duyệt."
+todo: []
 ---
 
 # Duyệt hồ sơ gia sư và trạng thái hồ sơ
@@ -37,7 +35,7 @@ Khi được duyệt, hồ sơ chuyển sang đã xác minh. Bạn nhận thông
 
 ## Khi hồ sơ gia sư bị từ chối
 
-Khi bị từ chối, bạn nhận thông báo "Tutor profile rejected" kèm lý do (từ 10 đến 500 ký tự). Trang **Hồ sơ của tôi** hiện câu "Your profile was not approved." và hướng dẫn "Update your teaching details and save to send it for review again."
+Khi bị từ chối, bạn nhận thông báo "Tutor profile rejected" kèm lý do (từ 10 đến 500 ký tự). Trang **Hồ sơ của tôi** hiện trạng thái **Đã từ chối**; sửa thông tin giảng dạy theo lý do rồi lưu để gửi duyệt lại.
 
 Cách gửi duyệt lại:
 
@@ -49,16 +47,24 @@ Cách gửi duyệt lại:
 
 Nếu sửa mục **Hồ sơ giảng dạy** sau khi đã được duyệt, hồ sơ quay về chờ duyệt và mất phần điểm cộng cho hồ sơ đã xác minh cho tới khi được duyệt lại.
 
-## Chờ duyệt (Waiting for review)
+## Chờ duyệt
 
-Trang **Hồ sơ của tôi** hiện trạng thái hồ sơ bằng tiếng Anh, ghi trong ngoặc ở từng mục.
+Trang hồ sơ hiện nhãn trạng thái tiếng Việt. Nhãn hiện tại là **Chờ duyệt**, **Đã duyệt** và **Đã từ chối**.
 
-Hồ sơ "Chờ duyệt" đang chờ nhân viên chăm sóc khách hàng xét duyệt. Đây là trạng thái của hồ sơ mới đăng ký và hồ sơ vừa sửa thông tin giảng dạy. Trang hiện "Your profile is waiting for review. Students can find you once it is approved." Bạn chỉ cần chờ kết quả.
+Hồ sơ "Chờ duyệt" đang chờ nhân viên chăm sóc khách hàng xét duyệt. Đây là trạng thái của hồ sơ mới đăng ký và hồ sơ vừa sửa thông tin giảng dạy. Bạn có thể hoàn thiện thông tin và chờ kết quả; gợi ý học viên chỉ mở khi hồ sơ được duyệt.
 
-## Đã xác minh (Verified profile)
+## Đã duyệt
 
-Hồ sơ "Đã xác minh" đã được nhân viên chăm sóc khách hàng duyệt. Học viên tìm thấy bạn trong phần gợi ý, và bạn được cộng điểm trong điểm đề xuất. Không cần làm gì thêm. Nếu sửa thông tin giảng dạy, hồ sơ quay về "Chờ duyệt".
+Hồ sơ "Đã duyệt" đã được nhân viên chăm sóc khách hàng duyệt. Học viên tìm thấy bạn trong phần gợi ý, và bạn được cộng điểm trong điểm đề xuất. Không cần làm gì thêm. Nếu sửa thông tin giảng dạy, hồ sơ quay về "Chờ duyệt".
 
-## Không được duyệt (Not approved)
+## Đã từ chối
 
-Hồ sơ "Không được duyệt" bị nhân viên chăm sóc khách hàng từ chối, kèm lý do trong thông báo. Bước tiếp theo: bạn sửa mục **Hồ sơ giảng dạy** theo lý do và bấm **Lưu hồ sơ** để gửi duyệt lại.
+Hồ sơ "Đã từ chối" bị nhân viên chăm sóc khách hàng từ chối, kèm lý do trong thông báo. Bước tiếp theo: bạn sửa mục **Hồ sơ giảng dạy** theo lý do và bấm **Lưu hồ sơ** để gửi duyệt lại.
+
+## Tiêu chí và thời gian xét duyệt (đề xuất)
+
+Nhân viên nên kiểm tra thông tin giảng dạy rõ môn, lớp, kinh nghiệm và địa bàn; tài liệu chứng minh đọc được, không giả mạo, không chứa nội dung liên hệ ngoài nền tảng. Từ chối cần nêu lý do để gia sư sửa. Đề xuất xử lý trong 2 ngày làm việc; mã nguồn chưa tự đặt thời hạn này.
+
+## Khi hồ sơ chưa được duyệt
+
+Gia sư chưa được đưa vào kết quả gợi ý học viên và không thể trả phí để công bố tin nhận dạy; backend trả lỗi **TUTOR_PROFILE_NOT_VERIFIED**. Gia sư vẫn có thể hoàn thiện hồ sơ, nộp chứng chỉ và chuẩn bị bản nháp. Một số luồng đề nghị dạy không kiểm tra trạng thái hồ sơ ở cùng điểm, vì vậy không nên suy ra hồ sơ chờ duyệt có đầy đủ quyền như hồ sơ đã duyệt.

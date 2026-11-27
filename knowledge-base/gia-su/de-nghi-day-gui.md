@@ -5,9 +5,9 @@ type: guide
 audience: [TUTOR]
 features: [matching]
 routes: [/tutor/dashboard, /tutor/studying-requests/:requestId, /tutor/proposals]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "frontend: pages/tutor/TutorDashboardPage.tsx (danh sách Yêu cầu tìm gia sư)"
   - "frontend: pages/tutor/TutorStudyingRequestPage.tsx (Ứng tuyển yêu cầu này, Sửa đề xuất, Gửi lại đề xuất)"
@@ -17,8 +17,7 @@ source:
   - "backend: TutorStudentRequestService.create/update/cancel (chỉ gửi vào tin OPEN; một đề xuất PENDING mỗi tin; dạy trực tiếp cần tỉnh và quận)"
 error_codes: [STUDYING_REQUEST_NOT_OPEN, DUPLICATE_TUTOR_STUDENT_REQUEST, INVALID_TUTOR_STUDENT_REQUEST_STATUS_TRANSITION, INVALID_PREFERRED_LOCATION, INVALID_GRADE]
 keywords: [gửi đề xuất, ứng tuyển dạy, đề xuất giảng dạy, nhận lớp, tìm học viên, gui de xuat, ung tuyen, de xuat giang day, nhan lop]
-todo:
-  - "Gia sư chưa được duyệt hồ sơ có được gửi đề xuất không? (code hiện không chặn)"
+todo: []
 ---
 
 # Cách gửi, sửa, hủy đề xuất giảng dạy
@@ -65,3 +64,5 @@ Chỉ hủy được đề xuất đang chờ.
 ## Gửi lại đề xuất giảng dạy
 
 Khi đề xuất trước đã bị từ chối hoặc đã hủy và tin vẫn đang mở, trang tin hiện nút **Gửi lại đề xuất** để bạn gửi đề xuất mới.
+
+Mã nguồn hiện không kiểm tra trạng thái duyệt hồ sơ như một điều kiện bắt buộc khi gia sư gửi đề nghị dạy. Tuy vậy, hồ sơ chưa được xác minh có thể ảnh hưởng khả năng xuất hiện trong gợi ý và mức độ tin cậy với học viên; gia sư nên hoàn thiện hồ sơ và chờ duyệt.

@@ -4,29 +4,28 @@ title: Quy định tin nhận dạy
 type: policy
 audience: [TUTOR]
 features: [teaching-request]
-routes: [/tutor/sections/:section, /tutor/wallet]
-status: draft
+routes: [/tutor/sections/teaching-requests, /tutor/sections/teaching-requests/:requestId]
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: MyTeachingRequestsPage"
   - "backend: TeachingRequestController POST/GET/PUT /api/v1/tutors/me/teaching-requests, PATCH /{id}/status, POST /{id}/cancel"
   - "backend: TeachingRequestService.create/update/updateStatus/cancel/activateAfterPayment/requiresReview (ghi chú hoặc môn tự nhập -> PENDING_REVIEW)"
   - "backend: PaymentController POST /api/v1/tutors/me/teaching-requests/{id}/payments/vnpay|wallet"
   - "backend: AdminTeachingRequestService.approve/reject (hoàn phí vào ví)"
   - "backend: PublicTeachingRequestController; StudentTutorRequestService (quantity -> MATCHED)"
-  - "frontend: TutorLayout mục 'Yêu cầu dạy của tôi' -> TutorComingSoonPage (Sắp ra mắt)"
+  - "frontend: MyTeachingRequestsPage, TeachingRequestDetailPage"
 error_codes: [SUBJECT_SOURCE_REQUIRED, INVALID_SUBJECT, INVALID_GRADE, INVALID_TEACHING_REQUEST_STATUS_TRANSITION, INVALID_TEACHING_REQUEST_PAYMENT_STATUS]
 keywords: [tin nhận dạy, đăng tin dạy, yêu cầu dạy, đăng bài gia sư, tin nhan day, dang tin day, yeu cau day, teaching request]
-todo:
-  - "Khi nào có giao diện để gia sư tạo, sửa, đóng, hủy tin nhận dạy? Tên trang và tên nút là gì?"
-  - "Tiêu chí PTutor dùng để duyệt tin nhận dạy có môn học tự nhập hoặc có ghi chú là gì?"
+todo: []
 ---
 
 # Quy định tin nhận dạy
 
 ## Giao diện tin nhận dạy
 
-Hiện giao diện gia sư chưa có trang tạo và quản lý tin nhận dạy. Mục **Yêu cầu dạy của tôi** trong menu đang hiện "Sắp ra mắt". Các quy định dưới đây là quy định của hệ thống và sẽ áp dụng khi có giao diện.
+Gia sư mở **Yêu cầu dạy của tôi** để tạo và quản lý tin. Trang có biểu mẫu **Tạo yêu cầu dạy**, **Chỉnh sửa yêu cầu dạy** và các thao tác trên từng tin theo trạng thái.
 
 ## Nội dung tin nhận dạy
 
@@ -52,3 +51,7 @@ Tin nhận dạy đang mở hiện ở trang chủ PTutor và trang **Browse Tea
 ## Tin nhận dạy đủ học viên
 
 Khi gia sư chấp nhận đủ số học viên đã ghi trong tin, tin chuyển sang đã ghép và không nhận thêm đơn đăng ký học.
+
+## Tiêu chí duyệt tin nhận dạy (đề xuất)
+
+Với môn tự nhập hoặc ghi chú, nhân viên kiểm tra tên môn và lớp nhất quán, mô tả rõ, không đưa thông tin liên hệ ngoài nền tảng, không quảng cáo hoặc cam kết gây hiểu lầm. Nếu từ chối, ghi rõ lý do; hệ thống hoàn phí tin bị từ chối vào ví. Đề xuất xét trong 2 ngày làm việc, nhưng mã nguồn chưa tự bảo đảm thời hạn.

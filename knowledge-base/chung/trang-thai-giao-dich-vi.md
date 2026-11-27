@@ -5,18 +5,18 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [wallet]
 routes: [/student/wallet, /tutor/wallet]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: transactions/transactionLabels và transactionStatusLabels"
   - "enum: WalletTransactionType (CREDIT, DEBIT); WalletTransactionStatus (PENDING, COMPLETED, FAILED, CANCELLED)"
   - "enum: WalletTransactionPurpose (TOP_UP, TUTOR_EARNING, CONTRACT_REFUND, TEACHING_REQUEST_REFUND, STUDYING_REQUEST_REFUND, WITHDRAWAL_REVERSAL, TUITION_PAYMENT, STUDYING_REQUEST_FEE, TEACHING_REQUEST_FEE, WITHDRAWAL)"
   - "backend: WalletService.credit/debit/reserveForWithdrawal/reverseWithdrawal"
   - "frontend: giao diện không hiển thị nhãn loại và trạng thái giao dịch ví"
 error_codes: []
 keywords: [loại giao dịch, tiền vào, tiền ra, giao dịch đang chờ, hoàn tất, loai giao dich, tien vao, tien ra, giao dich dang cho]
-todo:
-  - "Giao diện chưa có nhãn cho loại và trạng thái giao dịch ví. Admin xác nhận các nhãn trong tài liệu: Tiền vào, Tiền ra, Đang chờ, Hoàn tất, Thất bại, Đã hủy."
+todo: []
 ---
 
 # Giải nghĩa loại và trạng thái giao dịch ví
@@ -39,3 +39,5 @@ Giao dịch ví "Hoàn tất" đã được ghi vào số dư. Các giao dịch 
 ## Thất bại và đã hủy
 
 Giao dịch ví "Thất bại" hoặc "Đã hủy" không làm thay đổi số dư. Khi bạn hủy yêu cầu rút tiền, PTutor ghi thêm một giao dịch tiền vào để trả lại khoản đã tạm giữ.
+
+Trang **Lịch sử giao dịch** hiện nhãn tiếng Việt cho loại và trạng thái giao dịch, kèm bộ lọc để tra cứu.

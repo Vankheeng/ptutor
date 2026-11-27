@@ -4,26 +4,26 @@ title: Tạo buổi học và đánh dấu đã dạy
 type: policy
 audience: [TUTOR]
 features: [lesson]
-routes: [/tutor/dashboard, /tutor/sections/:section]
-status: draft
+routes: [/tutor/sections/contracts/:contractId, /tutor/calendar]
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: TutorContractDetailPage (Tạo buổi học, Đánh dấu đã dạy); TutorCalendarPage"
   - "backend: LessonController POST /api/v1/tutors/me/contracts/{contractId}/lessons, PUT /lessons/{lessonId}, PATCH /lessons/{lessonId}/status"
   - "backend: LessonService.create/update/updateStatus/validateSchedule (giờ bắt đầu trước giờ kết thúc; ngày trong thời hạn hợp đồng; chỉ đánh dấu đã dạy sau giờ kết thúc)"
   - "backend: ContractPaymentInstallmentService.canCreateLesson, assignNextInstallment"
-  - "frontend: TutorLayout mục Lịch dạy -> /tutor/sections/calendar (Sắp ra mắt); TutorDashboardPage (Buổi học sắp tới, 7 ngày tới)"
+  - "frontend: TutorCalendarPage; TutorContractDetailPage (Tạo buổi học, Đánh dấu đã dạy)"
 error_codes: [LESSON_NOT_FINISHED, INVALID_LESSON_TIME, LESSON_OUTSIDE_CONTRACT_PERIOD, CONTRACT_LESSON_LIMIT_REACHED, CONTRACT_NOT_ACTIVE, INVALID_LESSON_STATUS, INVALID_LESSON_STATUS_TRANSITION]
 keywords: [tạo buổi học, đánh dấu đã dạy, lịch dạy, hủy buổi học, tao buoi hoc, danh dau da day, lich day, huy buoi hoc]
-todo:
-  - "Khi nào có giao diện để gia sư tạo buổi học và đánh dấu đã dạy? Tên trang và tên nút là gì?"
+todo: []
 ---
 
 # Tạo buổi học và đánh dấu đã dạy
 
 ## Giao diện buổi học của gia sư
 
-Hiện mục **Lịch dạy** trong menu gia sư đang hiện "Sắp ra mắt". Trang **Tổng quan** có mục **Buổi học sắp tới** cho 7 ngày tới. Các quy định dưới đây là quy định của hệ thống.
+Gia sư mở **Hợp đồng** → chọn hợp đồng đang hoạt động → phần **Buổi học**. Tại đây có biểu mẫu **Tạo buổi học** và nút **Đánh dấu đã dạy** cho buổi đủ điều kiện. Trang **Lịch dạy** cũng hiển thị các buổi theo lịch.
 
 ## Tạo buổi học
 

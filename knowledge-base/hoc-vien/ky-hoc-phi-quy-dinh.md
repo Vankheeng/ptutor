@@ -5,10 +5,11 @@ type: policy
 audience: [STUDENT]
 features: [payment]
 routes: [/student/contracts/:contractId, /student/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "backend: LessonPayoutService.release; frontend: StudentPaymentMethodDialog"
   - "backend: ContractPaymentInstallmentService.ensureForActiveContract (PACKAGE: 1 kỳ vào ngày bắt đầu; PER_LESSON: số kỳ = tổng số buổi, gắn khi tạo buổi; WEEKLY/MONTHLY: mỗi tuần/tháng từ ngày bắt đầu tới trước ngày kết thúc; số tiền mỗi kỳ = giá hợp đồng)"
   - "backend: PaymentInstallmentReminderService (cron app.notification.payment-reminder-cron mặc định 0 0 9 * * *, nhắc kỳ đến hạn sau 3 ngày)"
   - "backend: PaymentService.findMyInstallments/createTuitionPayment (chỉ hợp đồng ACTIVE)"
@@ -19,10 +20,7 @@ source:
   - "backend: PaymentService.activatePaidPayment (PAID)"
 error_codes: [CONTRACT_NOT_ACTIVE, PAYMENT_INSTALLMENT_NOT_PAYABLE, PAYMENT_INSTALLMENT_NOT_READY, INVALID_CONTRACT_PAYMENT_AMOUNT]
 keywords: [kỳ học phí, đóng học phí, chu kỳ thanh toán, hạn đóng tiền, nhắc đóng tiền, ky hoc phi, dong hoc phi, chu ky thanh toan, han dong tien, nhac dong tien, trạng thái kỳ học phí, chưa thanh toán, đã thanh toán, kỳ thanh toán, trang thai ky hoc phi, chua thanh toan, da thanh toan]
-todo:
-  - "Đóng học phí trễ hạn thì có bị phạt, bị tạm dừng hợp đồng hay bị hủy không? (code không có xử lý trễ hạn)"
-  - "Học phí học viên đóng được giữ ở đâu và chuyển cho gia sư khi nào?"
-  - "Khi nào một kỳ học phí chuyển sang Đã hủy? (code không có thao tác nào đặt trạng thái này)"
+todo: []
 ---
 
 # Kỳ học phí: chu kỳ thanh toán, nhắc đóng tiền, trạng thái
@@ -48,7 +46,7 @@ Mỗi ngày lúc 9 giờ sáng (giờ Việt Nam), PTutor gửi thông báo nh�
 
 ## Cách đóng học phí
 
-Học viên đóng từng kỳ trong mục **Các kỳ thanh toán** của trang chi tiết hợp đồng, bằng VNPay. Hệ thống cũng hỗ trợ đóng bằng số dư ví, nhưng hiện giao diện chưa có nút này. Chỉ đóng được kỳ đang chờ của hợp đồng đang hoạt động. Mỗi kỳ chỉ thu một lần.
+Học viên đóng từng kỳ trong mục **Các kỳ thanh toán** của trang chi tiết hợp đồng, chọn **VNPay** hoặc **Ví PTutor** trong hộp thoại thanh toán. Chỉ đóng được kỳ đang chờ của hợp đồng đang hoạt động. Mỗi kỳ chỉ thu một lần.
 
 ## Đóng học phí trễ hạn
 
@@ -65,3 +63,7 @@ Kỳ học phí "Đã thanh toán" đã được thu thành công qua VNPay ho�
 ## Đã hủy
 
 Kỳ học phí "Đã hủy" không còn phải đóng và không được tính vào giá trị hợp đồng khi tính hoàn tiền.
+
+## Học phí đã đóng và tiền dạy
+
+Tiền học phí được ghi nhận khi kỳ thanh toán thành công. Phần của từng buổi chỉ được cộng vào ví gia sư sau khi buổi được xác nhận hoặc tự hoàn tất và không còn yêu cầu hoàn tiền đang xử lý. Kỳ **Đã hủy** tồn tại trong mô hình dữ liệu nhưng mã nguồn hiện không có thao tác nghiệp vụ thông thường để chuyển một kỳ đang chờ sang trạng thái này; chatbot không nên hướng dẫn người dùng tự hủy kỳ.

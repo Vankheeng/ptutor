@@ -5,19 +5,18 @@ type: faq
 audience: [TUTOR]
 features: [tutor-profile]
 routes: [/tutor/profile, /tutor/certificates]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: StudentTeachingRequestsPage/TutorStudentRecommendationsPage; backend: TutorRecommendationScoreService"
   - "backend: TutorRecommendationScoreService.calculateAndSave (thang 0–100; đánh giá, hợp đồng hoàn tất, tỉ lệ chấp nhận, thời gian phản hồi, số học viên đã dạy, hồ sơ và chứng chỉ đã xác minh, trừ tối đa 15 điểm theo số lần bị khóa)"
   - "backend: AuthService.register (điểm khởi đầu 50)"
   - "backend: TutorRecommendationScoreScheduler (cron app.tutor-recommendation.recalculation-cron mặc định 0 30 2 * * * theo UTC); event/TutorRecommendationScoreEventListener"
   - "frontend: gia sư không xem được điểm của mình; trang quản trị sắp xếp gia sư theo điểm"
 error_codes: []
 keywords: [điểm đề xuất, điểm gia sư, xếp hạng gia sư, tăng điểm, được gợi ý, diem de xuat, diem gia su, xep hang, tang diem, recommendation score]
-todo:
-  - "Điểm đề xuất hiện được dùng ở những chỗ nào mà học viên thấy (gợi ý gia sư, thứ tự kết quả tìm kiếm)?"
-  - "Gia sư có được xem điểm của mình không? Hiện giao diện gia sư không hiển thị."
+todo: []
 ---
 
 # Điểm đề xuất của gia sư là gì
@@ -46,3 +45,7 @@ PTutor tính lại điểm cho mọi gia sư mỗi ngày lúc 9 giờ 30 sáng (
 ## Làm sao để tăng điểm đề xuất?
 
 Hoàn thiện hồ sơ và chờ được xác minh, nộp chứng chỉ để được duyệt, phản hồi học viên nhanh, dạy đầy đủ để hợp đồng hoàn tất và nhận đánh giá tốt, và tránh vi phạm dẫn tới bị khóa tài khoản.
+
+## Điểm có hiển thị cho người dùng không?
+
+Học viên thấy **điểm phù hợp** của từng kết quả trong màn hình tìm và gợi ý gia sư; đó là điểm ghép theo nhu cầu tìm kiếm, không đồng nhất với điểm đề xuất nội bộ của gia sư. Gia sư hiện chưa có mục xem trực tiếp điểm đề xuất nội bộ. Điểm này chỉ là một tín hiệu trong quá trình xếp hạng, không bảo đảm gia sư luôn xuất hiện ở một vị trí cố định.

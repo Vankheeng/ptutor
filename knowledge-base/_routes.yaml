@@ -1,8 +1,7 @@
-# Route cho phép, lấy từ frontend/src/App.tsx trên nhánh dev (commit 27f6eeb09815385bf92d3d552b0f8f705070a23c).
+# Route cho phép, đối chiếu frontend/src/App.tsx trên nhánh feat/tutor-recommendation-support-chatbot-dev (595d86e6).
 # Chỉ gồm route công khai, route học viên và route gia sư. Route /admin/* cố ý không đưa vào
 # vì trợ lý chỉ phục vụ học viên và gia sư.
 # Route có tham số (:xxx) chỉ được điền bằng ID lấy từ kết quả tra cứu.
-# M17 (nhánh feat/support-chatbot-reference): thêm /student|tutor/support-requests.
 routes:
   - path: /
     audience: [PUBLIC]
@@ -44,9 +43,21 @@ routes:
   - path: /student/teaching-requests
     audience: [STUDENT]
     page: StudentTeachingRequestsPage
+  - path: /student/teaching-requests/:requestId
+    audience: [STUDENT]
+    page: StudentTeachingRequestDetailPage
+  - path: /student/tutors/:profileId/profile
+    audience: [STUDENT]
+    page: ProfileWorkspacePage
   - path: /student/applications
     audience: [STUDENT]
     page: StudentApplicationsPage
+  - path: /student/applications/:applicationId
+    audience: [STUDENT]
+    page: StudentApplicationDetailPage
+  - path: /student/tutor-offers
+    audience: [STUDENT]
+    page: OffersPage
   - path: /student/contracts
     audience: [STUDENT]
     page: StudentContractsPage
@@ -65,9 +76,27 @@ routes:
   - path: /student/refund-requests
     audience: [STUDENT]
     page: StudentRefundRequestsPage
+  - path: /student/refund-requests/new
+    audience: [STUDENT]
+    page: StudentRefundRequestCreatePage
   - path: /student/refund-requests/:refundRequestId
     audience: [STUDENT]
-    page: StudentRefundRequestDetailPage
+    page: CommonRefundRequestDetailPage
+  - path: /student/complaints
+    audience: [STUDENT]
+    page: ComplaintsPage
+  - path: /student/complaints/new
+    audience: [STUDENT]
+    page: ComplaintCreatePage
+  - path: /student/complaints/received
+    audience: [STUDENT]
+    page: ComplaintsPage
+  - path: /student/complaints/received/:complaintId
+    audience: [STUDENT]
+    page: ComplaintDetailPage
+  - path: /student/complaints/:complaintId
+    audience: [STUDENT]
+    page: ComplaintDetailPage
   - path: /student/notifications
     audience: [STUDENT]
     page: NotificationsPage
@@ -80,6 +109,15 @@ routes:
   - path: /student/wallet
     audience: [STUDENT]
     page: WalletPage
+  - path: /student/wallet/transactions
+    audience: [STUDENT]
+    page: WalletTransactionsPage
+  - path: /student/wallet/analytics
+    audience: [STUDENT]
+    page: WalletAnalyticsPage
+  - path: /student/wallet/transactions/:source/:transactionId
+    audience: [STUDENT]
+    page: WalletTransactionDetailPage
   - path: /student/profile
     audience: [STUDENT]
     page: StudentProfilePage
@@ -92,22 +130,67 @@ routes:
     page: TutorDashboardPage
   - path: /tutor/profile
     audience: [TUTOR]
-    page: TutorProfilePage
+    page: ProfileWorkspacePage
+  - path: /tutor/students
+    audience: [TUTOR]
+    page: TutorStudentRecommendationsPage
+  - path: /tutor/students/:profileId/profile
+    audience: [TUTOR]
+    page: ProfileWorkspacePage
   - path: /tutor/certificates
     audience: [TUTOR]
-    page: TutorCertificatesPage
+    page: ProfileWorkspacePage
+    note: "redirect sang /tutor/profile?tab=certificates"
+  - path: /tutor/calendar
+    audience: [TUTOR]
+    page: TutorCalendarPage
+  - path: /tutor/sections/calendar
+    audience: [TUTOR]
+    page: TutorCalendarPage
   - path: /tutor/studying-requests/:requestId
     audience: [TUTOR]
     page: TutorStudyingRequestPage
   - path: /tutor/proposals
     audience: [TUTOR]
     page: TutorProposalsPage
+  - path: /tutor/applications
+    audience: [TUTOR]
+    page: TutorMyApplicationsPage
+  - path: /tutor/sections/teaching-requests
+    audience: [TUTOR]
+    page: MyTeachingRequestsPage
+  - path: /tutor/sections/teaching-requests/:requestId
+    audience: [TUTOR]
+    page: TeachingRequestDetailPage
+  - path: /tutor/sections/contracts
+    audience: [TUTOR]
+    page: TutorContractsPage
+  - path: /tutor/sections/contracts/:contractId
+    audience: [TUTOR]
+    page: TutorContractDetailPage
   - path: /tutor/refund-requests
     audience: [TUTOR]
-    page: TutorRefundRequestsPage
+    page: ComplaintsPage
+    note: "redirect sang /tutor/complaints/received"
   - path: /tutor/refund-requests/:refundRequestId
     audience: [TUTOR]
-    page: TutorRefundRequestDetailPage
+    page: ComplaintsPage
+    note: "redirect sang /tutor/complaints/received"
+  - path: /tutor/complaints
+    audience: [TUTOR]
+    page: ComplaintsPage
+  - path: /tutor/complaints/new
+    audience: [TUTOR]
+    page: ComplaintCreatePage
+  - path: /tutor/complaints/received
+    audience: [TUTOR]
+    page: ComplaintsPage
+  - path: /tutor/complaints/received/:complaintId
+    audience: [TUTOR]
+    page: ComplaintDetailPage
+  - path: /tutor/complaints/:complaintId
+    audience: [TUTOR]
+    page: ComplaintDetailPage
   - path: /tutor/notifications
     audience: [TUTOR]
     page: NotificationsPage
@@ -120,7 +203,16 @@ routes:
   - path: /tutor/wallet
     audience: [TUTOR]
     page: WalletPage
+  - path: /tutor/wallet/transactions
+    audience: [TUTOR]
+    page: WalletTransactionsPage
+  - path: /tutor/wallet/analytics
+    audience: [TUTOR]
+    page: WalletAnalyticsPage
+  - path: /tutor/wallet/transactions/:source/:transactionId
+    audience: [TUTOR]
+    page: WalletTransactionDetailPage
   - path: /tutor/sections/:section
     audience: [TUTOR]
     page: TutorComingSoonPage
-    note: "section = teaching-requests | contracts | calendar (trang Sắp ra mắt)"
+    note: "chỉ cho các section chưa có route riêng"

@@ -5,17 +5,16 @@ type: guide
 audience: [STUDENT]
 features: [studying-request]
 routes: [/student/studying-requests, /student/studying-requests/new]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "frontend: pages/student/StudentStudyingRequestsPage.tsx (nút Create request), StudentStudyingRequestCreatePage.tsx, StudentStudyingRequestForm.tsx, components/student/StudentAvailabilityEditor.tsx, StudentStudyingRequestMenu.tsx"
   - "backend: StudyingRequestController POST /api/v1/students/me/studying-requests"
   - "backend: PaymentController POST /api/v1/students/me/studying-requests/{requestId}/payments/vnpay"
 error_codes: [INVALID_STUDYING_REQUEST, INVALID_PRICE_RANGE, INVALID_AVAILABILITY]
 keywords: [đăng tin tìm gia sư, tạo yêu cầu học, tìm gia sư, create request, dang tin tim gia su, tao yeu cau hoc, tim gia su]
-todo:
-  - "Giao diện tạo tin tìm gia sư đang dùng nhãn tiếng Anh; khi Việt hóa cần cập nhật tên nút và tên ô trong tài liệu."
+todo: []
 ---
 
 # Cách đăng tin tìm gia sư
@@ -49,3 +48,5 @@ Với tin đang là bản nháp, bạn trả phí sau như sau:
 ## Sau khi đăng tin tìm gia sư
 
 Khi tin đang mở, gia sư thấy tin và gửi đề xuất dạy. Bạn nhận thông báo mỗi khi có đề xuất mới, và xem đề xuất ở mục **Đề nghị từ gia sư** trong trang chi tiết tin.
+
+Tên nút trên giao diện có thể còn tiếng Anh như **Create request**, **Create draft** và **Create & pay**. Các bước trong tài liệu dùng đúng nhãn đang thấy; khi giao diện Việt hóa, hãy tìm nút tương ứng **Tạo yêu cầu**, **Lưu bản nháp**, **Tạo và thanh toán**.

@@ -5,9 +5,9 @@ type: guide
 audience: [PUBLIC]
 features: [account]
 routes: [/forgot-password, /login, /student/profile, /tutor/profile]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: PasswordResetController POST /api/v1/auth/password-reset/otp, /verify, /reset"
   - "backend: ForgotPasswordService (OTP_TTL = 5 phút; mã 6 chữ số; huỷ mã cũ khi gửi mã mới)"
@@ -17,10 +17,7 @@ source:
   - "frontend: không có trang hay nút đổi mật khẩu khi đã đăng nhập (đã rà StudentProfilePage, TutorProfilePage, các service)"
 error_codes: [EMAIL_NOT_FOUND, INVALID_OR_EXPIRED_OTP, PASSWORD_CONFIRMATION_MISMATCH, NEW_PASSWORD_MUST_BE_DIFFERENT, CURRENT_PASSWORD_INCORRECT]
 keywords: [quên mật khẩu, đặt lại mật khẩu, mã OTP, không nhận được OTP, quen mat khau, dat lai mat khau, ma otp, reset password, đổi mật khẩu, thay mật khẩu, mật khẩu cũ, doi mat khau, thay mat khau, change password]
-todo:
-  - "Không nhận được email OTP (kể cả trong thư rác) thì người dùng liên hệ kênh nào?"
-  - "Có giới hạn số lần gửi lại OTP hoặc số lần nhập sai OTP không? (code hiện không giới hạn)"
-  - "Trang đổi mật khẩu khi đã đăng nhập sẽ đặt ở đâu và tên nút là gì? Khi có giao diện cần viết lại các bước."
+todo: []
 ---
 
 # Quên mật khẩu và đổi mật khẩu
@@ -63,3 +60,9 @@ Khi đổi mật khẩu, PTutor áp dụng các quy định sau:
 - Mật khẩu mới phải khác mật khẩu hiện tại.
 - Mật khẩu mới phải trùng với ô xác nhận.
 - Mật khẩu dài từ 8 đến 72 ký tự.
+
+## Gửi lại mã và đổi mật khẩu
+
+Mã OTP đặt lại mật khẩu chỉ có hiệu lực 5 phút và mã mới làm mã cũ mất hiệu lực. Mã nguồn hiện chưa đặt giới hạn riêng cho số lần yêu cầu lại hoặc số lần nhập sai; đừng chia sẻ mã với người khác. Giao diện hiện chưa có nút **Đổi mật khẩu** khi đã đăng nhập, vì vậy hãy đăng xuất và dùng trang **Quên mật khẩu?**.
+
+Nếu không thấy OTP sau khi kiểm tra hộp thư rác, kiểm tra lại địa chỉ email và bấm **Gửi lại OTP**; chỉ mã mới nhất còn hiệu lực. PTutor hiện chưa công bố kênh hỗ trợ ngoài ứng dụng cho người không đăng nhập được. Không đưa OTP cho chatbot hoặc người tự xưng hỗ trợ.

@@ -5,17 +5,17 @@ type: guide
 audience: [STUDENT]
 features: [matching]
 routes: [/student/studying-requests, /student/studying-requests/:requestId, /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: OfferDetailPage/ProfileNameLink; App.tsx /student/tutors/:profileId/profile"
   - "frontend: components/student/StudentTutorOffers.tsx (Chấp nhận/Từ chối khi đề nghị PENDING và tin OPEN; Tạo hợp đồng khi ACCEPTED và tin OPEN/MATCHED)"
   - "frontend: pages/student/StudentTutorOfferDetailPage.tsx (Chi tiết đề nghị từ gia sư)"
   - "backend: StudentTutorOfferController PATCH /{tutorRequestId}/accept, /reject -> TutorStudentRequestService.accept/reject"
 error_codes: [STUDYING_REQUEST_ALREADY_MATCHED, INVALID_TUTOR_STUDENT_REQUEST_STATUS_TRANSITION, INVALID_STUDYING_REQUEST_STATUS_TRANSITION]
 keywords: [đề nghị từ gia sư, chấp nhận gia sư, từ chối gia sư, chọn gia sư, de nghi tu gia su, chap nhan gia su, tu choi gia su, chon gia su]
-todo:
-  - "Học viên có xem được hồ sơ, chứng chỉ, đánh giá của gia sư trước khi chấp nhận không? Nếu có, ở trang nào?"
+todo: []
 ---
 
 # Xem, chấp nhận, từ chối đề nghị dạy của gia sư
@@ -45,3 +45,7 @@ Gia sư nhận thông báo đề nghị bị từ chối.
 ## Bước tiếp theo sau khi chấp nhận
 
 Sau khi chấp nhận, đề nghị đó hiện nút **Tạo hợp đồng**. Bạn bấm nút này để soạn hợp đồng gửi gia sư ký. Xem tài liệu "Cách soạn hợp đồng sau khi chấp nhận đề nghị dạy".
+
+## Xem hồ sơ gia sư trước khi chấp nhận
+
+Trong chi tiết đề nghị, bấm tên gia sư để mở hồ sơ công khai. Bạn có thể xem thông tin giảng dạy và chứng chỉ được phép công khai trước khi quyết định chấp nhận. Nếu chưa đủ thông tin, hãy trao đổi thêm qua kênh hỗ trợ hoặc yêu cầu gia sư hoàn thiện hồ sơ.

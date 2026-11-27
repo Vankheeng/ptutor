@@ -5,18 +5,18 @@ type: guide
 audience: [STUDENT]
 features: [matching]
 routes: [/student/teaching-requests, /student/applications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: StudentApplicationForm (select Lớp học từ availableGrades)"
   - "frontend: pages/student/StudentTeachingRequestsPage.tsx (Browse Teaching Requests, Apply to study, Send application; ô Grade ID nhập mã lớp)"
   - "frontend: pages/student/StudentApplicationsPage.tsx (My requests to studying, Cancel)"
   - "backend: StudentTutorRequestStudentController POST /teaching-requests/{id}/student-tutor-requests, PATCH /student-tutor-requests/{id}/status"
   - "backend: StudentTutorRequestService.createForStudent/cancelForStudent"
 error_codes: [INVALID_TEACHING_REQUEST_STATUS, INVALID_GRADE, DUPLICATE_STUDENT_TUTOR_REQUEST, INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION]
 keywords: [đơn đăng ký học, đăng ký học với gia sư, tin nhận dạy, ứng tuyển học, apply to study, don dang ky hoc, dang ky hoc, tin nhan day]
-todo:
-  - "Ô Grade ID trên form đăng ký học yêu cầu nhập mã lớp dạng chuỗi ký tự, người dùng không biết mã này. Khi giao diện đổi sang chọn lớp từ danh sách, cần cập nhật bước 3."
+todo: []
 ---
 
 # Xem tin nhận dạy và gửi đơn đăng ký học
@@ -32,7 +32,7 @@ Chỉ tin nhận dạy đang mở mới hiện ở đây.
 
 1. Ở tin nhận dạy bạn quan tâm, bấm **Apply to study**.
 2. Điền **Proposed price** (mức giá bạn đề nghị), **Learning mode** (hình thức học).
-3. Điền **Grade ID** (lớp của bạn). Lớp phải là một trong các lớp mà tin nhận dạy đó dạy.
+3. Ở ô **Lớp học**, chọn lớp từ danh sách lớp mà tin nhận dạy hỗ trợ.
 4. Nếu cần, điền **Preferred schedule** (lịch mong muốn) và **Message** (lời nhắn cho gia sư).
 5. Bấm **Send application**.
 

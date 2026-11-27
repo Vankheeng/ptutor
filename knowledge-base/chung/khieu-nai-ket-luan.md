@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [complaint]
 routes: [/student/notifications, /tutor/notifications, /student/contracts/:contractId/lessons]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: AdminComplaintService.startReview, accept (bắt buộc bên có lỗi), reject, complete (nội dung kết luận tối đa 5000 ký tự)"
   - "enum: ComplaintFaultParty (RESPONDENT, COMPLAINANT, BOTH, NONE); frontend pages/admin/complaintFormat.ts faultPartyLabels"
@@ -16,9 +16,7 @@ source:
   - "enum: NotificationEventType COMPLAINT_RESOLVED, COMPLAINT_REJECTED, COMPLAINT_AGAINST_YOU_RESOLVED, COMPLAINT_AGAINST_YOU_REJECTED"
 error_codes: [LESSON_COMPLETION_ON_HOLD, CONTRACT_HAS_OPEN_COMPLAINT]
 keywords: [kết luận khiếu nại, bên có lỗi, khiếu nại được chấp nhận, khiếu nại bị từ chối, xử phạt, ket luan khieu nai, ben co loi, xu phat]
-todo:
-  - "Khi kết luận một bên có lỗi, bên đó bị xử lý thế nào (cảnh cáo, khóa tài khoản, bồi thường)? Hệ thống không tự áp dụng hình phạt nào."
-  - "Tiêu chí nhân viên dùng để xác định bên có lỗi là gì?"
+todo: []
 ---
 
 # Kết luận khiếu nại, bên có lỗi, ảnh hưởng tới buổi học và hoàn tiền
@@ -40,7 +38,7 @@ Cả người khiếu nại và bên bị khiếu nại đều nhận thông bá
 
 Khi chấp nhận khiếu nại, nhân viên chọn một trong bốn kết luận về bên có lỗi: **Bên bị khiếu nại**, **Bên khiếu nại**, **Cả hai bên** hoặc **Không bên nào**.
 
-Hệ thống ghi nhận bên có lỗi nhưng không tự áp dụng hình phạt, không tự trừ tiền hay khóa tài khoản. Mọi xử lý tiếp theo do PTutor quyết định riêng.
+Hệ thống ghi nhận bên có lỗi nhưng không tự áp dụng hình phạt, không tự trừ tiền hay khóa tài khoản. Nhân viên có thể xem xét cảnh cáo hoặc khóa tài khoản bằng quy trình quản trị riêng. Kết luận khiếu nại tự nó không phát sinh khoản phạt hay khoản bồi thường.
 
 ## Ảnh hưởng tới buổi học
 
@@ -49,3 +47,7 @@ Khi hợp đồng có khiếu nại đang "Chờ tiếp nhận", "Đang xử lý
 ## Ảnh hưởng tới hoàn tiền
 
 Khi hợp đồng có khiếu nại chưa có kết luận, kế toán chưa kết luận được yêu cầu hoàn tiền của hợp đồng đó. Kết luận khiếu nại không tự hoàn tiền; muốn được hoàn học phí, học viên vẫn cần gửi yêu cầu hoàn tiền.
+
+## Cách nhân viên xem xét chứng cứ
+
+Đề xuất nhân viên đối chiếu điều khoản hợp đồng, lịch và trạng thái buổi học, giao dịch thanh toán, tài liệu có thể kiểm chứng và phản hồi của cả hai bên. Không phản hồi không mặc nhiên là nhận lỗi. Nếu chứng cứ chưa đủ, nhân viên yêu cầu bổ sung hoặc ghi rõ vì sao từ chối. Các tiêu chí này là quy định vận hành đề xuất; hệ thống chưa tự chấm điểm chứng cứ.

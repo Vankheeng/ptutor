@@ -5,17 +5,17 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [payment]
 routes: [/student/wallet, /tutor/wallet]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: WalletTransactionsPage/transactionStatusLabels và StudentPaymentInstallments"
   - "enum: PaymentStatus (PENDING, PAID, FAILED, CANCELLED, REFUNDED); PaymentType"
   - "backend: PaymentService (PENDING khi tạo link; PAID khi VNPay xác nhận; FAILED khi VNPay báo lỗi hoặc link hết hạn; CANCELLED khi trả bằng ví thay cho link đang chờ); AdminRefundRequestService (REFUNDED khi đã hoàn đủ)"
   - "frontend: pages/admin/complaintFormat.ts paymentStatusMeta (Đang chờ, Đã thanh toán, Thất bại, Đã huỷ, Đã hoàn) — giao diện người dùng không hiển thị trạng thái thanh toán"
 error_codes: []
 keywords: [trạng thái thanh toán, thanh toán thất bại, đang chờ thanh toán, đã hoàn, trang thai thanh toan, that bai, dang cho, da hoan]
-todo:
-  - "Giao diện học viên, gia sư chưa hiển thị trạng thái của từng giao dịch thanh toán; nhãn dùng trong tài liệu lấy từ trang quản trị. Admin xác nhận."
+todo: []
 ---
 
 # Giải nghĩa trạng thái thanh toán
@@ -41,3 +41,5 @@ Thanh toán "Đã hủy" là link VNPay bị bỏ vì bạn đã trả khoản �
 ## Đã hoàn
 
 Thanh toán "Đã hoàn" là khoản học phí đã được hoàn lại toàn bộ vào ví của học viên sau khi kế toán duyệt yêu cầu hoàn tiền.
+
+Trạng thái thanh toán xuất hiện trong lịch sử giao dịch ví và danh sách kỳ học phí; tên hiển thị có thể khác nhau theo loại giao dịch.

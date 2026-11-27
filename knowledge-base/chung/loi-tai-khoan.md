@@ -5,16 +5,15 @@ type: error
 audience: [PUBLIC]
 features: [account]
 routes: [/register, /login, /forgot-password]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: AuthService.register/login; ForgotPasswordService; AccountService.changePassword"
   - "frontend: pages/RegisterPage.tsx, LoginPage.tsx, ForgotPasswordPage.tsx (hiển thị nguyên câu của máy chủ trong ô báo lỗi)"
 error_codes: [EMAIL_ALREADY_EXISTS, CITIZEN_ID_ALREADY_EXISTS, DISTRICT_PROVINCE_MISMATCH, INVALID_CREDENTIALS, ACCOUNT_INACTIVE, ACCOUNT_TEMPORARILY_SUSPENDED, ACCOUNT_PERMANENTLY_SUSPENDED, EMAIL_NOT_FOUND, INVALID_OR_EXPIRED_OTP, NEW_PASSWORD_MUST_BE_DIFFERENT, PASSWORD_CONFIRMATION_MISMATCH]
 keywords: [lỗi đăng ký, lỗi đăng nhập, email đã tồn tại, sai mật khẩu, OTP hết hạn, loi dang ky, loi dang nhap, sai mat khau, otp het han]
-todo:
-  - "Người dùng bị người khác dùng mất email hoặc số CCCD để đăng ký thì xử lý thế nào, liên hệ ai?"
+todo: []
 ---
 
 # Lỗi thường gặp khi đăng ký, đăng nhập, đặt lại mật khẩu
@@ -58,3 +57,7 @@ Câu này nghĩa là mật khẩu mới trùng mật khẩu đang dùng. Cách k
 ## "Mật khẩu xác nhận không khớp"
 
 Câu này nghĩa là hai ô mật khẩu không giống nhau. Cách khắc phục: gõ lại cả hai ô cho trùng nhau.
+
+## Email hoặc CCCD đã bị dùng nhưng bạn chưa đăng ký
+
+Không tạo tài khoản khác bằng thông tin mượn của người khác. Hãy kiểm tra lại email/CCCD và dùng **Quên mật khẩu?** nếu đó là tài khoản của bạn. Nếu nghi bị đăng ký trái phép, PTutor cần xác minh danh tính thủ công; hiện người chưa đăng nhập chưa có kênh hỗ trợ chính thức được công bố trên sản phẩm. Không gửi ảnh CCCD, mật khẩu hoặc OTP qua chatbot hay cho người tự xưng là nhân viên.

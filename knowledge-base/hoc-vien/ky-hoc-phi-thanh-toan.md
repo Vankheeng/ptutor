@@ -5,17 +5,17 @@ type: guide
 audience: [STUDENT]
 features: [payment]
 routes: [/student/contracts, /student/contracts/:contractId, /student/wallet]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: StudentPaymentMethodDialog (VNPay hoặc Ví PTutor)"
   - "frontend: pages/student/StudentContractDetailPage.tsx (pay -> services/studentApi payInstallment dùng đường VNPay); components/student/StudentPaymentInstallments.tsx (Các kỳ thanh toán, Ngày đến hạn, Số tiền, Trạng thái, Thao tác, Thanh toán)"
   - "backend: PaymentController POST /students/me/contracts/{contractId}/payment-installments/{installmentId}/payments/vnpay | /wallet"
   - "backend: PaymentService.createTuitionPayment, payTuitionWithWallet (hủy link VNPay đang chờ khi trả bằng ví)"
 error_codes: [CONTRACT_NOT_ACTIVE, PAYMENT_INSTALLMENT_NOT_PAYABLE, PAYMENT_INSTALLMENT_NOT_READY, INSUFFICIENT_WALLET_BALANCE]
 keywords: [đóng học phí, thanh toán học phí, trả tiền học, thanh toán bằng ví, dong hoc phi, thanh toan hoc phi, tra tien hoc, vnpay]
-todo:
-  - "Khi nào giao diện có lựa chọn đóng học phí bằng số dư ví?"
+todo: []
 ---
 
 # Cách đóng học phí bằng VNPay hoặc ví
@@ -35,7 +35,7 @@ Link VNPay có hiệu lực 15 phút. Nếu bạn bấm **Thanh toán** lại tr
 
 ## Đóng học phí bằng số dư ví
 
-Hệ thống hỗ trợ đóng học phí bằng số dư ví: tiền được trừ ngay khỏi ví và kỳ chuyển sang "Đã thanh toán". Nếu bạn đã mở link VNPay cho kỳ đó, link đó bị hủy để không thu hai lần. Hiện giao diện chưa có nút đóng học phí bằng ví; bạn đóng qua VNPay.
+Hệ thống hỗ trợ đóng học phí bằng số dư ví: tiền được trừ ngay khỏi ví và kỳ chuyển sang "Đã thanh toán". Nếu bạn đã mở link VNPay cho kỳ đó, link đó bị hủy để không thu hai lần. Trong hộp thoại **Thanh toán kỳ**, chọn **Thanh toán bằng Ví PTutor** rồi bấm **Thanh toán bằng Ví**. Nếu số dư không đủ, chọn **Nạp tiền vào ví** hoặc thanh toán qua VNPay.
 
 ## Khi nút Thanh toán báo lỗi
 

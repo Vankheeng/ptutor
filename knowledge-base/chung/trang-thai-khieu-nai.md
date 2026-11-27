@@ -5,18 +5,17 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [complaint]
 routes: [/student/notifications, /tutor/notifications]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: ComplaintStatusBadge/ComplaintsPage"
   - "enum: ComplaintStatus (PENDING, IN_REVIEW, AWAITING_EVIDENCE, RESOLVED, REJECTED, CANCELLED)"
   - "frontend: pages/admin/complaintFormat.ts complaintStatusMeta (Chờ tiếp nhận, Đang xử lý, Chờ bằng chứng, Đã giải quyết, Đã từ chối, Đã huỷ) — chưa có trang khiếu nại cho người dùng"
   - "backend: ComplaintService; AdminComplaintService"
 error_codes: [INVALID_COMPLAINT_STATUS_TRANSITION]
 keywords: [trạng thái khiếu nại, chờ tiếp nhận, đang xử lý, chờ bằng chứng, đã giải quyết, trang thai khieu nai, cho tiep nhan, cho bang chung, da giai quyet]
-todo:
-  - "Nhãn lấy từ trang quản trị vì trang người dùng chưa có; admin xác nhận dùng cùng nhãn cho học viên và gia sư."
-  - "Khiếu nại được tiếp nhận và kết luận trong bao lâu?"
+todo: []
 ---
 
 # Giải nghĩa trạng thái khiếu nại
@@ -48,3 +47,7 @@ Khiếu nại "Đã huỷ" do người gửi hủy khi còn chờ tiếp nhận.
 ## Khiếu nại chưa có kết luận
 
 Ba trạng thái "Chờ tiếp nhận", "Đang xử lý" và "Chờ bằng chứng" là khiếu nại chưa có kết luận. Trong thời gian này, buổi học chờ xác nhận của hợp đồng bị giữ lại và yêu cầu hoàn tiền của hợp đồng chưa được kết luận.
+
+Các nhãn trạng thái trên được dùng trong giao diện khiếu nại của học viên và gia sư. Thời gian tiếp nhận, kết luận phụ thuộc xử lý của nhân viên; mã nguồn chưa có bộ đếm thời hạn chung cho mọi khiếu nại.
+
+Mã nguồn chưa áp đặt hạn kết luận khiếu nại. Dự thảo vận hành đề xuất kết luận trong 5 ngày làm việc sau khi nhận đủ chứng cứ và thông báo khi cần thêm thời gian; đây chưa phải thời hạn tự động được hệ thống bảo đảm.

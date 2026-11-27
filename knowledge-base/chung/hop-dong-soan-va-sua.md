@@ -5,17 +5,16 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [contract]
 routes: [/student/contracts, /student/contracts/:contractId, /student/studying-requests/:studyingRequestId/tutor-requests/:tutorRequestId/contracts/new]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
   - "backend: StudentContractController POST (học viên tạo từ đề nghị dạy đã chấp nhận); TutorContractController POST (gia sư tạo từ đơn đăng ký học đã chấp nhận)"
   - "backend: ContractService.createFromTutorStudentRequest, createFromStudentTutorRequest, update, updateStudentCreatedContract, updateTutorCreatedContract, updateRenewalTerms, normalizeTerms, validatePrice, validateDateRange, ensureContractableRequest"
   - "frontend: components/student/StudentContractTermsForm.tsx, StudentContractEditForm.tsx"
 error_codes: [DUPLICATE_CONTRACT, INVALID_CONTRACT_SOURCE_STATUS, INVALID_CONTRACT_APPLICATION_STATUS, CONTRACT_CREATOR_REQUIRED, CONTRACT_FIELD_NOT_EDITABLE, INVALID_CONTRACT_PRICE, INVALID_CONTRACT_DATE_RANGE, INVALID_CONTRACT_SCHEDULE, INVALID_TOTAL_LESSONS]
 keywords: [soạn hợp đồng, tạo hợp đồng, sửa hợp đồng, điều khoản hợp đồng, chu kỳ thanh toán, soan hop dong, tao hop dong, sua hop dong]
-todo:
-  - "Giá trong hợp đồng là giá cho mỗi kỳ thanh toán (mỗi buổi, mỗi tuần, mỗi tháng hoặc cả gói). Admin xác nhận cách diễn giải này với người dùng."
+todo: []
 ---
 
 # Ai soạn hợp đồng và được sửa những gì
@@ -53,3 +52,7 @@ Chu kỳ thanh toán, ngày bắt đầu và ngày kết thúc của hợp đồ
 ## Bên nhận hợp đồng làm gì
 
 Bên nhận không sửa được hợp đồng. Bên nhận chỉ ký hoặc từ chối. Sau khi hợp đồng đã ký, không bên nào sửa được nữa.
+
+## Giá được hiểu theo chu kỳ thanh toán
+
+**Giá** nhập trong hợp đồng là số tiền của **mỗi kỳ thanh toán** theo chu kỳ đã chọn: mỗi buổi, mỗi tuần, mỗi tháng hoặc cả gói. Số kỳ được hệ thống tạo sau khi hai bên ký. Vì vậy hãy kiểm tra đồng thời giá, chu kỳ, lịch học và ngày kết thúc trước khi ký; không nên hiểu giá theo tháng nếu hợp đồng chọn **Mỗi buổi**.

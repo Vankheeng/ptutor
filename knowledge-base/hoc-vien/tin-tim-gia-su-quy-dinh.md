@@ -5,9 +5,9 @@ type: policy
 audience: [STUDENT]
 features: [studying-request]
 routes: [/student/studying-requests, /student/studying-requests/new, /student/studying-requests/:requestId, /student/studying-requests/:requestId/edit]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
   - "backend: StudyingRequestController (create, update, PATCH status, POST cancel)"
   - "backend: StudyingRequestService.create/update/updateStatus/cancel/activateAfterPayment/requiresReview/validate"
@@ -16,9 +16,7 @@ source:
   - "backend: TutorStudentRequestService.accept (một tin chỉ chấp nhận một gia sư)"
 error_codes: [INVALID_STUDYING_REQUEST, INVALID_PRICE_RANGE, INVALID_STUDYING_REQUEST_STATUS_TRANSITION, STUDYING_REQUEST_ALREADY_MATCHED]
 keywords: [tin tìm gia sư, đăng tin, yêu cầu tìm gia sư, môn học khác, tạm đóng tin, hủy tin, tin tim gia su, dang tin, tam dong, huy tin, studying request]
-todo:
-  - "Tin tìm gia sư đang mở có tự hết hạn sau một thời gian không? (code không có)"
-  - "Tiêu chí PTutor dùng để duyệt hoặc từ chối tin có môn học tự nhập là gì?"
+todo: []
 ---
 
 # Quy định tin tìm gia sư: chờ duyệt, sửa, tạm đóng, hủy
@@ -53,3 +51,9 @@ Bạn hủy được tin đang là bản nháp, đang mở, đã ghép hoặc t�
 ## Chấp nhận gia sư cho tin
 
 Mỗi tin tìm gia sư chỉ chấp nhận được một gia sư. Khi bạn chấp nhận một đề xuất, tin chuyển sang "đã ghép" và không nhận thêm đề xuất mới. Bước tiếp theo là tạo hợp đồng với gia sư đó.
+
+Tin đang mở **không tự hết hạn chỉ vì đã qua một số ngày** trong mã nguồn hiện tại. Chủ tin có thể tạm đóng, mở lại hoặc hủy theo trạng thái. Với môn tự nhập, tin cần nhân viên duyệt trước khi công khai.
+
+## Tiêu chí duyệt môn tự nhập (đề xuất)
+
+Nhân viên kiểm tra môn ghi rõ ràng, phù hợp lớp, không chứa thông tin liên hệ riêng, quảng cáo hoặc nội dung trái quy định; chọn/tạo môn chuẩn tương ứng trước khi duyệt. Tin bị từ chối cần có lý do cụ thể. Đây là tiêu chí vận hành đề xuất, chưa phải bộ lọc tự động trong mã nguồn.

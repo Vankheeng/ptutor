@@ -5,7 +5,7 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [contract]
 routes: [/student/contracts, /student/contracts/:contractId]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

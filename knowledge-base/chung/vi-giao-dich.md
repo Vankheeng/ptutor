@@ -4,18 +4,18 @@ title: Xem số dư và lịch sử giao dịch ví
 type: guide
 audience: [STUDENT, TUTOR]
 features: [wallet]
-routes: [/student/wallet, /tutor/wallet]
-status: draft
+routes: [/student/wallet, /student/wallet/transactions, /tutor/wallet, /tutor/wallet/transactions]
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: WalletTransactionsPage và TransactionTable (bộ lọc, phân trang 10/20/50)"
   - "frontend: pages/common-user/WalletPage.tsx (20 giao dịch gần nhất), components/WalletBalanceCard.tsx (Available balance), components/FinancialTransactionList.tsx (mô tả, nguồn, phương thức, thời gian, số tiền)"
   - "backend: WalletController GET /api/v1/users/me/wallet; PaymentController GET /api/v1/users/me/transactions -> PaymentService.findMyTransactions"
   - "backend: Wallet.pendingBalance (tiền tạm giữ khi rút)"
 error_codes: [WALLET_NOT_FOUND, INVALID_TRANSACTION_DATE_RANGE]
 keywords: [số dư ví, lịch sử giao dịch, xem giao dịch, tiền trong ví, so du vi, lich su giao dich, xem giao dich, transactions]
-todo:
-  - "Trang ví chỉ hiện 20 giao dịch gần nhất và không có phân trang; người dùng muốn xem giao dịch cũ hơn thì làm thế nào?"
+todo: []
 ---
 
 # Xem số dư và lịch sử giao dịch ví
@@ -29,7 +29,7 @@ Khi bạn có yêu cầu rút tiền đang chờ, số tiền rút được tạ
 
 ## Xem lịch sử giao dịch ví
 
-Mục **Transactions** ở trang ví liệt kê 20 giao dịch gần nhất của bạn, gồm thanh toán và giao dịch ví. Mỗi dòng ghi mô tả, nguồn, phương thức, thời gian và số tiền. Khi chưa có giao dịch, trang hiện "No financial activity".
+Trang ví có liên kết tới **Lịch sử giao dịch**. Trang lịch sử có bộ lọc ngày, loại giao dịch, tìm kiếm và phân trang với 10, 20 hoặc 50 dòng mỗi trang; bạn có thể chuyển trang để xem giao dịch cũ hơn. Mỗi dòng ghi mô tả, nguồn, phương thức, thời gian và số tiền. Khi chưa có giao dịch, trang hiện "No financial activity".
 
 ## Mô tả giao dịch thường gặp
 

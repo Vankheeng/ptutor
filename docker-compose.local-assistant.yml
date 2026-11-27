@@ -1,0 +1,83 @@
+# Run with the existing PostgreSQL service in this Compose project:
+# docker compose -f docker-compose.yml -f docker-compose.local-assistant.yml --profile assistant up -d --no-build
+# The images below are built from this branch; the override points all services at ptutor_app_seeded.
+services:
+  backend:
+    profiles: [assistant]
+    image: ptutor-local-backend:latest
+    container_name: ptutor-unified-backend
+    restart: on-failure
+    depends_on: [postgres, assistant-service]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/ptutor_app_seeded
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      CITIZEN_ID_ENCRYPTION_KEY: ${CITIZEN_ID_ENCRYPTION_KEY:?CITIZEN_ID_ENCRYPTION_KEY must be set}
+      BANK_ACCOUNT_ENCRYPTION_KEY: ${BANK_ACCOUNT_ENCRYPTION_KEY:?BANK_ACCOUNT_ENCRYPTION_KEY must be set}
+      CORS_ALLOWED_ORIGINS: http://localhost:8089,http://127.0.0.1:8089
+      APP_ASSISTANT_ENABLED: "true"
+      APP_ASSISTANT_SERVICE_BASE_URL: http://assistant-service:8100
+      APP_ASSISTANT_SERVICE_INTERNAL_TOKEN: ${ASSISTANT_INTERNAL_TOKEN:?ASSISTANT_INTERNAL_TOKEN must be set}
+      AI_SERVICE_BASE_URL: http://ai-service:8000
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?AI_INTERNAL_TOKEN must be set}
+      PAYMENT_STUDYING_REQUEST_FEE: ${PAYMENT_STUDYING_REQUEST_FEE:-100000}
+      PAYMENT_TEACHING_REQUEST_FEE: ${PAYMENT_TEACHING_REQUEST_FEE:-100000}
+      VNPAY_TMN_CODE: LOCAL_TEST_ONLY
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:?VNPAY_HASH_SECRET must be set}
+      VNPAY_PAYMENT_URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      VNPAY_RETURN_URL: http://127.0.0.1:8091/api/v1/payments/vnpay/return
+      VNPAY_FRONTEND_RETURN_URL: http://127.0.0.1:8089/payment-result
+      VNPAY_IPN_URL: http://127.0.0.1:8091/api/v1/payments/vnpay/ipn
+    ports:
+      - "127.0.0.1:8091:8080"
+
+  assistant-service:
+    profiles: [assistant]
+    image: ptutor-local-assistant:latest
+    container_name: ptutor-unified-assistant
+    restart: on-failure
+    depends_on: [postgres, ai-service]
+    environment:
+      ASSISTANT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/ptutor_app_seeded
+      ASSISTANT_INTERNAL_TOKEN: ${ASSISTANT_INTERNAL_TOKEN:?ASSISTANT_INTERNAL_TOKEN must be set}
+      ASSISTANT_BACKEND_BASE_URL: http://backend:8080
+      ASSISTANT_TOOLS_MODE: live
+      ASSISTANT_BACKEND_JVM_TIME_ZONE: Asia/Ho_Chi_Minh
+      ASSISTANT_KNOWLEDGE_STORE: pg
+      ASSISTANT_TOKENIZER_PATH: /srv/knowledge-base/bge-m3-tokenizer.json
+      ASSISTANT_LLM_PROVIDER: openai
+      ASSISTANT_LLM_MODEL: ${ASSISTANT_LLM_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      ASSISTANT_EMBEDDING_PROVIDER: ai-service
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?AI_INTERNAL_TOKEN must be set}
+    ports:
+      - "127.0.0.1:8103:8100"
+    volumes:
+      - ./ai-service/models/bge-m3/tokenizer.json:/srv/knowledge-base/bge-m3-tokenizer.json:ro
+
+  ai-service:
+    profiles: [assistant]
+    image: ptutor-local-ai:latest
+    container_name: ptutor-unified-ai
+    restart: unless-stopped
+    environment:
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?AI_INTERNAL_TOKEN must be set}
+      AI_AUTO_DOWNLOAD: "false"
+      AI_RERANK_ENABLED: "false"
+      AI_THREADS: ${AI_THREADS:-2}
+    volumes:
+      - ./ai-service/models:/models:ro
+    ports:
+      - "127.0.0.1:8003:8000"
+
+  frontend:
+    profiles: [assistant]
+    image: ptutor-local-frontend:latest
+    container_name: ptutor-unified-frontend
+    depends_on: [backend]
+    ports:
+      - "127.0.0.1:8089:80"

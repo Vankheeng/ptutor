@@ -4,25 +4,25 @@ title: Xử lý đơn đăng ký học của học viên
 type: policy
 audience: [TUTOR]
 features: [matching]
-routes: [/tutor/sections/:section, /tutor/notifications]
-status: draft
+routes: [/tutor/sections/teaching-requests/:requestId, /tutor/applications]
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: MyTeachingRequestsPage/TeachingRequestDetailPage/TutorMyApplicationsPage"
   - "backend: StudentTutorRequestController GET, PATCH /api/v1/tutors/me/teaching-requests/{id}/student-requests/{requestId}/status"
   - "backend: StudentTutorRequestService.updateStatus (chỉ ACCEPTED/REJECTED; đơn phải PENDING; tin phải OPEN khi chấp nhận; tin MATCHED khi đủ quantity)"
-  - "frontend: không có trang cho gia sư xử lý đơn đăng ký (mục Yêu cầu dạy của tôi đang là trang Sắp ra mắt)"
+  - "frontend: MyTeachingRequestsPage, TeachingRequestDetailPage, TutorMyApplicationsPage"
 error_codes: [INVALID_STUDENT_TUTOR_REQUEST_STATUS_TRANSITION, TUTOR_PROFILE_REQUIRED]
 keywords: [đơn đăng ký học, học viên đăng ký, chấp nhận học viên, từ chối học viên, don dang ky hoc, chap nhan hoc vien, tu choi hoc vien]
-todo:
-  - "Khi nào có giao diện để gia sư xem và xử lý đơn đăng ký học? Tên trang và tên nút là gì?"
+todo: []
 ---
 
 # Xử lý đơn đăng ký học của học viên
 
 ## Giao diện xử lý đơn đăng ký học
 
-Hiện giao diện gia sư chưa có trang xem và xử lý đơn đăng ký học. Mục **Yêu cầu dạy của tôi** trong menu đang hiện "Sắp ra mắt". Khi có học viên gửi đơn, bạn vẫn nhận thông báo "New student application" trong mục **Thông báo**.
+Gia sư mở **Yêu cầu dạy của tôi** → chọn tin nhận dạy → xem đơn học viên gửi tới và chọn **Chấp nhận** hoặc **Từ chối** khi đơn còn chờ. Gia sư cũng có thể xem đơn trong **Đơn đăng ký**. Khi có đơn mới, hệ thống gửi thông báo.
 
 ## Quy định chấp nhận đơn đăng ký học
 

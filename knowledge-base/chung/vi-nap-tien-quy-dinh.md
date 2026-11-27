@@ -5,10 +5,11 @@ type: policy
 audience: [STUDENT, TUTOR]
 features: [wallet]
 routes: [/student/wallet, /tutor/wallet]
-status: draft
+status: published
 version: 1
-updated: 2026-11-03
+updated: 2026-11-27
 source:
+  - "frontend: WalletPage/WalletDialogs; backend: WithdrawalService/AdminWithdrawalService"
   - "backend: PaymentController POST /api/v1/users/me/wallet/top-ups/vnpay -> PaymentService.createWalletTopUp"
   - "backend: PaymentService.MIN_WALLET_TOP_UP = 10000, MAX_WALLET_TOP_UP = 100000000; requireWholeVnd"
   - "backend: PaymentService.activatePaidPayment -> WalletService.credit (TOP_UP)"
@@ -19,16 +20,14 @@ source:
   - "backend: PaymentController POST /api/v1/users/me/wallet/top-ups/vnpay"
 error_codes: [INVALID_WALLET_TOP_UP_AMOUNT]
 keywords: [nạp ví, nạp tiền, nạp tối thiểu, nạp tối đa, số dư ví, ví ptutor, nap vi, nap tien, toi thieu, toi da, so du vi, top up, cách nạp ví, nạp tiền vào ví, open vnpay, cach nap vi, nap tien vao vi, top up wallet]
-todo:
-  - "Số dư ví có rút ra được không, và khi nào kế toán xử lý yêu cầu rút? (hiện chưa có quy trình xử lý)"
-  - "Tiền nạp vào ví có hết hạn sử dụng không?"
+todo: []
 ---
 
 # Nạp ví: quy định và cách nạp
 
 ## Ví PTutor dùng để làm gì
 
-Mỗi tài khoản học viên và gia sư có một ví PTutor, tạo sẵn khi đăng ký với số dư 0đ. Số dư ví dùng để trả phí đăng tin và đóng học phí (khi giao diện hỗ trợ), và là nơi nhận tiền hoàn: hoàn phí đăng tin bị từ chối, hoàn học phí khi yêu cầu hoàn tiền được duyệt.
+Mỗi tài khoản học viên và gia sư có một ví PTutor, tạo sẵn khi đăng ký với số dư 0đ. Số dư ví dùng để trả phí đăng tin và đóng học phí, và là nơi nhận tiền hoàn: hoàn phí đăng tin bị từ chối, hoàn học phí khi yêu cầu hoàn tiền được duyệt.
 
 ## Mức nạp ví
 
@@ -64,3 +63,9 @@ Mỗi lần nạp từ 10.000đ đến 100.000.000đ, nhập số chẵn đồng
 ## Khi trang VNPay không mở ra
 
 Trang VNPay mở ở thẻ mới. Nếu không thấy thẻ mới, trình duyệt có thể đang chặn cửa sổ bật lên. Bạn cho phép cửa sổ bật lên cho PTutor rồi bấm **Open VNPay** lại.
+
+## Rút tiền từ ví
+
+Bạn có thể gửi yêu cầu rút từ trang ví sau khi liên kết ngân hàng và xác thực OTP. Mỗi lần rút tối thiểu 50.000đ; nhân viên PTutor duyệt và ghi nhận chuyển khoản. Mã nguồn chưa đặt thời hạn giải quyết cố định.
+
+Mã nguồn ví hiện không có tác vụ tự hết hạn số dư đã nạp. Số dư vẫn được ghi nhận cho tới khi dùng để thanh toán hoặc được xử lý qua yêu cầu rút tiền.

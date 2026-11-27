@@ -5,7 +5,7 @@ type: glossary
 audience: [STUDENT, TUTOR]
 features: [account]
 routes: [/student/support-requests, /tutor/support-requests]
-status: draft
+status: published
 version: 1
 updated: 2026-11-04
 source:

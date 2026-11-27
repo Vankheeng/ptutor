@@ -5,7 +5,7 @@ type: error
 audience: [STUDENT]
 features: [refund]
 routes: [/student/contracts/:contractId/refund-request, /student/refund-requests/:refundRequestId, /student/contracts/:contractId/lessons]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

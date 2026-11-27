@@ -5,7 +5,7 @@ type: error
 audience: [STUDENT, TUTOR]
 features: [wallet, payment]
 routes: [/student/wallet, /tutor/wallet, /student/contracts/:contractId, /student/studying-requests]
-status: draft
+status: published
 version: 1
 updated: 2026-11-02
 source:

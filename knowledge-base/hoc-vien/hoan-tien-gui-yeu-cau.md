@@ -5,10 +5,11 @@ type: guide
 audience: [STUDENT]
 features: [refund]
 routes: [/student/contracts/:contractId/lessons, /student/contracts/:contractId/refund-request, /student/refund-requests, /student/refund-requests/:refundRequestId]
-status: draft
+status: published
 version: 1
-updated: 2026-11-02
+updated: 2026-11-27
 source:
+  - "frontend: StudentRefundEvidenceField; backend: StudentRefundRequestController /evidence-upload"
   - "frontend: pages/student/StudentContractLessonsPage.tsx (Yêu cầu hoàn tiền, Xem yêu cầu hoàn tiền)"
   - "frontend: pages/student/StudentRefundRequestCreatePage.tsx (Gia sư không dạy, Tôi nghỉ buổi này, Minh chứng, Huỷ, Gửi yêu cầu)"
   - "frontend: components/refund/RefundEvidenceField.tsx (đường dẫn http:// hoặc https://)"
@@ -16,8 +17,7 @@ source:
   - "backend: StudentRefundRequestController POST, GET, PATCH /{id}/cancel (chỉ PENDING)"
 error_codes: [REFUND_REQUEST_ALREADY_OPEN, CONTRACT_NOT_REFUNDABLE, LESSON_NOT_DISPUTABLE, INVALID_REFUND_REQUEST_STATUS_TRANSITION]
 keywords: [gửi yêu cầu hoàn tiền, hủy yêu cầu hoàn tiền, theo dõi hoàn tiền, gui yeu cau hoan tien, huy yeu cau hoan tien, theo doi hoan tien]
-todo:
-  - "Minh chứng hiện chỉ nhập bằng đường dẫn, chưa tải tệp lên được; người dùng nên tải ảnh, video lên đâu để lấy đường dẫn?"
+todo: []
 ---
 
 # Cách gửi, theo dõi và hủy yêu cầu hoàn tiền
@@ -29,7 +29,7 @@ todo:
 3. Trang **Yêu cầu hoàn tiền** liệt kê các buổi đang chờ xác nhận. Chọn buổi cần hoàn.
 4. Với mỗi buổi đã chọn, chọn nguyên nhân: **Gia sư không dạy** hoặc **Tôi nghỉ buổi này**.
 5. Mô tả sự việc trong ô mô tả.
-6. Nếu có, thêm đường dẫn ảnh, video hoặc tài liệu ở mục **Minh chứng**. Đường dẫn phải bắt đầu bằng http:// hoặc https://.
+6. Nếu có minh chứng, chọn tệp ảnh, video hoặc tài liệu ở mục **Minh chứng** để tải trực tiếp lên PTutor. Bạn có thể thêm tối đa 5 tệp.
 7. Bấm **Gửi yêu cầu**.
 
 Trang báo "Đã gửi yêu cầu hoàn tiền." Nếu trang hiện "Không có buổi nào đang chờ xác nhận.", hợp đồng không còn buổi nào yêu cầu hoàn tiền được.
