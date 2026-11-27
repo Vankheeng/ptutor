@@ -44,6 +44,6 @@ Lệnh `--no-deps` ở trên dùng container `ptutor-postgres` đang chạy sẵ
 - `GET http://127.0.0.1:8003/health` cần báo `status=ready`, `embed_model=bge-m3-int8`, `llm=ready`.
 - Thử qua giao diện với tài khoản dữ liệu kiểm thử: tìm gia sư, gợi ý học viên, điền bộ lọc từ câu tự nhiên và hỏi chatbot về ví. API gợi ý cần trả kết quả từ tin đang mở; câu trả lời chatbot cần có trích dẫn.
 
-Dữ liệu học trọng số đã đạt ngưỡng cho bốn mô hình (`scripts/realistic_data/check_learning.py --database ptutor_app_seeded`). Job học trọng số chưa chạy vì đã được tạm dừng theo yêu cầu trước đó.
+Dữ liệu học trọng số đã đạt ngưỡng cho bốn mô hình (`scripts/realistic_data/check_learning.py --database ptutor_app_seeded`). Stack cục bộ đặt cả bốn mô hình ở `SHADOW` và tắt tự kích hoạt (`SPRING_APPLICATION_JSON`) vì dữ liệu học là mô phỏng.
 
 Các container demo cũ chạy ở project Compose khác không thuộc stack này. Không dùng `docker compose down -v`: lệnh đó sẽ xóa volume PostgreSQL.

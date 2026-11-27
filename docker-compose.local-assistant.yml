@@ -10,6 +10,8 @@ services:
     depends_on: [postgres, assistant-service]
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # Synthetic learning data: train and evaluate without changing served ranking weights.
+      SPRING_APPLICATION_JSON: '{"app":{"recommendation":{"learning":{"auto-activate":false,"models":{"A_S2T":{"mode":"SHADOW"},"A_T2S":{"mode":"SHADOW"},"B_S2T":{"mode":"SHADOW"},"B_T2S":{"mode":"SHADOW"}}}}}}'
       DB_URL: jdbc:postgresql://postgres:5432/ptutor_app_seeded
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
