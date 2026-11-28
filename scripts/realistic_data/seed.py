@@ -377,6 +377,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
     out = ["BEGIN;", "SET LOCAL client_encoding = 'UTF8';"]
     refreshes = []
     changed_embedding_posts = []
+    seeded_users = []
     corpus_path = Path(__file__).with_name("narratives.json")
     narratives = json.loads(corpus_path.read_text(encoding="utf-8"))
     if len(narratives) != EXPECTED_NARRATIVES:
@@ -388,6 +389,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
     for index,(surname,given,function) in enumerate((("Trần Thu","Hà","CUSTOMER_SERVICE"),("Nguyễn Minh","Quân","ACCOUNTANT"))):
         key=f"staff-{index}"
         staff_user = uid("user", key)
+        seeded_users.append(staff_user)
         staff_email = ("hotro@ptutor.local", "ketoan@ptutor.local")[index]
         out.append(insert("users",["id","citizen_id","email","password","first_name","last_name","status"],
             [q(staff_user),q(f"079900000{index:03d}"),q(staff_email),q(HASH),q(surname),q(given),q("ACTIVE")]))
@@ -405,6 +407,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             home = DISTRICTS[(i * 7) % len(DISTRICTS)]
             key = f"{role}-{i:03d}"
             user = uid("user", key)
+            seeded_users.append(user)
             level = 6 + (i * 5) % 7 if role == "student" else None
             birth_year = 2026 - (level + 6) if level is not None else 1983 + i % 19
             birth_date = f"{birth_year}-{1+i%12:02d}-{5+(i*7)%23:02d}"
@@ -521,6 +524,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             1984 + ordinal % 15 if level <= 5 else 2026 - (level + 6))
         birth_date = f"{birth_year}-{1+ordinal%12:02d}-{5+(ordinal*7)%23:02d}"
         user = uid("user", f"expanded-{role}-{ordinal}")
+        seeded_users.append(user)
         profile = uid(f"expanded-{role}", ordinal)
         email = seed_email(name, birth_year)
         user_columns = ["id", "district_id", "citizen_id", "email", "password", "first_name",
@@ -626,8 +630,13 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 out.append(insert("favorite_tutors",["id","student_id","tutor_id"],[sql_id("favorite",i),q(student),q(tutor)]))
                 contract = uid("contract",i)
                 completed=i%3==0  # Reviews are only valid after a completed contract.
+                contract_days = (2 + i % 3, 5 + i % 3)
+                contract_schedule = schedule_text(contract_days, "18:30", "20:00")
                 out.append(insert("contracts",["id","student_id","tutor_id","subject_id","grade_id","teaching_mode","price","payment_period","total_lession","start_date","end_date","status","created_by_user_id","signed_by_user_id","student_tutor_request_id","preferred_schedule","signed_at"],
-                    [q(contract),q(student),q(tutor),catalog("subjects",subject),grade(level),q(mode),price,q("PER_LESSON"),3 if completed else 12,"CURRENT_DATE - 60" if completed else "CURRENT_DATE - 20","CURRENT_DATE - 1" if completed else "CURRENT_DATE + 70",q("COMPLETED" if completed else "ACTIVE"),q(tutor_user),q(user),q(req),q("Hai buổi tối mỗi tuần"),"CURRENT_TIMESTAMP - INTERVAL '67 days'" if completed else "CURRENT_TIMESTAMP - INTERVAL '21 days'"]))
+                    [q(contract),q(student),q(tutor),catalog("subjects",subject),grade(level),q(mode),price,q("PER_LESSON"),3 if completed else 12,"CURRENT_DATE - 60" if completed else "CURRENT_DATE - 20","CURRENT_DATE - 1" if completed else "CURRENT_DATE + 70",q("COMPLETED" if completed else "ACTIVE"),q(tutor_user),q(user),q(req),q(contract_schedule),"CURRENT_TIMESTAMP - INTERVAL '67 days'" if completed else "CURRENT_TIMESTAMP - INTERVAL '21 days'"]))
+                for slot, day in enumerate(contract_days):
+                    out.append(insert("contract_schedules", ["id", "contract_id", "day_of_week", "start_time", "end_time"],
+                                      [sql_id("contract-schedule", i, slot), q(contract), day, q("18:30"), q("20:00")]))
                 if completed:
                     refreshes.append(f"UPDATE contracts SET status='COMPLETED', end_date=CURRENT_DATE - 1, total_lession=3 WHERE id={q(contract)};")
                 for k in range(3):
@@ -673,6 +682,28 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 [sql_id("wallet-tx",i),q(wallet),q("CREDIT"),q("TOP_UP"),500000,500000,0,q("COMPLETED"),q(f"realistic-data-topup-{i}"),q("Nạp tiền vào ví học viên")]))
             out.append(insert("payments",["id","user_id","amount","payment_method","payment_type","status","transaction_code","paid_at"],
                 [sql_id("payment",i),q(user),500000,q("VNPAY"),q("WALLET_TOP_UP"),q("PAID"),q(f"LOCAL-TOPUP-{i:03d}"),"CURRENT_TIMESTAMP - INTERVAL '15 days'"]))
+    # Saved searches are user-owned criteria, used by both recommendation directions.
+    # Store real catalog IDs so rerunning the search remains valid on a migrated DB.
+    if include_ai:
+        for i, (_, user, level, _) in enumerate(students[:16]):
+            subject = LEGACY_SUBJECTS[i % len(LEGACY_SUBJECTS)]
+            filters = ("jsonb_build_object('subjectId', " + catalog("subjects", subject)
+                       + ", 'gradeId', " + grade(level)
+                       + ", 'learningMode', 'ANY')")
+            context = "jsonb_build_object('filters', " + filters + ", 'semanticText', NULL)"
+            out.append(insert("recommendation_saved_searches",
+                              ["id", "user_id", "direction", "name", "query_context", "notify_enabled"],
+                              [sql_id("saved-student", i), q(user), q("STUDENT_TO_TUTOR"),
+                               q(f"Gia sư {subject} lớp {level}"), context, "true" if i % 4 else "false"]))
+        for i, (_, user, subject, level, _) in enumerate(tutors[:16]):
+            filters = ("jsonb_build_object('subjectId', " + catalog("subjects", subject)
+                       + ", 'gradeIds', jsonb_build_array(" + grade(level)
+                       + "), 'learningMode', 'ANY')")
+            context = "jsonb_build_object('filters', " + filters + ", 'semanticText', NULL)"
+            out.append(insert("recommendation_saved_searches",
+                              ["id", "user_id", "direction", "name", "query_context", "notify_enabled"],
+                              [sql_id("saved-tutor", i), q(user), q("TUTOR_TO_STUDENT"),
+                               q(f"Học viên {subject} lớp {level}"), context, "true" if i % 4 else "false"]))
     for i,(tutor,_,subject,_,_) in enumerate(tutors):
         if i>=len(tutors)-2 or i%17==0:
             continue
@@ -812,6 +843,11 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 status=("PENDING","REJECTED","COMPLETED")[i%3]
                 out.append(insert("withdrawal_requests",["id","wallet_id","amount","bank_code","bank_name","encrypted_account_number","account_number_last_four","account_holder_name","idempotency_key","status","wallet_transaction_id","reviewed_by_user_id","reviewed_at","rejection_reason","completed_at","transfer_reference"],
                     [sql_id("withdrawal",i),q(wallet),300000,q("VCB" if i%2 else "TCB"),q("Vietcombank" if i%2 else "Techcombank"),q(encrypted),q(account[-4:]),q(holder),q(f"local-withdrawal-request-{i}"),q(status),sql_id("withdrawal-tx",i) if pending or completed else "NULL","NULL" if pending else "(SELECT user_id FROM employees WHERE role=1 ORDER BY id LIMIT 1)","NULL" if pending else "CURRENT_TIMESTAMP - INTERVAL '2 days'",q("Thông tin người thụ hưởng chưa khớp") if status=="REJECTED" else "NULL","CURRENT_TIMESTAMP - INTERVAL '1 day'" if completed else "NULL",q(f"LOCAL-TRANSFER-{i:03d}") if completed else "NULL"]))
+    # Registration normally creates a wallet. Direct SQL fixtures must do the same for every
+    # account; keep existing funded wallets and their transactions untouched on reruns.
+    for user in seeded_users:
+        out.append(insert("wallets", ["id", "user_id", "balance", "pending_balance"],
+                          [sql_id("wallet-default", user), q(user), 0, 0]))
     out.extend(refreshes)
     if include_ai:
         for posting in changed_embedding_posts:

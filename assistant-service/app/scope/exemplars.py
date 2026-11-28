@@ -12,6 +12,7 @@ Vài trăm dòng → so khớp bằng quét tuần tự trong bộ nhớ, không
 from __future__ import annotations
 
 import argparse
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,12 +44,11 @@ class ScopeScores:
 
 def dataset_texts(repo_root: Path = REPO_ROOT) -> dict[str, list[str]]:
     """Câu mẫu nguồn DATASET: IN = câu hỏi tập dev, OUT = file seed."""
-    from eval.hit_at_k import load_questions
-    from eval.make_splits import load_splits
-
-    dev_docs = set(load_splits()["documents"]["dev"])
-    questions = load_questions(repo_root / "knowledge-base" / "_eval" / "cau-hoi-mau.csv")
-    in_texts = sorted({question.text for question in questions if question.doc_id in dev_docs})
+    splits_path = repo_root / "assistant-service" / "eval" / "datasets" / "SPLITS.yaml"
+    dev_docs = set(yaml.safe_load(splits_path.read_text(encoding="utf-8"))["documents"]["dev"])
+    questions_path = repo_root / "knowledge-base" / "_eval" / "cau-hoi-mau.csv"
+    with questions_path.open(encoding="utf-8-sig", newline="") as file:
+        in_texts = sorted({row["cau_hoi"] for row in csv.DictReader(file) if row["doc_id"] in dev_docs})
     out_texts = yaml.safe_load(SEED_FILE.read_text(encoding="utf-8"))["out"]
     return {"IN": in_texts, "OUT": out_texts}
 

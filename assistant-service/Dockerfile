@@ -21,6 +21,7 @@ COPY assistant-service/app app
 COPY assistant-service/migrations migrations
 COPY assistant-service/alembic.ini assistant-service/docker-entrypoint.sh ./
 COPY assistant-service/eval/__init__.py assistant-service/eval/scripted_policy.py eval/
+COPY assistant-service/eval/datasets/SPLITS.yaml eval/datasets/SPLITS.yaml
 COPY assistant-service/eval/fixtures eval/fixtures
 RUN chmod +x docker-entrypoint.sh
 USER assistant
