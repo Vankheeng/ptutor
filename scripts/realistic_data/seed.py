@@ -809,6 +809,80 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 payload={**common,**features}
                 out.append(insert("recommendation_decision_snapshots",["model_key","sample_kind","request_type","request_id","features","created_at"],
                     [q(model),q(kind),q("TUTOR_STUDENT_REQUEST"),q(req),q(json.dumps(payload))+"::jsonb",f"CURRENT_TIMESTAMP - INTERVAL '{age} days'"]))
+        # SQL fixtures bypass the application event listener. Queue the real profile worker for
+        # people with interaction logs; it derives preference vectors from those recorded signals.
+        out.append("""
+            INSERT INTO ai_enrichment_jobs
+                (id, job_type, entity_type, entity_id, status, attempts,
+                 next_attempt_at, created_at, updated_at)
+            SELECT gen_random_uuid(), 'PROFILE_UPDATE', person.entity_type, person.entity_id,
+                   'PENDING', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            FROM (
+                SELECT DISTINCT 'STUDENT' AS entity_type, l.searcher_student_id AS entity_id
+                FROM recommendation_click_logs cl JOIN recommendation_logs l
+                  ON l.id = cl.recommendation_log_id
+                WHERE l.searcher_student_id IS NOT NULL
+                UNION ALL
+                SELECT DISTINCT 'TUTOR', l.searcher_tutor_id
+                FROM recommendation_click_logs cl JOIN recommendation_logs l
+                  ON l.id = cl.recommendation_log_id
+                WHERE l.searcher_tutor_id IS NOT NULL
+            ) person
+            WHERE NOT EXISTS (
+                SELECT 1 FROM recommendation_user_profiles p
+                JOIN students s ON s.user_id = p.user_id
+                WHERE person.entity_type = 'STUDENT' AND s.id = person.entity_id
+                UNION ALL
+                SELECT 1 FROM recommendation_user_profiles p
+                JOIN tutors t ON t.user_id = p.user_id
+                WHERE person.entity_type = 'TUTOR' AND t.id = person.entity_id
+            )
+            ON CONFLICT (job_type, entity_type, entity_id)
+                WHERE status IN ('PENDING', 'PROCESSING') DO NOTHING;
+        """)
+        # The nightly exposure job uses the same sources. Materialize them now so exploration
+        # works immediately in a freshly restored demo database.
+        out.append("""
+            INSERT INTO recommendation_exposure_stats
+                (candidate_type, candidate_id, impressions_7d, clicks_7d,
+                 impressions_total, clicks_total, updated_at)
+            SELECT candidate_type, candidate_id,
+                   SUM(impression_7d), SUM(click_7d), SUM(impression), SUM(click), CURRENT_TIMESTAMP
+            FROM (
+                SELECT CASE WHEN l.direction = 'STUDENT_TO_TUTOR' THEN 'TEACHING_REQUEST'
+                            ELSE 'STUDYING_REQUEST' END AS candidate_type,
+                       (candidate ->> 'candidateId')::uuid AS candidate_id,
+                       CASE WHEN l.created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+                            THEN 1 ELSE 0 END AS impression_7d,
+                       0 AS click_7d, 1 AS impression, 0 AS click
+                FROM recommendation_logs l
+                CROSS JOIN LATERAL jsonb_array_elements(l.returned_candidate_ids) candidate
+                WHERE l.deleted_at IS NULL AND l.direction IS NOT NULL
+                  AND jsonb_typeof(l.returned_candidate_ids) = 'array'
+                  AND (candidate ->> 'rank')::integer <= 20
+                UNION ALL
+                SELECT CASE WHEN cl.candidate_teaching_request_id IS NOT NULL
+                            THEN 'TEACHING_REQUEST' ELSE 'STUDYING_REQUEST' END,
+                       COALESCE(cl.candidate_teaching_request_id,
+                                cl.candidate_studying_request_id),
+                       0,
+                       CASE WHEN MAX(cl.created_at) >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+                            THEN 1 ELSE 0 END,
+                       0, 1
+                FROM recommendation_click_logs cl
+                WHERE cl.deleted_at IS NULL AND cl.action <> 'DISMISSED'
+                  AND COALESCE(cl.candidate_teaching_request_id,
+                               cl.candidate_studying_request_id) IS NOT NULL
+                GROUP BY cl.recommendation_log_id, 1, 2
+            ) counted
+            GROUP BY candidate_type, candidate_id
+            ON CONFLICT (candidate_type, candidate_id) DO UPDATE SET
+                impressions_7d = EXCLUDED.impressions_7d,
+                clicks_7d = EXCLUDED.clicks_7d,
+                impressions_total = EXCLUDED.impressions_total,
+                clicks_total = EXCLUDED.clicks_total,
+                updated_at = EXCLUDED.updated_at;
+        """)
     if include_chatbot:
         # A real support queue is more useful than fabricated assistant answers or citations.
         for i in range(36):
