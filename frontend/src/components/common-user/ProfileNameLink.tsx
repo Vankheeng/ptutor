@@ -4,10 +4,14 @@ import type { ReactNode } from 'react';
 export function ProfileNameLink({
   role,
   profileId,
+  returnTo,
+  returnLabel,
   children
 }: {
   role: 'student' | 'tutor';
   profileId?: string | null;
+  returnTo?: string;
+  returnLabel?: string;
   children: ReactNode;
 }) {
   if (!profileId) return <>{children}</>;
@@ -16,6 +20,7 @@ export function ProfileNameLink({
     <Link
       className="profile-name-link"
       to={path}
+      state={returnTo ? { profileReturnTo: returnTo, profileReturnLabel: returnLabel } : undefined}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >

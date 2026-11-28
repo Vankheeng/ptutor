@@ -1,12 +1,18 @@
 package com.ptutor.backend.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ptutor.backend.dto.request.ReviewCreateRequest;
 import com.ptutor.backend.dto.response.PublicReviewResponse;
 import com.ptutor.backend.dto.response.ReviewResponse;
+import com.ptutor.backend.dto.response.PageResponse;
+import com.ptutor.backend.dto.response.TutorReviewOverviewResponse;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Review;
 import com.ptutor.backend.entity.enums.ContractStatus;
@@ -44,6 +52,45 @@ public class ReviewService {
                 FEATURED_RATING, PageRequest.of(0, normalizeLimit(requestedLimit))).stream()
                 .map(reviewMapper::toPublicResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TutorReviewOverviewResponse findTutorReviewOverview(UUID tutorId, Pageable pageable) {
+        Map<Integer, Long> counts = new HashMap<>();
+        reviewRepository.countRatingsByTutorId(tutorId)
+                .forEach(item -> counts.put(item.getRating(), item.getReviewCount()));
+
+        long totalReviews = counts.values().stream().mapToLong(Long::longValue).sum();
+        long weightedTotal = counts.entrySet().stream()
+                .mapToLong(entry -> (long) entry.getKey() * entry.getValue())
+                .sum();
+        BigDecimal averageRating = totalReviews == 0
+                ? BigDecimal.ZERO
+                : BigDecimal.valueOf(weightedTotal)
+                        .divide(BigDecimal.valueOf(totalReviews), 2, RoundingMode.HALF_UP);
+
+        List<TutorReviewOverviewResponse.RatingDistribution> distribution = new ArrayList<>(5);
+        for (int rating = 5; rating >= 1; rating--) {
+            long count = counts.getOrDefault(rating, 0L);
+            BigDecimal percentage = totalReviews == 0
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(count * 100L)
+                            .divide(BigDecimal.valueOf(totalReviews), 1, RoundingMode.HALF_UP);
+            distribution.add(new TutorReviewOverviewResponse.RatingDistribution(rating, count, percentage));
+        }
+
+        org.springframework.data.domain.Page<Review> comments =
+                reviewRepository.findCommentedByTutorId(tutorId, pageable);
+        List<PublicReviewResponse> commentResponses = comments.getContent().stream()
+                .map(reviewMapper::toPublicResponse)
+                .toList();
+
+        return new TutorReviewOverviewResponse(
+                averageRating,
+                totalReviews,
+                comments.getTotalElements(),
+                List.copyOf(distribution),
+                PageResponse.from(comments, commentResponses));
     }
 
     @Transactional

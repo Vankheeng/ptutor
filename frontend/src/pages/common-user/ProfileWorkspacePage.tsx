@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { useResource } from '../../hooks/useResource';
 import { certificateStatusMeta, profileStatusMeta, splitTags } from '../admin/adminFormat';
@@ -26,12 +26,14 @@ import { StudentProfilePage } from '../student/StudentProfilePage';
 import { TutorCertificatesPage } from '../tutor/TutorCertificatesPage';
 import { TutorProfilePage } from '../tutor/TutorProfilePage';
 import { SharedProfileContracts } from './SharedProfileContracts';
+import { TutorRatingStars } from './TutorRatingStars';
+import { TutorReviewsTab } from './TutorReviewsTab';
 import '../admin/admin.css';
 import './profile-workspace.css';
 
 type SubjectRole = 'student' | 'tutor';
 type Profile = StudentProfile | PublicStudentProfile | TutorProfile | PublicTutorProfile;
-type Tab = 'overview' | 'edit' | 'certificates' | 'contracts';
+type Tab = 'overview' | 'edit' | 'certificates' | 'reviews' | 'contracts';
 
 interface Props {
   subjectRole: SubjectRole;
@@ -96,6 +98,20 @@ function CertificateList({ certificates }: { certificates: TutorCertificate[] | 
 export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
   const { updateProfile } = useAuth();
   const { profileId = '' } = useParams();
+  const routerLocation = useLocation();
+  const publicTutorView = subjectRole === 'tutor' && !own;
+  const returnState = routerLocation.state as
+    { profileReturnTo?: unknown; profileReturnLabel?: unknown } | null | undefined;
+  const contextualReturnTo =
+    publicTutorView &&
+    typeof returnState?.profileReturnTo === 'string' &&
+    returnState.profileReturnTo.startsWith('/student/teaching-requests/')
+      ? returnState.profileReturnTo
+      : null;
+  const contextualReturnLabel =
+    contextualReturnTo && typeof returnState?.profileReturnLabel === 'string'
+      ? returnState.profileReturnLabel
+      : 'Quay lại danh sách';
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   const loadSharedCount = useCallback(
@@ -114,7 +130,9 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
         ? 'contracts'
         : requestedTab === 'certificates' && subjectRole === 'tutor'
           ? 'certificates'
-          : 'overview';
+          : requestedTab === 'reviews' && publicTutorView
+            ? 'reviews'
+            : 'overview';
   const [certificateState, setCertificateState] = useState<{ tutorId: string; items: TutorCertificate[] } | null>(null);
   const [error, setError] = useState('');
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -138,7 +156,7 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
   const certificates = certificateState?.tutorId === tutorId ? certificateState.items : null;
 
   useEffect(() => {
-    if (!tutorId || (tab !== 'certificates' && tab !== 'overview')) return;
+    if (!tutorId || (tab !== 'certificates' && (!own || tab !== 'overview'))) return;
     const controller = new AbortController();
     (own ? getTutorCertificates(controller.signal) : getPublicTutorCertificates(tutorId, controller.signal))
       .then((items) => {
@@ -156,7 +174,7 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
   const setTab = (next: Tab) => {
     setError('');
     if (next === 'overview' || next === 'certificates') setCertificateState(null);
-    setSearchParams(next === 'overview' ? {} : { tab: next });
+    setSearchParams(next === 'overview' ? {} : { tab: next }, { state: routerLocation.state });
   };
   if (requestedTab === 'contracts' && sharedCount.isLoading)
     return <div className="profile-state">Đang tải hợp đồng…</div>;
@@ -232,6 +250,14 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
         ['Học viên đã dạy', tutor.totalStudentsTaught]
       ])
     : [];
+  const publicTutorActivityFields = tutor
+    ? populated([
+        ['Hợp đồng hoàn thành', tutor.completedContractsCount],
+        ['Học viên đã dạy', tutor.totalStudentsTaught]
+      ])
+    : [];
+  const rating = !tutor || tutor.averageRating === null ? null : Math.min(5, Math.max(0, Number(tutor.averageRating)));
+  const hasRating = Boolean(tutor && tutor.totalReviews > 0 && rating !== null);
   const uploadAvatar = async (file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
@@ -255,22 +281,46 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
   return (
     <main className="profile-workspace">
       {!own && (
-        <Link className="profile-back" to={subjectRole === 'tutor' ? '/student/tutor-offers' : '/tutor/students'}>
-          ← Quay lại danh sách
+        <Link
+          className={publicTutorView ? 'profile-back profile-public-tutor-back' : 'profile-back'}
+          to={contextualReturnTo ?? (subjectRole === 'tutor' ? '/student/tutor-offers' : '/tutor/students')}
+        >
+          ← {contextualReturnLabel}
         </Link>
       )}
-      <header className="profile-hero">
+      <header className={publicTutorView ? 'profile-hero profile-public-tutor-hero' : 'profile-hero'}>
         <div className="profile-avatar">
           {profile.avatarUrl ? <img src={profile.avatarUrl} alt="Ảnh đại diện" /> : name.charAt(0).toUpperCase()}
         </div>
         <div className="profile-hero-info">
-          <span className="profile-eyebrow">{subjectRole === 'tutor' ? 'HỒ SƠ GIA SƯ' : 'HỒ SƠ HỌC VIÊN'}</span>
+          {!publicTutorView && (
+            <span className="profile-eyebrow">{subjectRole === 'tutor' ? 'HỒ SƠ GIA SƯ' : 'HỒ SƠ HỌC VIÊN'}</span>
+          )}
           <h1>{name}</h1>
-          <p>
-            {subjectRole === 'tutor' ? 'Gia sư' : 'Học viên'}
-            {own ? ' · Hồ sơ của tôi' : ''}
-            {location ? ` · ${location}` : ''}
-          </p>
+          {publicTutorView ? (
+            <div className="profile-public-tutor-summary">
+              <span>Gia sư</span>
+              {hasRating && rating !== null ? (
+                <div
+                  className="profile-public-tutor-rating"
+                  aria-label={`${rating.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} trên 5 sao`}
+                >
+                  <TutorRatingStars rating={rating} />
+                  <strong>
+                    {rating.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5
+                  </strong>
+                </div>
+              ) : (
+                <span className="profile-public-tutor-unrated">Chưa có đánh giá</span>
+              )}
+            </div>
+          ) : (
+            <p>
+              {subjectRole === 'tutor' ? 'Gia sư' : 'Học viên'}
+              {own ? ' · Hồ sơ của tôi' : ''}
+              {location ? ` · ${location}` : ''}
+            </p>
+          )}
         </div>
         {ownTutor && (
           <div className="profile-photo-control">
@@ -309,6 +359,11 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
             onClick={() => setTab('certificates')}
           >
             Chứng chỉ
+          </button>
+        )}
+        {publicTutorView && (
+          <button type="button" className={tab === 'reviews' ? 'active' : ''} onClick={() => setTab('reviews')}>
+            Đánh giá
           </button>
         )}
         {hasSharedContracts && (
@@ -350,12 +405,13 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
           viewerRole={subjectRole === 'tutor' ? 'student' : 'tutor'}
         />
       )}
-      {tab === 'overview' && (
-        <div className="profile-overview admin-columns">
-          <div className="admin-column-main">
-            {personalFields.length > 0 && (
-              <Section title="Thông tin cá nhân">
-                <DefinitionGrid columns={3} items={personalFields} />
+      {tab === 'reviews' && publicTutorView && tutorId && <TutorReviewsTab tutorId={tutorId} />}
+      {tab === 'overview' &&
+        (publicTutorView && tutor ? (
+          <div className="profile-public-tutor-overview">
+            {teachingFields.length > 0 && (
+              <Section title="Hồ sơ giảng dạy">
+                <DefinitionGrid items={teachingFields} />
               </Section>
             )}
             {profile.introduction?.trim() && (
@@ -363,80 +419,118 @@ export function ProfileWorkspacePage({ subjectRole, own = false }: Props) {
                 <p className="admin-prose">{profile.introduction}</p>
               </Section>
             )}
-            {student && (studentFields.length > 0 || studentTags.length > 0) && (
-              <Section title="Hồ sơ học tập">
-                {studentTags.length > 0 && (
+            {(teachingTags.length > 0 || tutor.teachingMethodology?.trim()) && (
+              <Section title="Phong cách & phương pháp giảng dạy">
+                {teachingTags.length > 0 && (
                   <div className="admin-tags">
-                    {studentTags.map((tag) => (
+                    {teachingTags.map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
                 )}
-                {studentFields.length > 0 && <DefinitionGrid items={studentFields} />}
+                {tutor.teachingMethodology?.trim() && <p className="admin-prose">{tutor.teachingMethodology}</p>}
               </Section>
             )}
-            {tutor && (
-              <>
-                {teachingFields.length > 0 && (
-                  <Section title="Hồ sơ giảng dạy">
-                    <DefinitionGrid items={teachingFields} />
-                  </Section>
-                )}
-                {(teachingTags.length > 0 || tutor.teachingMethodology?.trim()) && (
-                  <Section title="Phong cách & phương pháp giảng dạy">
-                    {teachingTags.length > 0 && (
-                      <div className="admin-tags">
-                        {teachingTags.map((tag) => (
-                          <span key={tag}>{tag}</span>
-                        ))}
-                      </div>
-                    )}
-                    {tutor.teachingMethodology?.trim() && <p className="admin-prose">{tutor.teachingMethodology}</p>}
-                  </Section>
-                )}
-                <Section title="Chứng chỉ">
-                  <CertificateList certificates={certificates} />
-                </Section>
-              </>
+            {publicTutorActivityFields.length > 0 && (
+              <Section title="Hoạt động">
+                <div className="profile-public-tutor-activity">
+                  {publicTutorActivityFields.map(([label, value]) => (
+                    <div key={label}>
+                      <strong>{value}</strong>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </Section>
             )}
           </div>
-          {(showReviewSummary || activityFields.length > 0) && (
-            <aside className="admin-column-side">
-              {showReviewSummary && (
-                <Section title="Trạng thái duyệt">
-                  <div className="admin-key-values">
-                    <div>
-                      <span>Hồ sơ</span>
-                      <StatusBadge meta={profileStatusMeta[ownTutor.profileStatus]} />
+        ) : (
+          <div className="profile-overview admin-columns">
+            <div className="admin-column-main">
+              {personalFields.length > 0 && (
+                <Section title="Thông tin cá nhân">
+                  <DefinitionGrid columns={3} items={personalFields} />
+                </Section>
+              )}
+              {profile.introduction?.trim() && (
+                <Section title="Giới thiệu">
+                  <p className="admin-prose">{profile.introduction}</p>
+                </Section>
+              )}
+              {student && (studentFields.length > 0 || studentTags.length > 0) && (
+                <Section title="Hồ sơ học tập">
+                  {studentTags.length > 0 && (
+                    <div className="admin-tags">
+                      {studentTags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
                     </div>
-                    {certificates && (
+                  )}
+                  {studentFields.length > 0 && <DefinitionGrid items={studentFields} />}
+                </Section>
+              )}
+              {tutor && (
+                <>
+                  {teachingFields.length > 0 && (
+                    <Section title="Hồ sơ giảng dạy">
+                      <DefinitionGrid items={teachingFields} />
+                    </Section>
+                  )}
+                  {(teachingTags.length > 0 || tutor.teachingMethodology?.trim()) && (
+                    <Section title="Phong cách & phương pháp giảng dạy">
+                      {teachingTags.length > 0 && (
+                        <div className="admin-tags">
+                          {teachingTags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      {tutor.teachingMethodology?.trim() && <p className="admin-prose">{tutor.teachingMethodology}</p>}
+                    </Section>
+                  )}
+                  <Section title="Chứng chỉ">
+                    <CertificateList certificates={certificates} />
+                  </Section>
+                </>
+              )}
+            </div>
+            {(showReviewSummary || activityFields.length > 0) && (
+              <aside className="admin-column-side">
+                {showReviewSummary && (
+                  <Section title="Trạng thái duyệt">
+                    <div className="admin-key-values">
                       <div>
-                        <span>Chứng chỉ đã xác minh</span>
-                        <strong>
-                          {certificates.filter((certificate) => certificate.status === 'VERIFIED').length}/
-                          {certificates.length}
-                        </strong>
+                        <span>Hồ sơ</span>
+                        <StatusBadge meta={profileStatusMeta[ownTutor.profileStatus]} />
                       </div>
-                    )}
-                  </div>
-                </Section>
-              )}
-              {activityFields.length > 0 && (
-                <Section title="Hoạt động">
-                  <div className="admin-key-values">
-                    {activityFields.map(([label, value]) => (
-                      <div key={label}>
-                        <span>{label}</span>
-                        <strong>{value}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-            </aside>
-          )}
-        </div>
-      )}
+                      {certificates && (
+                        <div>
+                          <span>Chứng chỉ đã xác minh</span>
+                          <strong>
+                            {certificates.filter((certificate) => certificate.status === 'VERIFIED').length}/
+                            {certificates.length}
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  </Section>
+                )}
+                {activityFields.length > 0 && (
+                  <Section title="Hoạt động">
+                    <div className="admin-key-values">
+                      {activityFields.map(([label, value]) => (
+                        <div key={label}>
+                          <span>{label}</span>
+                          <strong>{value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </Section>
+                )}
+              </aside>
+            )}
+          </div>
+        ))}
     </main>
   );
 }

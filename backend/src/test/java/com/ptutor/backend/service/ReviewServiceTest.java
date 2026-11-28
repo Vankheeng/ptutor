@@ -3,10 +3,13 @@ package com.ptutor.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,10 +25,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 
 import com.ptutor.backend.dto.request.ReviewCreateRequest;
 import com.ptutor.backend.dto.response.ReviewResponse;
+import com.ptutor.backend.dto.response.TutorReviewOverviewResponse;
 import com.ptutor.backend.entity.Contract;
 import com.ptutor.backend.entity.Review;
 import com.ptutor.backend.entity.Student;
@@ -105,6 +111,28 @@ class ReviewServiceTest {
     }
 
     @Test
+    void summarizesAllRatingsAndReturnsEveryRatingLevel() {
+        ReviewRepository.RatingCount fiveStars = ratingCount(5, 7);
+        ReviewRepository.RatingCount fourStars = ratingCount(4, 2);
+        ReviewRepository.RatingCount threeStars = ratingCount(3, 1);
+        PageRequest pageable = PageRequest.of(0, 5);
+        when(reviewRepository.countRatingsByTutorId(tutorId))
+                .thenReturn(List.of(fiveStars, fourStars, threeStars));
+        when(reviewRepository.findCommentedByTutorId(tutorId, pageable)).thenReturn(Page.empty(pageable));
+
+        TutorReviewOverviewResponse response = service.findTutorReviewOverview(tutorId, pageable);
+
+        assertThat(response.averageRating()).isEqualByComparingTo(new BigDecimal("4.60"));
+        assertThat(response.totalReviews()).isEqualTo(10);
+        assertThat(response.commentCount()).isZero();
+        assertThat(response.distribution()).extracting(TutorReviewOverviewResponse.RatingDistribution::rating)
+                .containsExactly(5, 4, 3, 2, 1);
+        assertThat(response.distribution()).extracting(TutorReviewOverviewResponse.RatingDistribution::count)
+                .containsExactly(7L, 2L, 1L, 0L, 0L);
+        assertThat(response.distribution().getFirst().percentage()).isEqualByComparingTo(new BigDecimal("70.0"));
+    }
+
+    @Test
     void rejectsContractThatDoesNotBelongToStudent() {
         when(contractRepository.findDetailedByIdAndStudentUserId(contractId, userId)).thenReturn(Optional.empty());
 
@@ -160,6 +188,13 @@ class ReviewServiceTest {
     private void verifyNothingSavedOrPublished() {
         verify(reviewRepository, never()).saveAndFlush(any());
         verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    private ReviewRepository.RatingCount ratingCount(int rating, long count) {
+        ReviewRepository.RatingCount value = mock(ReviewRepository.RatingCount.class);
+        when(value.getRating()).thenReturn(rating);
+        when(value.getReviewCount()).thenReturn(count);
+        return value;
     }
 
     private Contract contract(ContractStatus status) {

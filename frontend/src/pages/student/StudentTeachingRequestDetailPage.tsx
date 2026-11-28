@@ -135,7 +135,12 @@ export function StudentTeachingRequestDetailPage() {
             <span>
               Đăng bởi{' '}
               <strong>
-                <ProfileNameLink role="tutor" profileId={request.tutorId}>
+                <ProfileNameLink
+                  role="tutor"
+                  profileId={request.tutorId}
+                  returnTo={`/student/teaching-requests/${encodeURIComponent(request.id)}`}
+                  returnLabel="Quay lại trang chi tiết yêu cầu của gia sư"
+                >
                   {request.tutorName || 'Gia sư'}
                 </ProfileNameLink>
               </strong>
