@@ -4839,6 +4839,255 @@
   font-size: 10px;
 }
 
+/* Student contract tutor review */
+.student-contract-review-complete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  gap: 7px;
+  border: 1px solid #d9c9f5;
+  border-radius: 9px;
+  background: #f4edff;
+  color: #6940c9;
+  font-size: 11px;
+  font-weight: 800;
+}
+.student-review-dialog-backdrop {
+  position: fixed;
+  z-index: 1300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(17 12 31 / 58%);
+}
+.student-review-dialog {
+  width: min(586px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid #e4d7f5;
+  border-radius: 18px;
+  background: #fff;
+  color: #2d2342;
+  box-shadow: 0 24px 70px rgb(24 12 50 / 28%);
+}
+.student-review-dialog form {
+  display: flex;
+  flex-direction: column;
+}
+.student-review-dialog-header {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 13px;
+  padding: 22px 25px 16px;
+}
+.student-review-dialog-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  background: #eee7ff;
+  color: #7145d5;
+  font-size: 26px;
+  line-height: 1;
+}
+.student-review-dialog-header h2 {
+  margin: 0;
+  color: #2c2240;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+.student-review-dialog-header p {
+  margin: 5px 0 0;
+  color: #746b86;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.student-review-dialog-close {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #746b86;
+  font-size: 27px;
+  line-height: 1;
+  cursor: pointer;
+}
+.student-review-dialog-close:hover:not(:disabled) {
+  background: #f4f0fa;
+  color: #4f3b72;
+}
+.student-review-dialog-close:focus-visible,
+.student-review-stars button:focus-visible {
+  outline: 3px solid rgb(113 69 213 / 25%);
+  outline-offset: 2px;
+}
+.student-review-dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.student-review-dialog-contract {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 44px;
+  margin: 0 25px;
+  padding: 10px 15px;
+  gap: 7px;
+  border-radius: 10px;
+  background: #f6f1fb;
+  color: #6f6681;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.student-review-dialog-body {
+  display: grid;
+  gap: 20px;
+  padding: 20px 25px 18px;
+}
+.student-review-rating-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.student-review-rating-fieldset legend,
+.student-review-comment-field > span:first-child {
+  margin: 0;
+  color: #302641;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.student-review-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 14px;
+}
+.student-review-stars button {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #806baa;
+  font-family: Arial, sans-serif;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+.student-review-stars button:hover:not(:disabled) {
+  background: #f7f2ff;
+  color: #7040d5;
+  transform: translateY(-1px);
+}
+.student-review-stars button.selected {
+  color: #7040d5;
+}
+.student-review-stars button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.student-review-rating-fieldset > p {
+  min-height: 20px;
+  margin: 3px 0 0;
+  color: #777086;
+  font-size: 13px;
+  text-align: center;
+}
+.student-review-rating-fieldset > p.selected {
+  color: #6840bf;
+  font-weight: 700;
+}
+.student-review-comment-field {
+  display: grid;
+  gap: 7px;
+}
+.student-review-comment-control {
+  position: relative;
+  display: block;
+}
+.student-review-comment-control textarea {
+  display: block;
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 12px 14px 30px;
+  border: 1px solid #dcd0ed;
+  border-radius: 11px;
+  background: #fff;
+  color: #342b45;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  outline: none;
+}
+.student-review-comment-control textarea::placeholder {
+  color: #948ba2;
+}
+.student-review-comment-control textarea:focus {
+  border-color: #8b62dc;
+  box-shadow: 0 0 0 3px rgb(113 69 213 / 11%);
+}
+.student-review-comment-control textarea:disabled {
+  cursor: wait;
+  background: #faf8fc;
+}
+.student-review-comment-control small {
+  position: absolute;
+  right: 13px;
+  bottom: 9px;
+  color: #70677e;
+  font-size: 11px;
+  pointer-events: none;
+}
+.student-review-dialog-error {
+  padding: 10px 12px;
+  border: 1px solid #f2b7b3;
+  border-radius: 9px;
+  background: #fff3f2;
+  color: #b23d37;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.student-review-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 11px;
+  padding: 13px 25px;
+  border-top: 1px solid #e9e1f0;
+  background: #fff;
+}
+.student-review-dialog-footer .student-button {
+  min-width: 76px;
+  min-height: 38px;
+}
+.student-review-dialog-footer .student-button.primary {
+  min-width: 155px;
+}
+.student-review-dialog-footer .student-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 600px) {
   .student-studying-request-detail-actions {
     flex: 1 1 100%;

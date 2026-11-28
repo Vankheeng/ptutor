@@ -28,7 +28,9 @@ import { StudentContractRenewalForm } from '../../components/student/StudentCont
 import { StudentContractStatusBadge } from '../../components/student/StudentContractStatusBadge';
 import { StudentPaymentInstallments } from '../../components/student/StudentPaymentInstallments';
 import { StudentPaymentMethodDialog } from '../../components/student/StudentPaymentMethodDialog';
+import { StudentTutorReviewDialog } from '../../components/student/StudentTutorReviewDialog';
 import { Icon } from '../../components/ui/Icon';
+import { createContractReview } from '../../services/reviewApi';
 
 export function StudentContractDetailPage() {
   const { contractId = '' } = useParams();
@@ -43,6 +45,10 @@ export function StudentContractDetailPage() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState('');
   const [paymentError, setPaymentError] = useState('');
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const load = useCallback(async () => {
     const item = await getContract(contractId);
     const installments = item.status === 'ACTIVE' ? await getInstallments(contractId) : [];
@@ -132,6 +138,41 @@ export function StudentContractDetailPage() {
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const openReviewDialog = () => {
+    setReviewError('');
+    setReviewDialogOpen(true);
+  };
+
+  const closeReviewDialog = () => {
+    if (reviewSubmitting) return;
+    setReviewDialogOpen(false);
+    setReviewError('');
+  };
+
+  const submitReview = async (rating: number, comment: string) => {
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      await createContractReview(contractId, {
+        rating,
+        comment: comment.trim() || null
+      });
+      setReviewSubmitted(true);
+      setReviewDialogOpen(false);
+      setNotice('Đã gửi đánh giá gia sư thành công.');
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'REVIEW_ALREADY_EXISTS') {
+        setReviewSubmitted(true);
+        setReviewDialogOpen(false);
+        setNotice('Hợp đồng này đã được đánh giá trước đó.');
+      } else {
+        setReviewError(reviewErrorMessage(caught));
+      }
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -263,6 +304,16 @@ export function StudentContractDetailPage() {
 
       {contract.status !== 'PENDING' && (
         <div className="student-form-actions student-contract-related-actions">
+          {contract.status === 'COMPLETED' &&
+            (reviewSubmitted ? (
+              <span className="student-contract-review-complete" role="status">
+                <span aria-hidden="true">★</span> Đã đánh giá
+              </span>
+            ) : (
+              <button className="student-button primary" type="button" onClick={openReviewDialog}>
+                <span aria-hidden="true">★</span> Đánh giá gia sư
+              </button>
+            ))}
           <Link className="student-button secondary" to={`/student/complaints/new?contractId=${contract.id}`}>
             Khiếu nại hợp đồng
           </Link>
@@ -295,8 +346,30 @@ export function StudentContractDetailPage() {
           onPayWallet={() => void payWithWallet()}
         />
       )}
+      {reviewDialogOpen && contract.status === 'COMPLETED' && !reviewSubmitted && (
+        <StudentTutorReviewDialog
+          contract={contract}
+          busy={reviewSubmitting}
+          error={reviewError}
+          onClose={closeReviewDialog}
+          onSubmit={(rating, comment) => void submitReview(rating, comment)}
+        />
+      )}
     </>
   );
+}
+
+function reviewErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    const messages: Record<string, string> = {
+      CONTRACT_NOT_COMPLETED: 'Chỉ có thể đánh giá sau khi hợp đồng đã hoàn tất.',
+      CONTRACT_NOT_FOUND: 'Không tìm thấy hợp đồng cần đánh giá.',
+      VALIDATION_ERROR: 'Thông tin đánh giá chưa hợp lệ. Vui lòng kiểm tra lại.'
+    };
+    return messages[error.code] ?? error.message;
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return 'Không thể gửi đánh giá. Vui lòng thử lại.';
 }
 
 function studentContractError(error: unknown) {
