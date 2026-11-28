@@ -13,6 +13,8 @@ python scripts/realistic_data/seed.py --load --database ptutor_realistic_data
 
 Khi đã tích hợp migration từ `feat/tutor-recommendation`, thêm `--ai` để nạp snapshot cho hai mô hình học mức sẵn sàng (`B_S2T`, `B_T2S`). Khi đã tích hợp migration từ `feat/support-chatbot-reference`, thêm `--chatbot` để nạp hàng chờ yêu cầu hỗ trợ. Dùng `--finance` để tạo tài khoản ngân hàng đã mã hóa và yêu cầu rút tiền; cờ này cần `BANK_ACCOUNT_ENCRYPTION_KEY` (hoặc `CITIZEN_ID_ENCRYPTION_KEY`) trùng với backend, lấy từ biến môi trường hoặc `.env` cục bộ. Có thể kết hợp các cờ. Không chạy lệnh nạp trên database `ptutor` đang phục vụ ứng dụng; script chặn tên này.
 
+Nếu nạp lại seed trên DB đã có vector và nội dung cũ thay đổi, chạy `python scripts/realistic_data/queue_stale_embeddings.py --database ptutor_app_seeded`. Script chỉ xếp hàng các hồ sơ/tin có vector không còn khớp văn bản đã nạp; worker backend sẽ tạo lại vector. Không cần chạy bước này trên DB mới hoặc khi khôi phục một snapshot có sẵn vector.
+
 `--finance` cần gói Python `cryptography` (`pip install cryptography`).
 
 Mật khẩu chung của tài khoản kiểm thử là `Demo@2026` (hash bcrypt từ bộ seed cục bộ hiện có). Tài khoản điển hình: `nguyenhuuquan825581@gmail.com` (học viên) và `nguyenvanminh898609@gmail.com` (gia sư). Không bật gửi email hoặc thanh toán thật cho database này. Giá trị mã thanh toán `LOCAL-TOPUP-*` là mã nội bộ, không gọi VNPay.
