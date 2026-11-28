@@ -1406,6 +1406,39 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
         """)
         out.append(f"UPDATE withdrawal_requests SET status='CANCELLED' "
                    f"WHERE id={sql_id('withdrawal', 6)} AND status='PENDING';")
+        # Publication payment precedes review, so every non-draft posting has
+        # exactly one paid fee even when it was later rejected, closed or cancelled.
+        # Resolve statuses after the lifecycle updates above and avoid duplicating
+        # fees that were already inserted for the original and demo stories.
+        out.append("""
+            WITH postings AS (
+                SELECT tr.id, t.user_id, tr.created_at, 'TEACHING'::text AS kind
+                FROM teaching_requests tr JOIN tutors t ON t.id=tr.tutor_id
+                WHERE tr.deleted_at IS NULL AND tr.status <> 'DRAFT'
+                UNION ALL
+                SELECT sr.id, s.user_id, sr.created_at, 'STUDYING'::text AS kind
+                FROM studying_requests sr JOIN students s ON s.id=sr.student_id
+                WHERE sr.deleted_at IS NULL AND sr.status <> 'DRAFT'
+            )
+            INSERT INTO payments (id, user_id, amount, payment_method, payment_type,
+                                  status, transaction_code, reference_type, reference_id,
+                                  paid_at, created_at)
+            SELECT md5('fixture-posting-fee:' || p.kind || ':' || p.id::text)::uuid,
+                   p.user_id, 100000, 'VNPAY', p.kind || '_REQUEST_FEE',
+                   'PAID', 'LOCAL-POST-FEE-' || upper(replace(p.id::text, '-', '')),
+                   p.kind || '_REQUEST', p.id,
+                   p.created_at + INTERVAL '1 day 1 hour',
+                   p.created_at + INTERVAL '1 day'
+            FROM postings p
+            WHERE NOT EXISTS (
+                SELECT 1 FROM payments paid
+                WHERE paid.deleted_at IS NULL AND paid.reference_id=p.id
+                  AND paid.reference_type=p.kind || '_REQUEST'
+                  AND paid.payment_type=p.kind || '_REQUEST_FEE'
+                  AND paid.status='PAID'
+            )
+            ON CONFLICT (id) DO NOTHING;
+        """)
     if include_ai:
         for posting in changed_embedding_posts:
             out.append("""INSERT INTO ai_enrichment_jobs

@@ -33,6 +33,14 @@ WITH ledger AS (
     SELECT reference_id contract_id, coalesce(sum(refunded_amount), 0) amount
     FROM payments WHERE payment_type='TUITION_PAYMENT' AND deleted_at IS NULL
     GROUP BY reference_id
+), postings AS (
+    SELECT tr.id, t.user_id, tr.status, tr.created_at, 'TEACHING_REQUEST'::text kind
+    FROM teaching_requests tr JOIN tutors t ON t.id=tr.tutor_id
+    WHERE tr.deleted_at IS NULL
+    UNION ALL
+    SELECT sr.id, s.user_id, sr.status, sr.created_at, 'STUDYING_REQUEST'::text kind
+    FROM studying_requests sr JOIN students s ON s.id=sr.student_id
+    WHERE sr.deleted_at IS NULL
 )
 SELECT 'wallet_ledger_mismatch', count(*) FROM wallets w LEFT JOIN ledger l ON l.wallet_id=w.id
     WHERE w.deleted_at IS NULL AND w.balance+w.pending_balance<>coalesce(l.net,0)
@@ -75,6 +83,21 @@ SELECT 'pending_withdrawal_reservation_mismatch', count(*) FROM wallets w
         SELECT coalesce(sum(r.amount),0) FROM withdrawal_requests r
         WHERE r.wallet_id=w.id AND r.deleted_at IS NULL
           AND r.status IN ('PENDING','PROCESSING'))
+UNION ALL
+SELECT 'posting_fee_count_mismatch', count(*) FROM postings post
+    WHERE (SELECT count(*) FROM payments p
+           WHERE p.deleted_at IS NULL AND p.status='PAID'
+             AND p.payment_type=post.kind || '_FEE'
+             AND p.reference_type=post.kind AND p.reference_id=post.id)
+          <> CASE WHEN post.status='DRAFT' THEN 0 ELSE 1 END
+UNION ALL
+SELECT 'posting_fee_owner_or_amount_mismatch', count(*) FROM payments p
+    LEFT JOIN postings post ON post.id=p.reference_id AND post.kind=p.reference_type
+    WHERE p.deleted_at IS NULL AND p.status='PAID'
+      AND p.payment_type IN ('TEACHING_REQUEST_FEE','STUDYING_REQUEST_FEE')
+      AND (post.id IS NULL OR p.payment_type<>post.kind || '_FEE'
+           OR p.user_id<>post.user_id OR p.amount<>100000
+           OR p.paid_at<post.created_at)
 ORDER BY 1;
 """
 
