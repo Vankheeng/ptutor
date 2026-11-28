@@ -1,0 +1,49 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "o0000000-0000-4000-8000-000000000002",
+          "tutorFirstName": "An",
+          "studyingRequestId": "r0000000-0000-4000-8000-000000000009",
+          "studyingRequestTitle": "Tìm gia sư Toán lớp 6",
+          "subjectName": "Toán",
+          "gradeName": "Lớp 6",
+          "proposedPrice": 200000,
+          "teachingMode": "ONLINE",
+          "preferredSchedule": "Tối thứ 2",
+          "preferredProvinceName": "Hà Nội",
+          "preferredDistrictName": "Hoàng Mai",
+          "message": "Tôi có 3 năm kinh nghiệm",
+          "status": "ACCEPTED",
+          "nextStep": "CONTRACT_SIGNING",
+          "createdAt": "2026-10-16T09:00:00"
+        },
+        {
+          "id": "o0000000-0000-4000-8000-000000000001",
+          "tutorFirstName": "An",
+          "studyingRequestId": "r0000000-0000-4000-8000-000000000008",
+          "studyingRequestTitle": "Tìm gia sư IELTS",
+          "subjectName": "Tiếng Anh",
+          "gradeName": "Lớp 11",
+          "proposedPrice": 350000,
+          "teachingMode": "OFFLINE",
+          "preferredSchedule": "Sáng chủ nhật",
+          "preferredProvinceName": "Hà Nội",
+          "preferredDistrictName": "Ba Đình",
+          "message": "IELTS 8.0",
+          "status": "PENDING",
+          "nextStep": null,
+          "createdAt": "2026-10-10T09:00:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 2,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

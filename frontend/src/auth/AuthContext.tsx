@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { clearStoredTokens, getStoredTokens, storeTokens, AUTH_CHANGED_EVENT } from './authStorage';
 import { get } from '../services/httpClient';
 import { login as loginRequest, logout as logoutRequest } from '../services/authApi';
+import { endAssistantConversationOnLogout } from '../services/assistantApi';
 import type { AuthProfile, AuthTokenResponse, AuthUser, LoginRequest } from '../types/auth';
 import { AuthContext } from './context';
 
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (request: LoginRequest) => {
+      clearStoredTokens();
       const tokens = await loginRequest(request);
       storeTokens(tokens);
       setUser(userFromTokens(tokens));
@@ -84,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const tokens = getStoredTokens();
+    // Đăng xuất = kết thúc phiên trợ lý (docs/support-chatbot/04 mục 4.10); phải gọi trước khi xoá token.
+    endAssistantConversationOnLogout(tokens?.userId);
     clearStoredTokens();
     setUser(null);
     if (tokens?.refreshToken) {

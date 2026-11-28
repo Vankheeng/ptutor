@@ -86,6 +86,9 @@ public class TutorStudentRequest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
 
+    @Column(name = "responded_at")
+    @NonFinal
+    private LocalDateTime respondedAt;
     @Column(name = "accepted_at")
     @NonFinal
     private LocalDateTime acceptedAt;

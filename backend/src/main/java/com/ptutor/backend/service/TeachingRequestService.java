@@ -1,6 +1,8 @@
 package com.ptutor.backend.service;
 
 import java.util.Collections;
+import com.ptutor.backend.entity.enums.RecommendationEntityType;
+import com.ptutor.backend.event.EmbeddingRefreshRequestedEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ptutor.backend.dto.enums.UserRole;
 import com.ptutor.backend.entity.District;
+import com.ptutor.backend.entity.FavoriteTutor;
 import com.ptutor.backend.entity.Grade;
 import com.ptutor.backend.entity.GradeTeachingRequest;
 import com.ptutor.backend.entity.Subject;
@@ -37,6 +40,7 @@ import com.ptutor.backend.exception.ApiException;
 import com.ptutor.backend.mapper.TeachingRequestMapper;
 import com.ptutor.backend.repository.DistrictRepository;
 import com.ptutor.backend.repository.EmployeeRepository;
+import com.ptutor.backend.repository.FavoriteTutorRepository;
 import com.ptutor.backend.repository.GradeRepository;
 import com.ptutor.backend.repository.PaymentRepository;
 import com.ptutor.backend.repository.SubjectRepository;
@@ -57,6 +61,7 @@ public class TeachingRequestService {
     public static final int MAX_PUBLIC_LIMIT = 50;
 
     private final TeachingRequestRepository teachingRequestRepository;
+    private final FavoriteTutorRepository favoriteTutorRepository;
     private final StudentTutorRequestRepository studentTutorRequestRepository;
     private final PaymentRepository paymentRepository;
     private final TeachingRequestMapper teachingRequestMapper;
@@ -90,6 +95,8 @@ public class TeachingRequestService {
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
         replaceAssociations(saved, request);
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         return toResponse(saved);
     }
 
@@ -100,6 +107,28 @@ public class TeachingRequestService {
                 ? teachingRequestRepository.findAllByTutor_IdOrderByCreatedAtDesc(tutor.getId())
                 : teachingRequestRepository.findAllByTutor_IdAndStatusOrderByCreatedAtDesc(tutor.getId(), status);
         return toResponses(requests);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingRequestResponse> findFavoritesForStudent(UUID userId) {
+        List<FavoriteTutor> favorites = favoriteTutorRepository.findAllByStudent_User_IdOrderByUpdatedAtDesc(userId);
+        if (favorites.isEmpty()) return List.of();
+        List<UUID> savedRequestIds = favorites.stream()
+                .map(FavoriteTutor::getTeachingRequest)
+                .filter(java.util.Objects::nonNull)
+                .map(TeachingRequest::getId)
+                .toList();
+        if (savedRequestIds.isEmpty()) return List.of();
+        List<TeachingRequest> openRequests = teachingRequestRepository.findOpenFavoritesByIds(
+                RequestStatus.OPEN, TutorProfileStatus.VERIFIED, savedRequestIds);
+        Map<UUID, TeachingRequest> byId = openRequests.stream().collect(Collectors.toMap(
+                TeachingRequest::getId, request -> request));
+        return toResponses(favorites.stream()
+                .map(FavoriteTutor::getTeachingRequest)
+                .filter(java.util.Objects::nonNull)
+                .map(saved -> byId.get(saved.getId()))
+                .filter(java.util.Objects::nonNull)
+                .toList());
     }
 
     @Transactional(readOnly = true)
@@ -142,6 +171,8 @@ public class TeachingRequestService {
 
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
         replaceAssociations(saved, request);
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         if (!draft && saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
         }
@@ -165,7 +196,13 @@ public class TeachingRequestService {
         }
 
         teachingRequest.setStatus(targetStatus);
-        return toResponse(teachingRequestRepository.saveAndFlush(teachingRequest));
+        TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        if (targetStatus == RequestStatus.OPEN) {
+            // A reopened posting may never have been embedded: closed postings are skipped.
+            eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                    RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -199,6 +236,9 @@ public class TeachingRequestService {
                 : RequestStatus.OPEN);
         clearReviewMetadata(teachingRequest);
         TeachingRequest saved = teachingRequestRepository.saveAndFlush(teachingRequest);
+        // A posting that needs no review is live from now on; one awaiting review is skipped by the workers.
+        eventPublisher.publishEvent(new EmbeddingRefreshRequestedEvent(
+                RecommendationEntityType.TEACHING_REQUEST, saved.getId()));
         if (saved.getStatus() == RequestStatus.PENDING_REVIEW) {
             publishReviewRequired(saved);
         }

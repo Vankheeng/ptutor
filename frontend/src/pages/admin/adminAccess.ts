@@ -24,6 +24,7 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
       { to: '/admin/tutors', label: 'Gia sư', icon: 'tutor', functions: CUSTOMER_SERVICE },
       { to: '/admin/contracts', label: 'Hợp đồng', icon: 'contract', functions: CUSTOMER_SERVICE },
       { to: '/admin/notifications', label: 'Thông báo', icon: 'bell', functions: CUSTOMER_SERVICE },
+      { to: '/admin/recommendation-weights', label: 'Trọng số gợi ý', icon: 'chart', functions: [] },
       { to: '/admin/employees', label: 'Nhân viên', icon: 'team', functions: [] }
     ]
   },
@@ -42,7 +43,17 @@ export const adminNavigation: { label: string; items: AdminModule[] }[] = [
       { to: '/admin/withdrawals', label: 'Yêu cầu rút tiền', icon: 'refund', functions: ACCOUNTANT },
       { to: '/admin/wallets', label: 'Quản lý ví', icon: 'wallet', functions: ACCOUNTANT },
       { to: '/admin/transactions', label: 'Lịch sử giao dịch', icon: 'chart', functions: ACCOUNTANT },
-      { to: '/admin/complaints', label: 'Khiếu nại', icon: 'support', functions: CUSTOMER_SERVICE }
+      { to: '/admin/complaints', label: 'Khiếu nại', icon: 'support', functions: CUSTOMER_SERVICE },
+      { to: '/admin/support-requests', label: 'Yêu cầu hỗ trợ', icon: 'support', functions: CUSTOMER_SERVICE }
+    ]
+  },
+  {
+    // Trợ lý hỗ trợ: chỉ ADMIN quản lý kho tri thức (docs/support-chatbot/01 mục 1.3, 07 mục 7.1).
+    label: 'Trợ lý',
+    items: [
+      { to: '/admin/assistant/documents', label: 'Kho tri thức', icon: 'book', functions: [] },
+      { to: '/admin/assistant/unanswered', label: 'Câu hỏi chưa trả lời', icon: 'support', functions: [] },
+      { to: '/admin/assistant/stats', label: 'Thống kê trợ lý', icon: 'chart', functions: [] }
     ]
   }
 ];

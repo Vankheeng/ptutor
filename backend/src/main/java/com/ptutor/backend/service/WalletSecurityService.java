@@ -80,7 +80,7 @@ public class WalletSecurityService {
             return toResponse(prior);
         }
 
-        IssuedChallenge issued = issue(userId, WalletSecurityChallengePurpose.WITHDRAWAL);
+        IssuedChallenge issued = issue(wallet, WalletSecurityChallengePurpose.WITHDRAWAL);
         WalletSecurityChallenge challenge = issued.challenge();
         challenge.setAmount(amount);
         challenge.setNote(normalizeNote(request.note()));
@@ -133,7 +133,7 @@ public class WalletSecurityService {
         UUID userId = currentUserProvider.getCurrentUserId();
         Wallet wallet = activeWallet(userId);
         String accountNumber = request.accountNumber().strip();
-        IssuedChallenge issued = issue(userId, WalletSecurityChallengePurpose.BANK_ACCOUNT_UPDATE);
+        IssuedChallenge issued = issue(wallet, WalletSecurityChallengePurpose.BANK_ACCOUNT_UPDATE);
         WalletSecurityChallenge challenge = issued.challenge();
         challenge.setBankCode(request.bankCode().strip().toUpperCase(java.util.Locale.ROOT));
         challenge.setBankName(normalizeSpaces(request.bankName()));
@@ -167,13 +167,13 @@ public class WalletSecurityService {
         return bankAccountMapper.toResponse(bankAccountRepository.saveAndFlush(account));
     }
 
-    private IssuedChallenge issue(UUID userId, WalletSecurityChallengePurpose purpose) {
+    private IssuedChallenge issue(Wallet wallet, WalletSecurityChallengePurpose purpose) {
         LocalDateTime now = now();
-        var active = challengeRepository.findActiveForUpdate(userId, purpose);
+        var active = challengeRepository.findActiveForUpdate(wallet.getUser().getId(), purpose);
         active.forEach(challenge -> challenge.setInvalidatedAt(now));
         String rawOtp = otpGenerator.generate();
         WalletSecurityChallenge challenge = WalletSecurityChallenge.builder()
-                .user(walletRepository.findByUser_Id(userId).orElseThrow().getUser())
+                .user(wallet.getUser())
                 .purpose(purpose)
                 .otpHash(passwordEncoder.encode(rawOtp))
                 .expiresAt(now.plus(OTP_TTL))

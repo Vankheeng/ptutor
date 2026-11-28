@@ -45,4 +45,9 @@ public class FavoriteTutor extends BaseEntity {
     @JoinColumn(name = "tutor_id", nullable = false)
     @NonFinal
     private Tutor tutor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teaching_request_id")
+    @NonFinal
+    private TeachingRequest teachingRequest;
 }

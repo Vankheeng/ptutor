@@ -1,0 +1,221 @@
+﻿doc_id,vai_tro,cau_hoi,loai,y_bat_buoc
+gioi-thieu-vai-tro,STUDENT,PTutor có những vai trò nào?,POLICY,"Học viên, gia sư, nhân viên (chăm sóc khách hàng, kế toán), quản trị viên; không có vai trò phụ huynh"
+gioi-thieu-vai-tro,STUDENT,phu huynh dang ky tai khoan rieng duoc khong,FAQ,Không có vai trò phụ huynh; tự đăng ký chỉ chọn học viên hoặc gia sư
+gioi-thieu-vai-tro,TUTOR,Một tài khoản có thể vừa là học viên vừa là gia sư không?,NO_ANSWER,"Mỗi tài khoản gắn một vai trò; việc mở hai tài khoản chưa có thông tin chính thức, gợi ý liên hệ PTutor"
+gioi-thieu-vai-tro,STUDENT,Liên hệ PTutor bằng cách nào?,NO_ANSWER,Kênh liên hệ đang cập nhật; chưa có thông tin chính thức
+gioi-thieu-vai-tro,TUTOR,bo phan nao xu ly hoan tien,FAQ,Kế toán; khiếu nại và tài khoản bị khóa do nhân viên chăm sóc khách hàng
+tai-khoan-dang-ky,STUDENT,Đăng ký tài khoản cần những thông tin gì?,HOWTO,"Chọn vai trò; họ, tên, email, số CCCD 12 chữ số, số điện thoại, mật khẩu 8–72 ký tự, ngày sinh, giới tính, tỉnh/thành, quận/huyện; bấm Đăng ký tài khoản"
+tai-khoan-dang-ky,STUDENT,mat khau dang ky toi thieu bao nhieu ky tu,POLICY,Từ 8 đến 72 ký tự
+tai-khoan-dang-ky,STUDENT,Con tôi chưa có CCCD thì đăng ký bằng gì?,NO_ANSWER,Chưa có thông tin chính thức; CCCD bắt buộc 12 chữ số; gợi ý liên hệ PTutor
+tai-khoan-dang-ky,STUDENT,Sửa số điện thoại ở đâu?,HOWTO,My Profile → Phone → Save profile
+tai-khoan-dang-ky,STUDENT,doi email trong ho so duoc khong,POLICY,"Email chỉ để xem, không sửa được trong hồ sơ"
+tai-khoan-dang-nhap,TUTOR,Vì sao tôi bị đăng xuất?,FAQ,"Phiên làm việc mặc định 10 giờ, tự gia hạn tối đa 30 ngày; tài khoản bị khóa bị đăng xuất khỏi mọi thiết bị"
+tai-khoan-dang-nhap,STUDENT,dang nhap bao loi Email or password is incorrect la sao,ERROR,Email hoặc mật khẩu không đúng; kiểm tra lại hoặc dùng Quên mật khẩu?
+tai-khoan-dang-nhap,STUDENT,Nhập sai mật khẩu bao nhiêu lần thì bị khóa?,NO_ANSWER,Chưa có thông tin chính thức về giới hạn đăng nhập sai
+tai-khoan-quen-mat-khau,STUDENT,Quên mật khẩu thì làm sao?,HOWTO,"Trang Quên mật khẩu?; nhập email, Gửi mã OTP; nhập mã 6 chữ số, Xác thực OTP; đặt mật khẩu mới"
+tai-khoan-quen-mat-khau,TUTOR,ma otp co hieu luc bao lau,POLICY,5 phút; mỗi mã dùng một lần; gửi lại thì mã cũ mất hiệu lực
+tai-khoan-quen-mat-khau,STUDENT,Không nhận được email OTP thì gọi số nào?,NO_ANSWER,Chưa có kênh liên hệ chính thức; gợi ý kiểm tra thư rác và gửi lại OTP
+tai-khoan-quen-mat-khau,TUTOR,Đổi mật khẩu ở đâu?,HOWTO,Giao diện chưa có nút đổi mật khẩu; dùng trang Quên mật khẩu? để đặt lại qua OTP
+tai-khoan-quen-mat-khau,STUDENT,doi mat khau moi co duoc trung mat khau cu khong,POLICY,Không; mật khẩu mới phải khác mật khẩu hiện tại
+tai-khoan-bi-khoa,TUTOR,Tài khoản bị tạm khóa thì bao giờ mở lại?,POLICY,Tự mở khi qua thời điểm kết thúc (kiểm tra mỗi phút); có thông báo Account reactivated; khóa vĩnh viễn chỉ nhân viên mở
+tai-khoan-bi-khoa,STUDENT,tai sao toi bi khoa tai khoan,FAQ,Nhân viên chăm sóc khách hàng hoặc quản trị viên khóa kèm lý do; lý do có trong thông báo và câu báo lỗi đăng nhập
+tai-khoan-bi-khoa,TUTOR,Bị khóa tài khoản thì hợp đồng đang dạy có bị hủy không?,NO_ANSWER,Chưa có thông tin chính thức về hợp đồng khi tài khoản bị khóa
+tai-khoan-bi-khoa,STUDENT,Trạng thái Đã khóa nghĩa là gì?,FAQ,"Bị nhân viên/quản trị viên khóa kèm lý do; không đăng nhập được; tạm khóa tự mở, khóa vĩnh viễn cần nhân viên mở"
+tai-khoan-bi-khoa,TUTOR,tai khoan ngung hoat dong la gi,FAQ,"Không đăng nhập được, câu Account is inactive; cần liên hệ PTutor"
+loi-tai-khoan,STUDENT,Báo Citizen ID is already registered là sao?,ERROR,Số CCCD đã dùng cho tài khoản khác; mỗi CCCD một tài khoản; đăng nhập tài khoản cũ
+loi-tai-khoan,TUTOR,bao loi OTP khong hop le hoac da het han,ERROR,"Mã sai, quá 5 phút, đã dùng hoặc có mã mới hơn; bấm Gửi lại OTP và dùng mã mới nhất"
+loi-tai-khoan,STUDENT,Người khác dùng CCCD của tôi đăng ký thì làm sao?,NO_ANSWER,Chưa có thông tin chính thức; gợi ý liên hệ PTutor
+phi-dang-tin,STUDENT,Tin bị từ chối có được hoàn phí không?,POLICY,Có; hoàn đủ phí vào số dư ví; thông báo ghi lý do và số tiền
+phi-dang-tin,TUTOR,phi dang tin tra bang gi,POLICY,Qua VNPay (link 15 phút); hệ thống hỗ trợ trả bằng ví nhưng giao diện chưa có nút
+phi-dang-tin,STUDENT,Phí đăng tin tìm gia sư bao nhiêu tiền?,NO_ANSWER,Theo mức hiển thị khi thanh toán; chưa có con số chính thức trong tài liệu
+trang-thai-tin-dang,STUDENT,Tin của tôi đang chờ duyệt là sao?,FAQ,"Đã trả phí, chờ PTutor duyệt vì môn học tự nhập; chờ thông báo; bị từ chối được hoàn phí"
+trang-thai-tin-dang,STUDENT,tin matched nghia la gi,FAQ,Đã ghép: học viên đã chấp nhận một gia sư (hoặc tin nhận dạy đủ học viên); bước tiếp theo tạo và ký hợp đồng
+trang-thai-tin-dang,STUDENT,Tin chờ duyệt bao lâu thì được duyệt?,NO_ANSWER,Chưa có thông tin chính thức về thời gian duyệt
+loi-tin-dang,STUDENT,Báo Only DRAFT or OPEN requests can be updated khi sửa tin,ERROR,Chỉ sửa được tin bản nháp hoặc đang mở; tin tạm đóng thì mở lại trước
+loi-tin-dang,STUDENT,khong tra phi duoc bao Only DRAFT studying requests can be paid,ERROR,Tin đã được trả phí; tải lại trang xem trạng thái
+loi-tin-dang,STUDENT,Lỗi khi tin hết hạn tự động là gì?,NO_ANSWER,Không có thông tin về tin tự hết hạn
+tin-tim-gia-su-quy-dinh,STUDENT,Hủy tin tìm gia sư thì các đề xuất của gia sư thế nào?,POLICY,Đề xuất đang chờ bị hủy theo; tin hủy không khôi phục; không tự hoàn phí
+tin-tim-gia-su-quy-dinh,STUDENT,tin dang cho duyet co sua duoc khong,POLICY,Không; chỉ sửa tin bản nháp hoặc đang mở
+tin-tim-gia-su-quy-dinh,STUDENT,Tin tìm gia sư đăng được bao lâu thì hết hạn?,NO_ANSWER,Không có thông tin về thời hạn tin
+tin-tim-gia-su-dang,STUDENT,Làm sao đăng tin tìm gia sư?,HOWTO,"My Studying Requests → Create request; điền Title, Subject, Grade, Learning mode; Create & pay hoặc Create draft; trả phí VNPay"
+tin-tim-gia-su-dang,STUDENT,mon hoc khong co trong danh sach thi sao,HOWTO,"Chọn Other / custom subject, ghi tên môn vào Custom subject / note; tin phải chờ duyệt"
+tin-tim-gia-su-dang,STUDENT,Đăng tin rồi bao lâu thì có gia sư liên hệ?,NO_ANSWER,Không có cam kết thời gian; gia sư tự gửi đề xuất
+tin-tim-gia-su-sua-dong-huy,STUDENT,Muốn tạm ngừng nhận đề xuất thì làm sao?,HOWTO,Menu thao tác của tin → Close request; mở lại bằng Reopen request
+tin-tim-gia-su-sua-dong-huy,STUDENT,huy tin tim gia su o dau,HOWTO,My Studying Requests → menu thao tác → Cancel request
+tin-tim-gia-su-sua-dong-huy,STUDENT,Khôi phục tin đã hủy được không?,NO_ANSWER,Tin đã hủy không khôi phục được; không có cách khôi phục
+trang-thai-de-nghi-don-dang-ky,TUTOR,Đề xuất của tôi Bị từ chối thì làm gì?,FAQ,Học viên đã từ chối; có thể gửi đề xuất mới nếu tin còn mở
+trang-thai-de-nghi-don-dang-ky,STUDENT,de nghi da chap nhan thi buoc tiep theo la gi,FAQ,Tạo hợp đồng; học viên bấm Tạo hợp đồng
+trang-thai-de-nghi-don-dang-ky,TUTOR,Đề xuất đang chờ bao lâu thì tự hủy?,NO_ANSWER,Không có thông tin về hết hạn tự động
+de-nghi-day-xu-ly,STUDENT,Chấp nhận đề nghị của gia sư ở đâu?,HOWTO,Mở tin trong My Studying Requests → mục Đề nghị từ gia sư → Chấp nhận
+de-nghi-day-xu-ly,STUDENT,chap nhan 2 gia su cho 1 tin duoc khong,POLICY,"Không; mỗi tin chỉ chấp nhận một gia sư, tin chuyển sang đã ghép"
+de-nghi-day-xu-ly,STUDENT,Xem đánh giá của gia sư trước khi chấp nhận ở đâu?,NO_ANSWER,Chưa có thông tin chính thức
+don-dang-ky-hoc-gui,STUDENT,Đăng ký học theo tin nhận dạy của gia sư thế nào?,HOWTO,"Browse Teaching Requests → Apply to study → điền Proposed price, Learning mode, Grade ID, Preferred schedule, Message → Send application"
+don-dang-ky-hoc-gui,STUDENT,huy don dang ky hoc,HOWTO,My requests to studying → Cancel; chỉ đơn đang chờ
+don-dang-ky-hoc-gui,STUDENT,Gia sư bao lâu thì trả lời đơn của tôi?,NO_ANSWER,Không có cam kết thời gian
+de-nghi-day-gui,TUTOR,Gửi đề xuất dạy cho học viên thế nào?,HOWTO,"Tổng quan → mở tin → Ứng tuyển yêu cầu này → Học phí đề xuất, Hình thức dạy, Thời gian có thể dạy, địa điểm nếu trực tiếp, Lời nhắn → Gửi đề xuất"
+de-nghi-day-gui,TUTOR,huy de xuat giang day o dau,HOWTO,Đề xuất giảng dạy → Hủy đề xuất; chỉ đề xuất đang chờ
+de-nghi-day-gui,TUTOR,Gửi đề xuất có mất phí không?,NO_ANSWER,Không có thông tin về phí gửi đề xuất
+don-dang-ky-hoc-xu-ly,TUTOR,Học viên đăng ký học với tôi thì tôi chấp nhận ở đâu?,HOWTO,Giao diện chưa có; mục Yêu cầu dạy của tôi đang Sắp ra mắt; có thông báo New student application
+don-dang-ky-hoc-xu-ly,TUTOR,tin nhan day bao nhieu hoc vien thi het nhan,POLICY,"Khi số đơn chấp nhận đạt số học viên ghi trong tin, tin chuyển sang đã ghép"
+don-dang-ky-hoc-xu-ly,TUTOR,Khi nào có trang xử lý đơn đăng ký học?,NO_ANSWER,Chưa có thông tin
+loi-de-nghi-don-dang-ky,TUTOR,Báo Bạn đã có đề xuất đang chờ xử lý cho yêu cầu này,ERROR,Đã có đề xuất đang chờ; sửa đề xuất cũ hoặc hủy rồi gửi lại
+loi-de-nghi-don-dang-ky,STUDENT,bao Studying request already has an accepted tutor,ERROR,Tin đã có gia sư được chấp nhận; mỗi tin một gia sư; tạo hợp đồng hoặc đăng tin mới
+loi-de-nghi-don-dang-ky,STUDENT,Lỗi khi gia sư bị khóa tài khoản lúc tôi chấp nhận?,NO_ANSWER,Không có thông tin
+tin-nhan-day-quy-dinh,TUTOR,Gia sư đăng tin nhận dạy ở đâu?,HOWTO,"Giao diện chưa có (Yêu cầu dạy của tôi đang Sắp ra mắt); quy định: bản nháp, trả phí, đăng hoặc chờ duyệt"
+tin-nhan-day-quy-dinh,TUTOR,tin nhan day co ghi chu thi co phai duyet khong,POLICY,Có; tin có ghi chú hoặc môn tự nhập phải chờ duyệt
+tin-nhan-day-quy-dinh,TUTOR,Tiêu chí duyệt tin nhận dạy là gì?,NO_ANSWER,Chưa có thông tin chính thức
+hop-dong-soan-va-sua,STUDENT,Ai là người soạn hợp đồng?,POLICY,Bên chấp nhận: học viên chấp nhận đề nghị dạy thì học viên soạn; gia sư chấp nhận đơn đăng ký thì gia sư soạn
+hop-dong-soan-va-sua,STUDENT,hop dong dang cho toi sua duoc nhung gi,POLICY,"Người soạn (học viên) sửa được Giá và Lịch học; không đổi chu kỳ thanh toán, ngày bắt đầu/kết thúc"
+hop-dong-soan-va-sua,TUTOR,Có mẫu hợp đồng giấy để in ra không?,NO_ANSWER,Không có thông tin
+hop-dong-ky-tu-choi,TUTOR,Ai ký hợp đồng?,POLICY,Bên nhận (không phải người soạn); ký xong chuyển Đang hoạt động và tạo kỳ thanh toán
+hop-dong-ky-tu-choi,STUDENT,tu choi hop dong thi sao,POLICY,Hợp đồng chuyển Đã hủy; người soạn được báo và có thể soạn lại
+hop-dong-ky-tu-choi,STUDENT,Hợp đồng chờ ký bao lâu thì hết hạn ký?,NO_ANSWER,Chỉ biết tự hủy lúc 0 giờ ngày kết thúc; thời hạn ký riêng chưa có thông tin
+hop-dong-ky-tu-choi,STUDENT,Tôi muốn hủy hợp đồng đang học được không?,POLICY,Chưa hỗ trợ hủy hợp đồng đang hoạt động; chỉ người soạn hủy được hợp đồng Đang chờ
+hop-dong-ky-tu-choi,TUTOR,huy hop dong chua ky the nao,HOWTO,Người soạn mở hợp đồng Đang chờ → Hủy hợp đồng
+hop-dong-gia-han,STUDENT,Gia hạn hợp đồng thế nào?,HOWTO,Mở hợp đồng Đang hoạt động → Đề xuất gia hạn → điền điều khoản → Gửi đề xuất gia hạn; bên kia ký
+hop-dong-gia-han,TUTOR,ngay bat dau gia han co duoc truoc ngay ket thuc hop dong cu khong,POLICY,Không; phải từ ngày kết thúc hợp đồng cũ trở đi
+hop-dong-gia-han,STUDENT,Gia hạn có được giảm học phí không?,NO_ANSWER,Không có thông tin; giá do hai bên thỏa thuận trong bản gia hạn
+hop-dong-tu-ket-thuc,STUDENT,Hợp đồng hết hạn thì sao?,POLICY,0 giờ ngày kết thúc: Đang hoạt động → Đã hoàn tất; Đang chờ → Đã hủy
+hop-dong-tu-ket-thuc,TUTOR,hop dong ket thuc luc may gio,POLICY,0 giờ (giờ Việt Nam) ngày kết thúc
+hop-dong-tu-ket-thuc,STUDENT,Hợp đồng kết thúc mà còn kỳ học phí chưa đóng thì sao?,NO_ANSWER,Chưa có thông tin chính thức
+trang-thai-hop-dong,STUDENT,Hợp đồng Đang chờ nghĩa là gì?,FAQ,"Đã soạn, chờ bên nhận ký; người soạn có thể sửa/hủy; chưa có kỳ thanh toán"
+trang-thai-hop-dong,TUTOR,hop dong da hoan tat la sao,FAQ,Đã tới ngày kết thúc khi đang hoạt động; tự chuyển; muốn học tiếp tạo hợp đồng mới
+trang-thai-hop-dong,STUDENT,Hợp đồng bị tạm dừng là trạng thái gì?,NO_ANSWER,Không có trạng thái tạm dừng
+loi-hop-dong,TUTOR,Báo Only the contract counterparty can perform this action,ERROR,Chỉ bên nhận ký/từ chối; người soạn không tự ký
+loi-hop-dong,STUDENT,bao Lich da chon khong co buoi hoc nao trong khoang thoi gian nay,ERROR,Thứ trong lịch không rơi vào khoảng ngày; kéo dài khoảng ngày hoặc đổi thứ
+loi-hop-dong,STUDENT,Lỗi hợp đồng do gia sư bị khóa?,NO_ANSWER,Không có thông tin
+hop-dong-tao-hoc-vien,STUDENT,Tạo hợp đồng với gia sư ở đâu?,HOWTO,"Mở tin → Đề nghị từ gia sư → Tạo hợp đồng → điền Giá, Chu kỳ thanh toán, Lịch học, ngày → Tạo hợp đồng"
+hop-dong-tao-hoc-vien,STUDENT,chu ky thanh toan co nhung loai nao,POLICY,"Mỗi buổi, Hàng tuần, Hàng tháng, Theo gói"
+hop-dong-tao-hoc-vien,STUDENT,Có phí tạo hợp đồng không?,NO_ANSWER,Không có thông tin về phí tạo hợp đồng
+hop-dong-xem-ky-hoc-vien,STUDENT,Ký hợp đồng gia sư gửi thế nào?,HOWTO,Hợp đồng → Xem hợp đồng → Ký hợp đồng (khi Đang chờ và là bên nhận)
+hop-dong-xem-ky-hoc-vien,STUDENT,xem cac ky thanh toan cua hop dong o dau,HOWTO,"Trang chi tiết hợp đồng, mục Các kỳ thanh toán"
+hop-dong-xem-ky-hoc-vien,STUDENT,Tải hợp đồng về dạng PDF được không?,NO_ANSWER,Không có thông tin
+hop-dong-tao-gia-su,TUTOR,Gia sư xem hợp đồng của mình ở đâu?,HOWTO,"Mục Hợp đồng đang Sắp ra mắt; Tổng quan có số hợp đồng đang dạy, chờ xử lý"
+hop-dong-tao-gia-su,TUTOR,gia su tao hop dong khi nao,POLICY,Khi đã chấp nhận đơn đăng ký học; tin nhận dạy mở hoặc đã ghép; môn đã chuẩn hóa
+hop-dong-tao-gia-su,TUTOR,Khi nào có trang hợp đồng cho gia sư?,NO_ANSWER,Chưa có thông tin
+buoi-hoc-quy-dinh,STUDENT,Không xác nhận buổi học thì sao?,POLICY,"Sau 3 ngày kể từ lúc gia sư đánh dấu đã dạy, buổi tự chuyển Đã học"
+buoi-hoc-quy-dinh,TUTOR,buoi hoc bi giu lai khi nao,POLICY,Khi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong
+buoi-hoc-quy-dinh,TUTOR,Buổi học được xác nhận thì bao lâu tôi nhận tiền?,NO_ANSWER,Chưa có thông tin chính thức về trả tiền dạy
+trang-thai-buoi-hoc,STUDENT,Buổi học Chờ xác nhận là sao?,FAQ,Gia sư đã đánh dấu đã dạy; học viên xác nhận hoặc yêu cầu hoàn tiền trong 3 ngày
+trang-thai-buoi-hoc,STUDENT,dang yeu cau hoan tien nghia la gi,FAQ,Buổi nằm trong yêu cầu hoàn tiền chưa kết luận; bị giữ lại
+trang-thai-buoi-hoc,STUDENT,Buổi học bù có trạng thái riêng không?,NO_ANSWER,Không có thông tin về buổi học bù
+buoi-hoc-xac-nhan,STUDENT,Xác nhận buổi học ở đâu?,HOWTO,Hợp đồng → Xem hợp đồng → Buổi học và hoàn tiền → Xác nhận đã học
+buoi-hoc-xac-nhan,STUDENT,khong xac nhan duoc buoi hoc bao bi tam giu,ERROR,Buổi trong yêu cầu hoàn tiền hoặc hợp đồng có khiếu nại chưa xong; chờ kết luận
+buoi-hoc-xac-nhan,STUDENT,Xác nhận nhầm buổi học thì hủy xác nhận được không?,NO_ANSWER,Chưa có thông tin chính thức
+buoi-hoc-gia-su,TUTOR,Đánh dấu đã dạy được lúc nào?,POLICY,Sau giờ kết thúc buổi học; buổi chuyển Chờ xác nhận
+buoi-hoc-gia-su,TUTOR,tao buoi hoc ngoai thoi han hop dong duoc khong,POLICY,Không; ngày học phải trong khoảng ngày bắt đầu–kết thúc hợp đồng
+buoi-hoc-gia-su,TUTOR,Học viên đổi lịch học bù thì tôi tạo buổi thế nào trên giao diện?,NO_ANSWER,Giao diện chưa có; không có thông tin về học bù
+ky-hoc-phi-quy-dinh,STUDENT,Học phí hàng tháng đóng vào ngày nào?,POLICY,"Kỳ đầu vào ngày bắt đầu, các kỳ sau cách nhau một tháng tới trước ngày kết thúc; mỗi kỳ bằng giá hợp đồng"
+ky-hoc-phi-quy-dinh,STUDENT,khi nao duoc nhac dong hoc phi,POLICY,"9 giờ sáng, trước hạn đúng 3 ngày; mỗi kỳ nhắc một lần"
+ky-hoc-phi-quy-dinh,STUDENT,Đóng học phí trễ có bị phạt không?,NO_ANSWER,Hệ thống không tự phạt; quy định phạt chưa có thông tin chính thức
+ky-hoc-phi-quy-dinh,STUDENT,Kỳ học phí Đang chờ mà không có ngày đến hạn là sao?,FAQ,"Hợp đồng Mỗi buổi, kỳ chưa gắn buổi học; chờ gia sư lên lịch"
+ky-hoc-phi-quy-dinh,STUDENT,ky hoc phi da thanh toan roi co phai lam gi nua khong,FAQ,Không; đã thu thành công
+ky-hoc-phi-thanh-toan,STUDENT,Đóng học phí thế nào?,HOWTO,Chi tiết hợp đồng → Các kỳ thanh toán → Thanh toán → VNPay trong 15 phút
+ky-hoc-phi-thanh-toan,STUDENT,dong hoc phi bang vi duoc khong,POLICY,Hệ thống hỗ trợ nhưng giao diện chưa có nút; hiện trả qua VNPay
+ky-hoc-phi-thanh-toan,STUDENT,Đóng học phí bằng thẻ tín dụng có mất phí không?,NO_ANSWER,Chưa có thông tin về phí giao dịch
+thanh-toan-vnpay,STUDENT,Link VNPay có hạn bao lâu?,POLICY,15 phút; bấm lại trong 15 phút mở link cũ; quá hạn tạo link mới
+thanh-toan-vnpay,TUTOR,thanh toan vnpay that bai thi sao,POLICY,Ghi là thất bại; khoản cần trả giữ trạng thái chờ; thanh toán lại
+thanh-toan-vnpay,STUDENT,Bị trừ tiền ngân hàng nhưng PTutor chưa cập nhật thì liên hệ ai?,NO_ANSWER,Chưa có kênh chính thức; gợi ý liên hệ PTutor
+trang-thai-thanh-toan,STUDENT,Thanh toán Đã hủy nghĩa là gì?,FAQ,Link VNPay bị bỏ vì đã trả bằng ví
+trang-thai-thanh-toan,TUTOR,thanh toan that bai co bi tru tien khong,FAQ,Không có tiền được ghi nhận; thanh toán lại
+trang-thai-thanh-toan,STUDENT,Xem trạng thái từng giao dịch thanh toán ở trang nào?,NO_ANSWER,Giao diện chưa hiển thị trạng thái từng thanh toán
+vi-nap-tien-quy-dinh,STUDENT,Nạp ví tối thiểu bao nhiêu?,POLICY,"Từ 10.000đ đến 100.000.000đ mỗi lần, số chẵn đồng"
+vi-nap-tien-quy-dinh,TUTOR,nap vi toi da bao nhieu mot lan,POLICY,100.000.000đ
+vi-nap-tien-quy-dinh,STUDENT,Tiền trong ví có hết hạn không?,NO_ANSWER,Chưa có thông tin chính thức
+vi-nap-tien-quy-dinh,STUDENT,Nạp tiền vào ví thế nào?,HOWTO,Wallet & Payments (gia sư: Ví tiền) → Amount (VND) → Open VNPay → thanh toán trong 15 phút
+vi-nap-tien-quy-dinh,TUTOR,bam open vnpay khong thay gi,HOWTO,VNPay mở ở thẻ mới; cho phép cửa sổ bật lên rồi bấm lại
+vi-giao-dich,STUDENT,Xem lịch sử giao dịch ở đâu?,HOWTO,"Trang ví, mục Transactions, 20 giao dịch gần nhất"
+vi-giao-dich,TUTOR,Share of lessons the student skipped la gi,FAQ,Phần tiền gia sư nhận cho buổi học viên nghỉ (20% đơn giá)
+vi-giao-dich,STUDENT,Xuất sao kê ví ra Excel được không?,NO_ANSWER,Không có thông tin
+trang-thai-giao-dich-vi,TUTOR,Giao dịch ví Đang chờ là gì?,FAQ,Hiện chỉ có rút tiền: tiền tạm giữ chờ PTutor xử lý; hủy được khi còn chờ
+trang-thai-giao-dich-vi,STUDENT,tien vao tien ra gom nhung gi,FAQ,"Tiền vào: nạp, hoàn phí, hoàn học phí, phần buổi học viên nghỉ, trả lại tiền rút; tiền ra: phí đăng tin, học phí bằng ví, rút tiền"
+trang-thai-giao-dich-vi,STUDENT,Giao dịch thất bại bao lâu thì được hoàn?,NO_ANSWER,Giao dịch thất bại không đổi số dư; không có thông tin thêm
+loi-vi-thanh-toan,STUDENT,Báo Wallet balance is insufficient,ERROR,Số dư không đủ; nạp thêm hoặc trả qua VNPay
+loi-vi-thanh-toan,STUDENT,bao This lesson installment is not scheduled yet,ERROR,Kỳ của hợp đồng Mỗi buổi chưa gắn buổi học; chờ gia sư lên lịch
+loi-vi-thanh-toan,STUDENT,VNPay báo lỗi mã 24 là gì?,NO_ANSWER,Không có thông tin về mã lỗi VNPay
+tai-khoan-ngan-hang,TUTOR,Khai báo tài khoản ngân hàng ở đâu?,HOWTO,"Giao diện chưa có; quy định: mã ngân hàng, tên ngân hàng, số tài khoản 6–34 chữ số, tên chủ tài khoản"
+tai-khoan-ngan-hang,STUDENT,so tai khoan toi da bao nhieu so,POLICY,Từ 6 đến 34 chữ số
+tai-khoan-ngan-hang,TUTOR,Tên chủ tài khoản có phải trùng tên đăng ký không?,NO_ANSWER,Chưa có thông tin chính thức
+rut-tien,TUTOR,Rút tiền về ngân hàng thế nào?,POLICY,Cần khai báo tài khoản ngân hàng; tiền tạm giữ; giao diện và quy trình xử lý chưa có
+rut-tien,STUDENT,huy yeu cau rut tien duoc khong,POLICY,Được khi còn chờ xử lý; tiền trả lại số dư ngay
+rut-tien,TUTOR,Rút tiền mất phí bao nhiêu và bao lâu nhận được?,NO_ANSWER,Chưa có thông tin chính thức
+trang-thai-rut-tien,TUTOR,Yêu cầu rút tiền Chờ xử lý là gì?,FAQ,"Vừa gửi, tiền tạm giữ, chờ PTutor xử lý; hủy được"
+trang-thai-rut-tien,STUDENT,rut tien da huy thi tien ve dau,FAQ,Trả lại số dư dùng được trong ví
+trang-thai-rut-tien,TUTOR,Yêu cầu rút bị từ chối thì tiền có về ví không?,NO_ANSWER,Chưa có thông tin chính thức
+trang-thai-hoan-tien,STUDENT,Yêu cầu hoàn tiền Đang xử lý là sao?,FAQ,Kế toán đã tiếp nhận; học viên không hủy được; chờ kết luận
+trang-thai-hoan-tien,TUTOR,da hoan tien nghia la gi,FAQ,Kế toán đã kết luận và hoàn vào ví học viên; phần gia sư (nếu có) vào ví gia sư
+trang-thai-hoan-tien,STUDENT,Kế toán xử lý hoàn tiền trong mấy ngày?,NO_ANSWER,Chưa có thông tin chính thức
+hoan-tien-quy-dinh,STUDENT,Gia sư không đến dạy thì được hoàn bao nhiêu?,POLICY,100% đơn giá buổi; đơn giá = tổng tiền các kỳ / tổng số buổi; tối đa bằng học phí đã đóng
+hoan-tien-quy-dinh,STUDENT,toi nghi buoi hoc thi duoc hoan bao nhieu,POLICY,"80% đơn giá, gia sư nhận 20%; ví dụ 200.000đ → hoàn 160.000đ"
+hoan-tien-quy-dinh,STUDENT,Gia sư dạy không tốt thì có được hoàn tiền không?,NO_ANSWER,Hoàn tiền chỉ cho buổi không diễn ra; chất lượng giảng dạy thuộc khiếu nại; mức hoàn cho trường hợp này chưa có thông tin
+hoan-tien-quy-dinh,STUDENT,Gia sư có bao lâu để phản hồi yêu cầu hoàn tiền?,POLICY,48 giờ kể từ khi học viên gửi; kế toán chưa duyệt trong thời gian này trừ khi gia sư đã phản hồi
+hoan-tien-gui-yeu-cau,STUDENT,Gửi yêu cầu hoàn tiền ở đâu?,HOWTO,"Hợp đồng → Buổi học và hoàn tiền → Yêu cầu hoàn tiền → chọn buổi, nguyên nhân, mô tả, minh chứng → Gửi yêu cầu"
+hoan-tien-gui-yeu-cau,STUDENT,huy yeu cau hoan tien,HOWTO,Mở yêu cầu Chờ tiếp nhận → Huỷ yêu cầu
+hoan-tien-gui-yeu-cau,STUDENT,Tải ảnh minh chứng lên đâu để có đường dẫn?,NO_ANSWER,Chưa có thông tin chính thức
+loi-hoan-tien,STUDENT,Báo Hợp đồng này đã có một yêu cầu hoàn tiền đang xử lý,ERROR,Mỗi hợp đồng một yêu cầu mở; chờ kết luận hoặc hủy yêu cầu cũ nếu còn Chờ tiếp nhận
+loi-hoan-tien,STUDENT,bao hop dong chua co hoc phi nao da dong de hoan,ERROR,Hợp đồng chưa ký hoặc chưa đóng học phí; không có khoản để hoàn
+loi-hoan-tien,STUDENT,Lỗi khi yêu cầu hoàn tiền quá 50 buổi hiện câu gì trên giao diện?,NO_ANSWER,Không có câu báo lỗi cụ thể trong tài liệu
+hoan-tien-phan-hoi,TUTOR,"Học viên đòi hoàn tiền, tôi phản hồi thế nào?",HOWTO,Yêu cầu hoàn tiền → mở yêu cầu → chọn Tôi đã dạy/Tôi không dạy/Học viên nghỉ cho từng buổi → lời nhắn → Gửi phản hồi trong 48 giờ
+hoan-tien-phan-hoi,TUTOR,phan hoi roi sua lai duoc khong,POLICY,Không; chỉ phản hồi một lần
+hoan-tien-phan-hoi,TUTOR,Không phản hồi trong 48 giờ thì kế toán kết luận theo hướng nào?,NO_ANSWER,Chưa có thông tin chính thức
+khieu-nai-gui,STUDENT,Có những loại khiếu nại nào?,POLICY,"Vắng mặt, Muộn / thiếu giờ, Chất lượng giảng dạy, Vi phạm ứng xử, Vi phạm nghiêm trọng, Khác"
+khieu-nai-gui,TUTOR,gui khieu nai o dau,HOWTO,"Giao diện chưa có trang khiếu nại; khiếu nại gắn với hợp đồng, chỉ hai bên của hợp đồng gửi được"
+khieu-nai-gui,STUDENT,Sau bao lâu thì hết quyền khiếu nại?,NO_ANSWER,Chưa có thông tin chính thức
+khieu-nai-bang-chung,STUDENT,Bổ sung bằng chứng khiếu nại thế nào?,POLICY,Khi khiếu nại Chờ bằng chứng; gửi 1–5 đường dẫn; khiếu nại quay lại Đang xử lý
+khieu-nai-bang-chung,TUTOR,bang chung gui duoi dang file duoc khong,POLICY,Mỗi bằng chứng là một đường dẫn
+khieu-nai-bang-chung,STUDENT,Không gửi bằng chứng đúng hạn thì khiếu nại bị hủy không?,NO_ANSWER,Chưa có thông tin về thời hạn
+khieu-nai-bi-khieu-nai,TUTOR,Tôi bị học viên khiếu nại thì làm gì?,POLICY,"Thấy khiếu nại khi đã được tiếp nhận; gửi một phản hồi (tối đa 5.000 ký tự, 5 bằng chứng) khi Đang xử lý hoặc Chờ bằng chứng"
+khieu-nai-bi-khieu-nai,STUDENT,phan hoi khieu nai may lan,POLICY,"Một lần, không sửa được"
+khieu-nai-bi-khieu-nai,TUTOR,Không phản hồi khiếu nại thì có bị phạt không?,NO_ANSWER,Chưa có thông tin chính thức
+khieu-nai-ket-luan,STUDENT,Khiếu nại được kết luận thế nào?,POLICY,"Nhân viên chăm sóc khách hàng chấp nhận (Đã giải quyết, ghi bên có lỗi) hoặc từ chối (Đã từ chối, kèm lý do)"
+khieu-nai-ket-luan,TUTOR,khieu nai anh huong buoi hoc the nao,POLICY,"Khi chưa kết luận, buổi chờ xác nhận bị giữ, không tự hoàn tất; yêu cầu hoàn tiền chưa kết luận được"
+khieu-nai-ket-luan,TUTOR,Bị kết luận có lỗi thì bị trừ bao nhiêu tiền?,NO_ANSWER,Hệ thống không tự áp dụng hình phạt; mức xử lý chưa có thông tin
+trang-thai-khieu-nai,STUDENT,Khiếu nại Chờ tiếp nhận là gì?,FAQ,Chưa có nhân viên nhận; bên kia chưa thấy; còn sửa/hủy được
+trang-thai-khieu-nai,TUTOR,cho bang chung nghia la gi,FAQ,Chờ người khiếu nại bổ sung 1–5 bằng chứng; sau đó quay lại Đang xử lý
+trang-thai-khieu-nai,STUDENT,Khiếu nại được giải quyết trong bao lâu?,NO_ANSWER,Chưa có thông tin chính thức
+loi-khieu-nai,STUDENT,Báo Only PENDING complaints can be updated,ERROR,Khiếu nại đã được tiếp nhận nên không sửa/hủy được
+loi-khieu-nai,TUTOR,bao A response has already been submitted for this complaint,ERROR,Đã phản hồi rồi; mỗi bên bị khiếu nại chỉ phản hồi một lần
+loi-khieu-nai,STUDENT,Lỗi khi khiếu nại hợp đồng đã kết thúc?,NO_ANSWER,Không có thông tin
+viec-chua-ho-tro,STUDENT,Viết đánh giá gia sư ở đâu?,FAQ,Chưa hỗ trợ viết đánh giá
+viec-chua-ho-tro,TUTOR,danh gia anh huong gi den gia su,FAQ,Là một phần của điểm đề xuất; đánh giá tốt xếp hạng cao hơn
+viec-chua-ho-tro,TUTOR,Gỡ đánh giá sai sự thật thế nào?,NO_ANSWER,Chưa có thông tin chính thức
+viec-chua-ho-tro,STUDENT,Hủy hợp đồng đang học được không?,FAQ,Chưa hỗ trợ hủy hợp đồng đang hoạt động
+viec-chua-ho-tro,TUTOR,gia su nhan tien day nhu the nao,FAQ,Chưa tự động; chỉ nhận 20% buổi học viên nghỉ khi kế toán kết luận hoàn tiền
+thong-bao,STUDENT,Đánh dấu tất cả thông báo đã đọc thế nào?,HOWTO,Trang Notifications → Mark all as read
+thong-bao,TUTOR,loc thong bao chua doc,HOWTO,"Trang thông báo, thẻ unread"
+thong-bao,STUDENT,PTutor có gửi thông báo qua SMS không?,NO_ANSWER,Chưa có thông tin chính thức
+ho-so-gia-su,TUTOR,Cập nhật hồ sơ gia sư thế nào?,HOWTO,"Hồ sơ của tôi → sửa Thông tin cá nhân, Ảnh hồ sơ, Hồ sơ giảng dạy → Lưu hồ sơ"
+ho-so-gia-su,TUTOR,sua ho so co phai duyet lai khong,POLICY,Sửa mục Hồ sơ giảng dạy thì hồ sơ về chờ duyệt; sửa thông tin cá nhân/ảnh thì không
+ho-so-gia-su,TUTOR,Ảnh đại diện có cần chụp chân dung rõ mặt không?,NO_ANSWER,Không có quy định trong tài liệu
+ho-so-gia-su-duyet,TUTOR,Hồ sơ bị từ chối thì gửi lại thế nào?,HOWTO,Sửa Hồ sơ giảng dạy theo lý do → Lưu hồ sơ → tự về chờ duyệt
+ho-so-gia-su-duyet,TUTOR,ho so duoc duyet co loi gi,POLICY,Học viên tìm thấy trong gợi ý; cộng điểm đề xuất
+ho-so-gia-su-duyet,TUTOR,Hồ sơ được duyệt trong bao lâu?,NO_ANSWER,Chưa có thông tin chính thức
+ho-so-gia-su-duyet,TUTOR,Waiting for review là gì?,FAQ,Chờ duyệt: hồ sơ mới hoặc vừa sửa thông tin giảng dạy; chờ kết quả
+ho-so-gia-su-duyet,TUTOR,not approved nghia la gi,FAQ,Không được duyệt; sửa Hồ sơ giảng dạy và Lưu hồ sơ để gửi lại
+chung-chi-quy-dinh,TUTOR,Sửa chứng chỉ đã xác minh được không?,POLICY,Không; chỉ xóa được; chứng chỉ chờ duyệt/bị từ chối sửa được và quay về chờ duyệt
+chung-chi-quy-dinh,TUTOR,chung chi het han co duoc duyet khong,POLICY,Không; chứng chỉ quá ngày hết hạn không được duyệt
+chung-chi-quy-dinh,TUTOR,Chứng chỉ nào được PTutor ưu tiên?,NO_ANSWER,Chưa có thông tin chính thức
+chung-chi-quy-dinh,TUTOR,Chứng chỉ Bị từ chối thì làm gì?,FAQ,"Chỉnh sửa theo lý do → Lưu thay đổi để gửi lại, hoặc xóa"
+chung-chi-quy-dinh,TUTOR,da xac minh nghia la gi,FAQ,"Đã duyệt, hiện với học viên, không sửa được"
+chung-chi-nop,TUTOR,Nộp chứng chỉ thế nào?,HOWTO,"Chứng chỉ → Thêm chứng chỉ → Tên chứng chỉ, tệp hoặc đường dẫn → Tải lên và gửi"
+chung-chi-nop,TUTOR,file chung chi toi da bao nhieu mb,POLICY,"10 MB; PDF, JPEG hoặc PNG"
+chung-chi-nop,TUTOR,Nộp chứng chỉ bằng file Word được không?,POLICY,"Không; chỉ PDF, JPEG, PNG"
+chung-chi-nop,TUTOR,Nộp bao nhiêu chứng chỉ thì được ưu tiên hiển thị?,NO_ANSWER,Không có thông tin
+loi-ho-so-chung-chi,TUTOR,Báo Certificate files must be 10 MB or smaller,ERROR,Tệp lớn hơn 10 MB; nén lại hoặc dùng đường dẫn
+loi-ho-so-chung-chi,TUTOR,bao Vui long chon anh JPG hoac PNG,ERROR,Ảnh đại diện sai định dạng; chọn JPG hoặc PNG tối đa 10 MB
+loi-ho-so-chung-chi,TUTOR,Lỗi khi đường dẫn chứng chỉ Google Drive không mở được?,NO_ANSWER,Không có thông tin cụ thể
+thu-nhap-gia-su,TUTOR,Dạy xong bao lâu thì tôi nhận tiền?,FAQ,Hệ thống chưa tự cộng tiền dạy; cách trả do PTutor quy định riêng
+thu-nhap-gia-su,TUTOR,khi nao gia su duoc cong tien vao vi,FAQ,Chỉ khi kế toán kết luận buổi học viên nghỉ: gia sư nhận 20% đơn giá
+thu-nhap-gia-su,TUTOR,PTutor thu bao nhiêu phần trăm hoa hồng?,NO_ANSWER,Chưa có thông tin chính thức
+diem-de-xuat,TUTOR,Điểm đề xuất là gì?,FAQ,Điểm 0–100 để xếp hạng gia sư khi gợi ý; gia sư mới 50 điểm
+diem-de-xuat,TUTOR,lam sao tang diem de xuat,FAQ,"Hồ sơ xác minh, chứng chỉ được duyệt, phản hồi nhanh, hợp đồng hoàn tất, đánh giá tốt, tránh bị khóa"
+diem-de-xuat,TUTOR,Công thức tính điểm đề xuất chính xác là gì?,NO_ANSWER,Không cung cấp công thức; chỉ giải thích các yếu tố
+diem-de-xuat,TUTOR,Điểm đề xuất cập nhật khi nào?,POLICY,Mỗi ngày 9 giờ 30 sáng giờ Việt Nam và khi có sự kiện liên quan
+loi-buoi-hoc,TUTOR,Vì sao tôi không đánh dấu đã dạy được?,ERROR,Buổi học chưa kết thúc; chỉ đánh dấu sau giờ kết thúc; giờ sai thì sửa khi buổi còn Sắp diễn ra
+loi-buoi-hoc,STUDENT,xac nhan buoi hoc bao buoi hoc dang bi tam giu,ERROR,Buổi nằm trong yêu cầu hoàn tiền chưa kết luận hoặc hợp đồng có khiếu nại chưa xong; chờ kết luận rồi xác nhận lại
+loi-buoi-hoc,TUTOR,Tạo buổi học báo The contract already has its maximum number of lessons,ERROR,Hợp đồng Mỗi buổi đã hết số buổi; không tạo thêm; muốn dạy thêm thì gia hạn hợp đồng
+loi-buoi-hoc,TUTOR,Cần dạy bù một buổi khi đã hết số buổi thì làm sao?,NO_ANSWER,Chưa có thông tin chính thức về buổi học bù
+loi-rut-tien-tai-khoan-ngan-hang,TUTOR,Rút tiền báo A bank account must be configured before requesting a withdrawal,ERROR,Chưa khai báo tài khoản ngân hàng; khai báo trước rồi gửi lại yêu cầu rút
+loi-rut-tien-tai-khoan-ngan-hang,STUDENT,rut tien bao Wallet balance is insufficient,ERROR,Số tiền rút lớn hơn số dư dùng được; tiền tạm giữ không tính; rút ít hơn hoặc hủy yêu cầu rút cũ
+loi-rut-tien-tai-khoan-ngan-hang,TUTOR,Khai báo số tài khoản bị báo Request validation failed,ERROR,"Số tài khoản 6–34 chữ số, không dấu cách; kiểm tra mã ngân hàng, tên ngân hàng, tên chủ tài khoản"
+loi-rut-tien-tai-khoan-ngan-hang,TUTOR,Rút tiền tối thiểu bao nhiêu?,NO_ANSWER,Chưa có thông tin chính thức về mức rút tối thiểu

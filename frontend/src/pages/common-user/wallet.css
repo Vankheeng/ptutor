@@ -140,8 +140,14 @@
 .wallet-modal-balance b { font-size: 12px; font-weight: 500; letter-spacing: .05em; }
 .wallet-modal-balance strong { white-space: nowrap; font-size: 12px; }
 .wallet-linked-bank { display: grid; gap: 8px; border: 1px solid #e1d5f0; border-radius: 9px; padding: 11px; background: #faf7ff; }
+.wallet-change-bank-button { flex: 0 0 auto; border: 1px solid #d8c5ff; border-radius: 7px; padding: 5px 9px; background: #fff; color: var(--wallet-purple); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.wallet-change-bank-button:hover { background: #f0e8ff; }
+.wallet-change-bank-button:disabled { opacity: .55; cursor: not-allowed; }
+.wallet-bank-submit { display: grid; }
 .wallet-linked-bank > small { color: var(--wallet-muted); font-size: 12px; font-weight: 500; letter-spacing: .06em; }
 .wallet-linked-bank > div { display: grid; gap: 4px; }
+.wallet-linked-bank > .wallet-linked-bank-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wallet-linked-bank-header small { color: var(--wallet-muted); font-size: 12px; font-weight: 500; letter-spacing: .06em; }
 .wallet-linked-bank b { font-size: 13px; font-weight: 500; }
 .wallet-linked-bank strong { color: var(--wallet-purple); font-family: ui-monospace, monospace; font-size: 11px; }
 .wallet-linked-bank p { margin: 0; color: #a43e35; font-size: 12px; }

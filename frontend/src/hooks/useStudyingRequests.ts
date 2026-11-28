@@ -35,10 +35,10 @@ export function useStudyingRequests(filters: StudyingRequestSearchFilters = {}) 
             data: null,
             error:
               error instanceof ApiError && error.status === 404
-                ? 'The backend does not expose GET /api/v1/studying-requests yet. Restart it with the latest backend changes.'
+                ? 'Máy chủ chưa hỗ trợ danh sách tin tìm gia sư.'
                 : error instanceof Error
                   ? error.message
-                  : 'Could not load studying requests.',
+                  : 'Không tải được danh sách tin tìm gia sư.',
             isLoading: false
           });
       });
@@ -65,12 +65,12 @@ export function useStudyingRequest(id: string) {
           setState({
             key: id,
             data: null,
-            error: error instanceof Error ? error.message : 'Could not retrieve this request.',
+            error: error instanceof Error ? error.message : 'Không tải được tin này.',
             isLoading: false
           });
       });
     return () => controller.abort();
   }, [id]);
-  if (!id) return { data: null, error: 'Studying request not found.', isLoading: false };
+  if (!id) return { data: null, error: 'Không tìm thấy tin tìm gia sư.', isLoading: false };
   return state.key === id ? state : { data: null, error: '', isLoading: true };
 }

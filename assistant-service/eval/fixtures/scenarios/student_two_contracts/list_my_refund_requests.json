@@ -1,0 +1,33 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "g0000000-0000-4000-8000-000000000001",
+          "contractId": "c0000000-0000-4000-8000-000000000002",
+          "subjectName": "Tiếng Anh",
+          "gradeName": "Lớp 7",
+          "status": "REJECTED",
+          "description": "Gia sư nghỉ không báo",
+          "disputedLessons": [],
+          "evidences": [],
+          "tutorResponse": "Đã báo trước qua tin nhắn",
+          "tutorRespondedAt": "2026-10-02T08:00:00",
+          "tutorResponseDeadline": "2026-10-04T08:00:00",
+          "refundAmount": null,
+          "tutorShareAmount": null,
+          "rejectionReason": "Gia sư có bằng chứng đã báo nghỉ trước 24 giờ",
+          "reviewedAt": "2026-10-05T03:00:00",
+          "createdAt": "2026-10-01T08:00:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 1,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "n3",
+          "title": "Payment installment due",
+          "content": "Installment 2 of your Math contract is due.",
+          "type": "PAYMENT",
+          "eventType": "PAYMENT_INSTALLMENT_DUE",
+          "referenceType": "INSTALLMENT",
+          "referenceId": "i2",
+          "isRead": false,
+          "createdAt": "2026-10-18T07:00:00"
+        },
+        {
+          "id": "n2",
+          "title": "Complaint needs evidence",
+          "content": "Please add evidence to your complaint.",
+          "type": "COMPLAINT",
+          "eventType": "COMPLAINT_EVIDENCE_REQUESTED",
+          "referenceType": "COMPLAINT",
+          "referenceId": "e1000000-0000-4000-8000-000000000001",
+          "isRead": false,
+          "createdAt": "2026-10-14T10:00:00"
+        },
+        {
+          "id": "n1",
+          "title": "Payment succeeded",
+          "content": "Your payment was successful.",
+          "type": "PAYMENT",
+          "eventType": "PAYMENT_SUCCEEDED",
+          "referenceType": "PAYMENT",
+          "referenceId": "p0000000-0000-4000-8000-000000000002",
+          "isRead": true,
+          "createdAt": "2026-09-04T20:00:05"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 3,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

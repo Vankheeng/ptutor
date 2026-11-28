@@ -52,9 +52,9 @@ export function WalletPage() {
     setNotice('Yêu cầu rút tiền đã được gửi và đang chờ PTutor xét duyệt.');
     refresh();
   };
-  const onBankUpdated = (account: BankAccount) => {
+  const onBankUpdated = (account: BankAccount, returnToWithdrawal = false) => {
     setConfirmedBank(account);
-    setDialog(null);
+    if (!returnToWithdrawal) setDialog(null);
     setNotice(`Đã cập nhật tài khoản nhận tiền ${account.bankName}.`);
     refresh();
   };

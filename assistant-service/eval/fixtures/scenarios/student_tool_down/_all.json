@@ -1,0 +1,6 @@
+{
+  "default": {
+    "status": 503,
+    "code": "INTERNAL_SERVER_ERROR"
+  }
+}

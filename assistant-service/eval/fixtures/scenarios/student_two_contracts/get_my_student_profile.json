@@ -1,0 +1,21 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "firstName": "Lan",
+      "lastName": "Nguyễn",
+      "email": "should-be-filtered@example.com",
+      "phone": "0912345678",
+      "address": {
+        "provinceName": "Hà Nội",
+        "districtName": "Cầu Giấy"
+      },
+      "introduction": "Học sinh lớp 9",
+      "learningStyle": "Thích học qua ví dụ",
+      "personalityTags": "chăm chỉ",
+      "goalsDescription": "Thi vào lớp 10",
+      "currentLevel": "Trung bình khá",
+      "weakPoints": "Hình học"
+    }
+  }
+}

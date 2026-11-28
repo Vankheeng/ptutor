@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +22,12 @@ import lombok.RequiredArgsConstructor;
  * <p>The seed is intentionally idempotent: existing records are preserved so
  * an administrator can later rename, deactivate, or extend the catalog
  * without the application startup overwriting those changes.</p>
+ *
+ * <p>Runs first: the recommendation tag seeder ({@code @Order(100)}) attaches its topics to these subjects, and on
+ * an empty database it found none when this runner came last.</p>
  */
 @Component
+@Order(0)
 @RequiredArgsConstructor
 public class CatalogDataInitializer implements ApplicationRunner {
 

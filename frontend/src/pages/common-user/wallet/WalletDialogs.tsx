@@ -19,7 +19,7 @@ interface Props {
   bank: BankAccount | null;
   onClose: () => void;
   onWithdrawalCreated: () => void;
-  onBankUpdated: (bank: BankAccount) => void;
+  onBankUpdated: (bank: BankAccount, returnToWithdrawal?: boolean) => void;
 }
 const cash = (amount: number) => new Intl.NumberFormat('vi-VN').format(amount);
 const formatLocalExpiry = (value: string) => {
@@ -59,8 +59,10 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
   const [accountHolderName, setAccountHolderName] = useState(bank?.accountHolderName ?? profileName);
   const [bankChallenge, setBankChallenge] = useState<WalletSecurityChallenge | null>(null);
   const [bankOtp, setBankOtp] = useState('');
+  const [editingBankFromWithdrawal, setEditingBankFromWithdrawal] = useState(false);
 
   const close = () => {
+    setEditingBankFromWithdrawal(false);
     setError('');
     setChallenge(null);
     setOtp('');
@@ -73,6 +75,12 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
     setBankName('');
     setAccountHolderName('');
     onClose();
+  };
+  const returnToWithdrawal = () => {
+    setEditingBankFromWithdrawal(false);
+    setBankChallenge(null);
+    setBankOtp('');
+    setError('');
   };
 
   const submitTopUp = async () => {
@@ -168,8 +176,12 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
     setError('');
     try {
       const result = await confirmBankAccountOtp(bankChallenge.challengeId, bankOtp);
-      onBankUpdated(result);
-      close();
+      onBankUpdated(result, editingBankFromWithdrawal);
+      if (editingBankFromWithdrawal) {
+        returnToWithdrawal();
+      } else {
+        close();
+      }
     } catch (caught) {
       setError(getError(caught));
     } finally {
@@ -244,7 +256,7 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
         </section>
       )}
 
-      {active === 'withdraw' && (
+      {active === 'withdraw' && !editingBankFromWithdrawal && (
         <section className="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-withdraw-title">
           <header className="wallet-modal-header">
             <div>
@@ -292,7 +304,20 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
                   </div>
                 </label>
                 <div className="wallet-linked-bank">
-                  <small>NGÂN HÀNG THỤ HƯỞNG</small>
+                  <div className="wallet-linked-bank-header">
+                    <small>NGÂN HÀNG THỤ HƯỞNG</small>
+                    <button
+                      className="wallet-change-bank-button"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setError('');
+                        setEditingBankFromWithdrawal(true);
+                      }}
+                    >
+                      {bank ? 'Thay đổi' : 'Thêm'}
+                    </button>
+                  </div>
                   {bank ? (
                     <div>
                       <b>
@@ -388,16 +413,22 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
         </section>
       )}
 
-      {active === 'bank' && (
+      {(active === 'bank' || editingBankFromWithdrawal) && (
         <section className="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-bank-title">
           <header className="wallet-modal-header">
             <div>
               <span className="wallet-modal-icon">▤</span>
               <div>
-                <h2 id="wallet-bank-title">Tài Khoản Ngân Hàng Thụ Hưởng</h2>
+                <h2 id="wallet-bank-title">
+                  {editingBankFromWithdrawal ? 'Thay đổi tài khoản ngân hàng' : 'Tài Khoản Ngân Hàng Thụ Hưởng'}
+                </h2>
               </div>
             </div>
-            <button type="button" onClick={close} aria-label="Đóng">
+            <button
+              type="button"
+              onClick={editingBankFromWithdrawal ? returnToWithdrawal : close}
+              aria-label={editingBankFromWithdrawal ? 'Quay lại yêu cầu rút tiền' : 'Đóng'}
+            >
               ×
             </button>
           </header>
@@ -485,19 +516,31 @@ export function WalletDialogs({ active, balance, bank, onClose, onWithdrawalCrea
               </div>
             )}
             {!bankChallenge ? (
-              <button
-                className="wallet-dialog-submit"
-                type="button"
-                disabled={
-                  busy ||
-                  !BANK_OPTIONS.some((option) => option.name === bankName) ||
-                  accountNumber.length < 6 ||
-                  !accountHolderName
-                }
-                onClick={() => void submitBank()}
-              >
-                {busy ? 'Đang gửi mã…' : 'Gửi mã OTP để xác thực →'}
-              </button>
+              <div className={editingBankFromWithdrawal ? 'wallet-dialog-actions' : 'wallet-bank-submit'}>
+                {editingBankFromWithdrawal && (
+                  <button
+                    className="wallet-dialog-secondary"
+                    type="button"
+                    disabled={busy}
+                    onClick={returnToWithdrawal}
+                  >
+                    Quay lại
+                  </button>
+                )}
+                <button
+                  className="wallet-dialog-submit"
+                  type="button"
+                  disabled={
+                    busy ||
+                    !BANK_OPTIONS.some((option) => option.name === bankName) ||
+                    accountNumber.length < 6 ||
+                    !accountHolderName
+                  }
+                  onClick={() => void submitBank()}
+                >
+                  {busy ? 'Đang gửi mã…' : 'Gửi mã OTP để xác thực →'}
+                </button>
+              </div>
             ) : (
               <div className="wallet-dialog-actions">
                 <button

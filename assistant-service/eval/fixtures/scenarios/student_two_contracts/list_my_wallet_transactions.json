@@ -1,0 +1,57 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "transactionId": "f0000000-0000-4000-8000-000000000003",
+          "transactionType": "DEBIT",
+          "purpose": "TUITION_PAYMENT",
+          "amount": 1200000,
+          "balanceAfter": 250000,
+          "pendingBalanceAfter": 0,
+          "referenceType": "PAYMENT",
+          "referenceId": "p0000000-0000-4000-8000-000000000002",
+          "description": "Thanh toán kỳ 1 hợp đồng Toán",
+          "status": "COMPLETED",
+          "createdAt": "2026-09-04T20:00:00",
+          "walletId": "w1"
+        },
+        {
+          "transactionId": "f0000000-0000-4000-8000-000000000002",
+          "transactionType": "CREDIT",
+          "purpose": "TOP_UP",
+          "amount": 1000000,
+          "balanceAfter": 1450000,
+          "pendingBalanceAfter": 0,
+          "referenceType": "PAYMENT",
+          "referenceId": "p0000000-0000-4000-8000-000000000001",
+          "description": "Nạp ví qua VNPay",
+          "status": "COMPLETED",
+          "createdAt": "2026-09-03T19:30:00",
+          "walletId": "w1"
+        },
+        {
+          "transactionId": "f0000000-0000-4000-8000-000000000001",
+          "transactionType": "DEBIT",
+          "purpose": "STUDYING_REQUEST_FEE",
+          "amount": 50000,
+          "balanceAfter": 450000,
+          "pendingBalanceAfter": 0,
+          "referenceType": "STUDYING_REQUEST",
+          "referenceId": "r0000000-0000-4000-8000-000000000001",
+          "description": "Phí đăng đơn đăng ký học",
+          "status": "COMPLETED",
+          "createdAt": "2026-08-20T08:00:00",
+          "walletId": "w1"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 3,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  }
+}

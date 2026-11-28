@@ -1,0 +1,104 @@
+{
+  "default": {
+    "status": 200,
+    "body": {
+      "content": [
+        {
+          "id": "c0000000-0000-4000-8000-000000000001",
+          "studentId": "a0000000-0000-4000-8000-0000000000aa",
+          "studentFirstName": "Lan",
+          "studentLastName": "Nguyễn",
+          "studentEmail": "should-be-filtered@example.com",
+          "tutorId": "b0000000-0000-4000-8000-0000000000bb",
+          "tutorFirstName": "An",
+          "tutorLastName": "Trần",
+          "tutorEmail": "tutor-should-be-filtered@example.com",
+          "subjectId": "s1",
+          "subjectName": "Toán",
+          "gradeId": "g1",
+          "gradeName": "Lớp 9",
+          "teachingMode": "ONLINE",
+          "price": 1200000,
+          "paymentPeriod": "MONTHLY",
+          "totalLessons": 12,
+          "preferredSchedule": "Tối thứ 3, thứ 5",
+          "schedules": [
+            {
+              "dayOfWeek": 2,
+              "startTime": "19:00",
+              "endTime": "20:30"
+            }
+          ],
+          "startDate": "2026-09-05",
+          "endDate": "2027-01-05",
+          "status": "ACTIVE",
+          "createdByUserId": "11111111-1111-1111-1111-000000000001",
+          "signedByUserId": null,
+          "renewedFromContractId": null,
+          "signedAt": "2026-09-02T08:30:00",
+          "createdAt": "2026-09-01T10:00:00",
+          "updatedAt": "2026-09-02T10:00:00"
+        },
+        {
+          "id": "c0000000-0000-4000-8000-000000000002",
+          "studentId": "a0000000-0000-4000-8000-0000000000aa",
+          "studentFirstName": "Lan",
+          "studentLastName": "Nguyễn",
+          "studentEmail": "should-be-filtered@example.com",
+          "tutorId": "b0000000-0000-4000-8000-0000000000bb",
+          "tutorFirstName": "Bình",
+          "tutorLastName": "Trần",
+          "tutorEmail": "tutor-should-be-filtered@example.com",
+          "subjectId": "s1",
+          "subjectName": "Tiếng Anh",
+          "gradeId": "g1",
+          "gradeName": "Lớp 7",
+          "teachingMode": "ONLINE",
+          "price": 900000,
+          "paymentPeriod": "MONTHLY",
+          "totalLessons": 12,
+          "preferredSchedule": "Tối thứ 3, thứ 5",
+          "schedules": [
+            {
+              "dayOfWeek": 2,
+              "startTime": "19:00",
+              "endTime": "20:30"
+            }
+          ],
+          "startDate": "2026-10-01",
+          "endDate": "2027-02-01",
+          "status": "ACTIVE",
+          "createdByUserId": "99999999-9999-4999-8999-999999999999",
+          "signedByUserId": null,
+          "renewedFromContractId": null,
+          "signedAt": "2026-09-28T09:00:00",
+          "createdAt": "2026-09-01T10:00:00",
+          "updatedAt": "2026-09-02T10:00:00"
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 2,
+      "totalPages": 1,
+      "first": true,
+      "last": true
+    }
+  },
+  "byArgs": [
+    {
+      "match": {
+        "status": "CANCELLED"
+      },
+      "status": 200,
+      "body": {
+        "content": [],
+        "page": 0,
+        "size": 100,
+        "totalElements": 0,
+        "totalPages": 1,
+        "first": true,
+        "last": true
+      }
+    }
+  ]
+}
