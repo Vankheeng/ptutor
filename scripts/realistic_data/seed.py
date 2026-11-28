@@ -712,7 +712,10 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                         topic=lesson_focus)
                     lesson_id = uid("lesson", i, k)
                     disputed = (i % 15 == 5 or i == 10) and k == 0
-                    lesson_status = "PENDING_CONFIRMATION" if disputed else "COMPLETED" if completed or k < 2 else "SCHEDULED"
+                    settled = completed or k == 1 or (i % 4 == 0 and not disputed)
+                    lesson_status = ("PENDING_CONFIRMATION" if disputed or
+                                     (finance_key is not None and k < 2 and not settled)
+                                     else "COMPLETED" if completed or k < 2 else "SCHEDULED")
                     out.append(insert("lessons",["id","contract_id","title","date","start_time","end_time","teaching_mode","status","note"],
                         [q(lesson_id),q(contract),q(lesson_title),f"CURRENT_DATE - {25-k*7}" if completed else (f"CURRENT_DATE - {18-k*7}" if k<2 else "CURRENT_DATE + 3"),q("18:30"),q("20:00"),q(mode),q(lesson_status),q(lesson_note)]))
                     refreshes.append(refresh("lessons", lesson_id, title=lesson_title, note=lesson_note))
@@ -988,8 +991,21 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             completed=i<12 and i%3==2
             balance=900000 if pending or completed else 1200000
             out.append(insert("wallets",["id","user_id","balance","pending_balance"],[q(wallet),q(user),balance,300000 if pending else 0]))
-            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description","created_at"],
-                [sql_id("tutor-earning",i),q(wallet),q("CREDIT"),q("TUTOR_EARNING"),1200000,1200000,0,q("COMPLETED"),q(f"local-tutor-earning-{i}"),q("Thu nhập từ các buổi học đã xác nhận"),"CURRENT_TIMESTAMP - INTERVAL '100 days'"]))
+            opening_payment=uid("tutor-opening-topup",i)
+            out.append(insert("payments",["id","user_id","amount","payment_method","payment_type",
+                                          "status","transaction_code","reference_type","reference_id",
+                                          "paid_at","created_at"],
+                [q(opening_payment),q(user),1200000,q("VNPAY"),q("WALLET_TOP_UP"),q("PAID"),
+                 q(f"LOCAL-TUTOR-TOPUP-{i:03d}"),q("PAYMENT"),q(opening_payment),
+                 "CURRENT_TIMESTAMP - INTERVAL '100 days'",
+                 "CURRENT_TIMESTAMP - INTERVAL '100 days 1 hour'"]))
+            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount",
+                                                      "balance_after","pending_balance_after","status",
+                                                      "idempotency_key","description","reference_type",
+                                                      "reference_id","created_at"],
+                [sql_id("tutor-earning",i),q(wallet),q("CREDIT"),q("TOP_UP"),1200000,1200000,0,
+                 q("COMPLETED"),q(f"local-tutor-earning-{i}"),q("Nạp tiền vào ví"),
+                 q("PAYMENT"),q(opening_payment),"CURRENT_TIMESTAMP - INTERVAL '100 days'"]))
             if pending or completed:
                 out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description"],
                     [sql_id("withdrawal-tx",i),q(wallet),q("DEBIT"),q("WITHDRAWAL"),300000,900000,300000 if pending else 0,q("PENDING" if pending else "COMPLETED"),q(f"local-withdrawal-{i}"),q("Rút thu nhập gia sư")]))
@@ -1020,7 +1036,10 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                        f"reference_type='PAYMENT', reference_id={sql_id('payment', old_index)} "
                        f"WHERE id={sql_id('wallet-tx', old_index)};")
         for old_index in range(24):
-            out.append(f"UPDATE wallet_transactions SET created_at=CURRENT_TIMESTAMP - INTERVAL '100 days' "
+            out.append(f"UPDATE wallet_transactions SET created_at=CURRENT_TIMESTAMP - INTERVAL '100 days', "
+                       "purpose='TOP_UP', reference_type='PAYMENT', "
+                       f"reference_id={sql_id('tutor-opening-topup', old_index)}, "
+                       f"description={q('Nạp tiền vào ví')} "
                        f"WHERE id={sql_id('tutor-earning', old_index)};")
         # A paid installment is a VNPAY payment tied to that installment and contract.
         # Some completed lessons are settled; unsettled lessons remain visible as held tuition.
@@ -1106,7 +1125,8 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                                           "end_time", "teaching_mode", "status", "note"],
                               [q(lesson_id), q(demo_contract), q(f"Buổi {lesson_index + 1}: Âm nhạc lớp 1"),
                                lesson_date, q("17:30"), q("19:00"), q("OFFLINE"),
-                               q("COMPLETED" if paid else "SCHEDULED"),
+                               q("COMPLETED" if lesson_index == 0 else
+                                 "PENDING_CONFIRMATION" if paid else "SCHEDULED"),
                                q("Luyện nghe nhịp và hát theo giai điệu đơn giản.")]))
             out.append(insert("contract_payment_installments", ["id", "contract_id", "lesson_id",
                                                               "sequence_number", "payment_period", "amount",
@@ -1271,6 +1291,13 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                            f"wallet_transaction_id={q(refund_transaction)}::uuid "
                            f"WHERE id={q(refund_id)}::uuid;")
     out.extend(refreshes)
+    if finance_key is not None:
+        for index, _, _, _, _, completed in contract_scenarios:
+            if not completed and index % 4 != 0 and index % 15 != 5 and index != 10:
+                out.append(f"UPDATE lessons SET status='PENDING_CONFIRMATION' "
+                           f"WHERE id={sql_id('lesson', index, 0)} AND status='COMPLETED';")
+        out.append(f"UPDATE lessons SET status='PENDING_CONFIRMATION' "
+                   f"WHERE id={sql_id('demo-finance-lesson', 1)} AND status='COMPLETED';")
     # Lifecycle states that do not arise from the active matching/finance stories above.
     # Connected applications point to signed contracts; cancelled applications have no contract.
     for index in range(62):
@@ -1412,11 +1439,13 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
         # fees that were already inserted for the original and demo stories.
         out.append("""
             WITH postings AS (
-                SELECT tr.id, t.user_id, tr.created_at, 'TEACHING'::text AS kind
+                SELECT tr.id, t.user_id, tr.created_at, 'TEACHING'::text AS kind,
+                       tr.quantity
                 FROM teaching_requests tr JOIN tutors t ON t.id=tr.tutor_id
                 WHERE tr.deleted_at IS NULL AND tr.status <> 'DRAFT'
                 UNION ALL
-                SELECT sr.id, s.user_id, sr.created_at, 'STUDYING'::text AS kind
+                SELECT sr.id, s.user_id, sr.created_at, 'STUDYING'::text AS kind,
+                       1 AS quantity
                 FROM studying_requests sr JOIN students s ON s.id=sr.student_id
                 WHERE sr.deleted_at IS NULL AND sr.status <> 'DRAFT'
             )
@@ -1424,7 +1453,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                                   status, transaction_code, reference_type, reference_id,
                                   paid_at, created_at)
             SELECT md5('fixture-posting-fee:' || p.kind || ':' || p.id::text)::uuid,
-                   p.user_id, 100000, 'VNPAY', p.kind || '_REQUEST_FEE',
+                   p.user_id, 100000 * p.quantity, 'VNPAY', p.kind || '_REQUEST_FEE',
                    'PAID', 'LOCAL-POST-FEE-' || upper(replace(p.id::text, '-', '')),
                    p.kind || '_REQUEST', p.id,
                    p.created_at + INTERVAL '1 day 1 hour',
@@ -1435,9 +1464,60 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 WHERE paid.deleted_at IS NULL AND paid.reference_id=p.id
                   AND paid.reference_type=p.kind || '_REQUEST'
                   AND paid.payment_type=p.kind || '_REQUEST_FEE'
-                  AND paid.status='PAID'
+                  AND paid.status IN ('PAID','REFUNDED')
             )
             ON CONFLICT (id) DO NOTHING;
+        """)
+        out.append("""
+            UPDATE payments p SET amount=100000 * tr.quantity
+            FROM teaching_requests tr
+            WHERE p.reference_type='TEACHING_REQUEST' AND p.reference_id=tr.id
+              AND p.payment_type='TEACHING_REQUEST_FEE' AND p.status IN ('PAID','REFUNDED')
+              AND p.transaction_code LIKE 'LOCAL-%'
+              AND p.amount<>100000 * tr.quantity;
+        """)
+        out.append("""
+            DO $$
+            DECLARE
+                item RECORD;
+                added RECORD;
+            BEGIN
+                FOR item IN
+                    WITH rejected AS (
+                        SELECT id, 'TEACHING_REQUEST'::text AS kind FROM teaching_requests
+                        WHERE deleted_at IS NULL AND status='REJECTED'
+                        UNION ALL
+                        SELECT id, 'STUDYING_REQUEST'::text AS kind FROM studying_requests
+                        WHERE deleted_at IS NULL AND status='REJECTED'
+                    )
+                    SELECT p.id payment_id, p.user_id, p.amount, p.reference_id,
+                           p.reference_type, rejected.kind
+                    FROM payments p JOIN rejected ON rejected.id=p.reference_id
+                        AND rejected.kind=p.reference_type
+                    WHERE p.deleted_at IS NULL AND p.status IN ('PAID','REFUNDED')
+                      AND p.payment_type=rejected.kind || '_FEE'
+                    ORDER BY p.id
+                LOOP
+                    INSERT INTO wallet_transactions
+                        (id, wallet_id, transaction_type, purpose, amount,
+                         balance_after, pending_balance_after, reference_type,
+                         reference_id, description, idempotency_key, status, created_at)
+                    SELECT md5('fixture-posting-refund:' || item.payment_id::text)::uuid,
+                           w.id, 'CREDIT', item.kind || '_REFUND', item.amount,
+                           w.balance + item.amount, w.pending_balance, item.kind,
+                           item.reference_id, 'Refund for rejected posting',
+                           'seed-posting-refund-' || item.payment_id::text,
+                           'COMPLETED', CURRENT_TIMESTAMP - INTERVAL '1 day'
+                    FROM wallets w WHERE w.user_id=item.user_id
+                    ON CONFLICT DO NOTHING RETURNING wallet_id, amount INTO added;
+                    IF FOUND THEN
+                        UPDATE wallets SET balance=balance+added.amount,
+                                           updated_at=CURRENT_TIMESTAMP
+                        WHERE id=added.wallet_id;
+                    END IF;
+                    UPDATE payments SET status='REFUNDED' WHERE id=item.payment_id;
+                END LOOP;
+            END $$;
         """)
     if include_ai:
         for posting in changed_embedding_posts:

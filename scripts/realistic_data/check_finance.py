@@ -25,6 +25,12 @@ WITH ledger AS (
     WHERE wt.deleted_at IS NULL AND wt.reference_type='LESSON'
       AND wt.purpose='TUTOR_EARNING' AND wt.status='COMPLETED'
     GROUP BY l.contract_id
+), refund_tutor_shares AS (
+    SELECT r.contract_id, sum(wt.amount) amount
+    FROM wallet_transactions wt JOIN refund_requests r ON r.id=wt.reference_id
+    WHERE wt.deleted_at IS NULL AND wt.reference_type='REFUND_REQUEST'
+      AND wt.purpose='TUTOR_EARNING' AND wt.status='COMPLETED'
+    GROUP BY r.contract_id
 ), refund_allocations AS (
     SELECT contract_id, coalesce(sum(refund_amount), 0) amount
     FROM refund_requests WHERE status='REFUNDED' AND deleted_at IS NULL
@@ -34,11 +40,13 @@ WITH ledger AS (
     FROM payments WHERE payment_type='TUITION_PAYMENT' AND deleted_at IS NULL
     GROUP BY reference_id
 ), postings AS (
-    SELECT tr.id, t.user_id, tr.status, tr.created_at, 'TEACHING_REQUEST'::text kind
+    SELECT tr.id, t.user_id, tr.status, tr.created_at,
+           'TEACHING_REQUEST'::text kind, tr.quantity
     FROM teaching_requests tr JOIN tutors t ON t.id=tr.tutor_id
     WHERE tr.deleted_at IS NULL
     UNION ALL
-    SELECT sr.id, s.user_id, sr.status, sr.created_at, 'STUDYING_REQUEST'::text kind
+    SELECT sr.id, s.user_id, sr.status, sr.created_at,
+           'STUDYING_REQUEST'::text kind, 1 AS quantity
     FROM studying_requests sr JOIN students s ON s.id=sr.student_id
     WHERE sr.deleted_at IS NULL
 )
@@ -66,8 +74,10 @@ SELECT 'tutor_payout_owner_mismatch', count(*) FROM wallet_transactions wt
     WHERE wt.purpose='TUTOR_EARNING' AND wt.reference_type='LESSON'
       AND wt.status='COMPLETED' AND wt.deleted_at IS NULL AND w.user_id<>t.user_id
 UNION ALL
-SELECT 'negative_held_tuition', count(*) FROM tuition paid LEFT JOIN payouts outgoing USING(contract_id)
-    WHERE paid.net<coalesce(outgoing.amount,0)
+SELECT 'negative_held_tuition', count(*) FROM tuition paid
+    LEFT JOIN payouts outgoing USING(contract_id)
+    LEFT JOIN refund_tutor_shares shares USING(contract_id)
+    WHERE paid.net<coalesce(outgoing.amount,0)+coalesce(shares.amount,0)
 UNION ALL
 SELECT 'refund_allocation_mismatch', count(*) FROM refund_allocations r
     FULL JOIN payment_refunds p USING(contract_id) WHERE coalesce(r.amount,0)<>coalesce(p.amount,0)
@@ -86,18 +96,57 @@ SELECT 'pending_withdrawal_reservation_mismatch', count(*) FROM wallets w
 UNION ALL
 SELECT 'posting_fee_count_mismatch', count(*) FROM postings post
     WHERE (SELECT count(*) FROM payments p
-           WHERE p.deleted_at IS NULL AND p.status='PAID'
+           WHERE p.deleted_at IS NULL AND p.status IN ('PAID','REFUNDED')
              AND p.payment_type=post.kind || '_FEE'
              AND p.reference_type=post.kind AND p.reference_id=post.id)
           <> CASE WHEN post.status='DRAFT' THEN 0 ELSE 1 END
+       OR (post.status<>'DRAFT' AND NOT EXISTS (
+           SELECT 1 FROM payments p WHERE p.deleted_at IS NULL
+             AND p.payment_type=post.kind || '_FEE'
+             AND p.reference_type=post.kind AND p.reference_id=post.id
+             AND p.status=CASE WHEN post.status='REJECTED' THEN 'REFUNDED' ELSE 'PAID' END))
 UNION ALL
 SELECT 'posting_fee_owner_or_amount_mismatch', count(*) FROM payments p
     LEFT JOIN postings post ON post.id=p.reference_id AND post.kind=p.reference_type
-    WHERE p.deleted_at IS NULL AND p.status='PAID'
+    WHERE p.deleted_at IS NULL AND p.status IN ('PAID','REFUNDED')
       AND p.payment_type IN ('TEACHING_REQUEST_FEE','STUDYING_REQUEST_FEE')
       AND (post.id IS NULL OR p.payment_type<>post.kind || '_FEE'
-           OR p.user_id<>post.user_id OR p.amount<>100000
+           OR p.user_id<>post.user_id OR p.amount<>100000 * post.quantity
            OR p.paid_at<post.created_at)
+UNION ALL
+SELECT 'rejected_posting_refund_mismatch', count(*) FROM postings post
+    JOIN payments p ON p.reference_type=post.kind AND p.reference_id=post.id
+        AND p.payment_type=post.kind || '_FEE' AND p.status='REFUNDED'
+    WHERE post.status='REJECTED' AND
+      (SELECT count(*) FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id
+       WHERE wt.deleted_at IS NULL AND wt.reference_type=post.kind
+         AND wt.reference_id=post.id AND wt.purpose=post.kind || '_REFUND'
+         AND wt.status='COMPLETED' AND wt.amount=p.amount
+         AND w.user_id=post.user_id)<>1
+UNION ALL
+SELECT 'topup_payment_credit_mismatch', count(*) FROM payments p
+    WHERE p.deleted_at IS NULL AND p.payment_type='WALLET_TOP_UP' AND p.status='PAID'
+      AND (SELECT count(*) FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id
+           WHERE wt.deleted_at IS NULL AND wt.reference_type='PAYMENT'
+             AND wt.reference_id=p.id AND wt.purpose='TOP_UP' AND wt.status='COMPLETED'
+             AND wt.amount=p.amount AND w.user_id=p.user_id)<>1
+UNION ALL
+SELECT 'earning_without_source', count(*) FROM wallet_transactions wt
+    WHERE wt.deleted_at IS NULL AND wt.purpose='TUTOR_EARNING' AND wt.status='COMPLETED'
+      AND (wt.reference_type IS NULL OR wt.reference_id IS NULL)
+UNION ALL
+SELECT 'final_paid_lesson_unsettled', count(*) FROM lessons l
+    JOIN contract_payment_installments i ON i.lesson_id=l.id
+    WHERE l.deleted_at IS NULL AND l.status IN ('COMPLETED','CONFIRMED') AND i.status='PAID'
+      AND NOT EXISTS (SELECT 1 FROM wallet_transactions wt WHERE wt.deleted_at IS NULL
+                      AND wt.reference_type='LESSON' AND wt.reference_id=l.id
+                      AND wt.purpose='TUTOR_EARNING' AND wt.status='COMPLETED')
+      AND NOT EXISTS (SELECT 1 FROM refund_request_lessons rrl
+                      JOIN refund_requests r ON r.id=rrl.refund_request_id
+                      WHERE rrl.lesson_id=l.id AND r.status='REFUNDED')
+UNION ALL
+SELECT 'invalid_refund_amount', count(*) FROM payments p
+    WHERE p.deleted_at IS NULL AND (p.refunded_amount<0 OR p.refunded_amount>p.amount)
 ORDER BY 1;
 """
 
