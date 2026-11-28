@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useResource } from '../../hooks/useResource';
-import { getFavoriteTutorRequests, removeFavoriteTutor } from '../../services/recommendationApi';
+import { getFavoriteTutorRequests, removeFavoriteTeachingRequest } from '../../services/recommendationApi';
 import { getStudentApplications, type StudentApplication } from '../../services/studentApi';
 import { errorMessage } from '../../services/errorMessages';
 import { StudentTeachingRequestCard } from './StudentTeachingRequestCard';
@@ -30,14 +30,14 @@ export function FavoriteTutorResults({ onFavoritesChanged, savedTutorCount }: Pr
     });
     return byRequest;
   }, [query.data?.applications]);
-  const visibleRequests = query.data?.requests.filter((request) => !removedIds.has(request.tutorId)) ?? [];
+  const visibleRequests = query.data?.requests.filter((request) => !removedIds.has(request.id)) ?? [];
 
-  const remove = async (tutorId: string) => {
-    setRemovingId(tutorId);
+  const remove = async (requestId: string) => {
+    setRemovingId(requestId);
     setError('');
     try {
-      await removeFavoriteTutor(tutorId);
-      setRemovedIds((previous) => new Set(previous).add(tutorId));
+      await removeFavoriteTeachingRequest(requestId);
+      setRemovedIds((previous) => new Set(previous).add(requestId));
       setRevision((value) => value + 1);
       onFavoritesChanged();
     } catch (caught) {
@@ -50,8 +50,8 @@ export function FavoriteTutorResults({ onFavoritesChanged, savedTutorCount }: Pr
   return (
     <section className="tutor-marketplace" aria-label="Gia sư đã quan tâm">
       <div className="tutor-section-heading">
-        <h2>Gia sư đã quan tâm</h2>
-        <span className="tutor-count">{visibleRequests.length} gia sư</span>
+        <h2>Tin dạy đã quan tâm</h2>
+        <span className="tutor-count">{visibleRequests.length} tin dạy</span>
       </div>
       {error && (
         <div className="tutor-error" role="alert">
@@ -77,14 +77,14 @@ export function FavoriteTutorResults({ onFavoritesChanged, savedTutorCount }: Pr
               application={applicationsByRequest.get(request.id)}
               onChanged={() => setRevision((value) => value + 1)}
               favorite
-              onToggleFavorite={() => void remove(request.tutorId)}
-              favoritePending={removingId === request.tutorId}
+              onToggleFavorite={() => void remove(request.id)}
+              favoritePending={removingId === request.id}
             />
           ))}
         </div>
       ) : (
         <div className="tutor-empty">
-          <h3>{savedTutorCount ? 'Hiện không có tin dạy còn mở' : 'Chưa có gia sư đã quan tâm'}</h3>
+          <h3>{savedTutorCount ? 'Hiện không có tin dạy còn mở' : 'Chưa có tin dạy đã quan tâm'}</h3>
           <p>
             {savedTutorCount
               ? 'Các lượt quan tâm vẫn được lưu để cải thiện gợi ý gia sư.'

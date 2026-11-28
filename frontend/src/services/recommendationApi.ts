@@ -129,8 +129,8 @@ export function recordEvent(logId: string, candidateId: string, action: Recommen
   return post<null>(`/api/v1/recommendations/${encodeURIComponent(logId)}/events`, { action, candidateId });
 }
 
-export function getFavoriteTutorIds(signal?: AbortSignal) {
-  return get<string[]>('/api/v1/students/me/favorite-tutors', { signal });
+export function getFavoriteTeachingRequestIds(signal?: AbortSignal) {
+  return get<string[]>('/api/v1/students/me/favorite-tutors/teaching-request-ids', { signal });
 }
 
 export function getFavoriteTutorRequests(signal?: AbortSignal) {
@@ -141,8 +141,8 @@ export function addFavoriteTutorRequest(requestId: string) {
   return post<null>(`/api/v1/students/me/favorite-tutors/teaching-requests/${encodeURIComponent(requestId)}`);
 }
 
-export function removeFavoriteTutor(tutorId: string) {
-  return del<null>(`/api/v1/students/me/favorite-tutors/${encodeURIComponent(tutorId)}`);
+export function removeFavoriteTeachingRequest(requestId: string) {
+  return del<null>(`/api/v1/students/me/favorite-tutors/teaching-requests/${encodeURIComponent(requestId)}`);
 }
 
 const tagRequests = new Map<string, Promise<RecommendationTag[]>>();

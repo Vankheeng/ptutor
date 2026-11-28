@@ -15,15 +15,15 @@ import com.ptutor.backend.entity.FavoriteTutor;
 public interface FavoriteTutorRepository extends JpaRepository<FavoriteTutor, UUID> {
 
     /**
-     * One row per (student, tutor), also counting soft-deleted ones: liking a tutor again brings the
+     * One row per (student, teaching request), also counting soft-deleted ones: liking a posting again brings the
      * old row back instead of violating the unique constraint.
      */
     @Modifying(flushAutomatically = true)
     @Query(value = """
             INSERT INTO favorite_tutors (id, student_id, tutor_id, teaching_request_id, created_at, updated_at)
             VALUES (:id, :studentId, :tutorId, :teachingRequestId, :now, :now)
-            ON CONFLICT (student_id, tutor_id) DO UPDATE
-              SET deleted_at = NULL, teaching_request_id = :teachingRequestId, updated_at = :now
+            ON CONFLICT (student_id, teaching_request_id) DO UPDATE
+              SET deleted_at = NULL, updated_at = :now
             """, nativeQuery = true)
     int addOrRestore(
             @Param("id") UUID id, @Param("studentId") UUID studentId, @Param("tutorId") UUID tutorId,
@@ -32,10 +32,11 @@ public interface FavoriteTutorRepository extends JpaRepository<FavoriteTutor, UU
     @Modifying(flushAutomatically = true)
     @Query(value = """
             UPDATE favorite_tutors SET deleted_at = :now, updated_at = :now
-            WHERE student_id = :studentId AND tutor_id = :tutorId AND deleted_at IS NULL
+            WHERE student_id = :studentId AND teaching_request_id = :teachingRequestId AND deleted_at IS NULL
             """, nativeQuery = true)
-    int remove(
-            @Param("studentId") UUID studentId, @Param("tutorId") UUID tutorId, @Param("now") LocalDateTime now);
+    int removePosting(
+            @Param("studentId") UUID studentId, @Param("teachingRequestId") UUID teachingRequestId,
+            @Param("now") LocalDateTime now);
 
     @Modifying(flushAutomatically = true)
     @Query(value = """
@@ -47,11 +48,26 @@ public interface FavoriteTutorRepository extends JpaRepository<FavoriteTutor, UU
             @Param("studentUserId") UUID studentUserId, @Param("tutorId") UUID tutorId,
             @Param("now") LocalDateTime now);
 
-    @Query("select favorite.tutor.user.id from FavoriteTutor favorite where favorite.student.user.id = :userId")
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            UPDATE favorite_tutors SET deleted_at = :now, updated_at = :now
+            WHERE student_id = (SELECT id FROM students WHERE user_id = :studentUserId)
+              AND teaching_request_id = :teachingRequestId AND deleted_at IS NULL
+            """, nativeQuery = true)
+    int removePostingForStudentUser(
+            @Param("studentUserId") UUID studentUserId,
+            @Param("teachingRequestId") UUID teachingRequestId,
+            @Param("now") LocalDateTime now);
+
+    @Query("select distinct favorite.tutor.user.id from FavoriteTutor favorite where favorite.student.user.id = :userId")
     List<UUID> findTutorUserIdsByStudentUserId(@Param("userId") UUID userId);
+
+    @Query("select favorite.teachingRequest.id from FavoriteTutor favorite "
+            + "where favorite.student.user.id = :userId and favorite.teachingRequest is not null")
+    List<UUID> findTeachingRequestIdsByStudentUserId(@Param("userId") UUID userId);
 
     @EntityGraph(attributePaths = { "tutor", "teachingRequest" })
     List<FavoriteTutor> findAllByStudent_User_IdOrderByUpdatedAtDesc(UUID userId);
 
-    boolean existsByStudent_IdAndTutor_Id(UUID studentId, UUID tutorId);
+    boolean existsByStudent_IdAndTeachingRequest_Id(UUID studentId, UUID teachingRequestId);
 }

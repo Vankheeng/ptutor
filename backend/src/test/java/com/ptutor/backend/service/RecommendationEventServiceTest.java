@@ -46,7 +46,7 @@ class RecommendationEventServiceTest {
             entityManager);
 
     @Test
-    void togglingInterestPersistsAndRemovesTheTutorFavorite() {
+    void togglingInterestPersistsAndRemovesOnlyTheSelectedPosting() {
         UUID userId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
         UUID tutorId = UUID.randomUUID();
@@ -76,7 +76,7 @@ class RecommendationEventServiceTest {
         service.record(userId, logId, new RecommendationEventRequest(RecommendationAction.DISMISSED, null, postingId));
 
         verify(favorites).addOrRestore(any(UUID.class), eq(studentId), eq(tutorId), eq(postingId), any(LocalDateTime.class));
-        verify(favorites).remove(eq(studentId), eq(tutorId), any(LocalDateTime.class));
+        verify(favorites).removePosting(eq(studentId), eq(postingId), any(LocalDateTime.class));
     }
 
     @Test

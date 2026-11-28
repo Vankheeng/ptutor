@@ -258,6 +258,26 @@ def insert(table, columns, values):
     return f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(map(str, values))}) ON CONFLICT DO NOTHING;"
 
 
+def wallet_credit(user, amount, transaction_id, purpose, reference_type, reference_id, description, occurred_at):
+    """Insert one completed credit and advance its wallet only on the first seed run."""
+    return f"""
+        WITH added AS (
+            INSERT INTO wallet_transactions
+                (id, wallet_id, transaction_type, purpose, amount, balance_after,
+                 pending_balance_after, reference_type, reference_id, description,
+                 idempotency_key, status, created_at)
+            SELECT {q(transaction_id)}::uuid, w.id, 'CREDIT', {q(purpose)}, {amount},
+                   w.balance + {amount}, w.pending_balance, {q(reference_type)},
+                   {q(reference_id)}::uuid, {q(description)},
+                   {q('seed-credit-' + transaction_id)}, 'COMPLETED', {occurred_at}
+            FROM wallets w WHERE w.user_id = {q(user)}::uuid
+            ON CONFLICT DO NOTHING RETURNING wallet_id, amount
+        )
+        UPDATE wallets w SET balance = w.balance + added.amount, updated_at = CURRENT_TIMESTAMP
+        FROM added WHERE w.id = added.wallet_id;
+    """
+
+
 def refresh(table, row_id, **values):
     """Refresh only deterministic seed rows when the generator is run again."""
     assignments = ", ".join(f"{column}={q(value)}" for column, value in values.items())
@@ -397,6 +417,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
         out.append(insert("employees",["id","user_id","role","job_function"],
             [sql_id("employee",key),sql_id("user",key),2,q(function)]))
     tutors, students, teaching, studying, applications, offers, tutor_names = [], [], [], [], [], [], []
+    contract_scenarios = []
     for role, count in (("tutor", 84), ("student", 64)):
         for i in range(count):
             gender = "MALE" if (i % 2 == 0) else "FEMALE"
@@ -604,6 +625,49 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 out.append(insert(slot_table, ["id", post_column, "day_of_week", "start_time", "end_time"],
                                   [sql_id(f"expanded-{kind}-slot", ordinal, j, k), q(posting), day,
                                    q(start), q(end)]))
+    # Unsigned contracts remain editable/signable; a rejected or creator-cancelled draft has
+    # CANCELLED status and no signature, lessons, installments or tuition payment.
+    for ordinal in range(100, 112):
+        _, _, subject, level, _ = next(row for row in expanded_personas("tutor") if row[1] == ordinal)
+        student = uid("expanded-student", ordinal)
+        tutor = uid("expanded-tutor", ordinal)
+        student_user = uid("user", f"expanded-student-{ordinal}")
+        tutor_user = uid("user", f"expanded-tutor-{ordinal}")
+        posting = uid("expanded-teaching", ordinal, 0)
+        application = uid("contract-lifecycle-application", ordinal)
+        contract = uid("contract-lifecycle", ordinal)
+        tutor_price = 120000 + (ordinal * 3 % 12) * 20000
+        student_budget = 130000 + (ordinal * 5 % 11) * 20000
+        price = min(tutor_price, student_budget)
+        cancelled = ordinal >= 108
+        days = (1 + ordinal % 5, 6 + ordinal % 2)
+        start = ("16:30", "18:00", "19:00", "17:30")[ordinal % 4]
+        end = ("18:00", "19:30", "20:30", "19:00")[ordinal % 4]
+        out.append(insert("student_tutor_requests", ["id", "student_id", "grade_id",
+                                                     "teaching_request_id", "proposed_price", "learning_mode",
+                                                     "message", "status", "created_at", "responded_at"],
+                          [q(application), q(student), grade(level), q(posting), price,
+                           q("ONLINE"), q(f"Em muốn học {subject} lớp {level} trực tuyến theo lịch của gia sư."),
+                           q("ACCEPTED"), "CURRENT_TIMESTAMP - INTERVAL '8 days'",
+                           "CURRENT_TIMESTAMP - INTERVAL '7 days'"]))
+        out.append(insert("contracts", ["id", "student_id", "tutor_id", "subject_id", "grade_id",
+                                        "teaching_mode", "price", "payment_period", "total_lession",
+                                        "start_date", "end_date", "status", "created_by_user_id",
+                                        "student_tutor_request_id", "preferred_schedule", "cancelled_at",
+                                        "created_at"],
+                          [q(contract), q(student), q(tutor), catalog("subjects", subject), grade(level),
+                           q("ONLINE"), price, q("PER_LESSON"), 8,
+                           "CURRENT_DATE + 7", "CURRENT_DATE + 90",
+                           q("CANCELLED" if cancelled else "PENDING"), q(tutor_user), q(application),
+                           q(schedule_text(days, start, end)),
+                           "CURRENT_TIMESTAMP - INTERVAL '2 days'" if cancelled else "NULL",
+                           "CURRENT_TIMESTAMP - INTERVAL '6 days'" if cancelled
+                           else "CURRENT_TIMESTAMP - INTERVAL '2 days'"]))
+        for slot, day in enumerate(days):
+            out.append(insert("contract_schedules", ["id", "contract_id", "day_of_week",
+                                                     "start_time", "end_time"],
+                              [sql_id("contract-lifecycle-schedule", ordinal, slot), q(contract),
+                               day, q(start), q(end)]))
     open_teaching = [x for x in teaching if x[-1]=="OPEN"]
     open_studying = [x for x in studying if x[-1]=="OPEN"]
     for i,(student,user,level,home) in enumerate(students):
@@ -627,9 +691,11 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             out.append(insert("student_tutor_requests",application_columns,application_values))
             refreshes.append(refresh("student_tutor_requests", req, message=message))
             if j==0:
-                out.append(insert("favorite_tutors",["id","student_id","tutor_id"],[sql_id("favorite",i),q(student),q(tutor)]))
+                out.append(insert("favorite_tutors",["id","student_id","tutor_id","teaching_request_id"],
+                                  [sql_id("favorite",i),q(student),q(tutor),q(posting)]))
                 contract = uid("contract",i)
                 completed=i%3==0  # Reviews are only valid after a completed contract.
+                contract_scenarios.append((i, contract, user, tutor_user, price, completed))
                 contract_days = (2 + i % 3, 5 + i % 3)
                 contract_schedule = schedule_text(contract_days, "18:30", "20:00")
                 out.append(insert("contracts",["id","student_id","tutor_id","subject_id","grade_id","teaching_mode","price","payment_period","total_lession","start_date","end_date","status","created_by_user_id","signed_by_user_id","student_tutor_request_id","preferred_schedule","signed_at"],
@@ -645,13 +711,26 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                     lesson_note = LESSON_NOTES[(i+k*3)%len(LESSON_NOTES)].format(
                         topic=lesson_focus)
                     lesson_id = uid("lesson", i, k)
+                    disputed = (i % 15 == 5 or i == 10) and k == 0
+                    lesson_status = "PENDING_CONFIRMATION" if disputed else "COMPLETED" if completed or k < 2 else "SCHEDULED"
                     out.append(insert("lessons",["id","contract_id","title","date","start_time","end_time","teaching_mode","status","note"],
-                        [q(lesson_id),q(contract),q(lesson_title),f"CURRENT_DATE - {25-k*7}" if completed else (f"CURRENT_DATE - {18-k*7}" if k<2 else "CURRENT_DATE + 3"),q("18:30"),q("20:00"),q(mode),q("COMPLETED" if completed or k<2 else "SCHEDULED"),q(lesson_note)]))
+                        [q(lesson_id),q(contract),q(lesson_title),f"CURRENT_DATE - {25-k*7}" if completed else (f"CURRENT_DATE - {18-k*7}" if k<2 else "CURRENT_DATE + 3"),q("18:30"),q("20:00"),q(mode),q(lesson_status),q(lesson_note)]))
                     refreshes.append(refresh("lessons", lesson_id, title=lesson_title, note=lesson_note))
                     if completed:
                         refreshes.append(f"UPDATE lessons SET status='COMPLETED', date=CURRENT_DATE - {25-k*7} WHERE id={q(lesson_id)};")
                     out.append(insert("contract_payment_installments",["id","contract_id","lesson_id","sequence_number","payment_period","amount","due_date","status"],
                         [sql_id("installment",i,k),q(contract),sql_id("lesson",i,k),k+1,q("PER_LESSON"),price,f"CURRENT_DATE - {18-k*7}" if completed else f"CURRENT_DATE + {k*7}",q("PAID" if completed or k<2 else "PENDING")]))
+                    if finance_key is not None and (completed or k < 2):
+                        paid_at = (f"CURRENT_TIMESTAMP - INTERVAL '{35-k} days'" if completed
+                                   else f"CURRENT_TIMESTAMP - INTERVAL '{19-7*k} days'")
+                        out.append(insert("payments", ["id", "user_id", "amount", "payment_method",
+                                                       "payment_type", "status", "transaction_code",
+                                                       "payment_installment_id", "reference_type", "reference_id",
+                                                       "paid_at", "created_at"],
+                                          [sql_id("tuition-payment", i, k), q(user), price, q("VNPAY"),
+                                           q("TUITION_PAYMENT"), q("PAID"), q(f"LOCAL-TUITION-{i:03d}-{k+1}"),
+                                           sql_id("installment", i, k), q("CONTRACT"), q(contract),
+                                           paid_at, f"{paid_at} - INTERVAL '1 hour'"]))
                     if completed:
                         refreshes.append(f"UPDATE contract_payment_installments SET status='PAID', due_date=CURRENT_DATE - {18-k*7} WHERE id={sql_id('installment',i,k)};")
                 if i%3==0:
@@ -668,20 +747,21 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 if i%17==0 and not completed:
                     out.append(insert("cancel_contract_requests",["id","contract_id","user_id","reason","status"],
                         [sql_id("cancel-request",i),q(contract),q(user),q("Gia đình thay đổi lịch học trong học kỳ mới, muốn dừng hợp đồng sau buổi đã hẹn."),q("PENDING")]))
-                if i%20==0:
+                if i%15==5 or i==10:
                     refund=uid("refund",i)
-                    out.append(insert("refund_requests",["id","contract_id","student_id","description","status","tutor_response_deadline","unit_price"],
-                        [q(refund),q(contract),q(student),q("Buổi học kết thúc sớm khoảng 30 phút, gia đình đề nghị kiểm tra phần học phí tương ứng."),q("PENDING"),"CURRENT_TIMESTAMP + INTERVAL '3 days'",price]))
-                    out.append(insert("refund_request_lessons",["id","refund_request_id","lesson_id","claimed_outcome","missed_minutes"],
-                        [sql_id("refund-lesson",i),q(refund),sql_id("lesson",i,0),q("TUTOR_LATE_OR_SHORT"),30]))
+                    refund_created = f"CURRENT_TIMESTAMP - INTERVAL '{1 + i % 4} days'"
+                    out.append(insert("refund_requests",["id","contract_id","student_id","description","status","tutor_response_deadline","unit_price","created_at"],
+                        [q(refund),q(contract),q(student),q("Gia sư vắng mặt ở buổi học đã thu học phí, gia đình đề nghị hoàn đủ tiền buổi này." if i==10 else "Buổi học kết thúc sớm khoảng 30 phút, gia đình đề nghị kiểm tra phần học phí tương ứng."),q("PENDING"),"CURRENT_TIMESTAMP + INTERVAL '3 days'",price,refund_created]))
+                    out.append(insert("refund_request_lessons",["id","refund_request_id","lesson_id","claimed_outcome","missed_minutes","created_at"],
+                        [sql_id("refund-lesson",i),q(refund),sql_id("lesson",i,0),q("TUTOR_ABSENT" if i==10 else "TUTOR_LATE_OR_SHORT"),"NULL" if i==10 else 30,refund_created]))
         out.append(insert("notifications",["id","user_id","title","content","type","is_read"],[sql_id("notification",i),q(user),q("Cập nhật yêu cầu học"),q("Yêu cầu học của bạn đã được ghi nhận. Bạn có thể xem tiến độ trong tài khoản."),q("SYSTEM"),"true" if i%3 else "false"]))
         if i%4==0:
             wallet=uid("wallet",i)
             out.append(insert("wallets",["id","user_id","balance","pending_balance"],[q(wallet),q(user),500000,0]))
-            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description"],
-                [sql_id("wallet-tx",i),q(wallet),q("CREDIT"),q("TOP_UP"),500000,500000,0,q("COMPLETED"),q(f"realistic-data-topup-{i}"),q("Nạp tiền vào ví học viên")]))
-            out.append(insert("payments",["id","user_id","amount","payment_method","payment_type","status","transaction_code","paid_at"],
-                [sql_id("payment",i),q(user),500000,q("VNPAY"),q("WALLET_TOP_UP"),q("PAID"),q(f"LOCAL-TOPUP-{i:03d}"),"CURRENT_TIMESTAMP - INTERVAL '15 days'"]))
+            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description","reference_type","reference_id","created_at"],
+                [sql_id("wallet-tx",i),q(wallet),q("CREDIT"),q("TOP_UP"),500000,500000,0,q("COMPLETED"),q(f"realistic-data-topup-{i}"),q("Nạp tiền vào ví học viên"),q("PAYMENT"),sql_id("payment",i),"CURRENT_TIMESTAMP - INTERVAL '15 days'"]))
+            out.append(insert("payments",["id","user_id","amount","payment_method","payment_type","status","transaction_code","reference_type","reference_id","paid_at","created_at"],
+                [sql_id("payment",i),q(user),500000,q("VNPAY"),q("WALLET_TOP_UP"),q("PAID"),q(f"LOCAL-TOPUP-{i:03d}"),q("PAYMENT"),sql_id("payment",i),"CURRENT_TIMESTAMP - INTERVAL '15 days'","CURRENT_TIMESTAMP - INTERVAL '15 days 1 hour'"]))
     # Saved searches are user-owned criteria, used by both recommendation directions.
     # Store real catalog IDs so rerunning the search remains valid on a migrated DB.
     if include_ai:
@@ -885,15 +965,15 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
         """)
     if include_chatbot:
         # A real support queue is more useful than fabricated assistant answers or citations.
-        for i in range(36):
+        for i in range(40):
             role=SUPPORT_ROLES[i%len(SUPPORT_ROLES)]
             user=students[i%len(students)][1] if role=="STUDENT" else tutors[i%len(tutors)][1]
-            status=("OPEN","IN_PROGRESS","ANSWERED","CLOSED")[i%4]
+            status=("OPEN","IN_PROGRESS","ANSWERED","CLOSED","CANCELLED")[i%5]
             answer=SUPPORT_ANSWERS[i%len(SUPPORT_ANSWERS)] if status in ("ANSWERED","CLOSED") else None
             support_id = uid("support", i)
             question = narratives.get(support_id, {}).get("question", SUPPORT_QUESTIONS[i%len(SUPPORT_QUESTIONS)])
             out.append(insert("support_requests",["id","code","user_id","user_role","question","source","page_path","status","answer","assigned_employee_id","assigned_at","created_at","updated_at","answered_at","closed_at"],
-                [q(support_id),q(f"HT-LOCAL-{i+1:04d}"),q(user),q(role),q(question),q("MENU" if i%5==0 else "ASSISTANT_ABSTAIN"),q("/my-support-requests"),q(status),q(answer),"NULL" if status=="OPEN" else sql_id("employee","staff-0"),"NULL" if status=="OPEN" else "CURRENT_TIMESTAMP - INTERVAL '1 day'",f"CURRENT_TIMESTAMP - INTERVAL '{2+i%18} days'",f"CURRENT_TIMESTAMP - INTERVAL '{i%2} days'","NULL" if answer is None else "CURRENT_TIMESTAMP - INTERVAL '1 day'","CURRENT_TIMESTAMP" if status=="CLOSED" else "NULL"]))
+                [q(support_id),q(f"HT-LOCAL-{i+1:04d}"),q(user),q(role),q(question),q("MENU" if i%5==0 else "ASSISTANT_ABSTAIN"),q("/my-support-requests"),q(status),q(answer),"NULL" if status in ("OPEN","CANCELLED") else sql_id("employee","staff-0"),"NULL" if status in ("OPEN","CANCELLED") else "CURRENT_TIMESTAMP - INTERVAL '1 day'",f"CURRENT_TIMESTAMP - INTERVAL '{2+i%18} days'",f"CURRENT_TIMESTAMP - INTERVAL '{i%2} days'","NULL" if answer is None else "CURRENT_TIMESTAMP - INTERVAL '1 day'","CURRENT_TIMESTAMP" if status in ("CLOSED","CANCELLED") else "NULL"]))
             refreshes.append(refresh("support_requests", support_id, question=question,
                                      user_role=role, user_id=user))
     if finance_key is not None:
@@ -908,8 +988,8 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             completed=i<12 and i%3==2
             balance=900000 if pending or completed else 1200000
             out.append(insert("wallets",["id","user_id","balance","pending_balance"],[q(wallet),q(user),balance,300000 if pending else 0]))
-            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description"],
-                [sql_id("tutor-earning",i),q(wallet),q("CREDIT"),q("TUTOR_EARNING"),1200000,1200000,0,q("COMPLETED"),q(f"local-tutor-earning-{i}"),q("Thu nhập từ các buổi học đã xác nhận")]))
+            out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description","created_at"],
+                [sql_id("tutor-earning",i),q(wallet),q("CREDIT"),q("TUTOR_EARNING"),1200000,1200000,0,q("COMPLETED"),q(f"local-tutor-earning-{i}"),q("Thu nhập từ các buổi học đã xác nhận"),"CURRENT_TIMESTAMP - INTERVAL '100 days'"]))
             if pending or completed:
                 out.append(insert("wallet_transactions",["id","wallet_id","transaction_type","purpose","amount","balance_after","pending_balance_after","status","idempotency_key","description"],
                     [sql_id("withdrawal-tx",i),q(wallet),q("DEBIT"),q("WITHDRAWAL"),300000,900000,300000 if pending else 0,q("PENDING" if pending else "COMPLETED"),q(f"local-withdrawal-{i}"),q("Rút thu nhập gia sư")]))
@@ -922,7 +1002,410 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
     for user in seeded_users:
         out.append(insert("wallets", ["id", "user_id", "balance", "pending_balance"],
                           [sql_id("wallet-default", user), q(user), 0, 0]))
+    # Old refund fixtures disputed already-completed lessons. Keep only the four active-contract
+    # cases above and restore their actual awaiting-confirmation state on repeat loads.
+    for old_index in (0, 40, 60):
+        out.append(f"DELETE FROM refund_request_lessons WHERE refund_request_id={sql_id('refund', old_index)};")
+        out.append(f"DELETE FROM refund_requests WHERE id={sql_id('refund', old_index)};")
+    for refund_index in (5, 10, 20, 35, 50):
+        out.append(f"UPDATE lessons SET status='PENDING_CONFIRMATION' "
+                   f"WHERE id={sql_id('lesson', refund_index, 0)};")
+    if finance_key is not None:
+        # Repair dates/references of deterministic rows created by earlier seed versions.
+        for old_index in range(0, 64, 4):
+            out.append(f"UPDATE payments SET created_at=CURRENT_TIMESTAMP - INTERVAL '15 days 1 hour', "
+                       "paid_at=CURRENT_TIMESTAMP - INTERVAL '15 days', reference_type='PAYMENT', "
+                       f"reference_id={sql_id('payment', old_index)} WHERE id={sql_id('payment', old_index)};")
+            out.append(f"UPDATE wallet_transactions SET created_at=CURRENT_TIMESTAMP - INTERVAL '15 days', "
+                       f"reference_type='PAYMENT', reference_id={sql_id('payment', old_index)} "
+                       f"WHERE id={sql_id('wallet-tx', old_index)};")
+        for old_index in range(24):
+            out.append(f"UPDATE wallet_transactions SET created_at=CURRENT_TIMESTAMP - INTERVAL '100 days' "
+                       f"WHERE id={sql_id('tutor-earning', old_index)};")
+        # A paid installment is a VNPAY payment tied to that installment and contract.
+        # Some completed lessons are settled; unsettled lessons remain visible as held tuition.
+        for index, contract, student_user, tutor_user, price, completed in contract_scenarios:
+            for lesson_index in range(3 if completed else 2):
+                disputed = (index % 15 == 5 or index == 10) and lesson_index == 0
+                settled = completed or lesson_index == 1 or (index % 4 == 0 and not disputed)
+                if not settled or disputed:
+                    continue
+                lesson_id = uid("lesson", index, lesson_index)
+                occurred_at = ("CURRENT_TIMESTAMP - INTERVAL '2 days' + "
+                               f"INTERVAL '{index * 3 + lesson_index} minutes'")
+                out.append(wallet_credit(tutor_user, price, uid("lesson-payout", index, lesson_index),
+                                         "TUTOR_EARNING", "LESSON", lesson_id,
+                                         "Thu nhập từ buổi học đã hoàn tất", occurred_at))
+
+        # Fees belong to approved/open postings; payment dates follow each posting's creation.
+        for index, (posting, tutor, _, _, _, _, status) in enumerate(teaching):
+            if status != "OPEN" or index % 4 != 0:
+                continue
+            tutor_user = next(row[1] for row in tutors if row[0] == tutor)
+            created_at = f"(SELECT created_at + INTERVAL '1 day' FROM teaching_requests WHERE id={q(posting)}::uuid)"
+            out.append(insert("payments", ["id", "user_id", "amount", "payment_method", "payment_type",
+                                           "status", "transaction_code", "reference_type", "reference_id",
+                                           "paid_at", "created_at"],
+                              [sql_id("teaching-fee", index), q(tutor_user), 100000, q("VNPAY"),
+                               q("TEACHING_REQUEST_FEE"), q("PAID"), q(f"LOCAL-TEACHING-FEE-{index:03d}"),
+                               q("TEACHING_REQUEST"), q(posting),
+                               f"{created_at} + INTERVAL '1 hour'", created_at]))
+        for index, (posting, student, _, _, _, status) in enumerate(studying):
+            if status != "OPEN" or index % 3 != 0:
+                continue
+            student_user = next(row[1] for row in students if row[0] == student)
+            created_at = f"(SELECT created_at + INTERVAL '1 day' FROM studying_requests WHERE id={q(posting)}::uuid)"
+            out.append(insert("payments", ["id", "user_id", "amount", "payment_method", "payment_type",
+                                           "status", "transaction_code", "reference_type", "reference_id",
+                                           "paid_at", "created_at"],
+                              [sql_id("studying-fee", index), q(student_user), 100000, q("VNPAY"),
+                               q("STUDYING_REQUEST_FEE"), q("PAID"), q(f"LOCAL-STUDYING-FEE-{index:03d}"),
+                               q("STUDYING_REQUEST"), q(posting),
+                               f"{created_at} + INTERVAL '1 hour'", created_at]))
+
+        # A complete, inspectable story for the published demo logins: the grade-1 music
+        # student hires the matching offline tutor, prepays two lessons, and the tutor has
+        # received one lesson payout while the second payment remains held.
+        demo_student = uid("expanded-student", 80)
+        demo_student_user = uid("user", "expanded-student-80")
+        demo_tutor = uid("expanded-tutor", 80)
+        demo_tutor_user = uid("user", "expanded-tutor-80")
+        demo_posting = uid("expanded-teaching", 80, 1)
+        demo_studying = uid("expanded-studying", 80, 0)
+        demo_application = uid("demo-finance-application")
+        demo_contract = uid("demo-finance-contract")
+        demo_price = 220000
+        out.append(insert("student_tutor_requests", ["id", "student_id", "grade_id",
+                                                     "teaching_request_id", "proposed_price", "learning_mode",
+                                                     "message", "status", "created_at", "responded_at"],
+                          [q(demo_application), q(demo_student), grade(1), q(demo_posting), demo_price,
+                           q("OFFLINE"), q("Gia đình muốn học Âm nhạc trực tiếp hai buổi mỗi tuần."),
+                           q("ACCEPTED"), "CURRENT_TIMESTAMP - INTERVAL '20 days'",
+                           "CURRENT_TIMESTAMP - INTERVAL '19 days'"]))
+        out.append(insert("contracts", ["id", "student_id", "tutor_id", "subject_id", "grade_id",
+                                        "teaching_mode", "price", "payment_period", "total_lession",
+                                        "start_date", "end_date", "status", "created_by_user_id",
+                                        "signed_by_user_id", "student_tutor_request_id", "preferred_schedule",
+                                        "signed_at"],
+                          [q(demo_contract), q(demo_student), q(demo_tutor), catalog("subjects", "Âm nhạc"),
+                           grade(1), q("OFFLINE"), demo_price, q("PER_LESSON"), 3,
+                           "CURRENT_DATE - 14", "CURRENT_DATE + 60", q("ACTIVE"), q(demo_tutor_user),
+                           q(demo_student_user), q(demo_application), q("Thứ 3 và thứ 7, 17:30–19:00"),
+                           "CURRENT_TIMESTAMP - INTERVAL '18 days'"]))
+        for slot, day in enumerate((2, 6)):
+            out.append(insert("contract_schedules", ["id", "contract_id", "day_of_week",
+                                                     "start_time", "end_time"],
+                              [sql_id("demo-finance-schedule", slot), q(demo_contract), day,
+                               q("17:30"), q("19:00")]))
+        for lesson_index in range(3):
+            lesson_id = uid("demo-finance-lesson", lesson_index)
+            installment_id = uid("demo-finance-installment", lesson_index)
+            lesson_date = ("CURRENT_DATE - 12", "CURRENT_DATE - 5", "CURRENT_DATE + 2")[lesson_index]
+            paid = lesson_index < 2
+            out.append(insert("lessons", ["id", "contract_id", "title", "date", "start_time",
+                                          "end_time", "teaching_mode", "status", "note"],
+                              [q(lesson_id), q(demo_contract), q(f"Buổi {lesson_index + 1}: Âm nhạc lớp 1"),
+                               lesson_date, q("17:30"), q("19:00"), q("OFFLINE"),
+                               q("COMPLETED" if paid else "SCHEDULED"),
+                               q("Luyện nghe nhịp và hát theo giai điệu đơn giản.")]))
+            out.append(insert("contract_payment_installments", ["id", "contract_id", "lesson_id",
+                                                              "sequence_number", "payment_period", "amount",
+                                                              "due_date", "status"],
+                              [q(installment_id), q(demo_contract), q(lesson_id), lesson_index + 1,
+                               q("PER_LESSON"), demo_price, lesson_date,
+                               q("PAID" if paid else "PENDING")]))
+            if paid:
+                paid_at = f"CURRENT_TIMESTAMP - INTERVAL '{13 - lesson_index * 7} days'"
+                out.append(insert("payments", ["id", "user_id", "amount", "payment_method",
+                                               "payment_type", "status", "transaction_code",
+                                               "payment_installment_id", "reference_type", "reference_id",
+                                               "paid_at", "created_at"],
+                                  [sql_id("demo-finance-tuition", lesson_index), q(demo_student_user),
+                                   demo_price, q("VNPAY"), q("TUITION_PAYMENT"), q("PAID"),
+                                   q(f"LOCAL-DEMO-TUITION-{lesson_index + 1}"), q(installment_id),
+                                   q("CONTRACT"), q(demo_contract), paid_at,
+                                   f"{paid_at} - INTERVAL '1 hour'"]))
+        out.append(wallet_credit(demo_tutor_user, demo_price, uid("demo-finance-payout"),
+                                 "TUTOR_EARNING", "LESSON", uid("demo-finance-lesson", 0),
+                                 "Thu nhập buổi Âm nhạc lớp 1 đã xác nhận",
+                                 "CURRENT_TIMESTAMP - INTERVAL '3 days'"))
+        for kind, owner, posting in (("TEACHING", demo_tutor_user, demo_posting),
+                                     ("STUDYING", demo_student_user, demo_studying)):
+            out.append(insert("payments", ["id", "user_id", "amount", "payment_method", "payment_type",
+                                           "status", "transaction_code", "reference_type", "reference_id",
+                                           "paid_at", "created_at"],
+                              [sql_id("demo-finance-posting-fee", kind), q(owner), 100000, q("VNPAY"),
+                               q(f"{kind}_REQUEST_FEE"), q("PAID"), q(f"LOCAL-DEMO-{kind}-FEE"),
+                               q(f"{kind}_REQUEST"), q(posting),
+                               "CURRENT_TIMESTAMP - INTERVAL '20 days'",
+                               "CURRENT_TIMESTAMP - INTERVAL '20 days 1 hour'"]))
+        demo_holder = bank_holder(expanded_name("tutor", 80))
+        demo_account = "970000009980"
+        demo_encrypted = encrypted_account(demo_account, finance_key)
+        out.append(insert("bank_accounts", ["id", "user_id", "bank_code", "bank_name",
+                                            "encrypted_account_number", "account_number_last_four",
+                                            "account_holder_name"],
+                          [sql_id("demo-finance-bank"), q(demo_tutor_user), q("VCB"), q("Vietcombank"),
+                           q(demo_encrypted), q(demo_account[-4:]), q(demo_holder)]))
+        demo_withdrawal = uid("demo-finance-withdrawal")
+        demo_withdrawal_tx = uid("demo-finance-withdrawal-tx")
+        out.append(f"""
+            WITH reserved AS (
+                INSERT INTO wallet_transactions
+                    (id, wallet_id, transaction_type, purpose, amount, balance_after,
+                     pending_balance_after, reference_type, reference_id, description,
+                     idempotency_key, status, created_at)
+                SELECT {q(demo_withdrawal_tx)}::uuid, w.id, 'DEBIT', 'WITHDRAWAL', 100000,
+                       w.balance - 100000, w.pending_balance + 100000,
+                       'WITHDRAWAL_REQUEST', {q(demo_withdrawal)}::uuid,
+                       'Yêu cầu rút thu nhập gia sư', 'demo-finance-withdrawal',
+                       'PENDING', CURRENT_TIMESTAMP - INTERVAL '1 day'
+                FROM wallets w WHERE w.user_id={q(demo_tutor_user)}::uuid AND w.balance >= 100000
+                ON CONFLICT DO NOTHING RETURNING wallet_id, amount
+            )
+            UPDATE wallets w SET balance=w.balance-reserved.amount,
+                                 pending_balance=w.pending_balance+reserved.amount,
+                                 updated_at=CURRENT_TIMESTAMP
+            FROM reserved WHERE w.id=reserved.wallet_id;
+        """)
+        out.append(insert("withdrawal_requests", ["id", "wallet_id", "amount", "bank_code",
+                                                  "bank_name", "encrypted_account_number",
+                                                  "account_number_last_four", "account_holder_name",
+                                                  "idempotency_key", "status", "wallet_transaction_id",
+                                                  "created_at"],
+                          [q(demo_withdrawal),
+                           f"(SELECT id FROM wallets WHERE user_id={q(demo_tutor_user)}::uuid)",
+                           100000, q("VCB"), q("Vietcombank"), q(demo_encrypted),
+                           q(demo_account[-4:]), q(demo_holder), q("demo-finance-withdrawal"),
+                           q("PENDING"), q(demo_withdrawal_tx),
+                           "CURRENT_TIMESTAMP - INTERVAL '1 day'"]))
+
+        # Top-ups create both a paid payment and the matching wallet credit. A mix of funded
+        # and unused accounts is natural; always fund the published demo student account.
+        finance_students = [row[1] for row in students]
+        finance_students += [uid("user", f"expanded-student-{ordinal}") for ordinal in range(320)]
+        for index, student_user in enumerate(finance_students):
+            if index >= 62 and index < 64:
+                continue  # inactive / blocked legacy accounts
+            if index < 64 and index % 4 == 0:
+                continue  # existing top-up already has a matching wallet credit
+            if index % 3 != 0 and index != 64 + 80:
+                continue
+            amount = 450000 + index % 7 * 150000
+            payment_id = uid("finance-topup", index)
+            paid_at = f"CURRENT_TIMESTAMP - INTERVAL '{5 + index % 70} days'"
+            out.append(insert("payments", ["id", "user_id", "amount", "payment_method", "payment_type",
+                                           "status", "transaction_code", "reference_type", "reference_id",
+                                           "paid_at", "created_at"],
+                              [q(payment_id), q(student_user), amount, q("VNPAY"), q("WALLET_TOP_UP"),
+                               q("PAID"), q(f"LOCAL-FINANCE-TOPUP-{index:03d}"), q("PAYMENT"),
+                               q(payment_id), paid_at, f"{paid_at} - INTERVAL '1 hour'"]))
+            out.append(wallet_credit(student_user, amount, uid("finance-topup-credit", index),
+                                     "TOP_UP", "PAYMENT", payment_id, "Nạp tiền vào ví học viên", paid_at))
+
+        # Refund outcomes: pending, under review, partial and full refund, and rejected.
+        # The approved case (i=35) missed 30 of 90 minutes, so refund=floor(price/3);
+        # the tutor receives only the taught portion of that disputed lesson.
+        for refund_index in (5, 10, 20, 35, 50):
+            scenario = next(row for row in contract_scenarios if row[0] == refund_index)
+            _, _, student_user, tutor_user, price, _ = scenario
+            refund_id = uid("refund", refund_index)
+            out.append(f"UPDATE refund_requests SET created_at=CURRENT_TIMESTAMP - INTERVAL '{1 + refund_index % 4} days' "
+                       f"WHERE id={q(refund_id)}::uuid;")
+            out.append(f"UPDATE refund_request_lessons SET created_at=CURRENT_TIMESTAMP - INTERVAL '{1 + refund_index % 4} days' "
+                       f"WHERE refund_request_id={q(refund_id)}::uuid;")
+            if refund_index == 20:
+                out.append(f"UPDATE refund_requests SET status='IN_REVIEW', "
+                           f"employee_id={sql_id('employee', 'staff-0')}, "
+                           "tutor_response_deadline=CURRENT_TIMESTAMP - INTERVAL '1 day' "
+                           f"WHERE id={q(refund_id)}::uuid;")
+            elif refund_index == 50:
+                out.append(f"UPDATE refund_requests SET status='REJECTED', "
+                           f"employee_id={sql_id('employee', 'staff-0')}, "
+                           "tutor_response_deadline=CURRENT_TIMESTAMP - INTERVAL '3 days', "
+                           "reviewed_at=CURRENT_TIMESTAMP - INTERVAL '1 day', "
+                           f"rejection_reason={q('Đối chiếu lịch và xác nhận buổi học cho thấy gia sư dạy đủ thời lượng.')} "
+                           f"WHERE id={q(refund_id)}::uuid;")
+            elif refund_index == 10:
+                refund_transaction = uid("finance-refund-credit", refund_index)
+                out.append(f"UPDATE payments SET status='REFUNDED', refunded_amount={price} "
+                           f"WHERE id={sql_id('tuition-payment', refund_index, 0)};")
+                out.append(wallet_credit(student_user, price, refund_transaction,
+                                         "CONTRACT_REFUND", "REFUND_REQUEST", refund_id,
+                                         "Hoàn toàn bộ học phí buổi gia sư vắng mặt",
+                                         "CURRENT_TIMESTAMP - INTERVAL '1 day'"))
+                lesson_id = uid("lesson", refund_index, 0)
+                out.append(f"UPDATE refund_request_lessons SET decision='TUTOR_ABSENT' "
+                           f"WHERE refund_request_id={q(refund_id)}::uuid;")
+                out.append(f"UPDATE lessons SET status='CANCELLED' WHERE id={q(lesson_id)}::uuid;")
+                out.append(f"UPDATE refund_requests SET status='REFUNDED', "
+                           f"employee_id={sql_id('employee', 'staff-0')}, "
+                           "tutor_response_deadline=CURRENT_TIMESTAMP - INTERVAL '2 days', "
+                           "reviewed_at=CURRENT_TIMESTAMP - INTERVAL '1 day', "
+                           f"refund_amount={price}, tutor_share_amount=0, "
+                           f"wallet_transaction_id={q(refund_transaction)}::uuid "
+                           f"WHERE id={q(refund_id)}::uuid;")
+            elif refund_index == 35:
+                refund_amount = price // 3
+                refund_transaction = uid("finance-refund-credit", refund_index)
+                out.append(f"UPDATE payments SET refunded_amount={refund_amount} "
+                           f"WHERE id={sql_id('tuition-payment', refund_index, 1)};")
+                out.append(wallet_credit(student_user, refund_amount, refund_transaction,
+                                         "CONTRACT_REFUND", "REFUND_REQUEST", refund_id,
+                                         "Hoàn phần thời lượng buổi học chưa được dạy",
+                                         "CURRENT_TIMESTAMP - INTERVAL '1 day'"))
+                lesson_id = uid("lesson", refund_index, 0)
+                out.append(wallet_credit(tutor_user, price - refund_amount,
+                                         uid("lesson-payout", refund_index, 0),
+                                         "TUTOR_EARNING", "LESSON", lesson_id,
+                                         "Thu nhập phần buổi học đã dạy sau khi xử lý hoàn tiền",
+                                         "CURRENT_TIMESTAMP - INTERVAL '1 day'"))
+                out.append(f"UPDATE refund_request_lessons SET decision='TUTOR_LATE_OR_SHORT' "
+                           f"WHERE refund_request_id={q(refund_id)}::uuid;")
+                out.append(f"UPDATE lessons SET status='COMPLETED' WHERE id={q(lesson_id)}::uuid;")
+                out.append(f"UPDATE refund_requests SET status='REFUNDED', "
+                           f"employee_id={sql_id('employee', 'staff-0')}, "
+                           "tutor_response_deadline=CURRENT_TIMESTAMP - INTERVAL '3 days', "
+                           "reviewed_at=CURRENT_TIMESTAMP - INTERVAL '1 day', "
+                           f"refund_amount={refund_amount}, tutor_share_amount=0, "
+                           f"wallet_transaction_id={q(refund_transaction)}::uuid "
+                           f"WHERE id={q(refund_id)}::uuid;")
     out.extend(refreshes)
+    # Lifecycle states that do not arise from the active matching/finance stories above.
+    # Connected applications point to signed contracts; cancelled applications have no contract.
+    for index in range(62):
+        out.append(f"UPDATE student_tutor_requests SET status='CONNECTED' "
+                   f"WHERE id={sql_id('application', index, 0)} AND EXISTS "
+                   f"(SELECT 1 FROM contracts WHERE student_tutor_request_id={sql_id('application', index, 0)} "
+                   "AND status IN ('ACTIVE','COMPLETED'));")
+    if finance_key is not None:
+        out.append(f"UPDATE student_tutor_requests SET status='CONNECTED' "
+                   f"WHERE id={sql_id('demo-finance-application')};")
+    # A tutor-originated offer also reaches CONNECTED through a signed contract. It has an
+    # upcoming lesson and a pending installment, so no tuition or payout exists yet.
+    offer_id = uid("offer", 2, 0)
+    offer_contract = uid("offer-origin-contract")
+    offer_lesson = uid("offer-origin-lesson")
+    out.append(f"""
+        INSERT INTO contracts (id, student_id, tutor_id, subject_id, grade_id, teaching_mode,
+                               price, payment_period, total_lession, start_date, end_date,
+                               status, created_by_user_id, signed_by_user_id,
+                               tutor_student_request_id, preferred_schedule, signed_at, created_at)
+        SELECT {q(offer_contract)}::uuid, sr.student_id, r.tutor_id, sr.subject_id,
+               r.grade_id, r.teaching_mode, r.proposed_price, 'PER_LESSON', 8,
+               CURRENT_DATE + 3, CURRENT_DATE + 90, 'ACTIVE', t.user_id, s.user_id,
+               r.id, sr.preferred_schedule, CURRENT_TIMESTAMP - INTERVAL '1 day',
+               CURRENT_TIMESTAMP - INTERVAL '2 days'
+        FROM tutor_student_requests r
+        JOIN studying_requests sr ON sr.id=r.studying_request_id
+        JOIN tutors t ON t.id=r.tutor_id JOIN students s ON s.id=sr.student_id
+        WHERE r.id={q(offer_id)}::uuid AND r.proposed_price <= sr.max_price
+        ON CONFLICT DO NOTHING;
+    """)
+    for slot in range(2):
+        schedule_id = sql_id('offer-origin-schedule') if slot == 0 else sql_id('offer-origin-schedule', slot)
+        out.append(f"""
+            INSERT INTO contract_schedules (id, contract_id, day_of_week, start_time, end_time)
+            SELECT {schedule_id}::uuid, {q(offer_contract)}::uuid,
+                   a.day_of_week, a.start_time, a.end_time
+            FROM tutor_student_requests r
+            JOIN studying_request_availabilities a ON a.studying_request_id=r.studying_request_id
+            WHERE r.id={q(offer_id)}::uuid
+            ORDER BY a.day_of_week, a.start_time LIMIT 1 OFFSET {slot}
+            ON CONFLICT DO NOTHING;
+        """)
+    out.append(insert("lessons", ["id", "contract_id", "title", "date", "start_time", "end_time",
+                                  "teaching_mode", "status"],
+                      [q(offer_lesson), q(offer_contract), q("Buổi đầu tiên theo hợp đồng"),
+                       "CURRENT_DATE + 7", q("18:00"), q("19:30"), q("ONLINE"), q("SCHEDULED")]))
+    out.append(insert("contract_payment_installments", ["id", "contract_id", "lesson_id",
+                                                      "sequence_number", "payment_period", "amount",
+                                                      "due_date", "status"],
+                      [sql_id("offer-origin-installment"), q(offer_contract), q(offer_lesson), 1,
+                       q("PER_LESSON"), 200000, "CURRENT_DATE + 7", q("PENDING")]))
+    out.append(f"UPDATE tutor_student_requests SET status='CONNECTED' "
+               f"WHERE id={q(offer_id)}::uuid AND EXISTS "
+               f"(SELECT 1 FROM contracts WHERE id={q(offer_contract)}::uuid);")
+    out.append(f"UPDATE studying_requests SET status='MATCHED' WHERE id=("
+               f"SELECT studying_request_id FROM tutor_student_requests WHERE id={q(offer_id)}::uuid);")
+    out.append(f"UPDATE teaching_requests SET status='MATCHED' WHERE id=("
+               f"SELECT teaching_request_id FROM student_tutor_requests "
+               f"WHERE id={sql_id('application', 2, 0)});")
+    out.append(f"UPDATE teaching_requests SET status='CANCELLED' "
+               f"WHERE id={sql_id('teaching', 22, 0)} AND status='CLOSED';")
+    out.append(f"UPDATE studying_requests SET status='CANCELLED' "
+               f"WHERE id={sql_id('studying', 26, 0)} AND status='CLOSED';")
+    out.append(f"UPDATE student_tutor_requests SET status='CANCELLED' "
+               f"WHERE id={sql_id('application', 3, 2)} AND status='PENDING';")
+    out.append(f"UPDATE tutor_student_requests SET status='CANCELLED' "
+               f"WHERE id={sql_id('offer', 4, 2)} AND status='PENDING';")
+    out.append(f"UPDATE tutors SET profile_status='REJECTED', "
+               f"profile_reviewed_by={sql_id('employee', 'staff-0')}, "
+               "profile_reviewed_at=CURRENT_TIMESTAMP - INTERVAL '3 days', "
+               f"profile_rejection_reason={q('Hồ sơ đào tạo chưa đủ thông tin để xác minh.')} "
+               f"WHERE id={sql_id('tutor', 17)};")
+    out.append(f"UPDATE teaching_requests SET status='REJECTED', "
+               "reviewed_at=CURRENT_TIMESTAMP - INTERVAL '3 days', "
+               f"rejection_reason={q('Hồ sơ gia sư chưa được duyệt.')} "
+               f"WHERE tutor_id={sql_id('tutor', 17)} AND status='PENDING_REVIEW';")
+    out.append(f"UPDATE teaching_requests SET status='DRAFT' "
+               f"WHERE id={sql_id('teaching', 11, 0)} AND status='CLOSED';")
+    out.append(f"UPDATE studying_requests SET status='DRAFT' "
+               f"WHERE id={sql_id('studying', 13, 0)} AND status='CLOSED';")
+    out.append(insert("certificates", ["id", "tutor_id", "name", "issuing_organization",
+                                       "issue_date", "expiry_date", "status"],
+                      [sql_id("expired-certificate"), sql_id("tutor", 2),
+                       q("Chứng chỉ bồi dưỡng nghiệp vụ giảng dạy"), q("Trung tâm bồi dưỡng giáo viên"),
+                       q("2019-04-01"), q("2024-04-01"), q("EXPIRED")]))
+    for index, status, resolution in (
+        (0, "RESOLVED", "Hai bên thống nhất lịch bù và gia sư đã xác nhận lại bằng văn bản."),
+        (16, "IN_REVIEW", None),
+        (32, "AWAITING_EVIDENCE", None),
+        (48, "REJECTED", "Đối chiếu lịch và xác nhận của hai bên, chưa đủ căn cứ cho khiếu nại.")
+    ):
+        assignments = [f"status={q(status)}", f"employee_id={sql_id('employee', 'staff-0')}"]
+        if resolution:
+            assignments += [f"resolution={q(resolution)}",
+                            "resolved_at=CURRENT_TIMESTAMP - INTERVAL '1 day'"]
+        out.append(f"UPDATE complaints SET {', '.join(assignments)} WHERE id={sql_id('complaint', index)};")
+    for index, status in ((8, "CANCELLED"), (9, "PENDING")):
+        out.append(insert("complaints", ["id", "user_id", "contract_id", "title", "content",
+                                         "status", "category", "created_at"],
+                          [sql_id("complaint-extra", index), q(students[index][1]),
+                           sql_id("contract", index), q("Trao đổi về lịch học"),
+                           q("Gia đình cần xác nhận lại lịch buổi học và đã liên hệ bộ phận hỗ trợ."),
+                           q(status), q("OTHER"), f"CURRENT_TIMESTAMP - INTERVAL '{index % 4 + 2} days'"]))
+    out.append(f"UPDATE lessons SET status='CONFIRMED' WHERE id={sql_id('lesson', 7, 1)};")
+    out.append(f"UPDATE lessons SET status='CANCELLED' WHERE id={sql_id('lesson', 11, 2)};")
+    out.append(f"UPDATE contract_payment_installments SET status='CANCELLED' "
+               f"WHERE id={sql_id('installment', 11, 2)};")
+    if finance_key is not None:
+        for offset, status in enumerate(("PENDING", "FAILED", "CANCELLED")):
+            user = uid("user", f"expanded-student-{200 + offset}")
+            out.append(insert("payments", ["id", "user_id", "amount", "payment_method",
+                                           "payment_type", "status", "transaction_code", "created_at",
+                                           "expires_at"],
+                              [sql_id("topup-attempt", offset), q(user), 750000 + offset * 100000,
+                               q("VNPAY"), q("WALLET_TOP_UP"), q(status),
+                               q(f"LOCAL-TOPUP-ATTEMPT-{offset}"),
+                               f"CURRENT_TIMESTAMP - INTERVAL '{offset + 1} days'",
+                               "CURRENT_TIMESTAMP + INTERVAL '1 day'" if status == "PENDING" else
+                               f"CURRENT_TIMESTAMP - INTERVAL '{offset} days'"]))
+        out.append(f"UPDATE withdrawal_requests SET status='PROCESSING' "
+                   f"WHERE id={sql_id('withdrawal', 3)} AND status='PENDING';")
+        out.append(f"""
+            WITH released AS (
+                UPDATE wallet_transactions SET status='CANCELLED', updated_at=CURRENT_TIMESTAMP
+                WHERE id={sql_id('withdrawal-tx', 6)} AND status='PENDING'
+                RETURNING wallet_id, amount
+            )
+            UPDATE wallets w SET balance=w.balance+released.amount,
+                                 pending_balance=w.pending_balance-released.amount,
+                                 updated_at=CURRENT_TIMESTAMP
+            FROM released WHERE w.id=released.wallet_id;
+        """)
+        out.append(f"UPDATE withdrawal_requests SET status='CANCELLED' "
+                   f"WHERE id={sql_id('withdrawal', 6)} AND status='PENDING';")
     if include_ai:
         for posting in changed_embedding_posts:
             out.append("""INSERT INTO ai_enrichment_jobs

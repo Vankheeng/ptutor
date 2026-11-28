@@ -70,7 +70,7 @@ public class RecommendationEventService {
                         UUID.randomUUID(), log.getSearcherStudent().getId(), posting.getTutor().getId(),
                         posting.getId(), now);
             } else if (request.action() == RecommendationAction.DISMISSED) {
-                favoriteTutorRepository.remove(log.getSearcherStudent().getId(), posting.getTutor().getId(), now);
+                favoriteTutorRepository.removePosting(log.getSearcherStudent().getId(), posting.getId(), now);
             }
             jobRepository.enqueue(AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
                     log.getSearcherStudent().getId(), now);
@@ -88,6 +88,11 @@ public class RecommendationEventService {
     @Transactional(readOnly = true)
     public List<UUID> favoriteTutorUserIds(UUID userId) {
         return favoriteTutorRepository.findTutorUserIdsByStudentUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> favoriteTeachingRequestIds(UUID userId) {
+        return favoriteTutorRepository.findTeachingRequestIdsByStudentUserId(userId);
     }
 
     @Transactional
@@ -116,10 +121,28 @@ public class RecommendationEventService {
             RecommendationClickLog click = latestClick.get();
             record(userId, click.getRecommendationLog().getId(), new RecommendationEventRequest(
                     RecommendationAction.DISMISSED, null, click.getCandidateTeachingRequest().getId()));
-            return;
         }
         LocalDateTime now = LocalDateTime.now();
         if (favoriteTutorRepository.removeForStudentUser(userId, tutorId, now) > 0) {
+            studentRepository.findByUser_Id(userId).ifPresent(student -> jobRepository.enqueue(
+                    AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
+                    student.getId(), now));
+        }
+    }
+
+    @Transactional
+    public void removeFavoriteTeachingRequest(UUID userId, UUID teachingRequestId) {
+        var latestClick = clickLogRepository
+                .findFirstByRecommendationLog_SearcherStudent_User_IdAndCandidateTeachingRequest_IdOrderByCreatedAtDesc(
+                        userId, teachingRequestId);
+        if (latestClick.isPresent()) {
+            RecommendationClickLog click = latestClick.get();
+            record(userId, click.getRecommendationLog().getId(), new RecommendationEventRequest(
+                    RecommendationAction.DISMISSED, null, teachingRequestId));
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (favoriteTutorRepository.removePostingForStudentUser(userId, teachingRequestId, now) > 0) {
             studentRepository.findByUser_Id(userId).ifPresent(student -> jobRepository.enqueue(
                     AiJobType.PROFILE_UPDATE.name(), RecommendationEntityType.STUDENT.name(),
                     student.getId(), now));

@@ -10,12 +10,12 @@ import { getGrades } from '../../services/gradeApi';
 import { errorMessage } from '../../services/errorMessages';
 import {
   addFavoriteTutorRequest,
-  getFavoriteTutorIds,
+  getFavoriteTeachingRequestIds,
   getRecommendationTags,
   getTutorPage,
   parseQuery,
   recordEvent,
-  removeFavoriteTutor,
+  removeFavoriteTeachingRequest,
   refineTutors,
   searchTutors,
   type ModePreference,
@@ -129,7 +129,7 @@ export function StudentTutorRecommendations() {
     getStudentProfile(controller.signal)
       .then((profile) => setHomeProvinceId(profile.address?.provinceId ?? null))
       .catch(() => undefined);
-    getFavoriteTutorIds(controller.signal)
+    getFavoriteTeachingRequestIds(controller.signal)
       .then((ids) => setFavorites(new Set(ids)))
       .catch(() => undefined);
     return () => controller.abort();
@@ -256,15 +256,15 @@ export function StudentTutorRecommendations() {
   };
 
   const toggleInterest = async (item: TutorRecommendationItem) => {
-    const tutorId = item.tutor.userId;
+    const requestId = item.teachingRequestId;
     const logId = result?.logId;
-    if (!logId || pendingInterest.has(tutorId)) return;
-    const wasFavorite = favorites.has(tutorId);
-    setPendingInterest((previous) => new Set(previous).add(tutorId));
+    if (!logId || pendingInterest.has(requestId)) return;
+    const wasFavorite = favorites.has(requestId);
+    setPendingInterest((previous) => new Set(previous).add(requestId));
     setFavorites((previous) => {
       const next = new Set(previous);
-      if (wasFavorite) next.delete(tutorId);
-      else next.add(tutorId);
+      if (wasFavorite) next.delete(requestId);
+      else next.add(requestId);
       return next;
     });
     try {
@@ -273,47 +273,47 @@ export function StudentTutorRecommendations() {
     } catch (caught) {
       setFavorites((previous) => {
         const next = new Set(previous);
-        if (wasFavorite) next.add(tutorId);
-        else next.delete(tutorId);
+        if (wasFavorite) next.add(requestId);
+        else next.delete(requestId);
         return next;
       });
       setError(errorMessage(caught, 'Chưa cập nhật được trạng thái quan tâm. Vui lòng thử lại.'));
     } finally {
       setPendingInterest((previous) => {
         const next = new Set(previous);
-        next.delete(tutorId);
+        next.delete(requestId);
         return next;
       });
     }
   };
 
   const toggleRegularInterest = async (request: TeachingRequest) => {
-    const tutorUserId = request.tutorUserId;
-    if (pendingInterest.has(tutorUserId)) return;
-    const wasFavorite = favorites.has(tutorUserId);
+    const requestId = request.id;
+    if (pendingInterest.has(requestId)) return;
+    const wasFavorite = favorites.has(requestId);
     setFavoriteError('');
-    setPendingInterest((previous) => new Set(previous).add(tutorUserId));
+    setPendingInterest((previous) => new Set(previous).add(requestId));
     setFavorites((previous) => {
       const next = new Set(previous);
-      if (wasFavorite) next.delete(tutorUserId);
-      else next.add(tutorUserId);
+      if (wasFavorite) next.delete(requestId);
+      else next.add(requestId);
       return next;
     });
     try {
-      if (wasFavorite) await removeFavoriteTutor(request.tutorId);
+      if (wasFavorite) await removeFavoriteTeachingRequest(requestId);
       else await addFavoriteTutorRequest(request.id);
     } catch (caught) {
       setFavorites((previous) => {
         const next = new Set(previous);
-        if (wasFavorite) next.add(tutorUserId);
-        else next.delete(tutorUserId);
+        if (wasFavorite) next.add(requestId);
+        else next.delete(requestId);
         return next;
       });
       setFavoriteError(errorMessage(caught, 'Chưa cập nhật được trạng thái quan tâm. Vui lòng thử lại.'));
     } finally {
       setPendingInterest((previous) => {
         const next = new Set(previous);
-        next.delete(tutorUserId);
+        next.delete(requestId);
         return next;
       });
     }
@@ -411,7 +411,7 @@ export function StudentTutorRecommendations() {
           aria-pressed={showFavorites}
           onClick={() => setShowFavorites((visible) => !visible)}
         >
-          <span aria-hidden="true">♥</span> Gia sư đã quan tâm
+          <span aria-hidden="true">♥</span> Tin dạy đã quan tâm
         </button>
       </header>
       <form
@@ -705,7 +705,7 @@ export function StudentTutorRecommendations() {
         <FavoriteTutorResults
           savedTutorCount={favorites.size}
           onFavoritesChanged={() => {
-            void getFavoriteTutorIds()
+            void getFavoriteTeachingRequestIds()
               .then((ids) => setFavorites(new Set(ids)))
               .catch(() => undefined);
           }}
@@ -718,7 +718,7 @@ export function StudentTutorRecommendations() {
           filters={activeSearch.filters}
           searchTerm={activeSearch.term}
           isInitial={activeSearch.version === 0}
-          favoriteTutorIds={favorites}
+          favoriteRequestIds={favorites}
           pendingFavoriteIds={pendingInterest}
           onToggleFavorite={(request) => void toggleRegularInterest(request)}
         />
@@ -864,13 +864,13 @@ export function StudentTutorRecommendations() {
                       />
                       <button
                         className={
-                          favorites.has(item.tutor.userId) ? 'rec-interest-button is-interested' : 'rec-interest-button'
+                          favorites.has(item.teachingRequestId) ? 'rec-interest-button is-interested' : 'rec-interest-button'
                         }
                         type="button"
-                        aria-label={`${favorites.has(item.tutor.userId) ? 'Bỏ quan tâm' : 'Quan tâm'} gia sư ${item.tutor.displayName}`}
-                        aria-pressed={favorites.has(item.tutor.userId)}
-                        title={favorites.has(item.tutor.userId) ? 'Bỏ quan tâm' : 'Quan tâm'}
-                        disabled={pendingInterest.has(item.tutor.userId)}
+                        aria-label={`${favorites.has(item.teachingRequestId) ? 'Bỏ quan tâm' : 'Quan tâm'} tin dạy của ${item.tutor.displayName}`}
+                        aria-pressed={favorites.has(item.teachingRequestId)}
+                        title={favorites.has(item.teachingRequestId) ? 'Bỏ quan tâm' : 'Quan tâm'}
+                        disabled={pendingInterest.has(item.teachingRequestId)}
                         onClick={() => void toggleInterest(item)}
                       >
                         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">

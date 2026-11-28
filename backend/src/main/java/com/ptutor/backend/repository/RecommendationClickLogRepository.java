@@ -14,4 +14,8 @@ public interface RecommendationClickLogRepository extends JpaRepository<Recommen
     Optional<RecommendationClickLog>
             findFirstByRecommendationLog_SearcherStudent_User_IdAndClickedTutor_IdOrderByCreatedAtDesc(
                     UUID studentUserId, UUID tutorId);
+
+    Optional<RecommendationClickLog>
+            findFirstByRecommendationLog_SearcherStudent_User_IdAndCandidateTeachingRequest_IdOrderByCreatedAtDesc(
+                    UUID studentUserId, UUID teachingRequestId);
 }

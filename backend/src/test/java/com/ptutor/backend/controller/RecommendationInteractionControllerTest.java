@@ -140,13 +140,19 @@ class RecommendationInteractionControllerTest {
 
         mockMvc.perform(get("/api/v1/students/me/favorite-tutors/teaching-requests"))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/students/me/favorite-tutors/teaching-request-ids"))
+                .andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/students/me/favorite-tutors/teaching-requests/" + postingId))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/students/me/favorite-tutors/teaching-requests/" + postingId))
                 .andExpect(status().isOk());
         mockMvc.perform(delete("/api/v1/students/me/favorite-tutors/" + tutorId))
                 .andExpect(status().isOk());
 
         verify(teachingRequestService).findFavoritesForStudent(userId);
         verify(eventService).favoriteTutorFromOrdinarySearch(userId, postingId);
+        verify(eventService).favoriteTeachingRequestIds(userId);
+        verify(eventService).removeFavoriteTeachingRequest(userId, postingId);
         verify(eventService).removeFavoriteTutor(userId, tutorId);
     }
 }

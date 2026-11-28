@@ -23,8 +23,8 @@ import lombok.experimental.NonFinal;
 @Table(
         name = "favorite_tutors",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_favorite_tutors_student_tutor",
-                columnNames = {"student_id", "tutor_id"}))
+                name = "uk_favorite_tutors_student_request",
+                columnNames = {"student_id", "teaching_request_id"}))
 @SQLDelete(sql = "UPDATE favorite_tutors SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Getter

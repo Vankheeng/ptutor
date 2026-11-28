@@ -73,6 +73,13 @@ public class RecommendationInteractionController {
                 "/api/v1/students/me/favorite-tutors"));
     }
 
+    @GetMapping("/students/me/favorite-tutors/teaching-request-ids")
+    public ResponseEntity<ApiResponse<List<UUID>>> favoriteTeachingRequestIds() {
+        return ResponseEntity.ok(responseFactory.success(
+                eventService.favoriteTeachingRequestIds(currentUserProvider.getCurrentUserId()),
+                "/api/v1/students/me/favorite-tutors/teaching-request-ids"));
+    }
+
     @GetMapping("/students/me/favorite-tutors/teaching-requests")
     public ResponseEntity<ApiResponse<List<TeachingRequestResponse>>> favoriteTutorRequests() {
         return ResponseEntity.ok(responseFactory.success(
@@ -94,6 +101,14 @@ public class RecommendationInteractionController {
         return ResponseEntity.ok(responseFactory.success(
                 "FAVORITE_TUTOR_REMOVED", "Favorite tutor removed", null,
                 "/api/v1/students/me/favorite-tutors/" + tutorId));
+    }
+
+    @DeleteMapping("/students/me/favorite-tutors/teaching-requests/{requestId}")
+    public ResponseEntity<ApiResponse<Void>> removeFavoriteTeachingRequest(@PathVariable UUID requestId) {
+        eventService.removeFavoriteTeachingRequest(currentUserProvider.getCurrentUserId(), requestId);
+        return ResponseEntity.ok(responseFactory.success(
+                "FAVORITE_TEACHING_REQUEST_REMOVED", "Favorite teaching request removed", null,
+                "/api/v1/students/me/favorite-tutors/teaching-requests/" + requestId));
     }
 
     /** Scores again the results the user has not seen yet, using what they did with the ones they saw. */

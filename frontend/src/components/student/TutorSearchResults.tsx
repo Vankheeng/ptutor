@@ -14,7 +14,7 @@ interface Props {
   filters: TutorSearchFilters;
   searchTerm: string;
   isInitial?: boolean;
-  favoriteTutorIds: Set<string>;
+  favoriteRequestIds: Set<string>;
   pendingFavoriteIds: Set<string>;
   onToggleFavorite: (request: TeachingRequest) => void;
 }
@@ -23,7 +23,7 @@ export function TutorSearchResults({
   filters,
   searchTerm,
   isInitial = false,
-  favoriteTutorIds,
+  favoriteRequestIds,
   pendingFavoriteIds,
   onToggleFavorite
 }: Props) {
@@ -83,8 +83,8 @@ export function TutorSearchResults({
                 request={request}
                 application={applicationsByRequest.get(request.id)}
                 onChanged={() => setRevision((value) => value + 1)}
-                favorite={favoriteTutorIds.has(request.tutorUserId)}
-                favoritePending={pendingFavoriteIds.has(request.tutorUserId)}
+                favorite={favoriteRequestIds.has(request.id)}
+                favoritePending={pendingFavoriteIds.has(request.id)}
                 onToggleFavorite={() => onToggleFavorite(request)}
               />
             ))}

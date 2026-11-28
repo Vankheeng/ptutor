@@ -108,7 +108,7 @@ export function StudentTeachingRequestCard({
             <button
               className={favorite ? 'tutor-favorite-heart is-favorite' : 'tutor-favorite-heart'}
               type="button"
-              aria-label={`${favorite ? 'Bỏ quan tâm' : 'Quan tâm'} gia sư ${request.tutorName}`}
+              aria-label={`${favorite ? 'Bỏ quan tâm' : 'Quan tâm'} tin dạy của ${request.tutorName}`}
               aria-pressed={favorite}
               title={favorite ? 'Bỏ quan tâm' : 'Quan tâm'}
               disabled={favoritePending}
