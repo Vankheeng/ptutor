@@ -19,10 +19,11 @@ Mật khẩu chung của tài khoản kiểm thử là `Demo@2026` (hash bcrypt 
 
 ## Phạm vi
 
-- 84 gia sư, 64 học viên, hai nhân viên, 168 tin dạy, 86 tin học; nhiều môn, lớp, phường, mức giá, hình thức và khung giờ.
+- 404 gia sư, 384 học viên, hai nhân viên, 1.128 tin dạy, 726 tin học. Bộ tin mở bổ sung phủ 16 môn và 130 cặp môn–lớp phù hợp chương trình, mỗi cặp có cả tin trực tuyến và trực tiếp ở cả hai chiều tìm kiếm. Hồ sơ được phân bố trên 24 phường thuộc 8 tỉnh/thành, với nhiều mức giá và khung giờ.
 - Tin chờ duyệt, mở, đóng, từ chối; hồ sơ và chứng chỉ chờ duyệt, đã duyệt hoặc bị từ chối; tài khoản hoạt động, ngưng hoạt động và tạm khóa.
 - Đơn đăng ký, đề nghị dạy, 64 hợp đồng, 192 buổi học và kỳ học phí, đánh giá, yêu thích, khiếu nại, yêu cầu hủy và hoàn tiền, thông báo cá nhân, chiến dịch nháp và đã lên lịch, ví và giao dịch. `--finance` bổ sung 24 tài khoản ngân hàng và 12 yêu cầu rút tiền ở nhiều trạng thái; số tài khoản giải mã được bằng khóa backend.
 - Tìm kiếm hai chiều với kết quả và thao tác tương tác. Trên schema `dev`, hành động giới hạn ở `CLICKED`, `VIEWED`, `CONTACTED`. Cờ `--ai` mở thêm `FAVORITED`, `DISMISSED`, vector đặc trưng, hướng tìm kiếm và snapshot liên kết đúng ID đơn để thử job học trọng số. Các giá trị feature được sinh theo kịch bản kiểm thử, không phải đo đạc thực tế; không dùng để đánh giá chất lượng mô hình.
+- 2.240 hồ sơ/tin bổ sung dùng nội dung riêng trong `narratives.json`; tin mới phục vụ tìm kiếm, không tạo thêm click hoặc nhãn hành vi giả cho job học trọng số. Chạy `python scripts/realistic_data/check_quality.py` trước khi nạp để kiểm tra nội dung và độ phủ dự kiến; sau khi nạp chạy `python scripts/realistic_data/check_search_coverage.py --database ptutor_app_seeded` để kiểm tra các tin thực sự lọt qua điều kiện tìm kiếm của backend. Worker embedding sẽ tạo vector cho các tin và hồ sơ mới.
 - `--chatbot` tạo 36 yêu cầu hỗ trợ ở các trạng thái. Nội dung hỏi và trả lời gắn với nghiệp vụ cụ thể. Không tự tạo câu trả lời hoặc trích dẫn giả trong bảng hội thoại của trợ lý.
 
 Kho tri thức 65 tài liệu và bộ câu hỏi tại `knowledge-base/` được lấy từ `feat/support-chatbot-reference`. Tài liệu đó còn ở trạng thái **draft** và có câu hỏi cần giải quyết, nên chỉ dùng để kiểm thử luồng nhập, rà soát, xuất bản; không tự công bố tất cả. Database Docker `ptutor` hiện có 16 tài liệu đã xuất bản và 100 chunk đã nhúng bằng `bge-m3-int8`; có thể tiếp tục dùng database đó để kiểm thử RAG. Trên database mới, dùng lệnh nhập chính thức của assistant-service sau khi tích hợp nhánh chatbot:

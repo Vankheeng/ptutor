@@ -33,6 +33,50 @@ TOPICS = {
     "Sinh học": [(8, "cơ thể người"), (9, "di truyền học"), (11, "sinh học tế bào"), (12, "ôn thi tốt nghiệp")],
     "Tin học": [(6, "tư duy thuật toán"), (8, "lập trình Python cơ bản"), (10, "cấu trúc dữ liệu"), (12, "ôn thi học sinh giỏi")],
 }
+LEGACY_SUBJECTS = tuple(TOPICS)
+LEGACY_TOPICS = {name: tuple(rows) for name, rows in TOPICS.items()}
+TOPICS.update({
+    "Âm nhạc": [(1, "nhịp và giai điệu"), (3, "đọc nốt nhạc"), (6, "hát và cảm thụ âm nhạc"), (9, "lý thuyết âm nhạc")],
+    "Công nghệ": [(3, "đồ dùng trong gia đình"), (6, "thiết kế và vật liệu"), (9, "định hướng nghề nghiệp"), (12, "công nghệ trong sản xuất")],
+    "Địa lý": [(6, "bản đồ và khí hậu"), (9, "địa lý kinh tế Việt Nam"), (12, "địa lý vùng kinh tế")],
+    "Giáo dục công dân": [(6, "quyền và trách nhiệm"), (9, "pháp luật trong đời sống"), (12, "kinh tế và pháp luật")],
+    "Giáo dục thể chất": [(1, "vận động cơ bản"), (6, "kỹ thuật chạy và phối hợp"), (10, "sức bền và thể lực")],
+    "Khoa học tự nhiên": [(6, "chất và sự biến đổi"), (8, "cơ thể sống và năng lượng"), (9, "điện và sinh vật")],
+    "Khoa học xã hội": [(6, "lịch sử và địa lý địa phương"), (8, "đọc bản đồ và sự kiện lịch sử"), (9, "địa lý dân cư")],
+    "Lịch sử": [(6, "các nền văn minh cổ"), (9, "lịch sử Việt Nam hiện đại"), (12, "lịch sử thế giới hiện đại")],
+    "Mỹ thuật": [(1, "màu sắc và hình khối"), (5, "bố cục và vẽ tranh"), (9, "thiết kế và tạo hình")],
+})
+TOPICS["Toán"] = [(1, "phép cộng và phép trừ"), (3, "nhân chia và bài toán có lời văn"),
+                   (5, "phân số và số thập phân")] + TOPICS["Toán"]
+TOPICS["Tiếng Anh"] = [(1, "từ vựng và nghe nói cơ bản"), (3, "mẫu câu giao tiếp"),
+                        (5, "đọc hiểu và ngữ pháp cơ bản")] + TOPICS["Tiếng Anh"]
+TOPICS["Ngữ văn"] = [(1, "đọc và viết câu"), (3, "đọc hiểu và viết đoạn"),
+                     (5, "cảm thụ văn học và tập làm văn")] + TOPICS["Ngữ văn"]
+TOPICS["Tin học"] = [(3, "sử dụng máy tính an toàn"), (5, "soạn thảo và trình bày")]+TOPICS["Tin học"]
+SUBJECT_GRADES = {
+    "Toán": range(1, 13), "Tiếng Anh": range(1, 13), "Ngữ văn": range(1, 13),
+    "Giáo dục thể chất": range(1, 13), "Âm nhạc": range(1, 10), "Mỹ thuật": range(1, 10),
+    "Tin học": range(3, 13), "Công nghệ": range(3, 13),
+    "Khoa học tự nhiên": range(6, 10), "Khoa học xã hội": range(6, 10),
+    "Lịch sử": range(6, 13), "Địa lý": range(6, 13),
+    "Giáo dục công dân": range(6, 13), "Vật lý": range(8, 13),
+    "Hóa học": range(8, 13), "Sinh học": range(8, 13),
+}
+EXPANSION_SUBJECTS = tuple(SUBJECT_GRADES)
+EXPANSION_PER_SUBJECT = 20
+EXPANSION_COUNT = len(EXPANSION_SUBJECTS) * EXPANSION_PER_SUBJECT
+EXPECTED_NARRATIVES = 438 + EXPANSION_COUNT * 7
+# Wards from the project's province/district catalog. The province disambiguates repeated ward names.
+EXPANSION_AREAS = (
+    ("Hà Nội", "Cầu Giấy"), ("Hà Nội", "Yên Hoà"), ("Hà Nội", "Bạch Mai"),
+    ("Hồ Chí Minh", "An Đông"), ("Hồ Chí Minh", "An Lạc"), ("Hồ Chí Minh", "An Phú"),
+    ("Đà Nẵng", "An Hải"), ("Đà Nẵng", "An Khê"), ("Đà Nẵng", "Bà Nà"),
+    ("Hải Phòng", "Hồng Bàng"), ("Hải Phòng", "An Dương"), ("Hải Phòng", "An Biên"),
+    ("Cần Thơ", "An Bình"), ("Cần Thơ", "Cái Khế"), ("Cần Thơ", "Cái Răng"),
+    ("Bắc Ninh", "Từ Sơn"), ("Bắc Ninh", "Bắc Giang"), ("Bắc Ninh", "An Lạc"),
+    ("Nghệ An", "Bạch Ngọc"), ("Nghệ An", "An Châu"), ("Nghệ An", "Anh Sơn"),
+    ("Huế", "An Cựu"), ("Huế", "A Lưới 1"), ("Huế", "Chân Mây - Lăng Cô"),
+)
 METHODS = [
     "Mỗi buổi kiểm tra phần cũ, giải thích bằng ví dụ rồi mới cho con tự làm bài.",
     "Chia kiến thức thành từng chủ đề nhỏ; cuối tuần có bài kiểm tra và nhận xét cụ thể.",
@@ -205,8 +249,9 @@ def grade(level):
     return f"(SELECT id FROM grades WHERE level={level} ORDER BY id LIMIT 1)"
 
 
-def district(name):
-    return f"(SELECT d.id FROM districts d JOIN provinces p ON p.id=d.province_id WHERE p.name='Hà Nội' AND d.name={q(name)} ORDER BY d.id LIMIT 1)"
+def district(name, province="Hà Nội"):
+    return ("(SELECT d.id FROM districts d JOIN provinces p ON p.id=d.province_id "
+            f"WHERE p.name={q(province)} AND d.name={q(name)} ORDER BY d.id LIMIT 1)")
 
 
 def insert(table, columns, values):
@@ -224,6 +269,45 @@ def seed_email(full_name, birth_year):
     suffix = 100000 + uuid.uuid5(NS, f"demo-email/{full_name}/{birth_year}").int % 900000
     local = "".join(bank_holder(full_name).lower().split()) + str(suffix)
     return f"{local}@gmail.com"
+
+
+def expanded_personas(role):
+    """Every valid subject/grade gets both modes, with extra supply per combination."""
+    for subject_pos, subject in enumerate(EXPANSION_SUBJECTS):
+        grades = tuple(SUBJECT_GRADES[subject])
+        for cohort in range(EXPANSION_PER_SUBJECT):
+            ordinal = subject_pos * EXPANSION_PER_SUBJECT + cohort
+            area = EXPANSION_AREAS[(subject_pos * 7 + cohort * 5) % len(EXPANSION_AREAS)]
+            yield role, ordinal, subject, grades[cohort % len(grades)], area
+
+
+def expanded_name(role, ordinal):
+    old_names = set()
+    for old_role, count in (("tutor", 84), ("student", 64)):
+        for i in range(count):
+            index = i if old_role == "tutor" else i + 85
+            given = (MALE if i % 2 == 0 else FEMALE)[(index * 7 + index // 12) % 12]
+            middle = (MIDDLE_MALE if i % 2 == 0 else MIDDLE_FEMALE)[(index // 3) % 6]
+            surname = FAMILIES[(index * 5 + index // 12) % 12]
+            old_names.add(f"{surname} {middle} {given}")
+    male = ordinal % 2 == 0
+    given_names = MALE if male else FEMALE
+    middle_names = MIDDLE_MALE if male else MIDDLE_FEMALE
+    pool = [f"{family} {middle} {given}" for family in FAMILIES
+            for middle in middle_names for given in given_names]
+    random.Random(1831 if male else 4729).shuffle(pool)
+    pool = [name for name in pool if name not in old_names]
+    slot = ordinal // 2 + (0 if role == "tutor" else len(EXPANSION_SUBJECTS) * EXPANSION_PER_SUBJECT // 2)
+    return pool[slot]
+
+
+def expanded_postings(role, ordinal, subject, level):
+    """First two postings guarantee online and in-person results for the persona's grade."""
+    grades = tuple(SUBJECT_GRADES[subject])
+    for j in range(3 if role == "tutor" else 2):
+        post_level = grades[(grades.index(level) + 1) % len(grades)] if j == 2 else level
+        mode = ("ONLINE", "OFFLINE", "ONLINE" if ordinal % 2 else "OFFLINE")[j]
+        yield j, post_level, mode, topic_for_grade(subject, post_level)
 
 
 def application_message(i, j, level, subject):
@@ -292,13 +376,14 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
     rng = random.Random(27011)
     out = ["BEGIN;", "SET LOCAL client_encoding = 'UTF8';"]
     refreshes = []
+    changed_embedding_posts = []
     corpus_path = Path(__file__).with_name("narratives.json")
     narratives = json.loads(corpus_path.read_text(encoding="utf-8"))
-    if len(narratives) != 438:
-        raise ValueError("narratives.json must contain all 438 authored records before loading")
+    if len(narratives) != EXPECTED_NARRATIVES:
+        raise ValueError(f"narratives.json must contain all {EXPECTED_NARRATIVES} authored records before loading")
     for name in TOPICS:
         out.append(insert("subjects",["id","name","status"],[sql_id("subject",name),q(name),q("ACTIVE")]))
-    for level in range(6,13):
+    for level in range(1,13):
         out.append(insert("grades",["id","name","level","status"],[sql_id("grade",level),q(f"Lớp {level}"),level,q("ACTIVE")]))
     for index,(surname,given,function) in enumerate((("Trần Thu","Hà","CUSTOMER_SERVICE"),("Nguyễn Minh","Quân","ACCOUNTANT"))):
         key=f"staff-{index}"
@@ -337,8 +422,8 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             refreshes.append(refresh("users", user, email=email, first_name=surname+" "+middle,
                                      last_name=given, date_of_birth=birth_date))
             if role == "tutor":
-                subject = list(TOPICS)[i % len(TOPICS)]
-                level, topic = TOPICS[subject][(i // len(TOPICS)) % len(TOPICS[subject])]
+                subject = LEGACY_SUBJECTS[i % len(LEGACY_SUBJECTS)]
+                level, topic = LEGACY_TOPICS[subject][(i // len(LEGACY_SUBJECTS)) % len(LEGACY_TOPICS[subject])]
                 method = METHODS[i % len(METHODS)]
                 exp = 1 + (i * 7) % 13
                 profile = uid("tutor", i)
@@ -358,13 +443,16 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                     out.append(insert("certificates",["id","tutor_id","name","issuing_organization","issue_date","status","rejection_reason","reviewed_by","reviewed_at"],
                         [sql_id("cert",i),q(profile),q("Bằng cử nhân ngành liên quan"),q(education),q("2021-06-30"),q(cert_status),q("Ảnh chứng chỉ chưa đọc rõ thông tin, vui lòng tải lại") if cert_status=="REJECTED" else "NULL","NULL" if cert_status=="PENDING" else "(SELECT id FROM employees WHERE role=1 ORDER BY id LIMIT 1)","NULL" if cert_status=="PENDING" else "CURRENT_TIMESTAMP - INTERVAL '5 days'"]))
                 for j in range(2):
-                    tlevel, ttopic = TOPICS[subject][(i+j)%len(TOPICS[subject])]
+                    tlevel, ttopic = LEGACY_TOPICS[subject][(i+j)%len(LEGACY_TOPICS[subject])]
                     posting = uid("teaching",i,j)
                     mode = "ONLINE" if (i+j)%4==0 else "OFFLINE"
                     price = 140000+((i+j)%8)*20000
                     desc = f"Tập trung {ttopic}. {method} Có thể điều chỉnh tốc độ theo tình hình của học sinh."
                     posting_text = narratives.get(posting, {})
                     title = teaching_title(i, j, subject, tlevel, ttopic, mode, home)
+                    title = posting_text.get("title", title)
+                    if "title" in posting_text:
+                        changed_embedding_posts.append(posting)
                     desc = posting_text.get("description", desc)
                     days = (2+(i+j)%4, 6+(i+j)%2)
                     start, end = ("18:00", "20:00") if i%2 else ("18:30", "20:30")
@@ -386,7 +474,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             else:
                 profile = uid("student",i)
                 need = NEEDS[i%len(NEEDS)]
-                subject = list(TOPICS)[i % len(TOPICS)]
+                subject = LEGACY_SUBJECTS[i % len(LEGACY_SUBJECTS)]
                 focus = topic_for_grade(subject, level)
                 profile_text = narratives.get(profile, {})
                 student_intro = profile_text.get("introduction", f"Học sinh lớp {level} cần gia sư {subject}. {need}")
@@ -398,7 +486,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                                          weak_points=weak_points, goals_description=goals))
                 students.append((profile,user,level,home))
                 for j in range(1+(i%3==0)):
-                    subject = list(TOPICS)[(i+j*3)%len(TOPICS)]
+                    subject = LEGACY_SUBJECTS[(i+j*3)%len(LEGACY_SUBJECTS)]
                     posting = uid("studying",i,j)
                     mode = "ONLINE" if (i+j)%4==0 else "OFFLINE"
                     need = NEEDS[(i+j)%len(NEEDS)]
@@ -421,6 +509,97 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                         refreshes.append(refresh("studying_request_availabilities", slot_id,
                                                  day_of_week=day, start_time=start, end_time=end))
                     studying.append((posting,profile,subject,level,mode,status))
+    # Search catalog expansion is intentionally separate from scripted learning events.
+    # These people and postings cover genuine filter combinations; no fabricated clicks follow.
+    for role, ordinal, subject, level, (province, home) in (
+        list(expanded_personas("tutor")) + list(expanded_personas("student"))
+    ):
+        name = expanded_name(role, ordinal)
+        given = name.rsplit(" ", 1)[-1]
+        first_name = name[:-(len(given) + 1)]
+        birth_year = (1987 + ordinal % 17) if role == "tutor" else (
+            1984 + ordinal % 15 if level <= 5 else 2026 - (level + 6))
+        birth_date = f"{birth_year}-{1+ordinal%12:02d}-{5+(ordinal*7)%23:02d}"
+        user = uid("user", f"expanded-{role}-{ordinal}")
+        profile = uid(f"expanded-{role}", ordinal)
+        email = seed_email(name, birth_year)
+        user_columns = ["id", "district_id", "citizen_id", "email", "password", "first_name",
+                        "last_name", "gender", "status", "date_of_birth", "created_at"]
+        citizen = f"079{(300000000 if role == 'tutor' else 400000000) + ordinal:09d}"
+        user_values = [q(user), district(home, province), q(citizen), q(email), q(HASH),
+                       q(first_name), q(given), q("MALE" if ordinal % 2 == 0 else "FEMALE"),
+                       q("ACTIVE"), q(birth_date), f"CURRENT_TIMESTAMP - INTERVAL '{20 + ordinal % 180} days'"]
+        out.append(insert("users", user_columns, user_values))
+        refreshes.append(refresh("users", user, email=email, first_name=first_name,
+                                 last_name=given, date_of_birth=birth_date))
+        if role == "tutor":
+            experience = 1 + ordinal % 10
+            prose = narratives[profile]
+            out.append(insert("tutors", ["id", "user_id", "introduction", "experience_years", "education",
+                                         "teaching_methodology", "strength_subjects", "target_student_type",
+                                         "profile_status", "profile_reviewed_by", "profile_reviewed_at"],
+                              [q(profile), q(user), q(prose["introduction"]), experience,
+                               q(("Đại học Sư phạm Hà Nội", "Đại học Sài Gòn", "Đại học Đà Nẵng",
+                                  "Đại học Cần Thơ", "Đại học Huế", "Đại học Khoa học Tự nhiên",
+                                  "Đại học Ngoại ngữ", "Đại học Sư phạm Thành phố Hồ Chí Minh",
+                                  "Đại học Bách khoa Hà Nội", "Đại học Quy Nhơn")[ordinal % 10]),
+                               q(prose["teaching_methodology"]), q(subject),
+                               q("Học sinh cần củng cố kiến thức" if ordinal % 3 else "Học sinh ôn thi"),
+                               q("VERIFIED"), "(SELECT id FROM employees WHERE role=1 ORDER BY id LIMIT 1)",
+                               "CURRENT_TIMESTAMP - INTERVAL '12 days'"]))
+            refreshes.append(refresh("tutors", profile, introduction=prose["introduction"],
+                                     teaching_methodology=prose["teaching_methodology"]))
+        else:
+            prose = narratives[profile]
+            out.append(insert("students", ["id", "user_id", "introduction", "current_level",
+                                           "weak_points", "goals_description"],
+                              [q(profile), q(user), q(prose["introduction"]), q(f"Lớp {level}"),
+                               q(prose["weak_points"]), q(prose["goals_description"])]))
+            refreshes.append(refresh("students", profile, introduction=prose["introduction"],
+                                     weak_points=prose["weak_points"], goals_description=prose["goals_description"]))
+        for j, post_level, mode, focus in expanded_postings(role, ordinal, subject, level):
+            kind = "teaching" if role == "tutor" else "studying"
+            posting = uid(f"expanded-{kind}", ordinal, j)
+            prose = narratives[posting]
+            days = (1 + (ordinal + j) % 5, 6 + (ordinal + j) % 2)
+            start = ("16:30", "18:00", "19:00", "17:30")[(ordinal + j) % 4]
+            end = ("18:00", "19:30", "20:30", "19:00")[(ordinal + j) % 4]
+            schedule = schedule_text(days, start, end)
+            if role == "tutor":
+                price = 120000 + ((ordinal * 3 + j * 5) % 12) * 20000
+                out.append(insert("teaching_requests", ["id", "tutor_id", "subject_id", "title",
+                                                        "description", "quantity", "expected_price", "teaching_mode",
+                                                        "preferred_schedule", "status", "reviewed_at", "created_at"],
+                                  [q(posting), q(profile), catalog("subjects", subject), q(prose["title"]),
+                                   q(prose["description"]), 1 + ordinal % 3, price, q(mode), q(schedule),
+                                   q("OPEN"), "CURRENT_TIMESTAMP - INTERVAL '10 days'",
+                                   f"CURRENT_TIMESTAMP - INTERVAL '{12 + ordinal % 70} days'"]))
+                refreshes.append(refresh("teaching_requests", posting, title=prose["title"],
+                                         description=prose["description"], preferred_schedule=schedule))
+                out.append(insert("grade_teaching_requests", ["id", "grade_id", "teaching_request_id"],
+                                  [sql_id("expanded-tr-grade", ordinal, j), grade(post_level), q(posting)]))
+                if mode == "OFFLINE":
+                    out.append(insert("teaching_request_districts", ["id", "teaching_request_id", "district_id"],
+                                      [sql_id("expanded-tr-district", ordinal, j), q(posting), district(home, province)]))
+                slot_table, post_column = "teaching_request_availabilities", "teaching_request_id"
+            else:
+                price = 130000 + ((ordinal * 5 + j * 3) % 11) * 20000
+                out.append(insert("studying_requests", ["id", "district_id", "student_id", "subject_id",
+                                                        "grade_id", "title", "description", "learning_goals",
+                                                        "max_price", "learning_mode", "preferred_schedule",
+                                                        "status", "created_at"],
+                                  [q(posting), district(home, province) if mode == "OFFLINE" else "NULL",
+                                   q(profile), catalog("subjects", subject), grade(post_level), q(prose["title"]),
+                                   q(prose["description"]), q(prose["learning_goals"]), price, q(mode),
+                                   q(schedule), q("OPEN"), f"CURRENT_TIMESTAMP - INTERVAL '{8 + ordinal % 65} days'"]))
+                refreshes.append(refresh("studying_requests", posting, title=prose["title"],
+                                         description=prose["description"],
+                                         learning_goals=prose["learning_goals"], preferred_schedule=schedule))
+                slot_table, post_column = "studying_request_availabilities", "studying_request_id"
+            for k, day in enumerate(days):
+                out.append(insert(slot_table, ["id", post_column, "day_of_week", "start_time", "end_time"],
+                                  [sql_id(f"expanded-{kind}-slot", ordinal, j, k), q(posting), day,
+                                   q(start), q(end)]))
     open_teaching = [x for x in teaching if x[-1]=="OPEN"]
     open_studying = [x for x in studying if x[-1]=="OPEN"]
     for i,(student,user,level,home) in enumerate(students):
@@ -634,6 +813,15 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 out.append(insert("withdrawal_requests",["id","wallet_id","amount","bank_code","bank_name","encrypted_account_number","account_number_last_four","account_holder_name","idempotency_key","status","wallet_transaction_id","reviewed_by_user_id","reviewed_at","rejection_reason","completed_at","transfer_reference"],
                     [sql_id("withdrawal",i),q(wallet),300000,q("VCB" if i%2 else "TCB"),q("Vietcombank" if i%2 else "Techcombank"),q(encrypted),q(account[-4:]),q(holder),q(f"local-withdrawal-request-{i}"),q(status),sql_id("withdrawal-tx",i) if pending or completed else "NULL","NULL" if pending else "(SELECT user_id FROM employees WHERE role=1 ORDER BY id LIMIT 1)","NULL" if pending else "CURRENT_TIMESTAMP - INTERVAL '2 days'",q("Thông tin người thụ hưởng chưa khớp") if status=="REJECTED" else "NULL","CURRENT_TIMESTAMP - INTERVAL '1 day'" if completed else "NULL",q(f"LOCAL-TRANSFER-{i:03d}") if completed else "NULL"]))
     out.extend(refreshes)
+    if include_ai:
+        for posting in changed_embedding_posts:
+            out.append("""INSERT INTO ai_enrichment_jobs
+                (id, job_type, entity_type, entity_id, status, attempts, next_attempt_at, created_at, updated_at)
+                SELECT gen_random_uuid(), 'EMBED', 'TEACHING_REQUEST', """ + q(posting) + """::uuid,
+                       'PENDING', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                WHERE NOT EXISTS (SELECT 1 FROM ai_enrichment_jobs WHERE job_type='EMBED'
+                    AND entity_type='TEACHING_REQUEST' AND entity_id=""" + q(posting) + """::uuid
+                    AND status IN ('PENDING','PROCESSING'));""")
     out.append("COMMIT;")
     return "\n".join(out)+"\n"
 
