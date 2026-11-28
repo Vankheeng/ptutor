@@ -1404,7 +1404,8 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                            q(status), q("OTHER"), f"CURRENT_TIMESTAMP - INTERVAL '{index % 4 + 2} days'"]))
     out.append(f"UPDATE lessons SET status='CONFIRMED' WHERE id={sql_id('lesson', 7, 1)};")
     out.append(f"UPDATE lessons SET status='CANCELLED' WHERE id={sql_id('lesson', 11, 2)};")
-    out.append(f"UPDATE contract_payment_installments SET status='CANCELLED' "
+    out.append(f"UPDATE contract_payment_installments "
+               "SET status='PENDING', lesson_id=NULL, due_date=NULL "
                f"WHERE id={sql_id('installment', 11, 2)};")
     if finance_key is not None:
         for offset, status in enumerate(("PENDING", "FAILED", "CANCELLED")):
@@ -1433,6 +1434,26 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
         """)
         out.append(f"UPDATE withdrawal_requests SET status='CANCELLED' "
                    f"WHERE id={sql_id('withdrawal', 6)} AND status='PENDING';")
+        # The backend derives a PER_LESSON unit price from the complete set of
+        # installments. Keep future installments present but unpaid so a newly
+        # confirmed lesson uses the agreed contract price.
+        out.append("""
+            INSERT INTO contract_payment_installments
+                (id, contract_id, sequence_number, payment_period, amount, status)
+            SELECT md5('fixture-future-installment:' || c.id::text || ':' || sequence.value)::uuid,
+                   c.id, sequence.value, 'PER_LESSON', c.price, 'PENDING'
+            FROM contracts c
+            CROSS JOIN LATERAL generate_series(1, c.total_lession) AS sequence(value)
+            WHERE c.deleted_at IS NULL AND c.status IN ('ACTIVE','COMPLETED')
+              AND c.payment_period='PER_LESSON'
+              AND NOT EXISTS (
+                  SELECT 1 FROM contract_payment_installments installment
+                  WHERE installment.contract_id=c.id
+                    AND installment.sequence_number=sequence.value
+                    AND installment.deleted_at IS NULL
+              )
+            ON CONFLICT (contract_id, sequence_number) DO NOTHING;
+        """)
         # Publication payment precedes review, so every non-draft posting has
         # exactly one paid fee even when it was later rejected, closed or cancelled.
         # Resolve statuses after the lifecycle updates above and avoid duplicating

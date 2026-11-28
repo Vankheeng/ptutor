@@ -147,6 +147,16 @@ SELECT 'final_paid_lesson_unsettled', count(*) FROM lessons l
 UNION ALL
 SELECT 'invalid_refund_amount', count(*) FROM payments p
     WHERE p.deleted_at IS NULL AND (p.refunded_amount<0 OR p.refunded_amount>p.amount)
+UNION ALL
+SELECT 'per_lesson_installment_schedule_mismatch', count(*) FROM contracts c
+    WHERE c.deleted_at IS NULL AND c.status IN ('ACTIVE','COMPLETED')
+      AND c.payment_period='PER_LESSON' AND
+      ((SELECT count(*) FROM contract_payment_installments i
+        WHERE i.deleted_at IS NULL AND i.contract_id=c.id)<>c.total_lession
+       OR EXISTS (SELECT 1 FROM contract_payment_installments i
+                  WHERE i.deleted_at IS NULL AND i.contract_id=c.id
+                    AND (i.payment_period<>'PER_LESSON' OR i.amount<>c.price
+                         OR i.status='CANCELLED')))
 ORDER BY 1;
 """
 

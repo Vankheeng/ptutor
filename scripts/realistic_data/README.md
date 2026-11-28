@@ -83,4 +83,6 @@ Seed là dữ liệu cho môi trường cục bộ. Các luồng tải ảnh ch�
 
 Sau khi nạp `--finance`, chạy `python scripts/realistic_data/check_finance.py --database ptutor_app_seeded`. Script kiểm tra sổ ví, khoản rút đang giữ, thanh toán đúng kỳ học phí, buổi hoàn tất đã được giải ngân, nguồn tiền nạp ví và thu nhập gia sư, học phí còn giữ không âm, các khoản hoàn khớp thanh toán lẫn giao dịch ví và phí đăng tin theo công thức của backend. Mọi dòng phải bằng `0`.
 
+Hợp đồng trả theo buổi có đủ kỳ học phí cho số buổi đã ký; các kỳ tương lai ở trạng thái `PENDING` và chưa có giao dịch thanh toán. Khi hủy một buổi chưa thanh toán, kỳ học phí được trả về hàng chờ và không còn gắn với buổi đã hủy. Điều này giữ mức chi trả/hoàn tiền mỗi buổi khớp giá hợp đồng theo cách backend hiện tính.
+
 DB đích `ptutor_app_seeded` trong Docker chạy Flyway chính thức của backend và Alembic của assistant-service. Nạp `--ai --chatbot --finance` để có dữ liệu tài chính và AI đầy đủ, sau đó kiểm tra bằng `check_finance.py`, `check_learning.py` và `check_search_coverage.py`. Kho tri thức đã công bố có 76 tài liệu. Cách chạy đầy đủ được ghi trong `deploy/README.md`.
