@@ -49,7 +49,8 @@ class AgentRunner:
             try:
                 self._loop(state)
             except LlmError as error:
-                state.final = self._composer.busy(state, "TIMEOUT" if error.timeout else "MODEL_ERROR")
+                state.final = (self._composer.verified_partial(state)
+                               or self._composer.busy(state, "TIMEOUT" if error.timeout else "MODEL_ERROR"))
         result = state.final or self._composer.abstain(state, "ERROR")
         for middleware in self._middlewares:
             result = middleware.after_agent(state, result)

@@ -15,6 +15,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/ptutor_app_seeded
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      # Demo accounts may use Gmail-shaped addresses; never deliver email outside this local stack.
+      MAIL_HOST: 127.0.0.1
+      MAIL_PORT: "2525"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       CITIZEN_ID_ENCRYPTION_KEY: ${CITIZEN_ID_ENCRYPTION_KEY:?CITIZEN_ID_ENCRYPTION_KEY must be set}
       BANK_ACCOUNT_ENCRYPTION_KEY: ${BANK_ACCOUNT_ENCRYPTION_KEY:?BANK_ACCOUNT_ENCRYPTION_KEY must be set}

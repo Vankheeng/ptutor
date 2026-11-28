@@ -173,6 +173,39 @@ def test_model_call_retries_once_on_retryable_error():
     assert response.content == "ok" and len(attempts) == 2
 
 
+def test_model_call_retry_uses_only_remaining_deadline(monkeypatch):
+    clock = [100.0]
+    monkeypatch.setattr("app.agent.middleware.model_call.time.monotonic", lambda: clock[0])
+    timeouts = []
+
+    def flaky(request):
+        timeouts.append(request.timeout_s)
+        if len(timeouts) == 1:
+            clock[0] += 3.0
+            raise LlmError("temporary", retryable=True)
+        return LlmResponse(content="ok")
+
+    middleware = ModelCallMiddleware(timeout_s=15, max_output_tokens=500)
+    response = middleware.wrap_model_call(new_state(), LlmRequest(messages=[], timeout_s=5), flaky)
+    assert response.content == "ok" and timeouts == [5.0, 2.0]
+
+
+def test_model_call_does_not_retry_when_deadline_is_near(monkeypatch):
+    clock = [100.0]
+    monkeypatch.setattr("app.agent.middleware.model_call.time.monotonic", lambda: clock[0])
+    attempts = []
+
+    def slow_failure(request):
+        attempts.append(request.timeout_s)
+        clock[0] += 4.5
+        raise LlmError("timeout", retryable=True, timeout=True)
+
+    middleware = ModelCallMiddleware(timeout_s=15, max_output_tokens=500)
+    with pytest.raises(LlmError):
+        middleware.wrap_model_call(new_state(), LlmRequest(messages=[], timeout_s=5), slow_failure)
+    assert len(attempts) == 1
+
+
 def test_context_injection_abstains_without_context_and_tools(settings):
     services = make_services(settings)
     middleware = ContextInjectionMiddleware(services.routes, ApproxTokenCounter(), Composer({}))

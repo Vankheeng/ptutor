@@ -1,7 +1,7 @@
 """Generate repeatable, Vietnamese local test data for the dev schema.
 
 The SQL is printed by default. Pass --load only for an isolated local database.
-No network calls, external identities, or real payment credentials are used.
+No network calls or real payment credentials are used; Gmail-format addresses are synthetic.
 """
 
 import argparse
@@ -40,6 +40,74 @@ METHODS = [
     "Dùng sơ đồ và bài tập gần với chương trình ở trường, không thúc ép học quá nhanh.",
     "Cho học sinh trình bày cách nghĩ, sửa lỗi ngay trong lúc làm và giao bài vừa sức.",
 ]
+REVIEW_DETAILS = [
+    "Con bớt ngại hỏi khi gặp bài khó.", "Gia đình nhận được nhận xét sau mỗi tuần học.",
+    "Phần bài tập trên lớp đã được giải thích lại khá rõ.", "Lịch học được thống nhất trước nên dễ sắp xếp.",
+    "Con biết tự kiểm tra lại lời giải trước khi nộp bài.", "Các ví dụ sát với phần con đang học ở trường.",
+    "Thầy cô chỉ ra lỗi trình bày mà trước đây con thường bỏ qua.",
+]
+APPLICATION_MESSAGES = [
+    "Em đang học lớp {level} và muốn ôn lại {topic} trong môn {subject}. Gia đình có thể trao đổi lịch học buổi tối ạ.",
+    "Gia đình đang tìm người kèm {subject} cho con lớp {level}; phần {topic} con còn chưa chắc. Mong thầy cô cho biết lịch còn trống.",
+    "Con học {subject} lớp {level} nhưng làm bài về {topic} còn chậm. Em muốn học đều hai buổi mỗi tuần nếu lịch phù hợp.",
+    "Em muốn được hướng dẫn kỹ phần {topic} của {subject} lớp {level}. Nhà mình sắp xếp được các buổi tối trong tuần.",
+    "Lớp {level} năm nay có phần {topic} con tiếp thu chưa tốt. Gia đình muốn trao đổi cách kèm {subject} trước khi bắt đầu.",
+    "Em đang cần củng cố {subject} lớp {level}, nhất là {topic}. Thầy cô có thể nhận lịch học sau giờ học ở trường không ạ?",
+    "Gia đình thấy cách dạy của thầy cô phù hợp với nhu cầu ôn {topic} của con lớp {level}. Con có thể học {subject} vào buổi tối.",
+    "Con muốn học lại nền tảng {subject} lớp {level} trước kỳ kiểm tra. Phần {topic} hiện là chỗ con hay sai nhất.",
+    "Em đang tìm người giúp em tự làm được bài {topic} trong môn {subject} lớp {level}. Gia đình xin trao đổi thêm về lịch học.",
+    "Gia đình ưu tiên học chắc {topic} thay vì luyện đề quá nhanh. Con đang học {subject} lớp {level}, có thể bắt đầu trong tuần này.",
+]
+OFFER_MESSAGES = [
+    "Tôi đang nhận kèm {subject} lớp {level} và có thể bắt đầu với phần {topic}. Nếu gia đình thuận tiện, mình trao đổi lịch trước nhé.",
+    "Nhu cầu ôn {topic} của con khá phù hợp với nội dung tôi đang dạy. Tôi có thể nhận lớp {subject} này vào buổi tối.",
+    "Tôi thường kiểm tra kiến thức nền trước khi cho học sinh làm bài {topic}. Gia đình có thể cho tôi biết lịch học mong muốn không?",
+    "Với {subject} lớp {level}, tôi muốn xem con đang vướng ở đâu trong phần {topic} rồi mới lên bài. Tôi còn lịch trong tuần.",
+    "Tôi có thể hỗ trợ con học {subject} lớp {level}, nhất là nội dung {topic}. Mình có thể trao đổi một buổi học đầu để thống nhất cách học.",
+    "Lớp {subject} này phù hợp chuyên môn của tôi. Nếu con cần ôn {topic}, tôi sẽ điều chỉnh bài tập theo phần còn yếu.",
+    "Tôi hiện dạy {subject} cho học sinh lớp {level}. Phần {topic} có thể chia thành từng buổi ngắn để con dễ theo kịp.",
+    "Gia đình có thể gửi thêm phần bài con đang học ở trường không? Tôi nhận kèm {subject} lớp {level} và có thể chuẩn bị bài về {topic}.",
+    "Tôi muốn trao đổi mục tiêu học của con trước khi nhận lớp. Nội dung {topic} trong {subject} lớp {level} là phần tôi có thể hỗ trợ.",
+    "Nếu lịch học của gia đình phù hợp, tôi có thể nhận dạy {subject} lớp {level}. Trước mắt nên củng cố {topic} cho con.",
+]
+LESSON_NOTES = [
+    "Đã ôn {topic} và chữa các bài con làm sai ở nhà.",
+    "Con làm được phần cơ bản của {topic}; buổi sau sẽ luyện thêm bài vận dụng.",
+    "Dành thời gian kiểm tra kiến thức cũ rồi thực hành bài về {topic}.",
+    "Con còn lúng túng ở {topic}, cần xem lại ví dụ đã ghi trong vở.",
+    "Đã chữa bài kiểm tra trên lớp và giao thêm bài tập về {topic}.",
+    "Buổi học tập trung vào cách trình bày khi giải bài {topic}.",
+    "Con chủ động hỏi nhiều hơn; tiếp tục ôn {topic} vào buổi tới.",
+    "Đã hoàn thành phần ôn {topic} theo kế hoạch của tuần này.",
+]
+TEACHING_TITLES = [
+    "Nhận kèm {subject} lớp {grade}: {focus} ({place})",
+    "Gia sư {subject} lớp {grade}, trọng tâm {focus} - {place}",
+    "Củng cố {focus} môn {subject} lớp {grade} ({place})",
+    "Dạy {subject} lớp {grade}, ôn phần {focus} - {place}",
+    "Ôn {focus} môn {subject} cho học sinh lớp {grade} ({place})",
+    "Nhận dạy {subject} lớp {grade} về {focus} - {place}",
+    "Học chắc {focus} cùng gia sư {subject} lớp {grade} ({place})",
+    "Kèm {subject} lớp {grade}, ưu tiên {focus} - {place}",
+    "Gia sư nhận dạy {subject} lớp {grade}: {focus} ({place})",
+    "Luyện {focus} môn {subject} cho lớp {grade} - {place}",
+    "Dạy kèm {subject} lớp {grade}, tập trung {focus} ({place})",
+    "Đồng hành học {subject} lớp {grade}: {focus} - {place}",
+]
+STUDYING_TITLES = [
+    "Tìm gia sư {subject} lớp {grade}: {focus} ({place})",
+    "Cần người kèm {subject} lớp {grade} về {focus} - {place}",
+    "Học {subject} lớp {grade}, muốn ôn {focus} ({place})",
+    "Gia đình tìm gia sư {subject} lớp {grade} - {focus}, {place}",
+    "Cần củng cố {focus} môn {subject} lớp {grade} ({place})",
+    "Tìm thầy cô dạy {subject} lớp {grade}: {focus} - {place}",
+    "Ôn {focus} môn {subject} lớp {grade} cùng gia sư ({place})",
+    "Con học lớp {grade}, cần kèm {subject} phần {focus} - {place}",
+    "Tìm người hướng dẫn {focus} môn {subject} lớp {grade} ({place})",
+    "Cần học thêm {subject} lớp {grade}, trọng tâm {focus} - {place}",
+    "Gia sư {subject} lớp {grade} cho phần {focus} ({place})",
+    "Tìm gia sư kèm riêng {subject} lớp {grade}: {focus} - {place}",
+]
 NEEDS = [
     "Con làm bài trên lớp còn chậm, cần người kiên nhẫn kèm từng bước.",
     "Muốn củng cố kiến thức nền trước khi bắt đầu luyện đề thường xuyên.",
@@ -68,6 +136,10 @@ SUPPORT_QUESTIONS = [
     "Tôi muốn biết vì sao tin tìm gia sư bị từ chối để sửa lại nội dung.",
     "Tôi không thấy đề nghị dạy vừa được thông báo trên trang cá nhân.",
     "Học viên đồng ý học thử nhưng tôi chưa thấy hợp đồng cần ký.",
+]
+SUPPORT_ROLES = [
+    "STUDENT", "STUDENT", "TUTOR", "TUTOR", "STUDENT", "STUDENT",
+    "STUDENT", "STUDENT", "TUTOR", "STUDENT", "TUTOR", "TUTOR",
 ]
 SUPPORT_ANSWERS = [
     "Chúng tôi đã đối chiếu giao dịch và cập nhật trạng thái thanh toán trong hợp đồng.",
@@ -141,6 +213,54 @@ def insert(table, columns, values):
     return f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(map(str, values))}) ON CONFLICT DO NOTHING;"
 
 
+def refresh(table, row_id, **values):
+    """Refresh only deterministic seed rows when the generator is run again."""
+    assignments = ", ".join(f"{column}={q(value)}" for column, value in values.items())
+    return f"UPDATE {table} SET {assignments} WHERE id={q(row_id)};"
+
+
+def seed_email(full_name, birth_year):
+    """Natural Gmail syntax for isolated demo accounts; local SMTP must stay disabled."""
+    suffix = 100000 + uuid.uuid5(NS, f"demo-email/{full_name}/{birth_year}").int % 900000
+    local = "".join(bank_holder(full_name).lower().split()) + str(suffix)
+    return f"{local}@gmail.com"
+
+
+def application_message(i, j, level, subject):
+    topic = topic_for_grade(subject, level)
+    return APPLICATION_MESSAGES[(i*3+j) % len(APPLICATION_MESSAGES)].format(
+        level=level, subject=subject, topic=topic)
+
+
+def offer_message(i, j, level, subject):
+    topic = topic_for_grade(subject, level)
+    return OFFER_MESSAGES[(i*3+j) % len(OFFER_MESSAGES)].format(
+        level=level, subject=subject, topic=topic)
+
+
+def schedule_text(days, start, end):
+    names = {1: "Thứ 2", 2: "Thứ 3", 3: "Thứ 4", 4: "Thứ 5",
+             5: "Thứ 6", 6: "Thứ 7", 7: "Chủ nhật"}
+    return f"{names[days[0]]} và {names[days[1]]}, {start}–{end}"
+
+
+def teaching_title(i, j, subject, level, focus, mode, district_name):
+    place = "trực tuyến" if mode == "ONLINE" else f"tại {district_name}"
+    return TEACHING_TITLES[(i*7+j*3)%len(TEACHING_TITLES)].format(
+        subject=subject, grade=level, focus=focus, place=place)
+
+
+def studying_title(i, j, subject, level, focus, mode, district_name):
+    place = "trực tuyến" if mode == "ONLINE" else f"tại {district_name}"
+    return STUDYING_TITLES[(i*5+j*3)%len(STUDYING_TITLES)].format(
+        subject=subject, grade=level, focus=focus, place=place)
+
+
+def topic_for_grade(subject, level):
+    """Pick a curriculum topic from the nearest grade, never a distant grade."""
+    return min(TOPICS[subject], key=lambda row: (abs(row[0] - level), row[0]))[1]
+
+
 def bank_key():
     encoded=os.environ.get("BANK_ACCOUNT_ENCRYPTION_KEY") or os.environ.get("CITIZEN_ID_ENCRYPTION_KEY")
     if not encoded:
@@ -171,36 +291,51 @@ def bank_holder(name):
 def generate(include_ai=False, include_chatbot=False, finance_key=None):
     rng = random.Random(27011)
     out = ["BEGIN;", "SET LOCAL client_encoding = 'UTF8';"]
+    refreshes = []
+    corpus_path = Path(__file__).with_name("narratives.json")
+    narratives = json.loads(corpus_path.read_text(encoding="utf-8"))
+    if len(narratives) != 438:
+        raise ValueError("narratives.json must contain all 438 authored records before loading")
     for name in TOPICS:
         out.append(insert("subjects",["id","name","status"],[sql_id("subject",name),q(name),q("ACTIVE")]))
     for level in range(6,13):
         out.append(insert("grades",["id","name","level","status"],[sql_id("grade",level),q(f"Lớp {level}"),level,q("ACTIVE")]))
     for index,(surname,given,function) in enumerate((("Trần Thu","Hà","CUSTOMER_SERVICE"),("Nguyễn Minh","Quân","ACCOUNTANT"))):
         key=f"staff-{index}"
+        staff_user = uid("user", key)
+        staff_email = ("hotro@ptutor.local", "ketoan@ptutor.local")[index]
         out.append(insert("users",["id","citizen_id","email","password","first_name","last_name","status"],
-            [sql_id("user",key),q(f"079900000{index:03d}"),q(f"staff.{function.lower()}@ptutor.local"),q(HASH),q(surname),q(given),q("ACTIVE")]))
+            [q(staff_user),q(f"079900000{index:03d}"),q(staff_email),q(HASH),q(surname),q(given),q("ACTIVE")]))
+        refreshes.append(refresh("users", staff_user, email=staff_email))
         out.append(insert("employees",["id","user_id","role","job_function"],
             [sql_id("employee",key),sql_id("user",key),2,q(function)]))
     tutors, students, teaching, studying, applications, offers, tutor_names = [], [], [], [], [], [], []
     for role, count in (("tutor", 84), ("student", 64)):
         for i in range(count):
             gender = "MALE" if (i % 2 == 0) else "FEMALE"
-            given = (MALE if gender == "MALE" else FEMALE)[(i * 7 + i // 12) % 12]
-            middle = (MIDDLE_MALE if gender == "MALE" else MIDDLE_FEMALE)[(i // 3) % 6]
-            surname = FAMILIES[(i * 5 + i // 12) % 12]
+            name_index = i if role == "tutor" else i + 85
+            given = (MALE if gender == "MALE" else FEMALE)[(name_index * 7 + name_index // 12) % 12]
+            middle = (MIDDLE_MALE if gender == "MALE" else MIDDLE_FEMALE)[(name_index // 3) % 6]
+            surname = FAMILIES[(name_index * 5 + name_index // 12) % 12]
             home = DISTRICTS[(i * 7) % len(DISTRICTS)]
             key = f"{role}-{i:03d}"
             user = uid("user", key)
-            email = f"{role}.{i+1:03d}@ptutor.local"
+            level = 6 + (i * 5) % 7 if role == "student" else None
+            birth_year = 2026 - (level + 6) if level is not None else 1983 + i % 19
+            birth_date = f"{birth_year}-{1+i%12:02d}-{5+(i*7)%23:02d}"
+            full_name = surname + " " + middle + " " + given
+            email = seed_email(full_name, birth_year)
             status="BLOCKED" if i==count-1 else "INACTIVE" if i==count-2 else "ACTIVE"
             account_status=status
             columns=["id","district_id","citizen_id","email","password","first_name","last_name","gender","status","date_of_birth","created_at"]
             citizen_number=(100000000 if role=="tutor" else 200000000)+i
-            values=[q(user),district(home),q(f"079{citizen_number:09d}"),q(email),q(HASH),q(surname+' '+middle),q(given),q(gender),q(status),q(f"{1983+i%19}-0{1+i%9}-15"),f"CURRENT_TIMESTAMP - INTERVAL '{100+i%200} days'"]
+            values=[q(user),district(home),q(f"079{citizen_number:09d}"),q(email),q(HASH),q(surname+' '+middle),q(given),q(gender),q(status),q(birth_date),f"CURRENT_TIMESTAMP - INTERVAL '{100+i%200} days'"]
             if status=="BLOCKED":
                 columns += ["suspension_type","suspension_reason","suspended_at","suspended_until","suspended_by_user_id","suspension_count"]
                 values += [q("TEMPORARY"),q("Tài khoản tạm khóa để xác minh phản ánh về lịch học."),"CURRENT_TIMESTAMP - INTERVAL '2 days'","CURRENT_TIMESTAMP + INTERVAL '12 days'","(SELECT user_id FROM employees WHERE role=1 ORDER BY id LIMIT 1)",1]
             out.append(insert("users",columns,values))
+            refreshes.append(refresh("users", user, email=email, first_name=surname+" "+middle,
+                                     last_name=given, date_of_birth=birth_date))
             if role == "tutor":
                 subject = list(TOPICS)[i % len(TOPICS)]
                 level, topic = TOPICS[subject][(i // len(TOPICS)) % len(TOPICS[subject])]
@@ -209,9 +344,13 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 profile = uid("tutor", i)
                 education = ["Đại học Sư phạm Hà Nội", "Đại học Khoa học Tự nhiên", "Đại học Ngoại ngữ", "Đại học Bách khoa Hà Nội"][i % 4]
                 intro = f"Tôi dạy {subject} lớp {max(6,level-1)}–{min(12,level+1)} được {exp} năm, chú trọng {topic}. {method}"
+                profile_text = narratives.get(profile, {})
+                intro = profile_text.get("introduction", intro)
+                method = profile_text.get("teaching_methodology", method)
                 reviewer="(SELECT id FROM employees WHERE role=1 ORDER BY id LIMIT 1)"
                 out.append(insert("tutors", ["id","user_id","introduction","experience_years","education","teaching_methodology","strength_subjects","target_student_type","profile_status","profile_reviewed_by","profile_reviewed_at"],
                     [q(profile),q(user),q(intro),exp,q(education),q(method),q(subject),q("Học sinh cần củng cố nền tảng" if i%3 else "Học sinh muốn luyện thi"),q("PENDING" if i%17==0 else "VERIFIED"),"NULL" if i%17==0 else reviewer,"NULL" if i%17==0 else "CURRENT_TIMESTAMP - INTERVAL '73 days'"]))
+                refreshes.append(refresh("tutors", profile, introduction=intro, teaching_methodology=method))
                 tutors.append((profile, user, subject, level, home))
                 tutor_names.append(surname+" "+middle+" "+given)
                 if i%5 == 0:
@@ -223,34 +362,64 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                     posting = uid("teaching",i,j)
                     mode = "ONLINE" if (i+j)%4==0 else "OFFLINE"
                     price = 140000+((i+j)%8)*20000
-                    title = [f"Nhận kèm {subject} lớp {tlevel}",f"{subject} lớp {tlevel}: {ttopic}",f"Ôn tập {subject} cho học sinh lớp {tlevel}"][j+i%3 if j+i%3<3 else 2]
                     desc = f"Tập trung {ttopic}. {method} Có thể điều chỉnh tốc độ theo tình hình của học sinh."
+                    posting_text = narratives.get(posting, {})
+                    title = teaching_title(i, j, subject, tlevel, ttopic, mode, home)
+                    desc = posting_text.get("description", desc)
+                    days = (2+(i+j)%4, 6+(i+j)%2)
+                    start, end = ("18:00", "20:00") if i%2 else ("18:30", "20:30")
+                    preferred = schedule_text(days, start, end)
                     status = "CLOSED" if account_status!="ACTIVE" else "PENDING_REVIEW" if i%17==0 or (i%19==0 and j==1) else "REJECTED" if i%23==0 and j==1 else "OPEN" if i%11 else "CLOSED"
                     out.append(insert("teaching_requests",["id","tutor_id","subject_id","title","description","quantity","expected_price","teaching_mode","preferred_schedule","status","reviewed_at","created_at"],
-                        [q(posting),q(profile),catalog("subjects",subject),q(title),q(desc),1+i%3,price,q(mode),q("Thứ 3 và thứ 7, sau 18 giờ" if i%2 else "Thứ 2 và thứ 5, 19–21 giờ"),q(status),"NULL" if status=="PENDING_REVIEW" else "CURRENT_TIMESTAMP - INTERVAL '72 days'",f"CURRENT_TIMESTAMP - INTERVAL '{75+i%75} days'"]))
+                        [q(posting),q(profile),catalog("subjects",subject),q(title),q(desc),1+i%3,price,q(mode),q(preferred),q(status),"NULL" if status=="PENDING_REVIEW" else "CURRENT_TIMESTAMP - INTERVAL '72 days'",f"CURRENT_TIMESTAMP - INTERVAL '{75+i%75} days'"]))
+                    refreshes.append(refresh("teaching_requests", posting, title=title, description=desc,
+                                             preferred_schedule=preferred))
                     out.append(insert("grade_teaching_requests",["id","grade_id","teaching_request_id"],[sql_id("tr-grade",i,j),grade(tlevel),q(posting)]))
                     if mode=="OFFLINE":
                         out.append(insert("teaching_request_districts",["id","teaching_request_id","district_id"],[sql_id("tr-district",i,j),q(posting),district(home)]))
-                    for k, day in enumerate((2+i%3, 6)):
-                        out.append(insert("teaching_request_availabilities",["id","teaching_request_id","day_of_week","start_time","end_time"],[sql_id("tr-slot",i,j,k),q(posting),day,q("18:00"),q("20:00")]))
+                    for k, day in enumerate(days):
+                        slot_id = uid("tr-slot", i, j, k)
+                        out.append(insert("teaching_request_availabilities",["id","teaching_request_id","day_of_week","start_time","end_time"],[q(slot_id),q(posting),day,q(start),q(end)]))
+                        refreshes.append(refresh("teaching_request_availabilities", slot_id,
+                                                 day_of_week=day, start_time=start, end_time=end))
                     teaching.append((posting, profile, subject, tlevel, price, mode, status))
             else:
                 profile = uid("student",i)
-                level = 6+(i*5)%7
                 need = NEEDS[i%len(NEEDS)]
+                subject = list(TOPICS)[i % len(TOPICS)]
+                focus = topic_for_grade(subject, level)
+                profile_text = narratives.get(profile, {})
+                student_intro = profile_text.get("introduction", f"Học sinh lớp {level} cần gia sư {subject}. {need}")
+                weak_points = profile_text.get("weak_points", f"Con cần ôn lại {focus}.")
+                goals = profile_text.get("goals_description", f"Nắm chắc {subject} và cải thiện kết quả học tập.")
                 out.append(insert("students",["id","user_id","introduction","current_level","weak_points","goals_description"],
-                    [q(profile),q(user),q(need),q(f"Lớp {level}"),q(need),q("Nắm chắc kiến thức và cải thiện kết quả học tập")]))
+                    [q(profile),q(user),q(student_intro),q(f"Lớp {level}"),q(weak_points),q(goals)]))
+                refreshes.append(refresh("students", profile, introduction=student_intro,
+                                         weak_points=weak_points, goals_description=goals))
                 students.append((profile,user,level,home))
                 for j in range(1+(i%3==0)):
                     subject = list(TOPICS)[(i+j*3)%len(TOPICS)]
                     posting = uid("studying",i,j)
                     mode = "ONLINE" if (i+j)%4==0 else "OFFLINE"
                     need = NEEDS[(i+j)%len(NEEDS)]
+                    focus = topic_for_grade(subject, level)
+                    posting_text = narratives.get(posting, {})
+                    title = studying_title(i, j, subject, level, focus, mode, home)
+                    desc = posting_text.get("description", need)
+                    learning_goals = posting_text.get("learning_goals", f"Cải thiện {subject} trong học kỳ này")
+                    days = (2+(i+j)%4, 6+(i+j)%2)
+                    start, end = ("18:00", "20:00") if i%2 else ("18:30", "20:30")
+                    preferred = schedule_text(days, start, end)
                     status = "CLOSED" if account_status!="ACTIVE" else "PENDING_REVIEW" if i%21==0 and j==0 else "REJECTED" if i%25==0 and j==0 else "OPEN" if i%13 else "CLOSED"
                     out.append(insert("studying_requests",["id","district_id","student_id","subject_id","grade_id","title","description","learning_goals","max_price","learning_mode","preferred_schedule","status","created_at"],
-                        [q(posting),district(home) if mode=="OFFLINE" else "NULL",q(profile),catalog("subjects",subject),grade(level),q(f"Tìm gia sư {subject} lớp {level}"),q(need),q(f"Cải thiện {subject} trong học kỳ này"),180000+(i%7)*20000,q(mode),q("Hai buổi tối trong tuần"),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{60+i%55} days'"]))
-                    for k, day in enumerate((3,7)):
-                        out.append(insert("studying_request_availabilities",["id","studying_request_id","day_of_week","start_time","end_time"],[sql_id("sr-slot",i,j,k),q(posting),day,q("18:30"),q("20:00")]))
+                        [q(posting),district(home) if mode=="OFFLINE" else "NULL",q(profile),catalog("subjects",subject),grade(level),q(title),q(desc),q(learning_goals),180000+(i%7)*20000,q(mode),q(preferred),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{60+i%55} days'"]))
+                    refreshes.append(refresh("studying_requests", posting, title=title, description=desc,
+                                             learning_goals=learning_goals, preferred_schedule=preferred))
+                    for k, day in enumerate(days):
+                        slot_id = uid("sr-slot", i, j, k)
+                        out.append(insert("studying_request_availabilities",["id","studying_request_id","day_of_week","start_time","end_time"],[q(slot_id),q(posting),day,q(start),q(end)]))
+                        refreshes.append(refresh("studying_request_availabilities", slot_id,
+                                                 day_of_week=day, start_time=start, end_time=end))
                     studying.append((posting,profile,subject,level,mode,status))
     open_teaching = [x for x in teaching if x[-1]=="OPEN"]
     open_studying = [x for x in studying if x[-1]=="OPEN"]
@@ -267,29 +436,45 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             req = uid("application",i,j)
             applications.append((i,j,req,age))
             application_columns=["id","student_id","grade_id","teaching_request_id","proposed_price","learning_mode","message","status","created_at"]
-            application_values=[q(req),q(student),grade(level),q(posting),price,q(mode),q(f"Em đang học lớp {level}, muốn được kèm phần {subject} vào buổi tối. Gia đình có thể trao đổi lịch cụ thể."),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{age} days'"]
+            message = application_message(i, j, level, subject)
+            application_values=[q(req),q(student),grade(level),q(posting),price,q(mode),q(message),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{age} days'"]
             if include_ai:
                 application_columns.append("responded_at")
                 application_values.append("NULL" if status=="PENDING" else f"CURRENT_TIMESTAMP - INTERVAL '{age-2} days'")
             out.append(insert("student_tutor_requests",application_columns,application_values))
+            refreshes.append(refresh("student_tutor_requests", req, message=message))
             if j==0:
                 out.append(insert("favorite_tutors",["id","student_id","tutor_id"],[sql_id("favorite",i),q(student),q(tutor)]))
                 contract = uid("contract",i)
-                completed=i%9==0
+                completed=i%3==0  # Reviews are only valid after a completed contract.
                 out.append(insert("contracts",["id","student_id","tutor_id","subject_id","grade_id","teaching_mode","price","payment_period","total_lession","start_date","end_date","status","created_by_user_id","signed_by_user_id","student_tutor_request_id","preferred_schedule","signed_at"],
                     [q(contract),q(student),q(tutor),catalog("subjects",subject),grade(level),q(mode),price,q("PER_LESSON"),3 if completed else 12,"CURRENT_DATE - 60" if completed else "CURRENT_DATE - 20","CURRENT_DATE - 1" if completed else "CURRENT_DATE + 70",q("COMPLETED" if completed else "ACTIVE"),q(tutor_user),q(user),q(req),q("Hai buổi tối mỗi tuần"),"CURRENT_TIMESTAMP - INTERVAL '67 days'" if completed else "CURRENT_TIMESTAMP - INTERVAL '21 days'"]))
+                if completed:
+                    refreshes.append(f"UPDATE contracts SET status='COMPLETED', end_date=CURRENT_DATE - 1, total_lession=3 WHERE id={q(contract)};")
                 for k in range(3):
+                    lesson_focus = topic_for_grade(subject, level)
+                    lesson_title = f"Buổi {k+1}: {lesson_focus}"
+                    lesson_note = LESSON_NOTES[(i+k*3)%len(LESSON_NOTES)].format(
+                        topic=lesson_focus)
+                    lesson_id = uid("lesson", i, k)
                     out.append(insert("lessons",["id","contract_id","title","date","start_time","end_time","teaching_mode","status","note"],
-                        [sql_id("lesson",i,k),q(contract),q(f"Buổi {k+1}: ôn {subject} lớp {level}"),f"CURRENT_DATE - {25-k*7}" if completed else (f"CURRENT_DATE - {18-k*7}" if k<2 else "CURRENT_DATE + 3"),q("18:30"),q("20:00"),q(mode),q("COMPLETED" if completed or k<2 else "SCHEDULED"),q("Ôn phần còn yếu và luyện bài tập theo chương trình")]))
+                        [q(lesson_id),q(contract),q(lesson_title),f"CURRENT_DATE - {25-k*7}" if completed else (f"CURRENT_DATE - {18-k*7}" if k<2 else "CURRENT_DATE + 3"),q("18:30"),q("20:00"),q(mode),q("COMPLETED" if completed or k<2 else "SCHEDULED"),q(lesson_note)]))
+                    refreshes.append(refresh("lessons", lesson_id, title=lesson_title, note=lesson_note))
+                    if completed:
+                        refreshes.append(f"UPDATE lessons SET status='COMPLETED', date=CURRENT_DATE - {25-k*7} WHERE id={q(lesson_id)};")
                     out.append(insert("contract_payment_installments",["id","contract_id","lesson_id","sequence_number","payment_period","amount","due_date","status"],
                         [sql_id("installment",i,k),q(contract),sql_id("lesson",i,k),k+1,q("PER_LESSON"),price,f"CURRENT_DATE - {18-k*7}" if completed else f"CURRENT_DATE + {k*7}",q("PAID" if completed or k<2 else "PENDING")]))
+                    if completed:
+                        refreshes.append(f"UPDATE contract_payment_installments SET status='PAID', due_date=CURRENT_DATE - {18-k*7} WHERE id={sql_id('installment',i,k)};")
                 if i%3==0:
+                    review_comment = REVIEW_TEXT[i%len(REVIEW_TEXT)] + " " + REVIEW_DETAILS[(i//3)%len(REVIEW_DETAILS)]
                     columns=["id","student_id","tutor_id","rating","comment"]
-                    values=[sql_id("review",i),q(student),q(tutor),4+i%2,q(REVIEW_TEXT[i%len(REVIEW_TEXT)])]
+                    values=[sql_id("review",i),q(student),q(tutor),4+i%2,q(review_comment)]
                     if include_ai:
                         columns.append("contract_id")
                         values.append(q(contract))
                     out.append(insert("reviews",columns,values))
+                    refreshes.append(refresh("reviews", uid("review", i), comment=review_comment))
                 if i%16==0:
                     out.append(insert("complaints",["id","user_id","contract_id","title","content","status","category"],[sql_id("complaint",i),q(user),q(contract),q("Cần trao đổi lại lịch buổi học"),q("Buổi học gần đây dời lịch sát giờ. Gia đình muốn được hỗ trợ thống nhất lịch học tiếp theo."),q("PENDING"),q("OTHER")]))
                 if i%17==0 and not completed:
@@ -320,11 +505,13 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
             offer=uid("offer",i,j)
             offers.append((i,j,offer,age))
             columns=["id","tutor_id","grade_id","studying_request_id","proposed_price","teaching_mode","message","status","created_at"]
-            values=[q(offer),q(tutor),grade(level),q(sr),200000,q(mode),q(f"Tôi có kinh nghiệm dạy {subject} lớp {level} và có thể trao đổi lịch học với gia đình."),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{age} days'"]
+            message = offer_message(i, j, level, subject)
+            values=[q(offer),q(tutor),grade(level),q(sr),200000,q(mode),q(message),q(status),f"CURRENT_TIMESTAMP - INTERVAL '{age} days'"]
             if include_ai:
                 columns.append("responded_at")
                 values.append("NULL" if status=="PENDING" else f"CURRENT_TIMESTAMP - INTERVAL '{age-2} days'")
             out.append(insert("tutor_student_requests",columns,values))
+            refreshes.append(refresh("tutor_student_requests", offer, message=message))
     # Search events are linked to actual postings, so preference and exposure jobs can use them.
     for i,(student,_,level,_) in enumerate(students):
         if i>=len(students)-2:
@@ -415,12 +602,16 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
     if include_chatbot:
         # A real support queue is more useful than fabricated assistant answers or citations.
         for i in range(36):
-            role="STUDENT" if i%3 else "TUTOR"
+            role=SUPPORT_ROLES[i%len(SUPPORT_ROLES)]
             user=students[i%len(students)][1] if role=="STUDENT" else tutors[i%len(tutors)][1]
             status=("OPEN","IN_PROGRESS","ANSWERED","CLOSED")[i%4]
             answer=SUPPORT_ANSWERS[i%len(SUPPORT_ANSWERS)] if status in ("ANSWERED","CLOSED") else None
+            support_id = uid("support", i)
+            question = narratives.get(support_id, {}).get("question", SUPPORT_QUESTIONS[i%len(SUPPORT_QUESTIONS)])
             out.append(insert("support_requests",["id","code","user_id","user_role","question","source","page_path","status","answer","assigned_employee_id","assigned_at","created_at","updated_at","answered_at","closed_at"],
-                [sql_id("support",i),q(f"HT-LOCAL-{i+1:04d}"),q(user),q(role),q(SUPPORT_QUESTIONS[i%len(SUPPORT_QUESTIONS)]),q("MENU" if i%5==0 else "ASSISTANT_ABSTAIN"),q("/my-support-requests"),q(status),q(answer),"NULL" if status=="OPEN" else sql_id("employee","staff-0"),"NULL" if status=="OPEN" else "CURRENT_TIMESTAMP - INTERVAL '1 day'",f"CURRENT_TIMESTAMP - INTERVAL '{2+i%18} days'",f"CURRENT_TIMESTAMP - INTERVAL '{i%2} days'","NULL" if answer is None else "CURRENT_TIMESTAMP - INTERVAL '1 day'","CURRENT_TIMESTAMP" if status=="CLOSED" else "NULL"]))
+                [q(support_id),q(f"HT-LOCAL-{i+1:04d}"),q(user),q(role),q(question),q("MENU" if i%5==0 else "ASSISTANT_ABSTAIN"),q("/my-support-requests"),q(status),q(answer),"NULL" if status=="OPEN" else sql_id("employee","staff-0"),"NULL" if status=="OPEN" else "CURRENT_TIMESTAMP - INTERVAL '1 day'",f"CURRENT_TIMESTAMP - INTERVAL '{2+i%18} days'",f"CURRENT_TIMESTAMP - INTERVAL '{i%2} days'","NULL" if answer is None else "CURRENT_TIMESTAMP - INTERVAL '1 day'","CURRENT_TIMESTAMP" if status=="CLOSED" else "NULL"]))
+            refreshes.append(refresh("support_requests", support_id, question=question,
+                                     user_role=role, user_id=user))
     if finance_key is not None:
         for i,(_,user,_,_,_) in enumerate(tutors[:24]):
             holder=bank_holder(tutor_names[i])
@@ -442,6 +633,7 @@ def generate(include_ai=False, include_chatbot=False, finance_key=None):
                 status=("PENDING","REJECTED","COMPLETED")[i%3]
                 out.append(insert("withdrawal_requests",["id","wallet_id","amount","bank_code","bank_name","encrypted_account_number","account_number_last_four","account_holder_name","idempotency_key","status","wallet_transaction_id","reviewed_by_user_id","reviewed_at","rejection_reason","completed_at","transfer_reference"],
                     [sql_id("withdrawal",i),q(wallet),300000,q("VCB" if i%2 else "TCB"),q("Vietcombank" if i%2 else "Techcombank"),q(encrypted),q(account[-4:]),q(holder),q(f"local-withdrawal-request-{i}"),q(status),sql_id("withdrawal-tx",i) if pending or completed else "NULL","NULL" if pending else "(SELECT user_id FROM employees WHERE role=1 ORDER BY id LIMIT 1)","NULL" if pending else "CURRENT_TIMESTAMP - INTERVAL '2 days'",q("Thông tin người thụ hưởng chưa khớp") if status=="REJECTED" else "NULL","CURRENT_TIMESTAMP - INTERVAL '1 day'" if completed else "NULL",q(f"LOCAL-TRANSFER-{i:03d}") if completed else "NULL"]))
+    out.extend(refreshes)
     out.append("COMMIT;")
     return "\n".join(out)+"\n"
 

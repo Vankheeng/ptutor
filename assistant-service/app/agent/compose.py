@@ -42,6 +42,29 @@ class Composer:
     def busy(self, state: TurnState, reason: str) -> TurnResult:
         return TurnResult(answer=BUSY_ANSWER, intent="POLICY", grounded="NONE", fallback_reason=reason)
 
+    def verified_partial(self, state: TurnState) -> TurnResult | None:
+        """Keep only claims the verifier already proved if an Actor retry fails."""
+        output = state.output
+        if output is None or state.verify_retries == 0:
+            return None
+        verdicts = state.verification.get("verdicts") or []
+        supported = [output.claims[item["claim"]] for item in verdicts
+                     if item.get("verdict") == "SUPPORTED"
+                     and isinstance(item.get("claim"), int)
+                     and 0 <= item["claim"] < len(output.claims)]
+        if not supported:
+            return None
+        output.claims = supported
+        output.answer = "\n".join(
+            f"- {claim.text}" if f"[{claim.source}]" in claim.text or not claim.source.startswith("D")
+            else f"- {claim.text} [{claim.source}]"
+            for claim in supported
+        )
+        output.actions = []
+        output.coverage = "PARTIAL"
+        state.verification.update({"grounded": "PARTIAL", "reason": "VERIFY_PARTIAL_TIMEOUT"})
+        return self.finish(state)
+
     def finish(self, state: TurnState) -> TurnResult:
         output = state.output
         if output is None:

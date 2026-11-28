@@ -6,6 +6,8 @@ giờ / 5xx / 429. Lỗi không đáng thử lại (sai khoá, yêu cầu sai) �
 
 from __future__ import annotations
 
+import time
+
 from app.agent.middleware.base import Middleware, ModelCall
 from app.agent.state import TurnState
 from app.providers.llm import LlmError, LlmRequest, LlmResponse
@@ -22,11 +24,16 @@ class ModelCallMiddleware(Middleware):
     def wrap_model_call(self, state: TurnState, request: LlmRequest, call_next: ModelCall) -> LlmResponse:
         request.timeout_s = min(request.timeout_s, self._timeout_s)
         request.max_output_tokens = min(request.max_output_tokens, self._max_output_tokens)
+        deadline = time.monotonic() + request.timeout_s
         attempt = 0
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise LlmError("Model call deadline exceeded", retryable=False, timeout=True)
+            request.timeout_s = remaining
             try:
                 return call_next(request)
             except LlmError as error:
-                if not error.retryable or attempt >= self._retries:
+                if not error.retryable or attempt >= self._retries or deadline - time.monotonic() < 1:
                     raise
                 attempt += 1

@@ -10,7 +10,7 @@ from app.agent.middleware.route_guard import route_allowed
 from app.agent.state import Caller, FocusItem, SessionState, TurnState
 from app.agent.verification import Verdict, claim_matches_tool_data, normalize_for_evidence, normalize_verdict
 from app.kb.routes import RouteCatalog, load_routes_file
-from app.providers.llm import LlmResponse, ScriptedLlm
+from app.providers.llm import LlmError, LlmResponse, ScriptedLlm
 from tests.fakes import FIXED_NOW, ROUTES_FILE, make_services
 from tests.unit.test_answer_with_citations import actor_json
 
@@ -30,6 +30,8 @@ def by_purpose(actor: list, verify: list):
     def policy(request):
         queue = verify if request.purpose == "verify" else actor
         step = queue.pop(0)
+        if isinstance(step, Exception):
+            raise step
         return step if isinstance(step, LlmResponse) else LlmResponse(content=step)
     return ScriptedLlm(policy=policy)
 
@@ -102,6 +104,25 @@ def test_still_wrong_after_retry_keeps_only_supported_claims_as_partial(verifyin
     result, _, _ = run(verifying_settings, llm)
     assert result.grounded == "PARTIAL" and "100%" not in result.answer and "10.000" in result.answer
     assert result.show_support_button
+
+
+def test_retry_timeout_keeps_only_already_verified_claims(verifying_settings):
+    both = actor_json(claims=[CLAIM_OK, CLAIM_WRONG], answer="Tối thiểu 10.000 đ [D1]. Hoàn 100% [D1].")
+    llm = by_purpose([both, LlmError("timeout", retryable=False, timeout=True)],
+                     [verdicts((0, "SUPPORTED", "tối thiểu 10.000 đ"), (1, "UNSUPPORTED", ""))])
+    result, _, _ = run(verifying_settings, llm)
+    assert result.grounded == "PARTIAL"
+    assert result.fallback_reason == "VERIFY_PARTIAL_TIMEOUT"
+    assert "10.000" in result.answer and "100%" not in result.answer
+    assert "[1] [1]" not in result.answer
+    assert result.show_support_button
+
+
+def test_retry_timeout_with_no_verified_claims_is_busy(verifying_settings):
+    llm = by_purpose([actor_json(claims=[CLAIM_WRONG]), LlmError("timeout", retryable=False, timeout=True)],
+                     [verdicts((0, "UNSUPPORTED", ""))])
+    result, _, _ = run(verifying_settings, llm)
+    assert result.grounded == "NONE" and result.fallback_reason == "TIMEOUT"
 
 
 def test_nothing_supported_abstains(verifying_settings):

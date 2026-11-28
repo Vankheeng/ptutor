@@ -42,7 +42,8 @@ l1-observations/
 /report/
 /tmp/
 /deploy/WEIGHT-LEARNING-*.md
-/scripts/
+/scripts/*
+!/scripts/realistic_data/
 **/BAO-CAO.md
 /worktrees/
 /knowledge-base/_bao-cao-sinh-tai-lieu.md

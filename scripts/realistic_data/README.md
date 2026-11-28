@@ -1,6 +1,6 @@
 # Dữ liệu kiểm thử PTutor
 
-Nhánh này tách từ `dev`. `seed.py` sinh dữ liệu cục bộ có ID cố định, chạy lại không nhân bản ghi. Tên, số định danh và giao dịch đều là dữ liệu giả lập; email dùng miền `ptutor.local` để không gửi thư cho người thật. Nội dung hồ sơ, nhu cầu học và trao đổi hỗ trợ được viết bằng tiếng Việt theo ngữ cảnh sản phẩm.
+Nhánh này tách từ `dev`. `seed.py` sinh dữ liệu cục bộ có ID cố định, chạy lại không nhân bản ghi. Tên, số định danh và giao dịch đều là dữ liệu giả lập. Email học viên và gia sư có cú pháp Gmail, nhưng chỉ dùng trong database kiểm thử; cấu hình Docker cục bộ chặn gửi thư ra ngoài để tránh gửi nhầm đến người thật. Nội dung hồ sơ và tin đăng nằm trong `narratives.json`: các đoạn văn được viết sẵn theo bối cảnh từng người, không gọi LLM mỗi lần nạp dữ liệu.
 
 ## Nạp dữ liệu
 
@@ -15,7 +15,7 @@ Khi đã tích hợp migration từ `feat/tutor-recommendation`, thêm `--ai` đ
 
 `--finance` cần gói Python `cryptography` (`pip install cryptography`).
 
-Mật khẩu chung của tài khoản kiểm thử là `Demo@2026` (hash bcrypt từ bộ seed cục bộ hiện có). Tài khoản điển hình: `student.001@ptutor.local`, `tutor.001@ptutor.local`. Không bật gửi email hoặc thanh toán thật cho database này. Giá trị mã thanh toán `LOCAL-TOPUP-*` là mã nội bộ, không gọi VNPay.
+Mật khẩu chung của tài khoản kiểm thử là `Demo@2026` (hash bcrypt từ bộ seed cục bộ hiện có). Tài khoản điển hình: `nguyenhuuquan825581@gmail.com` (học viên) và `nguyenvanminh898609@gmail.com` (gia sư). Không bật gửi email hoặc thanh toán thật cho database này. Giá trị mã thanh toán `LOCAL-TOPUP-*` là mã nội bộ, không gọi VNPay.
 
 ## Phạm vi
 
@@ -66,7 +66,7 @@ python scripts/realistic_data/check_learning.py --database ptutor_learning_final
 ## Kiểm tra nhanh
 
 ```sql
-SELECT count(*) FROM users WHERE email LIKE 'student.%@ptutor.local' OR email LIKE 'tutor.%@ptutor.local'; -- 148
+SELECT count(*) FROM users WHERE email LIKE '%@gmail.com'; -- 148
 SELECT count(*) FROM recommendation_logs; -- 1.390 trên DB tích hợp mới
 SELECT count(*) FROM recommendation_click_logs; -- 3.400 trên DB tích hợp mới
 SELECT count(*) FROM recommendation_decision_snapshots; -- 1.620, chỉ khi --ai
